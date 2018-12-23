@@ -66,3 +66,5 @@ gem 'rails-hyperstack', '~> 1.0.alpha'
 group :development do
   gem 'foreman'
 end
+
+gem 'pg'

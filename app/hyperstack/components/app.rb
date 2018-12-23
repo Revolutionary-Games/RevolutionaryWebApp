@@ -16,6 +16,6 @@ class App < HyperComponent
   # see the hyper-router gem documentation for more details
 
   render do
-    H1 { "Hello world from Hyperstack!" }
+    H1 { "Hello world from Hyperstack test!" }
   end
 end
