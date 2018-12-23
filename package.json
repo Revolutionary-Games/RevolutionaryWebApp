@@ -1,5 +1,9 @@
 {
   "name": "ThriveDevCenter",
   "private": true,
-  "dependencies": {}
+  "dependencies": {
+    "react": "^16.7.0",
+    "react-dom": "^16.7.0",
+    "react-router": "^4.3.1"
+  }
 }
