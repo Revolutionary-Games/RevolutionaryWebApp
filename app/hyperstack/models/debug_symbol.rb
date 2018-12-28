@@ -1,0 +1,2 @@
+class DebugSymbol < ApplicationRecord
+end
