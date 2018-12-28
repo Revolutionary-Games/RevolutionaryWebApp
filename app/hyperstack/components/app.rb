@@ -14,6 +14,7 @@ class App < HyperComponent
       UL do
         LI { Link('/') { 'Home' } }
         LI { Link('/symbols') { 'Symbols' } }
+        LI { Link('/login') { 'Login' } }        
         # LI { Link('/about') { 'About' } }        
       end
     end
@@ -21,6 +22,7 @@ class App < HyperComponent
     Switch do
       Route('/symbols', mounts: Symbols)
       Route('/', exact: true, mounts: Home)
+      Route('/login', mounts: Login)      
     end
   end
 end
