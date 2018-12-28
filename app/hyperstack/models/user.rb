@@ -9,7 +9,6 @@ class User < ApplicationRecord
   validates :password, confirmation: true
 
   
-
   validate :local_or_sso
 
   private

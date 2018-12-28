@@ -1,5 +1,8 @@
 class Login < HyperComponent
 
+  param :email
+  param :password
+
   render(DIV) do
     H1 { "Login" }
 
@@ -12,21 +15,33 @@ class Login < HyperComponent
     
     HR{}
     H2 { "Local account" }
-    FORM do
-      # LABEL{ "email" }
-      INPUT(type: :text, placeholder: "email"){
-      }
+    FORM(method: "post") do
+      csrf_token
+      
+      INPUT(type: :text, placeholder: "email", name: "email")
       BR{}
-      # LABEL{ "password" }
-      INPUT(type: :password, placeholder: "password"){
-      }
+      INPUT(type: :password, placeholder: "password", name: "password")
       BR{}
 
       DIV {
         "Error logging in: #{@login_response}"
       } if @login_response
       
-      BUTTON(action: "local_login") { "Login" }
+      BUTTON(action: "login", type: "submit") { "Login" }
     end
+
+    if HyperStack::Application.acting_user
+      DIV { "You are logged in!"}
+
+      FORM(method: "delete", ) do
+        csrf_token
+        BUTTON(action: "login", type: "submit") { "Logout" }
+      end
+    end
+  end
+
+  def csrf_token
+    INPUT(type: "hidden", name: "authenticity_token",
+          value: `$('meta[name="csrf-token"]')[0].content`)
   end
 end
