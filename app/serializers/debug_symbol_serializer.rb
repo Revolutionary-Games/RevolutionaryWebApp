@@ -1,4 +1,4 @@
 class DebugSymbolSerializer < ActiveModel::Serializer
 
-  attributes :id, :hash
+  attributes :id, :symbol_hash, :name
 end  

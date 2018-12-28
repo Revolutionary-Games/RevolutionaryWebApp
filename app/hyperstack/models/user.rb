@@ -11,6 +11,10 @@ class User < ApplicationRecord
   
   validate :local_or_sso
 
+  def generate_api_token
+    self.api_token = SecureRandom.base58(32)
+  end
+
   private
 
   def local_or_sso

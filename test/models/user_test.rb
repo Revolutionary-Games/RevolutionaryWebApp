@@ -53,4 +53,12 @@ class UserTest < ActiveSupport::TestCase
     user = User.new(email: "stuff@example.com", local: false)
     assert !user.valid?    
   end
+
+  test "Creating an API token preserves length" do
+    user = User.new(email: "stuff@example.com", password: "mysupercoolpassword", local: true)
+    user.generate_api_token
+    user.save
+
+    assert user.api_token.length == 32
+  end
 end

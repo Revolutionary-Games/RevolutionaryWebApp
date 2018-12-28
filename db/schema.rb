@@ -10,16 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_12_28_162428) do
+ActiveRecord::Schema.define(version: 2018_12_28_215543) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "debug_symbols", force: :cascade do |t|
-    t.string "hash"
+    t.string "symbol_hash"
     t.string "path"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "name"
+    t.index ["name", "symbol_hash"], name: "index_debug_symbols_on_name_and_symbol_hash", unique: true
   end
 
   create_table "hyperstack_connections", force: :cascade do |t|
@@ -54,6 +56,8 @@ ActiveRecord::Schema.define(version: 2018_12_28_162428) do
     t.string "password_digest"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "api_token"
+    t.index ["api_token"], name: "index_users_on_api_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
