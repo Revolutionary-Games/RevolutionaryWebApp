@@ -1,15 +1,15 @@
 class UserItem < HyperComponent
   param :user
   render(TR) do
-    TD{@User.id}
-    TD{@User.email}
-    TD{@User.name}
-    TD{@User.local}
-    TD{@User.sso_source}
-    TD{@User.developer}
-    TD{@User.admin}
-    TD{@User.created_at}
-    TD{!@User.api_token.blank?}
+    TD{"#{@User.id}"}
+    TD{"#{@User.email}"}
+    TD{"#{@User.name}"}
+    TD{"#{@User.local}"}
+    TD{"#{@User.sso_source}"}
+    TD{"#{@User.developer}"}
+    TD{"#{@User.admin}"}
+    TD{"#{@User.created_at}"}
+    TD{"#{!@User.api_token.blank?}"}
   end
 end
 
