@@ -1,8 +1,5 @@
 class Login < HyperComponent
 
-  param :email
-  param :password
-
   render(DIV) do
     H1 { "Login" }
 
@@ -30,7 +27,7 @@ class Login < HyperComponent
       BUTTON(action: "login", type: "submit") { "Login" }
     end
 
-    if HyperStack::Application.acting_user
+    if Hyperstack::Application.acting_user_id
       DIV { "You are logged in!"}
 
       FORM(method: "delete", ) do
