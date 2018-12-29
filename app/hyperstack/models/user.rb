@@ -11,6 +11,11 @@ class User < ApplicationRecord
   
   validate :local_or_sso
 
+  # Clientside user getting
+  def self.current
+    Hyperstack::Application.acting_user_id ? find(Hyperstack::Application.acting_user_id) : nil
+  end  
+
   def generate_api_token
     self.api_token = SecureRandom.base58(32)
   end

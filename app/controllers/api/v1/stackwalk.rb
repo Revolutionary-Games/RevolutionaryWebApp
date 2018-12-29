@@ -16,6 +16,11 @@ module API
         end
         post "" do
 
+          if !permitted_params[:data]
+            error!({error_code: 400, error_message: "Empty file"}, 400)
+            return
+          end
+
           Open3.popen3("StackWalk/minidump_stackwalk", permitted_params[:data][:tempfile].path,
                        "SymbolData") {|stdin, stdout, stderr, wait_thr|
 

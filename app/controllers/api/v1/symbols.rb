@@ -108,6 +108,11 @@ module API
             return
           end
 
+          if !permitted_params[:data]
+            error!({error_code: 400, error_message: "Empty file"}, 400)
+            return
+          end          
+
           platform, arch, hash, name = ApiHelper::getBreakpadSymbolInfo(
                                   permitted_params[:data][:tempfile].first)
 

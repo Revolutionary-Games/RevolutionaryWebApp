@@ -12,33 +12,24 @@ class Login < HyperComponent
     
     HR{}
     H2 { "Local account" }
-    FORM(method: "post") do
-      csrf_token
+    FORM(method: "post", action: "/login") do
+      CSRF{}
       
       INPUT(type: :text, placeholder: "email", name: "email")
       BR{}
       INPUT(type: :password, placeholder: "password", name: "password")
       BR{}
-
-      DIV {
-        "Error logging in: #{@login_response}"
-      } if @login_response
       
-      BUTTON(action: "login", type: "submit") { "Login" }
+      BUTTON(type: "submit") { "Login" }
     end
 
-    if Hyperstack::Application.acting_user_id
+    if App.acting_user
       DIV { "You are logged in!"}
 
-      FORM(method: "delete", ) do
-        csrf_token
-        BUTTON(action: "login", type: "submit") { "Logout" }
+      FORM(method: "post", action: "/logout") do
+        CSRF{}
+        BUTTON(type: "submit") { "Logout" }
       end
     end
-  end
-
-  def csrf_token
-    INPUT(type: "hidden", name: "authenticity_token",
-          value: `$('meta[name="csrf-token"]')[0].content`)
   end
 end
