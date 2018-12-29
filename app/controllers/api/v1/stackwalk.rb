@@ -4,11 +4,12 @@ module API
   module V1
     class Stackwalk < Grape::API
       include API::V1::Defaults
-      use Grape::Attack::Throttle
+      # use Grape::Attack::Throttle
 
       resource :stackwalk do
 
-        throttle max: 10, per: 15.seconds
+        # throttle max: 10, per: 15.seconds
+
         desc "Perform stackwalk on uploaded minidump"
         params do
           requires :data, type: File          
