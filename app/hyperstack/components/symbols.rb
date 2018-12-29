@@ -1,20 +1,41 @@
+class SymbolItem < HyperComponent
+  param :symbol
+  render(TR) do
+    TD{"#{@Symbol.id}"}
+    TD{"#{@Symbol.name}"}
+    TD{"#{@Symbol.symbol_hash}"}
+    TD{"#{@Symbol.path}"}
+    TD{"#{@Symbol.created_at}"}
+  end
+end
 
 class Symbols < HyperComponent
 
-  
-
   render(DIV) do
-    
-    DIV { "total symbols: #{DebugSymbol.count}" }
-    # DIV do
-    #   DIV { @entry.word }
-    #   DIV { @entry.pronunciation }
-    #   DIV { @entry.definition }
-    #   BUTTON { 'pick another' }.on(:click) { pick_entry! }
-    # end
-    
-    
-    # DIV(class: 'green-text') { "Let's gets started!" }
+
+    H1 { "Debug Symbols" }
+
+    DIV { "Total symbols: #{DebugSymbol.count}" }
+
+    TABLE {
+
+      THEAD {
+        TR{
+          TD{ "ID" }
+          TD{ "Name" }
+          TD{ "Hash" }
+          TD{ "Path" }
+          TD{ "Created" }
+        }
+      }
+
+      TBODY{
+        DebugSymbol.each do |symbol|
+          SymbolItem(symbol: symbol)
+        end
+      }
+    }
+
   end
-  
+
 end

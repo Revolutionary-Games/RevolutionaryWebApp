@@ -12,6 +12,6 @@ class CurrentUser < HyperComponent
     P { "developer: #{ App.acting_user.developer}" }
     P { "sso_source: #{ App.acting_user.sso_source}" }
     P { "local: #{ App.acting_user.local}" }
+    P { "api token: #{ App.acting_user.api_token}" }
   end
 end
-
