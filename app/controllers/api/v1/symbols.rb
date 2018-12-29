@@ -20,21 +20,6 @@ module API
           DebugSymbol.all
         end
 
-        desc "Return a symbol info"
-        params do
-          requires :token, type: String, desc: "API token"
-          requires :id, type: String, desc: "ID of the symbol"
-        end
-        get ":id", root: "symbol" do
-
-          if !ApiHelper::check_token permitted_params[:token]
-            error!({error_code: 401, error_message: "Unauthorized."}, 401)
-            return
-          end
-
-          DebugSymbol.where(id: permitted_params[:id]).first!
-        end
-
         desc "Return a symbol by hash and name"
         params do
           requires :token, type: String, desc: "API token"
@@ -48,8 +33,64 @@ module API
             return
           end
 
-          DebugSymbol.where(hash: permitted_params[:symbol_hash],
+          DebugSymbol.where(symbol_hash: permitted_params[:symbol_hash],
                             name: permitted_params[:name]).first!
+        end
+
+        desc "Return ids for all existing symbols by hash and name"
+        params do
+          requires :token, type: String, desc: "API token"
+          requires :to_check, type: JSON, desc: "Hashes and names of the symbols to check for"
+        end
+        post "all", root: "symbol" do
+
+          if !ApiHelper::check_token permitted_params[:token]
+            error!({error_code: 401, error_message: "Unauthorized."}, 401)
+            return
+          end
+
+          if !permitted_params[:to_check] || !permitted_params[:to_check].respond_to?('each')
+            error!({error_code: 400, error_message: "No data to check"}, 400)
+            return
+          end
+
+          errors = []
+          existing = []
+
+          permitted_params[:to_check].each{|entry|
+
+            if !entry.include?(:hash) || !entry.include?(:name)
+              errors.push({
+                description: "entry with missing hash or name",
+                entry: entry
+              })
+              next
+            end
+
+            if DebugSymbol.where(symbol_hash: entry[:hash], name: entry[:name]).exists?
+              existing.push entry
+            end
+          }
+
+          return {
+            errors: errors,
+            existing: existing
+          }
+        end
+
+        desc "Return a symbol info"
+        params do
+          requires :token, type: String, desc: "API token"
+          requires :id, type: String, desc: "ID of the symbol"
+        end
+        get ":id", root: "symbol" do
+
+          if !ApiHelper::check_token permitted_params[:token]
+            error!({error_code: 401, error_message: "Unauthorized."}, 401)
+            return
+          end
+
+          DebugSymbol.where(id: permitted_params[:id]).first!
         end
 
         desc "Return a symbol file contents"
@@ -111,7 +152,7 @@ module API
           if !permitted_params[:data]
             error!({error_code: 400, error_message: "Empty file"}, 400)
             return
-          end          
+          end
 
           platform, arch, hash, name = ApiHelper::getBreakpadSymbolInfo(
                                   permitted_params[:data][:tempfile].first)
