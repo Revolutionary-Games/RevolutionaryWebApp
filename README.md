@@ -1,24 +1,14 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## System Dependencies
 
-Things you may want to cover:
+You need to have PostgreSQL and Redis on localhost available to the current user
 
-* Ruby version
+To make the stackwalk API work you need to put the executable for that at: `StackWalk/minidump_stackwalk`
 
-* System dependencies
+## Gems
 
-* Configuration
+Just do `bundle install --path vendor/bundle`
 
-* Database creation
+and then run everything with `bundle exec ...`
 
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...

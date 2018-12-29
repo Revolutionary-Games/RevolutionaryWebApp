@@ -69,11 +69,15 @@ end
 
 gem 'pg'
 
+# The api needs redis
+gem 'redis'
+
 # api
 gem 'grape'
 gem 'grape-active_model_serializers'
 gem 'grape-swagger'
 gem 'rack-cors', :require => 'rack/cors'
+gem 'grape-attack', '~> 0.3.0'
 
 # Proper session store
 gem 'activerecord-session_store'

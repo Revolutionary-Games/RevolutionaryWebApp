@@ -11,6 +11,8 @@ module API
         formatter :json, 
                   Grape::Formatter::ActiveModelSerializers
 
+        content_type :txt, 'text/plain'
+
         helpers do
           def permitted_params
             @permitted_params ||= declared(params, 
