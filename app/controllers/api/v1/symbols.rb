@@ -154,9 +154,18 @@ module API
             return
           end
 
-          platform, arch, hash, name = ApiHelper::getBreakpadSymbolInfo(
-                                  permitted_params[:data][:tempfile].first)
+          begin
+            platform, arch, hash, name = ApiHelper::getBreakpadSymbolInfo(
+                                    permitted_params[:data][:tempfile].first)
+          rescue
+            error!({error_code: 400, error_message: "Malformed symbol file"}, 400)
+            return
+          end
 
+          if name
+            # Fix random junk at the end for windows
+            name.strip!
+          end
 
           if !hash || !name || hash.length < 1 || name.length < 1
             error!({error_code: 400, error_message: "Malformed symbol file"}, 400)

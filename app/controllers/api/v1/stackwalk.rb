@@ -38,9 +38,9 @@ module API
             }
 
             # Handle timeouts
-            if wait_thr.join(15) == nil
+            if wait_thr.join(60) == nil
 
-              logger.error "Stackwalking took more than 15 seconds"
+              logger.error "Stackwalking took more than 60 seconds"
               Process.kill("TERM", wait_thr.pid)
               error!({error_code: 500, error_message: "Internal Server Error"}, 500)
               outThread.kill
