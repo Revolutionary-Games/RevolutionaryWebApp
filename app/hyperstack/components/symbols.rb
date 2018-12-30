@@ -4,8 +4,9 @@ class SymbolItem < HyperComponent
     TD{"#{@Symbol.id}"}
     TD{"#{@Symbol.name}"}
     TD{"#{@Symbol.symbol_hash}"}
-    TD{"#{@Symbol.path}"}
     TD{"#{@Symbol.created_at}"}
+    TD{"#{(@Symbol.size.to_f / 2**20).round(2)}"}
+    TD{"#{@Symbol.path}"}
   end
 end
 
@@ -24,8 +25,9 @@ class Symbols < HyperComponent
           TD{ "ID" }
           TD{ "Name" }
           TD{ "Hash" }
-          TD{ "Path" }
           TD{ "Created" }
+          TD{ "Size (MiB)" }
+          TD{ "Path" }
         }
       }
 

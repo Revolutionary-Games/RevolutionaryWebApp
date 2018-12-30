@@ -67,7 +67,7 @@ module API
               next
             end
 
-            if DebugSymbol.where(symbol_hash: entry[:hash], name: entry[:name]).exists?
+            if DebugSymbol.exists?(symbol_hash: entry[:hash], name: entry[:name])
               existing.push entry
             end
           }
@@ -163,13 +163,16 @@ module API
             return
           end
 
-          FileUtils.mkdir_p File.join("SymbolData", name, hash)
-
+          # Create first to error fast
           finalPath = File.join("SymbolData", name, hash, name + ".sym")
+          created = DebugSymbol.create(name: name, symbol_hash: hash, path: finalPath,
+                                       size: File.size(permitted_params[:data][:tempfile].path))
+
+          FileUtils.mkdir_p File.join("SymbolData", name, hash)
 
           FileUtils.cp permitted_params[:data][:tempfile].path, finalPath
 
-          DebugSymbol.create(name: name, symbol_hash: hash, path: finalPath)
+          created
         end
       end
     end
