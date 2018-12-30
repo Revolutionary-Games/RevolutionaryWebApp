@@ -29,7 +29,7 @@ class App < HyperComponent
         LI { Link('/symbols') { 'Symbols' } } if App.acting_user
         LI { Link('/about') { 'About' } }
         # LI { Link('/builds') { 'Releases / Previews' } }
-        LI { Link('/users') { 'Users' } } if App.acting_user&.admin
+        LI { Link('/users') { 'Users' } } if App.acting_user&.admin?
         LI { Link('/logout') { 'Logout' } } if App.acting_user
       end
     end

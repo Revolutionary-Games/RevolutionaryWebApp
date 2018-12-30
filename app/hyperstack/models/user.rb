@@ -1,5 +1,12 @@
 class User < ApplicationRecord
 
+  default_scope server: -> { all },
+                client: -> { true }
+
+  scope :sort_by_created_at,
+        server: -> { order('created_at DESC') },
+        select: -> { sort { |a, b| b.created_at <=> a.created_at }}
+
   validates :email, presence: true, uniqueness: true, length: { maximum: 255 }
   validates :name, length: { maximum: 100 }, allow_nil: true
   
@@ -11,13 +18,26 @@ class User < ApplicationRecord
   
   validate :local_or_sso
 
+  server_method :has_api_token, default: '-' do
+    "#{!api_token.blank?}"
+  end
+
+  def admin?
+    admin == true
+  end
+
+  def developer?
+    developer == true || admin?
+  end
+
   # Clientside user getting
   def self.current
     Hyperstack::Application.acting_user_id ? find(Hyperstack::Application.acting_user_id) : nil
   end  
 
-  def generate_api_token
+  server_method :generate_api_token, default: '' do
     self.api_token = SecureRandom.base58(32)
+    true
   end
 
   private

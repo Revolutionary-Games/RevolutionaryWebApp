@@ -9,7 +9,7 @@ class UserItem < HyperComponent
     TD{"#{@User.developer}"}
     TD{"#{@User.admin}"}
     TD{"#{@User.created_at}"}
-    TD{"#{!@User.api_token.blank?}"}
+    TD{@User.has_api_token}
   end
 end
 
@@ -18,7 +18,7 @@ class Users < HyperComponent
   render(DIV) do
     H1 { "Users" }
 
-    H2 { "Number of Users: #{User.count}" }
+    H2 { "Number of Users: #{User.sort_by_created_at.count}" }
 
     TABLE {
 
@@ -37,7 +37,7 @@ class Users < HyperComponent
       }
 
       TBODY{
-        User.each do |user|
+        User.sort_by_created_at.each do |user|
           UserItem(user: user)
         end
       }
