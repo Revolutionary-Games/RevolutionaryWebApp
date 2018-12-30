@@ -19,9 +19,9 @@ class App < HyperComponent
     User.find(Hyperstack::Application.acting_user_id) if Hyperstack::Application.acting_user_id
   end
   
-  render(DIV) do
+  render(DIV, class: "Container") do
 
-    DIV do
+    DIV(class: "Navigation") do
       UL do
         LI { Link('/') { 'Home' } }
         LI { Link('/submit') { 'Submit a crash' } }        
