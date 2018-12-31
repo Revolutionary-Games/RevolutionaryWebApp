@@ -172,12 +172,21 @@ module API
             return
           end
 
-          # Create first to error fast
-          finalPath = File.join("SymbolData", name, hash, name + ".sym")
-          created = DebugSymbol.create(name: name, symbol_hash: hash, path: finalPath,
-                                       size: File.size(permitted_params[:data][:tempfile].path))
+          # The .pdb extension is always removed if present
+          folder = File.join("SymbolData", name, hash)
+          finalPath = File.join(folder, name.chomp(".pdb") + ".sym")
 
-          FileUtils.mkdir_p File.join("SymbolData", name, hash)
+          # Create first to error fast
+          created = DebugSymbol.create(
+            name: name, symbol_hash: hash, path: finalPath,
+            size: File.size(permitted_params[:data][:tempfile].path))
+
+          if !created.valid?
+            error!({error_code: 400, error_message: "Failed to create new symbol entry"}, 400)
+            return
+          end
+
+          FileUtils.mkdir_p folder
 
           FileUtils.cp permitted_params[:data][:tempfile].path, finalPath
 

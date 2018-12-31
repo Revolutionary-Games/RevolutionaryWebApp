@@ -20,7 +20,7 @@ module ApiHelper
   # Parses symbol definition from breakpad data
   # call like `platform, arch, hash, name = getBreakpadSymbolInfo data`
   def self.getBreakpadSymbolInfo(data)
-    match = data.match(/MODULE\s(\w+)\s(\w+)\s(\w+)\s(.+)$/i)
+    match = data.match(/MODULE\s(\w+)\s(\w+)\s(\w+)\s(\S+)/i)
 
     if !match || match.captures.length != 4
       raise "invalid breakpad data"
