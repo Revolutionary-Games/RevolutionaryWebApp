@@ -5,6 +5,6 @@ class DebugSymbolPolicy
 
   # Just send everything
   regulate_broadcast { |policy|
-    policy.send_all().to(DebugSymbolPolicy)
+    policy.send_all().to(DebugSymbol)
   }
 end
