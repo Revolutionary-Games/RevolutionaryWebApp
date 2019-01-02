@@ -68,7 +68,7 @@ group :development do
 end
 
 gem 'pg'
-
+gem 'redis'
 
 # api
 gem 'grape', '~> 1.2', '>= 1.2.2'
@@ -77,8 +77,7 @@ gem 'grape-swagger'
 gem 'rack-cors', :require => 'rack/cors'
 # Can't use this as this is too old
 # gem 'grape-attack', '>= 0.3.0'
-# The api needs redis
-# gem 'redis'
+
 
 # Proper session store
 gem 'activerecord-session_store'
