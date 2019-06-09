@@ -24,12 +24,13 @@ class App < HyperComponent
     DIV(class: "Navigation") do
       UL do
         LI { Link('/') { 'Home' } }
-        LI { Link('/submit') { 'Submit a crash' } }        
+        LI { Link('/reports') { 'Reports' } }        
         LI { Link('/login') { 'Login' } } if !App.acting_user
         LI { Link('/symbols') { 'Symbols' } } if App.acting_user
         LI { Link('/about') { 'About' } }
         # LI { Link('/builds') { 'Releases / Previews' } }
         LI { Link('/users') { 'Users' } } if App.acting_user&.admin?
+        LI { Link('/crashdump-tool') { 'Decode a crashdump' } }
         LI { Link('/logout') { 'Logout' } } if App.acting_user
       end
     end
@@ -48,7 +49,8 @@ class App < HyperComponent
         Route('/about', mounts: About)
         Route('/users', mounts: Users)
         Route('/me', mounts: CurrentUser)
-        Route('/submit', mounts: Submit)
+        Route('/crashdump-tool', mounts: CrashDumpTool)
+        Route('/reports', mounts: Reports)        
       end
     end
 

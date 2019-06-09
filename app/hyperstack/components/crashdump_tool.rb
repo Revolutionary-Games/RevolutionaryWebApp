@@ -1,8 +1,12 @@
-class Submit < HyperComponent
+class CrashDumpTool < HyperComponent
 
   render(DIV) do
 
-    H1 { "Submit a crash report" }
+    H1 { "Decode a crashdump created by Thrive" }
+
+    H2 { "The Thrive Launcher provides a tool for creating a full crash report. Use that " +
+         "instead. Unless you specifically want to see what is inside a crashdump file"
+    }
 
     P {
       "If Thrive has crashed it will generate a '.dmp' file." +
@@ -12,21 +16,18 @@ class Submit < HyperComponent
     }
 
     P {
-      "You can upload a crash dump (see above) with the form below."
+      "You can upload a crash dump (see above) with the form below. " +
+        "To get it in processed form."
     }
 
     P {
       SPAN {
-        "Currently this website does not store reports. So please copy the report " +
+        "This tool does not store the dumps. So please copy the report " +
         "and put it on "
       }
       A(href: "https://pastebin.com") {"pastebin"}
       SPAN {
-        " (or another text pasting service) and share the link along with a report on "
-      }
-
-      A(href: "https://community.revolutionarygamesstudio.com/c/bug-reports") {
-        "our Community Forums"
+        " (or another text pasting service)"
       }
     }
 

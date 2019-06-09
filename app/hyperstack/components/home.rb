@@ -11,9 +11,14 @@ class Home < HyperComponent
   
   render(DIV) do
 
-    H1 { "This is an inprogress Thrive crash report hub." }
+    H1 { "This is an inprogress Thrive developer hub." }
 
-    H3 { Link('/submit') { 'Submit a crash here' } }
+    H3 { "The Thrive Launcher is now able to create crash reports." }
+
+    P { "If you want to decode a crash dump you can use the link below to go " + 
+        "to the plain crash dump processing tool." }
+
+    H3 { Link('/crashdump-tool') { 'Process a crash here' } }
 
     P {
       "If you are a Thrive developer log in using your Dev Forum account to see more options"
