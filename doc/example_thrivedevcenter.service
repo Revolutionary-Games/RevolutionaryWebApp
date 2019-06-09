@@ -1,0 +1,15 @@
+[Unit]
+Description=Thrive Developer Center
+After=nginx.target network.target postgresql.target redis.target
+
+[Service]
+WorkingDirectory=/home/thrivedevcenter/ThriveDevCenter
+ExecStart=/usr/local/bin/bundle exec rails s
+Type=simple
+Restart=always
+RestartSec=30
+User=thrivedevcenter
+EnvironmentFile=/etc/thrivedevcenter/rails_deployment_vars
+
+[Install]
+WantedBy=multi-user.target

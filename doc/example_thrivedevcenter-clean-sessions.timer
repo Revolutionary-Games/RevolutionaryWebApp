@@ -1,0 +1,8 @@
+[Unit]
+Description=Run ThriveDevCenter session clean daily
+
+[Timer]
+OnCalendar=*-*-* 10:38:05
+
+[Install]
+WantedBy=timers.target
