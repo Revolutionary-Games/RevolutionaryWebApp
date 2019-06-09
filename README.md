@@ -12,3 +12,6 @@ Just do `bundle install --path vendor/bundle`
 
 and then run everything with `bundle exec ...`
 
+## Creating admin accounts
+
+`bundle exec rake thrive:create_admin[email,password]`
