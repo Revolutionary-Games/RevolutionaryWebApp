@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_12_30_123753) do
+ActiveRecord::Schema.define(version: 2019_06_09_152311) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -25,17 +25,24 @@ ActiveRecord::Schema.define(version: 2018_12_30_123753) do
     t.index ["name", "symbol_hash"], name: "index_debug_symbols_on_name_and_symbol_hash", unique: true
   end
 
-  create_table "hyperstack_connections", force: :cascade do |t|
-    t.string "channel"
-    t.string "session"
-    t.datetime "created_at"
-    t.datetime "expires_at"
-    t.datetime "refresh_at"
-  end
-
-  create_table "hyperstack_queued_messages", force: :cascade do |t|
-    t.text "data"
-    t.integer "connection_id"
+  create_table "reports", force: :cascade do |t|
+    t.string "description"
+    t.string "notes"
+    t.string "extra_description"
+    t.datetime "crash_time"
+    t.string "reporter_ip"
+    t.string "reporter_email"
+    t.boolean "public"
+    t.string "processed_dump"
+    t.string "primary_callstack"
+    t.string "log_files"
+    t.string "delete_key"
+    t.boolean "solved"
+    t.string "solved_comment"
+    t.bigint "duplicate_of_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["duplicate_of_id"], name: "index_reports_on_duplicate_of_id"
   end
 
   create_table "sessions", force: :cascade do |t|

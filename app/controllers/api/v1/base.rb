@@ -5,7 +5,7 @@ module API
     class Base < Grape::API
       mount API::V1::Symbols
       mount API::V1::Stackwalk
-      # mount API::V1::AnotherResource
+      mount API::V1::CrashReport
 
       add_swagger_documentation(
         api_version: "v1",

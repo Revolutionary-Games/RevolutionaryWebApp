@@ -1,5 +1,3 @@
-require 'open3'
-
 module API
   module V1
     class Stackwalk < Grape::API
@@ -12,56 +10,25 @@ module API
 
         desc "Perform stackwalk on uploaded minidump"
         params do
-          requires :data, type: File          
+          requires :data, type: File
         end
         post "" do
 
           if !permitted_params[:data]
-            error!({error_code: 400, error_message: "Empty file"}, 400)
+            error!({error_code: 400, error: "Empty file"}, 400)
             return
           end
 
-          Open3.popen3("StackWalk/minidump_stackwalk", permitted_params[:data][:tempfile].path,
-                       "SymbolData") {|stdin, stdout, stderr, wait_thr|
+          result, timeout, exit_status = StackwalkPerformer::performStackwalk(
+                             permitted_params[:data][:tempfile].path, timeout: 60);
 
-            result = ""
+          if timeout || exit_status != 0
+            error!({error_code: 500, error: "Internal Server Error"}, 500)
+            return
+          end
 
-            outThread = Thread.new{
-              stdout.each {|line|
-                result.concat(line)
-              }
-            }
-
-            errThread = Thread.new{
-              stderr.each {|line|
-              }
-            }
-
-            # Handle timeouts
-            if wait_thr.join(60) == nil
-
-              logger.error "Stackwalking took more than 60 seconds"
-              Process.kill("TERM", wait_thr.pid)
-              error!({error_code: 500, error_message: "Internal Server Error"}, 500)
-              outThread.kill
-              errThread.kill
-              return
-            end
-            
-            exit_status = wait_thr.value
-
-            if exit_status != 0
-              logger.error "Stackwalking exited with error code"
-              error!({error_code: 500, error_message: "Internal Server Error"}, 500)
-              return
-            end
-
-            logger.debug "Stackwalking succeeded"
-            outThread.join
-            errThread.join
-            content_type "text/plain"
-            result
-          }
+          content_type "text/plain"
+          result
         end
       end
     end

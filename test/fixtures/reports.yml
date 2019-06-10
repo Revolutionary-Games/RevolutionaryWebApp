@@ -1,0 +1,31 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  description: MyString
+  extra_descriptions: MyString
+  crash_time: 2019-06-09 18:23:11
+  reporter_ip: MyString
+  reporter_email: MyString
+  public: false
+  processed_dump: MyString
+  primary_callstack: MyString
+  log_files: MyString
+  delete_key: MyString
+  solved: false
+  solved_comment: MyString
+  duplicate_of: one
+
+two:
+  description: MyString
+  extra_descriptions: MyString
+  crash_time: 2019-06-09 18:23:11
+  reporter_ip: MyString
+  reporter_email: MyString
+  public: false
+  processed_dump: MyString
+  primary_callstack: MyString
+  log_files: MyString
+  delete_key: MyString
+  solved: false
+  solved_comment: MyString
+  duplicate_of: two
