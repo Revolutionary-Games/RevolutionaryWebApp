@@ -5,7 +5,7 @@ class AdminUserPolicy
 
   # Admins can manage users
   # allow_change { acting_user.admin? }
-  
+
   # All models are sent? except these some keys
   # password, password_confirmation and password_digest are never sent
   # also the token is not sent so admins can't impersonate others

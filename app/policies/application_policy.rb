@@ -3,7 +3,7 @@
 class Hyperstack::ApplicationPolicy
 
   # Allow any session to connect:
-  # always_allow_connection
+  always_allow_connection
   
   # There's nothing on this channel to send
   
