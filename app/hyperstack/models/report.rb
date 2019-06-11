@@ -8,9 +8,6 @@ class Report < ApplicationRecord
                         :solved_comment, :public, :updated_at, :created_at]) },
         select: -> { sort { |a, b| b.updated_at <=> a.updated_at }}
   
-  default_scope server: -> { all },
-                client: -> { true }  
-  
   has_many :duplicates, class_name: "Report", foreign_key: "duplicate_of_id"
   belongs_to :duplicate_of, class_name: "Report", required: false
 
