@@ -8,12 +8,19 @@ Hyperstack.configuration do |config|
   config.import 'hyperstack/hotloader', client_only: true if Rails.env.development?
 end
 
+
+
+
 # useful for debugging
 module Hyperstack
-  def self.on_error(*args)
-    ::Rails.logger.debug "[0;31;1mHYPERSTACK APPLICATION ERROR: 
-"\
-                         "To further investigate you may want to add a debugging "\
-                         "breakpoint in config/initializers/hyperstack.rb[0;30;21m"
+  def self.on_error(operation, err, params, formatted_error_message)
+    ::Rails.logger.debug(
+      "#{formatted_error_message}\n\n" +
+
+      Pastel.new.red(
+        'To further investigate you may want to add a debugging '\
+        'breakpoint to the on_error method in config/initializers/hyperstack.rb'
+      )
+    )
   end
 end if Rails.env.development?

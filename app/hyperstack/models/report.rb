@@ -3,9 +3,9 @@ class Report < ApplicationRecord
                 client: -> { true }
 
   scope :index_by_updated_at,
-        server: -> { order('updated_at DESC').select([:id, :description, :crash_time,
-                                                      :primary_callstack, :solved,
-                                                      :solved_comment]) },
+        server: -> { order('updated_at DESC').select(
+                       [:id, :description, :crash_time, :primary_callstack, :solved,
+                        :solved_comment, :public, :updated_at, :created_at]) },
         select: -> { sort { |a, b| b.updated_at <=> a.updated_at }}
   
   default_scope server: -> { all },
