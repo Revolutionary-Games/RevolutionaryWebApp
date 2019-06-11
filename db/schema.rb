@@ -25,6 +25,19 @@ ActiveRecord::Schema.define(version: 2019_06_09_152311) do
     t.index ["name", "symbol_hash"], name: "index_debug_symbols_on_name_and_symbol_hash", unique: true
   end
 
+  create_table "hyperstack_connections", force: :cascade do |t|
+    t.string "channel"
+    t.string "session"
+    t.datetime "created_at"
+    t.datetime "expires_at"
+    t.datetime "refresh_at"
+  end
+
+  create_table "hyperstack_queued_messages", force: :cascade do |t|
+    t.text "data"
+    t.integer "connection_id"
+  end
+
   create_table "reports", force: :cascade do |t|
     t.string "description"
     t.string "notes"
