@@ -1,8 +1,13 @@
 class Report < ApplicationRecord
-  default_scope server: -> { (acting_user && acting_user.developer?) ? all :
-                               all.where(public: true) },
-                client: -> { (Hyperstack::Application.acting_user_id &&
-                              App.acting_user.developer?) || public }
+  # default_scope server: -> { (acting_user && acting_user.developer?) ? all :
+  #                              all.where(public: true) },
+  #               client: -> { (Hyperstack::Application.acting_user_id &&
+  #                             App.acting_user.developer?) || public }
+
+  scope :visible_to, lambda {|id|
+    user = User.find_by_id(id)
+    user&.developer? ? all : where(public: true)
+  }
 
   scope :index_by_updated_at,
         server: -> { order('updated_at DESC').select(

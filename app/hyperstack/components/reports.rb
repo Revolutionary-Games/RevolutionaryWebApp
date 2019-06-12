@@ -34,9 +34,10 @@ class Reports < HyperComponent
       }
 
       TBODY{
-        Report.index_by_updated_at.each do |report|
+        Report.visible_to(Hyperstack::Application.acting_user_id).index_by_updated_at.each{
+          |report|
           ReportItem(report: report)
-        end
+        }
       }
     }    
 
