@@ -12,7 +12,7 @@ class Report < ApplicationRecord
   scope :index_by_updated_at,
         server: -> { order('updated_at DESC').select(
                        [:id, :description, :crash_time, :primary_callstack, :solved,
-                        :solved_comment, :public, :updated_at, :created_at]) },
+                        :solved_comment, :public, :updated_at, :game_version]) },
         select: -> { sort { |a, b| b.updated_at <=> a.updated_at }}
   
   has_many :duplicates, class_name: "Report", foreign_key: "duplicate_of_id"
@@ -38,6 +38,8 @@ class Report < ApplicationRecord
 
   validates :delete_key, presence: true
   validates :solved_comment, length: { maximum: 500 }, allow_nil: true
+
+  validates :game_version, presence: true, length: { minimum: 5, maximum: 80 }
 
   def generate_delete_key
     begin

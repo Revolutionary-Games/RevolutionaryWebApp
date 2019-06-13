@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_06_09_152311) do
+ActiveRecord::Schema.define(version: 2019_06_13_175126) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -55,6 +55,7 @@ ActiveRecord::Schema.define(version: 2019_06_09_152311) do
     t.bigint "duplicate_of_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "game_version"
     t.index ["duplicate_of_id"], name: "index_reports_on_duplicate_of_id"
   end
 

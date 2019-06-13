@@ -12,6 +12,7 @@ module API
         params do
           requires :dump, type: File
           requires :exit_code, type: String
+          requires :game_version, type: String
           requires :crash_time, type: Integer
           requires :public, type: Boolean          
           requires :log_files, type: String          
@@ -28,7 +29,8 @@ module API
                                  reporter_ip: env["REMOTE_ADDR"],
                                  reporter_email: permitted_params[:email],
                                  log_files: permitted_params[:log_files],
-                                 public: permitted_params[:public]
+                                 public: permitted_params[:public],
+                                 game_version: permitted_params[:game_version]
 
           if report.log_files.blank?
             report.log_files = "no logs provided"

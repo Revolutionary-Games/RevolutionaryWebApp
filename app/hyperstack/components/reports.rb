@@ -1,13 +1,13 @@
 class ReportItem < HyperComponent
   param :report
   render(TR) do
-    TD{"#{@Report.id}"}
+    TD{"#{@Report.game_version}"}
+    # TD{"#{@Report.id}"}
     TD{"#{@Report.updated_at}"}
+    TD{@Report.solved ? "yes" : "no"}
     TD{"#{@Report.crash_time}"}
-    TD{"#{@Report.created_at}"}
     TD{"#{@Report.description}"}
     TD{"#{@Report.public}"}
-    TD{"#{@Report.solved}"}
     TD{"#{@Report.solved_comment}"}
   end
 end
@@ -22,13 +22,14 @@ class Reports < HyperComponent
 
       THEAD {
         TR{
-          TD{ "ID" }
+          TD{ "Version" }
+          # TD{ "ID" }
           TD{ "Updated At" }
-          TD{ "Crash Time" }
-          TD{ "Created At" }
-          TD{ "Description" }
-          TD{ "Public" }
           TD{ "Solved" }
+          TD{ "Crash Time" }
+          TD{ "Description" }
+          TD{ "Version" }
+          TD{ "Public" }
           TD{ "Solve comment" }
         }
       }
