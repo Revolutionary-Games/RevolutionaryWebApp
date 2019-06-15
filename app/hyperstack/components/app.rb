@@ -50,7 +50,9 @@ class App < HyperComponent
         Route('/users', mounts: Users)
         Route('/me', mounts: CurrentUser)
         Route('/crashdump-tool', mounts: CrashDumpTool)
-        Route('/reports', mounts: Reports)        
+        Route('/reports', mounts: Reports)
+        Route('/report/:id', mounts: ReportView)
+        Route('/delete_report/:delete_key', mounts: DeleteReport)        
       end
     end
 

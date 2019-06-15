@@ -1,9 +1,11 @@
 class ReportItem < HyperComponent
+  include Hyperstack::Router
+  
   param :report
   render(TR) do
     TD{"#{@Report.game_version}"}
     # TD{"#{@Report.id}"}
-    TD{"#{@Report.updated_at}"}
+    TD{Link("/report/#{@Report.id}") { "#{@Report.updated_at}" }}
     TD{@Report.solved ? "yes" : "no"}
     TD{"#{@Report.crash_time}"}
     TD{"#{@Report.description}"}
@@ -12,8 +14,7 @@ class ReportItem < HyperComponent
   end
 end
 
-class Reports < HyperComponent
-
+class Reports < HyperComponent  
   render(DIV) do
 
     H1 { "Crash reports" }
