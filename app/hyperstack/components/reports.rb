@@ -1,5 +1,5 @@
 class ReportItem < HyperComponent
-  include Hyperstack::Router
+  include Hyperstack::Router::Helpers
   
   param :report
   render(TR) do
