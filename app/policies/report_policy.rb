@@ -5,7 +5,7 @@ class ReportPolicy
     policy.send_all.to(AdminUser)
     
     if public
-      policy.send_all.to(Hyperstack::Application)
+      policy.send_all_but(:reporter_email, :reporter_ip).to(Hyperstack::Application)
     else
       policy.send_all_but(:reporter_email).to(DeveloperUser)
       policy.send_only(:public).to(Hyperstack::Application)
