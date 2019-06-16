@@ -1,3 +1,5 @@
+
+
 module API
   module V1
     class CrashReport < Grape::API
@@ -91,6 +93,8 @@ module API
             error!({error_code: 500, error: "Internal Server Error"}, 500)
             return
           end
+
+          DiscordWebhook::sendCreatedReport report
           
           {"delete_key": report.delete_key, "created_id": report.id}
         end

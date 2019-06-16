@@ -81,3 +81,6 @@ gem 'rack-cors', :require => 'rack/cors'
 
 # Proper session store
 gem 'activerecord-session_store'
+
+# discord webhooks
+gem 'discordrb', '~> 3.2', '>= 3.2.1'
