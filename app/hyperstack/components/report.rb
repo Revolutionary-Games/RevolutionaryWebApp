@@ -32,8 +32,10 @@ class ReportView < HyperComponent
     H2 { "Callstack" }
     P { PRE{ report.primary_callstack } }
 
-    H2 { "Log files" }
-    P { PRE{ report.log_files } }
+    if App.acting_user&.developer?
+      H2 { "Log files" }
+      P { PRE{ report.log_files } }
+    end
 
     H2 { "Full dump" }
     P { PRE{ report.processed_dump } }
