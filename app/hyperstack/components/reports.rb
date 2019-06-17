@@ -29,7 +29,6 @@ class Reports < HyperComponent
           TD{ "Solved" }
           TD{ "Crash Time" }
           TD{ "Description" }
-          TD{ "Version" }
           TD{ "Public" }
           TD{ "Solve comment" }
         }
