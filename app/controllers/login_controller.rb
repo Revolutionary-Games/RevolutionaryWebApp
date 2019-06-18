@@ -84,8 +84,12 @@ class LoginController < ApplicationController
       return      
     end
     
-    @error = ssoParams
+    # Detect account to log into or create one
+    
 
+    # Clear nonce to prevent duplicate attempts
+    session[:sso_nonce] = ""
+    
     # Success
     # session[:current_user_id] = user.id
     # redirect_to "/"

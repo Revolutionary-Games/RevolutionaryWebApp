@@ -3,7 +3,7 @@ class Login < HyperComponent
   render(DIV) do
     H1 { "Login" }
 
-    if Rails.env == "production" or true
+    if Rails.env == "production"
       HR{}
       H2 { "SSO providers" }
 
