@@ -77,7 +77,7 @@ class LoginController < ApplicationController
       return
     end
 
-    ssoParams = CGI.parse Base64.decode64(sso)
+    ssoParams = Rack::Utils.parse_nested_query Base64.decode64(params[:sso])
 
     if ssoParams["nonce"] != session[:sso_nonce]
       @error = "Invalid SSO parameters"
