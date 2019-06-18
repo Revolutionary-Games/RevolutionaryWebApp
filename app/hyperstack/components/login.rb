@@ -3,9 +3,18 @@ class Login < HyperComponent
   render(DIV) do
     H1 { "Login" }
 
-    if Rails.env == "production"
+    if Rails.env == "production" or true
       HR{}
       H2 { "SSO providers" }
+
+      H3 {
+        FORM(method: "post", action: "/login") do
+          CSRF{}
+          INPUT(type: :hidden, name: "sso_type", value: "devforum")
+          BUTTON(type: "submit") { "Login Using a Development Forum Account" }
+        end
+      }
+      
     else
       H2 { "SSO Doesn't work in development mode" }
     end

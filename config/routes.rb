@@ -1,8 +1,9 @@
 Rails.application.routes.draw do
   get 'login/failed', to: "login#failed"
-  post 'login', to: "login#local_login"
+  post 'login', to: "login#do_login"
   delete 'login', to: "login#logout"
   post 'logout', to: "login#logout"
+  get 'login/sso_return', to: "login#sso_return"
   mount Hyperstack::Engine => '/hyperstack'
   mount API::Base, at: "/"
   # Prevent API leakage when it doesn't exist
