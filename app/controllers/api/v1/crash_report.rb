@@ -25,10 +25,10 @@ module API
         post "" do
 
           time = Time.at(permitted_params[:crash_time]).to_datetime
-          
+
           report = Report.create crash_time: time,
                                  extra_description: permitted_params[:extra_description],
-                                 reporter_ip: env["REMOTE_ADDR"],
+                                 reporter_ip: request.ip,
                                  reporter_email: permitted_params[:email],
                                  log_files: permitted_params[:log_files],
                                  public: permitted_params[:public],
