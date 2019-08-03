@@ -5,6 +5,11 @@ class ReportView < HyperComponent
 
     report = Report.find_by_id match.params[:id]
 
+    if !report
+      H1 { "No report exists with id = #{match.params[:id]}" }
+      return
+    end
+
     H1 { "Report #{report.id}" }
 
     # H1 { "You are not allowed to view this report or it doesn't exist"} if !report.????
