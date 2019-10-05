@@ -19,7 +19,19 @@ class User < ApplicationRecord
   validate :local_or_sso
 
   server_method :has_api_token, default: '-' do
+    if acting_user != self and !acting_user.admin?
+      raise Hyperstack::AccessViolation
+    end
+    
     "#{!api_token.blank?}"
+  end
+
+  server_method :has_lfs_token, default: '-' do
+    if acting_user != self and !acting_user.admin?
+      raise Hyperstack::AccessViolation
+    end
+    
+    "#{!lfs_token.blank?}"
   end
 
   def admin?
@@ -33,10 +45,25 @@ class User < ApplicationRecord
   # Clientside user getting
   def self.current
     Hyperstack::Application.acting_user_id ? find(Hyperstack::Application.acting_user_id) : nil
-  end  
+  end
 
   server_method :generate_api_token, default: '' do
     self.api_token = SecureRandom.base58(32)
+    true
+  end
+
+  server_method :reset_api_token, default: '' do
+    self.api_token = nil
+    true
+  end
+
+  server_method :generate_lfs_token, default: '' do
+    self.lfs_token = SecureRandom.base58(32)
+    true
+  end
+
+  server_method :reset_lfs_token, default: '' do
+    self.lfs_token = nil
     true
   end
 
