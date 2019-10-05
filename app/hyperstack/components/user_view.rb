@@ -1,10 +1,15 @@
 class UserProperties < HyperComponent
   param :user
   param :showToken, default: false
+  param :showLFS, default: false
 
   render(DIV) do
 
     lookingAtSelf = @User == App.acting_user
+
+    if lookingAtSelf
+      P { "This is you" }
+    end
 
     P { "email: #{ @User.email}" }
     P { "name: #{ @User.name}" }
@@ -14,8 +19,9 @@ class UserProperties < HyperComponent
     P { "local: #{ @User.local}" }
 
     hasToken = @User.has_api_token
-    
-    P { "api token: #{@User.has_api_token}" }
+    hasLFS = @User.has_lfs_token
+
+    P { "api token: #{hasToken}" }
 
     if hasToken == "true" && lookingAtSelf
       BUTTON { if !@ShowToken then 'View Token' else 'Hide Token' end }.on(:click){
@@ -26,30 +32,70 @@ class UserProperties < HyperComponent
         P { "Your token is: #{@User.api_token}" }
       end
 
-      BUTTON { "Clear Token" }.on(:click){
-        @User.reset_api_token
-      }
-      
-    elsif lookingAtSelf
-      
-      BUTTON { "Generate API Token"}.on(:click){
-
+      BUTTON { "Regenerate Token"}.on(:click){
         GenerateAPITokenForUser.run
-          .then {  }
+          .then { mutate @ShowToken = true }
+          .fail { alert "failed to run operation" }
+      }
+
+      BUTTON { "Clear Token" }.on(:click){
+        ResetAPITokenForUser.run(user_id: @User.id)
+          .then { mutate @ShowToken = false }
+          .fail { alert "failed to run operation" }
+      }
+
+    elsif lookingAtSelf
+
+      BUTTON { "Generate API Token"}.on(:click){
+        GenerateAPITokenForUser.run
+          .then { mutate @ShowToken = true }
           .fail { alert "failed to run operation" }
       }
     end
-    
-    P { "Git lfs token: #{ @User.has_lfs_token}" }
+
+    P { "Git lfs token: #{hasLFS}" }
+
+    if hasLFS == "true" && lookingAtSelf
+      BUTTON { if !@ShowLFS then 'View LFS Token' else 'Hide LFS Token' end }.on(:click){
+        mutate @ShowLFS = !@ShowLFS
+      }
+
+      if @ShowLFS
+        P { "Your Git LFS token is: #{@User.lfs_token}" }
+      end
+
+      BUTTON { "Regenerate Token"}.on(:click){
+        GenerateLFSTokenForUser.run
+          .then { mutate @ShowLFS = true }
+          .fail { alert "failed to run operation" }
+      }
+
+      BUTTON { "Clear Token" }.on(:click){
+        ResetLFSTokenForUser.run(user_id: @User.id)
+          .then { mutate @ShowLFS = false }
+          .fail { alert "failed to run operation" }
+      }
+
+    elsif lookingAtSelf
+
+      BUTTON { "Generate Git LFS Token"}.on(:click){
+
+        GenerateLFSTokenForUser.run
+          .then { mutate @ShowLFS = true }
+          .fail { alert "failed to run operation" }
+      }
+    end
 
     if !lookingAtSelf
       H2 {"Actions"}
-      BUTTON { 'DELETE' }.on(:click){}
+      BUTTON { 'Force Clear Tokens' }.on(:click){
+        ResetLFSTokenForUser.run(user_id: @User.id).then {
+          ResetAPITokenForUser.run(user_id: @User.id)
+        }.then{
+          alert "success"
+        }.fail{ alert "failed to run operation" }
+      }
     end
-
-
-
-    
   end
 end
 
