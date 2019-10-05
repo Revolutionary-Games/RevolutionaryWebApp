@@ -65,6 +65,7 @@ gem 'webpacker'
 gem 'rails-hyperstack', '~> 1.0.alpha1'
 group :development do
   gem 'foreman'
+  gem 'pry'
 end
 
 gem 'pg'
