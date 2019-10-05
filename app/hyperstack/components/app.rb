@@ -48,6 +48,7 @@ class App < HyperComponent
         Route('/logout', mounts: Logout)
         Route('/about', mounts: About)
         Route('/users', mounts: Users)
+        Route('/user/:id', mounts: UserView)
         Route('/me', mounts: CurrentUser)
         Route('/crashdump-tool', mounts: CrashDumpTool)
         Route('/reports', mounts: Reports)

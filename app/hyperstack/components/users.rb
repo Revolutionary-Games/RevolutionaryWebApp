@@ -1,8 +1,10 @@
 class UserItem < HyperComponent
+  include Hyperstack::Router::Helpers
+  
   param :user
   render(TR) do
     TD{"#{@User.id}"}
-    TD{"#{@User.email}"}
+    TD{Link("/user/#{@User.id}") { "#{@User.email}"}}
     TD{"#{@User.name}"}
     TD{"#{@User.local}"}
     TD{"#{@User.sso_source}"}
@@ -10,6 +12,7 @@ class UserItem < HyperComponent
     TD{"#{@User.admin}"}
     TD{"#{@User.created_at}"}
     TD{@User.has_api_token}
+    TD{@User.has_lfs_token}
   end
 end
 
@@ -33,6 +36,7 @@ class Users < HyperComponent
           TD{ "Admin?" }
           TD{ "Created" }
           TD{ "Has API token?" }
+          TD{ "Has Git LFS token?" }
         }
       }
 
