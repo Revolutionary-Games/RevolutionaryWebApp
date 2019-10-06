@@ -1,7 +1,7 @@
 class UserProperties < HyperComponent
-  param :user
-  param :showToken, default: false
-  param :showLFS, default: false
+  param :user, type: User
+  param :showToken, default: false, type: Boolean
+  param :showLFS, default: false, type: Boolean
 
   render(DIV) do
 
@@ -39,17 +39,19 @@ class UserProperties < HyperComponent
       }
 
       BUTTON { "Clear Token" }.on(:click){
-        ResetAPITokenForUser.run(user_id: @User.id)
-          .then { mutate @ShowToken = false }
-          .fail { alert "failed to run operation" }
+        ResetAPITokenForUser.run(user_id: @User.id).then {
+          @User.has_api_token!
+          mutate @ShowToken = false
+        }.fail { alert "failed to run operation" }
       }
 
     elsif lookingAtSelf
 
       BUTTON { "Generate API Token"}.on(:click){
-        GenerateAPITokenForUser.run
-          .then { mutate @ShowToken = true }
-          .fail { alert "failed to run operation" }
+        GenerateAPITokenForUser.run.then {
+          @User.has_api_token!
+          mutate @ShowToken = true
+        }.fail { alert "failed to run operation" }
       }
     end
 
@@ -71,18 +73,20 @@ class UserProperties < HyperComponent
       }
 
       BUTTON { "Clear Token" }.on(:click){
-        ResetLFSTokenForUser.run(user_id: @User.id)
-          .then { mutate @ShowLFS = false }
-          .fail { alert "failed to run operation" }
+        ResetLFSTokenForUser.run(user_id: @User.id).then {
+          @User.has_lfs_token!
+          mutate @ShowLFS = false
+        }.fail { alert "failed to run operation" }
       }
 
     elsif lookingAtSelf
 
       BUTTON { "Generate Git LFS Token"}.on(:click){
 
-        GenerateLFSTokenForUser.run
-          .then { mutate @ShowLFS = true }
-          .fail { alert "failed to run operation" }
+        GenerateLFSTokenForUser.run.then {
+          @User.has_lfs_token!
+          mutate @ShowLFS = true
+        }.fail { alert "failed to run operation" }
       }
     end
 
@@ -92,6 +96,8 @@ class UserProperties < HyperComponent
         ResetLFSTokenForUser.run(user_id: @User.id).then {
           ResetAPITokenForUser.run(user_id: @User.id)
         }.then{
+          @User.has_lfs_token!
+          @User.has_api_token!
           alert "success"
         }.fail{ alert "failed to run operation" }
       }
