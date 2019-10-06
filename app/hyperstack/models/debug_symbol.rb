@@ -13,6 +13,7 @@ class DebugSymbol < ApplicationRecord
 
   validates :path, presence: true, uniqueness: true
   validates :symbol_hash, presence: true
+  validates :symbol_hash, uniqueness: { scope: :name }
 
   # TODO: delete file at 'path' if there is something there
 end

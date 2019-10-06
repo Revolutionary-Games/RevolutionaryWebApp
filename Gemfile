@@ -75,6 +75,8 @@ gem 'redis'
 gem 'grape', '~> 1.2', '>= 1.2.2'
 gem 'grape-active_model_serializers'
 gem 'grape-swagger'
+# the swagger UI component for viewing it nicely
+gem 'grape-swagger-rails'
 gem 'rack-cors', :require => 'rack/cors'
 # Can't use this as this is too old
 # gem 'grape-attack', '>= 0.3.0'

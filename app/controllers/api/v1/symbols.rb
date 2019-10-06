@@ -17,7 +17,8 @@ module API
             return
           end
 
-          DebugSymbol.all
+          # DebugSymbol.all causes an error where
+          DebugSymbol.where
         end
 
         desc "Return a symbol by hash and name"
@@ -175,6 +176,12 @@ module API
           # The .pdb extension is always removed if present
           folder = File.join("SymbolData", name, hash)
           finalPath = File.join(folder, name.chomp(".pdb") + ".sym")
+
+          if DebugSymbol.where(symbol_hash: hash, name: name).first != nil
+            error!({error_code: 400, error_message: "Attempting to upload duplicate symbol"},
+                   400)
+            return
+          end
 
           # Create first to error fast
           created = DebugSymbol.create(

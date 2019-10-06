@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   post 'logout', to: "login#logout"
   get 'login/sso_return', to: "login#sso_return"
   mount Hyperstack::Engine => '/hyperstack'
+  mount GrapeSwaggerRails::Engine => '/swagger'
   mount API::Base, at: "/"
   # Prevent API leakage when it doesn't exist
   get 'api/', to: proc { [404, {}, ['']] }
