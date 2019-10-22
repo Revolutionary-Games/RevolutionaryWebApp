@@ -23,4 +23,12 @@ class LfsProject < ApplicationRecord
 
   validates :name, presence: true, length: { maximum: 100, minimum: 3 }
   validates :public, presence: true, inclusion: { in: [true, false] }
+
+  server_method :lfs_url, default: '' do
+    if ENV['BASE_URL']
+      URI.join(ENV['BASE_URL'], "/api/v1/lfs/#{slug}").to_s
+    else
+      'NO BASE URL'
+    end
+  end
 end

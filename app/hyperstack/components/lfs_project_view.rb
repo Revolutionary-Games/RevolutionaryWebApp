@@ -18,7 +18,13 @@ class LfsProjectView < HyperComponent
       LI { 'Public: ' + (project.public ? 'yes' : 'no') }
       LI { "Updated At: #{project.updated_at}" }
       LI { "Created At: #{project.created_at}" }
+      LI {
+        SPAN { 'Git LFS URL: ' }
+        A(href: project.lfs_url) { project.lfs_url }
+      }
     }
+
+    P { 'Visit your profile to find your LFS access token.' }
 
     H2 { 'Statistics' }
     P { 'TODO: total size and item count' }
