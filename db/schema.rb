@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_10_05_112754) do
+ActiveRecord::Schema.define(version: 2019_10_22_160607) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -36,6 +36,26 @@ ActiveRecord::Schema.define(version: 2019_10_05_112754) do
   create_table "hyperstack_queued_messages", force: :cascade do |t|
     t.text "data"
     t.integer "connection_id"
+  end
+
+  create_table "lfs_objects", force: :cascade do |t|
+    t.string "hash"
+    t.integer "size"
+    t.string "storage_path"
+    t.bigint "lfs_project_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["lfs_project_id"], name: "index_lfs_objects_on_lfs_project_id"
+  end
+
+  create_table "lfs_projects", force: :cascade do |t|
+    t.string "name"
+    t.string "slug"
+    t.boolean "public"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_lfs_projects_on_name", unique: true
+    t.index ["slug"], name: "index_lfs_projects_on_slug", unique: true
   end
 
   create_table "reports", force: :cascade do |t|
@@ -85,4 +105,5 @@ ActiveRecord::Schema.define(version: 2019_10_05_112754) do
     t.index ["lfs_token"], name: "index_users_on_lfs_token"
   end
 
+  add_foreign_key "lfs_objects", "lfs_projects"
 end

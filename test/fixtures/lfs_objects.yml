@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  hash: MyString
+  size: 1
+  storage_path: MyString
+  lfs_project: one
+
+two:
+  hash: MyString
+  size: 1
+  storage_path: MyString
+  lfs_project: two
