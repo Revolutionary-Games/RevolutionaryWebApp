@@ -1,16 +1,19 @@
-require "grape-swagger"
+# frozen_string_literal: true
 
-module API  
+require 'grape-swagger'
+
+module API
   module V1
     class Base < Grape::API
       mount API::V1::Symbols
       mount API::V1::Stackwalk
       mount API::V1::CrashReport
+      mount API::V1::LFS
 
       add_swagger_documentation(
-        api_version: "v1",
+        api_version: 'v1',
         hide_documentation_path: true,
-        mount_path: "/api/v1/swagger_doc",
+        mount_path: '/api/v1/swagger_doc',
         hide_format: true
       )
     end
