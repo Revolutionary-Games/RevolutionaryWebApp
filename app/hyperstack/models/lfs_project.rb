@@ -22,7 +22,7 @@ class LfsProject < ApplicationRecord
   validates :slug, format: { with: /\A[A-Za-z0-9\-\_]+\z/ }
 
   validates :name, presence: true, length: { maximum: 100, minimum: 3 }
-  validates :public, presence: true, inclusion: { in: [true, false] }
+  validates :public, inclusion: { in: [true, false] }
 
   server_method :lfs_url, default: '' do
     if ENV['BASE_URL']
