@@ -11,9 +11,9 @@ class LfsProject < ApplicationRecord
 
   scope :order_by_name,
         server: lambda {
-                  order('name DESC')
+                  order('name ASC')
                 },
-        select: -> { sort { |a, b| b.name <=> a.name } }
+        select: -> { sort_by(&:name) }
 
   validates_uniqueness_of :slug
   validates_uniqueness_of :name
