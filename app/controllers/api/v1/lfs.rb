@@ -96,11 +96,10 @@ module API
 
           token = Base64.encode64(Digest::MD5.digest(unhashed_key))
 
-          token.replace!('\n', '').replace!('+', '-').replace!('/', '_')
-               .replace!('=', '')
+          token = token.tr("\n", '').tr('+', '-').tr('/', '_').delete('=')
 
           url = URI.join(ENV['LFS_STORAGE_DOWNLOAD'],
-                         path + "?token=#{token}&expires={expires_at}").to_s
+                         path).to_s + "?token=#{token}&expires=#{expires_at}"
 
           [
             {
