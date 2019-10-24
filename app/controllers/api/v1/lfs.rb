@@ -8,6 +8,8 @@ module API
     class LFS < Grape::API
       include API::V1::Defaults
 
+      content_type :json, 'application/vnd.git-lfs+json'
+
       DOWNLOAD_EXPIRE_TIME = 900
       UPLOAD_EXPIRE_TIME = 1800
 
@@ -68,7 +70,7 @@ module API
         end
 
         def check_common_lfs_options
-          if !params[:objects] || !params[:objects].is_a?
+          if !params[:objects] || !params[:objects].is_a?(Array)
             error!({ error_code: 400, message: 'Missing objects array' }, 400)
           end
 
@@ -76,10 +78,10 @@ module API
         end
 
         def handle_download(project, obj)
-          object = LfsObject.find_by lfs_project_id: project.id, hash: obj[:oid]
+          object = LfsObject.find_by lfs_project_id: project.id, oid: obj[:oid]
 
           unless object
-            return [[], {
+            return [{}, {
               code: 404,
               message: 'OID not found'
             }]
@@ -100,24 +102,24 @@ module API
           url = URI.join(ENV['LFS_STORAGE_DOWNLOAD'],
                          path + "?token=#{token}&expires={expires_at}").to_s
 
-          [[
+          [
             {
               download:
                 {
                   "href": url,
                   expires_in: DOWNLOAD_EXPIRE_TIME
                 }
-            }
-          ], nil]
+            }, nil
+          ]
         end
 
         def handle_upload(project, obj)
           # TODO: allow removing failed uploads
-          object = LfsObject.find_by lfs_project_id: project.id, hash: obj[:oid]
+          object = LfsObject.find_by lfs_project_id: project.id, oid: obj[:oid]
 
           if object
             # We already have this object
-            return [[], nil]
+            return [{}, nil]
           end
 
           aws_client = Aws::S3::Client.new(
@@ -149,11 +151,11 @@ module API
             # token is invalid here. So this step likely cannot fail
             url = s3_obj.presigned_url(:put, expires_in: UPLOAD_EXPIRE_TIME)
 
-            lfs_object = LfsObject.create hash: oid, storage_path: storage_path,
+            lfs_object = LfsObject.create oid: oid, storage_path: storage_path,
                                           lfs_project: project, size: obj[:size]
 
             unless lfs_object.valid?
-              return [[], {
+              return [{}, {
                 code: 422,
                 message: 'Object cannot be saved. Validation failures: ' +
                          lfs_object.errors.full_messages.join('.\n')
@@ -161,23 +163,23 @@ module API
             end
 
             unless lfs_object.save
-              return [[], {
+              return [{}, {
                 code: 500,
                 message: 'Object cannot be saved. Database write failed.'
               }]
             end
 
-            [[
+            [
               {
                 upload:
                   {
                     "href": url,
                     expires_in: UPLOAD_EXPIRE_TIME
                   }
-              }
-            ], nil]
+              }, nil
+            ]
           rescue RuntimeError => e
-            return [[], {
+            return [{}, {
               code: 500,
               message: "Internal server error: #{e}"
             }]
@@ -194,23 +196,25 @@ module API
           if error
             result[:error] = error
           elsif !actions.empty?
+            raise 'Actions must be a hash' unless actions.is_a?(Hash)
+
             result[:actions] = actions
           end
 
           result
         end
 
-        def handle_lfs_object_request(project, obj)
+        def handle_lfs_object_request(project, obj, operation)
           error = nil
-          actions = []
+          actions = {}
 
           if operation == :download
 
-            actions, error = handle_download project, ob
+            actions, error = handle_download project, obj
 
           elsif operation == :upload
 
-            actions, error = handle_upload project, ob
+            actions, error = handle_upload project, obj
           else
             error = {
               code: 500,
@@ -292,7 +296,7 @@ module API
               next
             end
 
-            processed_objects.push handle_lfs_object_request(project, obj)
+            processed_objects.push handle_lfs_object_request(project, obj, operation)
           }
 
           if processed_objects.empty?
@@ -304,6 +308,12 @@ module API
             transfer: adapter.to_s,
             objects: processed_objects
           }
+        end
+
+        post ':slug/locks/verify' do
+          content_type 'application/vnd.git-lfs+json'
+          status 501
+          { message: 'Not implemented' }
         end
       end
     end
