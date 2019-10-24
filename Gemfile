@@ -91,3 +91,6 @@ gem 'activerecord-session_store'
 
 # discord webhooks
 gem 'discordrb', '~> 3.2', '>= 3.2.1'
+
+# LFS uploads to S3 compatible service
+gem 'aws-sdk-s3', '~> 1'
