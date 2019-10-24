@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_10_23_165314) do
+ActiveRecord::Schema.define(version: 2019_10_24_101731) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -45,6 +45,7 @@ ActiveRecord::Schema.define(version: 2019_10_23_165314) do
     t.bigint "lfs_project_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["lfs_project_id", "hash"], name: "index_lfs_objects_on_lfs_project_id_and_hash", unique: true
     t.index ["lfs_project_id"], name: "index_lfs_objects_on_lfs_project_id"
   end
 
