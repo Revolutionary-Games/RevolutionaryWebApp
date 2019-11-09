@@ -6,6 +6,17 @@ You need to have PostgreSQL and Redis on localhost available to the current user
 
 To make the stackwalk API work you need to put the executable for that at: `StackWalk/minidump_stackwalk`
 
+## Environment variables
+
+Various aspects are configured with environment variables. Most of the
+features are disabled if the environment variables are
+missing. However you must have one environment variable defined when
+running `foreman start`:
+
+```
+export BASE_URL="http://localhost:5000"
+```
+
 ## Gems
 
 Just do `bundle install --path vendor/bundle`
