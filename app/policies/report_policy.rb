@@ -6,7 +6,7 @@ class ReportPolicy
     policy.send_all_but(:reporter_email).to(DeveloperUser)
 
     if public
-      policy.send_all_but(:reporter_email, :reporter_ip, :log_files).to(
+      policy.send_all_but(:reporter_email, :reporter_ip, :log_files, :delete_key).to(
         Hyperstack::Application
       )
     else
