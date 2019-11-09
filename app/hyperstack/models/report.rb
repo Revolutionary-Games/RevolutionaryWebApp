@@ -2,6 +2,8 @@
 
 # User submitted crash report model
 class Report < ApplicationRecord
+  after_save :send_email_notifications
+
   # default_scope server: -> { (acting_user && acting_user.developer?) ? all :
   #                              all.where(public: true) },
   #               client: -> { (Hyperstack::Application.acting_user_id &&
@@ -47,6 +49,19 @@ class Report < ApplicationRecord
 
   validates :game_version, presence: true, length: { minimum: 5, maximum: 80 }
 
+  validate :ensure_duplicate_of_exists
+
+  def ensure_duplicate_of_exists
+    return if duplicate_of_id.nil?
+
+    begin
+      Report.find(duplicate_of_id)
+    rescue ActiveRecord::RecordNotFound
+      errors.add(:duplicate_of_id, 'duplicate of must exist')
+      false
+    end
+  end
+
   def generate_delete_key
     new_key = nil
     loop do
@@ -54,5 +69,22 @@ class Report < ApplicationRecord
       break unless Report.find_by_delete_key(new_key)
     end
     self.delete_key = new_key
+  end
+
+  def send_email_notifications
+    puts 'in send_email_notifications 1'
+    return unless reporter_email
+
+    puts 'in send_email_notifications 2'
+    puts "changes are: #{saved_changes}"
+    saved_changes.each { |key, _|
+      puts "in send_email_notifications 3 #{key}"
+      case key
+      when 'duplicate_of_id'
+        ReportStatusMailer.marked_duplicate(id).deliver_later
+      when 'solved'
+        ReportStatusMailer.solved_changed(id).deliver_later
+      end
+    }
   end
 end

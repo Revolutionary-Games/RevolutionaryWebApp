@@ -60,6 +60,7 @@ class App < HyperComponent
         Route('/delete_report/:delete_key', mounts: DeleteReport)
         Route('/lfs', exact: true, mounts: LFSProjects)
         Route('/lfs/:slug', mounts: LfsProjectView)
+        Route('/unsubscribe/:type/:key', mounts: Unsubscribe)
       end
     end
 

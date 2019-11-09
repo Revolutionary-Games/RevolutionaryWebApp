@@ -16,6 +16,7 @@ gem 'puma', '~> 3.11'
 gem 'sassc-rails', '~> 2.1', '>= 2.1.1'
 
 # Sidekiq jobs
+gem 'redis-namespace'
 gem 'sidekiq'
 
 # Use Uglifier as compressor for JavaScript assets
@@ -59,7 +60,7 @@ group :development do
   gem 'spring-watcher-listen', '~> 2.0.0'
 
   # Local mail testing
-  gem 'mailcatcher'
+  # NOTE: install this locally separately. And run it separately
 end
 
 group :test do
@@ -100,3 +101,6 @@ gem 'discordrb', '~> 3.2', '>= 3.2.1'
 
 # LFS uploads to S3 compatible service
 gem 'aws-sdk-s3', '~> 1'
+
+# This is used for email cancel tokens
+gem 'jwt'

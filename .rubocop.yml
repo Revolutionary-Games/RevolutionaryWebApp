@@ -3,3 +3,6 @@ Metrics/LineLength:
 
 Style/BlockDelimiters:
   Enabled: false
+
+Style/MultilineBlockChain:
+  Enabled: false
