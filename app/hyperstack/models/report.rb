@@ -23,8 +23,8 @@ class Report < ApplicationRecord
                 },
         select: -> { sort { |a, b| b.updated_at <=> a.updated_at } }
 
-  has_many :duplicates, class_name: 'Report', foreign_key: 'duplicate_of_id'
   belongs_to :duplicate_of, class_name: 'Report', required: false
+  has_many :duplicates, class_name: 'Report', foreign_key: 'duplicate_of_id'
 
   validates_uniqueness_of :delete_key
   before_validation :generate_delete_key

@@ -64,8 +64,8 @@ class ReportView < HyperComponent
       LI {
         SPAN { 'Duplicate of: ' }
 
-        unless @report.duplicate_of_id.nil?
-          Link("/report/#{@report.duplicate_of_id}") { "Report #{@report.duplicate_of_id}" }
+        unless @report.duplicate_of.nil?
+          Link("/report/#{@report.duplicate_of.id}") { "Report #{@report.duplicate_of.id}" }
           SPAN { ' ' }
           BUTTON { 'Clear duplicate status' }.on(:click) {
             clear_duplicate_status
@@ -74,7 +74,7 @@ class ReportView < HyperComponent
 
         P { @duplicate_error } if @duplicate_error
 
-        if @report.duplicate_of_id.nil?
+        if @report.duplicate_of.nil?
           if @show_make_duplicate_of
             BR {}
             duplicate_input = INPUT(placeholder: 'id of report this is a duplicate of',
@@ -111,7 +111,7 @@ class ReportView < HyperComponent
 
       UL {
         @report.duplicates.each { |duplicate|
-          LI { Link("/report/#{duplicate.id}") { duplicate.id } }
+          LI { Link("/report/#{duplicate.id}") { duplicate.id.to_s } }
         }
       }
     end
