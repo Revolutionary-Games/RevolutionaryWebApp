@@ -1,51 +1,23 @@
-require 'open3'
+# frozen_string_literal: true
 
+require 'rest-client'
+
+# Module with helper function to call StackWalk web app on localhost
 module StackwalkPerformer
+  def self.perform_stackwalk(file, timeout: 60)
+    logger = Rails.logger
 
-  def self.performStackwalk(file, timeout: 60)
-    Open3.popen3("StackWalk/minidump_stackwalk", file, "SymbolData") {
-      |stdin, stdout, stderr, wait_thr|
+    logger.debug "Calling stackwalk API with file #{file}"
 
-      logger = Rails.logger
-      
-      logger.debug "Beginning stackwalk on #{file}"
-      
-      result = ""
+    begin
+      response = RestClient.post 'http://localhost:3211/api/v1',
+                                 file: File.new(file, 'rb'), timeout: timeout
 
-      outThread = Thread.new{
-        stdout.each {|line|
-          result.concat(line)
-        }
-      }
+      return 'StackWalk service returned failure code', true if response.code != 200
 
-      errThread = Thread.new{
-        stderr.each {|line|
-        }
-      }
-
-      # Handle timeouts
-      if wait_thr.join(timeout) == nil
-        logger.error "Stackwalking took more than #{timeout} seconds"
-        Process.kill("TERM", wait_thr.pid)
-        outThread.kill
-        errThread.kill
-        return "", true, 0
-      end
-      
-      exit_status = wait_thr.value
-
-      if exit_status != 0
-        logger.error "Stackwalking exited with error code"
-        return "", false, exit_status
-      end
-
-      logger.debug "Stackwalking succeeded"
-      outThread.join
-      errThread.join
-      return result, false, exit_status
-    }    
+      return response.body, false
+    rescue StandardError => e
+      return e.to_s, true
+    end
   end
-
 end
-
-

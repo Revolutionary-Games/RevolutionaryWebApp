@@ -34,18 +34,18 @@ module API
 
           report.log_files = 'no logs provided' if report.log_files.blank?
 
-          result, timeout, exit_status = StackwalkPerformer.performStackwalk(
+          result, is_error = StackwalkPerformer.perform_stackwalk(
             permitted_params[:dump][:tempfile].path, timeout: 60
           )
 
-          if timeout || exit_status != 0
-            error!({ error_code: 500, error: 'Internal Server Error' }, 500)
-            return
+          if is_error
+            error!({ error_code: 500, error: 'Calling StackWalk service failed',
+                     message: result }, 500)
           end
 
           if result.empty?
-            error!({ error_code: 400, error: 'Invalid Crashdump file' }, 500)
-            return
+            error!({ error_code: 400, error: 'Invalid Crashdump file',
+                     message: 'Resulting decoded dump is empty' }, 500)
           end
 
           report.processed_dump = result
@@ -81,13 +81,9 @@ module API
           unless report.valid?
             logger.error('validation failures: ' + report.errors.full_messages.join('.\n'))
             error!({ error_code: 400, error: 'Created Report object is invalid' }, 400)
-            return
           end
 
-          unless report.save
-            error!({ error_code: 500, error: 'Internal Server Error' }, 500)
-            return
-          end
+          error!({ error_code: 500, error: 'Internal Server Error' }, 500) unless report.save
 
           DiscordWebhook.sendCreatedReport report
 
