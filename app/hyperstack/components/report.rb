@@ -7,6 +7,10 @@ class ReportView < HyperComponent
   param :duplicate_of_id, default: '', type: String
   param :duplicate_error, default: nil, type: String
 
+  before_mount do
+    @show_callstack = true
+  end
+
   def apply_make_duplicate_of
     target = nil
     begin
@@ -122,6 +126,20 @@ class ReportView < HyperComponent
 
     H2 { 'Notes' }
     P { PRE { @report.notes } }
+
+    ReactStrap.Button(color: 'primary') { 'Toggle' }.on(:click) {
+      mutate @show_callstack = !@show_callstack
+    }
+
+    # style={{ marginBottom: '1rem' }}>Toggle</Button>
+
+    ReactStrap.Collapse(isOpen: @show_callstack) {
+      ReactStrap.Card {
+        ReactStrap.CardBody {
+          'This content should be collapsed when toggle is pressed.'
+        }
+      }
+    }
 
     H2 { 'Callstack' }
     P { PRE { @report.primary_callstack } }
