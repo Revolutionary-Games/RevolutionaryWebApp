@@ -61,6 +61,12 @@ group :development do
 
   # Local mail testing
   # NOTE: install this locally separately. And run it separately
+
+  gem 'foreman'
+
+  # Debugging helping gems
+  gem 'pry'
+  gem 'pry-doc'
 end
 
 group :test do
@@ -74,12 +80,8 @@ gem 'tzinfo-data', platforms: %i[mingw mswin x64_mingw jruby]
 
 gem 'rails-hyperstack', '~> 1.0.alpha1'
 gem 'webpacker'
-group :development do
-  gem 'foreman'
-  gem 'pry'
-  gem 'pry-doc'
-end
 
+# Data store
 gem 'pg'
 gem 'redis'
 
@@ -104,3 +106,6 @@ gem 'aws-sdk-s3', '~> 1'
 
 # This is used for email cancel tokens
 gem 'jwt'
+
+# For delegating StackWalk to an external service
+gem 'rest-client'

@@ -446,6 +446,7 @@ DEPENDENCIES
   rails-hyperstack (~> 1.0.alpha1)
   redis
   redis-namespace
+  rest-client
   sassc-rails (~> 2.1, >= 2.1.1)
   sidekiq
   spring
