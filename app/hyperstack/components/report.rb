@@ -9,6 +9,9 @@ class ReportView < HyperComponent
 
   before_mount do
     @show_callstack = true
+    @show_logs = true
+    @show_dump = true
+    @show_duplicates = true
   end
 
   def apply_make_duplicate_of
@@ -71,7 +74,7 @@ class ReportView < HyperComponent
         unless @report.duplicate_of.nil?
           Link("/report/#{@report.duplicate_of.id}") { "Report #{@report.duplicate_of.id}" }
           SPAN { ' ' }
-          BUTTON { 'Clear duplicate status' }.on(:click) {
+          ReactStrap.Button(color: 'warning') { 'Clear duplicate status' }.on(:click) {
             clear_duplicate_status
           }
         end
@@ -91,18 +94,20 @@ class ReportView < HyperComponent
               mutate @duplicate_of_id = event.target.value
             end
 
-            BUTTON(disabled: @duplicate_of_id.nil? || @duplicate_of_id.empty?) { 'Apply' }
-              .on(:click) {
+            ReactStrap.Button(disabled: @duplicate_of_id.nil? || @duplicate_of_id.empty?,
+                              color: 'primary') {
+              'Apply'
+            }.on(:click) {
               apply_make_duplicate_of
             }
-            BUTTON { 'Cancel' }.on(:click) {
+            ReactStrap.Button(color: 'secondary') { 'Cancel' }.on(:click) {
               mutate {
                 @show_make_duplicate_of = false
                 @duplicate_of_id = ''
               }
             }
           elsif App.acting_user&.developer?
-            BUTTON { 'Mark as duplicate' }.on(:click) {
+            ReactStrap.Button { 'Mark as duplicate' }.on(:click) {
               mutate @show_make_duplicate_of = true
             }
           end
@@ -111,11 +116,19 @@ class ReportView < HyperComponent
     }
 
     if !@report.duplicates.nil? && !@report.duplicates.empty?
-      H2 { 'Duplicates of this report' }
+      H2 {
+        SPAN(style: { marginRight: '5px' }) { 'Duplicates of this report' }
+        ReactStrap.Button(color: 'secondary') { @show_duplicates ? 'Hide' : 'Show' }
+                  .on(:click) {
+          mutate @show_duplicates = !@show_duplicates
+        }
+      }
 
-      UL {
-        @report.duplicates.each { |duplicate|
-          LI { Link("/report/#{duplicate.id}") { duplicate.id.to_s } }
+      ReactStrap.Collapse(isOpen: @show_duplicates) {
+        UL {
+          @report.duplicates.each { |duplicate|
+            LI { Link("/report/#{duplicate.id}") { duplicate.id.to_s } }
+          }
         }
       }
     end
@@ -127,29 +140,39 @@ class ReportView < HyperComponent
     H2 { 'Notes' }
     P { PRE { @report.notes } }
 
-    ReactStrap.Button(color: 'primary') { 'Toggle' }.on(:click) {
-      mutate @show_callstack = !@show_callstack
-    }
-
-    # style={{ marginBottom: '1rem' }}>Toggle</Button>
-
-    ReactStrap.Collapse(isOpen: @show_callstack) {
-      ReactStrap.Card {
-        ReactStrap.CardBody {
-          'This content should be collapsed when toggle is pressed.'
-        }
+    H2 {
+      SPAN(style: { marginRight: '5px' }) { 'Callstack' }
+      ReactStrap.Button(color: 'secondary') { @show_callstack ? 'Hide' : 'Show' }.on(:click) {
+        mutate @show_callstack = !@show_callstack
       }
     }
 
-    H2 { 'Callstack' }
-    P { PRE { @report.primary_callstack } }
+    ReactStrap.Collapse(isOpen: @show_callstack) {
+      PRE { @report.primary_callstack }
+    }
 
     if App.acting_user&.developer?
-      H2 { 'Log files' }
-      P { PRE { @report.log_files } }
+      H2 {
+        SPAN(style: { marginRight: '5px' }) { 'Log files' }
+        ReactStrap.Button(color: 'secondary') { @show_logs ? 'Hide' : 'Show' }.on(:click) {
+          mutate @show_logs = !@show_logs
+        }
+      }
+
+      ReactStrap.Collapse(isOpen: @show_logs) {
+        PRE { @report.log_files }
+      }
     end
 
-    H2 { 'Full dump' }
-    P { PRE { @report.processed_dump } }
+    H2 {
+      SPAN(style: { marginRight: '5px' }) { 'Full dump' }
+      ReactStrap.Button(color: 'secondary') { @show_dump ? 'Hide' : 'Show' }.on(:click) {
+        mutate @show_dump = !@show_dump
+      }
+    }
+
+    ReactStrap.Collapse(isOpen: @show_dump) {
+      PRE { @report.processed_dump }
+    }
   end
 end

@@ -7,7 +7,7 @@ class ReportItem < HyperComponent
   param :report
   render(TR) do
     TD { @Report.game_version.to_s }
-    TH(scope: 'row') { @Report.id.to_s }
+    TH(scope: 'row') { Link("/report/#{@Report.id}") { @Report.id.to_s } }
     TD { Link("/report/#{@Report.id}") { @Report.updated_at.to_s } }
     TD { @Report.solved ? 'yes' : 'no' }
     # TD{"#{@Report.crash_time}"}
