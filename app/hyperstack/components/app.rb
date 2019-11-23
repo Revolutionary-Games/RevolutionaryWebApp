@@ -13,7 +13,6 @@ end
 # direct all requests to mount this component.  You may
 # then use the Route psuedo component to mount specific
 # subcomponents depending on the URL.
-
 class App < HyperComponent
   include Hyperstack::Router
 
