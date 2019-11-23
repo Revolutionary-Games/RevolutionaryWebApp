@@ -21,30 +21,97 @@ class App < HyperComponent
     User.find(Hyperstack::Application.acting_user_id) if Hyperstack::Application.acting_user_id
   end
 
+  before_mount do
+    @show_navbar = false
+  end
+
   render(DIV, class: 'Container') do
-    DIV(class: 'Navigation') do
-      UL do
-        LI { Link('/') { 'Home' } }
-        LI { Link('/reports') { 'Reports' } }
-        LI { Link('/login') { 'Login' } } unless App.acting_user
-        LI { Link('/symbols') { 'Symbols' } } if App.acting_user
-        LI { Link('/about') { 'About' } }
-        LI { Link('/lfs') { 'Git LFS' } }
-        # LI { Link('/builds') { 'Releases / Previews' } }
-        LI { Link('/users') { 'Users' } } if App.acting_user&.admin?
-        LI { Link('/crashdump-tool') { 'Decode a crashdump' } }
-        LI { Link('/logout') { 'Logout' } } if App.acting_user
-      end
-    end
+    DIV(class: 'container') {
+      ReactStrap.Navbar(:light, color: 'light', expand: 'md') {
+        DIV(class: 'navbar navbar-expand-lg navbar-light bg-light') {
+          Link('/', class: 'navbar-brand') { 'ThriveDevCenter' }
+        }
+        ReactStrap.NavbarToggler {}.on(:click) {
+          mutate @show_navbar = !@show_navbar
+        }
+        ReactStrap.Collapse(:navbar, isOpen: @show_navbar) {
+          ReactStrap.Nav(:navbar, className: 'mr-auto') {
+            ReactStrap.NavItem {
+              NavLink('/', exact: true, class: 'nav-link') { 'Home' }
+            }
+
+            ReactStrap.NavItem {
+              NavLink('/reports', class: 'nav-link') { 'Reports' }
+            }
+
+            unless App.acting_user
+              ReactStrap.NavItem {
+                NavLink('/login', class: 'nav-link') { 'Login' }
+              }
+            end
+            if App.acting_user
+              ReactStrap.NavItem {
+                NavLink('/symbols', class: 'nav-link') { 'Symbols' }
+              }
+            end
+            ReactStrap.NavItem {
+              NavLink('/about', class: 'nav-link') { 'About' }
+            }
+            ReactStrap.NavItem {
+              NavLink('/lfs', class: 'nav-link') { 'Git LFS' }
+            }
+            if App.acting_user&.admin?
+              ReactStrap.NavItem {
+                NavLink('/users', class: 'nav-link') { 'Users' }
+              }
+            end
+            if App.acting_user
+              ReactStrap.NavItem {
+                NavLink('/logout', class: 'nav-link') { 'Logout' }
+              }
+            end
+
+            # Link('/builds') { 'Releases / Previews' }
+
+            ReactStrap.UncontrolledDropdown(:nav, :inNavBar) {
+              ReactStrap.DropdownToggle(:nav, :caret) {
+                'Tools'
+              }
+              ReactStrap.DropdownMenu(:right) {
+                ReactStrap.DropdownItem {
+                  NavLink('/crashdump-tool') { 'Decode a crashdump' }
+                }
+
+                # ReactStrap.DropdownItem(:divider) {}
+
+                # ReactStrap.DropdownItem {
+                #   'Something'
+                # }
+              }
+            }
+          }
+        }
+      }
+    }
 
     if App.acting_user
-      DIV do
+      DIV(class: 'container') do
         SPAN { 'Welcome ' }
-        Link('/me') { App.acting_user.email }
+        NavLink('/me') { App.acting_user.email }
+        SPAN {
+          ' You are ' + if App.acting_user.admin?
+                          'an admin'
+                        elsif App.acting_user.developer?
+                          'a developer'
+                        else
+                          'an user'
+                        end
+        }
+        HR {}
       end
     end
 
-    DIV(class: 'Content') do
+    DIV(class: 'container Content') do
       Switch do
         Route('/symbols', mounts: Symbols)
         Route('/', exact: true, mounts: Home)
