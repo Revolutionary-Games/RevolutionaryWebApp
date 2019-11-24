@@ -6,3 +6,15 @@ Style/BlockDelimiters:
 
 Style/MultilineBlockChain:
   Enabled: false
+
+Metrics/BlockLength:
+  Max: 250
+
+Metrics/MethodLength:
+  Max: 100
+
+Metrics/AbcSize:
+  Max: 90
+
+Naming/VariableName:
+  Enabled: false
