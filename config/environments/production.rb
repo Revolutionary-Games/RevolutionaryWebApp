@@ -74,8 +74,8 @@ Rails.application.configure do
 
   # Send to ENV variable configured SMTP host
   config.action_mailer.delivery_method = :smtp
-  config.action_mailer.smtp_settings = { address: ENV['EMAIL_HOST'],
-                                         port: ENV['EMAIL_PORT'],
+  config.action_mailer.smtp_settings = { address: ENV.fetch('EMAIL_HOST') { 'localhost' },
+                                         port: ENV.fetch('EMAIL_PORT') { '587' },
                                          authentication: 'plain',
                                          enable_starttls_auto: true,
                                          user_name: ENV['EMAIL_USERNAME'],

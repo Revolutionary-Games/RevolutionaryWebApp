@@ -65,13 +65,9 @@ class Report < ApplicationRecord
   end
 
   def send_email_notifications
-    puts 'in send_email_notifications 1'
     return unless reporter_email
 
-    puts 'in send_email_notifications 2'
-    puts "changes are: #{saved_changes}"
     saved_changes.each { |key, _|
-      puts "in send_email_notifications 3 #{key}"
       case key
       when 'duplicate_of_id'
         ReportStatusMailer.marked_duplicate(id).deliver_later
