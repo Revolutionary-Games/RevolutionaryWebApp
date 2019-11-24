@@ -10,6 +10,9 @@ Style/MultilineBlockChain:
 Metrics/BlockLength:
   Max: 250
 
+Metrics/ClassLength:
+  Max: 250
+
 Metrics/MethodLength:
   Max: 100
 

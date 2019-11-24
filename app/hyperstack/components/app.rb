@@ -2,6 +2,7 @@
 
 # app/hyperstack/component/app.rb
 
+# Include this any forms that need to be posted to rails to include the authenticity token
 class CSRF < HyperComponent
   render do
     INPUT('input', type: 'hidden', name: 'authenticity_token',
@@ -105,7 +106,7 @@ class App < HyperComponent
                             'a developer'
                           else
                             'an user'
-                end
+                          end
           }
           HR {}
         end
@@ -119,8 +120,8 @@ class App < HyperComponent
         Route('/login', exact: true, mounts: Login)
         Route('/logout', mounts: Logout)
         Route('/about', mounts: About)
-        Route('/users', mounts: Users)
         Route('/admin', mounts: AdminArea)
+        Route('/users', mounts: Users)
         Route('/user/:id', mounts: UserView)
         Route('/me', mounts: CurrentUser)
         Route('/crashdump-tool', mounts: CrashDumpTool)

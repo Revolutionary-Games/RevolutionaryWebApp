@@ -27,9 +27,25 @@ class LfsProjectView < HyperComponent
     P { 'Visit your profile to find your LFS access token.' }
 
     H2 { 'Statistics' }
-    P { 'TODO: total size and item count' }
+
+    RS.Table(:bordered) {
+      TBODY {
+        TR {
+          TH { 'Total size (MiB)' }
+          TD { ((project.total_object_size&.to_f || 0.0) / 1024 / 1024).round(2).to_s }
+        }
+
+        TR {
+          TH { 'Item count' }
+          TD { (project.total_object_count || 0).to_s }
+        }
+      }
+    }
+
+    P { "Statistics updated: #{project.total_size_updated || 'never'}" }
 
     H2 { 'Files' }
+    P { "File tree generated at: #{project.file_tree_updated || 'never'}" }
     P { 'TODO: some kind of list' }
   end
 end

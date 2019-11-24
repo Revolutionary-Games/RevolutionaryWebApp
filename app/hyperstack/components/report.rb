@@ -3,11 +3,12 @@
 # Shows a single report information
 class ReportView < HyperComponent
   include Hyperstack::Router::Helpers
-  param :show_make_duplicate_of, default: false, type: Boolean
-  param :duplicate_of_id, default: '', type: String
-  param :duplicate_error, default: nil, type: String
 
   before_mount do
+    @show_make_duplicate_of = false
+    @duplicate_of_id = ''
+    @duplicate_error = nil
+
     @show_callstack = true
     @show_logs = true
     @show_dump = true

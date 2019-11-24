@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_10_24_124330) do
+ActiveRecord::Schema.define(version: 2019_11_24_191158) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -55,6 +55,10 @@ ActiveRecord::Schema.define(version: 2019_10_24_124330) do
     t.boolean "public"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "total_object_size"
+    t.integer "total_object_count"
+    t.datetime "total_size_updated"
+    t.datetime "file_tree_updated"
     t.index ["name"], name: "index_lfs_projects_on_name", unique: true
     t.index ["slug"], name: "index_lfs_projects_on_slug", unique: true
   end
