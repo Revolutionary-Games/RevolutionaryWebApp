@@ -14,37 +14,37 @@ end
 
 class Symbols < HyperComponent
   param :current_page, default: 0, type: Integer
-  param :page_size, default: 50, type: Integer
 
   render(DIV) do
     H1 { 'Debug Symbols' }
 
-    # paginator =
     Paginator(current_page: @CurrentPage,
-              page_size: @PageSize,
               item_count: DebugSymbol.count,
-              on_page_changed: lambda { |page|
-                                 mutate @CurrentPage = page
-                               })
+              ref: set(:paginator)) {
+      # the ref set doesn't seem to immediately return a value
+      if @paginator
 
-    ReactStrap.Table(:striped, :responsive, :hover) {
-      THEAD {
-        TR {
-          TH { 'ID' }
-          TH { 'Name' }
-          TH { 'Hash' }
-          TH { 'Created' }
-          TH { 'Size (MiB)' }
-          TH { 'Path' }
+        ReactStrap.Table(:striped, :responsive, :hover) {
+          THEAD {
+            TR {
+              TH { 'ID' }
+              TH { 'Name' }
+              TH { 'Hash' }
+              TH { 'Created' }
+              TH { 'Size (MiB)' }
+              TH { 'Path' }
+            }
+          }
+
+          TBODY {
+            DebugSymbol.offset(@paginator.offset).take(@paginator.take_count).each do |symbol|
+              SymbolItem(symbol: symbol)
+            end
+          }
         }
-      }
-
-      TBODY {
-        # DebugSymbol.offset(paginator.offset).take(paginator.take_count).each do |symbol|
-        DebugSymbol.offset(@CurrentPage * @PageSize).take(@PageSize).each do |symbol|
-          SymbolItem(symbol: symbol)
-        end
-      }
+      end
+    }.on(:page_changed) { |page|
+      mutate @CurrentPage = page
     }
   end
 end

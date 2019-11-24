@@ -32,29 +32,32 @@ class Reports < HyperComponent
     Paginator(current_page: @CurrentPage,
               page_size: @PageSize,
               item_count: items.count,
-              on_page_changed: lambda { |page|
-                mutate @CurrentPage = page
-              })
+              ref: set(:paginator)) {
+      # This is set with a delay
+      if @paginator
+        ReactStrap.Table(:striped, :responsive) {
+          THEAD {
+            TR {
+              TH { 'Version' }
+              TH { 'ID' }
+              TH { 'Updated At' }
+              TH { 'Solved' }
+              # TH{ "Crash Time" }
+              TH { 'Description' }
+              TH { 'Public' }
+              TH { 'Solve comment' }
+            }
+          }
 
-    ReactStrap.Table(:striped, :responsive) {
-      THEAD {
-        TR {
-          TH { 'Version' }
-          TH { 'ID' }
-          TH { 'Updated At' }
-          TH { 'Solved' }
-          # TH{ "Crash Time" }
-          TH { 'Description' }
-          TH { 'Public' }
-          TH { 'Solve comment' }
+          TBODY {
+            items.offset(@paginator.offset).take(@paginator.take_count).each { |report|
+              ReportItem(report: report)
+            }
+          }
         }
-      }
-
-      TBODY {
-        items.offset(@CurrentPage * @PageSize).take(@PageSize).each { |report|
-          ReportItem(report: report)
-        }
-      }
+      end
+    }.on(:page_changed) { |page|
+      mutate @CurrentPage = page
     }
   end
 end

@@ -6,6 +6,7 @@ class Paginator < HyperComponent
   param :item_count, type: Integer
   param :current_page, type: Integer
   param :on_page_changed, type: Proc
+  param :double, default: true, type: Boolean
 
   def offset
     @PageSize * @CurrentPage
@@ -15,11 +16,14 @@ class Paginator < HyperComponent
     @PageSize
   end
 
-  render(DIV) do
-    pages = ((@ItemCount - 1) / @PageSize).to_i
+  def notify_page(page)
+    # This line is needed to make sure this is up to date
+    @CurrentPage = page
 
-    pages = 0 if pages.zero?
+    @OnPageChanged.call page
+  end
 
+  def pagination_widgets(pages)
     first_page = @CurrentPage.zero?
     last_page = @CurrentPage >= pages
 
@@ -27,13 +31,13 @@ class Paginator < HyperComponent
       ReactStrap.PaginationItem(disabled: first_page) {
         ReactStrap.PaginationLink(:first, href: '#').on(:click) { |e|
           e.prevent_default
-          @OnPageChanged.call 0
+          notify_page 0
         }
       }
       ReactStrap.PaginationItem(disabled: first_page) {
         ReactStrap.PaginationLink(:previous, href: '#').on(:click) { |e|
           e.prevent_default
-          @OnPageChanged.call @CurrentPage - 1
+          notify_page @CurrentPage - 1
         }
       }
 
@@ -42,7 +46,7 @@ class Paginator < HyperComponent
         ReactStrap.PaginationItem(active: i == @CurrentPage, key: i) {
           ReactStrap.PaginationLink(href: '#') { (i + 1).to_s }.on(:click) { |e|
             e.prevent_default
-            @OnPageChanged.call i
+            notify_page i
           }
         }
       }
@@ -50,15 +54,28 @@ class Paginator < HyperComponent
       ReactStrap.PaginationItem(disabled: last_page) {
         ReactStrap.PaginationLink(:next, href: '#').on(:click) { |e|
           e.prevent_default
-          @OnPageChanged.call @CurrentPage + 1
+          notify_page @CurrentPage + 1
         }
       }
       ReactStrap.PaginationItem(disabled: last_page) {
         ReactStrap.PaginationLink(:last, href: '#').on(:click) { |e|
           e.prevent_default
-          @OnPageChanged.call pages
+          notify_page pages
         }
       }
     }
+  end
+
+  render(DIV) do
+    pages = ((@ItemCount - 1) / @PageSize).to_i
+
+    pages = 0 if pages.negative?
+
+    pagination_widgets pages
+
+    children.each(&:render)
+
+    # TODO: having a back to top button here would be nice
+    pagination_widgets pages if @Double
   end
 end
