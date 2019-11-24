@@ -6,6 +6,7 @@ After=thrivedevcenter.service
 [Service]
 WorkingDirectory=/home/thrivedevcenter/ThriveDevCenter
 ExecStart=/usr/local/bin/bundle exec sidekiq
+# ExecStart=/home/thrivedevcenter/.rbenv/shims/bundle exec sidekiq
 Type=simple
 Restart=always
 RestartSec=30
