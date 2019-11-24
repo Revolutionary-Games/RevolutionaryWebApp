@@ -35,7 +35,7 @@ class Reports < HyperComponent
               ref: set(:paginator)) {
       # This is set with a delay
       if @paginator
-        ReactStrap.Table(:striped, :responsive) {
+        RS.Table(:striped, :responsive) {
           THEAD {
             TR {
               TH { 'Version' }
