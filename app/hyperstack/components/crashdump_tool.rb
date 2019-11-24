@@ -38,9 +38,9 @@ class CrashDumpTool < HyperComponent
                     enctype: 'multipart/form-data') {
       ReactStrap.FormGroup {
         ReactStrap.Label(for: 'uploadFileSelect') { 'Please select the crash dump file: ' }
-        ReactStrap.Input(type: :file, name: 'data')
+        ReactStrap.Input(type: :file, name: 'data', id: 'uploadFileSelect')
       }
-      ReactStrap.Button { 'Submit' }
+      ReactStrap.Button(color: 'primary') { 'Submit' }
     }
   end
 end

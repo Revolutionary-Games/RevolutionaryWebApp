@@ -10,3 +10,6 @@ global.React = React;
 global.ReactDOM = ReactDOM;
 global.ReactStrap = ReactStrap;
 global.ReactStrap.default = ReactStrap;
+// A shorthand name for ReactStrap
+global.RS = ReactStrap;
+global.RS.default = ReactStrap;

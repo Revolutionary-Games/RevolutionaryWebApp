@@ -1,44 +1,69 @@
+# frozen_string_literal: true
+
+# Login page. This uses a rails controller for the actual login operation
 class Login < HyperComponent
+  before_mount do
+    @email_entered = false
+    @password_entered = false
+    check_details
+  end
+
+  def check_details
+    @details_entered = @email_entered && @password_entered
+  end
 
   render(DIV) do
-    H1 { "Login" }
+    H1 { 'Login' }
 
-    if Rails.env == "production"
-      HR{}
-      H2 { "SSO providers" }
+    if Rails.env == 'production'
+      HR {}
+      H2 { 'SSO providers' }
 
       H3 {
-        FORM(method: "post", action: "/login") do
-          CSRF{}
-          INPUT(type: :hidden, name: "sso_type", value: "devforum")
-          BUTTON(type: "submit") { "Login Using a Development Forum Account" }
-        end
+        RS.Form(method: 'post', action: '/login') {
+          CSRF {}
+          INPUT(type: :hidden, name: 'sso_type', value: 'devforum')
+          RS.Button(type: 'submit', color: 'primary') {
+            'Login Using a Development Forum Account'
+          }
+        }
       }
-      
+
     else
       H2 { "SSO Doesn't work in development mode" }
     end
-    
-    HR{}
-    H2 { "Local account" }
-    FORM(method: "post", action: "/login") do
-      CSRF{}
-      
-      INPUT(type: :text, placeholder: "email", name: "email")
-      BR{}
-      INPUT(type: :password, placeholder: "password", name: "password")
-      BR{}
-      
-      BUTTON(type: "submit") { "Login" }
-    end
+
+    HR {}
+    H2 { 'Local account' }
+    RS.Form(method: 'post', action: '/login') {
+      CSRF {}
+      RS.FormGroup {
+        INPUT(type: :text, placeholder: 'email', name: 'email').on(:change) { |e|
+          mutate {
+            @email_entered = e.target.value != ''
+            check_details
+          }
+        }
+      }
+      RS.FormGroup {
+        INPUT(type: :password, placeholder: 'password', name: 'password').on(:change) { |e|
+          mutate {
+            @password_entered = e.target.value != ''
+            check_details
+          }
+        }
+      }
+
+      RS.Button(color: 'primary', disabled: !@details_entered) { 'Login' }
+    }
 
     if App.acting_user
-      DIV { "You are logged in!"}
+      H3 { 'You are logged in!' }
 
-      FORM(method: "post", action: "/logout") do
-        CSRF{}
-        BUTTON(type: "submit") { "Logout" }
-      end
+      RS.Form(method: 'post', action: '/logout') {
+        CSRF {}
+        RS.Button(color: 'secondary') { 'Logout' }
+      }
     end
   end
 end

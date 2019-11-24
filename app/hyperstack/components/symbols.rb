@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Symbol table row
 class SymbolItem < HyperComponent
   param :symbol
   render(TR) do
@@ -12,6 +13,7 @@ class SymbolItem < HyperComponent
   end
 end
 
+# Table showing all symbols
 class Symbols < HyperComponent
   param :current_page, default: 0, type: Integer
 
@@ -23,7 +25,6 @@ class Symbols < HyperComponent
               ref: set(:paginator)) {
       # the ref set doesn't seem to immediately return a value
       if @paginator
-
         ReactStrap.Table(:striped, :responsive, :hover) {
           THEAD {
             TR {
