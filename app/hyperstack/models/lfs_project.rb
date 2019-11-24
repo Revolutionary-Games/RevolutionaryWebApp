@@ -24,6 +24,14 @@ class LfsProject < ApplicationRecord
   validates :name, presence: true, length: { maximum: 100, minimum: 3 }
   validates :public, inclusion: { in: [true, false] }
 
+  def total_size_mib(rounded: 2)
+    if total_object_size
+      (total_object_size.to_f / 1024 / 1024).round(rounded)
+    else
+      0
+    end
+  end
+
   server_method :lfs_url, default: '' do
     if ENV['BASE_URL']
       URI.join(ENV['BASE_URL'], "/api/v1/lfs/#{slug}").to_s

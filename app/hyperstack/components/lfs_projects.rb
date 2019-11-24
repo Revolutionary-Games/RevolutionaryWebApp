@@ -9,6 +9,7 @@ class LFSProjectItem < HyperComponent
     TH(scope: 'row') { Link("/lfs/#{@Project.slug}") { @Project.name } }
     # TD { 'Slug' }
     TD { @Project.public?.to_s }
+    TD { @Project.total_size_mib.to_s + ' MiB' }
     TD { @Project.updated_at.to_s }
   end
 end
@@ -38,6 +39,7 @@ class LFSProjects < HyperComponent
               TH { 'Name' }
               # TH { 'Slug' }
               TH { 'Public' }
+              TH { 'Size' }
               TH { 'Last modified' }
             }
           }

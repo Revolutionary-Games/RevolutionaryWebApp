@@ -32,7 +32,7 @@ class LfsProjectView < HyperComponent
       TBODY {
         TR {
           TH { 'Total size (MiB)' }
-          TD { ((project.total_object_size&.to_f || 0.0) / 1024 / 1024).round(2).to_s }
+          TD { project.total_size_mib.to_s }
         }
 
         TR {
