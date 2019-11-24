@@ -1,10 +1,11 @@
 [Unit]
-Description=Thrive Developer Center
-After=nginx.target network.target postgresql.target redis.target
+Description=Thrive Developer Center (sidekiq)
+PartOf=thrivedevcenter.service
+After=thrivedevcenter.service
 
 [Service]
 WorkingDirectory=/home/thrivedevcenter/ThriveDevCenter
-ExecStart=/usr/local/bin/bundle exec rails s
+ExecStart=/usr/local/bin/bundle exec sidekiq
 Type=simple
 Restart=always
 RestartSec=30
@@ -12,4 +13,4 @@ User=thrivedevcenter
 EnvironmentFile=/etc/thrivedevcenter/rails_deployment_vars
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=thrivedevcenter.service

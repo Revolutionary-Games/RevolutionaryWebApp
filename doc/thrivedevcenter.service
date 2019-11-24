@@ -1,0 +1,11 @@
+[Unit]
+Description=Thrive Developer Center
+After=nginx.target network.target postgresql.target redis.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/true
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
