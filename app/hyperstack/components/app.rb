@@ -63,6 +63,9 @@ class App < HyperComponent
               ReactStrap.NavItem {
                 NavLink('/users', class: 'nav-link') { 'Users' }
               }
+              ReactStrap.NavItem {
+                NavLink('/admin', class: 'nav-link') { 'Admin' }
+              }
             end
             if App.acting_user
               ReactStrap.NavItem {
@@ -91,24 +94,23 @@ class App < HyperComponent
           }
         }
       }
-    }
-
-    if App.acting_user
-      DIV(class: 'container') do
-        SPAN { 'Welcome ' }
-        NavLink('/me') { App.acting_user.email }
-        SPAN {
-          ' You are ' + if App.acting_user.admin?
-                          'an admin'
-                        elsif App.acting_user.developer?
-                          'a developer'
-                        else
-                          'an user'
-                        end
-        }
-        HR {}
+      if App.acting_user
+        DIV(class: 'container') do
+          SPAN { 'Welcome ' }
+          NavLink('/me') { App.acting_user.email }
+          SPAN {
+            ' You are ' + if App.acting_user.admin?
+                            'an admin'
+                          elsif App.acting_user.developer?
+                            'a developer'
+                          else
+                            'an user'
+                end
+          }
+          HR {}
+        end
       end
-    end
+    }
 
     DIV(class: 'container Content') do
       Switch do
@@ -118,6 +120,7 @@ class App < HyperComponent
         Route('/logout', mounts: Logout)
         Route('/about', mounts: About)
         Route('/users', mounts: Users)
+        Route('/admin', mounts: AdminArea)
         Route('/user/:id', mounts: UserView)
         Route('/me', mounts: CurrentUser)
         Route('/crashdump-tool', mounts: CrashDumpTool)
