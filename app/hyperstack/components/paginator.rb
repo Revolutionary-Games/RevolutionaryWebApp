@@ -7,6 +7,7 @@ class Paginator < HyperComponent
   param :current_page, type: Integer
   param :on_page_changed, type: Proc
   param :double, default: true, type: Boolean
+  param :show_totals, default: false, type: Boolean
 
   def offset
     @PageSize * @CurrentPage
@@ -21,6 +22,11 @@ class Paginator < HyperComponent
     @CurrentPage = page
 
     @OnPageChanged.call page
+  end
+
+  # Needed to make sure that the parent component is always rerendered with paginator set
+  after_mount do
+    notify_page @CurrentPage
   end
 
   def pagination_widgets(pages)
@@ -63,6 +69,8 @@ class Paginator < HyperComponent
           notify_page pages
         }
       }
+
+      SPAN { "Total items: #{@ItemCount} Total pages: #{pages + 1}" } if @ShowTotals
     }
   end
 
