@@ -70,7 +70,11 @@ class Paginator < HyperComponent
         }
       }
 
-      SPAN { "Total items: #{@ItemCount} Total pages: #{pages + 1}" } if @ShowTotals
+      if @ShowTotals
+        SPAN(class: 'PaginatorTotals') {
+          "Total items: #{@ItemCount} Total pages: #{pages + 1}"
+        }
+      end
     }
   end
 
