@@ -2,7 +2,7 @@
 
 # Sends test emails
 class TestMailer < ActionMailer::Base
-  default from: 'from@example.com'
+  default from: MailFromHelper.from
 
   def test_message(to)
     mail(

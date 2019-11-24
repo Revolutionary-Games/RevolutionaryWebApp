@@ -2,7 +2,7 @@
 
 # Sends emails about report status
 class ReportStatusMailer < ActionMailer::Base
-  default from: 'from@example.com'
+  default from: MailFromHelper.from
 
   def self.get_unsubscribe_token(email_address)
     payload = { unsubscribe: 'email',
