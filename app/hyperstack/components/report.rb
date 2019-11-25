@@ -134,7 +134,8 @@ class ReportView < HyperComponent
     RS.Modal(isOpen: @unsolve_modal, toggle: toggle) {
       RS.ModalHeader(toggle: toggle) { 'Really mark unsolved?' }
       RS.ModalBody {
-        'Marking a report as unsolved should only be done in special circumstances.'
+        'Marking a report as unsolved should only be done in special circumstances. ' \
+        'Duplicates of this report won\'t be marked unsolved.'
       }
       RS.ModalFooter {
         RS.Button(color: 'danger') { 'Mark Unsolved' }.on(:click) {

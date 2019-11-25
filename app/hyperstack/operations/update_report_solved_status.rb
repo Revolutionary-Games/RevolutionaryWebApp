@@ -17,4 +17,12 @@ class UpdateReportSolvedStatus < Hyperstack::ServerOp
     @report.solved_comment = params.solve_text
     @report.save!
   }
+
+  step {
+    @report.duplicates.each { |report|
+      report.solved = params.solved
+      report.solved_comment = params.solve_text
+      report.save!
+    }
+  }
 end
