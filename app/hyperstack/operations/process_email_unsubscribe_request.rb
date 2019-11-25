@@ -19,7 +19,7 @@ class ProcessEmailUnsubscribeRequest < Hyperstack::ServerOp
 
     Report.where(reporter_email: data['email']).each { |report|
       report.reporter_email = nil
-      report.save
+      report.save!
     }
   }
 end
