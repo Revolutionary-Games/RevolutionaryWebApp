@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h1>Your report #<%= @report.id %> solved status changed</h1>
+
+    <% if @report.solved %>
+    <p>
+      Your report is now marked as solved with the comment: <%= @report.solved_comment %>
+    </p>
+    <% else %>
+    <p>
+      Your report is no longer marked solved.
+    </p>
+    <% end %>
+    <p>
+      You can view your report here: <%= link_to @report.id, URI.join(ENV['BASE_URL'],
+                                         "/report/#{@report.id}").to_s %>.
+    </p>
+    <p>To unsubscribe from these emails, <%= link_to 'click here', URI.join(ENV['BASE_URL'],
+          "/unsubscribe/email/#{@unsubscribe_token}").to_s %>.</p>
+  </body>
+</html>

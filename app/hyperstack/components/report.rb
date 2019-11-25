@@ -8,9 +8,14 @@ class ReportView < HyperComponent
     @show_make_duplicate_of = false
     @duplicate_of_id = ''
     @duplicate_error = nil
+
     @notes_error = ''
     @editing_notes = false
     @edited_text = ''
+
+    @show_solve = false
+    @solved_error = ''
+    @solve_text = ''
 
     @show_callstack = true
     @show_logs = true
@@ -50,12 +55,101 @@ class ReportView < HyperComponent
     }
   end
 
+  def mark_solved(solved, text)
+    UpdateReportSolvedStatus.run(report_id: @report.id, solved: solved, solve_text: text)
+                            .then {
+      mutate {
+        @show_solve = false
+        @solved_error = ''
+      }
+    }.fail { |error|
+      mutate @solved_error = "Error when updating report: #{error}"
+    }
+  end
+
   def finish_editing_notes
     UpdateReportNotes.run(report_id: @report.id, notes: @edited_text).then {
       mutate @editing_notes = false
     }.fail { |error|
       mutate @notes_error = "Error when updating report: #{error}"
     }
+  end
+
+  def duplicate_component
+    SPAN { 'Duplicate of: ' }
+
+    unless @report.duplicate_of.nil?
+      Link("/report/#{@report.duplicate_of.id}") { "Report #{@report.duplicate_of.id}" }
+      SPAN { ' ' }
+      ReactStrap.Button(color: 'warning') { 'Clear duplicate status' }.on(:click) {
+        clear_duplicate_status
+      }
+    end
+
+    P { @duplicate_error } if @duplicate_error
+
+    return unless @report.duplicate_of.nil?
+
+    if @show_make_duplicate_of
+      BR {}
+      duplicate_input = INPUT(placeholder: 'id of report this is a duplicate of',
+                              value: @duplicate_of_id)
+
+      duplicate_input.on(:enter) do |_event|
+        apply_make_duplicate_of
+      end
+      duplicate_input.on(:change) do |event|
+        mutate @duplicate_of_id = event.target.value
+      end
+
+      ReactStrap.Button(disabled: @duplicate_of_id.nil? || @duplicate_of_id.empty?,
+                        color: 'primary') {
+        'Apply'
+      }.on(:click) {
+        apply_make_duplicate_of
+      }
+      ReactStrap.Button(color: 'secondary') { 'Cancel' }.on(:click) {
+        mutate {
+          @show_make_duplicate_of = false
+          @duplicate_of_id = ''
+        }
+      }
+    elsif App.acting_user&.developer?
+      ReactStrap.Button { 'Mark as duplicate' }.on(:click) {
+        mutate @show_make_duplicate_of = true
+      }
+    end
+  end
+
+  def solve_component
+    SPAN { 'Solved: ' + (@report.solved ? 'yes' : 'no') }
+
+    if @show_solve
+      RS.Input(type: :text, value: @solve_text,
+               placeholder: 'Enter reason why this is solved').on(:change) { |e|
+        mutate @solve_text = e.target.value
+      }
+
+      RS.Button(color: 'primary', disabled: @solve_text.empty?) { 'Solve' }.on(:click) {
+        mark_solved true, @solve_text
+      }
+      RS.Button(color: 'danger') { 'Cancel' }.on(:click) {
+        mutate @show_solve = false
+      }
+    elsif App.acting_user&.developer?
+      if @report.solved
+        RS.Button(color: 'danger', size: 'sm') { 'Mark as unsolved' }.on(:click) {
+          mark_solved true, @report.solved_comment
+        }
+      else
+        RS.Button(color: 'secondary') { 'Solve' }.on(:click) {
+          mutate {
+            @show_solve = true
+            @solve_text = @report.solved_comment || ''
+          }
+        }
+      end
+    end
   end
 
   render(DIV) do
@@ -76,55 +170,11 @@ class ReportView < HyperComponent
       LI { "Updated At: #{@report.updated_at}" }
       LI { "Created At: #{@report.created_at}" }
       LI { "Crash Time: #{@report.crash_time}" }
-      LI { 'Solved: ' + (@report.solved ? 'yes' : 'no') }
+      LI { solve_component }
       LI { "Solve comment: #{@report.solved_comment}" }
       LI { "Reporter IP: #{@report.reporter_ip}" } if App.acting_user&.developer?
       LI { "Reporter Email: #{@report.reporter_email}" } if App.acting_user&.admin?
-      LI {
-        SPAN { 'Duplicate of: ' }
-
-        unless @report.duplicate_of.nil?
-          Link("/report/#{@report.duplicate_of.id}") { "Report #{@report.duplicate_of.id}" }
-          SPAN { ' ' }
-          ReactStrap.Button(color: 'warning') { 'Clear duplicate status' }.on(:click) {
-            clear_duplicate_status
-          }
-        end
-
-        P { @duplicate_error } if @duplicate_error
-
-        if @report.duplicate_of.nil?
-          if @show_make_duplicate_of
-            BR {}
-            duplicate_input = INPUT(placeholder: 'id of report this is a duplicate of',
-                                    value: @duplicate_of_id)
-
-            duplicate_input.on(:enter) do |_event|
-              apply_make_duplicate_of
-            end
-            duplicate_input.on(:change) do |event|
-              mutate @duplicate_of_id = event.target.value
-            end
-
-            ReactStrap.Button(disabled: @duplicate_of_id.nil? || @duplicate_of_id.empty?,
-                              color: 'primary') {
-              'Apply'
-            }.on(:click) {
-              apply_make_duplicate_of
-            }
-            ReactStrap.Button(color: 'secondary') { 'Cancel' }.on(:click) {
-              mutate {
-                @show_make_duplicate_of = false
-                @duplicate_of_id = ''
-              }
-            }
-          elsif App.acting_user&.developer?
-            ReactStrap.Button { 'Mark as duplicate' }.on(:click) {
-              mutate @show_make_duplicate_of = true
-            }
-          end
-        end
-      }
+      LI { duplicate_component }
     }
 
     if !@report.duplicates.nil? && !@report.duplicates.empty?

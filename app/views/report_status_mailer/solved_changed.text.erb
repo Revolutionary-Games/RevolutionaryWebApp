@@ -1,0 +1,11 @@
+Your report #<%= @report.id %> solved status changed
+
+<% if @report.solved %>
+   Your report is now marked as solved with the comment: <%= @report.solved_comment %>
+<% else %>
+   Your report is no longer marked solved.
+<% end %>
+
+You can view your report here: <%= URI.join(ENV['BASE_URL'], "/report/#{@report.id}") %>
+
+To unsubscribe from these emails, visit: <%= URI.join(ENV['BASE_URL'], "/unsubscribe/email/#{@unsubscribe_token}") %>
