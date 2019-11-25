@@ -95,22 +95,8 @@ class App < HyperComponent
           }
         }
       }
-      if App.acting_user
-        DIV(class: 'container') do
-          SPAN { 'Welcome ' }
-          NavLink('/me') { App.acting_user.email }
-          SPAN {
-            ' You are ' + if App.acting_user.admin?
-                            'an admin'
-                          elsif App.acting_user.developer?
-                            'a developer'
-                          else
-                            'an user'
-                          end
-          }
-          HR {}
-        end
-      end
+
+      UserHeader {}
     }
 
     DIV(class: 'container Content') do
