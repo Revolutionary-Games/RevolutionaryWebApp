@@ -15,23 +15,16 @@ end
 
 # Table showing all symbols
 class Symbols < HyperComponent
-  # include Hyperstack::Component::WhileLoading
-
   param :current_page, default: 0, type: Integer
 
   render(DIV) do
     H1 { 'Debug Symbols' }
 
-    # if resources_loading?
-    #   RS.Spinner(color: 'primary')
-    #   return
-    # end
-
     Paginator(current_page: @CurrentPage,
               item_count: DebugSymbol.count,
               ref: set(:paginator)) {
 
-      # This might be the nicest place to show the spinner
+      # This would be the nicest place to show a loading spinner
 
       # the ref set doesn't seem to immediately return a value
       if @paginator

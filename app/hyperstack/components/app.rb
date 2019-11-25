@@ -16,10 +16,26 @@ end
 # subcomponents depending on the URL.
 class App < HyperComponent
   include Hyperstack::Router
+  # include Hyperstack::Component::WhileLoading
 
   def self.acting_user
     User.find(Hyperstack::Application.acting_user_id) if Hyperstack::Application.acting_user_id
   end
+
+  # Part of loading spinner
+  # class << self
+  #   observer :acting_user do
+  #     return unless Hyperstack::Application.acting_user_id
+
+  #     @promise ||= Hyperstack::Model.load do
+  #       User.find(Hyperstack::Application.acting_user_id).tap do |u|
+  #         %i[developer admin email].each { |attr| u[attr] }
+  #       end
+  #     end.then { |acting_user| mutate @acting_user = acting_user }
+
+  #     @acting_user
+  #   end
+  # end
 
   before_mount do
     @show_navbar = false
@@ -100,6 +116,9 @@ class App < HyperComponent
     }
 
     DIV(class: 'container Content') do
+      # if resources_loading?
+      #  RS.Spinner(color: 'primary')
+      # else
       Switch do
         Route('/symbols', mounts: Symbols)
         Route('/', exact: true, mounts: Home)
@@ -118,6 +137,7 @@ class App < HyperComponent
         Route('/lfs/:slug', mounts: LfsProjectView)
         Route('/unsubscribe/:type/:key', mounts: Unsubscribe)
       end
+      # end
     end
 
     Footer {}

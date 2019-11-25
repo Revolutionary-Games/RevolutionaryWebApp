@@ -3,10 +3,8 @@
 # Shows logged in user info
 class UserHeader < HyperComponent
   include Hyperstack::Router::Helpers
-  # include Hyperstack::Component::WhileLoading
 
   render do
-    # if resources_loaded?
     if App.acting_user
       DIV(class: 'container') do
         SPAN { 'Welcome ' }
@@ -23,6 +21,5 @@ class UserHeader < HyperComponent
         HR {}
       end
     end
-    # end
   end
 end
