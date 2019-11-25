@@ -8,6 +8,9 @@ class ReportView < HyperComponent
     @show_make_duplicate_of = false
     @duplicate_of_id = ''
     @duplicate_error = nil
+    @notes_error = ''
+    @editing_notes = false
+    @edited_text = ''
 
     @show_callstack = true
     @show_logs = true
@@ -44,6 +47,14 @@ class ReportView < HyperComponent
       }
     }.fail { |error|
       mutate @duplicate_error = "Error when updating report: #{error}"
+    }
+  end
+
+  def finish_editing_notes
+    UpdateReportNotes.run(report_id: @report.id, notes: @edited_text).then {
+      mutate @editing_notes = false
+    }.fail { |error|
+      mutate @notes_error = "Error when updating report: #{error}"
     }
   end
 
@@ -138,8 +149,36 @@ class ReportView < HyperComponent
     P { @report.description }
     P { @report.extra_description }
 
-    H2 { 'Notes' }
-    P { PRE { @report.notes } }
+    H2 {
+      SPAN(style: { marginRight: '25px' }) { 'Notes' }
+      if App.acting_user&.developer?
+        RS.Button(color: 'secondary', size: 'sm') { 'Edit' }.on(:click) {
+          mutate {
+            @edited_text = @report.notes
+            @editing_notes = true
+          }
+        }
+      end
+    }
+    P { @notes_error } if @notes_error
+
+    if @editing_notes
+
+      RS.Input(type: :textarea, value: @edited_text,
+               placeholder: 'Enter notes to display here').on(:change) { |e|
+        mutate @edited_text = e.target.value
+      }
+
+      RS.Button(color: 'primary') { 'Save' }.on(:click) {
+        finish_editing_notes
+      }
+      RS.Button(color: 'danger') { 'Cancel' }.on(:click) {
+        mutate @editing_notes = false
+      }
+
+    else
+      P { PRE { @report.notes } }
+    end
 
     H2 {
       SPAN(style: { marginRight: '5px' }) { 'Callstack' }

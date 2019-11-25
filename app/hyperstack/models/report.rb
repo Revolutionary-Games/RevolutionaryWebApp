@@ -56,6 +56,8 @@ class Report < ApplicationRecord
   end
 
   def generate_delete_key
+    return if delete_key
+
     new_key = nil
     loop do
       new_key = SecureRandom.base58(32)
