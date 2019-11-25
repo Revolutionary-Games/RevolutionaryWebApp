@@ -69,12 +69,14 @@ class Report < ApplicationRecord
   def send_email_notifications
     return unless reporter_email
 
+    # Because this isn't saved yet, the emails are sent with a delay to
+    # make the email job get up to date info
     saved_changes.each { |key, _|
       case key
       when 'duplicate_of_id'
-        ReportStatusMailer.marked_duplicate(id).deliver_later
+        ReportStatusMailer.marked_duplicate(id).deliver_later(wait: 10.seconds)
       when 'solved'
-        ReportStatusMailer.solved_changed(id).deliver_later
+        ReportStatusMailer.solved_changed(id).deliver_later(wait: 10.seconds)
       end
     }
   end

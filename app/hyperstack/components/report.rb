@@ -14,8 +14,9 @@ class ReportView < HyperComponent
     @edited_text = ''
 
     @show_solve = false
-    @solved_error = ''
+    @solved_error = nil
     @solve_text = ''
+    @unsolve_modal = false
 
     @show_callstack = true
     @show_logs = true
@@ -60,7 +61,7 @@ class ReportView < HyperComponent
                             .then {
       mutate {
         @show_solve = false
-        @solved_error = ''
+        @solved_error = nil
       }
     }.fail { |error|
       mutate @solved_error = "Error when updating report: #{error}"
@@ -124,6 +125,28 @@ class ReportView < HyperComponent
   def solve_component
     SPAN { 'Solved: ' + (@report.solved ? 'yes' : 'no') }
 
+    P { @solved_error } if @solved_error
+
+    toggle = lambda {
+      mutate @unsolve_modal = !@unsolve_modal
+    }
+
+    RS.Modal(isOpen: @unsolve_modal, toggle: toggle) {
+      RS.ModalHeader(toggle: toggle) { 'Really mark unsolved?' }
+      RS.ModalBody {
+        'Marking a report as unsolved should only be done in special circumstances.'
+      }
+      RS.ModalFooter {
+        RS.Button(color: 'danger') { 'Mark Unsolved' }.on(:click) {
+          mutate @unsolve_modal = false
+          mark_solved false, @report.solved_comment
+        }
+        RS.Button(color: 'secondary') { 'Cancel' }.on(:click) {
+          mutate @unsolve_modal = false
+        }
+      }
+    }
+
     if @show_solve
       RS.Input(type: :text, value: @solve_text,
                placeholder: 'Enter reason why this is solved').on(:change) { |e|
@@ -139,7 +162,7 @@ class ReportView < HyperComponent
     elsif App.acting_user&.developer?
       if @report.solved
         RS.Button(color: 'danger', size: 'sm') { 'Mark as unsolved' }.on(:click) {
-          mark_solved true, @report.solved_comment
+          mutate @unsolve_modal = true
         }
       else
         RS.Button(color: 'secondary') { 'Solve' }.on(:click) {

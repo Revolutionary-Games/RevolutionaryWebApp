@@ -4,8 +4,8 @@
 class UpdateReportSolvedStatus < Hyperstack::ServerOp
   param :acting_user
   param :report_id
-  param :solved, type: Boolean
-  params :solve_text
+  param :solved # , type: Boolean
+  param :solve_text
 
   add_error(:report_id, :does_not_exist, 'report does not exist') {
     !(@report = Report.find_by_id(params.report_id))
