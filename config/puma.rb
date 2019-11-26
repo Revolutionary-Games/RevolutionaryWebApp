@@ -23,7 +23,8 @@ environment ENV.fetch('RAILS_ENV') { 'development' }
 # Workers do not work on JRuby or Windows (both of which do not support
 # processes).
 #
-# This doesn't work with hyperstack for some reason
+# This needs some special stuff in config/enviroment.rb to work with hyperstack
+# This doesn't seem tp still work for some reason
 # workers ENV.fetch('WEB_CONCURRENCY') { 2 }
 
 # Use the `preload_app!` method when specifying a `workers` number.
