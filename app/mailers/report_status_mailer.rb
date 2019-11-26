@@ -9,7 +9,8 @@ class ReportStatusMailer < ActionMailer::Base
                 email: email_address,
                 exp: (Time.zone.now + 30.days).to_i }
 
-    JWT.encode payload, Rails.application.credentials[:secret_key_base], 'HS256'
+    JWT.encode payload, Rails.application.key_generator.generate_key('email_unsub'),
+               'HS256'
   end
 
   def marked_duplicate(report_id)

@@ -8,7 +8,8 @@ class ProcessEmailUnsubscribeRequest < Hyperstack::ServerOp
   step {
     data = nil
     begin
-      decoded_token = JWT.decode params.key, Rails.application.credentials[:secret_key_base],
+      decoded_token = JWT.decode params.key,
+                                 Rails.application.key_generator.generate_key('email_unsub'),
                                  true, algorithm: 'HS256'
       data = decoded_token[0]
     rescue JWT::DecodeError => e
