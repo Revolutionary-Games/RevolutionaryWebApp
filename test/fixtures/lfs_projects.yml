@@ -1,11 +1,11 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  name: MyString
-  slug: MyString
-  public: false
+public_project:
+  name: Project one
+  slug: one
+  public: true
 
-two:
-  name: MyString
-  slug: MyString
+private_project:
+  name: Private project
+  slug: two
   public: false

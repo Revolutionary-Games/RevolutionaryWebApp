@@ -1,13 +1,13 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  hash: MyString
+  oid: 1234
   size: 1
-  storage_path: MyString
-  lfs_project: one
+  storage_path: some/storage/path2
+  lfs_project: public_project
 
 two:
-  hash: MyString
-  size: 1
-  storage_path: MyString
-  lfs_project: two
+  oid: 5678
+  size: 2
+  storage_path: some/storage2/path1
+  lfs_project: private_project

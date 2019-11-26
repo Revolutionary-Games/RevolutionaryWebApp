@@ -2,11 +2,28 @@
 
 one:
   description: MyString
-  extra_descriptions: MyString
+  notes: Some notes
+  extra_description: MyString
   crash_time: 2019-06-09 18:23:11
-  reporter_ip: MyString
+  reporter_ip: 1.2.3.4
   reporter_email: MyString
   public: false
+  processed_dump: MyString
+  primary_callstack: MyString
+  log_files: MyString
+  delete_key: MyString
+  solved: false
+  solved_comment: MyString
+  game_version: 1.0.0
+
+two:
+  description: MyString
+  notes: Some notes
+  extra_description: MyString
+  crash_time: 2019-06-09 18:23:11
+  reporter_ip: 1.2.3.4
+  reporter_email:
+  public: true
   processed_dump: MyString
   primary_callstack: MyString
   log_files: MyString
@@ -14,18 +31,4 @@ one:
   solved: false
   solved_comment: MyString
   duplicate_of: one
-
-two:
-  description: MyString
-  extra_descriptions: MyString
-  crash_time: 2019-06-09 18:23:11
-  reporter_ip: MyString
-  reporter_email: MyString
-  public: false
-  processed_dump: MyString
-  primary_callstack: MyString
-  log_files: MyString
-  delete_key: MyString
-  solved: false
-  solved_comment: MyString
-  duplicate_of: two
+  game_version: 1.0.0

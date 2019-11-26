@@ -62,3 +62,19 @@ Currently not possible from the GUI.
 Creation with rake:
 
 `bundle exec rake 'thrive:create_lfs_project[Project Name,proj,true]'`
+
+## Tests
+
+This project contains tests that can be ran with:
+```
+bundle exec rails test
+```
+
+If you get errors about "WARNING: Rails was not able to disable
+referential integrity". You need to run the following as PostgreSQL
+admin in psql:
+```
+ALTER USER putyourusernamehere WITH SUPERUSER;
+```
+
+That should fix the permissions and allow the tests to run.
