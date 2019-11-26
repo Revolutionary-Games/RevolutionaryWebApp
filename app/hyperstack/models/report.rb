@@ -16,6 +16,14 @@ class Report < ApplicationRecord
 
   scope :index_by_updated_at, -> { order('updated_at DESC') }
 
+  scope :index_by_updated_at_reverse, -> { order('updated_at ASC') }
+
+  scope :index_id_reverse, -> { order('id DESC') }
+
+  scope :not_solved, -> { where(solved: nil).or(where(solved: false)) }
+
+  scope :not_duplicate, -> { where(duplicate_of: nil) }
+
   belongs_to :duplicate_of, class_name: 'Report', required: false
   has_many :duplicates, class_name: 'Report', foreign_key: 'duplicate_of_id'
 
