@@ -203,7 +203,9 @@ class ReportView < HyperComponent
 
     if !@report.duplicates.nil? && !@report.duplicates.empty?
       H2 {
-        SPAN(style: { marginRight: '5px' }) { 'Duplicates of this report' }
+        SPAN(style: { marginRight: '5px' }) {
+          "Duplicates of this report (total: #{@report.duplicates.size})"
+        }
         ReactStrap.Button(color: 'secondary') { @show_duplicates ? 'Hide' : 'Show' }
                   .on(:click) {
           mutate @show_duplicates = !@show_duplicates
