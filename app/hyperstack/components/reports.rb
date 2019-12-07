@@ -27,6 +27,8 @@ class Reports < HyperComponent
     @order = :desc
     @show_solved = true
     @show_duplicates = true
+    @show_matching_text = ''
+    @search_text = ''
   end
 
   def items
@@ -35,6 +37,8 @@ class Reports < HyperComponent
     scope = scope.not_solved unless @show_solved
 
     scope = scope.not_duplicate unless @show_duplicates
+
+    scope = scope.contains_text @search_text unless @search_text.blank?
 
     # TODO: add search for word in the report
 
@@ -53,50 +57,68 @@ class Reports < HyperComponent
 
   def list_management_components
     RS.Form(:inline) {
-      RS.FormGroup(class: 'mb-2 mr-sm-4 mb-sm-0') {
-        RS.Label(for: 'sortReportsBy', class: 'mr-sm-2') { 'sort by' }
-        RS.Input(type: :select, id: 'sortReportsBy') {
-          OPTION(value: '1') { 'Updated At' }
-          OPTION(value: '2') { 'ID' }
-        }.on(:change) { |e|
-          mutate {
-            @sort_by = if e.target.value == '1'
-                         :updated_at
-                       else
-                         :id
-                       end
+      RS.FormGroup(class: 'row') {
+        RS.FormGroup(:inline) {
+          RS.Label(for: 'sortReportsBy', class: 'sm') { 'sort by' }
+          RS.Input(type: :select, id: 'sortReportsBy') {
+            OPTION(value: '1') { 'Updated At' }
+            OPTION(value: '2') { 'ID' }
+          }.on(:change) { |e|
+            mutate {
+              @sort_by = if e.target.value == '1'
+                           :updated_at
+                         else
+                           :id
+                         end
+            }
           }
-        }
 
-        RS.Input(type: :select) {
-          OPTION(value: '2') { 'Descending' }
-          OPTION(value: '1') { 'Ascending' }
-        }.on(:change) { |e|
-          mutate {
-            @order = if e.target.value == '1'
-                       :asc
-                     else
-                       :desc
-                     end
+          RS.Input(type: :select) {
+            OPTION(value: '2') { 'Descending' }
+            OPTION(value: '1') { 'Ascending' }
+          }.on(:change) { |e|
+            mutate {
+              @order = if e.target.value == '1'
+                         :asc
+                       else
+                         :desc
+                       end
+            }
+          }
+        }
+        RS.FormGroup(:inline) {
+          RS.Label(:check, 'sm') {
+            RS.Input(type: :checkbox, checked: @show_solved) { ' ' }.on(:change) { |e|
+              mutate @show_solved = e.target.checked
+            }
+            'show solved'
+          }
+        }
+        RS.FormGroup(:inline) {
+          RS.Label(:check, 'sm') {
+            RS.Input(type: :checkbox, checked: @show_duplicates) { ' ' }.on(:change) { |e|
+              mutate @show_duplicates = e.target.checked
+            }
+            'show duplicates'
+          }
+        }
+        RS.FormGroup(:inline) {
+          RS.Label(className: 'sm') {
+            'Contains:'
+          }
+          RS.Input(value: @show_matching_text) {}.on(:change) { |e|
+            mutate @show_matching_text = e.target.value
+          }
+          RS.Button(colour: 'secondary', disabled: @show_matching_text.blank?) {
+            'Search'
+          } .on(:click) {
+            mutate @search_text = @show_matching_text
           }
         }
       }
-      RS.FormGroup(class: 'mb-3 mr-sm-4 mb-sm-0') {
-        RS.Label(:check, 'mr-sm-2') {
-          RS.Input(type: :checkbox, checked: @show_solved) { ' ' }.on(:change) { |e|
-            mutate @show_solved = e.target.checked
-          }
-          'show solved'
-        }
-      }
-      RS.FormGroup(class: 'mb-2 mr-sm-4 mb-sm-0') {
-        RS.Label(:check, 'mr-sm-2') {
-          RS.Input(type: :checkbox, checked: @show_duplicates) { ' ' }.on(:change) { |e|
-            mutate @show_duplicates = e.target.checked
-          }
-          'show duplicates'
-        }
-      }
+    }.on(:submit) { |e|
+      e.prevent_default
+      mutate @search_text = @show_matching_text
     }
   end
 

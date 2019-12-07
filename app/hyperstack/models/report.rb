@@ -24,6 +24,12 @@ class Report < ApplicationRecord
 
   scope :not_duplicate, -> { where(duplicate_of: nil) }
 
+  scope :contains_text, lambda { |text|
+                          where('primary_callstack LIKE :text OR ' \
+                                'log_files LIKE :text OR notes LIKE :text',
+                                text: '%' + text + '%')
+                        }
+
   belongs_to :duplicate_of, class_name: 'Report', required: false
   has_many :duplicates, class_name: 'Report', foreign_key: 'duplicate_of_id'
 
