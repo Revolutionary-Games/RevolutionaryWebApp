@@ -296,7 +296,7 @@ GEM
       pry (~> 0.11)
       yard (~> 0.9.11)
     public_suffix (4.0.1)
-    puma (3.12.1)
+    puma (3.12.2)
     rack (2.0.7)
     rack-accept (0.4.5)
       rack (>= 0.4)
@@ -501,7 +501,7 @@ DEPENDENCIES
   pg
   pry
   pry-doc
-  puma (~> 3.11)
+  puma (~> 3.12)
   rack-cors
   rails (~> 5.2.2)
   rails-hyperstack (~> 1.0.alpha1)
