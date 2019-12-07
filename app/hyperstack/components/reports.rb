@@ -58,7 +58,7 @@ class Reports < HyperComponent
   def list_management_components
     RS.Form(:inline) {
       RS.FormGroup(class: 'row') {
-        RS.FormGroup(:inline) {
+        RS.FormGroup(:inline, class: 'col-12 col-md-auto') {
           RS.Label(for: 'sortReportsBy', class: 'sm') { 'sort by' }
           RS.Input(type: :select, id: 'sortReportsBy') {
             OPTION(value: '1') { 'Updated At' }
@@ -86,7 +86,7 @@ class Reports < HyperComponent
             }
           }
         }
-        RS.FormGroup(:inline) {
+        RS.FormGroup(:inline, class: 'col-6 col-md-auto') {
           RS.Label(:check, 'sm') {
             RS.Input(type: :checkbox, checked: @show_solved) { ' ' }.on(:change) { |e|
               mutate @show_solved = e.target.checked
@@ -94,7 +94,7 @@ class Reports < HyperComponent
             'show solved'
           }
         }
-        RS.FormGroup(:inline) {
+        RS.FormGroup(:inline, class: 'col-6 col-md-auto') {
           RS.Label(:check, 'sm') {
             RS.Input(type: :checkbox, checked: @show_duplicates) { ' ' }.on(:change) { |e|
               mutate @show_duplicates = e.target.checked
@@ -102,7 +102,7 @@ class Reports < HyperComponent
             'show duplicates'
           }
         }
-        RS.FormGroup(:inline) {
+        RS.FormGroup(:inline, class: 'col-12 col-md-auto') {
           RS.Label(className: 'sm') {
             'Contains:'
           }

@@ -9,6 +9,8 @@ class ReportView < HyperComponent
     @duplicate_of_id = ''
     @duplicate_error = nil
 
+    @full_width_logs = false
+
     @notes_error = ''
     @editing_notes = false
     @edited_text = ''
@@ -176,7 +178,7 @@ class ReportView < HyperComponent
     end
   end
 
-  render(DIV) do
+  render(DIV, class: 'row') do
     @report = Report.find_by_id match.params[:id]
 
     unless @report
@@ -184,111 +186,125 @@ class ReportView < HyperComponent
       return
     end
 
-    H1 { "Report #{@report.id}" }
-
-    # H1 { "You are not allowed to view this report or it doesn't exist"} if !report.????
-
-    UL {
-      LI { "Game Version: #{@report.game_version}" }
-      LI { 'Public: ' + (@report.public ? 'yes' : 'no') }
-      LI { "Updated At: #{@report.updated_at}" }
-      LI { "Created At: #{@report.created_at}" }
-      LI { "Crash Time: #{@report.crash_time}" }
-      LI { solve_component }
-      LI { "Solve comment: #{@report.solved_comment}" }
-      LI { "Reporter IP: #{@report.reporter_ip}" } if App.acting_user&.developer?
-      LI { "Reporter Email: #{@report.reporter_email}" } if App.acting_user&.admin?
-      LI { duplicate_component }
-    }
-
-    if !@report.duplicates.nil? && !@report.duplicates.empty?
-      H2 {
-        SPAN(style: { marginRight: '5px' }) {
-          "Duplicates of this report (total: #{@report.duplicates.size})"
-        }
-        ReactStrap.Button(color: 'secondary') { @show_duplicates ? 'Hide' : 'Show' }
-                  .on(:click) {
-          mutate @show_duplicates = !@show_duplicates
-        }
+    RS.Col(md: '12', lg: @full_width_logs ? '12' : '6') {
+      H1 {
+        SPAN(style: { marginRight: '5px' }) { "Report #{@report.id}" }
+        RS.Badge(color: 'danger') { 'Private' } unless @report.public?
       }
 
-      ReactStrap.Collapse(isOpen: @show_duplicates) {
-        UL {
-          @report.duplicates.each { |duplicate|
-            LI { Link("/report/#{duplicate.id}") { duplicate.id.to_s } }
+      # H1 { "You are not allowed to view this report or it doesn't exist"} if !report.????
+
+      UL() {
+        LI { "Game Version: #{@report.game_version}" }
+        LI { 'Public: ' + (@report.public ? 'yes' : 'no') }
+        LI { "Updated At: #{@report.updated_at}" }
+        LI { "Created At: #{@report.created_at}" }
+        LI { "Crash Time: #{@report.crash_time}" }
+        LI { solve_component }
+        LI { "Solve comment: #{@report.solved_comment}" }
+        LI { "Reporter IP: #{@report.reporter_ip}" } if App.acting_user&.developer?
+        LI { "Reporter Email: #{@report.reporter_email}" } if App.acting_user&.admin?
+        LI { duplicate_component }
+      }
+
+      if !@report.duplicates.nil? && !@report.duplicates.empty?
+        H2 {
+          SPAN(style: { marginRight: '5px' }) {
+            "Duplicates of this report (total: #{@report.duplicates.size})"
+          }
+          ReactStrap.Button(color: 'secondary') { @show_duplicates ? 'Hide' : 'Show' }
+                    .on(:click) {
+            mutate @show_duplicates = !@show_duplicates
           }
         }
-      }
-    end
 
-    H2 { 'Description' }
-    P { @report.description }
-    P { @report.extra_description }
-
-    H2 {
-      SPAN(style: { marginRight: '25px' }) { 'Notes' }
-      if App.acting_user&.developer?
-        RS.Button(color: 'secondary', size: 'sm') { 'Edit' }.on(:click) {
-          mutate {
-            @edited_text = @report.notes
-            @editing_notes = true
+        ReactStrap.Collapse(isOpen: @show_duplicates) {
+          UL {
+            @report.duplicates.each { |duplicate|
+              LI { Link("/report/#{duplicate.id}") { duplicate.id.to_s } }
+            }
           }
         }
       end
-    }
-    P { @notes_error } if @notes_error
 
-    if @editing_notes
+      H2 { 'Description' }
+      P { @report.description }
+      P { @report.extra_description }
 
-      RS.Input(type: :textarea, value: @edited_text,
-               placeholder: 'Enter notes to display here').on(:change) { |e|
-        mutate @edited_text = e.target.value
-      }
-
-      RS.Button(color: 'primary') { 'Save' }.on(:click) {
-        finish_editing_notes
-      }
-      RS.Button(color: 'danger') { 'Cancel' }.on(:click) {
-        mutate @editing_notes = false
-      }
-
-    else
-      P { PRE { @report.notes } }
-    end
-
-    H2 {
-      SPAN(style: { marginRight: '5px' }) { 'Callstack' }
-      ReactStrap.Button(color: 'secondary') { @show_callstack ? 'Hide' : 'Show' }.on(:click) {
-        mutate @show_callstack = !@show_callstack
-      }
-    }
-
-    ReactStrap.Collapse(isOpen: @show_callstack) {
-      PRE { @report.primary_callstack }
-    }
-
-    if App.acting_user&.developer?
       H2 {
-        SPAN(style: { marginRight: '5px' }) { 'Log files' }
-        ReactStrap.Button(color: 'secondary') { @show_logs ? 'Hide' : 'Show' }.on(:click) {
-          mutate @show_logs = !@show_logs
+        SPAN(style: { marginRight: '25px' }) { 'Notes' }
+        if App.acting_user&.developer?
+          RS.Button(color: 'secondary', size: 'sm') { 'Edit' }.on(:click) {
+            mutate {
+              @edited_text = @report.notes
+              @editing_notes = true
+            }
+          }
+        end
+      }
+      P { @notes_error } if @notes_error
+
+      if @editing_notes
+
+        RS.Input(type: :textarea, value: @edited_text,
+                 placeholder: 'Enter notes to display here').on(:change) { |e|
+          mutate @edited_text = e.target.value
+        }
+
+        RS.Button(color: 'primary') { 'Save' }.on(:click) {
+          finish_editing_notes
+        }
+        RS.Button(color: 'danger') { 'Cancel' }.on(:click) {
+          mutate @editing_notes = false
+        }
+
+      else
+        # P {
+        PRE { @report.notes }
+        # }
+      end
+
+      H2 {
+        SPAN(style: { marginRight: '5px' }) { 'Callstack' }
+        ReactStrap.Button(color: 'secondary') { @show_callstack ? 'Hide' : 'Show' }.on(:click) {
+          mutate @show_callstack = !@show_callstack
         }
       }
 
-      ReactStrap.Collapse(isOpen: @show_logs) {
-        PRE { @report.log_files }
-      }
-    end
-
-    H2 {
-      SPAN(style: { marginRight: '5px' }) { 'Full dump' }
-      ReactStrap.Button(color: 'secondary') { @show_dump ? 'Hide' : 'Show' }.on(:click) {
-        mutate @show_dump = !@show_dump
+      ReactStrap.Collapse(isOpen: @show_callstack) {
+        PRE { @report.primary_callstack }
       }
     }
+    RS.Col(md: '12', lg: @full_width_logs ? '12' : '6') {
+      ReactStrap.Button(color: 'secondary', class: 'd-none d-lg-block') {
+        'Toggle Full Width'
+      } .on(:click) {
+        mutate @full_width_logs = !@full_width_logs
+      }
 
-    ReactStrap.Collapse(isOpen: @show_dump) {
-      PRE { @report.processed_dump }
+      if App.acting_user&.developer?
+        H2 {
+          SPAN(style: { marginRight: '5px' }) { 'Log files' }
+          ReactStrap.Button(color: 'secondary') { @show_logs ? 'Hide' : 'Show' }.on(:click) {
+            mutate @show_logs = !@show_logs
+          }
+        }
+
+        ReactStrap.Collapse(isOpen: @show_logs) {
+          PRE { @report.log_files }
+        }
+      end
+
+      H2 {
+        SPAN(style: { marginRight: '5px' }) { 'Full dump' }
+        ReactStrap.Button(color: 'secondary') { @show_dump ? 'Hide' : 'Show' }.on(:click) {
+          mutate @show_dump = !@show_dump
+        }
+      }
+
+      ReactStrap.Collapse(isOpen: @show_dump) {
+        PRE { @report.processed_dump }
+      }
     }
   end
 end
