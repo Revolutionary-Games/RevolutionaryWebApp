@@ -20,6 +20,8 @@ class Report < ApplicationRecord
 
   scope :index_id_reverse, -> { order('id DESC') }
 
+  scope :index_id, -> { order('id ASC') }
+
   scope :not_solved, -> { where(solved: nil).or(where(solved: false)) }
 
   scope :not_duplicate, -> { where(duplicate_of: nil) }

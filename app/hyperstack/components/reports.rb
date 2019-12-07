@@ -47,7 +47,7 @@ class Reports < HyperComponent
     elsif @sort_by == :updated_at && @order == :asc
       scope.index_by_updated_at_reverse
     elsif @sort_by == :id && @order == :asc
-      scope
+      scope.index_id
     elsif @sort_by == :id && @order == :desc
       scope.index_id_reverse
     else
