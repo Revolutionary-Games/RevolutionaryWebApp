@@ -78,3 +78,14 @@ ALTER USER putyourusernamehere WITH SUPERUSER;
 ```
 
 That should fix the permissions and allow the tests to run.
+
+RSpecs can be ran with:
+```
+bundle exec rspec
+```
+
+If the specs are failing you can check to see if the problem is with
+the testing process by running a smoke test:
+```
+bundle exec rspec spec/hyperspec_smoke_test.rb
+```
