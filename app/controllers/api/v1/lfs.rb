@@ -60,7 +60,7 @@ module API
 
         def read_adapter
           if params[:transfers]
-            if !params[:transfers].is_a?(Array) || params[:transfers].include?('basic')
+            if !params[:transfers].is_a?(Array) || !params[:transfers].include?('basic')
               error!({ error_code: 400, message:
                                           'Only basic transfer adapter is supported' }, 400)
             end
