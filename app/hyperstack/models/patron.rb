@@ -13,7 +13,7 @@ class Patron < ApplicationRecord
         server: -> { order('updated_at DESC') },
         select: -> { sort { |a, b| b.updated_at <=> a.updated_at } }
 
-  validates :suspended, presence: true, inclusion: { in: [true, false] }, default: false
+  validates :suspended, inclusion: { in: [true, false] }, default: false
   validates :email, presence: true, uniqueness: true, length: { maximum: 255 }
   validates :email_alias, uniqueness: true, length: { maximum: 255 }, allow_nil: true
   validates :username, length: { maximum: 255 }, allow_nil: true
@@ -26,5 +26,13 @@ class Patron < ApplicationRecord
 
   def pledge
     "#{pledge_amount_cents / 100.0}$"
+  end
+
+  def alias_or_email
+    if email_alias.blank?
+      email
+    else
+      email_alias
+    end
   end
 end

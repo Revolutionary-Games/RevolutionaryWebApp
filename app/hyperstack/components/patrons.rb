@@ -22,7 +22,7 @@ class Patrons < HyperComponent
   param :current_page, default: 0, type: Integer
 
   def items
-    Patron.sort_by_updated_at
+    Patron.sort_by_created_at
   end
 
   render(DIV) do
