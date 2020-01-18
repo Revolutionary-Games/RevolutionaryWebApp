@@ -4,8 +4,8 @@ require 'rest-client'
 
 COMMUNITY_FORUM_API_BASE = 'https://community.revolutionarygamesstudio.com/'
 
-# Max number of patrons
-DISCOURSE_QUERY_LIMIT = 10_000
+# Max number of patrons (TODO: pagination if needs more)
+DISCOURSE_QUERY_LIMIT = 1000
 
 # Module with helper function to do patreon operations
 module CommunityForumGroups
@@ -18,10 +18,13 @@ module CommunityForumGroups
   def self.query_users_in_group(group)
     url = URI.join(COMMUNITY_FORUM_API_BASE,
                    "/groups/#{group}/members.json").to_s
-    # TODO: does this need to be added somehow to make sure we get all the members?
-    # + "?offset=0&limit=#{DISCOURSE_QUERY_LIMIT}"
 
-    response = RestClient.get(url, CommunityForumGroups.headers)
+    payload = { offset: 0, limit: DISCOURSE_QUERY_LIMIT }
+
+    response = RestClient::Request.execute(method: :get, url: url,
+                                           payload: payload.to_json,
+                                           timeout: 120,
+                                           headers: CommunityForumGroups.headers)
 
     data = JSON.parse(response.body)
 
