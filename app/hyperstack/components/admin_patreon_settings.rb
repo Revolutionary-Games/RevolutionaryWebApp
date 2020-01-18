@@ -220,14 +220,28 @@ class AdminPatreonSettings < HyperComponent
           @operation_status = 'Updating patreon settings'
         }
 
-        @settings.save.then {
+        @settings.active = false unless @settings.active
+
+        @settings.save.then { |result|
           mutate {
             @show_spinner = false
-            @operation_status = 'Settings updated'
+
+            @operation_status = if result['success']
+                                  'Settings updated'
+                                else
+                                  errors = result['models'].map { |i|
+                                    i.errors.full_messages.join('. ')
+                                  }                                           .join('. ')
+
+                                  "Update failed, error: #{result['message']} " \
+                                    "validation errors: #{errors}"
+                                end
           }
         }.fail { |error|
-          @show_spinner = false
-          @operation_status = "Failed to update settings, error: #{error}"
+          mutate {
+            @show_spinner = false
+            @operation_status = "Failed to update settings, error: #{error}"
+          }
         }
       }
 

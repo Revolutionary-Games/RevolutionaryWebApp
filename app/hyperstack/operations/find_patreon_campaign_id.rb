@@ -13,9 +13,7 @@ class FindPatreonCampaignId < Hyperstack::ServerOp
     @settings.find_campaign_id_if_missing
   }
   step {
-    puts "saving settings (#{@settings.campaign_id})"
     @settings.save!
-    puts 'save complete'
   }
   step {
     @settings.campaign_id

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Finds the first campaign for a patreon settings
+# Creates a patreon settings object
 class CreatePatreonSettings < Hyperstack::ServerOp
   param :acting_user
   param :active

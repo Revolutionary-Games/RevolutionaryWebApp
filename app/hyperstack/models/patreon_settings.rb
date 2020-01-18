@@ -5,7 +5,7 @@ class PatreonSettings < ApplicationRecord
   default_scope server: -> { all },
                 client: -> { true }
 
-  validates :active, presence: true, inclusion: { in: [true, false] }
+  validates :active, inclusion: { in: [true, false] }
   validates :creator_token, presence: true, uniqueness: true
   validates :creator_refresh_token, presence: true
 
