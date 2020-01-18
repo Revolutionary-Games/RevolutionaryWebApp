@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_11_24_191158) do
+ActiveRecord::Schema.define(version: 2020_01_18_200157) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -61,6 +61,35 @@ ActiveRecord::Schema.define(version: 2019_11_24_191158) do
     t.datetime "file_tree_updated"
     t.index ["name"], name: "index_lfs_projects_on_name", unique: true
     t.index ["slug"], name: "index_lfs_projects_on_slug", unique: true
+  end
+
+  create_table "patreon_settings", force: :cascade do |t|
+    t.boolean "active"
+    t.string "creator_token"
+    t.string "creator_refresh_token"
+    t.string "campaign_id"
+    t.string "webhook_secret"
+    t.integer "devbuilds_pledge_cents"
+    t.integer "vip_pledge_cents"
+    t.datetime "last_refreshed"
+    t.datetime "last_webhook"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "patrons", force: :cascade do |t|
+    t.boolean "suspended"
+    t.string "username"
+    t.string "email"
+    t.integer "pledge_amount_cents"
+    t.string "email_alias"
+    t.string "patreon_token"
+    t.string "patreon_refresh_token"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "marked"
+    t.index ["email"], name: "index_patrons_on_email", unique: true
+    t.index ["email_alias"], name: "index_patrons_on_email_alias", unique: true
   end
 
   create_table "reports", force: :cascade do |t|

@@ -1,0 +1,29 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  active: true
+  creator_token: MyString
+  creator_refresh_token: MyString
+  campaign_id: 34345134
+  webhook_secret: MyString
+  devbuilds_pledge_cents: 500
+  vip_pledge_cents: 1500
+  last_refreshed: 2020-01-18 13:17:17
+  last_webhook: 2020-01-18 13:17:17
+  # hack workaround
+  created_at: 2020-01-18 13:17:17
+  updated_at: 2020-01-18 13:17:17
+
+two:
+  active: false
+  creator_token: MyString
+  creator_refresh_token: MyString
+  campaign_id: 12535342341234
+  webhook_secret: MyString
+  devbuilds_pledge_cents: 500
+  vip_pledge_cents: 1500
+  last_refreshed: 2020-01-18 13:17:17
+  last_webhook: 2020-01-18 13:17:17
+  # hack workaround
+  created_at: 2020-01-18 13:17:17
+  updated_at: 2020-01-18 13:17:17

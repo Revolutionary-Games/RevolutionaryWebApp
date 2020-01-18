@@ -1,10 +1,8 @@
-class DebugSymbolPolicy
-  
-  # Developers get debug symbol info
-  regulate_class_connection { developer? }
+# frozen_string_literal: true
 
-  # Just send everything
-  regulate_broadcast { |policy|
-    policy.send_all().to(DebugSymbol)
-  }
+class DebugSymbolPolicy
+  # Just send everything to developers
+  regulate_broadcast do |policy|
+    policy.send_all.to(DeveloperUser)
+  end
 end

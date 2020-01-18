@@ -6,7 +6,6 @@ class UpdateLfsSizesJob < ApplicationJob
 
   after_perform do |_job|
     # Queue again
-    puts 'queuing lfs sizes again'
     UpdateLfsSizesJob.set(wait: 15.minutes).perform_later
   end
 

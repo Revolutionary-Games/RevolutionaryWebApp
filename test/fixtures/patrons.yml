@@ -1,0 +1,19 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  suspended: false
+  username: MyString
+  email: MyString
+  pledge_amount_cents: 1
+  email_alias: MyString
+  patreon_token: MyString
+  patreon_refresh_token: MyString
+
+two:
+  suspended: false
+  username: MyString
+  email: MyString
+  pledge_amount_cents: 1
+  email_alias: MyString
+  patreon_token: MyString
+  patreon_refresh_token: MyString

@@ -1,5 +1,16 @@
 # frozen_string_literal: true
 
+# Patreon container
+class AdminPatreon < HyperComponent
+  include Hyperstack::Router::Helpers
+
+  render(DIV) do
+    AdminPatreonSettings {}
+    HR {}
+    Patrons {}
+  end
+end
+
 # Site admin area with a bunch of fun stuff
 class AdminArea < HyperComponent
   include Hyperstack::Router
@@ -20,6 +31,9 @@ class AdminArea < HyperComponent
           ReactStrap.NavItem {
             NavLink('/admin/email', class: 'nav-link') { 'Email' }
           }
+          ReactStrap.NavItem {
+            NavLink('/admin/patreon', class: 'nav-link') { 'Patreon' }
+          }
         }
       }
 
@@ -30,6 +44,7 @@ class AdminArea < HyperComponent
           Route('/admin/status', mounts: SiteStatus)
           Route('/admin', exact: true, mounts: SiteStatus)
           Route('/admin/email', mounts: EmailOptions)
+          Route('/admin/patreon', mounts: AdminPatreon)
         end
       }
     }

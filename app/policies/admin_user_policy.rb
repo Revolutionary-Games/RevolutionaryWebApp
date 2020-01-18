@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AdminUserPolicy
   # All AdminUsers share the same connection so we setup a class wide
   # connection available to any users who are admins.
@@ -9,9 +11,8 @@ class AdminUserPolicy
   # All models are sent? except these some keys
   # password, password_confirmation and password_digest are never sent
   # also the token is not sent so admins can't impersonate others
-  regulate_all_broadcasts {|policy|
+  regulate_all_broadcasts { |policy|
     policy.send_all_but(:password, :password_confirmation, :password_digest, :api_token,
-                        :lfs_token).to(AdminUser)
+                        :lfs_token, :patreon_token, :patreon_refresh_token).to(AdminUser)
   }
-
 end

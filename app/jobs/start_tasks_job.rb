@@ -7,11 +7,33 @@ class StartTasksJob < ApplicationJob
   def perform
     puts 'Checking if all background jobs are queued...'
 
-    lfs_size_scheduled = Sidekiq::ScheduledSet.new.any? { |job|
-      job.display_class == 'UpdateLfsSizesJob'
-    }
-    UpdateLfsSizesJob.set(wait: 15.minutes).perform_later unless lfs_size_scheduled
-    puts "LFS Sizes was queued: #{lfs_size_scheduled}"
+    set = Sidekiq::ScheduledSet.new
+
+    check_lfs set
+    check_patrons set
+
     puts 'Done checking'
+  end
+
+  def check_lfs(set)
+    if set.any? { |job|
+         job.display_class == 'UpdateLfsSizesJob'
+       }
+      return
+    end
+
+    UpdateLfsSizesJob.set(wait: 15.minutes).perform_later
+    puts 'LFS Sizes queued'
+  end
+
+  def check_patrons(set)
+    if set.any? { |job|
+         job.display_class == 'RefreshPatronsJob'
+       }
+      return
+    end
+
+    RefreshPatronsJob.set(wait: 21.minutes).perform_later
+    puts 'Patron refresh queued'
   end
 end
