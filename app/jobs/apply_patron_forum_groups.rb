@@ -76,6 +76,9 @@ class ApplyPatronForumGroups < ApplicationJob
     @patreon_settings = PatreonSettings.first
 
     Patron.all.each { |patron|
+      # Skip patrons who shouldn't have a forum group, check_unmarked fill find them
+      next if patron.pledge_amount_cents < @patreon_settings.devbuilds_pledge_cents
+
       corresponding_forum_user = CommunityForumGroups.find_user_by_email patron.alias_or_email
 
       unless corresponding_forum_user
