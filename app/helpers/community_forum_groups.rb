@@ -31,6 +31,13 @@ module CommunityForumGroups
     [data['members'], data['owners']]
   end
 
+  # TODO: find if there is some more efficient API for this
+  def self.query_group_owners(group)
+    _, owners = query_users_in_group group
+
+    owners
+  end
+
   # TODO: is this really, really slow?
   def self.find_user_by_email(email)
     url = URI.join(COMMUNITY_FORUM_API_BASE,
@@ -38,6 +45,15 @@ module CommunityForumGroups
     response = RestClient.get(url, CommunityForumGroups.headers)
 
     JSON.parse(response.body).first
+  end
+
+  # Returns way more info by find user by email
+  def self.user_info_by_name(username)
+    url = URI.join(COMMUNITY_FORUM_API_BASE,
+                   "users/#{username}.json").to_s
+    response = RestClient.get(url, CommunityForumGroups.headers)
+
+    JSON.parse(response.body)['user']
   end
 
   def self.get_group_id(group)
@@ -68,6 +84,8 @@ module CommunityForumGroups
   def self.remove_group_members(group, usernames)
     url, payload = prepapare_group_url_and_payload group, usernames
 
-    RestClient.delete(url, payload.to_json, CommunityForumGroups.headers)
+    RestClient::Request.execute(method: :delete, url: url,
+                                payload: payload.to_json,
+                                headers: CommunityForumGroups.headers)
   end
 end

@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-COMMUNITY_DEVBUILD_GROUP = 'Supporter'
-COMMUNITY_VIP_GROUP = 'VIP_supporter'
-
 # Makes sure forum groups are up to date based on the Patron data
 class ApplyPatronForumGroups < ApplicationJob
   queue_as :default
@@ -23,13 +20,7 @@ class ApplyPatronForumGroups < ApplicationJob
 
     puts "Handling (#{patron.username}) #{corresponding_username}"
 
-    # Should be in group
-    should_be_group = :none
-    if patron.pledge_amount_cents >= @patreon_settings.devbuilds_pledge_cents
-      should_be_group = :devbuild
-    elsif patron.pledge_amount_cents >= @patreon_settings.vip_pledge_cents
-      should_be_group = :vip
-    end
+    should_be_group = PatreonGroupHelper.should_be_group_for_patron patron, @patreon_settings
 
     puts "Target group: #{should_be_group}"
 
@@ -79,6 +70,9 @@ class ApplyPatronForumGroups < ApplicationJob
       # Skip patrons who shouldn't have a forum group, check_unmarked fill find them
       next if patron.pledge_amount_cents < @patreon_settings.devbuilds_pledge_cents
 
+      # Also skip suspended who should have their groups revoked as long as they are suspended
+      next if patron.suspended
+
       corresponding_forum_user = CommunityForumGroups.find_user_by_email patron.alias_or_email
 
       unless corresponding_forum_user
@@ -91,22 +85,10 @@ class ApplyPatronForumGroups < ApplicationJob
   end
 
   def apply_adds_and_removes
-    unless @users_to_add_to_devbuilds.empty?
-      CommunityForumGroups.add_group_members COMMUNITY_DEVBUILD_GROUP,
-                                             @users_to_add_to_devbuilds
-    end
-    unless @users_to_add_to_vip.empty?
-      CommunityForumGroups.add_group_members COMMUNITY_VIP_GROUP, @users_to_add_to_vip
-    end
-
-    unless @users_to_remove_from_devbuilds.empty?
-      CommunityForumGroups.remove_group_members COMMUNITY_DEVBUILD_GROUP,
-                                                @users_to_remove_from_devbuilds
-    end
-
-    return if @users_to_remove_from_vip.empty?
-
-    CommunityForumGroups.remove_group_members COMMUNITY_VIP_GROUP, @users_to_remove_from_vip
+    PatreonGroupHelper.apply_adds_and_removes @users_to_add_to_devbuilds,
+                                              @users_to_remove_from_devbuilds,
+                                              @users_to_add_to_vip,
+                                              @users_to_remove_from_vip
   end
 
   def perform
@@ -114,10 +96,8 @@ class ApplyPatronForumGroups < ApplicationJob
       raise 'COMMUNITY_DISCOURSE_API_KEY env variable is missing'
     end
 
-    @devbuild_existing, @devbuild_owners = CommunityForumGroups.query_users_in_group(
-      COMMUNITY_DEVBUILD_GROUP
-    )
-    @vip_existing, @vip_owners = CommunityForumGroups.query_users_in_group COMMUNITY_VIP_GROUP
+    @devbuild_existing, @devbuild_owners = PatreonGroupHelper.devbuild_group_members
+    @vip_existing, @vip_owners = PatreonGroupHelper.vip_group_members
 
     @users_to_add_to_devbuilds = []
     @users_to_remove_from_devbuilds = []
