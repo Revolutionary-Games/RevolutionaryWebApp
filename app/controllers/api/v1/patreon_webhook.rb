@@ -121,6 +121,9 @@ module API
           # Queue a job to update the status for the relevant user
           ApplySinglePatronGroups.perform_later email
 
+          settings.last_webhook = Time.now
+          settings.save
+
           status 200
           { 'success' => true }
         end
