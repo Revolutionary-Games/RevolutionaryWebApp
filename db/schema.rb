@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_01_18_200157) do
+ActiveRecord::Schema.define(version: 2020_01_19_103413) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -75,6 +75,8 @@ ActiveRecord::Schema.define(version: 2020_01_18_200157) do
     t.datetime "last_webhook"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "webhook_id"
+    t.index ["webhook_id"], name: "index_patreon_settings_on_webhook_id", unique: true
   end
 
   create_table "patrons", force: :cascade do |t|

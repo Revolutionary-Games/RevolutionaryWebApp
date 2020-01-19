@@ -17,6 +17,9 @@ class PatreonSettings < ApplicationRecord
 
   validates :creator_refresh_token, presence: true
 
+  validates :webhook_id, presence: true, uniqueness: true
+  before_validation :generate_webhook_id
+
   def find_campaign_id_if_missing
     return unless campaign_id.blank?
 
@@ -29,5 +32,23 @@ class PatreonSettings < ApplicationRecord
     raise 'Invalid state for patreon settings' if campaign_id.blank? || creator_token.blank?
 
     PatreonAPI.query_all_current_patrons creator_token, campaign_id
+  end
+
+  def generate_webhook_id
+    return if webhook_id
+
+    new_id = nil
+    loop do
+      new_id = SecureRandom.base58(8)
+      break unless PatreonSettings.find_by_webhook_id(new_id)
+    end
+    self.webhook_id = new_id
+  end
+
+  server_method :webhook_url, default: '' do
+    url = URI.join(ENV['BASE_URL'],
+                   '/api/v1/webhook/patreon').to_s
+
+    url + "?webhook_id=#{webhook_id}"
   end
 end

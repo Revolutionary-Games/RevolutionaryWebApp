@@ -10,6 +10,7 @@ one:
   vip_pledge_cents: 1500
   last_refreshed: 2020-01-18 13:17:17
   last_webhook: 2020-01-18 13:17:17
+  webhook_id: 1234
   # hack workaround
   created_at: 2020-01-18 13:17:17
   updated_at: 2020-01-18 13:17:17
@@ -24,6 +25,7 @@ two:
   vip_pledge_cents: 1500
   last_refreshed: 2020-01-18 13:17:17
   last_webhook: 2020-01-18 13:17:17
+  webhook_id: 5678
   # hack workaround
   created_at: 2020-01-18 13:17:17
   updated_at: 2020-01-18 13:17:17

@@ -162,6 +162,15 @@ class AdminPatreonSettings < HyperComponent
               @settings.webhook_secret = e.target.value
             }
           }
+
+          # TODO: allow resetting
+          unless @creating_new
+            RS.Label { "Created webhook id: #{@settings.webhook_id}" }
+            DIV {
+              SPAN { 'Webhook URL: ' }
+              A(href: @settings.webhook_url) { @settings.webhook_url.to_s }
+            }
+          end
         }
       }
     }

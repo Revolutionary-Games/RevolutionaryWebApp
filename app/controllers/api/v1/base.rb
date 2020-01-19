@@ -9,6 +9,7 @@ module API
       mount API::V1::Stackwalk
       mount API::V1::CrashReport
       mount API::V1::LFS
+      mount API::V1::PatreonWebhook
 
       add_swagger_documentation(
         api_version: 'v1',
