@@ -73,8 +73,6 @@ module API
 
           body = env['api.request.body']
 
-          puts 'body is: ', body
-
           if body.blank?
             error!({ error_code: 400, message: 'Request body is empty' },
                    400)
