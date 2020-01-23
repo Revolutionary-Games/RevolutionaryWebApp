@@ -24,20 +24,29 @@ class ApplyPatronForumGroups < ApplicationJob
 
     puts "Target group: #{should_be_group}"
 
-    exists_in_devbuild = @devbuild_existing.find { |user|
-      user['username'] == corresponding_username
+    # Find and mark the entries as used
+    exists_in_devbuild = false
+    exists_in_vip = false
+
+    @devbuild_existing.each { |user|
+      next unless user['username'] == corresponding_username
+
+      user['marked_used'] = true
+      exists_in_devbuild = true
+      break
     }
-    exists_in_vip = @vip_existing.find { |user| user['username'] == corresponding_username }
+    @vip_existing.each { |user|
+      next unless user['username'] == corresponding_username
+
+      user['marked_used'] = true
+      exists_in_vip = true
+      break
+    }
 
     is_devbuild_owner = !@devbuild_owners.find { |user|
       user['username'] == corresponding_username
     }.nil?
     is_vip_owner = !@vip_owners.find { |user| user['username'] == corresponding_username }.nil?
-
-    # Mark the entries as used
-    exists_in_devbuild['marked_used'] = true if exists_in_devbuild
-
-    exists_in_vip['marked_used'] = true if exists_in_vip
 
     # Remove from groups
     if should_be_group != :vip && exists_in_vip && !is_vip_owner
