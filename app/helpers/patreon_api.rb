@@ -48,7 +48,7 @@ module PatreonAPI
       user_data = PatreonAPI.find_included_object data, patron_id
 
       unless user_data
-        logger.warning "could not find related object with id: #{patron_id}"
+        logger.warn "could not find related object with id: #{patron_id}"
         next
       end
       result.push(pledge: obj, user: user_data)

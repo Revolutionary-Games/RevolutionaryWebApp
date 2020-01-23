@@ -20,7 +20,7 @@ module API
           when 'pledges:delete'
             :delete
           else
-            logger.warning "Unknown event type in webhook: #{event_type}"
+            logger.warn "Unknown event type in webhook: #{event_type}"
             error!({ error_code: 400, message: 'Unknown event type' },
                    400)
           end
@@ -110,7 +110,7 @@ module API
             if patron
               patron.destroy
             else
-              logger.warning 'Could not find patron to delete'
+              logger.warn 'Could not find patron to delete'
             end
           elsif %i[create update].include? event_type
 
