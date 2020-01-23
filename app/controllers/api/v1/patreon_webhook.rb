@@ -44,7 +44,7 @@ module API
           needed_signature = OpenSSL::HMAC.hexdigest('MD5', settings.webhook_secret, payload)
           actual_signature = headers['X-Patreon-Signature']
 
-          logger.info "webhook signatures (given) #{actual_signature} | " \
+          logger.debug "webhook signatures (given) #{actual_signature} | " \
                        "#{needed_signature} (needed)"
 
           if needed_signature == actual_signature
@@ -63,16 +63,12 @@ module API
           requires :webhook_id, type: String, desc: 'webhook ID'
         end
         post 'patreon' do
-          logger.info 'start webhook'
           check_headers_exist
-          logger.info 'headers exist'
           event_type = hook_type
-          logger.info "event type: #{event_type}"
 
           settings = PatreonSettings.find_by webhook_id: permitted_params[:webhook_id]
 
           if !settings || settings.active != true
-            logger.info 'settings not found'
             error!({ error_code: 403, message: 'Invalid webhook key or invalid signature' },
                    403)
           end
@@ -80,15 +76,13 @@ module API
           body = env['api.request.body']
 
           if body.blank?
-            logger.info 'body is blank'
             error!({ error_code: 400, message: 'Request body is empty' },
                    400)
           end
 
-          logger.info "body is: '#{body}'"
+          # logger.debug "body is: '#{body}'"
 
           verify_signature body, settings
-          logger.info 'signature good'
 
           begin
             data = JSON.parse(body)
@@ -96,13 +90,9 @@ module API
             error!({ error_code: 400, message: 'Invalid JSON' }, 400)
           end
 
-          logger.info 'json parsed'
-
           pledge = data['data']
 
           patron_id = pledge['relationships']['patron']['data']['id']
-
-          logger.info 'pledge and patron_id found'
 
           user_data = PatreonAPI.find_included_object data, patron_id
 
@@ -111,9 +101,7 @@ module API
                      message: "Included objects didn't contain relevant user object" }, 400)
           end
 
-          logger.info 'found user data'
-
-          email = data[:user]['attributes']['email']
+          email = user_data['attributes']['email']
 
           if event_type == :delete
             # We need to just look up the email and delete the corresponding Patron object
