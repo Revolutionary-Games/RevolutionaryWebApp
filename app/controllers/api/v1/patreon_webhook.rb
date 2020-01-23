@@ -11,14 +11,16 @@ module API
 
       helpers do
         def hook_type
-          case headers['X-Patreon-Event']
-          when 'pledge:create'
+          event_type = headers['X-Patreon-Event']
+          case event_type
+          when 'pledges:create'
             :create
-          when 'pledge:update'
+          when 'pledges:update'
             :update
-          when 'pledge:delete'
+          when 'pledges:delete'
             :delete
           else
+            logger.warning "Unknown event type in webhook: #{event_type}"
             error!({ error_code: 400, message: 'Unknown event type' },
                    400)
           end
