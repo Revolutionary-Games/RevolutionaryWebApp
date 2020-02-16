@@ -30,33 +30,40 @@ module PatreonAPI
   end
 
   def self.query_all_current_patrons(patreon_token, campaign_id)
-    response = RestClient.get('https://www.patreon.com/api/oauth2/api/campaigns/' +
-                              campaign_id.to_s + '/pledges?include=patron.null',
-                              headers(patreon_token))
-
-    data = JSON.parse(response.body)
+    logger = Rails.logger
 
     result = []
 
-    logger = Rails.logger
+    url = 'https://www.patreon.com/api/oauth2/api/campaigns/' +
+          campaign_id.to_s + '/pledges?include=patron.null'
 
-    data['data'].each { |obj|
-      next unless obj['type'] == 'pledge'
+    while url
 
-      patron_id = obj['relationships']['patron']['data']['id']
+      response = RestClient.get(url, headers(patreon_token))
 
-      user_data = PatreonAPI.find_included_object data, patron_id
+      data = JSON.parse(response.body)
 
-      unless user_data
-        logger.warn "could not find related object with id: #{patron_id}"
-        next
-      end
-      result.push(pledge: obj, user: user_data)
-    }
+      data['data'].each { |obj|
+        next unless obj['type'] == 'pledge'
 
-    # TODO: pagination!
-    if data.include?('links') && data['links'].include?('next')
-      logger.error 'patreon pagination is not done'
+        patron_id = obj['relationships']['patron']['data']['id']
+
+        user_data = PatreonAPI.find_included_object data, patron_id
+
+        unless user_data
+          logger.warn "could not find related object with id: #{patron_id}"
+          next
+        end
+        result.push(pledge: obj, user: user_data)
+      }
+
+      # Pagination
+      url = if data.include?('links') && data['links'].include?('next')
+              data['links']['next']
+            else
+              # No more pages time to break the loop
+              nil
+            end
     end
 
     result
