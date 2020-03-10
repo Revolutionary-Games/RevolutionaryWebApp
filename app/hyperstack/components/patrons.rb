@@ -11,6 +11,7 @@ class PatronItem < HyperComponent
     TD { @Patron.username.to_s }
     TD { @Patron.pledge }
     TD { @Patron.email_alias.to_s }
+    TD { @Patron.has_forum_account.to_s }
     TD { @Patron.has_patreon_token? }
   end
 end
@@ -42,6 +43,7 @@ class Patrons < HyperComponent
               TH { 'Username' }
               TH { 'Pledge' }
               TH { 'Alias' }
+              TH { 'Forum Account?' }
               TH { 'Patreon login?' }
             }
           }

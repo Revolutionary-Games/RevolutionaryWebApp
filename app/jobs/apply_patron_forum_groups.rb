@@ -84,9 +84,12 @@ class ApplyPatronForumGroups < ApplicationJob
 
       corresponding_forum_user = CommunityForumGroups.find_user_by_email patron.alias_or_email
 
-      unless corresponding_forum_user
+      if !corresponding_forum_user
         puts "Patron (#{patron.username}) is missing a forum account, skipping applying groups"
+        patron.has_forum_account = false
         next
+      else
+        patron.has_forum_account = true
       end
 
       handle_patron patron, corresponding_forum_user
