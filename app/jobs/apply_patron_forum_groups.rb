@@ -93,7 +93,7 @@ class ApplyPatronForumGroups < ApplicationJob
 
       if !corresponding_forum_user
         puts "Patron (#{patron.username}) is missing a forum account, skipping applying groups"
-        check_status patron, true
+        check_status patron, false
         next
       else
         check_status patron, true
