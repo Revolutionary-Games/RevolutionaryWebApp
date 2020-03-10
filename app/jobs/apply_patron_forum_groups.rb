@@ -71,6 +71,13 @@ class ApplyPatronForumGroups < ApplicationJob
     end
   end
 
+  def check_status(patron, status)
+    return if patron.has_forum_account == status
+
+    patron.has_forum_account = status
+    patron.save!
+  end
+
   def go_through_patrons
     # Doesn't exactly work great with multiple settings
     @patreon_settings = PatreonSettings.first
@@ -86,10 +93,10 @@ class ApplyPatronForumGroups < ApplicationJob
 
       if !corresponding_forum_user
         puts "Patron (#{patron.username}) is missing a forum account, skipping applying groups"
-        patron.has_forum_account = false
+        check_status patron, true
         next
       else
-        patron.has_forum_account = true
+        check_status patron, true
       end
 
       handle_patron patron, corresponding_forum_user
