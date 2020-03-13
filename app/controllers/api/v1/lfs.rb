@@ -13,6 +13,8 @@ module API
       DOWNLOAD_EXPIRE_TIME = 1800
       UPLOAD_EXPIRE_TIME = 3000
 
+      LFS_UPLOAD_KEY_DERIVE = 'lfs_upload'
+
       helpers do
         def request_auth
           error!('Unauthorized', 401,
@@ -23,7 +25,7 @@ module API
           if !ENV['LFS_STORAGE_DOWNLOAD'] || !ENV['LFS_STORAGE_DOWNLOAD_KEY'] ||
              !ENV['LFS_STORAGE_S3_ENDPOINT'] || !ENV['LFS_STORAGE_S3_BUCKET'] ||
              !ENV['LFS_STORAGE_S3_REGION'] || !ENV['LFS_STORAGE_S3_ACCESS_KEY'] ||
-             !ENV['LFS_STORAGE_S3_SECRET_KEY']
+             !ENV['LFS_STORAGE_S3_SECRET_KEY'] || !ENV['BASE_URL']
             error!('Invalid Server Configuration', 500)
           end
         end
@@ -112,15 +114,24 @@ module API
           ]
         end
 
-        def handle_upload(project, obj)
-          # TODO: allow removing failed uploads
-          object = LfsObject.find_by lfs_project_id: project.id, oid: obj[:oid]
+        def oid_storage_path(project, oid)
+          "#{project.slug}/objs/#{oid[0..1]}/#{oid[2..3]}/#{oid[4..]}"
+        end
 
-          if object
-            # We already have this object
-            return [{}, nil]
-          end
+        def upload_derived_key
+          Rails.application.key_generator.generate_key(LFS_UPLOAD_KEY_DERIVE)
+        end
 
+        def upload_verify_token(oid, size)
+          payload = { object_oid: oid, object_size: size,
+                      # Some leeway is added on top of what we tell
+                      # the client the expiry time is
+                      exp: Time.now.to_i + UPLOAD_EXPIRE_TIME + 10 }
+
+          JWT.encode payload, upload_derived_key, 'HS256'
+        end
+
+        def upload_target_bucket
           aws_client = Aws::S3::Client.new(
             region: ENV['LFS_STORAGE_S3_REGION'],
             endpoint: ENV['LFS_STORAGE_S3_ENDPOINT'],
@@ -128,14 +139,27 @@ module API
             secret_access_key: ENV['LFS_STORAGE_S3_SECRET_KEY']
           )
 
-          oid = obj[:oid]
+          s3 = Aws::S3::Resource.new(client: aws_client)
 
-          storage_path = "#{project.slug}/objs/#{oid[0..1]}/#{oid[2..3]}/#{oid[4..]}"
+          s3.bucket ENV['LFS_STORAGE_S3_BUCKET']
+        end
+
+        # This doesn't yet create the LfsObject to protect against failed uploads
+        def handle_upload(project, obj)
+          object = LfsObject.find_by lfs_project_id: project.id, oid: obj[:oid]
+
+          if object
+            # We already have this object
+            return [{}, nil]
+          end
+
+          oid = obj[:oid]
+          size = obj[:size]
+
+          storage_path = oid_storage_path project, oid
 
           begin
-            s3 = Aws::S3::Resource.new(client: aws_client)
-
-            bucket = s3.bucket ENV['LFS_STORAGE_S3_BUCKET']
+            bucket = upload_target_bucket
 
             # One extra call to AWS to make sure the target bucket is
             # valid to avoid configuration issues. Can be removed if
@@ -148,25 +172,7 @@ module API
 
             # This probably doesn't connect to amazon at all, so we don't know if our
             # token is invalid here. So this step likely cannot fail
-            url = s3_obj.presigned_url(:put, expires_in: UPLOAD_EXPIRE_TIME)
-
-            lfs_object = LfsObject.create oid: oid, storage_path: storage_path,
-                                          lfs_project: project, size: obj[:size]
-
-            unless lfs_object.valid?
-              return [{}, {
-                code: 422,
-                message: 'Object cannot be saved. Validation failures: ' +
-                         lfs_object.errors.full_messages.join('.\n')
-              }]
-            end
-
-            unless lfs_object.save
-              return [{}, {
-                code: 500,
-                message: 'Object cannot be saved. Database write failed.'
-              }]
-            end
+            url = s3_obj.presigned_url(:put, expires_in: UPLOAD_EXPIRE_TIME + 1)
 
             [
               {
@@ -174,6 +180,14 @@ module API
                   {
                     "href": url,
                     expires_in: UPLOAD_EXPIRE_TIME
+                  },
+                verify:
+                  {
+                    # Complex URL build to not have to detect v1 and /api paths
+                    "href": URI.join(ENV['BASE_URL'],
+                                     URI(request.url).request_uri,
+                                     "../verify?token=#{upload_verify_token oid, size}").to_s,
+                    expires_in: UPLOAD_EXPIRE_TIME + 1
                   }
               }, nil
             ]
@@ -231,6 +245,7 @@ module API
           { error: 'no project specified' }
         end
 
+        desc 'Basic project info'
         params do
           optional :lfs_token, type: String
           requires :slug, type: String, desc: 'LFS project slug'
@@ -254,6 +269,7 @@ module API
           { id: project.id, slug: project.slug, name: project.name }
         end
 
+        desc 'Git LFS batch API'
         params do
           requires :slug, type: String, desc: 'LFS project slug'
         end
@@ -309,6 +325,81 @@ module API
           }
         end
 
+        desc 'Verify that uploaded object is fine and then create the server side object'
+        params do
+          requires :slug, type: String, desc: 'LFS project slug'
+          requires :token, type: String, desc: 'LFS upload verify token'
+          requires :oid, type: String, desc: 'OID of the uploaded object'
+          requires :size, type: Integer, desc: 'size of the object'
+        end
+        post ':slug/verify' do
+          content_type 'application/vnd.git-lfs+json'
+
+          # Verify token first as there is no other protection on this endpoint
+          begin
+            decoded_token = JWT.decode permitted_params[:token],
+                                       upload_derived_key, true, algorithm: 'HS256'
+            data = decoded_token[0]
+          rescue JWT::DecodeError
+            error!({ error_code: 403, message: 'Invalid token' }, 403)
+          end
+
+          if data['object_oid'] != permitted_params[:oid] ||
+             data['object_size'] != permitted_params[:size]
+            error!({ error_code: 403, message: 'Invalid token' }, 403)
+          end
+
+          project = LfsProject.find_by slug: permitted_params[:slug]
+
+          error!({ error_code: 404, message: 'No project found' }, 404) unless project
+
+          object = LfsObject.find_by lfs_project_id: project.id, oid: data['object_oid']
+
+          # Error if we already have this object
+          error!({ error_code: 400, message: 'Object already exists' }, 400) if object
+
+          # Verify that the S3 upload succeeded
+          storage_path = oid_storage_path project, data['object_oid']
+
+          begin
+            bucket = upload_target_bucket
+
+            s3_obj = bucket.object(storage_path)
+
+            existing_length = s3_obj.content_length
+          rescue RuntimeError => e
+            error!({ error_code: 400,
+                     message: "Object could not be verified to exist in storage: #{e}" }, 400)
+          end
+
+          if existing_length != data['object_size']
+            error!({ error_code: 400,
+                     message: "Uploaded object size doesn't match expected " \
+                     "value: #{existing_length} != #{data['object_size']} (expected)" }, 400)
+          end
+
+          # Now the object is good in a verified way, we can create it
+          lfs_object = LfsObject.create oid: data['object_oid'], storage_path: storage_path,
+                                        lfs_project: project, size: data['object_size']
+
+          unless lfs_object.valid?
+            error!({ error_code: 400,
+                     message: 'Object cannot be saved. Validation failures: ' +
+                     lfs_object.errors.full_messages.join('.\n') }, 400)
+          end
+
+          unless lfs_object.save
+            error!({ error_code: 500,
+                     message: 'Object cannot be saved. Database write failed.' }, 500)
+          end
+
+          status 200
+          {
+            message: 'Object successfully created'
+          }
+        end
+
+        desc 'UNIMPLEMENTED Git LFS locks API'
         post ':slug/locks/verify' do
           content_type 'application/vnd.git-lfs+json'
           status 501
