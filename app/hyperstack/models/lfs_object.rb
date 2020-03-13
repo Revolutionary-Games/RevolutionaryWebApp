@@ -7,4 +7,20 @@ class LfsObject < ApplicationRecord
   validates :oid, presence: true, length: { minimum: 5 }
   validates :storage_path, presence: true, length: { minimum: 3 }
   validates :size, presence: true, numericality: { only_integer: true }
+
+  scope :by_project, lambda { |project_id|
+    where(lfs_project_id: project_id)
+  }
+
+  scope :sort_by_created_at,
+        server: -> { order('created_at DESC') },
+        select: -> { sort { |a, b| b.created_at <=> a.created_at } }
+
+  def size_mib(rounded: 2)
+    if size
+      (size.to_f / 1024 / 1024).round(rounded)
+    else
+      0
+    end
+  end
 end
