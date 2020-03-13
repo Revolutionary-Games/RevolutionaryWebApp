@@ -45,7 +45,7 @@ class LFSProjects < HyperComponent
           }
 
           TBODY {
-            items.each { |project|
+            items.offset(@paginator.offset).take(@paginator.take_count).each { |project|
               LFSProjectItem(project: project)
             }
           }
