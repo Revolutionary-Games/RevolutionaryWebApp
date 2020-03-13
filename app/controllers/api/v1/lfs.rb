@@ -10,8 +10,8 @@ module API
 
       content_type :json, 'application/vnd.git-lfs+json'
 
-      DOWNLOAD_EXPIRE_TIME = 900
-      UPLOAD_EXPIRE_TIME = 1800
+      DOWNLOAD_EXPIRE_TIME = 1800
+      UPLOAD_EXPIRE_TIME = 3000
 
       helpers do
         def request_auth
