@@ -32,12 +32,18 @@ module API
 
         def check_auth
           if headers['Authorization']
+            user = nil
 
-            decoded = Base64.decode64(headers['Authorization'].split(' ', 2).second || '')
+            begin
+              decoded = Base64.decode64(headers['Authorization'].split(' ', 2).second || '')
 
-            username, token = decoded.split(':', 2)
+              username, token = decoded.split(':', 2)
 
-            user = User.find_by email: username, lfs_token: token
+              user = User.find_by email: username, lfs_token: token
+            rescue StandardError
+              # Invalid format for Authorization header
+              request_auth
+            end
 
             request_auth unless user
 
