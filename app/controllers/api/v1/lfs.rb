@@ -151,12 +151,22 @@ module API
         end
 
         # This doesn't yet create the LfsObject to protect against failed uploads
-        def handle_upload(project, obj)
+        def handle_upload(project, obj, user)
           object = LfsObject.find_by lfs_project_id: project.id, oid: obj[:oid]
 
           if object
             # We already have this object
             return [{}, nil]
+          end
+
+          # New object. User must have write access
+          unless user&.developer?
+            request_auth
+            # This return is here to just be extra safe
+            return [{}, {
+              code: 403,
+              message: 'Write access needed'
+            }]
           end
 
           oid = obj[:oid]
@@ -223,7 +233,7 @@ module API
           result
         end
 
-        def handle_lfs_object_request(project, obj, operation)
+        def handle_lfs_object_request(project, obj, operation, user)
           error = nil
           actions = {}
 
@@ -233,7 +243,7 @@ module API
 
           elsif operation == :upload
 
-            actions, error = handle_upload project, obj
+            actions, error = handle_upload project, obj, user
           else
             error = {
               code: 500,
@@ -294,11 +304,6 @@ module API
 
           check_server_config
 
-          if operation == :upload
-            # Needs write access
-            request_auth unless user&.developer?
-          end
-
           processed_objects = []
 
           params[:objects].each { |obj|
@@ -317,7 +322,8 @@ module API
               next
             end
 
-            processed_objects.push handle_lfs_object_request(project, obj, operation)
+            # If this is an upload of a new file this checks that user has access
+            processed_objects.push handle_lfs_object_request(project, obj, operation, user)
           }
 
           if processed_objects.empty?
