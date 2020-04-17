@@ -26,6 +26,7 @@ module API
              !ENV['LFS_STORAGE_S3_ENDPOINT'] || !ENV['LFS_STORAGE_S3_BUCKET'] ||
              !ENV['LFS_STORAGE_S3_REGION'] || !ENV['LFS_STORAGE_S3_ACCESS_KEY'] ||
              !ENV['LFS_STORAGE_S3_SECRET_KEY'] || !ENV['BASE_URL']
+            Rails.logger.error 'Server configuration variables is invalid'
             error!('Invalid Server Configuration', 500)
           end
         end
@@ -161,6 +162,8 @@ module API
 
           # New object. User must have write access
           unless user&.developer?
+            Rails.logger.info 'Requesting auth because new object is to be ' \
+                              "uploaded: #{obj[:oid]} for project #{project.name}"
             request_auth
             # This return is here to just be extra safe
             return [{}, {
@@ -330,6 +333,8 @@ module API
             error!({ error_code: 422, message: 'No valid request object' }, 422)
           end
 
+          Rails.logger.info 'LFS batch request succeeded'
+
           status 200
           {
             transfer: adapter.to_s,
@@ -404,6 +409,9 @@ module API
             error!({ error_code: 500,
                      message: 'Object cannot be saved. Database write failed.' }, 500)
           end
+
+          Rails.logger.info "New LFS object uploaded: #{lfs_object.oid} " \
+                            "for project #{project.name}"
 
           status 200
           {
