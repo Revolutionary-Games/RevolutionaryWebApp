@@ -103,7 +103,7 @@ module PatreonAPI
     JSON.parse response.body
   end
 
-  def self.get_memberships(data, id)
+  def self.get_membership(data, id)
     data['included']&.each { |obj|
       return obj if obj['id'] == id
     }
@@ -111,7 +111,10 @@ module PatreonAPI
     nil
   end
 
+  # This is untested / unworking
   def self.get_user_memberships_over_cents(user_info, cents)
+    return [] unless user_info['data']['memberships']['data']
+
     result = []
 
     user_info['data']['memberships']['data'].each { |membership|

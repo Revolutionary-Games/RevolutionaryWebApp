@@ -61,8 +61,7 @@ class LoginController < ApplicationController
 
         setup_sso_nonce
 
-        scopes = CGI.escape 'identity identity[email] identity.memberships campaigns ' \
-                            'campaigns.members'
+        scopes = CGI.escape 'identity identity[email]'
 
         redirect_to 'https://www.patreon.com/oauth2/authorize?response_type=code&' \
                     "client_id=#{id}&redirect_uri=#{return_url}&scope=#{scopes}&" \
@@ -298,32 +297,19 @@ class LoginController < ApplicationController
     attributes = user_info['data']['attributes']
 
     # Check if the user is our patron
-    logger.info "Checking if patreon user #{attributes['email']} is our patron"
+    patron = Patron.find_by email: attributes['email']
 
-    patreon_settings = PatreonSettings.first
-
-    potential_memberships = PatreonAPI.get_user_memberships(
-      access, PatreonAPI.get_user_memberships_over_cents(
-                user_info, patreon_settings.devbuilds_pledge_cents
-              )
-    )
-
-    patron = false
-
-    potential_memberships.each { |member|
-      next unless member['data']['relationships']['campaign']['data']['id'] ==
-                  patreon_settings.campaign_id
-
-      logger.info "This patron is our patron (campaign id: #{patreon_settings.campaign_id}"
-      patron = true
-      break
-    }
-
-    unless patron
-      @error = "You aren't a patron of Thrive Game at least at the dev builds level. "\
-               'Please become a patron and try again'
+    if !patron
+      @error = "You aren't a patron of Thrive Game according to our latest information. "\
+               'You need to be at least at the dev builds level to login. '\
+               'Please become our patron and try again'
+      return
+    elsif patron.suspended
+      @error = "Your Patron status is currently suspended. Reason: #{patron.suspended_reason}"
       return
     end
+
+    logger.info "Patron (#{attributes['email']}) logging in"
 
     # Allow logging in (unless a developer (or local) account exists with the same email
 
