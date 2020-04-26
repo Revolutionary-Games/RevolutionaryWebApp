@@ -91,7 +91,12 @@ module PatreonAPI
   end
 
   def self.get_logged_in_user_details(access_token)
-    fields = CGI.escape('fields[user]') + '=about,email,full_name,vanity'
+    fields_user = CGI.escape('fields[user]') + '=about,email,full_name,vanity'
+    fields_campaign = CGI.escape('fields[campaign]') + '=vanity,creation_name,one_liner,url'
+    fields_member = CGI.escape('fields[member]') + '=patron_status,email,' \
+                                                        'currently_entitled_amount_cents'
+
+    fields = fields_user + '&' + fields_campaign + '&' + fields_member
 
     response = RestClient.get('https://www.patreon.com/api/oauth2/v2/identity?' \
                               "include=memberships,campaign&#{fields}", headers(access_token))
