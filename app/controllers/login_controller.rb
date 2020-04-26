@@ -274,16 +274,16 @@ class LoginController < ApplicationController
     # Fetch the access tokens from patreon
     code = params[:code]
 
-    response = RestClient.post('https://www.patreon.com/api/oauth2/token',
-                               code: code,
-                               grant_type: 'authorization_code',
-                               client_id: ENV['PATREON_LOGIN_CLIENT_ID'],
-                               client_secret: ENV['PATREON_LOGIN_CLIENT_SECRET'],
-                               redirect_uri: patreon_login_redirect)
-
-    if response.code != 200 && response.code != 201
+    begin
+      response = RestClient.post('https://www.patreon.com/api/oauth2/token',
+                                 code: code,
+                                 grant_type: 'authorization_code',
+                                 client_id: ENV['PATREON_LOGIN_CLIENT_ID'],
+                                 client_secret: ENV['PATREON_LOGIN_CLIENT_SECRET'],
+                                 redirect_uri: patreon_login_redirect)
+    rescue StandardError => e
       @error = 'Token request to Patreon failed'
-      logger.info "Failed response for token granting: #{response.body}"
+      logger.info "Failed response for token granting: #{e}"
       return
     end
 
@@ -300,12 +300,13 @@ class LoginController < ApplicationController
     end
 
     # Load user data from patreon
-    response = RestClient.get('https://www.patreon.com/api/oauth2/v2/identity?' \
-                              'include=memberships,campaign&fields[user]=about,email,'\
-                              'full_name,vanity')
-
-    if response.code != 200
+    begin
+      response = RestClient.get('https://www.patreon.com/api/oauth2/v2/identity?' \
+                                'include=memberships,campaign&fields[user]=about,email,'\
+                                'full_name,vanity', Authorization: "Bearer #{access}")
+    rescue StandardError => e
       @error = 'Requesting user data from Patreon failed'
+      logger.info "Request to patreon user dat failed: #{e}"
       return
     end
 
