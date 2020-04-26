@@ -272,45 +272,27 @@ class LoginController < ApplicationController
     session[:sso_nonce] = ''
 
     # Fetch the access tokens from patreon
-    code = params[:code]
-
     begin
-      response = RestClient.post('https://www.patreon.com/api/oauth2/token',
-                                 code: code,
-                                 grant_type: 'authorization_code',
-                                 client_id: ENV['PATREON_LOGIN_CLIENT_ID'],
-                                 client_secret: ENV['PATREON_LOGIN_CLIENT_SECRET'],
-                                 redirect_uri: patreon_login_redirect)
+      access, _refresh, _expires = PatreonAPI.turn_code_into_tokens(
+        params[:code],
+        ENV['PATREON_LOGIN_CLIENT_ID'],
+        ENV['PATREON_LOGIN_CLIENT_SECRET'],
+        patreon_login_redirect
+      )
     rescue StandardError => e
       @error = 'Token request to Patreon failed'
       logger.info "Failed response for token granting: #{e}"
       return
     end
 
-    data = JSON.parse response.body
-
-    access = data['access_token']
-    refresh = data['refresh_token']
-    expires = data['expires_in']
-
-    if data['token_type'] != 'Bearer' || access.blank? || refresh.blank? || expires.blank?
-      @error = 'Received data from Patreon is invalid'
-      logger.error "Invalid patreon json response: #{data}"
-      return
-    end
-
     # Load user data from patreon
     begin
-      response = RestClient.get('https://www.patreon.com/api/oauth2/v2/identity?' \
-                                'include=memberships,campaign&fields[user]=about,email,'\
-                                'full_name,vanity', Authorization: "Bearer #{access}")
+      user_info = PatreonAPI.get_logged_in_user_details access
     rescue StandardError => e
       @error = 'Requesting user data from Patreon failed'
-      logger.info "Request to patreon user dat failed: #{e}"
+      logger.info "Request to patreon user data failed: #{e}, #{e.response}"
       return
     end
-
-    user_info = JSON.parse response.body
 
     @error = "Got user data: #{user_info}"
   end

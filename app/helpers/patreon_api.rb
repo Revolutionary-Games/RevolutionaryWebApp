@@ -68,4 +68,33 @@ module PatreonAPI
 
     result
   end
+
+  def self.turn_code_into_tokens(code, client_id, client_secret, redirect_uri)
+    response = RestClient.post('https://www.patreon.com/api/oauth2/token',
+                               code: code,
+                               grant_type: 'authorization_code',
+                               client_id: client_id,
+                               client_secret: client_secret,
+                               redirect_uri: redirect_uri)
+
+    data = JSON.parse response.body
+
+    access = data['access_token']
+    refresh = data['refresh_token']
+    expires = data['expires_in']
+
+    if data['token_type'] != 'Bearer' || access.blank? || refresh.blank? || expires.blank?
+      raise "Invalid patreon json response: #{data}"
+    end
+
+    [access, refresh, expires]
+  end
+
+  def self.get_logged_in_user_details(access_token)
+    response = RestClient.get('https://www.patreon.com/api/oauth2/v2/identity?' \
+                              'include=memberships&fields[user]=about,email,'\
+                              'full_name,vanity', headers(access_token))
+
+    JSON.parse response.body
+  end
 end
