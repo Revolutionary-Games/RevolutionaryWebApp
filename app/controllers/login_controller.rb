@@ -12,8 +12,7 @@ class LoginController < ApplicationController
         return
       end
 
-      return_url = URI.join(ENV['BASE_URL'],
-                            "/login/sso_return?type=#{params[:sso_type]}").to_s
+      return_url = URI.join(ENV['BASE_URL'], '/login/sso_return').to_s
 
       if params[:sso_type] == 'devforum'
         unless ENV['DEV_FORUM_SSO_SECRET']
@@ -46,6 +45,22 @@ class LoginController < ApplicationController
                              "/session/sso_provider?sso=#{encoded}&sig=#{signature}").to_s
       elsif params[:sso_type] == 'patreon'
 
+        unless ENV['PATREON_LOGIN_CLIENT_SECRET'] && ENV['PATREON_LOGIN_CLIENT_ID']
+          @error = 'Invalid server configuration. Missing PATREON_LOGIN_CLIENT_SECRET ' \
+                   'or PATREON_LOGIN_CLIENT_ID'
+          return
+        end
+
+        return_url = URI.join(ENV['BASE_URL'], '/login/patreon').to_s
+
+        id = ENV['PATREON_LOGIN_CLIENT_ID']
+
+        setup_sso_nonce
+
+        scopes = 'identity,identity[email},identity.memberships'
+
+        redirect_to "www.patreon.com/oauth2/authorize?response_type=code&client_id=#{id}" \
+                    "&redirect_uri=#{return_url}&scope=#{scopes}&state=#{session[:sso_nonce]}"
       else
         @error = 'Invalid SSO login type selected'
         return
@@ -74,27 +89,19 @@ class LoginController < ApplicationController
   end
 
   def sso_return
-    unless params[:type]
-      @error = 'Missing URL query parameters'
-      return
-    end
+    handle_discourse_return :dev
+  end
 
-    if !session[:sso_start_time] || Time.current - session[:sso_start_time] > 15.minutes ||
-       !session[:sso_nonce]
-      @error = 'SSO request timed out. Please try again.'
-      return
-    end
+  def sso_return_community
+    handle_discourse_return :community
 
-    if params[:type] == 'devforum'
-      handle_discourse_return :dev
-    elsif params[:sso_type] == 'communityforum'
-      handle_discourse_return :community
-    elsif params[:sso_type] == 'patreon'
-      @error = "Unimplemented: #{params}"
-    else
-      @error = 'Unknown SSO type'
-      return
-    end
+    render template: 'sso_return' unless performed?
+  end
+
+  def sso_return_patreon
+    handle_patreon_return
+
+    render template: 'sso_return' unless performed?
   end
 
   def logout
@@ -102,11 +109,22 @@ class LoginController < ApplicationController
     redirect_to '/login'
   end
 
+  def check_sso_timeout
+    if !session[:sso_start_time] || Time.current - session[:sso_start_time] > 20.minutes ||
+       !session[:sso_nonce]
+      @error = 'SSO request timed out. Please try again.'
+      return false
+    end
+    true
+  end
+
   def handle_discourse_return(type)
     if !params[:sig] || !params[:sso]
       @error = 'Missing URL query parameters'
       return
     end
+
+    return unless check_sso_timeout
 
     secret = nil
     type_name = nil
@@ -210,15 +228,19 @@ class LoginController < ApplicationController
         return
       end
 
-      # Update to be a developer
-      logger.info 'User is now a developer'
+      if type == :dev
+        # Update to be a developer
+        logger.info "User (#{user.email}) is now a developer"
 
-      user.developer = true
-      user.sso_source = type_name
+        user.developer = true
+        user.sso_source = type_name
 
-      unless user.save
-        @error = 'Failed to upgrade your account to a developer account. User saving failed.'
-        return
+        unless user.save
+          @error = 'Failed to upgrade your account to a developer account. User saving failed.'
+          return
+        end
+      else
+        logger.info 'Patron logged in using forum account'
       end
     end
 
@@ -227,12 +249,22 @@ class LoginController < ApplicationController
     redirect_to '/'
   end
 
-  def prepare_discourse_login(return_url)
+  def handle_patreon_return
+    return unless check_sso_timeout
+
+    @error = "Unimplemented: #{params}"
+  end
+
+  def setup_sso_nonce
     # store nonce in user session
     session[:sso_nonce] = SecureRandom.base58(32)
 
     # And a time for timing out
     session[:sso_start_time] = Time.current
+  end
+
+  def prepare_discourse_login(return_url)
+    setup_sso_nonce
 
     Base64.encode64 "nonce=#{session[:sso_nonce]}&return_sso_url=#{return_url}"
   end
