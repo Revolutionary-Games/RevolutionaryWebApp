@@ -294,6 +294,9 @@ class LoginController < ApplicationController
       return
     end
 
+    # DEBUG CODE - REMOVE:
+    logger.info "SECRET TOKEN: #{access}"
+
     @error = "Got user data: #{user_info}"
   end
 
