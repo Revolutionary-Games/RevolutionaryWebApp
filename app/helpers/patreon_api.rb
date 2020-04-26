@@ -91,16 +91,34 @@ module PatreonAPI
   end
 
   def self.get_logged_in_user_details(access_token)
-    fields_user = CGI.escape('fields[user]') + '=about,email,full_name,vanity'
-    fields_campaign = CGI.escape('fields[campaign]') + '=vanity,creation_name,one_liner,url'
+    fields_user = CGI.escape('fields[user]') + '=email,full_name,vanity,url'
     fields_member = CGI.escape('fields[member]') + '=patron_status,email,' \
-                                                        'currently_entitled_amount_cents'
+                                                   'currently_entitled_amount_cents'
 
-    fields = fields_user + '&' + fields_campaign + '&' + fields_member
+    fields = fields_user + '&' + fields_member
 
     response = RestClient.get('https://www.patreon.com/api/oauth2/v2/identity?' \
-                              "include=memberships,campaign&#{fields}", headers(access_token))
+                              "include=memberships&#{fields}", headers(access_token))
 
     JSON.parse response.body
+  end
+
+  def self.get_user_memberships(access_token, member_ids)
+    fields_campaign = CGI.escape('fields[campaign]') + '=vanity,creation_name,one_liner,url'
+    fields_tier = CGI.escape('fields[tier]') + '=title,amount_cents'
+
+    fields = fields_campaign + '&' + fields_tier
+
+    results = []
+
+    member_ids.each { |id|
+      response = RestClient.get("https://www.patreon.com/api/oauth2/v2/members/#{id}?" \
+                                "include=currently_entitled_tiers,campaign,&#{fields}",
+                                headers(access_token))
+
+      results.append(JSON.parse(response.body))
+    }
+
+    results
   end
 end

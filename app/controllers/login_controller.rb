@@ -61,7 +61,8 @@ class LoginController < ApplicationController
 
         setup_sso_nonce
 
-        scopes = CGI.escape 'identity identity[email] identity.memberships campaigns'
+        scopes = CGI.escape 'identity identity[email] identity.memberships campaigns ' \
+                            'campaigns.members'
 
         redirect_to 'https://www.patreon.com/oauth2/authorize?response_type=code&' \
                     "client_id=#{id}&redirect_uri=#{return_url}&scope=#{scopes}&" \
