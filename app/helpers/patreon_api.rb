@@ -91,9 +91,10 @@ module PatreonAPI
   end
 
   def self.get_logged_in_user_details(access_token)
+    fields = CGI.escape 'fields[user]=about,email,full_name,vanity'
+
     response = RestClient.get('https://www.patreon.com/api/oauth2/v2/identity?' \
-                              'include=memberships&fields[user]=about,email,'\
-                              'full_name,vanity', headers(access_token))
+                              "include=memberships&#{fields}", headers(access_token))
 
     JSON.parse response.body
   end
