@@ -2,6 +2,8 @@
 
 # This handles the POSTed login form coming from a hyperstack component
 class LoginController < ApplicationController
+  include PatreonGroupHelper
+
   def failed; end
 
   def do_login
@@ -183,8 +185,8 @@ class LoginController < ApplicationController
 
     if type == :community
       # Need to be in the supporter or vip supporter group
-      if !ssoParams['groups'].include?(PatreonGroupHelper.COMMUNITY_DEVBUILD_GROUP) &&
-         !ssoParams['groups'].include?(PatreonGroupHelper.COMMUNITY_VIP_GROUP)
+      if !ssoParams['groups'].include?(COMMUNITY_DEVBUILD_GROUP) &&
+         !ssoParams['groups'].include?(COMMUNITY_VIP_GROUP)
         @error = 'You must be either in the Supporter or VIP supporter group to login. ' \
                  'These are granted to our Patrons'
         logger.info "Not allowing login due to missing group membership for: #{email}"
