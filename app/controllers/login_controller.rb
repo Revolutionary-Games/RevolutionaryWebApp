@@ -61,7 +61,7 @@ class LoginController < ApplicationController
 
         setup_sso_nonce
 
-        scopes = CGI.escape 'identity,identity[email],identity.memberships'
+        scopes = CGI.escape 'identity identity[email] identity.memberships'
 
         redirect_to 'https://www.patreon.com/oauth2/authorize?response_type=code&' \
                     "client_id=#{id}&redirect_uri=#{return_url}&scope=#{scopes}&" \
@@ -257,7 +257,22 @@ class LoginController < ApplicationController
   def handle_patreon_return
     return unless check_sso_timeout
 
+    if params[:error]
+      @error = "Patreon returned an error: #{params[:error]}"
+      return
+    end
+
+    # Check nonce matches state
+    if params[:state] != session[:sso_nonce] = ''
+      @error = 'Invalid SSO parameters'
+      return
+    end
+
     @error = "Unimplemented: #{params}"
+    return
+
+    # Clear nonce to prevent duplicate attempts
+    session[:sso_nonce] = ''
   end
 
   def setup_sso_nonce
