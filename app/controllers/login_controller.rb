@@ -55,7 +55,7 @@ class LoginController < ApplicationController
           return
         end
 
-        return_url = URI.join(ENV['BASE_URL'], '/login/patreon').to_s
+        return_url = patreon_login_redirect
 
         id = ENV['PATREON_LOGIN_CLIENT_ID']
 
@@ -263,16 +263,59 @@ class LoginController < ApplicationController
     end
 
     # Check nonce matches state
-    if params[:state] != session[:sso_nonce]
+    if params[:state] != session[:sso_nonce] && !params[:code]
       @error = 'Invalid SSO parameters'
       return
     end
 
-    @error = "Unimplemented: #{params}"
-    return
-
     # Clear nonce to prevent duplicate attempts
     session[:sso_nonce] = ''
+
+    # Fetch the access tokens from patreon
+    code = params[:code]
+
+    response = RestClient.post('https://www.patreon.com/api/oauth2/token',
+                               code: code,
+                               grant_type: 'authorization_code',
+                               client_id: ENV['PATREON_LOGIN_CLIENT_ID'],
+                               client_secret: ENV['PATREON_LOGIN_CLIENT_SECRET'],
+                               redirect_uri: patreon_login_redirect)
+
+    if response.code != 200 && response.code != 201
+      @error = 'Token request to Patreon failed'
+      logger.info "Failed response for token granting: #{response.body}"
+      return
+    end
+
+    data = JSON.parse response.body
+
+    access = data['access_token']
+    refresh = data['refresh_token']
+    expires = data['expires_in']
+
+    if data['token_type'] != 'Bearer' || access.blank? || refresh.blank? || expires.blank?
+      @error = 'Received data from Patreon is invalid'
+      logger.error "Invalid patreon json response: #{data}"
+      return
+    end
+
+    # Load user data from patreon
+    response = RestClient.get('https://www.patreon.com/api/oauth2/v2/identity?' \
+                              'include=memberships,campaign&fields[user]=about,email,'\
+                              'full_name,vanity')
+
+    if response.code != 200
+      @error = 'Requesting user data from Patreon failed'
+      return
+    end
+
+    user_info = JSON.parse response.body
+
+    @error = "Got user data: #{user_info}"
+  end
+
+  def patreon_login_redirect
+    URI.join(ENV['BASE_URL'], '/login/patreon').to_s
   end
 
   def setup_sso_nonce
