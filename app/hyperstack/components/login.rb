@@ -19,12 +19,37 @@ class Login < HyperComponent
       HR {}
       H2 { 'SSO providers' }
 
+      P { 'Developer login' }
+
       H3 {
         RS.Form(method: 'post', action: '/login') {
           CSRF {}
           INPUT(type: :hidden, name: 'sso_type', value: 'devforum')
           RS.Button(type: 'submit', color: 'primary') {
             'Login Using a Development Forum Account'
+          }
+        }
+      }
+
+      HR {}
+      P { 'Supporter (patron) login' }
+
+      H3 {
+        RS.Form(method: 'post', action: '/login') {
+          CSRF {}
+          INPUT(type: :hidden, name: 'sso_type', value: 'communityforum')
+          RS.Button(type: 'submit', color: 'primary') {
+            'Login Using a Community Forum Account'
+          }
+        }
+      }
+
+      H3 {
+        RS.Form(method: 'post', action: '/login') {
+          CSRF {}
+          INPUT(type: :hidden, name: 'sso_type', value: 'patreon')
+          RS.Button(type: 'submit', color: 'primary') {
+            'Login Using Patreon'
           }
         }
       }

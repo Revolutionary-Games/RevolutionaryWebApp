@@ -7,34 +7,48 @@ class LoginController < ApplicationController
   def do_login
     # SSO
     if !params[:sso_type].blank?
+      unless ENV['BASE_URL']
+        @error = 'Invalid server configuration. Missing BASE_URL'
+        return
+      end
+
+      return_url = URI.join(ENV['BASE_URL'],
+                            "/login/sso_return?type=#{params[:sso_type]}").to_s
 
       if params[:sso_type] == 'devforum'
-
-        if !ENV['BASE_URL'] || !ENV['DEV_FORUM_SSO_SECRET']
-          @error = 'Invalid server configuration. Missing BASE_URL or DEV_FORUM_SSO_SECRET'
+        unless ENV['DEV_FORUM_SSO_SECRET']
+          @error = 'Invalid server configuration. Missing DEV_FORUM_SSO_SECRET'
           return
         end
 
-        # store nonce in user session
-        session[:sso_nonce] = SecureRandom.base58(32)
+        payload = prepare_discourse_login return_url
 
-        # And a time for timing out
-        session[:sso_start_time] = Time.current
-
-        returnURL = URI.join(ENV['BASE_URL'], '/login/sso_return').to_s
-
-        payload = Base64.encode64 "nonce=#{session[:sso_nonce]}&return_sso_url=#{returnURL}"
         signature = OpenSSL::HMAC.hexdigest('SHA256', ENV['DEV_FORUM_SSO_SECRET'], payload)
 
-        urlEncodedPayload = CGI.escape payload
+        encoded = CGI.escape payload
 
-        redirect_to URI.join(
-          'https://forum.revolutionarygamesstudio.com/',
-          "/session/sso_provider?sso=#{urlEncodedPayload}&sig=#{signature}"
-        ).to_s
+        redirect_to URI.join('https://forum.revolutionarygamesstudio.com/',
+                             "/session/sso_provider?sso=#{encoded}&sig=#{signature}").to_s
+      elsif params[:sso_type] == 'communityforum'
+        unless ENV['COMMUNITY_FORUM_SSO_SECRET']
+          @error = 'Invalid server configuration. Missing COMMUNITY_FORUM_SSO_SECRET'
+          return
+        end
+
+        payload = prepare_discourse_login return_url
+
+        signature = OpenSSL::HMAC.hexdigest('SHA256', ENV['COMMUNITY_FORUM_SSO_SECRET'],
+                                            payload)
+
+        encoded = CGI.escape payload
+
+        redirect_to URI.join('https://community.revolutionarygamesstudio.com/',
+                             "/session/sso_provider?sso=#{encoded}&sig=#{signature}").to_s
+      elsif params[:sso_type] == 'patreon'
+
       else
         @error = 'Invalid SSO login type selected'
-        nil
+        return
       end
     else
       # local
@@ -60,13 +74,8 @@ class LoginController < ApplicationController
   end
 
   def sso_return
-    if !params[:sig] || !params[:sso]
+    unless params[:type]
       @error = 'Missing URL query parameters'
-      return
-    end
-
-    unless ENV['DEV_FORUM_SSO_SECRET']
-      @error = 'Invalid server configuration. DEV_FORUM_SSO_SECRET'
       return
     end
 
@@ -76,8 +85,59 @@ class LoginController < ApplicationController
       return
     end
 
-    returnedSignature = OpenSSL::HMAC.hexdigest('SHA256', ENV['DEV_FORUM_SSO_SECRET'],
-                                                params[:sso])
+    if params[:type] == 'devforum'
+      handle_discourse_return :dev
+    elsif params[:sso_type] == 'communityforum'
+      handle_discourse_return :community
+    elsif params[:sso_type] == 'patreon'
+      @error = "Unimplemented: #{params}"
+    else
+      @error = 'Unknown SSO type'
+      return
+    end
+  end
+
+  def logout
+    reset_session
+    redirect_to '/login'
+  end
+
+  def handle_discourse_return(type)
+    if !params[:sig] || !params[:sso]
+      @error = 'Missing URL query parameters'
+      return
+    end
+
+    secret = nil
+    type_name = nil
+    is_developer = nil
+
+    if type == :dev
+      unless ENV['DEV_FORUM_SSO_SECRET']
+        @error = 'Invalid server configuration. missing DEV_FORUM_SSO_SECRET'
+        return
+      end
+
+      secret = ENV['DEV_FORUM_SSO_SECRET']
+      type_name = 'devforum'
+      is_developer = true
+
+    elsif type == :community
+      unless ENV['COMMUNITY_FORUM_SSO_SECRET']
+        @error = 'Invalid server configuration. missing COMMUNITY_FORUM_SSO_SECRET'
+        return
+      end
+
+      secret = ENV['COMMUNITY_FORUM_SSO_SECRET']
+      type_name = 'communityforum'
+      is_developer = false
+
+    else
+      @error = 'Invalid discourse SSO type'
+      return
+    end
+
+    returnedSignature = OpenSSL::HMAC.hexdigest('SHA256', secret, params[:sso])
 
     if returnedSignature != params[:sig]
       @error = 'Invalid SSO parameters'
@@ -94,12 +154,23 @@ class LoginController < ApplicationController
     email = ssoParams['email']
 
     if email.blank?
-      @error = 'Invalid returned accoutn details. Email is empty'
+      @error = 'Invalid returned account details. Email is empty'
       return
     end
 
     # Clear nonce to prevent duplicate attempts
     session[:sso_nonce] = ''
+
+    if type == :community
+      # Need to be in the supporter or vip supporter group
+      if !ssoParams['groups'].include?(PatreonGroupHelper.COMMUNITY_DEVBUILD_GROUP) &&
+         !ssoParams['groups'].include?(PatreonGroupHelper.COMMUNITY_VIP_GROUP)
+        @error = 'You must be either in the Supporter or VIP supporter group to login. ' \
+                 'These are granted to our Patrons'
+        logger.info "Not allowing login due to missing group membership for: #{email}"
+        return
+      end
+    end
 
     logger.info "Logging in user with email #{email}"
 
@@ -109,8 +180,8 @@ class LoginController < ApplicationController
     if !user
       logger.info "First time login. Creating new user: #{email}"
 
-      user = User.create email: email, local: false, sso_source: 'devforum',
-                         developer: true
+      user = User.create email: email, local: false, sso_source: type_name,
+                         developer: is_developer
 
       user.name = ssoParams['username'] if ssoParams['username']
 
@@ -128,6 +199,27 @@ class LoginController < ApplicationController
       # Disallow logging into local accounts
       @error = 'This email is used by a local account. Use the local login option.'
       return
+    elsif user.sso_source != type_name
+      # Make sure that login is allowed
+      logger.info "User logged in with different sso_source, new: #{type_name}, " \
+                  "old: #{user.sso_source}"
+
+      if user.sso_source != 'communityforum' || user.developer
+        @error = 'Your account is a developer account. ' \
+                 "You can't login through the community forums"
+        return
+      end
+
+      # Update to be a developer
+      logger.info 'User is now a developer'
+
+      user.developer = true
+      user.sso_source = type_name
+
+      unless user.save
+        @error = 'Failed to upgrade your account to a developer account. User saving failed.'
+        return
+      end
     end
 
     # Success
@@ -135,8 +227,13 @@ class LoginController < ApplicationController
     redirect_to '/'
   end
 
-  def logout
-    reset_session
-    redirect_to '/login'
+  def prepare_discourse_login(return_url)
+    # store nonce in user session
+    session[:sso_nonce] = SecureRandom.base58(32)
+
+    # And a time for timing out
+    session[:sso_start_time] = Time.current
+
+    Base64.encode64 "nonce=#{session[:sso_nonce]}&return_sso_url=#{return_url}"
   end
 end
