@@ -61,10 +61,11 @@ class LoginController < ApplicationController
 
         setup_sso_nonce
 
-        scopes = 'identity,identity[email},identity.memberships'
+        scopes = CGI.escape 'identity,identity[email],identity.memberships'
 
-        redirect_to "www.patreon.com/oauth2/authorize?response_type=code&client_id=#{id}" \
-                    "&redirect_uri=#{return_url}&scope=#{scopes}&state=#{session[:sso_nonce]}"
+        redirect_to 'https://www.patreon.com/oauth2/authorize?response_type=code&' \
+                    "client_id=#{id}&redirect_uri=#{return_url}&scope=#{scopes}&" \
+                    "state=#{session[:sso_nonce]}"
       else
         @error = 'Invalid SSO login type selected'
         return
