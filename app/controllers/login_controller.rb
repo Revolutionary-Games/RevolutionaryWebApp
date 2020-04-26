@@ -263,7 +263,7 @@ class LoginController < ApplicationController
     end
 
     # Check nonce matches state
-    if params[:state] != session[:sso_nonce] = ''
+    if params[:state] != session[:sso_nonce]
       @error = 'Invalid SSO parameters'
       return
     end
