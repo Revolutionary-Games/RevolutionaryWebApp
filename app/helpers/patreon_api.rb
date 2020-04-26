@@ -103,6 +103,28 @@ module PatreonAPI
     JSON.parse response.body
   end
 
+  def self.get_memberships(data, id)
+    data['included']&.each { |obj|
+      return obj if obj['id'] == id
+    }
+
+    nil
+  end
+
+  def self.get_user_memberships_over_cents(user_info, cents)
+    result = []
+
+    user_info['data']['memberships']['data'].each { |membership|
+      actual_data = get_membership user_info, membership['id']
+
+      if actual_data && actual_data['attributes']['currently_entitled_amount_cents'] >= cents
+        result.append membership['id']
+      end
+    }
+
+    result
+  end
+
   def self.get_user_memberships(access_token, member_ids)
     fields_campaign = CGI.escape('fields[campaign]') + '=vanity,creation_name,one_liner,url'
     fields_tier = CGI.escape('fields[tier]') + '=title,amount_cents'
@@ -113,7 +135,7 @@ module PatreonAPI
 
     member_ids.each { |id|
       response = RestClient.get("https://www.patreon.com/api/oauth2/v2/members/#{id}?" \
-                                "include=currently_entitled_tiers,campaign,&#{fields}",
+                                "include=currently_entitled_tiers,campaign&#{fields}",
                                 headers(access_token))
 
       results.append(JSON.parse(response.body))

@@ -295,10 +295,39 @@ class LoginController < ApplicationController
       return
     end
 
-    # DEBUG CODE - REMOVE:
-    logger.info "SECRET TOKEN: #{access}"
+    attributes = user_info['data']['attributes']
 
-    @error = "Got user data: #{user_info}"
+    # Check if the user is our patron
+    logger.info "Checking if patreon user #{attributes['email']} is our patron"
+
+    patreon_settings = PatreonSettings.first
+
+    potential_memberships = PatreonAPI.get_user_memberships(
+      access, PatreonAPI.get_user_memberships_over_cents(
+                user_info, patreon_settings.devbuilds_pledge_cents
+              )
+    )
+
+    patron = false
+
+    potential_memberships.each { |member|
+      next unless member['data']['relationships']['campaign']['data']['id'] ==
+                  patreon_settings.campaign_id
+
+      logger.info "This patron is our patron (campaign id: #{patreon_settings.campaign_id}"
+      patron = true
+      break
+    }
+
+    unless patron
+      @error = "You aren't a patron of Thrive Game at least at the dev builds level. "\
+               'Please become a patron and try again'
+      return
+    end
+
+    # Allow logging in (unless a developer (or local) account exists with the same email
+
+    @error = 'You are our patron! Further login is unimplemented, sorry. Check back later'
   end
 
   def patreon_login_redirect
