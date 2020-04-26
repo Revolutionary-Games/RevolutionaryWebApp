@@ -12,7 +12,7 @@ Rails.application.routes.draw do
   delete 'login', to: 'login#logout'
   post 'logout', to: 'login#logout'
   get 'login/sso_return', to: 'login#sso_return'
-  get 'login/sso_return', to: 'login#sso_return_community'
+  get 'login/sso_return_community', to: 'login#sso_return_community'
   get 'login/patreon', to: 'login#sso_return_patreon'
   mount Hyperstack::Engine => '/hyperstack'
   mount GrapeSwaggerRails::Engine => '/swagger'

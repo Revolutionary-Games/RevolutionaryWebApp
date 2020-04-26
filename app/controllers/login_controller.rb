@@ -12,13 +12,13 @@ class LoginController < ApplicationController
         return
       end
 
-      return_url = URI.join(ENV['BASE_URL'], '/login/sso_return').to_s
-
       if params[:sso_type] == 'devforum'
         unless ENV['DEV_FORUM_SSO_SECRET']
           @error = 'Invalid server configuration. Missing DEV_FORUM_SSO_SECRET'
           return
         end
+
+        return_url = URI.join(ENV['BASE_URL'], '/login/sso_return').to_s
 
         payload = prepare_discourse_login return_url
 
@@ -33,6 +33,8 @@ class LoginController < ApplicationController
           @error = 'Invalid server configuration. Missing COMMUNITY_FORUM_SSO_SECRET'
           return
         end
+
+        return_url = URI.join(ENV['BASE_URL'], '/login/sso_return_community').to_s
 
         payload = prepare_discourse_login return_url
 
@@ -95,13 +97,13 @@ class LoginController < ApplicationController
   def sso_return_community
     handle_discourse_return :community
 
-    render template: 'sso_return' unless performed?
+    render action: 'sso_return' unless performed?
   end
 
   def sso_return_patreon
     handle_patreon_return
 
-    render template: 'sso_return' unless performed?
+    render action: 'sso_return' unless performed?
   end
 
   def logout
