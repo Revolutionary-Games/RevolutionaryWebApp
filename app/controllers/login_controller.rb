@@ -201,33 +201,23 @@ class LoginController < ApplicationController
     user = User.find_by email: ssoParams['email']
 
     if !user
-      logger.info "First time login. Creating new user: #{email}"
+      name = nil
 
-      user = User.create email: email, local: false, sso_source: type_name,
-                         developer: is_developer
+      name = ssoParams['username'] if ssoParams['username']
 
-      user.name = ssoParams['username'] if ssoParams['username']
+      user = create_new_user email, type_name, name, is_developer
 
-      unless user.valid?
-        logger.error('validation failures: ' + user.errors.full_messages.join('.\n'))
-        @error = 'Creating User on first time login failed'
-        return
-      end
+      return unless user
 
-      unless user.save
-        @error = "User saving failed. This shouldn't happen"
-        return
-      end
     elsif user.local
       # Disallow logging into local accounts
-      @error = 'This email is used by a local account. Use the local login option.'
-      return
+      return set_local_login_error
     elsif user.sso_source != type_name
       # Make sure that login is allowed
       logger.info "User logged in with different sso_source, new: #{type_name}, " \
                   "old: #{user.sso_source}"
 
-      if user.sso_source != 'communityforum' || user.developer
+      if user.sso_source == 'devforum' || user.developer
         @error = 'Your account is a developer account. ' \
                  "You can't login through the community forums"
         return
@@ -320,11 +310,72 @@ class LoginController < ApplicationController
 
     # Allow logging in (unless a developer (or local) account exists with the same email
 
-    @error = 'You are our patron! Further login is unimplemented, sorry. Check back later'
+    email = patron.alias_or_email
+
+    user = User.find_by email: email
+
+    type_name = 'patreon'
+
+    if !user
+      user = create_new_user email, sso_type, patron.username, false
+
+      return unless user
+    elsif user.local
+      # Disallow logging into local accounts
+      return set_local_login_error
+    elsif user.sso_source != type_name
+      # Make sure that login is allowed
+      logger.info "User logged in with different sso_source, new: #{type_name}, " \
+                  "old: #{user.sso_source}"
+
+      if user.sso_source == 'devforum' || user.developer
+        @error = 'Your account is a developer account. ' \
+                 "You can't login through patreon"
+        return
+      elsif user.sso_source == 'communityforum'
+        logger.info 'Community forum user logged in using Patren'
+      else
+        @error = 'Unhandled login case'
+        return
+      end
+    end
+
+    # Store the token as a proof that the user logged in using
+    # patreon, we don't use it for anything else currently
+    patron.patreon_token = access
+    patron.save
+
+    # Success
+    session[:current_user_id] = user.id
+    redirect_to '/'
   end
 
   def patreon_login_redirect
     URI.join(ENV['BASE_URL'], '/login/patreon').to_s
+  end
+
+  def create_new_user(email, sso_type, username, is_developer)
+    logger.info "First time login. Creating new user: #{email}"
+
+    user = User.create email: email, local: false, sso_source: sso_type,
+                       developer: is_developer, name: username
+
+    unless user.valid?
+      logger.error('validation failures: ' + user.errors.full_messages.join('.\n'))
+      @error = 'Creating User on first time login failed'
+      return
+    end
+
+    unless user.save
+      @error = "User saving failed. This shouldn't happen"
+      return
+    end
+
+    user
+  end
+
+  def set_local_login_error
+    @error = 'This email is used by a local account. Use the local login option.'
   end
 
   def setup_sso_nonce
