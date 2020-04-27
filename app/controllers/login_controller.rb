@@ -299,6 +299,8 @@ class LoginController < ApplicationController
     # Check if the user is our patron
     patron = Patron.find_by email: attributes['email']
 
+    patreon_settings = PatreonSettings.first
+
     if !patron
       @error = "You aren't a patron of Thrive Game according to our latest information. "\
                'You need to be at least at the dev builds level to login. '\
@@ -306,6 +308,11 @@ class LoginController < ApplicationController
       return
     elsif patron.suspended
       @error = "Your Patron status is currently suspended. Reason: #{patron.suspended_reason}"
+      return
+    elsif patron.pledge_amount_cents < patreon_settings.devbuilds_pledge_cents
+      more = patreon_settings.devbuilds_pledge_cents - patron.pledge_amount_cents
+      @error = 'Your current pledge is lower than the devbuilds level. You need to pledge: '\
+               "#{more} more cents"
       return
     end
 
