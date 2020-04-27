@@ -112,7 +112,9 @@ class ApplyPatronForumGroups < ApplicationJob
 
   def perform
     unless ENV['COMMUNITY_DISCOURSE_API_KEY']
-      raise 'COMMUNITY_DISCOURSE_API_KEY env variable is missing'
+      # raise 'COMMUNITY_DISCOURSE_API_KEY env variable is missing'
+      logger.warn 'Skipping applying forum groups because discourse API key is missing'
+      return
     end
 
     @devbuild_existing, @devbuild_owners = PatreonGroupHelper.devbuild_group_members
