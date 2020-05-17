@@ -19,6 +19,8 @@ end
 
 # A table of crash reports
 class Reports < HyperComponent
+  include Hyperstack::Router::Helpers
+
   param :current_page, default: 0, type: Integer
   param :page_size, default: 25, type: Integer
 
@@ -125,6 +127,12 @@ class Reports < HyperComponent
   render(DIV) do
     H1 { 'Crash reports' }
 
+    # params = CGI.parse(location.search[1..-1])
+
+    # SPAN { params.to_s }
+
+    BR {}
+
     list_management_components
 
     BR {}
@@ -150,7 +158,7 @@ class Reports < HyperComponent
           }
 
           TBODY {
-            items.offset(@paginator.offset).take(@paginator.take_count).each { |report|
+            items.paginated(@paginator.offset, @paginator.take_count).each { |report|
               ReportItem(report: report)
             }
           }

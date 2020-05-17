@@ -32,6 +32,10 @@ class Report < ApplicationRecord
                                 text: '%' + text + '%')
                         }
 
+  scope :paginated, lambda { |off, count|
+    offset(off).take(count)
+  }
+
   belongs_to :duplicate_of, class_name: 'Report', required: false
   has_many :duplicates, class_name: 'Report', foreign_key: 'duplicate_of_id'
 
