@@ -53,7 +53,7 @@ class Users < HyperComponent
           }
 
           TBODY {
-            items.offset(@paginator.offset).take(@paginator.take_count).each { |user|
+            items.paginated(@paginator.offset, @paginator.take_count).each { |user|
               UserItem(user: user)
             }
           }
@@ -61,6 +61,8 @@ class Users < HyperComponent
       end
     }.on(:page_changed) { |page|
       mutate @CurrentPage = page
+    }.on(:created) {
+      mutate {}
     }
   end
 end

@@ -16,6 +16,10 @@ class LfsObject < ApplicationRecord
         server: -> { order('created_at DESC') },
         select: -> { sort { |a, b| b.created_at <=> a.created_at } }
 
+  scope :paginated, lambda { |off, count|
+    offset(off).take(count)
+  }
+
   def size_mib(rounded: 2)
     if size
       (size.to_f / 1024 / 1024).round(rounded)

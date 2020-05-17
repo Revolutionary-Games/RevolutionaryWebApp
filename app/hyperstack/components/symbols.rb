@@ -41,7 +41,7 @@ class Symbols < HyperComponent
           }
 
           TBODY {
-            DebugSymbol.offset(@paginator.offset).take(@paginator.take_count).each do |symbol|
+            DebugSymbol.paginated(@paginator.offset, @paginator.take_count).each do |symbol|
               SymbolItem(symbol: symbol)
             end
           }
@@ -49,6 +49,8 @@ class Symbols < HyperComponent
       end
     }.on(:page_changed) { |page|
       mutate @CurrentPage = page
+    }.on(:created) {
+      mutate {}
     }
   end
 end

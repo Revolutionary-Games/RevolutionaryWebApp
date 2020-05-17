@@ -85,7 +85,7 @@ class LfsProjectView < HyperComponent
               }
 
               TBODY {
-                raw_items.offset(@paginator.offset).take(@paginator.take_count).each { |object|
+                raw_items.paginated(@paginator.offset, @paginator.take_count).each { |object|
                   LFSObjectItem(object: object)
                 }
               }
@@ -93,6 +93,8 @@ class LfsProjectView < HyperComponent
           end
         }.on(:page_changed) { |page|
           mutate @CurrentRawPage = page
+        }.on(:created) {
+          mutate {}
         }
       else
         RS.Button(color: 'secondary') {

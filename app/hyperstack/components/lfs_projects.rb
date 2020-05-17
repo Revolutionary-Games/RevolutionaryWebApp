@@ -45,7 +45,7 @@ class LFSProjects < HyperComponent
           }
 
           TBODY {
-            items.offset(@paginator.offset).take(@paginator.take_count).each { |project|
+            items.paginated(@paginator.offset, @paginator.take_count).each { |project|
               LFSProjectItem(project: project)
             }
           }
@@ -53,6 +53,8 @@ class LFSProjects < HyperComponent
       end
     }.on(:page_changed) { |page|
       mutate @CurrentPage = page
+    }.on(:created) {
+      mutate {}
     }
   end
 end

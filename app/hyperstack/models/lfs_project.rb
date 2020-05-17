@@ -15,6 +15,10 @@ class LfsProject < ApplicationRecord
                 },
         select: -> { sort_by(&:name) }
 
+  scope :paginated, lambda { |off, count|
+    offset(off).take(count)
+  }
+
   validates_uniqueness_of :slug
   validates_uniqueness_of :name
 

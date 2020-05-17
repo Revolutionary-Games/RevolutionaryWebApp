@@ -13,6 +13,10 @@ class Patron < ApplicationRecord
         server: -> { order('updated_at DESC') },
         select: -> { sort { |a, b| b.updated_at <=> a.updated_at } }
 
+  scope :paginated, lambda { |off, count|
+    offset(off).take(count)
+  }
+
   validates :suspended, inclusion: { in: [true, false] }, default: false
   validates :email, presence: true, uniqueness: true, length: { maximum: 255 }
   validates :email_alias, uniqueness: true, length: { maximum: 255 }, allow_nil: true
