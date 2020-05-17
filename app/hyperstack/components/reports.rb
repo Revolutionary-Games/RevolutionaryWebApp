@@ -74,13 +74,11 @@ class Reports < HyperComponent
             OPTION(value: '1') { 'Updated At' }
             OPTION(value: '2') { 'ID' }
           }.on(:change) { |e|
-            mutate {
-              @sort_by = if e.target.value == '1'
-                           :updated_at
-                         else
-                           :id
-                         end
-            }
+            @sort_by = if e.target.value == '1'
+                         :updated_at
+                       else
+                         :id
+                       end
             update_url
           }
 
@@ -88,20 +86,18 @@ class Reports < HyperComponent
             OPTION(value: '2') { 'Descending' }
             OPTION(value: '1') { 'Ascending' }
           }.on(:change) { |e|
-            mutate {
-              @order = if e.target.value == '1'
-                         :asc
-                       else
-                         :desc
-                       end
-            }
+            @order = if e.target.value == '1'
+                       :asc
+                     else
+                       :desc
+                     end
             update_url
           }
         }
         RS.FormGroup(:inline, class: 'col-6 col-md-auto') {
           RS.Label(:check, 'sm') {
             RS.Input(type: :checkbox, checked: @show_solved).on(:change) { |e|
-              mutate @show_solved = e.target.checked
+              @show_solved = e.target.checked
               update_url
             }
             'show solved'
@@ -110,7 +106,7 @@ class Reports < HyperComponent
         RS.FormGroup(:inline, class: 'col-6 col-md-auto') {
           RS.Label(:check, 'sm') {
             RS.Input(type: :checkbox, checked: @show_duplicates).on(:change) { |e|
-              mutate @show_duplicates = e.target.checked
+              @show_duplicates = e.target.checked
               update_url
             }
             'show duplicates'
@@ -126,14 +122,14 @@ class Reports < HyperComponent
           RS.Button(colour: 'secondary', disabled: @show_matching_text.blank?) {
             'Search'
           } .on(:click) {
-            mutate @search_text = @show_matching_text
+            @search_text = @show_matching_text
             update_url
           }
         }
       }
     }.on(:submit) { |e|
       e.prevent_default
-      mutate @search_text = @show_matching_text
+      @search_text = @show_matching_text
       update_url
     }
   end
@@ -242,7 +238,6 @@ class Reports < HyperComponent
         }
       end
     }.on(:page_changed) { |page|
-      # mutate
       @CurrentPage = page
       update_url
     }.on(:created) {
