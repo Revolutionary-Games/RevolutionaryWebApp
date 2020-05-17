@@ -20,9 +20,13 @@ end
 # A table of crash reports
 class Reports < HyperComponent
   include Hyperstack::Router::Helpers
+  include ComponentUrlParamHelper
 
   param :current_page, default: 0, type: Integer
   param :page_size, default: 25, type: Integer
+
+  attr_accessor :CurrentPage, :PageSize, :show_solved, :show_duplicates, :sort_by, :order,
+                :search_text
 
   before_mount do
     @sort_by = :updated_at
@@ -31,6 +35,10 @@ class Reports < HyperComponent
     @show_duplicates = true
     @show_matching_text = ''
     @search_text = ''
+
+    set_values_from_query url_param_config, location.query
+
+    @show_matching_text = @search_text unless @search_text.blank?
   end
 
   def items
@@ -73,6 +81,7 @@ class Reports < HyperComponent
                            :id
                          end
             }
+            update_url
           }
 
           RS.Input(type: :select) {
@@ -86,12 +95,14 @@ class Reports < HyperComponent
                          :desc
                        end
             }
+            update_url
           }
         }
         RS.FormGroup(:inline, class: 'col-6 col-md-auto') {
           RS.Label(:check, 'sm') {
             RS.Input(type: :checkbox, checked: @show_solved) { ' ' }.on(:change) { |e|
               mutate @show_solved = e.target.checked
+              update_url
             }
             'show solved'
           }
@@ -100,6 +111,7 @@ class Reports < HyperComponent
           RS.Label(:check, 'sm') {
             RS.Input(type: :checkbox, checked: @show_duplicates) { ' ' }.on(:change) { |e|
               mutate @show_duplicates = e.target.checked
+              update_url
             }
             'show duplicates'
           }
@@ -115,21 +127,64 @@ class Reports < HyperComponent
             'Search'
           } .on(:click) {
             mutate @search_text = @show_matching_text
+            update_url
           }
         }
       }
     }.on(:submit) { |e|
       e.prevent_default
       mutate @search_text = @show_matching_text
+      update_url
     }
+  end
+
+  def url_param_config
+    {
+      CurrentPage: {
+        param: 'page',
+        type: 'to_i',
+        default: 0
+      },
+      PageSize: {
+        param: 'page_size',
+        type: 'to_i',
+        default: 25
+      },
+      show_solved: {
+        param: 'solved',
+        type: ->(v) { ComponentUrlParamHelper.parse_bool v },
+        default: true
+      },
+      show_duplicates: {
+        param: 'duplicates',
+        type: ->(v) { ComponentUrlParamHelper.parse_bool v },
+        default: true
+      },
+      sort_by: {
+        param: 'sort_by',
+        type: 'to_sym',
+        default: :updated_at
+      },
+      order: {
+        param: 'order',
+        type: 'to_sym',
+        default: :desc
+      },
+      search_text: {
+        param: 'search',
+        type: 'to_s',
+        default: ''
+      }
+    }
+  end
+
+  def update_url
+    url_params = build_query_from_values url_param_config
+    history.push location.pathname + url_params ? "?#{url_params}" : ''
   end
 
   render(DIV) do
     H1 { 'Crash reports' }
-
-    # params = CGI.parse(location.search[1..-1])
-
-    # SPAN { params.to_s }
 
     BR {}
 
@@ -165,7 +220,11 @@ class Reports < HyperComponent
         }
       end
     }.on(:page_changed) { |page|
-      mutate @CurrentPage = page
+      # mutate
+      @CurrentPage = page
+      update_url
+    }.on(:created) {
+      mutate {}
     }
   end
 end

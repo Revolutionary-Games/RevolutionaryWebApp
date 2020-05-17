@@ -6,6 +6,7 @@ class Paginator < HyperComponent
   param :item_count, type: Integer
   param :current_page, type: Integer
   param :on_page_changed, type: Proc
+  param :on_created, type: Proc
   param :double, default: true, type: Boolean
   param :show_totals, default: false, type: Boolean
 
@@ -18,7 +19,8 @@ class Paginator < HyperComponent
   end
 
   def notify_page(page)
-    # This line is needed to make sure this is up to date
+    return if @CurrentPage == page
+
     @CurrentPage = page
 
     @OnPageChanged.call page
@@ -26,7 +28,7 @@ class Paginator < HyperComponent
 
   # Needed to make sure that the parent component is always rerendered with paginator set
   after_mount do
-    notify_page @CurrentPage
+    @OnCreated.call
   end
 
   def pagination_widgets(pages)
