@@ -70,7 +70,7 @@ class Reports < HyperComponent
       RS.FormGroup(class: 'row') {
         RS.FormGroup(:inline, class: 'col-12 col-md-auto') {
           RS.Label(for: 'sortReportsBy', class: 'sm') { 'sort by' }
-          RS.Input(type: :select, id: 'sortReportsBy') {
+          RS.Input(type: :select, id: 'sortReportsBy', value: value_from_sort_by) {
             OPTION(value: '1') { 'Updated At' }
             OPTION(value: '2') { 'ID' }
           }.on(:change) { |e|
@@ -84,7 +84,7 @@ class Reports < HyperComponent
             update_url
           }
 
-          RS.Input(type: :select) {
+          RS.Input(type: :select, value: value_from_order) {
             OPTION(value: '2') { 'Descending' }
             OPTION(value: '1') { 'Ascending' }
           }.on(:change) { |e|
@@ -100,7 +100,7 @@ class Reports < HyperComponent
         }
         RS.FormGroup(:inline, class: 'col-6 col-md-auto') {
           RS.Label(:check, 'sm') {
-            RS.Input(type: :checkbox, checked: @show_solved) { ' ' }.on(:change) { |e|
+            RS.Input(type: :checkbox, checked: @show_solved).on(:change) { |e|
               mutate @show_solved = e.target.checked
               update_url
             }
@@ -109,7 +109,7 @@ class Reports < HyperComponent
         }
         RS.FormGroup(:inline, class: 'col-6 col-md-auto') {
           RS.Label(:check, 'sm') {
-            RS.Input(type: :checkbox, checked: @show_duplicates) { ' ' }.on(:change) { |e|
+            RS.Input(type: :checkbox, checked: @show_duplicates).on(:change) { |e|
               mutate @show_duplicates = e.target.checked
               update_url
             }
@@ -136,6 +136,28 @@ class Reports < HyperComponent
       mutate @search_text = @show_matching_text
       update_url
     }
+  end
+
+  def value_from_order
+    if @order == :asc
+      '1'
+    elsif @order == :desc
+      '2'
+    else
+      puts 'invalid order'
+      '2'
+    end
+  end
+
+  def value_from_sort_by
+    if @sort_by == :updated_at
+      '1'
+    elsif @sort_by == :id
+      '2'
+    else
+      puts 'invalid sort_by'
+      '1'
+    end
   end
 
   def url_param_config
