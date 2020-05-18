@@ -10,3 +10,6 @@ require 'lfs_helper'
 require 'stackwalk_performer'
 require 'community_forum_groups'
 require 'login_helper'
+
+# And just for fun enabling english here
+require 'English'
