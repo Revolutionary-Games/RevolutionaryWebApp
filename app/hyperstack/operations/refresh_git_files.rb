@@ -9,6 +9,13 @@ class RefreshGitFiles < Hyperstack::ServerOp
   }
   validate { params.acting_user.developer? }
   step {
+    # Clear the commit to make refresh actually always happe
+    @project.file_tree_commit = nil
+  }
+  step {
+    @project.save!
+  }
+  step {
     RefreshLfsProjectFiles.perform_later @project.id
   }
 end
