@@ -10,9 +10,6 @@ module API
 
       content_type :json, 'application/vnd.git-lfs+json'
 
-      DOWNLOAD_EXPIRE_TIME = 1800
-      UPLOAD_EXPIRE_TIME = 3000
-
       LFS_UPLOAD_KEY_DERIVE = 'lfs_upload'
 
       helpers do
@@ -96,26 +93,14 @@ module API
             }]
           end
 
-          path = '/' + object.storage_path
-          expires_at = Time.now.to_i + DOWNLOAD_EXPIRE_TIME
-
-          unhashed_key = ENV['LFS_STORAGE_DOWNLOAD_KEY'] + path + expires_at.to_s
-
-          # IP validation would be added here. unhashed_key += remote ip
-
-          token = Base64.encode64(Digest::MD5.digest(unhashed_key))
-
-          token = token.tr("\n", '').tr('+', '-').tr('/', '_').delete('=')
-
-          url = URI.join(ENV['LFS_STORAGE_DOWNLOAD'],
-                         path).to_s + "?token=#{token}&expires=#{expires_at}"
+          url, expires_in = LfsHelper.create_download_for_lfs_object object
 
           [
             {
               download:
                 {
                   "href": url,
-                  expires_in: DOWNLOAD_EXPIRE_TIME
+                  expires_in: expires_in
                 }
             }, nil
           ]
@@ -133,7 +118,7 @@ module API
           payload = { object_oid: oid, object_size: size,
                       # Some leeway is added on top of what we tell
                       # the client the expiry time is
-                      exp: Time.now.to_i + UPLOAD_EXPIRE_TIME + 10 }
+                      exp: Time.now.to_i + LfsHelper::UPLOAD_EXPIRE_TIME + 10 }
 
           JWT.encode payload, upload_derived_key, 'HS256'
         end
@@ -191,14 +176,14 @@ module API
 
             # This probably doesn't connect to amazon at all, so we don't know if our
             # token is invalid here. So this step likely cannot fail
-            url = s3_obj.presigned_url(:put, expires_in: UPLOAD_EXPIRE_TIME + 1)
+            url = s3_obj.presigned_url(:put, expires_in: LfsHelper::UPLOAD_EXPIRE_TIME + 1)
 
             [
               {
                 upload:
                   {
                     "href": url,
-                    expires_in: UPLOAD_EXPIRE_TIME
+                    expires_in: LfsHelper::UPLOAD_EXPIRE_TIME
                   },
                 verify:
                   {
@@ -206,7 +191,7 @@ module API
                     "href": URI.join(ENV['BASE_URL'],
                                      URI(request.url).request_uri,
                                      "../verify?token=#{upload_verify_token oid, size}").to_s,
-                    expires_in: UPLOAD_EXPIRE_TIME + 1
+                    expires_in: LfsHelper::UPLOAD_EXPIRE_TIME + 1
                   }
               }, nil
             ]

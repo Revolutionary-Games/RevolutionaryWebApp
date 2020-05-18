@@ -1,6 +1,11 @@
+# frozen_string_literal: true
+
+# Main controller with the most general functionality
 class ApplicationController < ActionController::Base
+  include ApplicationHelper
+
   def acting_user
     # Returns logged in user
-    @acting_user ||= session[:current_user_id] && User.find_by_id(session[:current_user_id])
+    @acting_user ||= acting_user_from_session(session)
   end
 end

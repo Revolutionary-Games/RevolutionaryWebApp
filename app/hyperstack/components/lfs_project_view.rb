@@ -51,7 +51,8 @@ class LFSGitFileItem < HyperComponent
         encoded_name = `encodeURIComponent(#{name})`
         encoded_path = `encodeURIComponent(#{path})`
         A(href: "/api/v1/lfs_file?project=#{@File.lfs_project.id}&" \
-          "path=#{encoded_path}&name=#{encoded_name}") { name }
+                "path=#{encoded_path}&name=#{encoded_name}",
+          target: '_blank') { name }
       else
         # Link to repo url
         A(href: "#{@File.lfs_project.repo_url}/tree/master#{full_path}",

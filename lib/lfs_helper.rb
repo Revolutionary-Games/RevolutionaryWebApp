@@ -5,7 +5,7 @@ module LfsHelper
   DOWNLOAD_EXPIRE_TIME = 1800
   UPLOAD_EXPIRE_TIME = 3000
 
-  def create_download_for_lfs_object(object)
+  def self.create_download_for_lfs_object(object)
     path = '/' + object.storage_path
     expires_at = Time.now.to_i + DOWNLOAD_EXPIRE_TIME
 

@@ -25,6 +25,15 @@ module ApiHelper
     user
   end
 
+  # Non-rails load of acting_user
+  def self.acting_user_from_session_id(id)
+    session = ActiveRecord::SessionStore::Session.find_by session_id: id
+
+    return nil unless session
+
+    ApplicationHelper.acting_user_from_session session.data.symbolize_keys
+  end
+
   # Parses symbol definition from breakpad data
   # call like `platform, arch, hash, name = getBreakpadSymbolInfo data`
   def self.getBreakpadSymbolInfo(data)

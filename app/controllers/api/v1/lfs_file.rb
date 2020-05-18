@@ -5,9 +5,6 @@ module API
     # Single LFS file getting endpoint that allows browsers
     class LFSFile < Grape::API
       include API::V1::Defaults
-      include ApplicationHelper
-      include ApiHelper
-      include LfsHelper
 
       resource :lfs_file do
         desc 'Single LFS file downloading endpoint'
@@ -18,11 +15,10 @@ module API
           optional :api_token, type: String, desc: 'API token'
         end
         get '' do
-          # user = acting_user_from_session({})
-          user = nil
+          user = ApiHelper.acting_user_from_session_id cookies['sessions']
 
           if permitted_params[:api_token]
-            user = get_user_from_api_token permitted_params[:api_token]
+            user = ApiHelper.get_user_from_api_token permitted_params[:api_token]
 
             error!({ error_code: 401, error_message: 'Unauthorized.' }, 401) unless user
           end
@@ -56,8 +52,8 @@ module API
           end
 
           # Redirect to download url
-          url, _expires_in = create_download_for_lfs_object object
-          redirect_to url
+          url, _expires_in = LfsHelper.create_download_for_lfs_object object
+          redirect url
         end
       end
     end
