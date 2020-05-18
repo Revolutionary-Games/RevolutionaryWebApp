@@ -2,6 +2,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+import createReactClass from 'create-react-class';
+
 import * as ReactStrap from 'reactstrap';
 
 // for opal/hyperstack modules to find React and others they must explicitly be saved
@@ -13,3 +15,4 @@ global.ReactStrap.default = ReactStrap;
 // A shorthand name for ReactStrap
 global.RS = ReactStrap;
 global.RS.default = ReactStrap;
+global.createReactClass = createReactClass;

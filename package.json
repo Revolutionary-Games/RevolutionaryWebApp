@@ -4,6 +4,7 @@
   "dependencies": {
     "@rails/webpacker": "3.5",
     "bootstrap": "^4.3.1",
+    "create-react-class": "^15.6.3",
     "react": "^16.7.0",
     "react-dom": "^16.7.0",
     "react-router": "^5.0.1",
