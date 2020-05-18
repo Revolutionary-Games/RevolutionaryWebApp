@@ -42,7 +42,7 @@ class ProjectGitFile < ApplicationRecord
 
   def size_readable
     if folder?
-      size.to_s + ' items'
+      size.to_s + ' item'.pluralize(size)
     else
       size_mib.to_s + ' MiB'
     end

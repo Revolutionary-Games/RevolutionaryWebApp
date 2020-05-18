@@ -15,11 +15,44 @@ end
 class LFSGitFileItem < HyperComponent
   include Hyperstack::Router::Helpers
 
+  param :on_navigate, type: Proc
   param :file
+
+  def name
+    @File.name.to_s
+  end
+
+  def full_path
+    if @File.path == '/'
+      "/#{name}"
+    else
+      "#{@File.path}/#{name}"
+    end
+  end
+
   render(TR) do
     # TODO: icon based on type
-    TD { @File.ftype.to_s }
-    TD { @File.name.to_s }
+    TD { @File.folder? ? @File.ftype.to_s : '' }
+
+    # Clickability
+    TD {
+      if @File.folder?
+        # Folder browsing
+        A(href: 'name') { name }.on(:click) { |e|
+          e.prevent_default
+          @OnNavigate.call full_path
+        }
+      elsif @File.lfs?
+        # Link to our git lfs API single endpoint
+        target = `encodeURIComponent(#{full_path})`
+        A(href: "/api/v1/lfs_file?project=#{@File.lfs_project.id}&path=#{target}") { name }
+      else
+        # Link to repo url
+        A(href: "#{@File.lfs_project.repo_url}/tree/master#{full_path}",
+          target: '_blank') { name }
+      end
+    }
+
     TD { @File.size_readable }
     TD { @File.lfs?.to_s }
   end
@@ -243,7 +276,11 @@ class LfsProjectView < HyperComponent
               # Skip root folder
               next if file.root?
 
-              LFSGitFileItem(file: file)
+              LFSGitFileItem(file: file).on(:navigate) { |path|
+                mutate {
+                  @file_path = path
+                }
+              }
             }
           }
         }

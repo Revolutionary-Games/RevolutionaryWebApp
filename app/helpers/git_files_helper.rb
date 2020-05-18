@@ -110,6 +110,8 @@ module GitFilesHelper
   def self.process_folder_path(folder)
     if folder.blank? || folder == '.'
       '/'
+    elsif folder[0] != '/'
+      '/' + folder
     else
       folder
     end
