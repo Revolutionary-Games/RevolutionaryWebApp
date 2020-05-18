@@ -12,6 +12,7 @@ class RebuildLfsProjectFilesJob < ApplicationJob
       return
     end
 
-    puts 'TODO: rebuild files job'
+    GitFilesHelper.delete_all_file_objects project
+    GitFilesHelper.update_files project
   end
 end

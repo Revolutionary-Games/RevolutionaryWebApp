@@ -55,6 +55,10 @@ class LfsProjectView < HyperComponent
     @editing_clone_url = ''
     @edited_project = false
 
+    @refresh_message = ''
+    @refresh_pressed = false
+    @rebuild_pressed = false
+
     @project = LfsProject.find_by slug: match.params[:slug]
   end
 
@@ -104,7 +108,7 @@ class LfsProjectView < HyperComponent
       end
     }
 
-    SPAN { @editing_status_text } if @editing_status_text
+    P { @editing_status_text } if @editing_status_text
 
     if !@editing_project
       if App.acting_user&.admin?
@@ -195,5 +199,45 @@ class LfsProjectView < HyperComponent
     H2 { 'Files' }
     P { "File tree generated at: #{@project.file_tree_updated || 'never'}" }
     P { 'TODO: some kind of list' }
+
+    BR {}
+
+    P { @refresh_message } if @refresh_message
+
+    if App.acting_user&.developer?
+      RS.Button(color: 'warning', disabled: @refresh_pressed) { 'Refresh' }.on(:click) {
+        mutate {
+          @refresh_pressed = true
+        }
+
+        RefreshGitFiles.run(project_id: @project.id).then {
+          mutate {
+            @refresh_message = 'Refresh queued. Please refresh this page in a minute'
+          }
+        }.fail { |error|
+          mutate {
+            @refresh_message = "Error: #{error}"
+          }
+        }
+      }
+    end
+
+    if App.acting_user&.admin?
+      RS.Button(color: 'danger', disabled: @rebuild_pressed) { 'Rebuild' }.on(:click) {
+        mutate {
+          @rebuild_pressed = true
+        }
+
+        RebuildGitFiles.run(project_id: @project.id).then {
+          mutate {
+            @refresh_message = 'Rebuild queued. Please refresh in a minute'
+          }
+        }.fail { |error|
+          mutate {
+            @refresh_message = "Error: #{error}"
+          }
+        }
+      }
+    end
   end
 end

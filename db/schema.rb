@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_05_18_083000) do
+ActiveRecord::Schema.define(version: 2020_05_18_092203) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -61,6 +61,7 @@ ActiveRecord::Schema.define(version: 2020_05_18_083000) do
     t.datetime "file_tree_updated"
     t.string "repo_url"
     t.string "clone_url"
+    t.string "file_tree_commit"
     t.index ["name"], name: "index_lfs_projects_on_name", unique: true
     t.index ["slug"], name: "index_lfs_projects_on_slug", unique: true
   end
