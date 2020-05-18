@@ -1,5 +1,17 @@
 # frozen_string_literal: true
 
+def basic_url_join(base, added)
+  slash1 = base[-1] == '/'
+  slash2 = added[0] == '/'
+  if slash1 && slash2
+    base + added[1..-1]
+  elsif slash1 || slash2
+    base + added
+  else
+    base + '/' + added
+  end
+end
+
 # Table row
 class LFSObjectItem < HyperComponent
   include Hyperstack::Router::Helpers
@@ -17,6 +29,7 @@ class LFSGitFileItem < HyperComponent
 
   param :on_navigate, type: Proc
   param :file
+  param :base_path, type: String
 
   def name
     @File.name.to_s
@@ -42,7 +55,7 @@ class LFSGitFileItem < HyperComponent
     TD {
       if @File.folder?
         # Folder browsing
-        A(href: 'name') { name }.on(:click) { |e|
+        A(href: basic_url_join(@BasePath, name)) { name }.on(:click) { |e|
           e.prevent_default
           @OnNavigate.call full_path
         }
@@ -119,8 +132,64 @@ class LfsProjectView < HyperComponent
     @project = LfsProject.find_by slug: match.params[:slug]
 
     # File parts
-    @file_path = '/'
+    @file_path = match.params[:path]
+
+    @file_path = '/' if @file_path.blank?
+
+    @file_path = '/' + @file_path if @file_path[0] != '/'
+
     @file_page = 0
+  end
+
+  def folder_change_path(folder)
+    base = location.pathname
+
+    # The pathname includes existing folders we are in so we need to strip that
+    base = base.sub(match.params[:path], '') if match.params[:path]
+
+    basic_url_join(base, folder)
+  end
+
+  def change_folder(folder)
+    history.push folder_change_path folder
+  end
+
+  # Shows using breadcrumbs the current folder
+  def breadcrumbs
+    parts = @file_path.split('/').delete_if(&:blank?)
+
+    DIV {
+      RS.Breadcrumb {
+        RS.BreadcrumbItem(active: parts.empty?) {
+          if parts.empty?
+            SPAN { @project.name.to_s }
+          else
+            A(href: folder_change_path('/')) {
+              @project.name.to_s
+            }.on(:click) { |e|
+              e.prevent_default
+              change_folder '/'
+            }
+          end
+        }
+        parts.each_with_index { |part, index|
+          active = index == parts.size - 1
+          target = parts[0..index].join('/')
+          RS.BreadcrumbItem(active: active) {
+            if active
+              SPAN { part }
+            else
+              A(href: folder_change_path(target)) {
+                part
+              }.on(:click) { |e|
+                e.prevent_default
+                change_folder target
+              }
+            end
+          }
+        }
+      }
+    }
   end
 
   render(DIV) do
@@ -142,7 +211,7 @@ class LfsProjectView < HyperComponent
       if !@editing_project
         LI {
           SPAN { 'Repository URL: ' }
-          A(href: @project.repo_url) { @project.repo_url }
+          A(href: @project.repo_url, target: '_blank') { @project.repo_url }
         }
         LI { "Clone URL: #{@project.clone_url}" }
       else
@@ -195,6 +264,87 @@ class LfsProjectView < HyperComponent
     end
 
     P { 'Visit your profile to find your LFS access token.' }
+
+    H2 { 'Files' }
+    P { "File tree generated at: #{@project.file_tree_updated || 'never'}" }
+
+    breadcrumbs
+
+    Paginator(current_page: @file_page,
+              page_size: 100,
+              item_count: files.count,
+              ref: set(:paginator)) {
+      # This is set with a delay
+      if @paginator
+        RS.Table(:striped, :responsive) {
+          THEAD {
+            TR {
+              TH { 'Type' }
+              TH { 'Name' }
+              TH { 'Size' }
+              TH { 'LFS?' }
+            }
+          }
+
+          TBODY {
+            files.paginated(@paginator.offset, @paginator.take_count).each { |file|
+              # Skip root folder
+              next if file.root?
+
+              LFSGitFileItem(file: file, base_path: location.pathname).on(:navigate) { |path|
+                change_folder path
+              }
+            }
+          }
+        }
+      end
+    }.on(:page_changed) { |page|
+      mutate { @file_page = page }
+    }.on(:created) {
+      mutate {}
+    }
+
+    BR {}
+
+    P { @refresh_message } if @refresh_message
+
+    if App.acting_user&.developer?
+      RS.Button(color: 'warning', disabled: @refresh_pressed) { 'Refresh' }.on(:click) {
+        mutate {
+          @refresh_pressed = true
+        }
+
+        RefreshGitFiles.run(project_id: @project.id).then {
+          mutate {
+            @refresh_message = 'Refresh queued. Please refresh this page in a minute'
+          }
+        }.fail { |error|
+          mutate {
+            @refresh_message = "Error: #{error}"
+          }
+        }
+      }
+    end
+
+    if App.acting_user&.admin?
+      RS.Button(color: 'danger', disabled: @rebuild_pressed) { 'Rebuild' }.on(:click) {
+        mutate {
+          @rebuild_pressed = true
+        }
+
+        RebuildGitFiles.run(project_id: @project.id).then {
+          mutate {
+            @refresh_message = 'Rebuild queued. Please refresh in a minute'
+          }
+        }.fail { |error|
+          mutate {
+            @refresh_message = "Error: #{error}"
+          }
+        }
+      }
+    end
+
+    HR {}
 
     H2 { 'Statistics' }
 
@@ -255,87 +405,6 @@ class LfsProjectView < HyperComponent
 
       BR {}
       BR {}
-    end
-
-    H2 { 'Files' }
-    P { "File tree generated at: #{@project.file_tree_updated || 'never'}" }
-
-    H3 { "Files in folder: #{@file_path}" }
-
-    Paginator(current_page: @file_page,
-              page_size: 100,
-              item_count: files.count,
-              ref: set(:paginator)) {
-      # This is set with a delay
-      if @paginator
-        RS.Table(:striped, :responsive) {
-          THEAD {
-            TR {
-              TH { 'Type' }
-              TH { 'Name' }
-              TH { 'Size' }
-              TH { 'LFS?' }
-            }
-          }
-
-          TBODY {
-            files.paginated(@paginator.offset, @paginator.take_count).each { |file|
-              # Skip root folder
-              next if file.root?
-
-              LFSGitFileItem(file: file).on(:navigate) { |path|
-                mutate {
-                  @file_path = path
-                }
-              }
-            }
-          }
-        }
-      end
-    }.on(:page_changed) { |page|
-      mutate { @file_page = page }
-    }.on(:created) {
-      mutate {}
-    }
-
-    BR {}
-
-    P { @refresh_message } if @refresh_message
-
-    if App.acting_user&.developer?
-      RS.Button(color: 'warning', disabled: @refresh_pressed) { 'Refresh' }.on(:click) {
-        mutate {
-          @refresh_pressed = true
-        }
-
-        RefreshGitFiles.run(project_id: @project.id).then {
-          mutate {
-            @refresh_message = 'Refresh queued. Please refresh this page in a minute'
-          }
-        }.fail { |error|
-          mutate {
-            @refresh_message = "Error: #{error}"
-          }
-        }
-      }
-    end
-
-    if App.acting_user&.admin?
-      RS.Button(color: 'danger', disabled: @rebuild_pressed) { 'Rebuild' }.on(:click) {
-        mutate {
-          @rebuild_pressed = true
-        }
-
-        RebuildGitFiles.run(project_id: @project.id).then {
-          mutate {
-            @refresh_message = 'Rebuild queued. Please refresh in a minute'
-          }
-        }.fail { |error|
-          mutate {
-            @refresh_message = "Error: #{error}"
-          }
-        }
-      }
     end
   end
 end
