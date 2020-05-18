@@ -44,6 +44,9 @@ module GitFilesHelper
     folders = {}
 
     loop_local_files(lfs_project) { |file, inside_path|
+      # Skip folders as we separately detect those from the existing objects
+      next if File.directory? file
+
       dir = process_folder_path(File.dirname(inside_path))
 
       if folders.include? dir
