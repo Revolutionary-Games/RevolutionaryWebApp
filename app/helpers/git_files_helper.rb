@@ -37,16 +37,14 @@ module GitFilesHelper
     lfs_project.file_tree_commit = nil
     lfs_project.save!
 
-    ProjectGitFile.where(lfs_project_id: lfs_project.id).destroy_all
+    # This will be problematic if we need special handling on deletion
+    ProjectGitFile.where(lfs_project_id: lfs_project.id).delete_all
   end
 
   def self.add_and_update_file_objects(lfs_project)
     folders = {}
 
     loop_local_files(lfs_project) { |file, inside_path|
-      # Skip folders as we separately detect those from the existing objects
-      next if File.directory? file
-
       dir = process_folder_path(File.dirname(inside_path))
 
       if folders.include? dir
@@ -54,6 +52,10 @@ module GitFilesHelper
       else
         folders[dir] = 1
       end
+
+      # Skip trying to read a folder
+      # This also skips adding empty folders
+      next if File.directory? file
 
       filename = File.basename inside_path
 

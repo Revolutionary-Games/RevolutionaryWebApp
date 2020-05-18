@@ -316,7 +316,8 @@ class LfsProjectView < HyperComponent
 
         RefreshGitFiles.run(project_id: @project.id).then {
           mutate {
-            @refresh_message = 'Refresh queued. Please refresh this page in a minute'
+            @refresh_message = 'Refresh queued. Please refresh this page in a minute' \
+                               " if updates don't become visible"
           }
         }.fail { |error|
           mutate {
