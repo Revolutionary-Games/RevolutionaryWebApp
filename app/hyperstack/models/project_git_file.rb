@@ -20,6 +20,9 @@ class ProjectGitFile < ApplicationRecord
         server: -> { order('name ASC') },
         select: -> { sort_by(&:name) }
 
+  # TODO: client scope
+  scope :folder_sort, -> { order('ftype DESC, name ASC') }
+
   scope :paginated, lambda { |off, count|
     offset(off).take(count)
   }

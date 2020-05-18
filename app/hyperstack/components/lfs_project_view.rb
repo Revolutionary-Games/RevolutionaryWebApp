@@ -89,7 +89,7 @@ class LfsProjectView < HyperComponent
   end
 
   def files
-    ProjectGitFile.by_project(@project.id).with_path(@file_path).sort_by_name
+    ProjectGitFile.by_project(@project.id).with_path(@file_path).folder_sort
   end
 
   def finish_editing
