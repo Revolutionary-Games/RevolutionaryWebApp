@@ -10,6 +10,7 @@ module API
       mount API::V1::CrashReport
       mount API::V1::LFS
       mount API::V1::PatreonWebhook
+      mount API::V1::LFSFile
 
       add_swagger_documentation(
         api_version: 'v1',

@@ -1,20 +1,28 @@
-module ApiHelper
-  
-  def self.check_token(token, access: :basic)
+# frozen_string_literal: true
 
+module ApiHelper
+  def self.check_token(token, access: :basic)
     user = User.find_by(api_token: token)
 
-    if !user 
-      return false
-    end
+    return false unless user
 
     if access == :developer
-      if !user.developer
-        return false
-      end
+      return false unless user.developer
     end
 
-    return true
+    true
+  end
+
+  def self.get_user_from_api_token(token)
+    return nil if token.nil?
+
+    user = User.find_by api_token: token
+
+    return nil unless user
+
+    # TODO: check for suspended
+
+    user
   end
 
   # Parses symbol definition from breakpad data
@@ -22,13 +30,8 @@ module ApiHelper
   def self.getBreakpadSymbolInfo(data)
     match = data.match(/MODULE\s(\w+)\s(\w+)\s(\w+)\s(\S+)/i)
 
-    if !match || match.captures.length != 4
-      raise "invalid breakpad data"
-    end
+    raise 'invalid breakpad data' if !match || match.captures.length != 4
 
     match.captures
   end
-  
-  
 end
-

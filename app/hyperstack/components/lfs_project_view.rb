@@ -22,11 +22,15 @@ class LFSGitFileItem < HyperComponent
     @File.name.to_s
   end
 
+  def path
+    @File.path.to_s
+  end
+
   def full_path
     if @File.path == '/'
       "/#{name}"
     else
-      "#{@File.path}/#{name}"
+      "#{path}/#{name}"
     end
   end
 
@@ -44,8 +48,10 @@ class LFSGitFileItem < HyperComponent
         }
       elsif @File.lfs?
         # Link to our git lfs API single endpoint
-        target = `encodeURIComponent(#{full_path})`
-        A(href: "/api/v1/lfs_file?project=#{@File.lfs_project.id}&path=#{target}") { name }
+        encoded_name = `encodeURIComponent(#{name})`
+        encoded_path = `encodeURIComponent(#{path})`
+        A(href: "/api/v1/lfs_file?project=#{@File.lfs_project.id}&" \
+          "path=#{encoded_path}&name=#{encoded_name}") { name }
       else
         # Link to repo url
         A(href: "#{@File.lfs_project.repo_url}/tree/master#{full_path}",
