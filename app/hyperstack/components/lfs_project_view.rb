@@ -22,8 +22,39 @@ class LfsProjectView < HyperComponent
     LfsObject.by_project(@project.id).sort_by_created_at
   end
 
+  def finish_editing
+    mutate {
+      @show_editing_spinner = true
+      @editing_status_text = ''
+    }
+
+    UpdateLfsProjectUrls.run(
+      project_id: @project.id, repo_url: @editing_repo_url,
+      clone_url: @editing_clone_url
+    ).then {
+      mutate {
+        @editing_project = false
+        @show_editing_spinner = false
+      }
+    }.fail { |error|
+      mutate {
+        @find_campaign_id_status = "Failed to save, error: #{error}"
+        @show_editing_spinner = false
+      }
+    }
+  end
+
   before_mount do
     @show_raw_objects = false
+
+    # Editing the project
+    @editing_project = false
+    @editing_status_text = ''
+    @show_editing_spinner = false
+    @editing_repo_url = ''
+    @editing_clone_url = ''
+    @edited_project = false
+
     @project = LfsProject.find_by slug: match.params[:slug]
   end
 
@@ -43,7 +74,60 @@ class LfsProjectView < HyperComponent
         SPAN { 'Git LFS URL: ' }
         A(href: @project.lfs_url) { @project.lfs_url }
       }
+      if !@editing_project
+        LI {
+          SPAN { 'Repository URL: ' }
+          A(href: @project.repo_url) { @project.repo_url }
+        }
+        LI { "Clone URL: #{@project.clone_url}" }
+      else
+        LI {
+          SPAN { 'Repository URL: ' }
+          RS.Input(type: :text, value: @editing_repo_url,
+                   placeholder: 'Repo URL on Github').on(:change) { |e|
+            mutate {
+              @editing_repo_url = e.target.value
+              @edited_project = true
+            }
+          }
+        }
+        LI {
+          SPAN { 'Clone URL: ' }
+          RS.Input(type: :text, value: @editing_clone_url,
+                   placeholder: 'Repo clone URL from Github').on(:change) { |e|
+            mutate {
+              @editing_clone_url = e.target.value
+              @edited_project = true
+            }
+          }
+        }
+      end
     }
+
+    SPAN { @editing_status_text } if @editing_status_text
+
+    if !@editing_project
+      if App.acting_user&.admin?
+        RS.Button { 'Edit' }.on(:click) {
+          mutate {
+            @editing_repo_url = @project.repo_url
+            @editing_clone_url = @project.clone_url
+            @editing_project = true
+          }
+        }
+        BR {}
+      end
+    else
+      RS.Button(color: 'primary', disabled: !@edited_project) {
+        SPAN { 'Save' }
+        RS.Spinner(size: 'sm') if @show_editing_spinner
+      }.on(:click) {
+        finish_editing
+      }
+      RS.Button(color: 'danger') { 'Cancel' }.on(:click) {
+        mutate @editing_project = false
+      }
+    end
 
     P { 'Visit your profile to find your LFS access token.' }
 
