@@ -12,6 +12,19 @@ class LFSObjectItem < HyperComponent
   end
 end
 
+class LFSGitFileItem < HyperComponent
+  include Hyperstack::Router::Helpers
+
+  param :file
+  render(TR) do
+    # TODO: icon based on type
+    TD { @File.ftype.to_s }
+    TD { @File.name.to_s }
+    TD { @File.size_readable }
+    TD { @File.lfs?.to_s }
+  end
+end
+
 # Shows a single LFS project
 class LfsProjectView < HyperComponent
   include Hyperstack::Router::Helpers
@@ -20,6 +33,10 @@ class LfsProjectView < HyperComponent
 
   def raw_items
     LfsObject.by_project(@project.id).sort_by_created_at
+  end
+
+  def files
+    ProjectGitFile.by_project(@project.id).with_path(@file_path).sort_by_name
   end
 
   def finish_editing
@@ -60,6 +77,10 @@ class LfsProjectView < HyperComponent
     @rebuild_pressed = false
 
     @project = LfsProject.find_by slug: match.params[:slug]
+
+    # File parts
+    @file_path = '/'
+    @file_page = 0
   end
 
   render(DIV) do
@@ -198,7 +219,40 @@ class LfsProjectView < HyperComponent
 
     H2 { 'Files' }
     P { "File tree generated at: #{@project.file_tree_updated || 'never'}" }
-    P { 'TODO: some kind of list' }
+
+    H3 { "Files in folder: #{@file_path}" }
+
+    Paginator(current_page: @file_page,
+              page_size: 100,
+              item_count: files.count,
+              ref: set(:paginator)) {
+      # This is set with a delay
+      if @paginator
+        RS.Table(:striped, :responsive) {
+          THEAD {
+            TR {
+              TH { 'Type' }
+              TH { 'Name' }
+              TH { 'Size' }
+              TH { 'LFS?' }
+            }
+          }
+
+          TBODY {
+            files.paginated(@paginator.offset, @paginator.take_count).each { |file|
+              # Skip root folder
+              next if file.root?
+
+              LFSGitFileItem(file: file)
+            }
+          }
+        }
+      end
+    }.on(:page_changed) { |page|
+      mutate { @file_page = page }
+    }.on(:created) {
+      mutate {}
+    }
 
     BR {}
 

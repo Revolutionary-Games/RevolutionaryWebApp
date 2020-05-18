@@ -10,7 +10,7 @@ module GitFilesHelper
   # The main method
   def self.update_files(lfs_project)
     if lfs_project.clone_url.blank?
-      Rails.logger.warning 'Lfs project has blank clone url, skipping it'
+      Rails.logger.warn 'Lfs project has blank clone url, skipping it'
       return
     end
 
@@ -37,16 +37,107 @@ module GitFilesHelper
     lfs_project.file_tree_commit = nil
     lfs_project.save!
 
-    # TODO: delete all the ProjectGitFile objects
+    ProjectGitFile.where(lfs_project_id: lfs_project.id).destroy_all
   end
 
   def self.add_and_update_file_objects(lfs_project)
+    folders = {}
+
     loop_local_files(lfs_project) { |file, inside_path|
-      puts "#{inside_path} local path: #{file}"
+      dir = process_folder_path(File.dirname(inside_path))
+
+      if folders.include? dir
+        folders[dir] += 1
+      else
+        folders[dir] = 1
+      end
+
+      filename = File.basename inside_path
+
+      oid, size = detect_lfs_file file
+
+      size = File.size file if oid.nil?
+
+      existing = ProjectGitFile.find_by lfs_project: lfs_project, name: filename,
+                                        path: dir
+
+      if !existing
+        ProjectGitFile.create! lfs_project: lfs_project, name: filename, path: dir,
+                               lfs_oid: oid, size: size, ftype: 'file'
+      else
+        existing.lfs_oid = oid
+        existing.size = size
+        existing.ftype = 'file'
+        existing.save! if existing.changed?
+      end
+    }
+
+    # Create folders
+    folders.each { |folder, item_count|
+      dir = process_folder_path(File.dirname(folder))
+      filename = File.basename folder
+
+      existing = ProjectGitFile.find_by lfs_project: lfs_project, name: filename,
+                                        path: dir
+
+      if !existing
+        ProjectGitFile.create! lfs_project: lfs_project, name: filename, path: dir,
+                               lfs_oid: nil, size: item_count, ftype: 'folder'
+      else
+        existing.lfs_oid = nil
+        existing.size = item_count
+        existing.ftype = 'folder'
+        existing.save! if existing.changed?
+      end
     }
   end
 
-  def self.delete_non_existant_objects(lfs_project); end
+  def self.delete_non_existant_objects(lfs_project)
+    local_base = folder lfs_project
+
+    ProjectGitFile.where(lfs_project_id: lfs_project.id, ftype: 'file').find_each { |file|
+      local_file = File.join(local_base, file.path, file.name)
+
+      file.destroy unless File.exist? local_file
+    }
+
+    # TODO: delete empty folders
+  end
+
+  def self.process_folder_path(folder)
+    if folder.blank? || folder == '.'
+      '/'
+    else
+      folder
+    end
+  end
+
+  def self.detect_lfs_file(file)
+    File.open(file) { |f|
+      data = f.read(4048)
+
+      size = nil
+      oid = nil
+
+      if %r{.*version https://git-lfs\.github\.com.*}i.match?(data)
+        # Lfs file
+        data.each_line { |line|
+          if (match = line.match(/oid sha256:(\w+)/i))
+            oid = match.captures[0]
+            next
+          end
+          if (match = line.match(/size (\d+)/i))
+            size = match.captures[0].to_i
+            next
+          end
+        }
+      end
+
+      return [oid, size]
+    }
+
+    [nil, nil]
+  end
 
   def self.loop_local_files(lfs_project)
     search_start = folder(lfs_project)

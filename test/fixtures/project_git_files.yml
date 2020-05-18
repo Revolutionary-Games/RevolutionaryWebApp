@@ -1,0 +1,17 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: MyString
+  path: MyString
+  size: 1
+  type: 
+  lfs_oid: MyString
+  lfs_project_id: one
+
+two:
+  name: MyString
+  path: MyString
+  size: 1
+  type: 
+  lfs_oid: MyString
+  lfs_project_id: two

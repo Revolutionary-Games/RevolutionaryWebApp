@@ -11,6 +11,7 @@ class StartTasksJob < ApplicationJob
 
     check_lfs set
     check_patrons set
+    check_git_trees set
 
     puts 'Done checking'
   end
@@ -24,6 +25,17 @@ class StartTasksJob < ApplicationJob
 
     UpdateLfsSizesJob.set(wait: 15.minutes).perform_later
     puts 'LFS Sizes queued'
+  end
+
+  def check_git_trees(set)
+    if set.any? { |job|
+         job.display_class == 'UpdateLfsFileTreesJob'
+       }
+      return
+    end
+
+    UpdateLfsFileTreesJob.set(wait: 11.minutes).perform_later
+    puts 'LFS File trees queued'
   end
 
   def check_patrons(set)

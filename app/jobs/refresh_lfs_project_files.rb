@@ -8,7 +8,7 @@ class RefreshLfsProjectFiles < ApplicationJob
     project = LfsProject.find_by_id id
 
     unless project
-      logger.warning "Can't refresh files for non-existant lfs project"
+      logger.warn "Can't refresh files for non-existant lfs project"
       return
     end
 

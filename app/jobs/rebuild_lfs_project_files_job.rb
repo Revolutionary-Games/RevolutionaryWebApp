@@ -8,7 +8,7 @@ class RebuildLfsProjectFilesJob < ApplicationJob
     project = LfsProject.find_by_id id
 
     unless project
-      logger.warning "Can't rebuild files for non-existant lfs project"
+      logger.warn "Can't rebuild files for non-existant lfs project"
       return
     end
 

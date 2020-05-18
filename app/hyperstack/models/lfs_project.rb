@@ -3,6 +3,7 @@
 # An Git LFS project
 class LfsProject < ApplicationRecord
   has_many :lfs_objects
+  has_many :project_git_files
 
   scope :visible_to, lambda { |id|
     user = User.find_by_id(id)

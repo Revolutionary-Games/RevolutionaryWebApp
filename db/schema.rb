@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_05_18_092203) do
+ActiveRecord::Schema.define(version: 2020_05_18_114709) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -98,6 +98,18 @@ ActiveRecord::Schema.define(version: 2020_05_18_092203) do
     t.index ["email_alias"], name: "index_patrons_on_email_alias", unique: true
   end
 
+  create_table "project_git_files", force: :cascade do |t|
+    t.string "name"
+    t.string "path"
+    t.integer "size"
+    t.string "ftype"
+    t.string "lfs_oid"
+    t.bigint "lfs_project_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["lfs_project_id"], name: "index_project_git_files_on_lfs_project_id"
+  end
+
   create_table "reports", force: :cascade do |t|
     t.string "description"
     t.string "notes"
@@ -146,4 +158,5 @@ ActiveRecord::Schema.define(version: 2020_05_18_092203) do
   end
 
   add_foreign_key "lfs_objects", "lfs_projects"
+  add_foreign_key "project_git_files", "lfs_projects"
 end
