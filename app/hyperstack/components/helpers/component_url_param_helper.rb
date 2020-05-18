@@ -38,8 +38,10 @@ module ComponentUrlParamHelper
 
       query += '&' unless first
       first = false
-      # TODO: url encoding if needed
-      query += "#{value[:param]}=#{obj_value}"
+
+      query += `encodeURIComponent(#{value[:param]})`.to_s
+      query += '='
+      query += `encodeURIComponent(obj_value)`.to_s
     }
 
     query
