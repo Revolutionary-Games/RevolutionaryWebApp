@@ -122,9 +122,7 @@ class UserProperties < HyperComponent
       InvalidateUserSessions.run(user_id: @User.id).then {
         if lookingAtSelf
           # Redirect to login page
-          # According to opal docs this should be right, but doesn't work...
-          # Document.location.pathname = '/login'
-          `document.location.href = '/login'`
+          Window.location.path = '/login'
         else
           action_finished 'Success'
         end
