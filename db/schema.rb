@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_05_18_114709) do
+ActiveRecord::Schema.define(version: 2020_06_22_174503) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -152,6 +152,9 @@ ActiveRecord::Schema.define(version: 2020_05_18_114709) do
     t.datetime "updated_at", null: false
     t.string "api_token"
     t.string "lfs_token"
+    t.boolean "suspended", default: false
+    t.string "suspended_reason"
+    t.boolean "suspended_manually", default: false
     t.index ["api_token"], name: "index_users_on_api_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["lfs_token"], name: "index_users_on_lfs_token", unique: true

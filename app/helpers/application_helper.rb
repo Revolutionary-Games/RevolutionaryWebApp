@@ -4,7 +4,9 @@
 module ApplicationHelper
   def self.acting_user_from_session(session)
     user = session[:current_user_id] && User.find_by_id(session[:current_user_id])
-    # TODO: check suspend
+
+    # Session disallowed if suspended
+    return nil if user&.suspended?
 
     user
   end
