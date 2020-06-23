@@ -45,6 +45,8 @@ module API
 
             request_auth unless user
 
+            request_auth if user.suspended
+
             return user
           end
           nil

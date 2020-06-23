@@ -2,12 +2,12 @@
 
 module ApiHelper
   def self.check_token(token, access: :basic)
-    user = User.find_by(api_token: token)
+    user = get_user_from_api_token token
 
     return false unless user
 
     if access == :developer
-      return false unless user.developer
+      return false unless user.developer?
     end
 
     true
@@ -20,7 +20,7 @@ module ApiHelper
 
     return nil unless user
 
-    # TODO: check for suspended
+    return nil if user.suspended
 
     user
   end
