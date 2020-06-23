@@ -88,8 +88,7 @@ class LoginController < ApplicationController
       end
 
       # Succeeded
-      session[:current_user_id] = user.id
-      redirect_to '/'
+      finish_login user
     end
   end
 
@@ -240,8 +239,7 @@ class LoginController < ApplicationController
     end
 
     # Success
-    session[:current_user_id] = user.id
-    redirect_to '/'
+    finish_login user
   end
 
   def handle_patreon_return
@@ -346,8 +344,7 @@ class LoginController < ApplicationController
     patron.save
 
     # Success
-    session[:current_user_id] = user.id
-    redirect_to '/'
+    finish_login user
   end
 
   def patreon_login_redirect
@@ -390,5 +387,11 @@ class LoginController < ApplicationController
     setup_sso_nonce
 
     Base64.encode64 "nonce=#{session[:sso_nonce]}&return_sso_url=#{return_url}"
+  end
+
+  def finish_login(user)
+    session[:current_user_id] = user.id
+    session[:session_version] = user.session_version
+    redirect_to '/'
   end
 end

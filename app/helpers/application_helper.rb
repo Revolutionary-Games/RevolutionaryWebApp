@@ -5,8 +5,10 @@ module ApplicationHelper
   def self.acting_user_from_session(session)
     user = session[:current_user_id] && User.find_by_id(session[:current_user_id])
 
-    # Session disallowed if suspended
-    return nil if user&.suspended?
+    return nil if user.nil?
+
+    # Session disallowed if suspended or sessions invalidated
+    return nil if user.suspended? || user.session_version > (session[:session_version] || -1)
 
     user
   end
