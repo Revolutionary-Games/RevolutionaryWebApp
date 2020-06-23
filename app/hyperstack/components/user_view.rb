@@ -123,7 +123,7 @@ class UserProperties < HyperComponent
         if lookingAtSelf
           # Redirect to login page
           # According to opal docs this should be right, but doesn't work...
-          # Document.location.path = '/login'
+          # Document.location.pathname = '/login'
           `document.location.href = '/login'`
         else
           action_finished 'Success'
