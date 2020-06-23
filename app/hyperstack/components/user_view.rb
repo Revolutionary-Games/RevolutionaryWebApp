@@ -6,6 +6,11 @@ class UserProperties < HyperComponent
   param :showToken, default: false, type: Boolean
   param :showLFS, default: false, type: Boolean
 
+  before_mount do
+    @action_message = nil
+    @action_running = false
+  end
+
   render(DIV) do
     lookingAtSelf = @User == App.acting_user
 
@@ -17,6 +22,13 @@ class UserProperties < HyperComponent
     P { "developer: #{@User.developer}" }
     P { "sso_source: #{@User.sso_source}" }
     P { "local: #{@User.local}" }
+
+    if App.acting_user&.admin?
+      P { "session version: #{@User.session_version}" }
+      P { "suspended: #{@User.suspended}" }
+      P { "suspension reason: #{@User.suspended_reason}" }
+      P { "is manual suspension: #{@User.suspended_manually}" }
+    end
 
     hasToken = @User.has_api_token
     hasLFS = @User.has_lfs_token
@@ -87,18 +99,71 @@ class UserProperties < HyperComponent
       }
     end
 
+    BR {}
+    H2 { 'Actions' }
+
+    if @action_running
+      DIV {
+        RS.Spinner(color: 'primary')
+        SPAN { 'Running action...' }
+      }
+    end
+
+    P { @action_message } if @action_message
+
+    RS.Button(color: lookingAtSelf ? 'warning' : 'danger') {
+      if lookingAtSelf
+        'Logout Everywhere'
+      else
+        'Force Logout'
+      end
+    }.on(:click) {
+      start_action
+      InvalidateUserSessions.run(user_id: @User.id).then {
+        if lookingAtSelf
+          # Redirect to login page
+          # According to opal docs this should be right, but doesn't work...
+          # Document.location.path = '/login'
+          `document.location.href = '/login'`
+        else
+          action_finished 'Success'
+        end
+      }.fail { |error|
+        action_finished "Failed to logout sessions: #{error}"
+      }
+    }
+
     unless lookingAtSelf
-      H2 { 'Actions' }
+      BR {}
       RS.Button(color: 'danger') { 'Force Clear Tokens' }.on(:click) {
+        start_action
         ResetLFSTokenForUser.run(user_id: @User.id).then {
           ResetAPITokenForUser.run(user_id: @User.id)
         }.then {
           @User.has_lfs_token!
           @User.has_api_token!
-          alert 'success'
-        }.fail { alert 'failed to run operation' }
+          action_finished 'Success'
+        }.fail { |error|
+          action_finished "Failed to run operation: #{error}"
+        }
       }
     end
+  end
+
+  private
+
+  def start_action
+    mutate {
+      @action_message = nil
+      @action_running = true
+    }
+  end
+
+  def action_finished(message)
+    mutate {
+      @action_message = message
+      @action_running = false
+    }
   end
 end
 
