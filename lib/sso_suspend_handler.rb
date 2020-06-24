@@ -1,6 +1,7 @@
 module SsoSuspendHandler
   def self.check_user(user)
     return if user.local
+    email = user.email
 
     should_be_suspended = true
     reason = 'SSO user no longer valid for login'
