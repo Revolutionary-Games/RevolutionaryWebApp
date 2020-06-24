@@ -62,8 +62,7 @@ class CheckSsoUserSuspensionJob < ApplicationJob
     when 'devforum'
       raise 'DEV_DISCOURSE_API_KEY env variable is missing' unless ENV['DEV_DISCOURSE_API_KEY']
 
-      discourse_user = DiscourseApiHelper.find_user_by_email email, base_url:
-        DEV_FORUM_API_BASE
+      discourse_user = DiscourseApiHelper.find_user_by_email email, type: :dev
 
       should_be_suspended = false if discourse_user
     else

@@ -10,7 +10,7 @@ DISCOURSE_QUERY_LIMIT ||= 1000
 
 # Module with helper function to do discourse user and group operations
 module DiscourseApiHelper
-  def self.headers(type: :community)
+  def self.headers(type = :community)
     key = case type
           when :community
             ENV['COMMUNITY_DISCOURSE_API_KEY']
@@ -23,6 +23,17 @@ module DiscourseApiHelper
     { 'Api-Key' => key,
       'Api-Username' => 'system',
       content_type: :json }
+  end
+
+  def self.base_url(type = :community)
+    case type
+    when :community
+      COMMUNITY_FORUM_API_BASE
+    when :dev
+      DEV_FORUM_API_BASE
+    else
+      raise 'unknown forum type for base_url'
+    end
   end
 
   def self.query_users_in_group(group)
@@ -49,17 +60,21 @@ module DiscourseApiHelper
   end
 
   # TODO: is this really, really slow?
-  def self.find_user_by_email(email, base_url: COMMUNITY_FORUM_API_BASE)
-    url = URI.join(base_url, 'admin/users/list/all.json').to_s + "?email=#{email}"
-    response = RestClient.get(url, DiscourseApiHelper.headers)
+  def self.find_user_by_email(email, type: :community)
+    url = URI.join(self.base_url(type), 'admin/users/list/all.json').to_s + "?email=#{email}"
+    begin
+      response = RestClient.get(url, self.headers(type))
+    rescue RestClient::NotFound
+      return nil
+    end
 
     JSON.parse(response.body).first
   end
 
   # Returns way more info than find user by email
-  def self.user_info_by_name(username, base_url: COMMUNITY_FORUM_API_BASE)
-    url = URI.join(base_url, "users/#{username}.json").to_s
-    response = RestClient.get(url, DiscourseApiHelper.headers)
+  def self.user_info_by_name(username, type: :community)
+    url = URI.join(self.base_url(type), "users/#{username}.json").to_s
+    response = RestClient.get(url, self.headers(type))
 
     JSON.parse(response.body)['user']
   end
