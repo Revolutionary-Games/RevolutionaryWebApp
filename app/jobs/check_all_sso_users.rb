@@ -13,7 +13,7 @@ class CheckAllSsoUsers < ApplicationJob
   def perform
     User.where(local: false).find_in_batches { |group|
       group.each { |user|
-        CheckSsoUserSuspensionJob.perform_later user.email
+        SsoSuspendHandler.check_user user
       }
     }
   end
