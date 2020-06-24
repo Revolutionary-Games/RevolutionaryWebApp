@@ -12,6 +12,7 @@ class StartTasksJob < ApplicationJob
     check_lfs set
     check_patrons set
     check_git_trees set
+    check_sso set
 
     logger.info 'Done checking'
   end
@@ -47,5 +48,16 @@ class StartTasksJob < ApplicationJob
 
     RefreshPatronsJob.set(wait: 21.minutes).perform_later
     logger.info 'Patron refresh queued'
+  end
+
+  def check_sso(set)
+    if set.any? { |job|
+      job.display_class == 'CheckAllSsoUsers'
+    }
+      return
+    end
+
+    CheckAllSsoUsers.set(wait: 32.minutes).perform_later
+    logger.info 'SSO user check queued'
   end
 end
