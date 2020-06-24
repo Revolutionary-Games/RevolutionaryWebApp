@@ -331,7 +331,7 @@ class LoginController < ApplicationController
                  "You can't login through patreon"
         return
       elsif user.sso_source == 'communityforum'
-        logger.info 'Community forum user logged in using Patren'
+        logger.info 'Community forum user logged in using Patreon'
       else
         @error = 'Unhandled login case'
         return
