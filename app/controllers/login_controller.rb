@@ -130,9 +130,6 @@ class LoginController < ApplicationController
 
     return unless check_sso_timeout
 
-    # Clear nonce to prevent duplicate attempts
-    session[:sso_nonce] = ''
-
     secret = nil
     type_name = nil
     is_developer = nil
@@ -175,6 +172,9 @@ class LoginController < ApplicationController
       @error = 'Invalid SSO parameters'
       return
     end
+
+    # Clear nonce to prevent duplicate attempts
+    session[:sso_nonce] = ''
 
     email = ssoParams['email']
 
