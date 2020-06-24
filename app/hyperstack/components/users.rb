@@ -9,6 +9,7 @@ class UserItem < HyperComponent
     TH(scope: 'row') { @User.id.to_s }
     TD { Link("/user/#{@User.id}") { @User.email.to_s } }
     TD { @User.name.to_s }
+    TD { @User.suspended.to_s }
     TD { @User.local.to_s }
     TD { @User.sso_source.to_s }
     TD { @User.developer.to_s }
@@ -42,6 +43,7 @@ class Users < HyperComponent
               TH { 'ID' }
               TH { 'Email' }
               TH { 'Name' }
+              TH { 'Suspended' }
               TH { 'Local' }
               TH { 'SSO' }
               TH { 'Developer?' }

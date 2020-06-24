@@ -9,6 +9,9 @@ class UserProperties < HyperComponent
   before_mount do
     @action_message = nil
     @action_running = false
+
+    @new_suspend_message = ''
+    @editing_suspend = false
   end
 
   render(DIV) do
@@ -25,7 +28,7 @@ class UserProperties < HyperComponent
 
     if App.acting_user&.admin?
       P { "session version: #{@User.session_version}" }
-      P { "suspended: #{@User.suspended}" }
+      P { SPAN { "suspended: #{@User.suspended}" } }
       P { "suspension reason: #{@User.suspended_reason}" }
       P { "is manual suspension: #{@User.suspended_manually}" }
     end
@@ -145,6 +148,50 @@ class UserProperties < HyperComponent
           action_finished "Failed to run operation: #{error}"
         }
       }
+
+      BR {}
+
+      if @editing_suspend
+        RS.Input(type: :text, value: @new_suspend_message,
+                 placeholder: 'Enter suspension reason').on(:change) { |e|
+          mutate @new_suspend_message = e.target.value
+        }
+
+        RS.Button(color: 'secondary') { 'Cancel' }.on(:click) {
+          mutate @editing_suspend = false
+        }
+
+        RS.Button(color: 'primary', disabled: @new_suspend_message.blank?) {
+          'Suspend'
+        }.on(:click) {
+          # The start_action will call mutate
+          @editing_suspend = false
+          start_action
+          SuspendUser.run(user_id: @User.id, reason: @new_suspend_message).then{
+            action_finished 'Success'
+          }.fail { |error|
+            action_finished "Failed to suspend user: #{error}"
+          }
+        }
+      else
+        if @User.suspended
+          RS.Button(color: 'warning') { 'Unsuspend' }.on(:click) {
+            start_action
+            UnSuspendUser.run(user_id: @User.id).then{
+              action_finished 'Success'
+            }.fail { |error|
+              action_finished "Failed to unsuspend user: #{error}"
+            }
+          }
+        else
+          RS.Button(color: 'danger') { 'Suspend' }.on(:click) {
+            mutate {
+              @editing_suspend = true
+              @new_suspend_message = @User.suspended_reason || ''
+            }
+          }
+        end
+      end
     end
   end
 

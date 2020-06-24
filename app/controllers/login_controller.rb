@@ -390,6 +390,18 @@ class LoginController < ApplicationController
   end
 
   def finish_login(user)
+    if user.suspended
+      # Can't login if suspended
+      @error = "Error: your account is suspended"
+
+      if user.suspended_manually
+        @error += " manually"
+      end
+
+      @error += " with the reason: #{user.suspended_reason}"
+      return
+    end
+
     session[:current_user_id] = user.id
     session[:session_version] = user.session_version
     redirect_to '/'
