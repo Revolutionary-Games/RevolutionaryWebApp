@@ -79,9 +79,9 @@ class ApplySinglePatronGroups < ApplicationJob
     @users_to_add_to_vip.push username if should_be_group == :vip && !groups.include?(:vip)
 
     # Apply the changes
-    logger.info 'devbuild add: ', @users_to_add_to_devbuilds, 'devbuild remove:',
-         @users_to_remove_from_devbuilds, 'vip add:', @users_to_add_to_vip,
-         'vip remove:', @users_to_remove_from_vip
+    logger.info "devbuild add: #{@users_to_add_to_devbuilds} devbuild remove: " \
+                "#{@users_to_remove_from_devbuilds} vip add: #{@users_to_add_to_vip} "\
+                "vip remove: #{@users_to_remove_from_vip}"
 
     apply_adds_and_removes
   end

@@ -136,10 +136,9 @@ class ApplyPatronForumGroups < ApplicationJob
                                           @users_to_remove_from_devbuilds
     ApplyPatronForumGroups.check_unmarked @vip_existing, @vip_owners, @users_to_remove_from_vip
 
-    logger.info 'devbuild add: ', @users_to_add_to_devbuilds, 'devbuild remove:',
-                @users_to_remove_from_devbuilds, 'vip add:', @users_to_add_to_vip,
-                'vip remove:', @users_to_remove_from_vip
-
+    logger.info "devbuild add: #{@users_to_add_to_devbuilds} devbuild remove: " \
+                "#{@users_to_remove_from_devbuilds} vip add: #{@users_to_add_to_vip} "\
+                "vip remove: #{@users_to_remove_from_vip}"
     apply_adds_and_removes
   end
 end
