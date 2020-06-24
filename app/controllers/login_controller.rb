@@ -130,6 +130,9 @@ class LoginController < ApplicationController
 
     return unless check_sso_timeout
 
+    # Clear nonce to prevent duplicate attempts
+    session[:sso_nonce] = ''
+
     secret = nil
     type_name = nil
     is_developer = nil
@@ -179,9 +182,6 @@ class LoginController < ApplicationController
       @error = 'Invalid returned account details. Email is empty'
       return
     end
-
-    # Clear nonce to prevent duplicate attempts
-    session[:sso_nonce] = ''
 
     if type == :community
       # Need to be in the supporter or vip supporter group
@@ -334,6 +334,14 @@ class LoginController < ApplicationController
         logger.info 'Community forum user logged in using Patreon'
       else
         @error = 'Unhandled login case'
+        return
+      end
+
+      # Update SSO source
+      user.sso_source = type_name
+
+      unless user.save
+        @error = 'Failed to change your SSO login source. User saving failed.'
         return
       end
     end

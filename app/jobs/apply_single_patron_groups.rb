@@ -22,33 +22,33 @@ class ApplySinglePatronGroups < ApplicationJob
     patron = Patron.find_by email: email
 
     corresponding_forum_user = if patron
-                                 CommunityForumGroups.find_user_by_email patron.alias_or_email
+                                 DiscourseApiHelper.find_user_by_email patron.alias_or_email
                                else
-                                 CommunityForumGroups.find_user_by_email email
+                                 DiscourseApiHelper.find_user_by_email email
                                end
 
     unless corresponding_forum_user
-      puts 'Single user has no forum account, no handling needed for groups'
+      logger.info 'Single user has no forum account, no handling needed for groups'
       # TODO: maybe requeueing a check in 15 minutes should be done once
       return
     end
 
     username = corresponding_forum_user['username']
 
-    puts "Applying forum groups for single patron (#{username})"
+    logger.info "Applying forum groups for single patron (#{username})"
 
-    forum_user = CommunityForumGroups.user_info_by_name username
+    forum_user = DiscourseApiHelper.user_info_by_name username
 
     unless forum_user
       raise 'Failed to find user group info after finding user object on the forums'
     end
 
     should_be_group = PatreonGroupHelper.should_be_group_for_patron patron, @patreon_settings
-    puts "Target group: #{should_be_group}"
+    logger.info "Target group: #{should_be_group}"
 
     groups = PatreonGroupHelper.forum_user_relevant_groups forum_user
 
-    puts "User existing groups: #{groups}"
+    logger.info "User existing groups: #{groups}"
 
     @users_to_add_to_devbuilds = []
     @users_to_remove_from_devbuilds = []
@@ -79,7 +79,7 @@ class ApplySinglePatronGroups < ApplicationJob
     @users_to_add_to_vip.push username if should_be_group == :vip && !groups.include?(:vip)
 
     # Apply the changes
-    puts 'devbuild add: ', @users_to_add_to_devbuilds, 'devbuild remove:',
+    logger.info 'devbuild add: ', @users_to_add_to_devbuilds, 'devbuild remove:',
          @users_to_remove_from_devbuilds, 'vip add:', @users_to_add_to_vip,
          'vip remove:', @users_to_remove_from_vip
 

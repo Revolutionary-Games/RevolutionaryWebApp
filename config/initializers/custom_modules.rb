@@ -8,7 +8,7 @@ require 'git_files_helper'
 require 'patreon_group_helper'
 require 'lfs_helper'
 require 'stackwalk_performer'
-require 'community_forum_groups'
+require 'discourse_api_helper'
 require 'login_helper'
 
 # And just for fun enabling english here

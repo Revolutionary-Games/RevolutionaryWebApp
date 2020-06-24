@@ -18,11 +18,11 @@ class ApplyPatronForumGroups < ApplicationJob
   def handle_patron(patron, corresponding_forum_user)
     corresponding_username = corresponding_forum_user['username']
 
-    puts "Handling (#{patron.username}) #{corresponding_username}"
+    logger.info "Handling (#{patron.username}) #{corresponding_username}"
 
     should_be_group = PatreonGroupHelper.should_be_group_for_patron patron, @patreon_settings
 
-    puts "Target group: #{should_be_group}"
+    logger.info "Target group: #{should_be_group}"
 
     # Find and mark the entries as used
     exists_in_devbuild = false
@@ -89,10 +89,11 @@ class ApplyPatronForumGroups < ApplicationJob
       # Also skip suspended who should have their groups revoked as long as they are suspended
       next if patron.suspended
 
-      corresponding_forum_user = CommunityForumGroups.find_user_by_email patron.alias_or_email
+      corresponding_forum_user = DiscourseApiHelper.find_user_by_email patron.alias_or_email
 
       if !corresponding_forum_user
-        puts "Patron (#{patron.username}) is missing a forum account, skipping applying groups"
+        logger.info "Patron (#{patron.username}) is missing a forum account, " \
+                    'skipping applying groups'
         check_status patron, false
         next
       else
@@ -129,15 +130,15 @@ class ApplyPatronForumGroups < ApplicationJob
     go_through_patrons
 
     # Remove people from the groups that aren't patrons (and aren't group owners)
-    puts 'checking extraneous group members'
+    logger.info 'checking extraneous group members'
 
     ApplyPatronForumGroups.check_unmarked @devbuild_existing, @devbuild_owners,
                                           @users_to_remove_from_devbuilds
     ApplyPatronForumGroups.check_unmarked @vip_existing, @vip_owners, @users_to_remove_from_vip
 
-    puts 'devbuild add: ', @users_to_add_to_devbuilds, 'devbuild remove:',
-         @users_to_remove_from_devbuilds, 'vip add:', @users_to_add_to_vip,
-         'vip remove:', @users_to_remove_from_vip
+    logger.info 'devbuild add: ', @users_to_add_to_devbuilds, 'devbuild remove:',
+                @users_to_remove_from_devbuilds, 'vip add:', @users_to_add_to_vip,
+                'vip remove:', @users_to_remove_from_vip
 
     apply_adds_and_removes
   end

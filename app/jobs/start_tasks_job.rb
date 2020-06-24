@@ -5,7 +5,7 @@ class StartTasksJob < ApplicationJob
   queue_as :default
 
   def perform
-    puts 'Checking if all background jobs are queued...'
+    logger.info 'Checking if all background jobs are queued...'
 
     set = Sidekiq::ScheduledSet.new
 
@@ -13,7 +13,7 @@ class StartTasksJob < ApplicationJob
     check_patrons set
     check_git_trees set
 
-    puts 'Done checking'
+    logger.info 'Done checking'
   end
 
   def check_lfs(set)
@@ -24,7 +24,7 @@ class StartTasksJob < ApplicationJob
     end
 
     UpdateLfsSizesJob.set(wait: 15.minutes).perform_later
-    puts 'LFS Sizes queued'
+    logger.info 'LFS Sizes queued'
   end
 
   def check_git_trees(set)
@@ -35,7 +35,7 @@ class StartTasksJob < ApplicationJob
     end
 
     UpdateLfsFileTreesJob.set(wait: 11.minutes).perform_later
-    puts 'LFS File trees queued'
+    logger.info 'LFS File trees queued'
   end
 
   def check_patrons(set)
@@ -46,6 +46,6 @@ class StartTasksJob < ApplicationJob
     end
 
     RefreshPatronsJob.set(wait: 21.minutes).perform_later
-    puts 'Patron refresh queued'
+    logger.info 'Patron refresh queued'
   end
 end

@@ -50,8 +50,6 @@ class Reports < HyperComponent
 
     scope = scope.contains_text @search_text unless @search_text.blank?
 
-    # TODO: add search for word in the report
-
     if @sort_by == :updated_at && @order == :desc
       scope.index_by_updated_at
     elsif @sort_by == :updated_at && @order == :asc

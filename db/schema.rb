@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_06_23_150926) do
+ActiveRecord::Schema.define(version: 2020_06_24_153746) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -94,6 +94,7 @@ ActiveRecord::Schema.define(version: 2020_06_23_150926) do
     t.datetime "updated_at", null: false
     t.boolean "marked"
     t.boolean "has_forum_account"
+    t.string "suspended_reason"
     t.index ["email"], name: "index_patrons_on_email", unique: true
     t.index ["email_alias"], name: "index_patrons_on_email_alias", unique: true
   end

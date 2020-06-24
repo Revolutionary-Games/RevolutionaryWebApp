@@ -37,7 +37,7 @@ class RefreshPatronsJob < ApplicationJob
     }
 
     Patron.where(marked: false).each { |patron|
-      puts "Destroying patron (#{patron.id}) because it is unmarked"
+      logger.info "Destroying patron (#{patron.id}) because it is unmarked"
       patron.destroy
     }
 

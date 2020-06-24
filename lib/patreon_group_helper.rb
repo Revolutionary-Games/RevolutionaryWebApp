@@ -28,8 +28,8 @@ module PatreonGroupHelper
       if patron.suspended != true
         puts 'A patron is now in declined state. Setting as suspended'
         patron.suspended = true
-        # TODO: suspended reason
-        # patron.suspended_reason = "Payment failed on Patreon"
+        patron.suspended_reason = "Payment failed on Patreon"
+        CheckSsoUserSuspensionJob.perform_later patron.email
         changes = true
       end
       patron.marked = true
@@ -42,11 +42,13 @@ module PatreonGroupHelper
       patron.marked = true
       patron.suspended = false
       patron.save!
+      CheckSsoUserSuspensionJob.perform_later patron.email
       changes = true
     else
       patron.marked = true
       if patron.suspended
         patron.suspended = false
+        CheckSsoUserSuspensionJob.perform_later patron.email
         changes = true
       end
       patron.save!
@@ -56,37 +58,37 @@ module PatreonGroupHelper
   end
 
   def self.devbuild_group_members
-    CommunityForumGroups.query_users_in_group COMMUNITY_DEVBUILD_GROUP
+    DiscourseApiHelper.query_users_in_group COMMUNITY_DEVBUILD_GROUP
   end
 
   def self.vip_group_members
-    CommunityForumGroups.query_users_in_group COMMUNITY_VIP_GROUP
+    DiscourseApiHelper.query_users_in_group COMMUNITY_VIP_GROUP
   end
 
   # names of group owners
   def self.devbuild_group_owners
-    CommunityForumGroups.query_group_owners(COMMUNITY_DEVBUILD_GROUP).map { |i| i['username'] }
+    DiscourseApiHelper.query_group_owners(COMMUNITY_DEVBUILD_GROUP).map { |i| i['username'] }
   end
 
   # names of group owners
   def self.vip_group_owners
-    CommunityForumGroups.query_group_owners(COMMUNITY_VIP_GROUP).map { |i| i['username'] }
+    DiscourseApiHelper.query_group_owners(COMMUNITY_VIP_GROUP).map { |i| i['username'] }
   end
 
   def self.apply_adds_and_removes(devbuild_add, devbuild_remove, vip_add, vip_remove)
     unless devbuild_add.empty?
-      CommunityForumGroups.add_group_members COMMUNITY_DEVBUILD_GROUP, devbuild_add
+      DiscourseApiHelper.add_group_members COMMUNITY_DEVBUILD_GROUP, devbuild_add
     end
 
     unless devbuild_remove.empty?
-      CommunityForumGroups.remove_group_members COMMUNITY_DEVBUILD_GROUP, devbuild_remove
+      DiscourseApiHelper.remove_group_members COMMUNITY_DEVBUILD_GROUP, devbuild_remove
     end
 
-    CommunityForumGroups.add_group_members COMMUNITY_VIP_GROUP, vip_add unless vip_add.empty?
+    DiscourseApiHelper.add_group_members COMMUNITY_VIP_GROUP, vip_add unless vip_add.empty?
 
     return if vip_remove.empty?
 
-    CommunityForumGroups.remove_group_members COMMUNITY_VIP_GROUP, vip_remove
+    DiscourseApiHelper.remove_group_members COMMUNITY_VIP_GROUP, vip_remove
   end
 
   def self.should_be_group_for_patron(patron, patreon_settings)
