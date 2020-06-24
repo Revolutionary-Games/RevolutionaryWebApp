@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require 'uri'
+require 'open3'
 
 LOCAL_GIT_TARGET_FOLDER ||= 'tmp/git_repos'
 
@@ -163,10 +164,9 @@ module GitFilesHelper
     FileUtils.mkdir_p LOCAL_GIT_TARGET_FOLDER
     git_clone lfs_project unless File.exist? folder(lfs_project)
 
-    Dir.chdir(folder(lfs_project)) {
-      system env, 'git', 'checkout', 'master'
-      system env, 'git', 'pull'
-    }
+    # TODO: might be nice to have error reporting for these
+    Open3.capture2 env, 'git checkout master', chdir: folder(lfs_project)
+    Open3.capture2 env, 'git pull', chdir: folder(lfs_project)
   end
 
   def self.git_clone(lfs_project)
@@ -184,8 +184,10 @@ module GitFilesHelper
 
   # Returns the current git commit
   def self.current_commit(lfs_project)
-    Dir.chdir(folder(lfs_project)) {
-      `git rev-parse HEAD`.strip
-    }
+    output, status = Open3.capture2 "git rev-parse HEAD", chdir: folder(lfs_project)
+
+    throw "Git rev-parse failed" if status != 0
+
+    output.strip
   end
 end
