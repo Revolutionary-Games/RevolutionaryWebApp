@@ -16,91 +16,93 @@ class UserProperties < HyperComponent
 
   render(DIV) do
     lookingAtSelf = @User == App.acting_user
-
-    P { 'This is you' } if lookingAtSelf
-
-    P { "email: #{@User.email}" }
-    P { "name: #{@User.name}" }
-    P { "admin: #{@User.admin}" }
-    P { "developer: #{@User.developer}" }
-    P { "sso_source: #{@User.sso_source}" }
-    P { "local: #{@User.local}" }
-
-    if App.acting_user&.admin?
-      P { "session version: #{@User.session_version}" }
-      P { SPAN { "suspended: #{@User.suspended}" } }
-      P { "suspension reason: #{@User.suspended_reason}" }
-      P { "is manual suspension: #{@User.suspended_manually}" }
-    end
-
     hasToken = @User.has_api_token
     hasLFS = @User.has_lfs_token
 
-    P { "api token: #{hasToken}" }
+    P { 'This is you' } if lookingAtSelf
 
-    if hasToken == 'true' && lookingAtSelf
-      RS.Button(color: 'primary') { !@ShowToken ? 'View Token' : 'Hide Token' }.on(:click) {
-        mutate @ShowToken = !@ShowToken
-      }
+    UL {
+      LI { "email: #{@User.email}" }
+      LI { "name: #{@User.name}" }
+      LI { "admin: #{@User.admin}" }
+      LI { "developer: #{@User.developer}" }
+      LI { "sso_source: #{@User.sso_source}" }
+      LI { "local: #{@User.local}" }
 
-      P { "Your token is: #{@User.api_token}" } if @ShowToken
+      if App.acting_user&.admin?
+        LI { "session version: #{@User.session_version}" }
+        LI { SPAN { "suspended: #{@User.suspended}" } }
+        LI { "suspension reason: #{@User.suspended_reason}" }
+        LI { "is manual suspension: #{@User.suspended_manually}" }
+        LI { "Total times launcher linked: #{@User.total_launcher_links}" }
+      end
 
-      RS.Button(color: 'secondary') { 'Regenerate Token' }.on(:click) {
-        GenerateAPITokenForUser.run
-                               .then { mutate @ShowToken = true }
-                               .fail { alert 'failed to run operation' }
-      }
+      LI { "API token: #{hasToken}" }
 
-      RS.Button(color: 'secondary') { 'Clear Token' }.on(:click) {
-        ResetAPITokenForUser.run(user_id: @User.id).then {
-          @User.has_api_token!
-          mutate @ShowToken = false
-        }.fail { alert 'failed to run operation' }
-      }
+      if hasToken == 'true' && lookingAtSelf
+        RS.Button(color: 'primary') { !@ShowToken ? 'View Token' : 'Hide Token' }.on(:click) {
+          mutate @ShowToken = !@ShowToken
+        }
 
-    elsif lookingAtSelf
+        P { "Your token is: #{@User.api_token}" } if @ShowToken
 
-      RS.Button(color: 'primary') { 'Generate API Token' }.on(:click) {
-        GenerateAPITokenForUser.run.then {
-          @User.has_api_token!
-          mutate @ShowToken = true
-        }.fail { alert 'failed to run operation' }
-      }
-    end
+        RS.Button(color: 'secondary') { 'Regenerate Token' }.on(:click) {
+          GenerateAPITokenForUser.run
+                                 .then { mutate @ShowToken = true }
+                                 .fail { alert 'failed to run operation' }
+        }
 
-    P { "Git lfs token: #{hasLFS}" }
+        RS.Button(color: 'secondary') { 'Clear Token' }.on(:click) {
+          ResetAPITokenForUser.run(user_id: @User.id).then {
+            @User.has_api_token!
+            mutate @ShowToken = false
+          }.fail { alert 'failed to run operation' }
+        }
 
-    if hasLFS == 'true' && lookingAtSelf
-      RS.Button(color: 'primary') {
-        !@ShowLFS ? 'View LFS Token' : 'Hide LFS Token'
-      }.on(:click) {
-        mutate @ShowLFS = !@ShowLFS
-      }
+      elsif lookingAtSelf
 
-      P { "Your Git LFS token is: #{@User.lfs_token}" } if @ShowLFS
+        RS.Button(color: 'primary') { 'Generate API Token' }.on(:click) {
+          GenerateAPITokenForUser.run.then {
+            @User.has_api_token!
+            mutate @ShowToken = true
+          }.fail { alert 'failed to run operation' }
+        }
+      end
 
-      RS.Button(color: 'secondary') { 'Regenerate Token' }.on(:click) {
-        GenerateLFSTokenForUser.run
-                               .then { mutate @ShowLFS = true }
-                               .fail { alert 'failed to run operation' }
-      }
+      LI { "Git lfs token: #{hasLFS}" }
 
-      RS.Button(color: 'secondary') { 'Clear Token' }.on(:click) {
-        ResetLFSTokenForUser.run(user_id: @User.id).then {
-          @User.has_lfs_token!
-          mutate @ShowLFS = false
-        }.fail { alert 'failed to run operation' }
-      }
+      if hasLFS == 'true' && lookingAtSelf
+        RS.Button(color: 'primary') {
+          !@ShowLFS ? 'View LFS Token' : 'Hide LFS Token'
+        }.on(:click) {
+          mutate @ShowLFS = !@ShowLFS
+        }
 
-    elsif lookingAtSelf
+        P { "Your Git LFS token is: #{@User.lfs_token}" } if @ShowLFS
 
-      RS.Button(color: 'primary') { 'Generate Git LFS Token' }.on(:click) {
-        GenerateLFSTokenForUser.run.then {
-          @User.has_lfs_token!
-          mutate @ShowLFS = true
-        }.fail { alert 'failed to run operation' }
-      }
-    end
+        RS.Button(color: 'secondary') { 'Regenerate Token' }.on(:click) {
+          GenerateLFSTokenForUser.run
+                                 .then { mutate @ShowLFS = true }
+                                 .fail { alert 'failed to run operation' }
+        }
+
+        RS.Button(color: 'secondary') { 'Clear Token' }.on(:click) {
+          ResetLFSTokenForUser.run(user_id: @User.id).then {
+            @User.has_lfs_token!
+            mutate @ShowLFS = false
+          }.fail { alert 'failed to run operation' }
+        }
+
+      elsif lookingAtSelf
+
+        RS.Button(color: 'primary') { 'Generate Git LFS Token' }.on(:click) {
+          GenerateLFSTokenForUser.run.then {
+            @User.has_lfs_token!
+            mutate @ShowLFS = true
+          }.fail { alert 'failed to run operation' }
+        }
+      end
+    }
 
     BR {}
     H2 { 'Actions' }
@@ -167,7 +169,7 @@ class UserProperties < HyperComponent
           # The start_action will call mutate
           @editing_suspend = false
           start_action
-          SuspendUser.run(user_id: @User.id, reason: @new_suspend_message).then{
+          SuspendUser.run(user_id: @User.id, reason: @new_suspend_message).then {
             action_finished 'Success'
           }.fail { |error|
             action_finished "Failed to suspend user: #{error}"
@@ -177,7 +179,7 @@ class UserProperties < HyperComponent
         if @User.suspended
           RS.Button(color: 'warning') { 'Unsuspend' }.on(:click) {
             start_action
-            UnSuspendUser.run(user_id: @User.id).then{
+            UnSuspendUser.run(user_id: @User.id).then {
               action_finished 'Success'
             }.fail { |error|
               action_finished "Failed to unsuspend user: #{error}"
