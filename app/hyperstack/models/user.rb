@@ -42,6 +42,14 @@ class User < ApplicationRecord
     developer == true || admin?
   end
 
+  def name_or_email
+    if name.blank?
+      email
+    else
+      name
+    end
+  end
+
   # Clientside user getting
   def self.current
     Hyperstack::Application.acting_user_id ? find(Hyperstack::Application.acting_user_id) : nil

@@ -6,11 +6,9 @@ class UserItem < HyperComponent
 
   param :user
   render(TR) do
-    TH(scope: 'row') { @User.id.to_s }
-    TD { Link("/user/#{@User.id}") { @User.email.to_s } }
-    TD { @User.name.to_s }
+    TH(scope: 'row') { Link("/user/#{@User.id}") { @User.name_or_email.to_s } }
     TD { @User.suspended.to_s }
-    TD { @User.local.to_s }
+    # TD { @User.local.to_s }
     TD { @User.sso_source.to_s }
     TD { @User.developer.to_s }
     TD { @User.admin.to_s }
@@ -40,17 +38,15 @@ class Users < HyperComponent
         RS.Table(:striped, :responsive) {
           THEAD {
             TR {
-              TH { 'ID' }
-              TH { 'Email' }
-              TH { 'Name' }
+              TH { 'Name or email' }
               TH { 'Suspended' }
-              TH { 'Local' }
+              # TH { 'Local' }
               TH { 'SSO' }
               TH { 'Developer?' }
               TH { 'Admin?' }
               TH { 'Created' }
-              TH { 'Has API token?' }
-              TH { 'Has Git LFS token?' }
+              TH { 'API token?' }
+              TH { 'LFS?' }
             }
           }
 
