@@ -74,6 +74,9 @@ class App < HyperComponent
               NavLink('/builds', class: 'nav-link') { 'DevBuilds' }
             }
             ReactStrap.NavItem {
+              NavLink('/files', class: 'nav-link') { 'Files' }
+            }
+            ReactStrap.NavItem {
               NavLink('/about', class: 'nav-link') { 'About' }
             }
             ReactStrap.NavItem {
@@ -137,6 +140,7 @@ class App < HyperComponent
         Route('/report/:id', mounts: ReportView)
         Route('/delete_report/:delete_key', mounts: DeleteReport)
         Route('/builds', exact: true, mounts: DevBuilds)
+        Route('/files', mounts: Files)
         Route('/lfs', exact: true, mounts: LFSProjects)
         Route('/lfs/:slug/:path*', mounts: LfsProjectView)
         Route('/unsubscribe/:type/:key', mounts: Unsubscribe)
