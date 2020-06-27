@@ -24,12 +24,8 @@ class LFSObjectItem < HyperComponent
   end
 end
 
-class LFSGitFileItem < HyperComponent
-  include Hyperstack::Router::Helpers
-
-  param :on_navigate, type: Proc
+class LFSGitFileItem < BaseFileItem
   param :file
-  param :base_path, type: String
 
   def name
     @File.name.to_s
@@ -37,14 +33,6 @@ class LFSGitFileItem < HyperComponent
 
   def path
     @File.path.to_s
-  end
-
-  def full_path
-    if @File.path == '/'
-      "/#{name}"
-    else
-      "#{path}/#{name}"
-    end
   end
 
   render(TR) do
@@ -88,8 +76,8 @@ class LfsProjectView < HyperComponent
     LfsObject.by_project(@project.id).sort_by_created_at
   end
 
-  def files
-    ProjectGitFile.by_project(@project.id).with_path(@file_path).folder_sort
+  def files(path)
+    ProjectGitFile.by_project(@project.id).with_path(path).folder_sort
   end
 
   def finish_editing
@@ -130,66 +118,6 @@ class LfsProjectView < HyperComponent
     @rebuild_pressed = false
 
     @project = LfsProject.find_by slug: match.params[:slug]
-
-    # File parts
-    @file_path = match.params[:path]
-
-    @file_path = '/' if @file_path.blank?
-
-    @file_path = '/' + @file_path if @file_path[0] != '/'
-
-    @file_page = 0
-  end
-
-  def folder_change_path(folder)
-    base = location.pathname
-
-    # The pathname includes existing folders we are in so we need to strip that
-    base = base.sub(match.params[:path], '') if match.params[:path]
-
-    basic_url_join(base, folder)
-  end
-
-  def change_folder(folder)
-    history.push folder_change_path folder
-  end
-
-  # Shows using breadcrumbs the current folder
-  def breadcrumbs
-    parts = @file_path.split('/').delete_if(&:blank?)
-
-    DIV {
-      RS.Breadcrumb {
-        RS.BreadcrumbItem(active: parts.empty?) {
-          if parts.empty?
-            SPAN { @project.name.to_s }
-          else
-            A(href: folder_change_path('/')) {
-              @project.name.to_s
-            }.on(:click) { |e|
-              e.prevent_default
-              change_folder '/'
-            }
-          end
-        }
-        parts.each_with_index { |part, index|
-          active = index == parts.size - 1
-          target = parts[0..index].join('/')
-          RS.BreadcrumbItem(active: active) {
-            if active
-              SPAN { part }
-            else
-              A(href: folder_change_path(target)) {
-                part
-              }.on(:click) { |e|
-                e.prevent_default
-                change_folder target
-              }
-            end
-          }
-        }
-      }
-    }
   end
 
   render(DIV) do
@@ -268,40 +196,31 @@ class LfsProjectView < HyperComponent
     H2 { 'Files' }
     P { "File tree generated at: #{@project.file_tree_updated || 'never'}" }
 
-    breadcrumbs
-
-    Paginator(current_page: @file_page,
-              page_size: 100,
-              item_count: files.count,
-              ref: set(:paginator)) {
-      # This is set with a delay
-      if @paginator
-        RS.Table(:striped, :responsive) {
-          THEAD {
-            TR {
-              TH { 'Type' }
-              TH { 'Name' }
-              TH { 'Size' }
-              TH { 'LFS?' }
-            }
-          }
-
-          TBODY {
-            files.paginated(@paginator.offset, @paginator.take_count).each { |file|
-              # Skip root folder
-              next if file.root?
-
-              LFSGitFileItem(file: file, base_path: location.pathname).on(:navigate) { |path|
-                change_folder path
-              }
-            }
+    FileBrowser(
+      read_path: -> { match.params[:path] },
+      location_pathname: -> { location.pathname },
+      root_path_name: @project.name.to_s,
+      items: ->(path) { files path },
+      thead: lambda {
+        THEAD {
+          TR {
+            TH { 'Type' }
+            TH { 'Name' }
+            TH { 'Size' }
+            TH { 'LFS?' }
           }
         }
-      end
-    }.on(:page_changed) { |page|
-      mutate { @file_page = page }
-    }.on(:created) {
-      mutate {}
+      },
+      item_create: lambda { |item, base|
+        # Skip root folder
+        return nil if item.root?
+
+        LFSGitFileItem(file: item, base_path: base)
+      },
+      column_count_for_empty: 4,
+      column_empty_indicator: 1
+    ).on(:change_folder) { |folder|
+      history.push folder
     }
 
     BR {}
