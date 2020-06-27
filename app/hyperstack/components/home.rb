@@ -22,6 +22,11 @@ class Home < HyperComponent
     }
 
     P {
+      'If you are a patron log in using your Patreon or community forum account to access ' \
+      'devbuilds.'
+    }
+
+    P {
       'The manual crash dump file decoding option is now under "Tools"'
     }
   end

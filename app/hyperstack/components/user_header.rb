@@ -15,7 +15,7 @@ class UserHeader < HyperComponent
                         elsif App.acting_user.developer?
                           'a developer'
                         else
-                          'an user'
+                          'a user'
                         end
         }
         HR {}

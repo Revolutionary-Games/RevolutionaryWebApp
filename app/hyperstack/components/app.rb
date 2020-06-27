@@ -65,11 +65,14 @@ class App < HyperComponent
                 NavLink('/login', class: 'nav-link') { 'Login' }
               }
             end
-            if App.acting_user
+            if App.acting_user&.developer?
               ReactStrap.NavItem {
                 NavLink('/symbols', class: 'nav-link') { 'Symbols' }
               }
             end
+            ReactStrap.NavItem {
+              NavLink('/builds', class: 'nav-link') { 'DevBuilds' }
+            }
             ReactStrap.NavItem {
               NavLink('/about', class: 'nav-link') { 'About' }
             }
@@ -133,6 +136,7 @@ class App < HyperComponent
         Route('/reports', mounts: Reports)
         Route('/report/:id', mounts: ReportView)
         Route('/delete_report/:delete_key', mounts: DeleteReport)
+        Route('/builds', exact: true, mounts: DevBuilds)
         Route('/lfs', exact: true, mounts: LFSProjects)
         Route('/lfs/:slug/:path*', mounts: LfsProjectView)
         Route('/unsubscribe/:type/:key', mounts: Unsubscribe)
