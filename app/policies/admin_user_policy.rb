@@ -13,6 +13,7 @@ class AdminUserPolicy
   # also the token is not sent so admins can't impersonate others
   regulate_all_broadcasts { |policy|
     policy.send_all_but(:password, :password_confirmation, :password_digest, :api_token,
-                        :lfs_token, :patreon_token, :patreon_refresh_token).to(AdminUser)
+                        :lfs_token, :patreon_token, :patreon_refresh_token,
+                        :link_code, :launcher_link_code).to(AdminUser)
   }
 end

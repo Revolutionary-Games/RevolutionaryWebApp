@@ -20,6 +20,8 @@ class User < ApplicationRecord
   validates :password, length: { maximum: 255 }, allow_nil: true
   validates :password, confirmation: true
 
+  has_many :launcher_links
+
   validate :local_or_sso
 
   server_method :has_api_token, default: '-' do

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_06_25_164139) do
+ActiveRecord::Schema.define(version: 2020_06_27_102454) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -36,6 +36,18 @@ ActiveRecord::Schema.define(version: 2020_06_25_164139) do
   create_table "hyperstack_queued_messages", force: :cascade do |t|
     t.text "data"
     t.integer "connection_id"
+  end
+
+  create_table "launcher_links", force: :cascade do |t|
+    t.string "link_code"
+    t.string "last_ip"
+    t.datetime "last_connection"
+    t.integer "total_api_calls"
+    t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["link_code"], name: "index_launcher_links_on_link_code", unique: true
+    t.index ["user_id"], name: "index_launcher_links_on_user_id"
   end
 
   create_table "lfs_objects", force: :cascade do |t|
@@ -141,6 +153,18 @@ ActiveRecord::Schema.define(version: 2020_06_25_164139) do
     t.index ["updated_at"], name: "index_sessions_on_updated_at"
   end
 
+  create_table "storage_files", force: :cascade do |t|
+    t.string "storage_path"
+    t.integer "size"
+    t.boolean "allow_parentless", default: false
+    t.boolean "uploading", default: true
+    t.datetime "upload_expires"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["storage_path"], name: "index_storage_files_on_storage_path", unique: true
+    t.index ["uploading"], name: "index_storage_files_on_uploading"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email"
     t.boolean "local"
@@ -158,11 +182,15 @@ ActiveRecord::Schema.define(version: 2020_06_25_164139) do
     t.boolean "suspended_manually", default: false
     t.integer "session_version", default: 1
     t.integer "total_launcher_links", default: 0
+    t.string "launcher_link_code"
+    t.datetime "launcher_code_expires"
     t.index ["api_token"], name: "index_users_on_api_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["launcher_link_code"], name: "index_users_on_launcher_link_code", unique: true
     t.index ["lfs_token"], name: "index_users_on_lfs_token", unique: true
   end
 
+  add_foreign_key "launcher_links", "users"
   add_foreign_key "lfs_objects", "lfs_projects"
   add_foreign_key "project_git_files", "lfs_projects"
 end

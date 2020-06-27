@@ -12,6 +12,11 @@ class UserProperties < HyperComponent
 
     @new_suspend_message = ''
     @editing_suspend = false
+
+    @show_launcher_link = false
+    @unlink_in_progress = false
+    @generate_link_in_progress = false
+    @link_operation_result = nil
   end
 
   render(DIV) do
@@ -105,6 +110,88 @@ class UserProperties < HyperComponent
     }
 
     BR {}
+
+    H2 { 'Launcher Links' }
+    P {
+      "You can link up to #{DEFAULT_MAX_LAUNCHER_LINKS} Thrive Launchers to your account " \
+      'to access dev center features from the launcher. By linking a launcher you can access' \
+      ' devbuilds.'
+    }
+
+    UL {
+      @User.launcher_links.each { |link|
+        LI {
+          SPAN {
+            "Created at: #{link.created_at}, last used from: #{link.last_ip} at: " \
+               "#{link.last_connection}, total uses: #{link.total_api_calls}"
+          }
+          RS.Button(color: 'danger', disabled: true) {
+            SPAN { 'Unlink' }
+          }.on(:click) {
+            mutate {
+              @link_operation_result = ''
+            }
+          }
+        }
+      }
+
+      LI { 'No links configured' } if @User.launcher_links.count < 1
+    }
+
+    if @show_launcher_link
+      BR {}
+      P { "Input this code in the launcher: #{@User.launcher_link_code}" }
+      P { "The code will expire: #{@User.launcher_code_expires}" }
+      BR {}
+    end
+
+    P { @link_operation_result.to_s } if @link_operation_result
+
+    RS.Button(color: 'success') {
+      SPAN { 'Link Launcher' }
+      RS.Spinner(size: 'sm') if @generate_link_in_progress
+    }.on(:click) {
+      mutate {
+        @show_launcher_link = false
+        @generate_link_in_progress = true
+        @link_operation_result = ''
+      }
+
+      CreateNewLauncherLinkCodeForUser.run(user_id: @User.id).then {
+        mutate {
+          @show_launcher_link = true
+          @generate_link_in_progress = false
+        }
+      }.fail { |error|
+        mutate {
+          @generate_link_in_progress = false
+          @link_operation_result = "Failed to start launcher linking: #{error}"
+        }
+      }
+    }
+
+    RS.Button(color: 'danger') {
+      SPAN { 'Unlink All Launchers' }
+      RS.Spinner(size: 'sm') if @unlink_in_progress
+    }.on(:click) {
+      mutate {
+        @unlink_in_progress = true
+        @link_operation_result = ''
+      }
+      ClearAllLauncherLinksForUser.run(user_id: @User.id).then {
+        mutate {
+          @unlink_in_progress = false
+          @link_operation_result = 'Successfully deleted'
+        }
+      }.fail { |error|
+        mutate {
+          @unlink_in_progress = false
+          @link_operation_result = "Failed to clear launchers: #{error}"
+        }
+      }
+    }
+
+    BR {}
     H2 { 'Actions' }
 
     if @action_running
@@ -194,6 +281,17 @@ class UserProperties < HyperComponent
           }
         end
       end
+
+      BR {}
+
+      RS.Button(color: 'danger') { 'Unlink All Launchers' }.on(:click) {
+        start_action
+        ClearAllLauncherLinksForUser.run(user_id: @User.id).then {
+          action_finished 'Success'
+        }.fail { |error|
+          action_finished "Failed to run operation: #{error}"
+        }
+      }
     end
   end
 

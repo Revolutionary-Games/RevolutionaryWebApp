@@ -1,0 +1,11 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  storage_path: MyString
+  size: 1
+  allow_parentless: false
+
+two:
+  storage_path: MyString
+  size: 1
+  allow_parentless: false
