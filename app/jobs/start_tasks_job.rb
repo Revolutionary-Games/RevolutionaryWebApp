@@ -14,6 +14,8 @@ class StartTasksJob < ApplicationJob
     check_git_trees set
     check_sso set
 
+    CreateStandardFoldersIfMissing.set(wait: 32.seconds).perform_later
+
     logger.info 'Done checking'
   end
 

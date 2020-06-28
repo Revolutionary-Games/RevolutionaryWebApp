@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_06_27_102454) do
+ActiveRecord::Schema.define(version: 2020_06_28_120015) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -165,6 +165,38 @@ ActiveRecord::Schema.define(version: 2020_06_27_102454) do
     t.index ["uploading"], name: "index_storage_files_on_uploading"
   end
 
+  create_table "storage_item_versions", force: :cascade do |t|
+    t.integer "version", default: 1
+    t.bigint "storage_item_id"
+    t.bigint "storage_file_id"
+    t.boolean "keep", default: false
+    t.boolean "protected", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["storage_file_id"], name: "index_storage_item_versions_on_storage_file_id"
+    t.index ["storage_item_id", "version"], name: "index_storage_item_versions_on_storage_item_id_and_version", unique: true
+    t.index ["storage_item_id"], name: "index_storage_item_versions_on_storage_item_id"
+  end
+
+  create_table "storage_items", force: :cascade do |t|
+    t.string "name"
+    t.integer "ftype"
+    t.boolean "special", default: false
+    t.boolean "allow_parentless", default: false
+    t.integer "size"
+    t.integer "read_access", default: 2
+    t.integer "write_access", default: 2
+    t.bigint "owner_id"
+    t.bigint "parent_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["allow_parentless"], name: "index_storage_items_on_allow_parentless"
+    t.index ["name"], name: "index_storage_items_on_name", unique: true, where: "(parent_id IS NULL)"
+    t.index ["owner_id"], name: "index_storage_items_on_owner_id"
+    t.index ["parent_id", "name"], name: "index_storage_items_on_parent_id_and_name", unique: true
+    t.index ["parent_id"], name: "index_storage_items_on_parent_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email"
     t.boolean "local"
@@ -193,4 +225,8 @@ ActiveRecord::Schema.define(version: 2020_06_27_102454) do
   add_foreign_key "launcher_links", "users"
   add_foreign_key "lfs_objects", "lfs_projects"
   add_foreign_key "project_git_files", "lfs_projects"
+  add_foreign_key "storage_item_versions", "storage_files"
+  add_foreign_key "storage_item_versions", "storage_items"
+  add_foreign_key "storage_items", "storage_items", column: "parent_id"
+  add_foreign_key "storage_items", "users", column: "owner_id"
 end
