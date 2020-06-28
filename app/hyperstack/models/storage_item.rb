@@ -20,7 +20,7 @@ class StorageItem < ApplicationRecord
   has_many :folder_entries, class_name: 'StorageItem', foreign_key: 'parent_id'
   has_many :storage_item_versions
 
-  before_destroy :destroy_all_versions
+  before_destroy :destroy_all_versions, :destroy_child_items
 
   validates :size, presence: false, numericality: { only_integer: true }, allow_nil: true
   validates :name, presence: true, length: { maximum: 255, minimum: 1 },
@@ -35,7 +35,7 @@ class StorageItem < ApplicationRecord
                            inclusion: 0..4
 
   scope :by_folder, lambda { |folder_id|
-    if folder_id >= 0
+    if !folder_id.nil?
       where(parent_id: folder_id)
     else
       where(parent_id: nil)
@@ -43,7 +43,7 @@ class StorageItem < ApplicationRecord
   }
 
   scope :visible_to, lambda { |id|
-    user = id == App.acting_user&.id ? App.acting_user : nil
+    user = !id.nil? ? User.find(id) : nil
 
     return where(read_access: ITEM_ACCESS_PUBLIC) if user.nil?
 
@@ -56,16 +56,16 @@ class StorageItem < ApplicationRecord
     end
   }
 
-  scope :paginated, lambda { |off, count|
-    offset(off).take(count)
-  }
-
   scope :sort_by_name,
         server: -> { order('name ASC') },
         select: -> { sort_by(&:name) }
 
   # TODO: client scope
   scope :folder_sort, -> { order('ftype DESC, name ASC') }
+
+  scope :paginated, lambda { |off, count|
+    offset(off).take(count)
+  }
 
   def folder?
     ftype == 1
@@ -91,7 +91,32 @@ class StorageItem < ApplicationRecord
     end
   end
 
+  def read_access_pretty
+    StorageItem.access_integer_to_string read_access
+  end
+
   def destroy_all_versions
     storage_item_versions.each(&:destroy)
+  end
+
+  def destroy_child_items
+    folder_entries.each(&:destroy)
+  end
+
+  def self.access_integer_to_string(access)
+    case access
+    when ITEM_ACCESS_PUBLIC
+      'public'
+    when ITEM_ACCESS_USER
+      'users'
+    when ITEM_ACCESS_DEVELOPER
+      'developers'
+    when ITEM_ACCESS_OWNER
+      'owner + admins'
+    when ITEM_ACCESS_NOBODY
+      'system'
+    else
+      "Unknown (#{access})"
+    end
   end
 end
