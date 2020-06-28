@@ -119,10 +119,10 @@ class FileBrowser < HyperComponent
             }
 
             if created_items < 1
-              TR{
+              TR {
                 (1..@ColumnCountForEmpty).each_with_index { |_, i|
-                  TD{
-                    "This folder is empty" if i == @ColumnEmptyIndicator
+                  TD {
+                    'This folder is empty' if i == @ColumnEmptyIndicator
                   }
                 }
               }

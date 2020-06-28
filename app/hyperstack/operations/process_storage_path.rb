@@ -10,11 +10,10 @@ class ProcessStoragePath < Hyperstack::ServerOp
 
     path = '/' if path.blank?
 
-    path.split('/').delete_if(&:blank?)
-  }
-  step {|parts|
+    parts = path.split('/').delete_if(&:blank?)
+
     if parts.empty?
-      return [[], nil, ""]
+      succeed! [[], nil, ""]
     end
 
     parent = nil
@@ -23,13 +22,13 @@ class ProcessStoragePath < Hyperstack::ServerOp
 
     parts.each{|part|
       begin
-        current = StorageItem.by_folder(parent&.id).where(name: part)
+        current = StorageItem.by_folder(parent&.id).where(name: part).first
       rescue  StandardError => e
-        return [folder_path, nil, "Error accessing '#{part}': #{e}"]
+        succeed! [folder_path, nil, "Error accessing '#{part}': #{e}"]
       end
 
       if current.nil?
-        return [folder_path, nil, "Path item '#{part}' doesn't exist"]
+        succeed! [folder_path, nil, "Path item '#{part}' doesn't exist"]
       end
 
       if current.folder?

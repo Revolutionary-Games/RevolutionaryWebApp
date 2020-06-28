@@ -2,9 +2,14 @@
 
 class FileItem < BaseFileItem
   param :file
+  param :path_so_far
 
   def name
     @File.name.to_s
+  end
+
+  def path
+    @PathSoFar
   end
 
   render(TR) do
@@ -52,27 +57,37 @@ class Files < HyperComponent
       'included in the code repository.'
     }
 
-    if @last_parsed_path != raw_path
+    if @last_parsed_path != raw_path && @recalculating_path != raw_path
       current_path = raw_path
       # Need to parse the path
       mutate {
+        @recalculating_path = current_path
         @parsing_path = true
-        @path_parse_failure = ''
+        @path_parse_failure = nil
       }
       ProcessStoragePath.run(path: current_path).then { |path, current_item, error|
         mutate {
+          @recalculating_path = nil
           @last_parsed_path = current_path
           @parsing_path = false
           if !error.blank?
             @path_parse_failure = error.to_s
           else
-            @parsed_path = path.map(&:name).join('/')
-            @current_folder = path.last
+            # TODO: maybe there is an inbuilt way to do this?
+            re_created = path.map{|i|
+              item = StorageItem.new i
+              item.id = i["id"]
+              item
+            }
+            @parsed_path = re_created.join('/')
+            @current_folder = re_created.last
             @show_item_sidebar = current_item
           end
         }
       }.fail { |error|
         mutate {
+          @recalculating_path = nil
+          @last_parsed_path = current_path
           @parsing_path = false
           @path_parse_failure = "Request to parse path failed: #{error}"
         }
@@ -104,8 +119,7 @@ class Files < HyperComponent
         }
       },
       item_create: lambda { |item, base|
-        puts "Creating item: #{item}"
-        FileItem(file: item, base_path: base)
+        FileItem(file: item, base_path: base, path_so_far: raw_path)
       },
       column_count_for_empty: 4,
       column_empty_indicator: 1
