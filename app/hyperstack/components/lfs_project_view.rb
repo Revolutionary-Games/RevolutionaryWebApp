@@ -215,10 +215,11 @@ class LfsProjectView < HyperComponent
         # Skip root folder
         return nil if item.root?
 
-        LFSGitFileItem(file: item, base_path: base)
+        LFSGitFileItem(file: item, base_path: base, key: item.name)
       },
       column_count_for_empty: 4,
-      column_empty_indicator: 1
+      column_empty_indicator: 1,
+      key: 'filebrowser'
     ).on(:change_folder) { |folder|
       history.push folder
     }
