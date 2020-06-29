@@ -98,7 +98,8 @@ class FileBrowser < HyperComponent
     Paginator(current_page: @file_page,
               page_size: 100,
               item_count: items.count,
-              ref: set(:paginator)) {
+              ref: set(:paginator),
+              key: "paginator") {
       # This is set with a delay
       if @paginator
         RS.Table(:striped, :responsive) {

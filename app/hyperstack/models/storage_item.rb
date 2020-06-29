@@ -1,16 +1,6 @@
 # frozen_string_literal: true
 
-# Access specifiers
-# public - 0
-# user - 1
-# developer - 2
-# owner / admin - 3
-# nobody / system - 4
-ITEM_ACCESS_PUBLIC = 0
-ITEM_ACCESS_USER = 1
-ITEM_ACCESS_DEVELOPER = 2
-ITEM_ACCESS_OWNER = 3
-ITEM_ACCESS_NOBODY = 4
+
 
 # Item in general remote storage, can be a folder (that doesn't actually exist there),
 # or a file based on type
@@ -29,7 +19,7 @@ class StorageItem < ApplicationRecord
   validates :special, inclusion: { in: [true, false] }
   validates :allow_parentless, inclusion: { in: [true, false] }
 
-  # See the access specifiers at the top of this file
+  # See the access specifiers in file_permissions.rb
   validates :read_access, presence: true, numericality: { only_integer: true }, inclusion: 0..4
   validates :write_access, presence: true, numericality: { only_integer: true },
                            inclusion: 0..4

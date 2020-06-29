@@ -12,6 +12,7 @@ require 'discourse_api_helper'
 require 'login_helper'
 require 'sso_suspend_handler'
 require 'remote_storage_helper'
+require 'file_permissions'
 
 # And just for fun enabling english here
 require 'English'

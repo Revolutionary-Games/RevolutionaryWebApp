@@ -48,3 +48,31 @@ div[data-react-class="Hyperstack.Internal.Component.TopLevelRailsComponent"] {
     padding-left: 0.75rem;
     display: block;
 }
+
+.LeftMargin{
+  margin-left: 5px;
+}
+
+.BlockContainer{
+  position: relative;
+}
+
+.BlockOverlay{
+  position: absolute;
+  height: calc(100% - 18px);
+  min-height: 300px;
+  width: calc(100% - 30px);
+  top: 9px;
+  left: 15px;
+  box-sizing: border-box;
+  padding: 5px;
+  background-color: rgba(220, 220, 220, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+  z-index: 10;
+  border-radius: 8px;
+  box-shadow: 3px 3px;
+}
