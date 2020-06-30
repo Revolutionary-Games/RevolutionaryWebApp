@@ -154,7 +154,6 @@ class Files < HyperComponent
               'Upload Files'
             }.on(:click) { |event|
               event.prevent_default
-              puts 'got here 2'
               begin_file_upload @upload_selected_files
             }
             RS.Button(class: 'LeftMargin') {
@@ -171,14 +170,12 @@ class Files < HyperComponent
         }.on(:DragOver) { |event|
           event.prevent_default
           event.stop_propagation
-          # puts "received drag over: ", `event.dataTransfer.files.count()`
           mutate { @show_upload_overlay = true } unless @show_upload_overlay
         }.on(:Drop) { |event|
           event.prevent_default
           event.stop_propagation
           files = `[...event.native.dataTransfer.files]`
-          puts "received drop: #{files}"
-          # begin_file_upload
+          begin_file_upload files
         }
       end
       FileBrowser(
@@ -213,7 +210,8 @@ class Files < HyperComponent
 
     can_upload = FilePermissions.has_access?(
       App.acting_user,
-      @current_folder ? @current_folder.write_access : ITEM_ACCESS_OWNER, @current_folder&.owner
+      @current_folder ? @current_folder.write_access : ITEM_ACCESS_OWNER,
+      @current_folder&.owner
     )
 
     RS.Button(color: 'primary', disabled: !can_upload) { 'Upload' }.on(:click) {
@@ -231,8 +229,6 @@ class Files < HyperComponent
   private
 
   def begin_file_upload(files)
-    `console.log(files)`
-    puts "files are: #{files}"
     mutate {
       @upload_in_progress = true
       @upload_selected_files = nil
@@ -243,31 +239,21 @@ class Files < HyperComponent
   end
 
   def upload_batch(files)
-    puts 'beginning batch upload'
-    unless files.empty?
-      Promise.when(upload_files(files[0..0].first)).then { upload_batch(files[1..-1]) }
-    end
+    return if files.empty?
+
+    Promise.when(upload_files(files[0..0].first)).then { upload_batch(files[1..-1]) }
   end
 
+  # rubocop:disable Lint/UnusedMethodArgument
+  # rubocop:disable Lint/UnusedBlockArgument
   def upload_files(file)
-    puts "Start upload of #{file}"
     name = `file.name`
     RequestStartUpload.run(
       folder_id: @current_folder&.id,
       size: `file.size`,
       file_name: name
     ).then { |url, data, key|
-      puts "starting put: #{data}, #{url}"
-
-      # Browser::HTTP.post(url, data = {file: file}).then { |response|
-      #   if response.status.code != 200
-      #     puts "Failed response: #{response.text}"
-      #     raise "Invalid response from storage PUT request, status: #{response.status}"
-      #   end
-      #   puts "send token to server to verify #{key}"
-      #
-      #  ReportFinishedUpload.run(upload_token: key)
-      # }
+      puts "Starting file send to: #{url}"
 
       promise = Promise.new
       %x{
@@ -291,7 +277,6 @@ class Files < HyperComponent
         response_status = `response.status`
 
         if `response.ok` != true
-          puts "Failed response: #{response}"
           raise "Invalid response from storage PUT request, status: #{response_status}"
         end
 
@@ -309,4 +294,6 @@ class Files < HyperComponent
       mutate @upload_errors += ["#{name} - #{error}"]
     }
   end
+  # rubocop:enable Lint/UnusedMethodArgument
+  # rubocop:enable Lint/UnusedBlockArgument
 end
