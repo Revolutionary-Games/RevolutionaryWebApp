@@ -2,6 +2,8 @@
 
 require 'aws-sdk-s3'
 
+MAX_ALLOWED_REMOTE_OBJECT_SIZE = 1024 * 1024 * 1024 * 100
+
 # Helpers for managing remotely stored files
 module RemoteStorageHelper
   GENERAL_UPLOAD_KEY_DERIVE = 'general_upload'
@@ -9,7 +11,6 @@ module RemoteStorageHelper
   UPLOAD_EXPIRE_TIME = 15.minutes
 
   @already_verified = false
-  @verify_was_good = false
 
   def self.verify
     if !ENV['GENERAL_STORAGE_DOWNLOAD'] || !ENV['GENERAL_STORAGE_DOWNLOAD_KEY'] ||
@@ -25,7 +26,38 @@ module RemoteStorageHelper
   end
 
   def self.create_put_url(remote_path)
-    bucket.object(remote_path).presigned_url(:put, expires_in: UPLOAD_EXPIRE_TIME + 1)
+    bucket.object(remote_path).presigned_url(:put, expires_in:
+      (UPLOAD_EXPIRE_TIME + 1).to_i)
+  end
+
+  def self.create_presigned_post(remote_path)
+    bucket.object(remote_path).presigned_post(
+      signature_expiration: Time.now + UPLOAD_EXPIRE_TIME + 1, key: remote_path,
+      content_length_range: 1..MAX_ALLOWED_REMOTE_OBJECT_SIZE
+    )
+  end
+
+  def self.upload_expire_time
+    UPLOAD_EXPIRE_TIME
+  end
+
+  def self.create_put_token(remote_path, size, item_id)
+    payload = { remote_path: remote_path, object_size: size,
+                item_id: item_id,
+                exp: Time.now.to_i + UPLOAD_EXPIRE_TIME + 2 }
+
+    JWT.encode payload, upload_derived_key, 'HS256'
+  end
+
+  def self.decode_put_token(token)
+    decoded_token = JWT.decode token, upload_derived_key, true, algorithm: 'HS256'
+
+    decoded_token[0]
+  end
+
+  def self.token_matches_item?(token_data, item)
+    token_data['remote_path'] == item.storage_path && token_data['object_size'] == item.size &&
+      token_data['item_id'] == item.id
   end
 
   def self.object_size(remote_path)
@@ -60,14 +92,12 @@ module RemoteStorageHelper
 
     result = s3.bucket ENV['GENERAL_STORAGE_S3_BUCKET']
 
-    if !@already_verified
-      @already_verified = true
-      unless result.exists?
-        @verify_was_good = false
+    unless @already_verified
+      if !result.exists?
         raise 'Target S3 bucket does not exist or configured credentials are wrong'
+      else
+        @already_verified = true
       end
-    else
-      raise 'Initial S3 bucket exist check failed' unless @verify_was_good
     end
 
     result

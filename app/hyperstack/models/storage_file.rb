@@ -4,7 +4,7 @@
 class StorageFile < ApplicationRecord
   before_destroy :destroy_file_in_storage
 
-  validates :storage_path, presence: true, length: { minimum: 3 }
+  validates :storage_path, presence: true, length: { minimum: 3 }, format: { with: %r{[^/].+}i }
   validates :size, presence: true, numericality: { only_integer: true }
 
   def destroy_file_in_storage

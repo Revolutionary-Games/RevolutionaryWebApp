@@ -31,6 +31,10 @@ class ProcessStoragePath < Hyperstack::ServerOp
         succeed! [folder_path, nil, "Path item '#{part}' doesn't exist"]
       end
 
+      if !FilePermissions.has_access? param.acting_user, current.read_access, current.owner
+        succeed! [folder_path, nil, "You are not allowed to view this item"]
+      end
+
       if current.folder?
         folder_path.append current
         parent = current

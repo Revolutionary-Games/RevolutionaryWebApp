@@ -1,16 +1,13 @@
 # frozen_string_literal: true
 
-
-
 # Item in general remote storage, can be a folder (that doesn't actually exist there),
 # or a file based on type
 class StorageItem < ApplicationRecord
   belongs_to :owner, class_name: 'User', required: false
   belongs_to :parent, class_name: 'StorageItem', required: false
-  has_many :folder_entries, class_name: 'StorageItem', foreign_key: 'parent_id'
-  has_many :storage_item_versions
-
-  before_destroy :destroy_all_versions, :destroy_child_items
+  has_many :folder_entries, class_name: 'StorageItem', foreign_key: 'parent_id',
+                            dependent: :destroy
+  has_many :storage_item_versions, primary_key: 'id', dependent: :destroy
 
   validates :size, presence: false, numericality: { only_integer: true }, allow_nil: true
   validates :name, presence: true, length: { maximum: 255, minimum: 1 },
@@ -85,12 +82,30 @@ class StorageItem < ApplicationRecord
     StorageItem.access_integer_to_string read_access
   end
 
-  def destroy_all_versions
-    storage_item_versions.each(&:destroy)
+  def def(_compute_storage_path)
+    if parent
+      parent.compute_storage_path + '/'
+    else
+      ''
+    end + name.to_s
   end
 
-  def destroy_child_items
-    folder_entries.each(&:destroy)
+  # TODO: convert to property
+  def important
+    false
+  end
+
+  def next_version
+    highest_version = 0
+
+    storage_item_versions.each { |item|
+      highest_version = item.version if item.version > highest_version
+    }
+
+    highest_version += 1
+
+    storage_item_versions.create! version: highest_version, keep: important, uploading: true,
+                                  storage_item: self
   end
 
   def self.access_integer_to_string(access)

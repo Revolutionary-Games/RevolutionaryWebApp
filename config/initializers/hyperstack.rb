@@ -9,6 +9,7 @@ Hyperstack.configuration do |config|
   config.import 'hyperstack/component/jquery', client_only: true # remove this line if you don't need jquery
   config.import 'hyperstack/hotloader', client_only: true if Rails.env.development?
   config.import 'browser/location', client_only: true
+  config.import 'browser/http', client_only: true
 end
 
 # useful for debugging

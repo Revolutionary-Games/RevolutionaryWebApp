@@ -42,6 +42,9 @@ class Files < HyperComponent
 
     @show_upload_overlay = false
     @upload_in_progress = nil
+    @total_files_to_upload = 0
+    @total_uploaded = 0
+    @upload_errors = []
 
     @upload_selected_files = nil
   end
@@ -110,8 +113,21 @@ class Files < HyperComponent
     P { "Selected item: #{@show_item_sidebar}" } if @show_item_sidebar
 
     DIV(class: 'BlockContainer') {
-      if @show_upload_overlay
+      if @show_upload_overlay || @upload_in_progress
         DIV(class: 'BlockOverlay') {
+          @upload_errors.each { |error|
+            P { "Upload error: #{error}" }
+          }
+
+          if @upload_in_progress
+            DIV {
+              SPAN { 'Uploading ' }
+              RS.Spinner(color: 'primary')
+            }
+
+            BR {}
+          end
+
           P {
             'Drop files here to upload'
           }
@@ -127,16 +143,20 @@ class Files < HyperComponent
               if event.target.files.empty?
                 mutate @upload_selected_files = nil
               else
-                mutate @upload_selected_files = event.target.files
+                mutate @upload_selected_files = `[...event.native.target.files]`
               end
             }
 
-            BR{}
-            BR{}
+            BR {}
+            BR {}
 
             RS.Button(type: 'submit', color: 'primary', disabled: !@upload_selected_files) {
               'Upload Files'
-            }.on(:click, &:prevent_default)
+            }.on(:click) { |event|
+              event.prevent_default
+              puts 'got here 2'
+              begin_file_upload @upload_selected_files
+            }
             RS.Button(class: 'LeftMargin') {
               'Cancel'
             }.on(:click) { |event|
@@ -144,6 +164,21 @@ class Files < HyperComponent
               mutate @show_upload_overlay = false
             }
           }
+        }.on(:DragLeave) { |event|
+          event.prevent_default
+          event.stop_propagation
+          mutate { @show_upload_overlay = false } if @show_upload_overlay
+        }.on(:DragOver) { |event|
+          event.prevent_default
+          event.stop_propagation
+          # puts "received drag over: ", `event.dataTransfer.files.count()`
+          mutate { @show_upload_overlay = true } unless @show_upload_overlay
+        }.on(:Drop) { |event|
+          event.prevent_default
+          event.stop_propagation
+          files = `[...event.native.dataTransfer.files]`
+          puts "received drop: #{files}"
+          # begin_file_upload
         }
       end
       FileBrowser(
@@ -172,18 +207,8 @@ class Files < HyperComponent
       }
     }.on(:DragEnter) { |event|
       event.prevent_default
-      mutate @show_upload_overlay = true
-    }.on(:DragLeave) { |event|
-      event.prevent_default
-      mutate @show_upload_overlay = false
-    }.on(:DragOver) { |event|
-      event.prevent_default
-      puts "received drag over: #{event.files.count}"
-      mutate @show_upload_overlay = true if @show_upload_overlay
-    }.on(:Drop) { |event|
-      event.prevent_default
-      puts "received drop: #{event}"
-      # begin_file_upload
+      event.stop_propagation
+      mutate { @show_upload_overlay = true } unless @show_upload_overlay
     }
 
     can_upload = FilePermissions.has_access?(
@@ -203,5 +228,82 @@ class Files < HyperComponent
     end
   end
 
-  def begin_file_upload(files); end
+  private
+
+  def begin_file_upload(files)
+    `console.log(files)`
+    puts "files are: #{files}"
+    mutate {
+      @upload_in_progress = true
+      @upload_selected_files = nil
+      @total_files_to_upload += files.length
+    }
+
+    upload_batch files
+  end
+
+  def upload_batch(files)
+    puts 'beginning batch upload'
+    unless files.empty?
+      Promise.when(upload_files(files[0..0].first)).then { upload_batch(files[1..-1]) }
+    end
+  end
+
+  def upload_files(file)
+    puts "Start upload of #{file}"
+    name = `file.name`
+    RequestStartUpload.run(
+      folder_id: @current_folder&.id,
+      size: `file.size`,
+      file_name: name
+    ).then { |url, data, key|
+      puts "starting put: #{data}, #{url}"
+
+      # Browser::HTTP.post(url, data = {file: file}).then { |response|
+      #   if response.status.code != 200
+      #     puts "Failed response: #{response.text}"
+      #     raise "Invalid response from storage PUT request, status: #{response.status}"
+      #   end
+      #   puts "send token to server to verify #{key}"
+      #
+      #  ReportFinishedUpload.run(upload_token: key)
+      # }
+      s = nil
+      # rubocop:disable Style/CommandLiteral
+      %x{
+        let formData = new FormData();
+        formData.append('key', #{data['key']});
+        formData.append('policy', #{data['policy']});
+        formData.append('x-amz-credential', #{data['x-amz-credential']});
+        formData.append('x-amz-algorithm', #{data['x-amz-algorithm']});
+        formData.append('x-amz-date', #{data['x-amz-date']});
+        formData.append('x-amz-signature', #{data['x-amz-signature']});
+        formData.append('file', file);
+        s = fetch(url, {
+          method: 'POST',
+          body: formData
+        })
+      }
+      # rubocop:enable Style/CommandLiteral
+      s.then { |response|
+        if response.ok != true
+          puts "Failed response: #{response}"
+          raise "Invalid response from storage PUT request, status: #{response.status}"
+        end
+        puts "send token to server to verify #{key}"
+
+        ReportFinishedUpload.run(upload_token: key)
+      }
+    }.then {
+      # Succeeded
+      mutate {
+        @total_uploaded += 1
+        @upload_in_progress = false if @total_uploaded >= @total_files_to_upload
+
+        # TODO: close uploader if all succeeded
+      }
+    }.fail { |error|
+      mutate @upload_errors += ["#{name} - #{error}"]
+    }
+  end
 end
