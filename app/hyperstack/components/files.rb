@@ -268,8 +268,8 @@ class Files < HyperComponent
       #
       #  ReportFinishedUpload.run(upload_token: key)
       # }
-      s = nil
-      # rubocop:disable Style/CommandLiteral
+
+      promise = Promise.new
       %x{
         let formData = new FormData();
         formData.append('key', #{data['key']});
@@ -279,18 +279,21 @@ class Files < HyperComponent
         formData.append('x-amz-date', #{data['x-amz-date']});
         formData.append('x-amz-signature', #{data['x-amz-signature']});
         formData.append('file', file);
-        s = fetch(url, {
+        fetch(url, {
           method: 'POST',
           body: formData
         })
+          .then(response => {#{promise.resolve(`response`)}})
+          .catch(error => {#{promise.reject(`error`)}})
       }
-      # rubocop:enable Style/CommandLiteral
-      s.then { |response|
-        if response.ok != true
+
+      promise.then { |response|
+        response_status = `response.status`
+
+        if `response.ok` != true
           puts "Failed response: #{response}"
-          raise "Invalid response from storage PUT request, status: #{response.status}"
+          raise "Invalid response from storage PUT request, status: #{response_status}"
         end
-        puts "send token to server to verify #{key}"
 
         ReportFinishedUpload.run(upload_token: key)
       }
