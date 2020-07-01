@@ -158,19 +158,19 @@ class Files < HyperComponent
           folders = fetched.select(&:folder?)
           folder = folders.last
 
-          mutate @parsed_path = folders.map(&:name).join('/')
-
           if folder
-            folder.load(:name, :read_access, :write_access).then { |_name, _read, _write|
+            Promise.when(*folders.map{|i| i.load(:name, :read_access, :write_access)}).then {
               mutate {
                 @current_folder = folder
                 @parsing_path = false
+                @parsed_path = folders.map(&:name).join('/')
               }
             }
           else
             mutate {
               @current_folder = nil
               @parsing_path = false
+              @parsed_path = folders.map(&:name).join('/')
             }
           end
 
