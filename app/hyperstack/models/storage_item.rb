@@ -82,6 +82,21 @@ class StorageItem < ApplicationRecord
     StorageItem.access_integer_to_string read_access
   end
 
+  def write_access_pretty
+    StorageItem.access_integer_to_string write_access
+  end
+
+  def ftype_pretty
+    case ftype
+    when 0
+      "file"
+    when 1
+      "folder"
+    else
+      "unknown"
+    end
+  end
+
   def compute_storage_path
     if parent
       parent.compute_storage_path + '/'

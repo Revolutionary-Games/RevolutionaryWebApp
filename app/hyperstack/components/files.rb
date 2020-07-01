@@ -15,7 +15,7 @@ class FileItem < BaseFileItem
 
   render(TR) do
     # TODO: icon based on type
-    TD { @File.folder? ? 'folder' : '' }
+    TD { @File.folder? ? @File.ftype_pretty : '' }
 
     # Clickability
     TD {
@@ -62,15 +62,25 @@ class Files < HyperComponent
 
   def show_current_item
     DIV(class: 'ItemSidebar') {
-      RS.Button(class: "close", style: {fontSize: '2.3rem'}){
-        SPAN(dangerously_set_inner_HTML: {__html: "&times;" })
-      }.on(:click){
+      RS.Button(class: 'close', style: { fontSize: '2.3rem' }) {
+        SPAN(dangerously_set_inner_HTML: { __html: '&times;' })
+      }.on(:click) {
         @file_browser.change_folder @parsed_path
       }
 
       H2 { @show_item_sidebar.name.to_s }
 
-      SPAN { "Selected item: #{@show_item_sidebar}" }
+      H3 { 'Information' }
+
+      DIV { "Name: #{@show_item_sidebar.name}" }
+      DIV { "Type: #{@show_item_sidebar.ftype_pretty}" }
+      DIV { "ID: #{@show_item_sidebar.id}" }
+      DIV { "Can be parentless: #{@show_item_sidebar.allow_parentless}" }
+      DIV { "Size: #{@show_item_sidebar.size}" }
+      DIV { "Read: #{@show_item_sidebar.read_access_pretty}" }
+      DIV { "Write: #{@show_item_sidebar.write_access_pretty}" }
+      DIV { "Owner: #{@show_item_sidebar.owner&.name_or_id}" } if App.acting_user
+      DIV { "Parent folder: #{@show_item_sidebar.parent&.name}" }
     }
   end
 
@@ -230,7 +240,7 @@ class Files < HyperComponent
         column_count_for_empty: 4,
         column_empty_indicator: 1,
         key: 'filebrowser',
-        ref: set(:file_browser),
+        ref: set(:file_browser)
       ).on(:change_folder) { |folder|
         history.push folder
       }

@@ -10,5 +10,6 @@ class UserPolicy
     # This doesn't work? Or maybe it does and the problem is the models not allowing access
     # policy.send_all_but(:password, :password_confirmation, :password_digest).to(self)
     policy.send_all_but(:password, :password_confirmation, :password_digest).to(self)
+    policy.send_only(:name).to(User)
   }
 end
