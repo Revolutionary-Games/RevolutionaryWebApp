@@ -137,11 +137,8 @@ class Files < HyperComponent
           if !error.blank?
             @path_parse_failure = error.to_s
           else
-            # TODO: maybe there is an inbuilt way to do this?
             re_created = path.map { |i|
-              item = StorageItem.new i
-              item.id = i['id']
-              item
+              item = StorageItem.find i
             }
 
             folders = re_created.select(&:folder?)
@@ -149,10 +146,8 @@ class Files < HyperComponent
             @parsed_path = folders.map(&:name).join('/')
             @current_folder = folders.last
 
-            if current_item && !current_item.empty?
-              # TODO: use that better way here as well
-              @show_item_sidebar = StorageItem.new current_item
-              @show_item_sidebar.id = current_item['id']
+            if !current_item.nil?
+              @show_item_sidebar = StorageItem.find current_item
 
               # This is chomped from paths to make navigation work while an item is open
               @remove_from_end = "/#{@show_item_sidebar.name}"

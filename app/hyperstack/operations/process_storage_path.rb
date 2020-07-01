@@ -24,15 +24,15 @@ class ProcessStoragePath < Hyperstack::ServerOp
       begin
         current = StorageItem.by_folder(parent&.id).where(name: part).first
       rescue  StandardError => e
-        succeed! [folder_path, nil, "Error accessing '#{part}': #{e}"]
+        succeed! [folder_path.map(&:id), nil, "Error accessing '#{part}': #{e}"]
       end
 
       if current.nil?
-        succeed! [folder_path, nil, "Path item '#{part}' doesn't exist"]
+        succeed! [folder_path.map(&:id), nil, "Path item '#{part}' doesn't exist"]
       end
 
       if !FilePermissions.has_access? params.acting_user, current.read_access, current.owner
-        succeed! [folder_path, nil, "You are not allowed to view this item"]
+        succeed! [folder_path.map(&:id), nil, "You are not allowed to view this item"]
       end
 
       if current.folder?
@@ -40,10 +40,11 @@ class ProcessStoragePath < Hyperstack::ServerOp
         parent = current
       else
         item = current
+        # TODO: fail with trailing path items
         break
       end
     }
 
-    [folder_path, item, ""]
+    [folder_path.map(&:id), item&.id, ""]
   }
 end
