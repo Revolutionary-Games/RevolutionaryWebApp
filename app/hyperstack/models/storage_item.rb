@@ -7,7 +7,8 @@ class StorageItem < ApplicationRecord
   belongs_to :parent, class_name: 'StorageItem', required: false
   has_many :folder_entries, class_name: 'StorageItem', foreign_key: 'parent_id',
                             dependent: :destroy
-  has_many :storage_item_versions, primary_key: 'id', dependent: :destroy
+  has_many :storage_item_versions, -> { order('version DESC') }, primary_key: 'id',
+           dependent: :destroy
 
   validates :size, presence: false, numericality: { only_integer: true }, allow_nil: true
   validates :name, presence: true, length: { maximum: 255, minimum: 1 },
@@ -89,11 +90,11 @@ class StorageItem < ApplicationRecord
   def ftype_pretty
     case ftype
     when 0
-      "file"
+      'file'
     when 1
-      "folder"
+      'folder'
     else
-      "unknown"
+      'unknown'
     end
   end
 

@@ -22,6 +22,17 @@ class StorageItemVersion < ApplicationRecord
     offset(off).take(count)
   }
 
+  server_method :size_mib, default: '' do
+    rounded = 3
+    size = storage_file&.size
+
+    if size
+      (size.to_f / 1024 / 1024).round(rounded)
+    else
+      0
+    end
+  end
+
   def compute_storage_path
     parent_path = ''
     unless storage_item.parent.nil?

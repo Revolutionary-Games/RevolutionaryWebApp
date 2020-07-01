@@ -61,7 +61,7 @@ class Files < HyperComponent
   end
 
   def show_current_item
-    DIV(class: 'ItemSidebar') {
+    DIV(class: 'ItemSidebar', key: 'sidebar') {
       RS.Button(class: 'close', style: { fontSize: '2.3rem' }) {
         SPAN(dangerously_set_inner_HTML: { __html: '&times;' })
       }.on(:click) {
@@ -81,6 +81,36 @@ class Files < HyperComponent
       DIV { "Write: #{@show_item_sidebar.write_access_pretty}" }
       DIV { "Owner: #{@show_item_sidebar.owner&.name_or_id}" } if App.acting_user
       DIV { "Parent folder: #{@show_item_sidebar.parent&.name}" }
+      DIV { "Created: #{@show_item_sidebar.created_at}" }
+      DIV { "Updated: #{@show_item_sidebar.updated_at}" }
+
+      H3 { 'Versions' }
+      RS.Table(:striped, :responsive) {
+        THEAD{
+          TR {
+            TH { 'Version' }
+            TH { 'Size' }
+            TH { 'Keep' }
+            TH { 'Protected' }
+            TH { 'Uploaded' }
+            TH { 'Actions' }
+            TH { 'Date' }
+          }
+        }
+        TBODY{
+          @show_item_sidebar.storage_item_versions.each{|version|
+            TR(key: version.version.to_s) {
+              TD{version.version.to_s}
+              TD{"#{version.size_mib} MiB"}
+              TD{version.keep.to_s}
+              TD{version.protected.to_s}
+              TD{(!version.uploading).to_s}
+              TD{}
+              TD{version.created_at.to_s}
+            }
+          }
+        }
+      }
     }
   end
 
