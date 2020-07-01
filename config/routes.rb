@@ -24,7 +24,7 @@ Rails.application.routes.draw do
     mount Sidekiq::Web => '/admin/sidekiq'
   end
 
-  # get '/(*other)', to: 'hyperstack#app', format: false, defaults: { format: 'html' }
-  get '/(*other)', to: 'hyperstack#app'
+  # The format part is needed to work with urls like /files/image.jpg
+  get '/(*other)', to: 'hyperstack#app', format: false, defaults: { format: 'html' }
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end
