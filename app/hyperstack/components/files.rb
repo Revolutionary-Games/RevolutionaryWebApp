@@ -103,7 +103,9 @@ class Files < HyperComponent
       }
     end
 
-    P { "Error parsing path: #{@path_parse_failure}" } if @path_parse_failure
+    if @path_parse_failure
+      RS.Alert(color: 'danger') { "Error parsing path: #{@path_parse_failure}" }
+    end
 
     if @parsing_path
       RS.Spinner(color: 'primary')
