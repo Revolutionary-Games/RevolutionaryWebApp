@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class User < ApplicationRecord
+  has_many :storage_items, foreign_key: 'owner_id'
+
   default_scope server: -> { all },
                 client: -> { true }
 
