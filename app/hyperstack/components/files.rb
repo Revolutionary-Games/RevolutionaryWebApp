@@ -62,7 +62,14 @@ class Files < HyperComponent
 
   def show_current_item
     DIV(class: 'ItemSidebar') {
+      RS.Button(class: "close", style: {fontSize: '2.3rem'}){
+        SPAN(dangerously_set_inner_HTML: {__html: "&times;" })
+      }.on(:click){
+        @file_browser.change_folder @parsed_path
+      }
+
       H2 { @show_item_sidebar.name.to_s }
+
       SPAN { "Selected item: #{@show_item_sidebar}" }
     }
   end
@@ -222,7 +229,8 @@ class Files < HyperComponent
         },
         column_count_for_empty: 4,
         column_empty_indicator: 1,
-        key: 'filebrowser'
+        key: 'filebrowser',
+        ref: set(:file_browser),
       ).on(:change_folder) { |folder|
         history.push folder
       }
