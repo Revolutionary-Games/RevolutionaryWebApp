@@ -37,6 +37,8 @@ class Files < HyperComponent
 
   before_mount do
     @parsed_path = ''
+    @last_parsed_path = nil
+    @recalculating_path = nil
     @current_folder = nil
     @show_item_sidebar = nil
     @remove_from_end = ''
@@ -130,12 +132,10 @@ class Files < HyperComponent
         @path_parse_failure = nil
       }
       ProcessStoragePath.run(path: current_path).then { |path, current_item, error|
-        mutate {
-          @recalculating_path = nil
-          @last_parsed_path = current_path
-        }
         if !error.blank?
           mutate {
+            @recalculating_path = nil
+            @last_parsed_path = current_path
             @path_parse_failure = error.to_s
             @parsing_path = false
           }
@@ -144,36 +144,27 @@ class Files < HyperComponent
             item = StorageItem.find i
           }
 
-          if !current_item.nil?
-            mutate {
-              @show_item_sidebar = StorageItem.find current_item
+            Promise.when(*fetched.map { |i| i.load(:name, :read_access, :write_access, :ftype) }).then {
+              fetched_folders = fetched.select(&:folder?)
+              folder = fetched_folders.last
 
-              # This is chomped from paths to make navigation work while an item is open
-              @remove_from_end = "/#{@show_item_sidebar.name}"
-            }
-          else
-            mutate @remove_from_end = ''
-          end
-
-          folders = fetched.select(&:folder?)
-          folder = folders.last
-
-          if folder
-            Promise.when(*folders.map{|i| i.load(:name, :read_access, :write_access)}).then {
               mutate {
+                if !current_item.nil?
+                  @show_item_sidebar = StorageItem.find current_item
+
+                  # This is chomped from paths to make navigation work while an item is open
+                  @remove_from_end = "/#{@show_item_sidebar.name}"
+                else
+                  @remove_from_end = ''
+                end
+
+                @recalculating_path = nil
+                @last_parsed_path = current_path
                 @current_folder = folder
                 @parsing_path = false
-                @parsed_path = folders.map(&:name).join('/')
+                @parsed_path = fetched_folders.map(&:name).join('/')
               }
             }
-          else
-            mutate {
-              @current_folder = nil
-              @parsing_path = false
-              @parsed_path = folders.map(&:name).join('/')
-            }
-          end
-
         end
       }.fail { |error|
         mutate {
@@ -183,6 +174,7 @@ class Files < HyperComponent
           @path_parse_failure = "Request to parse path failed: #{error}"
         }
       }
+      return
     end
 
     if @path_parse_failure
