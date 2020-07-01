@@ -82,7 +82,7 @@ class StorageItem < ApplicationRecord
     StorageItem.access_integer_to_string read_access
   end
 
-  def def(_compute_storage_path)
+  def compute_storage_path
     if parent
       parent.compute_storage_path + '/'
     else

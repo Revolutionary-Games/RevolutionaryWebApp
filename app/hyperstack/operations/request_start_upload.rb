@@ -22,7 +22,7 @@ class RequestStartUpload < Hyperstack::ServerOp
                                                                @folder.write_access
                                                              else
                                                                ITEM_ACCESS_OWNER
-end, @folder&.owner
+                                                             end, @folder&.owner
         abort! "You don't have permission to create files in this folder"
       end
 
@@ -31,10 +31,13 @@ end, @folder&.owner
                                                          @folder.read_access
                                                        else
                                                          ITEM_ACCESS_DEVELOPER
-end,
+                                                       end,
         write_access: @folder ? @folder.write_access : ITEM_ACCESS_OWNER,
         owner: params.acting_user, parent: @folder
       )
+
+      # Item count in folder changed
+      CountRemoteFolderItems.perform_later(@folder.id) if @folder
     end
 
     unless FilePermissions.has_access? params.acting_user, @item.write_access, @item.owner

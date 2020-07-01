@@ -213,14 +213,14 @@ class Files < HyperComponent
     can_upload = FilePermissions.has_access?(
       App.acting_user,
       @current_folder ? @current_folder.write_access : ITEM_ACCESS_OWNER,
-      @current_folder&.owner
+      @current_folder&.owner_id
     )
 
-    RS.Button(color: 'primary', disabled: !can_upload) { 'Upload' }.on(:click) {
-      mutate @show_upload_overlay = true
-    }
+    if can_upload || App.acting_user
+      RS.Button(color: 'primary', disabled: !can_upload) { 'Upload' }.on(:click) {
+        mutate @show_upload_overlay = true
+      }
 
-    if App.acting_user&.developer?
       RS.Button(color: 'success', disabled: !can_upload, class: 'LeftMargin') {
         'New Folder'
       } .on(:click) {
