@@ -86,7 +86,7 @@ class Files < HyperComponent
 
       H3 { 'Versions' }
       RS.Table(:striped, :responsive) {
-        THEAD{
+        THEAD {
           TR {
             TH { 'Version' }
             TH { 'Size' }
@@ -97,16 +97,16 @@ class Files < HyperComponent
             TH { 'Date' }
           }
         }
-        TBODY{
-          @show_item_sidebar.storage_item_versions.each{|version|
+        TBODY {
+          @show_item_sidebar.storage_item_versions.each { |version|
             TR(key: version.version.to_s) {
-              TD{version.version.to_s}
-              TD{"#{version.size_mib} MiB"}
-              TD{version.keep.to_s}
-              TD{version.protected.to_s}
-              TD{(!version.uploading).to_s}
-              TD{}
-              TD{version.created_at.to_s}
+              TD { version.version.to_s }
+              TD { "#{version.size_mib} MiB" }
+              TD { version.keep.to_s }
+              TD { version.protected.to_s }
+              TD { (!version.uploading).to_s }
+              TD {}
+              TD { version.created_at.to_s }
             }
           }
         }
@@ -133,29 +133,48 @@ class Files < HyperComponent
         mutate {
           @recalculating_path = nil
           @last_parsed_path = current_path
-          @parsing_path = false
-          if !error.blank?
+        }
+        if !error.blank?
+          mutate {
             @path_parse_failure = error.to_s
-          else
-            re_created = path.map { |i|
-              item = StorageItem.find i
-            }
+            @parsing_path = false
+          }
+        else
+          fetched = path.map { |i|
+            item = StorageItem.find i
+          }
 
-            folders = re_created.select(&:folder?)
-
-            @parsed_path = folders.map(&:name).join('/')
-            @current_folder = folders.last
-
-            if !current_item.nil?
+          if !current_item.nil?
+            mutate {
               @show_item_sidebar = StorageItem.find current_item
 
               # This is chomped from paths to make navigation work while an item is open
               @remove_from_end = "/#{@show_item_sidebar.name}"
-            else
-              @remove_from_end = ''
-            end
+            }
+          else
+            mutate @remove_from_end = ''
           end
-        }
+
+          folders = fetched.select(&:folder?)
+          folder = folders.last
+
+          mutate @parsed_path = folders.map(&:name).join('/')
+
+          if folder
+            folder.load(:name, :read_access, :write_access).then { |_name, _read, _write|
+              mutate {
+                @current_folder = folder
+                @parsing_path = false
+              }
+            }
+          else
+            mutate {
+              @current_folder = nil
+              @parsing_path = false
+            }
+          end
+
+        end
       }.fail { |error|
         mutate {
           @recalculating_path = nil
@@ -277,8 +296,8 @@ class Files < HyperComponent
 
     can_upload = FilePermissions.has_access?(
       App.acting_user,
-      @current_folder ? @current_folder.write_access : ITEM_ACCESS_OWNER,
-      @current_folder&.owner_id
+      !@current_folder.nil? ? @current_folder.write_access : ITEM_ACCESS_OWNER,
+      @current_folder&.owner ? @current_folder&.owner.id : nil
     )
 
     if can_upload || App.acting_user
