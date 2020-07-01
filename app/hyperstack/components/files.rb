@@ -290,7 +290,10 @@ class Files < HyperComponent
         @total_uploaded += 1
         @upload_in_progress = false if @total_uploaded >= @total_files_to_upload
 
-        # TODO: close uploader if all succeeded
+        # Close uploader if all succeeded
+        if @upload_errors.empty? && !@upload_in_progress
+          @show_upload_overlay = false
+        end
       }
     }.fail { |error|
       mutate @upload_errors += ["#{name} - #{error}"]
