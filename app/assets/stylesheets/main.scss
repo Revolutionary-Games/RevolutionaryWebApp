@@ -76,3 +76,23 @@ div[data-react-class="Hyperstack.Internal.Component.TopLevelRailsComponent"] {
   border-radius: 8px;
   box-shadow: 3px 3px;
 }
+
+.ItemSidebar{
+  top: 25px;
+  bottom: 15px;
+  right: 0px;
+  position: absolute;
+  box-sizing: border-box;
+  padding: 3px;
+  border: 1px solid black;
+  min-width: 300px;
+  width: 35%;
+  background-color: rgba(220, 220, 220, 0.85);
+  z-index: 5;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+
+.ItemSidebar H2{
+  text-align: center;
+}

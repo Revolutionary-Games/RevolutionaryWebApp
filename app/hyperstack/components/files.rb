@@ -36,9 +36,10 @@ class Files < HyperComponent
   include Hyperstack::Router::Helpers
 
   before_mount do
-    @parsed_path = '/'
+    @parsed_path = ''
     @current_folder = nil
     @show_item_sidebar = nil
+    @remove_from_end = ''
 
     @show_upload_overlay = false
     @upload_in_progress = nil
@@ -57,6 +58,13 @@ class Files < HyperComponent
 
   def raw_path
     match.params[:path]
+  end
+
+  def show_current_item
+    DIV(class: 'ItemSidebar') {
+      H2 { @show_item_sidebar.name.to_s }
+      SPAN { "Selected item: #{@show_item_sidebar}" }
+    }
   end
 
   render(DIV) do
@@ -88,9 +96,22 @@ class Files < HyperComponent
               item.id = i['id']
               item
             }
-            @parsed_path = re_created.join('/')
-            @current_folder = re_created.last
-            @show_item_sidebar = current_item
+
+            folders = re_created.select(&:folder?)
+
+            @parsed_path = folders.map(&:name).join('/')
+            @current_folder = folders.last
+
+            if current_item && !current_item.empty?
+              # TODO: use that better way here as well
+              @show_item_sidebar = StorageItem.new current_item
+              @show_item_sidebar.id = current_item['id']
+
+              # This is chomped from paths to make navigation work while an item is open
+              @remove_from_end = "/#{@show_item_sidebar.name}"
+            else
+              @remove_from_end = ''
+            end
           end
         }
       }.fail { |error|
@@ -112,7 +133,7 @@ class Files < HyperComponent
       return
     end
 
-    P { "Selected item: #{@show_item_sidebar}" } if @show_item_sidebar
+    show_current_item if @show_item_sidebar
 
     DIV(class: 'BlockContainer') {
       if @show_upload_overlay || @upload_in_progress
@@ -196,7 +217,8 @@ class Files < HyperComponent
           }
         },
         item_create: lambda { |item, base|
-          FileItem(file: item, base_path: base, path_so_far: raw_path, key: item.name)
+          FileItem(file: item, base_path: base.chomp(@remove_from_end),
+                   path_so_far: @parsed_path, key: item.name)
         },
         column_count_for_empty: 4,
         column_empty_indicator: 1,
@@ -291,9 +313,7 @@ class Files < HyperComponent
         @upload_in_progress = false if @total_uploaded >= @total_files_to_upload
 
         # Close uploader if all succeeded
-        if @upload_errors.empty? && !@upload_in_progress
-          @show_upload_overlay = false
-        end
+        @show_upload_overlay = false if @upload_errors.empty? && !@upload_in_progress
       }
     }.fail { |error|
       mutate @upload_errors += ["#{name} - #{error}"]
