@@ -23,7 +23,7 @@ class RequestStartUpload < Hyperstack::ServerOp
                                                              else
                                                                ITEM_ACCESS_OWNER
                                                              end, @folder&.owner
-        abort! "You don't have permission to create files in this folder"
+        raise "You don't have permission to create files in this folder"
       end
 
       @item = StorageItem.create!(
@@ -41,11 +41,11 @@ class RequestStartUpload < Hyperstack::ServerOp
     end
 
     unless FilePermissions.has_access? params.acting_user, @item.write_access, @item.owner
-      abort! "You don't have permission to write to the specified file"
+      raise "You don't have permission to write to the specified file"
     end
 
-    abort! "Can't write over a folder" if @item.folder?
-    abort! "Can't write over a special item" if @item.special
+    raise "Can't write over a folder" if @item.folder?
+    raise "Can't write over a special item" if @item.special
   }
   step {
     version = @item.next_version

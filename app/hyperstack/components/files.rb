@@ -43,6 +43,8 @@ class Files < HyperComponent
     @show_item_sidebar = nil
     @remove_from_end = ''
 
+    @can_upload = false
+
     @show_upload_overlay = false
     @upload_in_progress = nil
     @total_files_to_upload = 0
@@ -116,6 +118,79 @@ class Files < HyperComponent
     }
   end
 
+  def upload_overlay
+    DIV(class: 'BlockOverlay') {
+      unless @can_upload
+        RS.Alert(color: 'danger') { "You don't have write access to this folder" }
+      end
+
+      @upload_errors.each { |error|
+        P { "Upload error: #{error}" }
+      }
+
+      if @upload_in_progress
+        DIV {
+          SPAN { 'Uploading ' }
+          RS.Spinner(color: 'primary')
+        }
+
+        BR {}
+      end
+
+      P {
+        'Drop files here to upload'
+      }
+
+      BR(style: { marginTop: '25px' })
+
+      RS.Form() {
+        RS.Label {
+          'Or select files to upload:'
+        }
+        BR {}
+        INPUT(type: :file, name: 'files', multiple: true).on(:change) { |event|
+          if event.target.files.empty?
+            mutate @upload_selected_files = nil
+          else
+            mutate @upload_selected_files = `[...event.native.target.files]`
+          end
+        }
+
+        BR {}
+        BR {}
+
+        RS.Button(type: 'submit', color: 'primary',
+                  disabled: !@upload_selected_files || !@can_upload) {
+          'Upload Files'
+        }.on(:click) { |event|
+          event.prevent_default
+          begin_file_upload @upload_selected_files
+        }
+        RS.Button(class: 'LeftMargin') {
+          'Cancel'
+        }.on(:click) { |event|
+          event.prevent_default
+          mutate @show_upload_overlay = false
+        }
+      }
+    }.on(:DragLeave) { |event|
+      event.prevent_default
+      event.stop_propagation
+      mutate { @show_upload_overlay = false } if @show_upload_overlay
+    }.on(:DragOver) { |event|
+      event.prevent_default
+      event.stop_propagation
+      mutate { @show_upload_overlay = true } unless @show_upload_overlay
+    }.on(:Drop) { |event|
+      event.prevent_default
+      event.stop_propagation
+      break unless @can_upload
+
+      files = `[...event.native.dataTransfer.files]`
+      begin_file_upload files
+    }
+  end
+
   render(DIV) do
     H2 { 'Files' }
     P {
@@ -124,56 +199,7 @@ class Files < HyperComponent
     }
 
     if @last_parsed_path != raw_path && @recalculating_path != raw_path
-      current_path = raw_path
-      # Need to parse the path
-      mutate {
-        @recalculating_path = current_path
-        @parsing_path = true
-        @path_parse_failure = nil
-      }
-      ProcessStoragePath.run(path: current_path).then { |path, current_item, error|
-        if !error.blank?
-          mutate {
-            @recalculating_path = nil
-            @last_parsed_path = current_path
-            @path_parse_failure = error.to_s
-            @parsing_path = false
-          }
-        else
-          fetched = path.map { |i|
-            item = StorageItem.find i
-          }
-
-            Promise.when(*fetched.map { |i| i.load(:name, :read_access, :write_access, :ftype) }).then {
-              fetched_folders = fetched.select(&:folder?)
-              folder = fetched_folders.last
-
-              mutate {
-                if !current_item.nil?
-                  @show_item_sidebar = StorageItem.find current_item
-
-                  # This is chomped from paths to make navigation work while an item is open
-                  @remove_from_end = "/#{@show_item_sidebar.name}"
-                else
-                  @remove_from_end = ''
-                end
-
-                @recalculating_path = nil
-                @last_parsed_path = current_path
-                @current_folder = folder
-                @parsing_path = false
-                @parsed_path = fetched_folders.map(&:name).join('/')
-              }
-            }
-        end
-      }.fail { |error|
-        mutate {
-          @recalculating_path = nil
-          @last_parsed_path = current_path
-          @parsing_path = false
-          @path_parse_failure = "Request to parse path failed: #{error}"
-        }
-      }
+      start_parsing_path
       return
     end
 
@@ -189,71 +215,8 @@ class Files < HyperComponent
     show_current_item if @show_item_sidebar
 
     DIV(class: 'BlockContainer') {
-      if @show_upload_overlay || @upload_in_progress
-        DIV(class: 'BlockOverlay') {
-          @upload_errors.each { |error|
-            P { "Upload error: #{error}" }
-          }
+      upload_overlay if @show_upload_overlay || @upload_in_progress
 
-          if @upload_in_progress
-            DIV {
-              SPAN { 'Uploading ' }
-              RS.Spinner(color: 'primary')
-            }
-
-            BR {}
-          end
-
-          P {
-            'Drop files here to upload'
-          }
-
-          BR(style: { marginTop: '25px' })
-
-          RS.Form() {
-            RS.Label {
-              'Or select files to upload:'
-            }
-            BR {}
-            INPUT(type: :file, name: 'files', multiple: true).on(:change) { |event|
-              if event.target.files.empty?
-                mutate @upload_selected_files = nil
-              else
-                mutate @upload_selected_files = `[...event.native.target.files]`
-              end
-            }
-
-            BR {}
-            BR {}
-
-            RS.Button(type: 'submit', color: 'primary', disabled: !@upload_selected_files) {
-              'Upload Files'
-            }.on(:click) { |event|
-              event.prevent_default
-              begin_file_upload @upload_selected_files
-            }
-            RS.Button(class: 'LeftMargin') {
-              'Cancel'
-            }.on(:click) { |event|
-              event.prevent_default
-              mutate @show_upload_overlay = false
-            }
-          }
-        }.on(:DragLeave) { |event|
-          event.prevent_default
-          event.stop_propagation
-          mutate { @show_upload_overlay = false } if @show_upload_overlay
-        }.on(:DragOver) { |event|
-          event.prevent_default
-          event.stop_propagation
-          mutate { @show_upload_overlay = true } unless @show_upload_overlay
-        }.on(:Drop) { |event|
-          event.prevent_default
-          event.stop_propagation
-          files = `[...event.native.dataTransfer.files]`
-          begin_file_upload files
-        }
-      end
       FileBrowser(
         read_path: -> { raw_path },
         location_pathname: -> { location.pathname },
@@ -286,18 +249,20 @@ class Files < HyperComponent
       mutate { @show_upload_overlay = true } unless @show_upload_overlay
     }
 
-    can_upload = FilePermissions.has_access?(
+    new_access = FilePermissions.has_access?(
       App.acting_user,
       !@current_folder.nil? ? @current_folder.write_access : ITEM_ACCESS_OWNER,
-      @current_folder&.owner ? @current_folder&.owner.id : nil
+      @current_folder&.owner ? @current_folder&.owner&.id : nil
     )
 
-    if can_upload || App.acting_user
-      RS.Button(color: 'primary', disabled: !can_upload) { 'Upload' }.on(:click) {
+    mutate @can_upload = new_access if @can_upload != new_access
+
+    if @can_upload || App.acting_user
+      RS.Button(color: 'primary', disabled: !@can_upload) { 'Upload' }.on(:click) {
         mutate @show_upload_overlay = true
       }
 
-      RS.Button(color: 'success', disabled: !can_upload, class: 'LeftMargin') {
+      RS.Button(color: 'success', disabled: !@can_upload, class: 'LeftMargin') {
         'New Folder'
       } .on(:click) {
       }
@@ -305,6 +270,64 @@ class Files < HyperComponent
   end
 
   private
+
+  # Parses the current path
+  def start_parsing_path
+    current_path = raw_path
+    mutate {
+      @recalculating_path = current_path
+      @parsing_path = true
+      @path_parse_failure = nil
+      @can_upload = false
+    }
+    ProcessStoragePath.run(path: current_path).then { |path, current_item, error|
+      if !error.blank?
+        mutate {
+          @recalculating_path = nil
+          @last_parsed_path = current_path
+          @path_parse_failure = error.to_s
+          @parsing_path = false
+        }
+      else
+        fetched = path.map { |i|
+          StorageItem.find i
+        }
+
+        Promise.when(*fetched.map { |i|
+                       i.load(
+                         :name, :read_access, :write_access, :ftype
+                       )
+                     }).then {
+          fetched_folders = fetched.select(&:folder?)
+          folder = fetched_folders.last
+
+          mutate {
+            if !current_item.nil?
+              @show_item_sidebar = StorageItem.find current_item
+
+              # This is chomped from paths to make navigation work while an item is open
+              @remove_from_end = "/#{@show_item_sidebar.name}"
+            else
+              @remove_from_end = ''
+            end
+
+            @recalculating_path = nil
+            @last_parsed_path = current_path
+            @current_folder = folder
+            @parsing_path = false
+            @parsed_path = fetched_folders.map(&:name).join('/')
+          }
+        }
+      end
+    }.fail { |error|
+      mutate {
+        @recalculating_path = nil
+        @last_parsed_path = current_path
+        @parsing_path = false
+        @path_parse_failure = "Request to parse path failed: #{error}"
+      }
+    }
+  end
 
   def begin_file_upload(files)
     mutate {
@@ -370,7 +393,7 @@ class Files < HyperComponent
         @show_upload_overlay = false if @upload_errors.empty? && !@upload_in_progress
       }
     }.fail { |error|
-      mutate @upload_errors += ["#{name} - #{error}"]
+      mutate @upload_errors += ["#{name} - #{error.message}"]
     }
   end
   # rubocop:enable Lint/UnusedMethodArgument
