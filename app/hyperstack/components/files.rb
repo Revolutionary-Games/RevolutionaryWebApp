@@ -50,6 +50,7 @@ class Files < HyperComponent
     @total_files_to_upload = 0
     @total_uploaded = 0
     @upload_errors = []
+    @item_copy_link_text = nil
 
     @upload_selected_files = nil
   end
@@ -64,6 +65,10 @@ class Files < HyperComponent
     match.params[:path]
   end
 
+  def item_preview
+    DIV { 'No preview available for this file type' }
+  end
+
   def show_current_item
     DIV(class: 'ItemSidebar', key: 'sidebar') {
       RS.Button(class: 'close', style: { fontSize: '2.3rem' }) {
@@ -73,6 +78,31 @@ class Files < HyperComponent
       }
 
       H2 { @show_item_sidebar.name.to_s }
+
+      item_preview
+
+      download_abs = "#{Window.location.scheme}//#{Window.location.host}" \
+                     "/api/v1/download/#{@show_item_sidebar.id}"
+
+      A(href: download_abs, target: '_blank') { 'Download' }
+
+      P { @item_copy_link_text.to_s } if @item_copy_link_text
+      BR {}
+      INPUT(style: { display: 'none' }, type: :text, value: download_abs, ref: set(:link_for_dl))
+      RS.Button(size: 'sm') {
+        'Get Download Link'
+      }.on(:click) { |event|
+        event.prevent_default
+        link = @link_for_dl
+        `console.log(link)`
+        link.select
+        `link.select()`
+        `document.execCommand("copy")`
+        @item_copy_link_text = 'Copied to clipboard'
+      }
+      RS.Button(size: 'sm', class: 'LeftMargin') {
+        'Get Item Link'
+      }.on(:click, &:prevent_default)
 
       H3 { 'Information' }
 
@@ -104,7 +134,10 @@ class Files < HyperComponent
         TBODY {
           @show_item_sidebar.storage_item_versions.each { |version|
             TR(key: version.version.to_s) {
-              TD { version.version.to_s }
+              TD {
+                A(href: "/api/v1/download/#{@show_item_sidebar.id}?version=#{version.version}",
+                  target: '_blank') { version.version.to_s }
+              }
               TD { "#{version.size_mib} MiB" }
               TD { version.keep.to_s }
               TD { version.protected.to_s }

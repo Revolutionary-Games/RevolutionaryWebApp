@@ -111,16 +111,16 @@ class StorageItem < ApplicationRecord
     false
   end
 
+  def highest_version
+    storage_item_versions.first
+  end
+
   def next_version
-    highest_version = 0
+    current_highest = highest_version
 
-    storage_item_versions.each { |item|
-      highest_version = item.version if item.version > highest_version
-    }
+    version = current_highest ? current_highest.version + 1 : 1;
 
-    highest_version += 1
-
-    storage_item_versions.create! version: highest_version, keep: important, uploading: true,
+    storage_item_versions.create! version: version, keep: important, uploading: true,
                                   storage_item: self
   end
 
