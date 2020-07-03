@@ -11,6 +11,7 @@ class UnSuspendUser < Hyperstack::ServerOp
   validate { params.acting_user != @user }
   step {
     @user.suspended = false
+
     @user.suspended_manually = false
     @user.save!
   }
