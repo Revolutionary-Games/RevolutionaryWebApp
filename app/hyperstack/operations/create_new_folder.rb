@@ -13,6 +13,10 @@ class CreateNewFolder < Hyperstack::ServerOp
   add_error(:name, :is_invalid, 'name is too long') {
     params.name.size > 100
   }
+  add_error(:name, :has_trailing_or_preceeding_whitespace,
+            'name has preceding or trailing whitespace') {
+    params.name != params.name.strip
+  }
   step {
     # Could maybe in the future allow anonymous folder creation
     raise 'You must be logged in to create folders' unless params.acting_user
