@@ -108,7 +108,7 @@ module API
             patron = Patron.find_by email: email
 
             if patron
-              CheckSsoUserSuspensionJob.perform_later patron.email
+              CheckSsoUserSuspensionJob.set(wait: 10.seconds).perform_later patron.email
               patron.destroy
             else
               logger.warn 'Could not find patron to delete'
