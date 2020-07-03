@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Deletes a folder
-class CreateNewFolder < Hyperstack::ServerOp
+class DeleteFolder < Hyperstack::ServerOp
   param :acting_user
   param :folder_id, type: Integer
   add_error(:folder_id, :does_not_exist, 'folder does not exist') {

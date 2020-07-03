@@ -317,7 +317,7 @@ class Files < HyperComponent
     end
 
     if @folder_delete_started
-      P { "Deleting a folder can't be undone. Only an empty folder can be deleted" }
+      P { "Deleting a folder can't be undone. Only an empty folder can be deleted." }
       SPAN { "Type in the folder name (#{@current_folder.name}), to delete: " }
       RS.Input(type: :text, value: @folder_delete_text,
                placeholder: 'Folder name').on(:change) { |e|
@@ -333,6 +333,18 @@ class Files < HyperComponent
           @folder_delete_started = false
           @folder_operation_in_progress = true
           @folder_operation_result = ''
+        }
+
+        DeleteFolder.run(folder_id: @current_folder.id).then {
+          mutate {
+            @folder_operation_in_progress = false
+            @folder_operation_result = 'Folder deleted. Please move to the parent folder.'
+          }
+        }.fail { |error|
+          mutate {
+            @folder_operation_in_progress = false
+            @folder_operation_result = "Error: #{error}"
+          }
         }
       }
     end
