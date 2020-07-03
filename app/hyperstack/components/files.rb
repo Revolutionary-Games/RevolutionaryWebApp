@@ -284,6 +284,7 @@ class Files < HyperComponent
       } .on(:click) {
         mutate {
           @show_new_folder_create = !@show_new_folder_create
+          @new_folder_name = ''
           @new_folder_read_access = @current_folder ?
                                       @current_folder.read_access_pretty : 'developers'
           @new_folder_write_access = @current_folder ?
@@ -382,7 +383,18 @@ class Files < HyperComponent
 
           CreateNewFolder.run(parent_folder_id: @current_folder&.id, name: @new_folder_name,
                               read_access: @new_folder_read_access,
-                              write_access: @new_folder_write_access)
+                              write_access: @new_folder_write_access).then{
+            mutate {
+              @show_new_folder_create = false
+              @folder_operation_in_progress = false
+              @folder_operation_result = ''
+            }
+          }.fail{|error|
+            mutate {
+              @folder_operation_in_progress = false
+              @folder_operation_result = "Error: #{error}"
+            }
+          }
         }
         RS.Button(color: 'secondary', class: 'LeftMargin') {
           'Cancel'
