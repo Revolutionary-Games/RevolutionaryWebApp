@@ -74,8 +74,22 @@ class Files < HyperComponent
     match.params[:path]
   end
 
-  def item_preview
-    DIV { 'No preview available for this file type' }
+  def item_preview(item, url)
+    ext = File.extname item.name
+
+    DIV(class: 'PreviewBox') {
+      case ext
+      when '.png', '.jpg', '.jpeg'
+        IMG(src: url, class: "PreviewImage")
+        # TODO: this probably needs to download the data for showing
+        # when '.json', '.md', '.txt'
+        # IFRAME(src: url)
+      when '.html'
+        IFRAME(src: url)
+      else
+        SPAN { "No preview available for this file type (#{ext})" }
+      end
+    }
   end
 
   def item_information(item)
@@ -105,10 +119,10 @@ class Files < HyperComponent
 
       H2 { @show_item_sidebar.name.to_s }
 
-      item_preview
-
       download_abs = "#{Window.location.scheme}//#{Window.location.host}" \
                      "/api/v1/download/#{@show_item_sidebar.id}"
+
+      item_preview @show_item_sidebar, download_abs
 
       A(href: download_abs, target: '_blank') { 'Download' }
 
