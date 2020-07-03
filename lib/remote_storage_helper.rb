@@ -66,11 +66,14 @@ module RemoteStorageHelper
 
   def self.create_download_url(remote_path)
     path = '/' + remote_path
+    unescaped_path = path
+    path = CGI.escape(path).gsub('%2F', '/').gsub('+', ' ')
+
     expires_at = Time.now.to_i + DOWNLOAD_EXPIRE_TIME
 
-    URI.join(ENV['GENERAL_STORAGE_DOWNLOAD'], CGI.escape(path).gsub('%2F', '/')).to_s +
+    (ENV['GENERAL_STORAGE_DOWNLOAD'].chomp('/') + path) +
       RemoteStorageHelper.sign_bunny_cdn_download_url(
-        path, expires_at, ENV['GENERAL_STORAGE_DOWNLOAD_KEY']
+        unescaped_path, expires_at, ENV['GENERAL_STORAGE_DOWNLOAD_KEY']
       )
   end
 
