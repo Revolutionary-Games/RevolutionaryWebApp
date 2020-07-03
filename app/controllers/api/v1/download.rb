@@ -39,12 +39,12 @@ module API
               version: permitted_params[:version]
             ).first
 
-            if use_version != item.highest_version && !user
+            if use_version != item.latest_uploaded && !user
               error!({ error_code: 401, error_message:
                 'You must login to access non latest version of this object' }, 401)
             end
           else
-            use_version = item.highest_version
+            use_version = item.latest_uploaded
           end
 
           unless use_version

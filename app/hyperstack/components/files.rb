@@ -80,7 +80,9 @@ class Files < HyperComponent
     DIV(class: 'PreviewBox') {
       case ext
       when '.png', '.jpg', '.jpeg'
-        IMG(src: url, class: "PreviewImage")
+        IMG(src: url, class: 'PreviewImage')
+      when '.mkv', '.webm', '.mp4'
+        VIDEO(src: url, class: 'PreviewVideo', controls: true)
         # TODO: this probably needs to download the data for showing
         # when '.json', '.md', '.txt'
         # IFRAME(src: url)
@@ -111,10 +113,11 @@ class Files < HyperComponent
 
   def show_current_item
     DIV(class: 'ItemSidebar', key: 'sidebar') {
-      RS.Button(class: 'close', style: { fontSize: '2.3rem' }) {
+      can_close = !@upload_in_progress && !@show_upload_overlay
+      RS.Button(class: 'close', style: { fontSize: '2.3rem' }, disabled: !can_close) {
         SPAN(dangerously_set_inner_HTML: { __html: '&times;' })
       }.on(:click) {
-        @file_browser.change_folder @parsed_path
+        @file_browser.change_folder @parsed_path if can_close
       }
 
       H2 { @show_item_sidebar.name.to_s }
@@ -285,10 +288,16 @@ class Files < HyperComponent
         mutate {
           @show_new_folder_create = !@show_new_folder_create
           @new_folder_name = ''
-          @new_folder_read_access = @current_folder ?
-                                      @current_folder.read_access_pretty : 'developers'
-          @new_folder_write_access = @current_folder ?
-                                      @current_folder.write_access_pretty : 'developers'
+          @new_folder_read_access = if @current_folder
+                                      @current_folder.read_access_pretty
+                                    else
+                                      'developers'
+                                    end
+          @new_folder_write_access = if @current_folder
+                                       @current_folder.write_access_pretty
+                                     else
+                                       'developers'
+                                     end
         }
       }
 
@@ -434,6 +443,7 @@ class Files < HyperComponent
 
     if @path_parse_failure
       RS.Alert(color: 'danger') { "Error parsing path: #{@path_parse_failure}" }
+      return
     end
 
     if @parsing_path

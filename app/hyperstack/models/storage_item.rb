@@ -111,6 +111,10 @@ class StorageItem < ApplicationRecord
     false
   end
 
+  def latest_uploaded
+    storage_item_versions.where(uploading: false).first
+  end
+
   def highest_version
     storage_item_versions.first
   end
