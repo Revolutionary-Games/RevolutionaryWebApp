@@ -80,11 +80,11 @@ class StorageItem < ApplicationRecord
   end
 
   def read_access_pretty
-    StorageItem.access_integer_to_string read_access
+    FilePermissions.access_to_string read_access
   end
 
   def write_access_pretty
-    StorageItem.access_integer_to_string write_access
+    FilePermissions.access_to_string write_access
   end
 
   def ftype_pretty
@@ -122,22 +122,5 @@ class StorageItem < ApplicationRecord
 
     storage_item_versions.create! version: version, keep: important, uploading: true,
                                   storage_item: self
-  end
-
-  def self.access_integer_to_string(access)
-    case access
-    when ITEM_ACCESS_PUBLIC
-      'public'
-    when ITEM_ACCESS_USER
-      'users'
-    when ITEM_ACCESS_DEVELOPER
-      'developers'
-    when ITEM_ACCESS_OWNER
-      'owner + admins'
-    when ITEM_ACCESS_NOBODY
-      'system'
-    else
-      "Unknown (#{access})"
-    end
   end
 end

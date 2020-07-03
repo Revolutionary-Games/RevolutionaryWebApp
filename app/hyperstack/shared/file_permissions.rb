@@ -25,4 +25,38 @@ module FilePermissions
       access_required <= ITEM_ACCESS_USER || user.id == owner_id
     end
   end
+
+  def self.access_to_string(access)
+    case access
+    when ITEM_ACCESS_PUBLIC
+      'public'
+    when ITEM_ACCESS_USER
+      'users'
+    when ITEM_ACCESS_DEVELOPER
+      'developers'
+    when ITEM_ACCESS_OWNER
+      'owner'
+    when ITEM_ACCESS_NOBODY
+      'system'
+    else
+      "Unknown (#{access})"
+    end
+  end
+
+  def self.parse_access(access)
+    case access
+    when 'public'
+      ITEM_ACCESS_PUBLIC
+    when 'users'
+      ITEM_ACCESS_USER
+    when 'developers'
+      ITEM_ACCESS_DEVELOPER
+    when 'owner', 'owner + admins', 'admins'
+      ITEM_ACCESS_OWNER
+    when 'nobody'
+      ITEM_ACCESS_NOBODY
+    else
+      raise "Unknown access specified: #{access}"
+    end
+  end
 end

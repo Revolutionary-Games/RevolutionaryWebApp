@@ -282,7 +282,13 @@ class Files < HyperComponent
       RS.Button(color: 'success', disabled: !@can_upload, class: 'LeftMargin') {
         'New Folder'
       } .on(:click) {
-        mutate @show_new_folder_create = !@show_new_folder_create
+        mutate {
+          @show_new_folder_create = !@show_new_folder_create
+          @new_folder_read_access = @current_folder ?
+                                      @current_folder.read_access_pretty : 'developers'
+          @new_folder_write_access = @current_folder ?
+                                      @current_folder.write_access_pretty : 'developers'
+        }
       }
 
       if @current_folder
@@ -373,6 +379,10 @@ class Files < HyperComponent
             @folder_operation_in_progress = true
             @folder_operation_result = ''
           }
+
+          CreateNewFolder.run(parent_folder_id: @current_folder&.id, name: @new_folder_name,
+                              read_access: @new_folder_read_access,
+                              write_access: @new_folder_write_access)
         }
         RS.Button(color: 'secondary', class: 'LeftMargin') {
           'Cancel'
