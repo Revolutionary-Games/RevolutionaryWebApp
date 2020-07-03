@@ -129,7 +129,7 @@ class Files < HyperComponent
       P { @item_copy_link_text.to_s } if @item_copy_link_text
       BR {}
       INPUT(style: { display: 'none' }, type: :text, value: download_abs, ref: set(:link_for_dl))
-      RS.Button(size: 'sm') {
+      RS.Button(size: 'sm', disabled: true) {
         'Get Download Link'
       }.on(:click) { |event|
         event.prevent_default
@@ -140,7 +140,7 @@ class Files < HyperComponent
         `document.execCommand("copy")`
         @item_copy_link_text = 'Copied to clipboard'
       }
-      RS.Button(size: 'sm', class: 'LeftMargin') {
+      RS.Button(size: 'sm', class: 'LeftMargin', disabled: true) {
         'Get Item Link'
       }.on(:click, &:prevent_default)
 
