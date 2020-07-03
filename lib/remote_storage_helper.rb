@@ -33,6 +33,7 @@ module RemoteStorageHelper
   def self.create_presigned_post(remote_path)
     bucket.object(remote_path).presigned_post(
       signature_expiration: Time.now + UPLOAD_EXPIRE_TIME + 1, key: remote_path,
+      content_type_starts_with: mime_type(remote_path).split('/').first,
       content_length_range: 1..MAX_ALLOWED_REMOTE_OBJECT_SIZE
     )
   end

@@ -577,6 +577,7 @@ class Files < HyperComponent
         formData.append('x-amz-algorithm', #{data['x-amz-algorithm']});
         formData.append('x-amz-date', #{data['x-amz-date']});
         formData.append('x-amz-signature', #{data['x-amz-signature']});
+        formData.append('Content-Type', file.type);
         formData.append('file', file);
         fetch(url, {
           method: 'POST',
