@@ -29,7 +29,8 @@ module PatreonGroupHelper
         puts 'A patron is now in declined state. Setting as suspended'
         patron.suspended = true
         patron.suspended_reason = "Payment failed on Patreon"
-        CheckSsoUserSuspensionJob.perform_later patron.email
+        # These wait as the user will get saved in a bit
+        CheckSsoUserSuspensionJob.set(wait: 30.seconds).perform_later patron.email
         changes = true
       end
       patron.marked = true
@@ -42,13 +43,13 @@ module PatreonGroupHelper
       patron.marked = true
       patron.suspended = false
       patron.save!
-      CheckSsoUserSuspensionJob.perform_later patron.email
+      CheckSsoUserSuspensionJob.set(wait: 30.seconds).perform_later patron.email
       changes = true
     else
       patron.marked = true
       if patron.suspended
         patron.suspended = false
-        CheckSsoUserSuspensionJob.perform_later patron.email
+        CheckSsoUserSuspensionJob.set(wait: 30.seconds).perform_later patron.email
         changes = true
       end
       patron.save!
