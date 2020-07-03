@@ -60,8 +60,22 @@ module RemoteStorageHelper
       token_data['item_id'] == item.id
   end
 
-  def self.object_size(remote_path)
-    bucket.object(remote_path).content_length
+  def self.object_size(remote_path, b = bucket)
+    b.object(remote_path).content_length
+  end
+
+  def self.content_type(remote_path, b = bucket)
+    b.object(remote_path).content_type
+  end
+
+  # This does not work. Seems like the v2 sdk would would have this working
+  def self.set_remote_content_type(remote_path, b = bucket)
+    object = b.object(remote_path)
+    object.copy_from(object, content_type: MIME::Types.type_for(
+      remote_path
+    ).first.content_type)
+  rescue StandardError => e
+    Rails.logger.error "Could not set content type of remote #{remote_path}': #{e}"
   end
 
   def self.create_download_url(remote_path)
@@ -116,5 +130,11 @@ module RemoteStorageHelper
     token = token.tr("\n", '').tr('+', '-').tr('/', '_').delete('=')
 
     "?token=#{token}&expires=#{expires_at}"
+  end
+
+  def self.mime_type(path)
+    MIME::Types.type_for(path).first.content_type
+  rescue StandardError
+    'binary/octet_stream'
   end
 end
