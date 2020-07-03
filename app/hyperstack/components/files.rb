@@ -45,6 +45,15 @@ class Files < HyperComponent
 
     @can_upload = false
 
+    @show_folder_info = false
+    @folder_delete_started = false
+    @folder_delete_text = ''
+
+    @show_new_folder_create = false
+    @new_folder_name = ''
+    @new_folder_read_access = 'developers'
+    @new_folder_write_access = 'developers'
+
     @show_upload_overlay = false
     @upload_in_progress = nil
     @total_files_to_upload = 0
@@ -67,6 +76,23 @@ class Files < HyperComponent
 
   def item_preview
     DIV { 'No preview available for this file type' }
+  end
+
+  def item_information(item)
+    H3 { 'Information' }
+
+    DIV { "Name: #{item.name}" }
+    DIV { "Type: #{item.ftype_pretty}" }
+    DIV { "ID: #{item.id}" }
+    DIV { "Can be parentless: #{item.allow_parentless}" }
+    DIV { "Size: #{item.size}" }
+    DIV { "Read: #{item.read_access_pretty}" }
+    DIV { "Write: #{item.write_access_pretty}" }
+    DIV { "Owner: #{item.owner&.name_or_id}" } if App.acting_user
+    DIV { "Parent folder: #{item.parent&.name}" }
+    DIV { "Special: #{item.special}" }
+    DIV { "Created: #{item.created_at}" }
+    DIV { "Updated: #{item.updated_at}" }
   end
 
   def show_current_item
@@ -104,19 +130,7 @@ class Files < HyperComponent
         'Get Item Link'
       }.on(:click, &:prevent_default)
 
-      H3 { 'Information' }
-
-      DIV { "Name: #{@show_item_sidebar.name}" }
-      DIV { "Type: #{@show_item_sidebar.ftype_pretty}" }
-      DIV { "ID: #{@show_item_sidebar.id}" }
-      DIV { "Can be parentless: #{@show_item_sidebar.allow_parentless}" }
-      DIV { "Size: #{@show_item_sidebar.size}" }
-      DIV { "Read: #{@show_item_sidebar.read_access_pretty}" }
-      DIV { "Write: #{@show_item_sidebar.write_access_pretty}" }
-      DIV { "Owner: #{@show_item_sidebar.owner&.name_or_id}" } if App.acting_user
-      DIV { "Parent folder: #{@show_item_sidebar.parent&.name}" }
-      DIV { "Created: #{@show_item_sidebar.created_at}" }
-      DIV { "Updated: #{@show_item_sidebar.updated_at}" }
+      item_information @show_item_sidebar
 
       H3 { 'Versions' }
       RS.Table(:striped, :responsive) {
@@ -224,6 +238,152 @@ class Files < HyperComponent
     }
   end
 
+  def folder_action_buttons
+    new_access = FilePermissions.has_access?(
+      App.acting_user,
+      !@current_folder.nil? ? @current_folder.write_access : ITEM_ACCESS_OWNER,
+      @current_folder&.owner ? @current_folder&.owner&.id : nil
+    )
+
+    mutate @can_upload = new_access if @can_upload != new_access
+
+    if @folder_operation_in_progress
+      RS.Spinner(color: 'primary')
+      BR {}
+    end
+
+    P { @folder_operation_result.to_s } if @folder_operation_result
+
+    if @can_upload || App.acting_user
+      RS.Button(color: 'primary', disabled: !@can_upload) { 'Upload' }.on(:click) {
+        mutate @show_upload_overlay = true
+      }
+
+      RS.Button(color: 'info', class: 'LeftMargin') {
+        (@show_folder_info ? 'Hide' : 'Show') + ' Folder Info'
+      } .on(:click) {
+        mutate @show_folder_info = !@show_folder_info
+      }
+
+      RS.Button(color: 'success', disabled: !@can_upload, class: 'LeftMargin') {
+        'New Folder'
+      } .on(:click) {
+        mutate @show_new_folder_create = !@show_new_folder_create
+      }
+
+      if @current_folder
+        can_delete = @can_upload && App.acting_user && !@current_folder.special &&
+                     @current_folder.folder_entries.count < 1
+
+        RS.Button(color: 'danger', disabled: !can_delete, class: 'LeftMargin') {
+          'Delete This Folder'
+        } .on(:click) {
+          mutate {
+            @folder_delete_started = !@folder_delete_started
+            @folder_delete_text = ''
+          }
+        }
+      end
+    end
+
+    if @folder_delete_started
+      P { "Deleting a folder can't be undone. Only an empty folder can be deleted" }
+      SPAN { "Type in the folder name (#{@current_folder.name}), to delete: " }
+      RS.Input(type: :text, value: @folder_delete_text,
+               placeholder: 'Folder name').on(:change) { |e|
+        mutate {
+          @folder_delete_text = e.target.value
+        }
+      }
+
+      RS.Button(color: 'danger', disabled: @folder_delete_text != @current_folder.name) {
+        'Delete'
+      } .on(:click) {
+        mutate {
+          @folder_delete_started = false
+          @folder_operation_in_progress = true
+          @folder_operation_result = ''
+        }
+      }
+    end
+
+    if @show_new_folder_create
+      RS.Form {
+        RS.FormGroup {
+          RS.Label { 'Name for new folder' }
+          RS.Input(type: :text, placeholder: 'Name', value: @new_folder_name).on(:change) { |e|
+            mutate {
+              @new_folder_name = e.target.value
+            }
+          }
+        }
+
+        RS.Row(form: true) {
+          RS.Col(md: 6, sm: 12) {
+            RS.FormGroup {
+              RS.Label { 'Read access' }
+              RS.Input(type: :select, placeholder: 'Name', value: @new_folder_read_access) {
+                OPTION { 'public' }
+                OPTION { 'users' }
+                OPTION { 'developers' }
+                OPTION { 'owner' }
+              }.on(:change) { |e|
+                mutate {
+                  @new_folder_read_access = e.target.value
+                }
+              }
+            }
+          }
+          RS.Col(md: 6, sm: 12) {
+            RS.FormGroup {
+              RS.Label { 'Write access' }
+              RS.Input(type: :select, placeholder: 'Name', value: @new_folder_write_access) {
+                OPTION { 'public' }
+                OPTION { 'users' }
+                OPTION { 'developers' }
+                OPTION { 'owner' }
+              }.on(:change) { |e|
+                mutate {
+                  @new_folder_write_access = e.target.value
+                }
+              }
+            }
+          }
+        }
+
+        RS.Button(type: 'submit', color: 'primary', disabled: @new_folder_name.blank?) {
+          'Create'
+        }.on(:click) { |event|
+          event.prevent_default
+          mutate {
+            @folder_operation_in_progress = true
+            @folder_operation_result = ''
+          }
+        }
+        RS.Button(color: 'secondary', class: 'LeftMargin') {
+          'Cancel'
+        }.on(:click) { |event|
+          event.prevent_default
+          mutate {
+            @show_new_folder_create = false
+            @new_folder_name = ''
+          }
+        }
+      }
+      # @new_folder_name = ''
+      # @ = 2
+      # @new_folder_write_access = 2
+    end
+
+    if @show_folder_info
+      if !@current_folder
+        P { 'Root folder' }
+      else
+        item_information @current_folder
+      end
+    end
+  end
+
   render(DIV) do
     H2 { 'Files' }
     P {
@@ -282,24 +442,7 @@ class Files < HyperComponent
       mutate { @show_upload_overlay = true } unless @show_upload_overlay
     }
 
-    new_access = FilePermissions.has_access?(
-      App.acting_user,
-      !@current_folder.nil? ? @current_folder.write_access : ITEM_ACCESS_OWNER,
-      @current_folder&.owner ? @current_folder&.owner&.id : nil
-    )
-
-    mutate @can_upload = new_access if @can_upload != new_access
-
-    if @can_upload || App.acting_user
-      RS.Button(color: 'primary', disabled: !@can_upload) { 'Upload' }.on(:click) {
-        mutate @show_upload_overlay = true
-      }
-
-      RS.Button(color: 'success', disabled: !@can_upload, class: 'LeftMargin') {
-        'New Folder'
-      } .on(:click) {
-      }
-    end
+    folder_action_buttons
   end
 
   private
