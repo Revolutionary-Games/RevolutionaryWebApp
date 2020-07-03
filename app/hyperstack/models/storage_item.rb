@@ -12,7 +12,7 @@ class StorageItem < ApplicationRecord
 
   validates :size, presence: false, numericality: { only_integer: true }, allow_nil: true
   validates :name, presence: true, length: { maximum: 255, minimum: 1 },
-                   uniqueness: { scope: :parent }
+                   uniqueness: { scope: :parent }, format: { with: %r{[^/]+}i }
   validates :ftype, presence: true, inclusion: { in: [0, 1] }
   validates :special, inclusion: { in: [true, false] }
   validates :allow_parentless, inclusion: { in: [true, false] }

@@ -35,7 +35,7 @@ class CreateNewFolder < Hyperstack::ServerOp
     created = StorageItem.create! name: params.name, parent: @parent || nil, ftype: 1,
                                   special: false, allow_parentless: @parent ? false : true,
                                   read_access: @read, write_access: @write,
-                                  owner: params.acting_user
+                                  owner: params.acting_user, size: 0
 
     Rails.logger.info "Folder '#{created.name}' (parent: #{@parent&.name}) " \
                        "created by #{params.acting_user.email}"
