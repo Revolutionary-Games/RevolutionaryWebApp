@@ -590,6 +590,7 @@ class Files < HyperComponent
         response_status = `response.status`
 
         if `response.ok` != true
+          `console.log('failed response:', response)`
           raise "Invalid response from storage PUT request, status: #{response_status}"
         end
 
@@ -605,6 +606,7 @@ class Files < HyperComponent
         @show_upload_overlay = false if @upload_errors.empty? && !@upload_in_progress
       }
     }.fail { |error|
+      puts "Upload error: #{error}"
       mutate @upload_errors += ["#{name} - #{error.message}"]
     }
   end
