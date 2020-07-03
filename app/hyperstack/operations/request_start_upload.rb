@@ -6,8 +6,12 @@ class RequestStartUpload < Hyperstack::ServerOp
   param :folder_id, type: Integer, nils: true
   param :size, type: Integer
   param :file_name, type: String
+  param :mime_type, type: String
   add_error(:file_name, :is_blank, 'file name is blank') {
     params.file_name.blank?
+  }
+  add_error(:mime_type, :is_blank, 'mime_type is blank') {
+    params.mime_type.blank?
   }
   add_error(:size, :is_invalid, 'file size is invalid') {
     # Max size is 100 GiB
@@ -60,7 +64,15 @@ class RequestStartUpload < Hyperstack::ServerOp
     version.storage_file = file
     version.save!
 
-    presigned_post = RemoteStorageHelper.create_presigned_post file.storage_path
+    server_mime = RemoteStorageHelper.mime_type @item.name
+
+    if params.mime_type != server_mime
+      Rails.logger.info "Client disagrees on mime type, (client) #{params.mime_type} != "\
+                        "#{server_mime} (server)"
+    end
+
+    presigned_post = RemoteStorageHelper.create_presigned_post file.storage_path,
+                                                               params.mime_type
     token = RemoteStorageHelper.create_put_token file.storage_path, file.size, file.id
 
     [presigned_post.url, presigned_post.fields, token]

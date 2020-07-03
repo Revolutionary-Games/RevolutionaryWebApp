@@ -383,13 +383,13 @@ class Files < HyperComponent
 
           CreateNewFolder.run(parent_folder_id: @current_folder&.id, name: @new_folder_name,
                               read_access: @new_folder_read_access,
-                              write_access: @new_folder_write_access).then{
+                              write_access: @new_folder_write_access).then {
             mutate {
               @show_new_folder_create = false
               @folder_operation_in_progress = false
               @folder_operation_result = ''
             }
-          }.fail{|error|
+          }.fail { |error|
             mutate {
               @folder_operation_in_progress = false
               @folder_operation_result = "Error: #{error}"
@@ -564,7 +564,8 @@ class Files < HyperComponent
     RequestStartUpload.run(
       folder_id: @current_folder&.id,
       size: `file.size`,
-      file_name: name
+      file_name: name,
+      mime_type: `file.type`
     ).then { |url, data, key|
       puts "Starting file send to: #{url}"
 
