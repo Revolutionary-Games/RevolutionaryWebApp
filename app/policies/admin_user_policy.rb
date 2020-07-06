@@ -14,6 +14,6 @@ class AdminUserPolicy
   regulate_all_broadcasts { |policy|
     policy.send_all_but(:password, :password_confirmation, :password_digest, :api_token,
                         :lfs_token, :patreon_token, :patreon_refresh_token,
-                        :link_code, :launcher_link_code).to(AdminUser)
+                        :link_code, :launcher_link_code, :key_code).to(AdminUser)
   }
 end

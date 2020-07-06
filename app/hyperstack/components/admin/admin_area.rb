@@ -34,6 +34,9 @@ class AdminArea < HyperComponent
           ReactStrap.NavItem {
             NavLink('/admin/patreon', class: 'nav-link') { 'Patreon' }
           }
+          ReactStrap.NavItem {
+            NavLink('/admin/keys', class: 'nav-link') { 'Access Keys' }
+          }
         }
       }
 
@@ -45,6 +48,7 @@ class AdminArea < HyperComponent
           Route('/admin', exact: true, mounts: SiteStatus)
           Route('/admin/email', mounts: EmailOptions)
           Route('/admin/patreon', mounts: AdminPatreon)
+          Route('/admin/keys', mounts: AccessKeys)
         end
       }
     }

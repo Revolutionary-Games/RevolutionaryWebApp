@@ -10,10 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_06_30_141411) do
+ActiveRecord::Schema.define(version: 2020_07_06_124516) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "access_keys", force: :cascade do |t|
+    t.string "description"
+    t.datetime "last_used"
+    t.string "key_code"
+    t.integer "key_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key_code"], name: "index_access_keys_on_key_code", unique: true
+  end
 
   create_table "debug_symbols", force: :cascade do |t|
     t.string "symbol_hash"
