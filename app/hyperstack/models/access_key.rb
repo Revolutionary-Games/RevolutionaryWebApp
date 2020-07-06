@@ -16,8 +16,17 @@ class AccessKey < ApplicationRecord
 
   before_validation :create_code_if_missing
 
+  def key_type_pretty
+    case key_type
+    when KEY_TYPE_DEVBUILDS
+      'devbuilds'
+    else
+      "unknown (#{key_type}"
+    end
+  end
+
   def update_last_used
-    last_used = Time.now
+    self.last_used = Time.now
     save
   end
 
