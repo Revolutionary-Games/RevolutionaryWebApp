@@ -13,13 +13,13 @@ class AccessKeyItem < HyperComponent
     return if @AccessKey.nil?
 
     TD { @AccessKey.id.to_s }
-    TD {      @AccessKey.description.to_s    }
-    TD {      @AccessKey.last_used ? @AccessKey.last_used.to_s : 'never'    }
-    TD {      @AccessKey.key_type_pretty    }
+    TD { @AccessKey.description.to_s }
+    TD { @AccessKey.last_used ? @AccessKey.last_used.to_s : 'never' }
+    TD { @AccessKey.key_type_pretty }
     TD {
-      P{ @delete_error.to_s } if @delete_error
+      P { @delete_error.to_s } if @delete_error
       RS.Button(color: 'danger', disabled: @delete_pressed) {
-        SPAN{'Delete'}
+        SPAN { 'Delete' }
         RS.Spinner(size: 'sm') if @delete_in_progress
       } .on(:click) {
         mutate {
