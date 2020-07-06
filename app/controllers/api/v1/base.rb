@@ -13,6 +13,7 @@ module API
       mount API::V1::LFSFile
       mount API::V1::Launcher
       mount API::V1::Download
+      mount API::V1::DevBuild
 
       add_swagger_documentation(
         api_version: 'v1',
