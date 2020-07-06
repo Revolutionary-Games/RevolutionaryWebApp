@@ -110,8 +110,9 @@ class AdminPatreonSettings < HyperComponent
             @find_campaign_id_status = nil
           }
 
-          FindPatreonCampaignId.run(patreon_settings_id: @settings.id)
-                               .then { |campaign_id|
+          AdminOps::FindPatreonCampaignId.run(
+            patreon_settings_id: @settings.id
+          ).then { |campaign_id|
             mutate {
               @find_campaign_id_status = nil
               @show_fetching_spinner = false
@@ -201,14 +202,15 @@ class AdminPatreonSettings < HyperComponent
           @operation_status = 'Creating patreon settings'
         }
 
-        CreatePatreonSettings.run(active: @settings.active,
-                                  creator_token: @settings.creator_token,
-                                  creator_refresh_token: @settings.creator_refresh_token,
-                                  campaign_id: @settings.campaign_id,
-                                  webhook_secret: @settings.webhook_secret,
-                                  devbuilds_pledge_cents: @settings.devbuilds_pledge_cents,
-                                  vip_pledge_cents: @settings.vip_pledge_cents)
-                             .then {
+        AdminOps::CreatePatreonSettings.run(
+          active: @settings.active,
+          creator_token: @settings.creator_token,
+          creator_refresh_token: @settings.creator_refresh_token,
+          campaign_id: @settings.campaign_id,
+          webhook_secret: @settings.webhook_secret,
+          devbuilds_pledge_cents: @settings.devbuilds_pledge_cents,
+          vip_pledge_cents: @settings.vip_pledge_cents
+        ).then {
           mutate {
             @show_spinner = false
             @operation_status = 'Settings created'
@@ -260,8 +262,7 @@ class AdminPatreonSettings < HyperComponent
           @operation_status = 'DELETING Patreon settings'
         }
 
-        DeletePatreonSettings.run(patreon_settings_id: @settings.id)
-                             .then {
+        AdminOps::DeletePatreonSettings.run(patreon_settings_id: @settings.id).then {
           mutate {
             @show_spinner = false
             @operation_status = 'Settings deleted'

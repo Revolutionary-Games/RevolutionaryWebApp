@@ -28,7 +28,7 @@ class AccessKeyItem < HyperComponent
           @delete_error = nil
         }
 
-        DeleteAccessKey.run(key_id: @AccessKey.id).then{
+        AdminOps::DeleteAccessKey.run(key_id: @AccessKey.id).then {
           mutate {
             @delete_in_progress = false
           }
@@ -120,8 +120,8 @@ class AccessKeys < HyperComponent
             @create_status = nil
           }
 
-          CreateAccessKey.run(description: @new_key_description,
-                              key_type: @new_key_type).then { |key|
+          AdminOps::CreateAccessKey.run(description: @new_key_description,
+                                        key_type: @new_key_type).then { |key|
             mutate {
               @creating_new_key = false
               @create_in_progress = false

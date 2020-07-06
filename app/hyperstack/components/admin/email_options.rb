@@ -49,8 +49,7 @@ class EmailOptions < HyperComponent
           @email_send_status = ''
         }
 
-        SendTestEmail.run(email: @target_email)
-                     .then {
+        AdminOps::SendTestEmail.run(email: @target_email).then {
           mutate {
             @email_send_status = 'Email sent'
             @show_sending_spinner = false

@@ -52,13 +52,13 @@ class UserProperties < HyperComponent
         P { "Your token is: #{@User.api_token}" } if @ShowToken
 
         RS.Button(color: 'secondary') { 'Regenerate Token' }.on(:click) {
-          GenerateAPITokenForUser.run
-                                 .then { mutate @ShowToken = true }
-                                 .fail { alert 'failed to run operation' }
+          UserOps::GenerateAPITokenForUser.run
+                                          .then { mutate @ShowToken = true }
+                                          .fail { alert 'failed to run operation' }
         }
 
         RS.Button(color: 'secondary') { 'Clear Token' }.on(:click) {
-          ResetAPITokenForUser.run(user_id: @User.id).then {
+          UserOps::ResetAPITokenForUser.run(user_id: @User.id).then {
             @User.has_api_token!
             mutate @ShowToken = false
           }.fail { alert 'failed to run operation' }
@@ -67,7 +67,7 @@ class UserProperties < HyperComponent
       elsif lookingAtSelf
 
         RS.Button(color: 'primary') { 'Generate API Token' }.on(:click) {
-          GenerateAPITokenForUser.run.then {
+          UserOps::GenerateAPITokenForUser.run.then {
             @User.has_api_token!
             mutate @ShowToken = true
           }.fail { alert 'failed to run operation' }
@@ -86,13 +86,13 @@ class UserProperties < HyperComponent
         P { "Your Git LFS token is: #{@User.lfs_token}" } if @ShowLFS
 
         RS.Button(color: 'secondary') { 'Regenerate Token' }.on(:click) {
-          GenerateLFSTokenForUser.run
-                                 .then { mutate @ShowLFS = true }
-                                 .fail { alert 'failed to run operation' }
+          UserOps::GenerateLFSTokenForUser.run
+                                          .then { mutate @ShowLFS = true }
+                                          .fail { alert 'failed to run operation' }
         }
 
         RS.Button(color: 'secondary') { 'Clear Token' }.on(:click) {
-          ResetLFSTokenForUser.run(user_id: @User.id).then {
+          UserOps::ResetLFSTokenForUser.run(user_id: @User.id).then {
             @User.has_lfs_token!
             mutate @ShowLFS = false
           }.fail { alert 'failed to run operation' }
@@ -101,7 +101,7 @@ class UserProperties < HyperComponent
       elsif lookingAtSelf
 
         RS.Button(color: 'primary') { 'Generate Git LFS Token' }.on(:click) {
-          GenerateLFSTokenForUser.run.then {
+          UserOps::GenerateLFSTokenForUser.run.then {
             @User.has_lfs_token!
             mutate @ShowLFS = true
           }.fail { alert 'failed to run operation' }
@@ -157,7 +157,7 @@ class UserProperties < HyperComponent
         @link_operation_result = ''
       }
 
-      CreateNewLauncherLinkCodeForUser.run(user_id: @User.id).then {
+      UserOps::CreateNewLauncherLinkCodeForUser.run(user_id: @User.id).then {
         mutate {
           @show_launcher_link = true
           @generate_link_in_progress = false
@@ -178,7 +178,7 @@ class UserProperties < HyperComponent
         @unlink_in_progress = true
         @link_operation_result = ''
       }
-      ClearAllLauncherLinksForUser.run(user_id: @User.id).then {
+      UserOps::ClearAllLauncherLinksForUser.run(user_id: @User.id).then {
         mutate {
           @unlink_in_progress = false
           @link_operation_result = 'Successfully deleted'
@@ -211,7 +211,7 @@ class UserProperties < HyperComponent
       end
     }.on(:click) {
       start_action
-      InvalidateUserSessions.run(user_id: @User.id).then {
+      UserOps::InvalidateUserSessions.run(user_id: @User.id).then {
         if lookingAtSelf
           # Redirect to login page
           Window.location.path = '/login'
@@ -227,8 +227,8 @@ class UserProperties < HyperComponent
       BR {}
       RS.Button(color: 'danger') { 'Force Clear Tokens' }.on(:click) {
         start_action
-        ResetLFSTokenForUser.run(user_id: @User.id).then {
-          ResetAPITokenForUser.run(user_id: @User.id)
+        UserOps::ResetLFSTokenForUser.run(user_id: @User.id).then {
+          UserOps::ResetAPITokenForUser.run(user_id: @User.id)
         }.then {
           @User.has_lfs_token!
           @User.has_api_token!
@@ -256,7 +256,7 @@ class UserProperties < HyperComponent
           # The start_action will call mutate
           @editing_suspend = false
           start_action
-          SuspendUser.run(user_id: @User.id, reason: @new_suspend_message).then {
+          UserOps::SuspendUser.run(user_id: @User.id, reason: @new_suspend_message).then {
             action_finished 'Success'
           }.fail { |error|
             action_finished "Failed to suspend user: #{error}"
@@ -266,7 +266,7 @@ class UserProperties < HyperComponent
         if @User.suspended
           RS.Button(color: 'warning') { 'Unsuspend' }.on(:click) {
             start_action
-            UnSuspendUser.run(user_id: @User.id).then {
+            UserOps::UnSuspendUser.run(user_id: @User.id).then {
               action_finished 'Success'
             }.fail { |error|
               action_finished "Failed to unsuspend user: #{error}"
@@ -286,7 +286,7 @@ class UserProperties < HyperComponent
 
       RS.Button(color: 'danger') { 'Unlink All Launchers' }.on(:click) {
         start_action
-        ClearAllLauncherLinksForUser.run(user_id: @User.id).then {
+        UserOps::ClearAllLauncherLinksForUser.run(user_id: @User.id).then {
           action_finished 'Success'
         }.fail { |error|
           action_finished "Failed to run operation: #{error}"

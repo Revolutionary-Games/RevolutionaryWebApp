@@ -35,7 +35,8 @@ class ReportView < HyperComponent
       return
     end
 
-    UpdateReportDuplicateStatus.run(report_id: @report.id, duplicate_of_id: target).then {
+    ReportOps::UpdateReportDuplicateStatus.run(report_id: @report.id,
+                                               duplicate_of_id: target).then {
       mutate {
         @show_make_duplicate_of = false
         @duplicate_of_id = ''
@@ -47,7 +48,8 @@ class ReportView < HyperComponent
   end
 
   def clear_duplicate_status
-    UpdateReportDuplicateStatus.run(report_id: @report.id, duplicate_of_id: nil).then {
+    ReportOps::UpdateReportDuplicateStatus.run(report_id: @report.id,
+                                               duplicate_of_id: nil).then {
       mutate {
         @show_make_duplicate_of = false
         @duplicate_of_id = ''
@@ -59,8 +61,8 @@ class ReportView < HyperComponent
   end
 
   def mark_solved(solved, text)
-    UpdateReportSolvedStatus.run(report_id: @report.id, solved: solved, solve_text: text)
-                            .then {
+    ReportOps::UpdateReportSolvedStatus.run(report_id: @report.id, solved: solved,
+                                            solve_text: text).then {
       mutate {
         @show_solve = false
         @solved_error = nil
@@ -71,7 +73,7 @@ class ReportView < HyperComponent
   end
 
   def finish_editing_notes
-    UpdateReportNotes.run(report_id: @report.id, notes: @edited_text).then {
+    ReportOps::UpdateReportNotes.run(report_id: @report.id, notes: @edited_text).then {
       mutate @editing_notes = false
     }.fail { |error|
       mutate @notes_error = "Error when updating report: #{error}"

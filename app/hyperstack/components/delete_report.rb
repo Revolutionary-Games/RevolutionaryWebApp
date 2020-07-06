@@ -2,7 +2,7 @@ class DeleteReport < HyperComponent
   include Hyperstack::Router::Helpers
 
   before_mount do
-    GetReportInfoByDeleteKey.run(key: match.params[:delete_key]).then{|result|
+    ReportOps::GetReportInfoByDeleteKey.run(key: match.params[:delete_key]).then{|result|
       mutate @report_info = result
     }.fail{|e|
       mutate @failure = e
@@ -32,7 +32,7 @@ class DeleteReport < HyperComponent
       P { "It will make it not possible for us Thrive developers to fix this crash!" }
 
       BUTTON(class: 'button'){ "Click here if you are sure you want to delete." }.on(:click){
-        DeleteReportByKey.run(key: match.params[:delete_key]).then{
+        ReportOps::DeleteReportByKey.run(key: match.params[:delete_key]).then{
           mutate @delete_result = "Report deleted"
         }.fail{|e|
           mutate @delete_result = "Failed to delete report"

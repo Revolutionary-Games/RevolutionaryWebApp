@@ -335,7 +335,7 @@ class Files < HyperComponent
           @folder_operation_result = ''
         }
 
-        DeleteFolder.run(folder_id: @current_folder.id).then {
+        FileOps::DeleteFolder.run(folder_id: @current_folder.id).then {
           mutate {
             @folder_operation_in_progress = false
             @folder_operation_result = 'Folder deleted. Please move to the parent folder.'
@@ -402,9 +402,10 @@ class Files < HyperComponent
             @folder_operation_result = ''
           }
 
-          CreateNewFolder.run(parent_folder_id: @current_folder&.id, name: @new_folder_name,
-                              read_access: @new_folder_read_access,
-                              write_access: @new_folder_write_access).then {
+          FileOps::CreateNewFolder.run(
+            parent_folder_id: @current_folder&.id, name: @new_folder_name,
+            read_access: @new_folder_read_access, write_access: @new_folder_write_access
+          ).then {
             mutate {
               @show_new_folder_create = false
               @folder_operation_in_progress = false
@@ -514,7 +515,7 @@ class Files < HyperComponent
       @path_parse_failure = nil
       @can_upload = false
     }
-    ProcessStoragePath.run(path: current_path).then { |path, current_item, error|
+    FileOps::ProcessStoragePath.run(path: current_path).then { |path, current_item, error|
       if !error.blank?
         mutate {
           @recalculating_path = nil
@@ -583,7 +584,7 @@ class Files < HyperComponent
   # rubocop:disable Lint/UnusedBlockArgument
   def upload_files(file)
     name = `file.name`
-    RequestStartUpload.run(
+    FileOps::RequestStartUpload.run(
       folder_id: @current_folder&.id,
       size: `file.size`,
       file_name: name,
@@ -618,7 +619,7 @@ class Files < HyperComponent
           raise "Invalid response from storage PUT request, status: #{response_status}"
         end
 
-        ReportFinishedUpload.run(upload_token: key)
+        FileOps::ReportFinishedUpload.run(upload_token: key)
       }
     }.then {
       # Succeeded

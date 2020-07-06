@@ -86,7 +86,7 @@ class LfsProjectView < HyperComponent
       @editing_status_text = ''
     }
 
-    UpdateLfsProjectUrls.run(
+    LfsOps::UpdateLfsProjectUrls.run(
       project_id: @project.id, repo_url: @editing_repo_url,
       clone_url: @editing_clone_url
     ).then {
@@ -234,7 +234,7 @@ class LfsProjectView < HyperComponent
           @refresh_pressed = true
         }
 
-        RefreshGitFiles.run(project_id: @project.id).then {
+        LfsOps::RefreshGitFiles.run(project_id: @project.id).then {
           mutate {
             @refresh_message = 'Refresh queued. Please refresh this page in a minute' \
                                " if updates don't become visible"
@@ -253,7 +253,7 @@ class LfsProjectView < HyperComponent
           @rebuild_pressed = true
         }
 
-        RebuildGitFiles.run(project_id: @project.id).then {
+        LfsOps::RebuildGitFiles.run(project_id: @project.id).then {
           mutate {
             @refresh_message = 'Rebuild queued. Please refresh in a minute'
           }
