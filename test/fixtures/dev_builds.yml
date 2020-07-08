@@ -1,0 +1,23 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  build_hash: MyString
+  platform: MyString
+  branch: MyString
+  storage_item: one
+  verified: false
+  anonymous: false
+  description: MyString
+  score: 1
+  downloads: 1
+
+two:
+  build_hash: MyString
+  platform: MyString
+  branch: MyString
+  storage_item: two
+  verified: false
+  anonymous: false
+  description: MyString
+  score: 1
+  downloads: 1

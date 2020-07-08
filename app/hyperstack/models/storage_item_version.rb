@@ -45,4 +45,14 @@ class StorageItemVersion < ApplicationRecord
   def destroy_storage_file
     storage_file&.destroy
   end
+
+  def create_storage_item(expires, size)
+    file = StorageFile.create! storage_path: compute_storage_path, size: size, uploading: true,
+                               upload_expires: expires + 1
+
+    self.storage_file = file
+    save!
+
+    file
+  end
 end

@@ -55,15 +55,9 @@ module FileOps
     step {
       version = @item.next_version
 
-      path = version.compute_storage_path
-
       expires = Time.now + RemoteStorageHelper.upload_expire_time
 
-      file = StorageFile.create! storage_path: path, size: params.size, uploading: true,
-                                 upload_expires: expires + 1
-
-      version.storage_file = file
-      version.save!
+      file = version.create_storage_item(expires, params.size)
 
       server_mime = RemoteStorageHelper.mime_type @item.name
 

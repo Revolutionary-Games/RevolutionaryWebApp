@@ -10,6 +10,9 @@ class StorageItem < ApplicationRecord
   has_many :storage_item_versions, -> { order('version DESC') }, primary_key: 'id',
            dependent: :destroy
 
+  has_many :dev_builds, dependent: :restrict_with_exception
+  has_many :dehydrated_objects, dependent: :restrict_with_exception
+
   validates :size, presence: false, numericality: { only_integer: true }, allow_nil: true
   validates :name, presence: true, length: { maximum: 255, minimum: 1 },
                    uniqueness: { scope: :parent }, format: { with: %r{[^/]+}i }
@@ -126,5 +129,17 @@ class StorageItem < ApplicationRecord
 
     storage_item_versions.create! version: version, keep: important, uploading: true,
                                   storage_item: self
+  end
+
+  def self.devbuilds_folder
+    StorageItem.find_by parent_id: nil, name: "DevBuilds"
+  end
+
+  def self.dehydrated_folder
+    StorageItem.find_by parent_id: self.devbuilds_folder.id, name: "Objects"
+  end
+
+  def self.devbuild_builds_folder
+    StorageItem.find_by parent_id: self.devbuilds_folder.id, name: "Dehydrated"
   end
 end

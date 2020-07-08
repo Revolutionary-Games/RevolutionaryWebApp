@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_07_06_124516) do
+ActiveRecord::Schema.define(version: 2020_07_07_084639) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -33,6 +33,42 @@ ActiveRecord::Schema.define(version: 2020_07_06_124516) do
     t.string "name"
     t.integer "size"
     t.index ["name", "symbol_hash"], name: "index_debug_symbols_on_name_and_symbol_hash", unique: true
+  end
+
+  create_table "dehydrated_objects", force: :cascade do |t|
+    t.string "sha3"
+    t.bigint "storage_item_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["sha3"], name: "index_dehydrated_objects_on_sha3", unique: true
+    t.index ["storage_item_id"], name: "index_dehydrated_objects_on_storage_item_id"
+  end
+
+  create_table "dehydrated_objects_dev_builds", id: false, force: :cascade do |t|
+    t.bigint "dehydrated_object_id", null: false
+    t.bigint "dev_build_id", null: false
+    t.index ["dehydrated_object_id", "dev_build_id"], name: "dehydrated_objects_dev_builds_index_compound", unique: true
+  end
+
+  create_table "dev_builds", force: :cascade do |t|
+    t.string "build_hash"
+    t.string "platform"
+    t.string "branch"
+    t.bigint "storage_item_id"
+    t.boolean "verified", default: false
+    t.boolean "anonymous"
+    t.string "description"
+    t.integer "score", default: 0
+    t.integer "downloads", default: 0
+    t.boolean "important", default: false
+    t.boolean "keep", default: false
+    t.string "pr_url"
+    t.boolean "pr_fetched", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["anonymous"], name: "index_dev_builds_on_anonymous"
+    t.index ["build_hash", "platform"], name: "index_dev_builds_on_build_hash_and_platform", unique: true
+    t.index ["storage_item_id"], name: "index_dev_builds_on_storage_item_id"
   end
 
   create_table "hyperstack_connections", force: :cascade do |t|
@@ -233,6 +269,8 @@ ActiveRecord::Schema.define(version: 2020_07_06_124516) do
     t.index ["lfs_token"], name: "index_users_on_lfs_token", unique: true
   end
 
+  add_foreign_key "dehydrated_objects", "storage_items"
+  add_foreign_key "dev_builds", "storage_items"
   add_foreign_key "launcher_links", "users"
   add_foreign_key "lfs_objects", "lfs_projects"
   add_foreign_key "project_git_files", "lfs_projects"
