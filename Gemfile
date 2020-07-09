@@ -119,3 +119,5 @@ gem 'jwt'
 
 # For delegating StackWalk to an external service
 gem 'rest-client'
+
+gem 'sha3'

@@ -8,14 +8,14 @@ class StorageItem < ApplicationRecord
   has_many :folder_entries, class_name: 'StorageItem', foreign_key: 'parent_id',
                             dependent: :destroy
   has_many :storage_item_versions, -> { order('version DESC') }, primary_key: 'id',
-           dependent: :destroy
+                                                                 dependent: :destroy
 
   has_many :dev_builds, dependent: :restrict_with_exception
   has_many :dehydrated_objects, dependent: :restrict_with_exception
 
   validates :size, presence: false, numericality: { only_integer: true }, allow_nil: true
   validates :name, presence: true, length: { maximum: 255, minimum: 1 },
-                   uniqueness: { scope: :parent }, format: { with: %r{[^/]+}i }
+                   uniqueness: { scope: :parent }, format: { with: %r{\A[^/]+\z}i }
   validates :ftype, presence: true, inclusion: { in: [0, 1] }
   validates :special, inclusion: { in: [true, false] }
   validates :allow_parentless, inclusion: { in: [true, false] }
@@ -125,21 +125,21 @@ class StorageItem < ApplicationRecord
   def next_version
     current_highest = highest_version
 
-    version = current_highest ? current_highest.version + 1 : 1;
+    version = current_highest ? current_highest.version + 1 : 1
 
     storage_item_versions.create! version: version, keep: important, uploading: true,
                                   storage_item: self
   end
 
   def self.devbuilds_folder
-    StorageItem.find_by parent_id: nil, name: "DevBuilds"
+    StorageItem.find_by parent_id: nil, name: 'DevBuild files'
   end
 
   def self.dehydrated_folder
-    StorageItem.find_by parent_id: self.devbuilds_folder.id, name: "Objects"
+    StorageItem.find_by parent_id: devbuilds_folder.id, name: 'Objects'
   end
 
   def self.devbuild_builds_folder
-    StorageItem.find_by parent_id: self.devbuilds_folder.id, name: "Dehydrated"
+    StorageItem.find_by parent_id: devbuilds_folder.id, name: 'Dehydrated'
   end
 end

@@ -35,12 +35,12 @@ module API
           anonymous = key.nil?
 
           if anonymous
-            upload = DevBuild.find_by(build_hash: permitted_params[:build_hash],
-                                      platform: permitted_params[:build_platform]).nil?
+            upload = !DevBuild.find_by(build_hash: permitted_params[:build_hash],
+                                      platform: permitted_params[:build_platform])&.uploaded?
           else
-            upload = DevBuild.find_by(build_hash: permitted_params[:build_hash],
+            upload = !DevBuild.find_by(build_hash: permitted_params[:build_hash],
                                       platform: permitted_params[:build_platform],
-                                      anonymous: false).nil?
+                                      anonymous: false)&.uploaded?
           end
 
           status 200
@@ -66,7 +66,7 @@ module API
           missing_objects = []
 
           permitted_params[:objects].each { |obj|
-            unless DehydratedObject.exists?(sha3: obj['sha3'])
+            unless DehydratedObject.find_by(sha3: obj['sha3'])&.uploaded?
               missing_objects.append obj['sha3']
             end
           }
@@ -84,7 +84,7 @@ module API
           requires :required_objects, type: Array, desc:
             'List of the objects needed by this build (just hash)'
         end
-        post 'offer_devbuild' do
+        post 'upload_devbuild' do
           key = access_key
           anonymous = key.nil?
 
@@ -99,6 +99,15 @@ module API
               }, 400
             )
           }
+
+          if permitted_params[:build_hash].blank? || permitted_params[:build_platform].blank?
+            error!(
+              {
+                error_code: 400,
+                message: 'Invalid build information'
+              }, 400
+            )
+          end
 
           existing = DevBuild.find_by(build_hash: permitted_params[:build_hash],
                                       platform: permitted_params[:build_platform])
@@ -118,7 +127,7 @@ module API
                                 'being overwritten'
               existing.anonymous = false
               existing.save!
-            else
+            elsif existing&.uploaded?
               error!(
                 {
                   message: "Can't upload a new version of an existing build"
@@ -129,12 +138,25 @@ module API
 
           folder = StorageItem.devbuild_builds_folder
 
-          existing ||= DevBuild.create! build_hash: permitted_params[:build_hash],
-                                        platform: permitted_params[:build_platform],
-                                        branch: permitted_params[:build_branch],
-                                        anonymous: anonymous,
-                                        important: !anonymous &&
-                                                   permitted_params[:build_branch] == 'master'
+          unless existing
+            sanitized_platform = permitted_params[:build_platform].gsub '/', ''
+            existing = DevBuild.create!(
+              build_hash: permitted_params[:build_hash],
+              platform: permitted_params[:build_platform],
+              branch: permitted_params[:build_branch],
+              anonymous: anonymous,
+              important: !anonymous && permitted_params[:build_branch] == 'master',
+              # Create storage file to store it
+              storage_item: StorageItem.find_or_create_by!(
+                name: "#{permitted_params[:build_hash]}_" \
+                      "#{sanitized_platform}.7z", parent: folder,
+                ftype: 0, special: true, read_access: ITEM_ACCESS_USER,
+                write_access: ITEM_ACCESS_NOBODY
+              )
+            )
+
+            CountRemoteFolderItems.perform_later(folder.id)
+          end
 
           # Apply objects
           permitted_params[:required_objects].each { |sha3|
@@ -149,14 +171,6 @@ module API
 
           Rails.logger.info "Upload of (#{existing.build_hash} on #{existing.platform}) " \
                             "starting from #{request.ip}"
-
-          # Create storage file to store it
-          existing.storage_item ||= StorageItem.create!(
-            name: "#{existing.build_hash}_#{existing.platform}.7z", parent: folder,
-            ftype: 0, special: true, read_access: ITEM_ACCESS_USER,
-            write_access: ITEM_ACCESS_NOBODY
-          )
-          existing.save!
 
           # Upload a version of it
           version = existing.storage_item.next_version
@@ -191,7 +205,9 @@ module API
 
           expires = Time.now + RemoteStorageHelper.upload_expire_time
 
-          permitted_params[:required_objects].each { |obj|
+          new_items = false
+
+          permitted_params[:objects].each { |obj|
             sha3 = obj['sha3']
             size = obj['size']
             dehydrated = DehydratedObject.find_by sha3: sha3
@@ -200,14 +216,16 @@ module API
               # Already uploaded
             else
               # Can upload this one
-              dehydrated ||= DehydratedObject.create! sha3: sha3
+              unless dehydrated
+                dehydrated = DehydratedObject.create! sha3: sha3, storage_item:
 
-              dehydrated.storage_item ||= StorageItem.create!(
-                name: "#{sha3}.gz", parent: folder,
-                ftype: 0, special: true, read_access: ITEM_ACCESS_USER,
-                write_access: ITEM_ACCESS_NOBODY
-              )
-              dehydrated.save!
+                  StorageItem.create!(
+                    name: "#{sha3}.gz", parent: folder,
+                    ftype: 0, special: true, read_access: ITEM_ACCESS_USER,
+                    write_access: ITEM_ACCESS_NOBODY
+                  )
+                new_items = true
+              end
 
               version = dehydrated.storage_item.next_version
               file = version.create_storage_item(expires, size)
@@ -220,11 +238,14 @@ module API
                   sha3: sha3,
                   upload_url: RemoteStorageHelper.create_put_url(file.storage_path),
                   verify_token: RemoteStorageHelper.create_put_token(file.storage_path,
-                                                                     file.size, file.id)
+                                                                     file.size, file.id,
+                                                                     { sha3: sha3 })
                 }
               )
             end
           }
+
+          CountRemoteFolderItems.perform_later(folder.id) if new_items
 
           status 200
           { upload: uploads }
@@ -242,6 +263,20 @@ module API
           rescue StandardError => e
             error!({ error_code: 400, message: e.to_s }, 400)
             return
+          end
+
+          # Check hash
+          if data['custom'].include? 'sha3'
+            needed_hash = data['custom']['sha3']
+
+            hash = RemoteStorageHelper.calculate_ungzipped_hash item.storage_path
+
+            if needed_hash != hash
+              Rails.logger.warning 'Upload failed or someone tried to upload a the wrong ' \
+                                   "file, due to hash mismatch (required) #{needed_hash} " \
+                                   "!= #{hash} (from S3)"
+              error!({ error_code: 400, message: 'Uploaded object hash is unexpected' }, 400)
+            end
           end
 
           Rails.logger.info "DevBuild item (#{item.storage_path}) is now uploaded"

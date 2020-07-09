@@ -6,7 +6,7 @@ class StorageItemVersionPolicy
     # Orphan
     if !storage_item
       policy.send_all.to(AdminUser)
-      return
+      next
     end
 
     # Duplicate code from StorageItem

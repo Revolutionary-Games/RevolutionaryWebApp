@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'aws-sdk-s3'
+require 'sha3'
+require 'zlib'
 
 MAX_ALLOWED_REMOTE_OBJECT_SIZE = 1024 * 1024 * 1024 * 100
 
@@ -42,9 +44,10 @@ module RemoteStorageHelper
     UPLOAD_EXPIRE_TIME
   end
 
-  def self.create_put_token(remote_path, size, item_id)
+  def self.create_put_token(remote_path, size, item_id, custom = {})
     payload = { remote_path: remote_path, object_size: size,
                 item_id: item_id,
+                custom: custom,
                 exp: Time.now.to_i + UPLOAD_EXPIRE_TIME + 2 }
 
     JWT.encode payload, upload_derived_key, 'HS256'
@@ -55,7 +58,6 @@ module RemoteStorageHelper
 
     decoded_token[0]
   end
-
 
   # Handles a token that client has reported as uploaded
   def self.handle_finished_token(token)
@@ -70,7 +72,7 @@ module RemoteStorageHelper
 
     raise 'Invalid token' if item.nil?
 
-    unless self.token_matches_item? data, item
+    unless token_matches_item? data, item
       Rails.logger.warn "Token that doesn't match storage item attempted to be used"
       raise 'Invalid token'
     end
@@ -83,13 +85,11 @@ module RemoteStorageHelper
       raise 'Specified StorageFile has no associated item version object'
     end
 
-    unless version.uploading
-      raise "Can't use token on item that has already uploaded version"
-    end
+    raise "Can't use token on item that has already uploaded version" unless version.uploading
 
     # Verify that upload to S3 was successful
     begin
-      size = self.object_size item.storage_path
+      size = object_size item.storage_path
     rescue RuntimeError => e
       raise "Checking for item in S3 storage failed: #{e}"
     end
@@ -112,6 +112,18 @@ module RemoteStorageHelper
 
   def self.content_type(remote_path, b = bucket)
     b.object(remote_path).content_type
+  end
+
+  def self.calculate_ungzipped_hash(remote_path, b = bucket)
+    s = SHA3::Digest::SHA256.new
+
+    gz = Zlib::GzipReader.new(b.object(remote_path).get.body)
+
+    until gz.eof?
+      s.update gz.read 1024*1024
+    end
+
+    s.hexdigest
   end
 
   # This does not work. Seems like the v2 sdk would would have this working

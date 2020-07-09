@@ -3,9 +3,7 @@
 # Single version of a remote storage item
 class StorageItemVersion < ApplicationRecord
   belongs_to :storage_item
-  belongs_to :storage_file, optional: true
-
-  before_destroy :destroy_storage_file
+  belongs_to :storage_file, optional: true, dependent: :destroy
 
   validates :version, presence: true, uniqueness: { scope: :storage_item }
   validates :storage_file, uniqueness: true, allow_nil: true
@@ -40,10 +38,6 @@ class StorageItemVersion < ApplicationRecord
     end
 
     "#{parent_path}#{version}/#{storage_item.name}"
-  end
-
-  def destroy_storage_file
-    storage_file&.destroy
   end
 
   def create_storage_item(expires, size)

@@ -413,6 +413,7 @@ GEM
       rubyzip (~> 1.0)
       websocket (~> 1.0)
     semantic_range (2.3.0)
+    sha3 (1.0.1)
     sidekiq (6.0.7)
       connection_pool (>= 2.2.2)
       rack (~> 2.0)
@@ -524,6 +525,7 @@ DEPENDENCIES
   redis-namespace
   rest-client
   sassc-rails (~> 2.1, >= 2.1.1)
+  sha3
   sidekiq
   spring
   spring-watcher-listen (~> 2.0.0)
