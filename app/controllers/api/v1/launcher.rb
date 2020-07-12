@@ -34,7 +34,8 @@ module API
             error!({ error_code: 401, message: suspend_message(link.user) }, 403)
           end
 
-          Rails.logger.info "Launcher link of user (#{user.email}) used from #{request.ip}"
+          Rails.logger.info "Launcher link of user (#{link.user.email}) " \
+                            "used from #{request.ip}"
 
           link.last_connection = Time.now
           link.total_api_calls += 1
@@ -91,10 +92,14 @@ module API
           user.total_launcher_links += 1
           user.save!
 
-          LauncherLink.create! user: user, link_code: link_code, last_ip: request.ip,
+          # Create a new code, which the user doesn't directly see to avoid it leaking as
+          # easily
+          new_code = SecureRandom.base58(42)
+
+          LauncherLink.create! user: user, link_code: new_code, last_ip: request.ip,
                                total_api_calls: 0
 
-          { connected: true }
+          { connected: true, code: new_code }
         end
 
         desc 'Checks launcher connection status'

@@ -120,16 +120,24 @@ class UserProperties < HyperComponent
 
     UL {
       @User.launcher_links.each { |link|
+        used = link.last_connection ? link.last_connection : 'never'
         LI {
           SPAN {
             "Created at: #{link.created_at}, last used from: #{link.last_ip} at: " \
-               "#{link.last_connection}, total uses: #{link.total_api_calls}"
+               "#{used}, total uses: #{link.total_api_calls}"
           }
-          RS.Button(color: 'danger', disabled: true) {
+          RS.Button(color: 'danger', class: "LeftMargin") {
             SPAN { 'Unlink' }
           }.on(:click) {
             mutate {
-              @link_operation_result = ''
+              @link_operation_result = nil
+            }
+            UserOps::DeleteLauncherLink.run(link_id: link.id).then{
+              mutate {
+                @link_operation_result = "Link deleted"
+              }
+            }.fail{|error|
+              mutate @link_operation_result = "Failed to delete link: #{error}"
             }
           }
         }
@@ -154,7 +162,7 @@ class UserProperties < HyperComponent
       mutate {
         @show_launcher_link = false
         @generate_link_in_progress = true
-        @link_operation_result = ''
+        @link_operation_result = nil
       }
 
       UserOps::CreateNewLauncherLinkCodeForUser.run(user_id: @User.id).then {
@@ -173,7 +181,7 @@ class UserProperties < HyperComponent
       }
     }
 
-    RS.Button(color: 'danger') {
+    RS.Button(color: 'danger', class: "LeftMargin") {
       SPAN { 'Unlink All Launchers' }
       RS.Spinner(size: 'sm') if @unlink_in_progress
     }.on(:click) {
