@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
+# Main User model for the application
 class User < ApplicationRecord
   has_many :storage_items, foreign_key: 'owner_id', dependent: :nullify
   has_many :dev_builds, dependent: :nullify
+  has_many :launcher_links, dependent: :destroy
 
   default_scope server: -> { all },
                 client: -> { true }
