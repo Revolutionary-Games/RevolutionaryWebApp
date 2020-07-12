@@ -18,7 +18,7 @@ Rails.application.routes.draw do
   mount GrapeSwaggerRails::Engine => '/swagger'
   mount API::Base, at: '/'
   # Prevent API leakage when it doesn't exist
-  get 'api/', to: proc { [404, {}, ['']] }
+  get 'api/(*other)', to: proc { [404, {}, ['']] }
 
   constraints AdminConstraint.new do
     mount Sidekiq::Web => '/admin/sidekiq'
