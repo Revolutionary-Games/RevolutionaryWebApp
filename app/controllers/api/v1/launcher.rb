@@ -88,6 +88,7 @@ module API
           # Update user to consume the code
           user.launcher_code_expires = Time.now - 1
           user.launcher_link_code = nil
+          user.total_launcher_links += 1
           user.save!
 
           LauncherLink.create! user: user, link_code: link_code, last_ip: request.ip,
