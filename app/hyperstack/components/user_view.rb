@@ -161,6 +161,9 @@ class UserProperties < HyperComponent
         mutate {
           @show_launcher_link = true
           @generate_link_in_progress = false
+          # Force refresh this stuff
+          @User.launcher_link_code!
+          @User.launcher_code_expires!
         }
       }.fail { |error|
         mutate {
