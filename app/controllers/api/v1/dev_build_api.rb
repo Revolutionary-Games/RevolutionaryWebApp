@@ -36,11 +36,11 @@ module API
 
           if anonymous
             upload = !DevBuild.find_by(build_hash: permitted_params[:build_hash],
-                                      platform: permitted_params[:build_platform])&.uploaded?
+                                       platform: permitted_params[:build_platform])&.uploaded?
           else
             upload = !DevBuild.find_by(build_hash: permitted_params[:build_hash],
-                                      platform: permitted_params[:build_platform],
-                                      anonymous: false)&.uploaded?
+                                       platform: permitted_params[:build_platform],
+                                       anonymous: false)&.uploaded?
           end
 
           status 200
@@ -81,6 +81,7 @@ module API
           requires :build_branch, type: String, desc: 'Devbuild branch'
           requires :build_platform, type: String, desc: 'Devbuild platform'
           requires :build_size, type: Integer, desc: 'Size of the build'
+          requires :build_zip_hash, type: String, desc: 'Hash of the build zip'
           requires :required_objects, type: Array, desc:
             'List of the objects needed by this build (just hash)'
         end
@@ -179,8 +180,13 @@ module API
 
           status 200
           { upload_url: RemoteStorageHelper.create_put_url(file.storage_path),
-            verify_token: RemoteStorageHelper.create_put_token(file.storage_path,
-                                                               file.size, file.id) }
+            verify_token: RemoteStorageHelper.create_put_token(
+              file.storage_path,
+              file.size, file.id, {
+                dev_build_id: existing.id,
+                build_zip_hash: permitted_params[:build_zip_hash]
+              }
+            ) }
         end
 
         desc 'Starts upload of the specified objects'
@@ -256,6 +262,9 @@ module API
           requires :token, type: String, desc: "Finished upload's token"
         end
         post 'finish' do
+          key = access_key
+          anonymous = key.nil?
+
           begin
             data, item, version = RemoteStorageHelper.handle_finished_token(
               permitted_params[:token]
@@ -277,6 +286,26 @@ module API
                                    "!= #{hash} (from S3)"
               error!({ error_code: 400, message: 'Uploaded object hash is unexpected' }, 400)
             end
+
+          elsif data['custom'].include? 'dev_build_id'
+
+            build = DevBuild.find data['custom']['dev_build_id']
+
+            if anonymous && !build.anonymous
+              error!(
+                { error_code: 403,
+                  message: "Can't upload over a non-anonymous build without a key" },
+                403
+              )
+            end
+
+            # Update build hash if this is the latest version
+            if build.storage_item.highest_version == version
+              build.build_zip_hash = data['custom']['build_zip_hash']
+              build.save!
+            else
+              Rails.logger.warn "Uploaded a non-highest version item, not updating hash"
+            end
           end
 
           Rails.logger.info "DevBuild item (#{item.storage_path}) is now uploaded"
@@ -287,8 +316,6 @@ module API
           item.save!
           version.save!
           version.storage_item.save!
-
-          # TODO: does something else need to be done?
 
           status 200
         end

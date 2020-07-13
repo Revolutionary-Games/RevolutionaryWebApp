@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_07_07_084639) do
+ActiveRecord::Schema.define(version: 2020_07_13_101200) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -66,6 +66,7 @@ ActiveRecord::Schema.define(version: 2020_07_07_084639) do
     t.boolean "pr_fetched", default: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "build_zip_hash"
     t.index ["anonymous"], name: "index_dev_builds_on_anonymous"
     t.index ["build_hash", "platform"], name: "index_dev_builds_on_build_hash_and_platform", unique: true
     t.index ["storage_item_id"], name: "index_dev_builds_on_storage_item_id"
