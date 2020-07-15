@@ -125,33 +125,120 @@ module API
           { success: true }
         end
 
-        desc 'Gets currently available devbuild information (latest builds + BOTD)'
+        desc 'Downloads a devbuild'
         params do
+          optional :build_id, type: Integer, desc: 'Build ID'
         end
-        get 'builds' do
+        get 'builds/download/:build_id' do
           link, user = active_code
 
-          { devbuilds: [] }
+          build = DevBuild.find permitted_params[:build_id]
+
+          unless build.storage_item
+            error!({ error_code: 404,
+                     message: "The specified build doesn't have a valid download file" }, 404)
+          end
+
+          item = build.storage_item
+
+          unless FilePermissions.has_access?(user, item.read_access, item.owner_id)
+            error!({ error_code: 403,
+                     error_message: "You don't have permission to access this " \
+                                    "build's download file." },
+                   403)
+          end
+
+          version = item.latest_uploaded
+
+          if !version || !version.storage_file
+            error!(
+              {
+                error_code: 404,
+                message: "The specified build's storage doesn't have a valid uploaded file"
+              }, 404
+            )
+          end
+
+          build.downloads += 1
+          unless build.save
+            Rails.logger.warn "Couldn't increment download count for build #{build.id}"
+          end
+
+          {
+            download_url: RemoteStorageHelper.create_download_url(
+              version.storage_file.storage_path
+            ),
+            dl_hash: build.build_zip_hash
+          }
+        end
+
+        desc 'Gets currently available devbuild information (latest builds + BOTD)'
+        params do
+          optional :platform, type: String, desc: 'Platform to search a builds for'
+        end
+        post 'builds' do
+          link, user = active_code
+
+          # TODO: pagination for the results
+          scope = DevBuild.all
+
+          if permitted_params[:platform]
+            scope = scope.where(platform: permitted_params[:platform])
+          end
+
+          status 200
+          { result: scope.to_a }
         end
 
         desc 'Searches for a devbuild based on the commit hash'
         params do
           requires :devbuild_hash, type: String, desc: 'Thing to search for'
+          optional :platform, type: String, desc: 'Platform to search a build for'
         end
-        get 'search' do
+        post 'search' do
           link, user = active_code
 
-          { result: [] }
+          scope = DevBuild.where(build_hash: devbuild_hash)
+
+          if permitted_params[:platform]
+            scope = scope.where(platform: permitted_params[:platform])
+          end
+
+          status 200
+          { result: scope.to_a }
         end
 
-        desc 'Gets info for downloading a devbuild'
+        desc 'Searches for a devbuild based on it being the build of the day or latest'
         params do
-          requires :devbuild, type: Integer, desc: 'Devbuild id'
+          requires :type, type: String, desc: 'Type to find by'
+          requires :platform, type: String, desc: 'Platform to search a build for'
         end
-        get 'builds/:devbuild' do
+        post 'find' do
           link, user = active_code
 
-          { stuff: 'devbuild info' }
+          build = nil
+
+          if permitted_params[:type] == 'botd'
+            # TODO: is an index needed for this lookup?
+            build = DevBuild.where(platform: permitted_params[:platform],
+                                   build_of_the_day: true).take(1).first
+          elsif permitted_params[:type] == 'latest'
+            build = DevBuild.order('id DESC').where(
+              platform: permitted_params[:platform]
+            ).where('verified = TRUE OR anonymous = FALSE').take(1).first
+          else
+            error!({ error_code: 400, message: 'Invalid type' }, 400)
+          end
+
+          unless build
+            error!({
+                     error_code: 404,
+                     message: "Could not find build with type #{permitted_params[:type]}"
+                   }, 404)
+          end
+
+          status 200
+          build
         end
       end
     end

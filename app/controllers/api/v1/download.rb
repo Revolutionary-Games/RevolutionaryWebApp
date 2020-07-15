@@ -28,9 +28,9 @@ module API
           item = StorageItem.find_by_id permitted_params[:id]
 
           if !item || !FilePermissions.has_access?(user, item.read_access, item.owner_id)
-            error!({ error_code: 401,
+            error!({ error_code: 404,
                      error_message: "Item doesn't exist or you need to login to access it." },
-                   401)
+                   404)
           end
 
           if permitted_params[:version]
