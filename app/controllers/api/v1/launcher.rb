@@ -6,6 +6,8 @@ module API
     class Launcher < Grape::API
       include API::V1::Defaults
 
+      MAX_DEHYDRATED_DOWNLOAD_BATCH = 100
+
       helpers do
         def suspend_message(user)
           'Your account is suspended' +
@@ -63,6 +65,43 @@ module API
           end
 
           user
+        end
+
+        def get_download_with_sha3(user, sha3)
+          object = DehydratedObject.find_by sha3: sha3
+
+          unless object&.storage_item
+            error!({ error_code: 404,
+                     message: "The specified object (#{sha3}) wasn't found" }, 404)
+          end
+
+          item = object.storage_item
+
+          unless FilePermissions.has_access?(user, item.read_access, item.owner_id)
+            error!({ error_code: 403,
+                     error_message: "You don't have permission to access this " \
+                                    "object's (#{sha3}) download file." },
+                   403)
+          end
+
+          version = item.latest_uploaded
+
+          if !version || !version.storage_file
+            error!(
+              {
+                error_code: 404,
+                message:
+                  "The specified object's (#{sha3}) storage doesn't have a valid uploaded file"
+              }, 404
+            )
+          end
+
+          {
+            download_url: RemoteStorageHelper.create_download_url(
+              version.storage_file.storage_path
+            ),
+            sha3: sha3
+          }
         end
       end
 
@@ -239,6 +278,31 @@ module API
 
           status 200
           build
+        end
+
+        desc 'Downloads specified list of dehydrated object'
+        params do
+          optional :objects, type: Array, desc: 'Objects to download. sha3 key needed'
+        end
+        post 'dehydrated/download' do
+          if permitted_params[:objects].size > MAX_DEHYDRATED_DOWNLOAD_BATCH
+            error!(
+              {
+                error_code: 400,
+                message:
+                  "Too many objects, max batch size is: #{MAX_DEHYDRATED_DOWNLOAD_BATCH}"
+              }, 400
+            )
+          end
+
+          link, user = active_code
+
+          status 200
+          {
+            downloads: permitted_params[:objects].map { |obj|
+                         get_download_with_sha3 user, obj['sha3']
+                       }
+          }
         end
       end
     end
