@@ -120,23 +120,23 @@ class UserProperties < HyperComponent
 
     UL {
       @User.launcher_links.each { |link|
-        used = link.last_connection ? link.last_connection : 'never'
+        used = link.last_connection || 'never'
         LI {
           SPAN {
             "Created at: #{link.created_at}, last used from: #{link.last_ip} at: " \
                "#{used}, total uses: #{link.total_api_calls}"
           }
-          RS.Button(color: 'danger', class: "LeftMargin") {
+          RS.Button(color: 'danger', class: 'LeftMargin') {
             SPAN { 'Unlink' }
           }.on(:click) {
             mutate {
               @link_operation_result = nil
             }
-            UserOps::DeleteLauncherLink.run(link_id: link.id).then{
+            UserOps::DeleteLauncherLink.run(link_id: link.id).then {
               mutate {
-                @link_operation_result = "Link deleted"
+                @link_operation_result = 'Link deleted'
               }
-            }.fail{|error|
+            }.fail { |error|
               mutate @link_operation_result = "Failed to delete link: #{error}"
             }
           }
@@ -155,33 +155,35 @@ class UserProperties < HyperComponent
 
     P { @link_operation_result.to_s } if @link_operation_result
 
-    RS.Button(color: 'success') {
-      SPAN { 'Link Launcher' }
-      RS.Spinner(size: 'sm') if @generate_link_in_progress
-    }.on(:click) {
-      mutate {
-        @show_launcher_link = false
-        @generate_link_in_progress = true
-        @link_operation_result = nil
-      }
-
-      UserOps::CreateNewLauncherLinkCodeForUser.run(user_id: @User.id).then {
+    if lookingAtSelf
+      RS.Button(color: 'success') {
+        SPAN { 'Link Launcher' }
+        RS.Spinner(size: 'sm') if @generate_link_in_progress
+      }.on(:click) {
         mutate {
-          @show_launcher_link = true
-          @generate_link_in_progress = false
-          # Force refresh this stuff
-          @User.launcher_link_code!
-          @User.launcher_code_expires!
+          @show_launcher_link = false
+          @generate_link_in_progress = true
+          @link_operation_result = nil
         }
-      }.fail { |error|
-        mutate {
-          @generate_link_in_progress = false
-          @link_operation_result = "Failed to start launcher linking: #{error}"
+
+        UserOps::CreateNewLauncherLinkCodeForUser.run(user_id: @User.id).then {
+          mutate {
+            @show_launcher_link = true
+            @generate_link_in_progress = false
+            # Force refresh this stuff
+            @User.launcher_link_code!
+            @User.launcher_code_expires!
+          }
+        }.fail { |error|
+          mutate {
+            @generate_link_in_progress = false
+            @link_operation_result = "Failed to start launcher linking: #{error}"
+          }
         }
       }
-    }
+    end
 
-    RS.Button(color: 'danger', class: "LeftMargin") {
+    RS.Button(color: 'danger', class: 'LeftMargin') {
       SPAN { 'Unlink All Launchers' }
       RS.Spinner(size: 'sm') if @unlink_in_progress
     }.on(:click) {
