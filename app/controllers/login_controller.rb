@@ -315,7 +315,7 @@ class LoginController < ApplicationController
     type_name = 'patreon'
 
     if !user
-      user = create_new_user email, sso_type, patron.username, false
+      user = create_new_user email, type_name, patron.username, false
 
       return unless user
     elsif user.local
