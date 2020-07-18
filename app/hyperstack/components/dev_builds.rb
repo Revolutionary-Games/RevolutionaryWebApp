@@ -11,7 +11,7 @@ class DevBuildItem < HyperComponent
     TD { @Item.platform.to_s }
     TD { @Item.verified.to_s }
     TD { @Item.score.to_s }
-    TD { (@Item.description&.slice 0, 30).to_s }
+    TD { truncate @Item.description || '' }
     TD { @Item.pr_url.to_s }
     TD { @Item.created_at.to_s }
     TD { @Item.downloads.to_s }
@@ -129,7 +129,7 @@ class DevBuilds < HyperComponent
           TH { 'PR' }
           TH { 'Created' }
           TH { 'Downloads' }
-          TH("data-tip" => 'NOT Deleted after 90 days') { 'Kept' }
+          TH('data-tip' => 'NOT Deleted after 90 days') { 'Kept' }
         }
       }
       TBODY {
