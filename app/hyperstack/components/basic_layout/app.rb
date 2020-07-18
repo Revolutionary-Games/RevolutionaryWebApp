@@ -140,6 +140,7 @@ class App < HyperComponent
         Route('/report/:id', mounts: ReportView)
         Route('/delete_report/:delete_key', mounts: DeleteReport)
         Route('/builds', exact: true, mounts: DevBuilds)
+        Route('/builds/:id', exact: true, mounts: DevBuildView)
         Route('/files/:path*', mounts: Files)
         Route('/lfs', exact: true, mounts: LFSProjects)
         Route('/lfs/:slug/:path*', mounts: LfsProjectView)
