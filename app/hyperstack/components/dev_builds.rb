@@ -41,6 +41,19 @@ class DevBuilds < HyperComponent
       return
     end
 
+    H3 { 'Build of the Day (BOTD)' }
+
+    P {
+      'These are curated set of builds for fans to try, by the Thrive developers.' \
+      'These are the recommended builds to try.'
+    }
+
+    build_table {
+      DevBuild.by_build_of_the_day.sort_by_updated_at.each { |item|
+        DevBuildItem(item: item)
+      }
+    }
+
     H3 { 'Trusted Builds' }
     P {
       'These devbuilds are created from each commit in the official Thrive repository, '\
@@ -56,26 +69,10 @@ class DevBuilds < HyperComponent
               key: 'verified_paginator') {
       # This is set with a delay
       if @verified_paginator
-        RS.Table(:striped, :responsive) {
-          THEAD {
-            TR {
-              TH { 'ID' }
-              TH { 'Commit' }
-              TH { 'Platform' }
-              TH { 'Verified' }
-              TH { 'Score' }
-              TH { 'Description' }
-              TH { 'PR' }
-              TH { 'Created' }
-              TH { 'Downloads' }
-              TH { 'Deleted after 90 days' }
-            }
-          }
-          TBODY {
-            items.paginated(@verified_paginator.offset,
-                            @verified_paginator.take_count).each { |item|
-              DevBuildItem(item: item)
-            }
+        build_table {
+          items.paginated(@verified_paginator.offset,
+                          @verified_paginator.take_count).each { |item|
+            DevBuildItem(item: item)
           }
         }
       end
@@ -103,26 +100,10 @@ class DevBuilds < HyperComponent
               key: 'anon_paginator') {
       # This is set with a delay
       if @anon_paginator
-        RS.Table(:striped, :responsive) {
-          THEAD {
-            TR {
-              TH { 'ID' }
-              TH { 'Commit' }
-              TH { 'Platform' }
-              TH { 'Verified' }
-              TH { 'Score' }
-              TH { 'Description' }
-              TH { 'PR' }
-              TH { 'Created' }
-              TH { 'Downloads' }
-              TH { 'Deleted after 90 days' }
-            }
-          }
-          TBODY {
-            anon_items.paginated(@anon_paginator.offset,
-                                 @anon_paginator.take_count).each { |item|
-              DevBuildItem(item: item)
-            }
+        build_table {
+          anon_items.paginated(@anon_paginator.offset,
+                               @anon_paginator.take_count).each { |item|
+            DevBuildItem(item: item)
           }
         }
       end
@@ -130,6 +111,30 @@ class DevBuilds < HyperComponent
       mutate { @trusted_page = page }
     }.on(:created) {
       mutate {}
+    }
+  end
+
+  private
+
+  def build_table
+    RS.Table(:striped, :responsive) {
+      THEAD {
+        TR {
+          TH { 'ID' }
+          TH { 'Commit' }
+          TH { 'Platform' }
+          TH { 'Verified' }
+          TH { 'Score' }
+          TH { 'Description' }
+          TH { 'PR' }
+          TH { 'Created' }
+          TH { 'Downloads' }
+          TH("data-tip" => 'NOT Deleted after 90 days') { 'Kept' }
+        }
+      }
+      TBODY {
+        yield
+      }
     }
   end
 end

@@ -26,6 +26,18 @@ class DevBuild < ApplicationRecord
         server: -> { where('verified = TRUE OR anonymous != TRUE') },
         select: -> { verified || !anonymous }
 
+  scope :by_build_of_the_day,
+        server: -> { where(build_of_the_day: true) },
+        select: -> { build_of_the_day }
+
+  scope :by_build_hash, lambda { |build_hash|
+    where(build_hash: build_hash)
+  }
+
+  scope :skip_id, lambda { |id|
+    where('id != ?', id)
+  }
+
   scope :paginated, lambda { |off, count|
     offset(off).take(count)
   }
@@ -33,12 +45,19 @@ class DevBuild < ApplicationRecord
   validates :build_hash, presence: true, length: { maximum: 255, minimum: 15 }
   validates :branch, presence: true, length: { maximum: 255, minimum: 1 }
   validates :platform, presence: true, length: { maximum: 255, minimum: 3 }
-  validates :description, presence: false, length: { maximum: 4096, minimum: 1 },
-            allow_nil: true
+  validates :description, presence: false, length: { maximum: 4096, minimum: 20 },
+                          allow_nil: true
+
+  validates :description, presence: true, if: -> { build_of_the_day }
 
   validates :anonymous, inclusion: { in: [true, false] }
 
   def uploaded?
     storage_item&.highest_version&.uploading === false
+  end
+
+  # Returns related builds
+  def related
+    DevBuild.by_build_hash(build_hash).skip_id(id)
   end
 end
