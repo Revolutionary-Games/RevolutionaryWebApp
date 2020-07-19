@@ -115,11 +115,12 @@ class UserProperties < HyperComponent
     P {
       "You can link up to #{DEFAULT_MAX_LAUNCHER_LINKS} Thrive Launchers to your account " \
       'to access dev center features from the launcher. By linking a launcher you can access' \
-      ' devbuilds.'
-    }
+      ' devbuilds. Linking the launcher to your account is meant for your personally ' \
+      'use only. Please do not share your account.'
+      }
 
     UL {
-      @User.launcher_links.each { |link|
+      @User.launcher_links.sort_by_updated_at.each { |link|
         used = link.last_connection || 'never'
         LI {
           SPAN {
