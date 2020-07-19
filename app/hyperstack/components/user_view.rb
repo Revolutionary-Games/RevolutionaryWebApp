@@ -120,7 +120,7 @@ class UserProperties < HyperComponent
       }
 
     UL {
-      @User.launcher_links.sort_by_updated_at.each { |link|
+      @User.launcher_links.sort_by_last_used.each { |link|
         used = link.last_connection || 'never'
         LI {
           SPAN {

@@ -12,6 +12,10 @@ class LauncherLink < ApplicationRecord
         server: -> { order('created_at DESC') },
         select: -> { sort { |a, b| b.created_at <=> a.created_at } }
 
+  scope :sort_by_last_used,
+        server: -> { order('last_connection DESC') },
+        select: -> { sort { |a, b| b.last_connection <=> a.last_connection } }
+
   validates :link_code, presence: true, uniqueness: true,
                         length: { maximum: 255, minimum: 15 }
 end
