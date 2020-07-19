@@ -18,6 +18,12 @@ module BuildOps
     step {
       Rails.logger.info "Build #{@build.id} promoted to BOTD by #{params.acting_user.email}"
 
+      # Clear first
+      DevBuild.where(build_of_the_day: true).each{|build|
+        build.build_of_the_day = false
+        build.save!
+      }
+
       @build.related.each{|other|
         Rails.logger.info "Also promoting related: #{other.id}"
         other.description = @build.description
