@@ -15,7 +15,7 @@ class DevBuildItem < HyperComponent
     TD { @Item.pr_url.to_s }
     TD { @Item.created_at.to_s }
     TD { @Item.downloads.to_s }
-    TD { (!@Item.important && !@Item.keep).to_s }
+    TD { (@Item.important || @Item.keep).to_s }
   end
 end
 
