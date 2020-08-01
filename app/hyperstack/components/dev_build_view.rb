@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+NICE_DEV_BUILD_DESCRIPTION_WIDTH = 70
+
 # Shows a single devbuild
 class DevBuildView < HyperComponent
   include Hyperstack::Router::Helpers
@@ -14,6 +16,18 @@ class DevBuildView < HyperComponent
     @new_description = ''
     @description_being_updated = false
     @description_update_error = nil
+    @description_format_error = nil
+  end
+
+  def check_description(description)
+    @description_format_error = nil
+
+    description.each_line{|line|
+      if line.length > NICE_DEV_BUILD_DESCRIPTION_WIDTH
+        @description_format_error = "Description contains a too long line: " + line
+        break
+      end
+    }
   end
 
   render(DIV) do
@@ -52,11 +66,14 @@ class DevBuildView < HyperComponent
     H4 { 'Description' }
 
     if !@editing_description
-      SPAN { @build.description }
+      PRE { @build.description }
     else
       RS.Input(type: :textarea, value: @new_description,
                placeholder: 'Build description').on(:change) { |e|
-        mutate @new_description = e.target.value
+        mutate {
+          @new_description = e.target.value
+          check_description @new_description
+        }
       }
     end
 
@@ -71,9 +88,12 @@ class DevBuildView < HyperComponent
           @description_update_error = nil
           @description_being_updated = false
           @new_description = @build.description
+          check_description @new_description
         }
       }
     else
+
+      P { @description_format_error } if @description_format_error
 
       P { @description_update_error } if @description_update_error
 
@@ -92,6 +112,10 @@ class DevBuildView < HyperComponent
 
       # Can't save a blank description if this is a botd
       if @build.build_of_the_day && @new_description.blank?
+        can_save = false
+      end
+
+      if @description_format_error
         can_save = false
       end
 
