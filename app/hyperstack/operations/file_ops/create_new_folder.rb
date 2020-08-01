@@ -41,6 +41,8 @@ module FileOps
       Rails.logger.info "Folder '#{created.name}' (parent: #{@parent&.name}) " \
                          "created by #{params.acting_user.email}"
 
+      CountRemoteFolderItems.perform_later(@parent.id) if @parent
+
       created.id
     }
   end
