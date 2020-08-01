@@ -54,6 +54,8 @@ class StorageItem < ApplicationRecord
   # TODO: client scope
   scope :folder_sort, -> { order('ftype DESC, name ASC') }
 
+  scope :only_folders, -> { where(ftype: 1) }
+
   scope :paginated, lambda { |off, count|
     offset(off).take(count)
   }

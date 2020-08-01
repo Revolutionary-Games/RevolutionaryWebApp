@@ -16,6 +16,13 @@ namespace :thrive do
     }
   end
 
+  desc 'Refresh all file storage folder sizes'
+  task :refresh_folder_sizes, [] => [:environment] do |_task, _args|
+    StorageItem.only_folders.ids.each { |id|
+      CountRemoteFolderItems.perform_now(id)
+    }
+  end
+
   task :list_content_types, [] => [:environment] do |_task, _args|
     StorageItem.find_in_batches { |batch|
       batch.each { |item|
