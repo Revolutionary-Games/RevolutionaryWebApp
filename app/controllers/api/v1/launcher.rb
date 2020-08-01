@@ -7,6 +7,7 @@ module API
       include API::V1::Defaults
 
       MAX_DEHYDRATED_DOWNLOAD_BATCH = 100
+      MAX_PAGE_SIZE = 100
 
       helpers do
         def suspend_message(user)
@@ -214,19 +215,38 @@ module API
         desc 'Gets currently available devbuild information (latest builds + BOTD)'
         params do
           optional :platform, type: String, desc: 'Platform to search a builds for'
+          optional :offset, type: Integer, desc: 'Offset for results'
+          optional :page_size, type: Integer, desc: 'Page size for results, max: ' +
+                                                    MAX_PAGE_SIZE.to_s
         end
         post 'builds' do
+          offset = permitted_params[:offset] || 0
+          page_size = permitted_params[:page_size] || MAX_PAGE_SIZE
+
+          if offset < 0 || page_size <= 0
+            error!({ error_code: 400, message: 'Invalid offset or page size' }, 400)
+          end
+
           link, user = active_code
 
-          # TODO: pagination for the results
-          scope = DevBuild.all
+          scope = DevBuild.sort_by_created_at
 
           if permitted_params[:platform]
             scope = scope.where(platform: permitted_params[:platform])
           end
 
+          scope = scope.paginated offset, page_size + 1
+
           status 200
-          { result: scope.to_a }
+          items = scope.to_a
+          result = { result: items}
+
+          if items.size > page_size
+            items.pop
+            result[:next_offset] = offset + items.size
+          end
+
+          result
         end
 
         desc 'Searches for a devbuild based on the commit hash'
@@ -237,7 +257,7 @@ module API
         post 'search' do
           link, user = active_code
 
-          scope = DevBuild.where(build_hash: devbuild_hash)
+          scope = DevBuild.where(build_hash: permitted_params[:devbuild_hash])
 
           if permitted_params[:platform]
             scope = scope.where(platform: permitted_params[:platform])
