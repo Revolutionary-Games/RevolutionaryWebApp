@@ -26,6 +26,10 @@ class DevBuildView < HyperComponent
   def check_description(description)
     @description_format_error = nil
 
+    if description.blank?
+      return
+    end
+
     description.each_line { |line|
       if line.length > NICE_DEV_BUILD_DESCRIPTION_WIDTH
         @description_format_error = 'Description contains a too long line: ' + line
