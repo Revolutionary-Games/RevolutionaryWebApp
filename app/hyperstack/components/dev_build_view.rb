@@ -44,7 +44,7 @@ class DevBuildView < HyperComponent
 
   def unverified_build_actions
     if !@verifying_build
-      RS.Button(color: 'primary', disabled: @build.description.blank?) {
+      RS.Button(color: 'primary') {
         'Verify This Build'
       } .on(:click) {
         mutate {
