@@ -52,12 +52,20 @@ class DevBuild < ApplicationRecord
 
   validates :anonymous, inclusion: { in: [true, false] }
 
+  validate :bodt_cant_be_anonymous_without_verification, if: -> { build_of_the_day }
+
   def uploaded?
-    storage_item&.highest_version&.uploading === false
+    storage_item&.highest_version&.uploading == false
   end
 
   # Returns related builds
   def related
     DevBuild.by_build_hash(build_hash).skip_id(id)
+  end
+
+  def bodt_cant_be_anonymous_without_verification
+    return if !anonymous || verified
+
+    errors.add(:verified, "Can't be unverified if anonymous and BODT")
   end
 end

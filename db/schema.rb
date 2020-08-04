@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_07_14_091850) do
+ActiveRecord::Schema.define(version: 2020_08_04_163846) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -68,9 +68,11 @@ ActiveRecord::Schema.define(version: 2020_07_14_091850) do
     t.datetime "updated_at", null: false
     t.string "build_zip_hash"
     t.boolean "build_of_the_day", default: false
+    t.bigint "user_id"
     t.index ["anonymous"], name: "index_dev_builds_on_anonymous"
     t.index ["build_hash", "platform"], name: "index_dev_builds_on_build_hash_and_platform", unique: true
     t.index ["storage_item_id"], name: "index_dev_builds_on_storage_item_id"
+    t.index ["user_id"], name: "index_dev_builds_on_user_id"
   end
 
   create_table "hyperstack_connections", force: :cascade do |t|
@@ -273,6 +275,7 @@ ActiveRecord::Schema.define(version: 2020_07_14_091850) do
 
   add_foreign_key "dehydrated_objects", "storage_items"
   add_foreign_key "dev_builds", "storage_items"
+  add_foreign_key "dev_builds", "users"
   add_foreign_key "launcher_links", "users"
   add_foreign_key "lfs_objects", "lfs_projects"
   add_foreign_key "project_git_files", "lfs_projects"

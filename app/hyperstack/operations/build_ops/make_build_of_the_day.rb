@@ -16,6 +16,10 @@ module BuildOps
       @build.description.blank?
     }
     step {
+      if @build.anonymous && !@build.verified
+        raise "Can't make BODT out of an anonymous unverified build"
+      end
+
       Rails.logger.info "Build #{@build.id} promoted to BOTD by #{params.acting_user.email}"
 
       # Clear first

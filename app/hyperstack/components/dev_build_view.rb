@@ -17,17 +17,174 @@ class DevBuildView < HyperComponent
     @description_being_updated = false
     @description_update_error = nil
     @description_format_error = nil
+
+    @verifying_build = false
+    @verify_sibling_build = true
+    @verified_check_box = false
   end
 
   def check_description(description)
     @description_format_error = nil
 
-    description.each_line{|line|
+    description.each_line { |line|
       if line.length > NICE_DEV_BUILD_DESCRIPTION_WIDTH
-        @description_format_error = "Description contains a too long line: " + line
+        @description_format_error = 'Description contains a too long line: ' + line
         break
       end
     }
+  end
+
+  def refresh_build_user
+    mutate @build.user!
+  end
+
+  def refresh_bodt
+    mutate @build.build_of_the_day!
+  end
+
+  def unverified_build_actions
+    if !@verifying_build
+      RS.Button(color: 'primary', disabled: @build.description.blank?) {
+        'Verify This Build'
+      } .on(:click) {
+        mutate {
+          @verified_check_box = false
+          @verifying_build = true
+        }
+      }
+    else
+      RS.Form {
+        P {
+          'Build verification is meant as an extra safety precaution against anonymously ' \
+            'uploaded builds. Non-anonymous builds are authenticated with a key that the ' \
+            'build server has. This means that they are safe as long as our repository ' \
+            "isn't compromised, by for example a developer's account being hacked. Because" \
+            'anonymous builds are not verified by a key, anyone else who knows the approach ' \
+            'could upload their own files. As such before the launcher downloads an ' \
+            'anonymous build without complaint it needs to be verified.'
+        }
+        P {
+          'Before marking this build as verified, please at least do the following: ' \
+            'check that a pull request (PR) exists on our Github with the latest commit ' \
+            "hash matching, that PR doesn't touch any of the upload and package scripts, the " \
+            "PR doesn't contains suspicious C# code in it (that might be a virus), and " \
+            'that the build results on CircleCI mention in the upload builds step that a ' \
+            'build with the expected hash was uploaded. These checks should ensure that the ' \
+            "build doesn't have unexpected code in it"
+        }
+        RS.FormGroup(check: true) {
+          RS.Input(type: :checkbox, checked: @verify_sibling_build, id: 'siblingCheck').on(
+            :change
+          ) { |e|
+            mutate {
+              @verify_sibling_build = e.target.checked
+            }
+          }
+          RS.Label(check: true, for: 'siblingCheck') {
+            'Verify sibling builds (the same hash but different platforms)'
+          }
+        }
+        RS.FormGroup(check: true) {
+          RS.Input(type: :checkbox, checked: @verified_check_box, id: 'verifiedCheck').on(
+            :change
+          ) { |e|
+            mutate {
+              @verified_check_box = e.target.checked
+            }
+          }
+          RS.Label(check: true, for: 'verifiedCheck') {
+            'I have verified this build according to the instructions'
+          }
+        }
+
+        BR {}
+
+        RS.FormGroup {
+          RS.Button(color: 'primary', disabled: !@verified_check_box) { 'Verify It' }.on(
+            :click
+          ) { |e|
+            e.prevent_default
+            mutate @verifying_build = false
+
+            handle_action(BuildOps::VerifyBuild.run(
+                            build_id: @build.id, verify_sibling: @verify_sibling_build
+                          )).then {
+              refresh_build_user
+            }
+          }
+
+          RS.Button(class: 'LeftMargin') { 'Cancel' }.on(:click) { |e|
+            e.prevent_default
+            mutate @verifying_build = false
+          }
+        }
+      }
+    end
+  end
+
+  def verified_build_actions
+    if @build.build_of_the_day
+      SPAN { 'This is a BOTD' }
+    elsif !@verifying_build
+      RS.Button(color: 'warning') { 'Unverify Build' }.on(:click) {
+        mutate {
+          @verified_check_box = false
+          @verifying_build = true
+        }
+      }
+    else
+      RS.Form {
+        P {
+          'Builds should only be unverified if a mistake was made when verifying ' \
+            'or turns out that the build contained well hidden malicious code'
+        }
+        RS.FormGroup(check: true) {
+          RS.Input(type: :checkbox, checked: @verify_sibling_build, id: 'siblingCheck').on(
+            :change
+          ) { |e|
+            mutate {
+              @verify_sibling_build = e.target.checked
+            }
+          }
+          RS.Label(check: true, for: 'siblingCheck') {
+            'Unverify sibling builds'
+          }
+        }
+        RS.FormGroup(check: true) {
+          RS.Input(type: :checkbox, checked: @verified_check_box, id: 'verifiedCheck').on(
+            :change
+          ) { |e|
+            mutate {
+              @verified_check_box = e.target.checked
+            }
+          }
+          RS.Label(check: true, for: 'verifiedCheck') {
+            'I want to unverify this build'
+          }
+        }
+        BR {}
+
+        RS.FormGroup {
+          RS.Button(color: 'danger', disabled: !@verified_check_box) {
+            'Remove Verification'
+          } .on(:click) { |e|
+            e.prevent_default
+            mutate @verifying_build = false
+
+            handle_action(BuildOps::UnVerifyBuild.run(
+                            build_id: @build.id, verify_sibling: @verify_sibling_build
+                          )).then {
+              refresh_build_user
+            }
+          }
+
+          RS.Button(class: 'LeftMargin') { 'Cancel' }.on(:click) { |e|
+            e.prevent_default
+            mutate @verifying_build = false
+          }
+        }
+      }
+    end
   end
 
   render(DIV) do
@@ -47,12 +204,22 @@ class DevBuildView < HyperComponent
 
     H4 { 'Properties' }
 
+    verifier = 'no one'
+
+    if @build.user
+      verifier = if @build.user.name
+                   @build.user&.name
+                 else
+                   "user (#{@build.user.id})"
+                 end
+    end
+
     UL {
       LI { "Hash: #{@build.build_hash}" }
       LI { "Platform: #{@build.platform}" }
       LI { "Build of the Day (BOTD): #{@build.build_of_the_day}" }
       LI { "Branch (reported by uploader): #{@build.branch}" }
-      LI { "Verified: #{@build.verified} by: #{@build.user&.name || 'no one'}" }
+      LI { "Verified: #{@build.verified} by: #{verifier}" }
       LI { "Anonymous: #{@build.anonymous}" }
       LI { "Important: #{@build.important}" }
       LI { "Keep: #{@build.keep}" }
@@ -106,18 +273,12 @@ class DevBuildView < HyperComponent
 
       can_save = true
       # Can't save if has typed in something and that's less than 20 characters
-      if !@new_description.blank? && @new_description.length < 20
-        can_save = false
-      end
+      can_save = false if !@new_description.blank? && @new_description.length < 20
 
       # Can't save a blank description if this is a botd
-      if @build.build_of_the_day && @new_description.blank?
-        can_save = false
-      end
+      can_save = false if @build.build_of_the_day && @new_description.blank?
 
-      if @description_format_error
-        can_save = false
-      end
+      can_save = false if @description_format_error
 
       RS.Button(color: 'primary', disabled: !can_save) { 'Save' }.on(:click) {
         mutate {
@@ -159,19 +320,42 @@ class DevBuildView < HyperComponent
     end
 
     if !@build.build_of_the_day
-      RS.Button(color: 'primary', disabled: @build.description.blank?) {
+      can_make_bodt = true
+
+      if @build.description.blank?
+        can_make_bodt = false
+      end
+
+      if !@build.verified && @build.anonymous
+        can_make_bodt = false
+      end
+
+      RS.Button(color: 'primary', disabled: !can_make_bodt) {
         'Promote to BOTD'
       } .on(:click) {
-        handle_action BuildOps::MakeBuildOfTheDay.run(build_id: @build.id)
+        handle_action(BuildOps::MakeBuildOfTheDay.run(build_id: @build.id)).then{
+          refresh_bodt
+        }
       }
     else
       if App.acting_user.admin?
         RS.Button(color: 'warning') { 'Remove BOTD Status (on all builds)' }.on(:click) {
-          handle_action BuildOps::ClearBuildOfTheDay.run
+          handle_action(BuildOps::ClearBuildOfTheDay.run).then{
+            refresh_bodt
+          }
         }
       else
         SPAN { 'Already BOTD' }
       end
+    end
+
+    BR {}
+    BR {}
+
+    if !@build.verified
+      unverified_build_actions
+    else
+      verified_build_actions
     end
 
     BR {}
@@ -188,6 +372,7 @@ class DevBuildView < HyperComponent
 
   def handle_action(promise)
     start_action
+
     promise.then {
       end_action 'Success'
     }.fail { |error|
