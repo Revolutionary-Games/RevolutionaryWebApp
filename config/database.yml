@@ -18,4 +18,4 @@ production:
   adapter: postgresql
   encoding: unicode
   database: thrivedevcenter
-  pool: 5
+  pool: 20
