@@ -10,6 +10,8 @@ DISCOURSE_QUERY_LIMIT ||= 1000
 
 # Module with helper function to do discourse user and group operations
 module DiscourseApiHelper
+  MAX_RETRIES_FOR_TOO_MANY_REQUESTS = 6
+
   def self.headers(type = :community)
     key = case type
           when :community
@@ -36,6 +38,22 @@ module DiscourseApiHelper
     end
   end
 
+  def self.perform_with_rate_limit
+    (1..MAX_RETRIES_FOR_TOO_MANY_REQUESTS).each { |i|
+      begin
+        return yield
+      rescue RestClient::TooManyRequests
+        puts 'Too many requests sent to discourse, ' +
+             (if i < MAX_RETRIES_FOR_TOO_MANY_REQUESTS
+                "retry attempt #{i}"
+              else
+                'ran out of retries'
+              end)
+        sleep 1 + i * 4
+      end
+    }
+  end
+
   def self.query_users_in_group(group)
     offset = 0
     limit = DISCOURSE_QUERY_LIMIT
@@ -43,9 +61,11 @@ module DiscourseApiHelper
     url = URI.join(COMMUNITY_FORUM_API_BASE,
                    "/groups/#{group}/members.json?offset=#{offset}&limit=#{limit}").to_s
 
-    response = RestClient::Request.execute(method: :get, url: url,
-                                           timeout: 120,
-                                           headers: DiscourseApiHelper.headers)
+    response = perform_with_rate_limit {
+      RestClient::Request.execute(method: :get, url: url,
+                                  timeout: 120,
+                                  headers: DiscourseApiHelper.headers)
+    }
 
     data = JSON.parse(response.body)
 
@@ -63,7 +83,9 @@ module DiscourseApiHelper
   def self.find_user_by_email(email, type: :community)
     url = URI.join(base_url(type), 'admin/users/list/all.json').to_s + "?email=#{email}"
     begin
-      response = RestClient.get(url, headers(type))
+      response = perform_with_rate_limit {
+        RestClient.get(url, headers(type))
+      }
     rescue RestClient::NotFound
       return nil
     end
@@ -74,7 +96,7 @@ module DiscourseApiHelper
   # Returns way more info than find user by email
   def self.user_info_by_name(username, type: :community)
     url = URI.join(base_url(type), "users/#{username}.json").to_s
-    response = RestClient.get(url, headers(type))
+    response = perform_with_rate_limit { RestClient.get(url, headers(type)) }
 
     JSON.parse(response.body)['user']
   end
@@ -82,7 +104,7 @@ module DiscourseApiHelper
   def self.get_group_id(group)
     url = URI.join(COMMUNITY_FORUM_API_BASE,
                    "/groups/#{group}.json").to_s
-    response = RestClient.get(url, DiscourseApiHelper.headers)
+    response = perform_with_rate_limit { RestClient.get(url, DiscourseApiHelper.headers) }
 
     JSON.parse(response.body)['group']['id']
   end
@@ -101,14 +123,18 @@ module DiscourseApiHelper
   def self.add_group_members(group, usernames)
     url, payload = prepapare_group_url_and_payload group, usernames
 
-    RestClient.put(url, payload.to_json, DiscourseApiHelper.headers)
+    perform_with_rate_limit {
+      RestClient.put(url, payload.to_json, DiscourseApiHelper.headers)
+    }
   end
 
   def self.remove_group_members(group, usernames)
     url, payload = prepapare_group_url_and_payload group, usernames
 
-    RestClient::Request.execute(method: :delete, url: url,
-                                payload: payload.to_json,
-                                headers: DiscourseApiHelper.headers)
+    perform_with_rate_limit {
+      RestClient::Request.execute(method: :delete, url: url,
+                                  payload: payload.to_json,
+                                  headers: DiscourseApiHelper.headers)
+    }
   end
 end
