@@ -25,6 +25,11 @@ module API
                  'LFS-Authenticate' => 'Basic realm="ThriveDevCenter Git LFS"')
         end
 
+        def report_invalid_auth_header
+          error!({ error_code: 400, message:
+            'Invalid Authorization header format' }, 400)
+        end
+
         def check_server_config
           if !ENV['LFS_STORAGE_DOWNLOAD'] || !ENV['LFS_STORAGE_DOWNLOAD_KEY'] ||
              !ENV['LFS_STORAGE_S3_ENDPOINT'] || !ENV['LFS_STORAGE_S3_BUCKET'] ||
@@ -37,18 +42,17 @@ module API
 
         def check_auth
           if headers['Authorization']
-            user = nil
-
             begin
               decoded = Base64.decode64(headers['Authorization'].split(' ', 2).second || '')
 
               username, token = decoded.split(':', 2)
-
-              user = User.find_by email: username, lfs_token: token
             rescue StandardError
               # Invalid format for Authorization header
-              request_auth
+              report_invalid_auth_header
+              return nil
             end
+
+            user = User.find_by email: username, lfs_token: token
 
             report_failed_auth unless user
 
@@ -158,7 +162,13 @@ module API
           unless user&.developer?
             Rails.logger.info 'Requesting auth because new object is to be ' \
                               "uploaded: #{obj[:oid]} for project #{project.name}"
-            request_auth
+
+            if user
+              report_failed_auth
+            else
+              request_auth
+            end
+
             # This return is here to just be extra safe
             return [{}, {
               code: 403,
@@ -293,7 +303,10 @@ module API
 
           project = LfsProject.find_by slug: permitted_params[:slug]
 
-          request_auth if !project&.public? && !user&.developer?
+          unless project&.public?
+            request_auth unless user
+            report_failed_auth unless user.developer?
+          end
 
           error!({ error_code: 404, message: 'No project found' }, 404) unless project
 
