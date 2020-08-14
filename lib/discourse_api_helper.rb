@@ -37,13 +37,13 @@ module DiscourseApiHelper
   end
 
   def self.query_users_in_group(group)
-    url = URI.join(COMMUNITY_FORUM_API_BASE,
-                   "/groups/#{group}/members.json").to_s
+    offset = 0
+    limit = DISCOURSE_QUERY_LIMIT
 
-    payload = { offset: 0, limit: DISCOURSE_QUERY_LIMIT }
+    url = URI.join(COMMUNITY_FORUM_API_BASE,
+                   "/groups/#{group}/members.json?offset=#{offset}&limit=#{limit}").to_s
 
     response = RestClient::Request.execute(method: :get, url: url,
-                                           payload: payload.to_json,
                                            timeout: 120,
                                            headers: DiscourseApiHelper.headers)
 
@@ -61,9 +61,9 @@ module DiscourseApiHelper
 
   # TODO: is this really, really slow?
   def self.find_user_by_email(email, type: :community)
-    url = URI.join(self.base_url(type), 'admin/users/list/all.json').to_s + "?email=#{email}"
+    url = URI.join(base_url(type), 'admin/users/list/all.json').to_s + "?email=#{email}"
     begin
-      response = RestClient.get(url, self.headers(type))
+      response = RestClient.get(url, headers(type))
     rescue RestClient::NotFound
       return nil
     end
@@ -73,8 +73,8 @@ module DiscourseApiHelper
 
   # Returns way more info than find user by email
   def self.user_info_by_name(username, type: :community)
-    url = URI.join(self.base_url(type), "users/#{username}.json").to_s
-    response = RestClient.get(url, self.headers(type))
+    url = URI.join(base_url(type), "users/#{username}.json").to_s
+    response = RestClient.get(url, headers(type))
 
     JSON.parse(response.body)['user']
   end
