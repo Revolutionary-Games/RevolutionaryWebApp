@@ -10,7 +10,7 @@ DISCOURSE_QUERY_LIMIT ||= 1000
 
 # Module with helper function to do discourse user and group operations
 module DiscourseApiHelper
-  MAX_RETRIES_FOR_TOO_MANY_REQUESTS = 6
+  MAX_RETRIES_FOR_TOO_MANY_REQUESTS = 8
 
   def self.headers(type = :community)
     key = case type
@@ -49,6 +49,11 @@ module DiscourseApiHelper
               else
                 'ran out of retries'
               end)
+
+        if i == MAX_RETRIES_FOR_TOO_MANY_REQUESTS
+          break
+        end
+
         sleep 1 + i * 4
       end
     }
