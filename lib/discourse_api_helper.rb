@@ -43,7 +43,7 @@ module DiscourseApiHelper
       begin
         return yield
       rescue RestClient::TooManyRequests
-        puts 'Too many requests sent to discourse, ' +
+        Rails.logger.info 'Too many requests sent to discourse, ' +
              (if i < MAX_RETRIES_FOR_TOO_MANY_REQUESTS
                 "retry attempt #{i}"
               else
@@ -52,6 +52,8 @@ module DiscourseApiHelper
         sleep 1 + i * 4
       end
     }
+
+    raise "Discourse API request ran out of retries"
   end
 
   def self.query_users_in_group(group)
