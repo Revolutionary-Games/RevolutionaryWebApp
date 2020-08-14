@@ -18,6 +18,13 @@ module API
                  'LFS-Authenticate' => 'Basic realm="ThriveDevCenter Git LFS"')
         end
 
+        def report_failed_auth
+          error!({ error_code: 403, message:
+            "Invalid credentials or you don't have write access or "\
+            'your account is suspended' }, 403,
+                 'LFS-Authenticate' => 'Basic realm="ThriveDevCenter Git LFS"')
+        end
+
         def check_server_config
           if !ENV['LFS_STORAGE_DOWNLOAD'] || !ENV['LFS_STORAGE_DOWNLOAD_KEY'] ||
              !ENV['LFS_STORAGE_S3_ENDPOINT'] || !ENV['LFS_STORAGE_S3_BUCKET'] ||
@@ -43,9 +50,9 @@ module API
               request_auth
             end
 
-            request_auth unless user
+            report_failed_auth unless user
 
-            request_auth if user.suspended
+            report_failed_auth if user.suspended
 
             return user
           end
@@ -58,9 +65,9 @@ module API
 
           case params[:operation]
           when 'download'
-            return :download
+            :download
           when 'upload'
-            return :upload
+            :upload
           else
             error!({ error_code: 400, message: 'Invalid operation' }, 400)
           end
@@ -198,7 +205,7 @@ module API
               }, nil
             ]
           rescue RuntimeError => e
-            return [{}, {
+            [{}, {
               code: 500,
               message: "Internal server error: #{e}"
             }]
