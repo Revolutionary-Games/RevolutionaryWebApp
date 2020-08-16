@@ -80,8 +80,6 @@ module API
                    400)
           end
 
-          # logger.debug "body is: '#{body}'"
-
           verify_signature body, settings
 
           begin
@@ -89,6 +87,8 @@ module API
           rescue StandardError
             error!({ error_code: 400, message: 'Invalid JSON' }, 400)
           end
+
+          Rails.logger.debug "Received patreon webhook: '#{data}'"
 
           pledge = data['data']
 
