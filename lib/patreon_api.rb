@@ -38,10 +38,10 @@ module PatreonAPI
     result = []
 
     url = 'https://www.patreon.com/api/oauth2/api/campaigns/' +
-          campaign_id.to_s + '/pledges?include=patron.null,reward&fields%5Bpledge%5D=status,currency'
+          campaign_id.to_s + '/pledges?include=patron.null,reward&fields%5Bpledge%5D=status,'\
+          'currency,amount_cents,declined_since'
 
     while url
-
       response = RestClient.get(url, headers(patreon_token))
 
       data = JSON.parse(response.body)
