@@ -8,9 +8,12 @@ module PatreonAPI
     { Authorization: "Bearer #{patreon_token}" }
   end
 
-  def self.find_included_object(data, id)
+  def self.find_included_object(data, id, type = nil)
     data['included'].each { |obj|
-      return obj if obj['id'] == id
+      next unless obj['id'] == id
+      next if !type.nil? && obj['type'] != type
+
+      return obj
     }
 
     nil
@@ -35,7 +38,7 @@ module PatreonAPI
     result = []
 
     url = 'https://www.patreon.com/api/oauth2/api/campaigns/' +
-          campaign_id.to_s + '/pledges?include=patron.null'
+          campaign_id.to_s + '/pledges?include=patron.null,reward&fields%5Bpledge%5D=status,currency'
 
     while url
 
@@ -47,14 +50,31 @@ module PatreonAPI
         next unless obj['type'] == 'pledge'
 
         patron_id = obj['relationships']['patron']['data']['id']
+        patron_obj_type = obj['relationships']['patron']['data']['type']
 
-        user_data = PatreonAPI.find_included_object data, patron_id
+        user_data = PatreonAPI.find_included_object data, patron_id, patron_obj_type
 
         unless user_data
           logger.warn "could not find related object with id: #{patron_id}"
           next
         end
-        result.push(pledge: obj, user: user_data)
+
+        unless obj['relationships'].include? 'reward'
+          logger.error 'reward data is not included for user'
+          next
+        end
+
+        reward_id = obj['relationships']['reward']['data']['id']
+        reward_type = obj['relationships']['reward']['data']['type']
+
+        reward_data = PatreonAPI.find_included_object data, reward_id, reward_type
+
+        unless reward_data
+          logger.warn "could not find reward object with id: #{patron_id}"
+          next
+        end
+
+        result.push(pledge: obj, user: user_data, reward: reward_data)
       }
 
       # Pagination
