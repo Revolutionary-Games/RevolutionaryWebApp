@@ -8,6 +8,7 @@ one:
   email_alias: MyString
   patreon_token: MyString
   patreon_refresh_token: MyString
+  reward_id: 123
 
 two:
   suspended: false
@@ -17,3 +18,4 @@ two:
   email_alias:
   patreon_token: MyString
   patreon_refresh_token: MyString
+  reward_id: 124

@@ -6,7 +6,7 @@ module PatreonGroupHelper
   COMMUNITY_VIP_GROUP = 'VIP_supporter'
 
   # Returns true if group changes are needed
-  def self.handle_patreon_pledge_obj(pledge, user)
+  def self.handle_patreon_pledge_obj(pledge, user, reward_id)
     changes = false
     pledge_cents = pledge['attributes']['amount_cents']
 
@@ -22,7 +22,8 @@ module PatreonGroupHelper
     if patron.nil? && !declined
       puts "We have a new patron #{username}"
       Patron.create!(suspended: false, username: username, email: email,
-                     pledge_amount_cents: pledge_cents, marked: true)
+                     pledge_amount_cents: pledge_cents, marked: true,
+                     reward_id: reward_id)
       changes = true
     elsif declined
       if patron.suspended != true
@@ -35,9 +36,10 @@ module PatreonGroupHelper
       end
       patron.marked = true
       patron.save!
-    elsif patron.pledge_amount_cents != pledge_cents || patron.username != username
-      puts 'A patron has changed their pledge_cents amount (or name)'
+    elsif patron.reward_id != reward_id || patron.username != username
+      puts 'A patron has changed their reward (or name)'
 
+      patron.reward_id = reward_id
       patron.pledge_amount_cents = pledge_cents
       patron.username = username
       patron.marked = true
@@ -95,9 +97,9 @@ module PatreonGroupHelper
   def self.should_be_group_for_patron(patron, patreon_settings)
     if !patron || !patreon_settings || patron.suspended
       :none
-    elsif patron.pledge_amount_cents >= patreon_settings.vip_pledge_cents
+    elsif patron.reward_id == patreon_settings.vip_reward_id
       :vip
-    elsif patron.pledge_amount_cents >= patreon_settings.devbuilds_pledge_cents
+    elsif patron.reward_id == patreon_settings.devbuilds_reward_id
       :devbuild
     end
   end

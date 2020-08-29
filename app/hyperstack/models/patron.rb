@@ -29,6 +29,7 @@ class Patron < ApplicationRecord
   end
 
   def pledge
+    # TODO store the currency as well as it might not always be dollars
     "#{pledge_amount_cents / 100.0}$"
   end
 
@@ -38,5 +39,10 @@ class Patron < ApplicationRecord
     else
       email_alias
     end
+  end
+
+  def devbuilds?(patreon_settings)
+    reward_id == patreon_settings.devbuilds_reward_id ||
+      reward_id == patreon_settings.vip_reward_id
   end
 end

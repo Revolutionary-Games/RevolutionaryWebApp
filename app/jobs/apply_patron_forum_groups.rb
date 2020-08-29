@@ -83,8 +83,8 @@ class ApplyPatronForumGroups < ApplicationJob
     @patreon_settings = PatreonSettings.first
 
     Patron.all.each { |patron|
-      # Skip patrons who shouldn't have a forum group, check_unmarked fill find them
-      next if patron.pledge_amount_cents < @patreon_settings.devbuilds_pledge_cents
+      # Skip patrons who shouldn't have a forum group, check_unmarked will find them
+      next unless patron.devbuilds? @patreon_settings
 
       # Also skip suspended who should have their groups revoked as long as they are suspended
       next if patron.suspended

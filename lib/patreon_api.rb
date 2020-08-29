@@ -152,23 +152,6 @@ module PatreonAPI
     nil
   end
 
-  # This is untested / unworking
-  def self.get_user_memberships_over_cents(user_info, cents)
-    return [] unless user_info['data']['memberships']['data']
-
-    result = []
-
-    user_info['data']['memberships']['data'].each { |membership|
-      actual_data = get_membership user_info, membership['id']
-
-      if actual_data && actual_data['attributes']['currently_entitled_amount_cents'] >= cents
-        result.append membership['id']
-      end
-    }
-
-    result
-  end
-
   def self.get_user_memberships(access_token, member_ids)
     fields_campaign = CGI.escape('fields[campaign]') + '=vanity,creation_name,one_liner,url'
     fields_tier = CGI.escape('fields[tier]') + '=title,amount_cents'

@@ -27,7 +27,13 @@ class RefreshPatronsJob < ApplicationJob
       patrons = settings.all_patrons
 
       patrons.each { |data|
-        if PatreonGroupHelper.handle_patreon_pledge_obj data[:pledge], data[:user]
+        reward_id = nil
+
+        if data[:reward]
+          reward_id = data[:reward]["id"]
+        end
+
+        if PatreonGroupHelper.handle_patreon_pledge_obj data[:pledge], data[:user], reward_id
           changes = true
         end
       }

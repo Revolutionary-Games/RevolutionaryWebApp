@@ -114,8 +114,16 @@ module API
               logger.warn 'Could not find patron to delete'
             end
           elsif %i[create update].include? event_type
+            reward_id = nil
 
-            PatreonGroupHelper.handle_patreon_pledge_obj pledge, user_data
+            begin
+              reward_id = PatreonAPI.find_included_object data,
+                                              pledge['relationships']['reward']['data']['id']
+            rescue
+              Rails.logger.warn "Couldn't find reward ID for patreon webhook"
+            end
+
+            PatreonGroupHelper.handle_patreon_pledge_obj pledge, user_data, reward_id
           else
             error!({ error_code: 500, message: 'missing handler for event type' },
                    500)

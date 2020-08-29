@@ -297,10 +297,8 @@ class LoginController < ApplicationController
     elsif patron.suspended
       @error = "Your Patron status is currently suspended. Reason: #{patron.suspended_reason}"
       return
-    elsif patron.pledge_amount_cents < patreon_settings.devbuilds_pledge_cents
-      more = patreon_settings.devbuilds_pledge_cents - patron.pledge_amount_cents
-      @error = 'Your current pledge is lower than the devbuilds level. You need to pledge: '\
-               "#{more} more cents"
+    elsif !patron.devbuilds?
+      @error = 'Your current reward is not the DevBuilds or higher tier'
       return
     end
 
