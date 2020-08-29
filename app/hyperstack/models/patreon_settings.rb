@@ -9,15 +9,8 @@ class PatreonSettings < ApplicationRecord
   validates :creator_token, presence: true, uniqueness: true
   validates :creator_refresh_token, presence: true
 
-  validates_numericality_of :devbuilds_pledge_cents, less_than: :vip_pledge_cents
-  validates_numericality_of :devbuilds_pledge_cents, greater_than: 1
-
-  validates_numericality_of :vip_pledge_cents, less_than: 10_000
-  validates_numericality_of :vip_pledge_cents, greater_than: :devbuilds_pledge_cents
-
-  validates :creator_refresh_token, presence: true
-
   validates :webhook_id, presence: true, uniqueness: true
+  validate :check_reward_ids
   before_validation :generate_webhook_id
 
   def find_campaign_id_if_missing
@@ -26,6 +19,18 @@ class PatreonSettings < ApplicationRecord
     self.campaign_id = PatreonAPI.query_first_campaign_id creator_token
 
     raise 'Failed to find campaign id' if campaign_id.blank?
+  end
+
+  def find_reward_ids(devbuilds_name = 'Devbuilds Supporter', vip_name = 'VIP Supporter')
+    self.devbuilds_reward_id = PatreonAPI.query_reward_by_title creator_token, campaign_id,
+                                                                devbuilds_name
+
+    raise 'Failed to find devbuilds reward id' if devbuilds_reward_id.blank?
+
+    self.vip_reward_id = PatreonAPI.query_reward_by_title creator_token, campaign_id,
+                                                          vip_name
+
+    raise 'Failed to find vip reward id' if vip_reward_id.blank?
   end
 
   def all_patrons
@@ -43,6 +48,22 @@ class PatreonSettings < ApplicationRecord
       break unless PatreonSettings.find_by_webhook_id(new_id)
     end
     self.webhook_id = new_id
+  end
+
+  def check_reward_ids
+    unless devbuilds_reward_id.nil?
+      if devbuilds_reward_id.blank?
+        errors.add(:devbuilds_reward_id, "can't be blank")
+      else
+        if devbuilds_reward_id == vip_reward_id
+          errors.add(:devbuilds_reward_id, "can't be the same as vip reward")
+        end
+      end
+    end
+
+    unless vip_reward_id.nil?
+      errors.add(:vip_reward_id, "can't be blank") if vip_reward_id.blank?
+    end
   end
 
   server_method :webhook_url, default: '' do

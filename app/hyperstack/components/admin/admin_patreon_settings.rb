@@ -28,6 +28,12 @@ class AdminPatreonSettings < HyperComponent
     @show_webhook = false
     @show_fetching_spinner = false
     @find_campaign_id_status = nil
+
+    @show_fetch_rewards = false
+    @fetching_rewards = false
+    @rewards_fetch_result = nil
+    @devbuild_name = ''
+    @vip_name = ''
   end
 
   render(DIV) do
@@ -41,8 +47,8 @@ class AdminPatreonSettings < HyperComponent
     if @settings.nil?
       @settings = PatreonSettings.new
       @settings.active = true
-      @settings.devbuilds_pledge_cents = 500
-      @settings.vip_pledge_cents = 1500
+      @settings.devbuilds_reward_id = nil
+      @settings.vip_reward_id = nil
       @creating_new = true
     end
 
@@ -130,49 +136,108 @@ class AdminPatreonSettings < HyperComponent
       RS.FormGroup {
         RS.Label { 'Rewards' }
         BR {}
-        RS.Label { 'Devbuilds cents: ' }
-        INPUT(type: :numeric, placeholder: 'devbuilds pledge cents',
-              name: 'devbuilds_pledge_cents',
-              value: @settings.devbuilds_pledge_cents)
+        RS.Label { 'Devbuilds reward: ' }
+        INPUT(placeholder: 'DevBuilds reward id',
+              value: @settings.devbuilds_reward_id)
           .on(:change) { |e|
           mutate {
             @updated_options = true
-            @settings.devbuilds_pledge_cents = e.target.value
+            @settings.devbuilds_reward_id = e.target.value
           }
         }
         BR {}
-        RS.Label { 'VIP pledge cents: ' }
-        INPUT(type: :numeric, placeholder: 'VIP pledge cents', name: 'vip_pledge_cents',
-              value: @settings.vip_pledge_cents)
+        RS.Label { 'VIP reward: ' }
+        INPUT(placeholder: 'VIP reward id',
+              value: @settings.vip_reward_id)
           .on(:change) { |e|
           mutate {
             @updated_options = true
-            @settings.vip_pledge_cents = e.target.value
+            @settings.vip_reward_id = e.target.value
           }
         }
 
-        RS.FormGroup {
-          RS.Label { 'Patreon webhooks' }
+        BR {}
+        if @rewards_fetch_result
+          P {
+            @rewards_fetch_result
+          }
+        end
+
+        if @show_fetch_rewards
+          RS.Label { 'DevBuilds reward title: ' }
+          INPUT(value: @devbuild_name) .on(:change) { |e|
+            mutate @devbuild_name = e.target.value
+          }
           BR {}
-          INPUT(type: @show_webhook ? :text : :password, placeholder: 'webhook secret',
-                name: 'webhook_secret',
-                value: @settings.webhook_secret)
-            .on(:change) { |e|
-            mutate {
-              @updated_options = true
-              @settings.webhook_secret = e.target.value
-            }
+          RS.Label { 'VIP reward title: ' }
+          INPUT(value: @vip_name) .on(:change) { |e|
+            mutate @vip_name = e.target.value
           }
 
-          # TODO: allow resetting
-          unless @creating_new
-            RS.Label { "Created webhook id: #{@settings.webhook_id}" }
-            DIV {
-              SPAN { 'Webhook URL: ' }
-              A(href: @settings.webhook_url) { @settings.webhook_url.to_s }
+          BR {}
+          RS.Button(color: 'primary', disabled: @devbuild_name.blank? || @vip_name.blank?) {
+            SPAN { 'Fetch IDs' }
+            RS.Spinner(color: 'secondary', size: 'sm') if @fetching_rewards
+          }.on(:click) {
+            mutate {
+              @fetching_rewards = true
+              @rewards_fetch_result = nil
             }
-          end
+
+            AdminOps::FindPatreonRewards.run(
+              devbuilds_name: @devbuild_name,
+              vip_name: @vip_name,
+              patreon_settings_id: @settings.id
+            ).then { |devbuilds_id, vip_id|
+              mutate {
+                @rewards_fetch_result = nil
+                @fetching_rewards = false
+                @show_fetch_rewards = false
+                @settings.devbuilds_reward_id = devbuilds_id
+                @settings.vip_reward_id = vip_id
+              }
+            }.fail { |error|
+              mutate {
+                @rewards_fetch_result = "Error: #{error}"
+                @fetching_rewards = false
+              }
+            }
+          }
+          RS.Button(color: 'secondary', class: 'LeftMargin') {
+            SPAN { 'Cancel' }
+          }.on(:click) {
+            mutate @show_fetch_rewards = false
+          }
+        else
+          RS.Button(color: 'primary', disabled: @creating_new) {
+            SPAN { 'Fetch Reward IDs (after creation)' }
+          }.on(:click) {
+            mutate @show_fetch_rewards = true
+          }
+        end
+      }
+
+      RS.FormGroup {
+        RS.Label { 'Patreon webhooks' }
+        BR {}
+        INPUT(type: @show_webhook ? :text : :password, placeholder: 'webhook secret',
+              name: 'webhook_secret',
+              value: @settings.webhook_secret)
+          .on(:change) { |e|
+          mutate {
+            @updated_options = true
+            @settings.webhook_secret = e.target.value
+          }
         }
+
+        # TODO: allow resetting
+        unless @creating_new
+          RS.Label { "Created webhook id: #{@settings.webhook_id}" }
+          DIV {
+            SPAN { 'Webhook URL: ' }
+            A(href: @settings.webhook_url) { @settings.webhook_url.to_s }
+          }
+        end
       }
     }
 
@@ -190,8 +255,7 @@ class AdminPatreonSettings < HyperComponent
       can_create = @updated_options
 
       if can_create
-        if @settings.creator_token.blank? || @settings.creator_refresh_token.blank? ||
-           !@settings.devbuilds_pledge_cents || !@settings.vip_pledge_cents
+        if @settings.creator_token.blank? || @settings.creator_refresh_token.blank?
           can_create = false
         end
       end
@@ -208,8 +272,8 @@ class AdminPatreonSettings < HyperComponent
           creator_refresh_token: @settings.creator_refresh_token,
           campaign_id: @settings.campaign_id,
           webhook_secret: @settings.webhook_secret,
-          devbuilds_pledge_cents: @settings.devbuilds_pledge_cents,
-          vip_pledge_cents: @settings.vip_pledge_cents
+          devbuilds_reward_id: @settings.devbuilds_reward_id,
+          vip_reward_id: @settings.vip_reward_id
         ).then {
           mutate {
             @show_spinner = false

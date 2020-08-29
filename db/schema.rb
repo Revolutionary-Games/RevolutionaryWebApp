@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_08_04_163846) do
+ActiveRecord::Schema.define(version: 2020_08_29_103036) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -134,13 +134,13 @@ ActiveRecord::Schema.define(version: 2020_08_04_163846) do
     t.string "creator_refresh_token"
     t.string "campaign_id"
     t.string "webhook_secret"
-    t.integer "devbuilds_pledge_cents"
-    t.integer "vip_pledge_cents"
     t.datetime "last_refreshed"
     t.datetime "last_webhook"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "webhook_id"
+    t.string "devbuilds_reward_id"
+    t.string "vip_reward_id"
     t.index ["webhook_id"], name: "index_patreon_settings_on_webhook_id", unique: true
   end
 

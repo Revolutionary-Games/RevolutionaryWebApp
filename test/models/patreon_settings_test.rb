@@ -5,36 +5,18 @@ require 'test_helper'
 class PatreonSettingsTest < ActiveSupport::TestCase
   test 'can create one with valid settings' do
     PatreonSettings.create!(active: true, creator_token: 'aa',
-                            creator_refresh_token: 'bb', devbuilds_pledge_cents: 500,
-                            vip_pledge_cents: 1000)
+                            creator_refresh_token: 'bb')
+
+    PatreonSettings.create!(active: true, creator_token: 'aa2',
+                            creator_refresh_token: 'bb2', devbuilds_reward_id: "123",
+                            vip_reward_id: "124")
   end
 
-  test "can't create one with vip pledge higher" do
+  test "can't create one with vip pledge the same" do
     assert_raise ActiveRecord::RecordInvalid do
       PatreonSettings.create!(active: true, creator_token: 'aa',
-                              creator_refresh_token: 'bb', devbuilds_pledge_cents: 15,
-                              vip_pledge_cents: 10)
+                              creator_refresh_token: 'bb', devbuilds_reward_id: "123",
+                              vip_reward_id: "123")
     end
   end
-
-  test "can't create without pledges" do
-    assert_raise StandardError do
-      PatreonSettings.create!(active: true, creator_token: 'aa',
-                              creator_refresh_token: 'bb', devbuilds_pledge_cents: 500)
-    end
-
-    assert_raise StandardError do
-      PatreonSettings.create!(active: true, creator_token: 'aa',
-                              creator_refresh_token: 'bb', vip_pledge_cents: 1500)
-    end
-
-    assert_raise StandardError do
-      PatreonSettings.create!(active: true, creator_token: 'aa',
-                              creator_refresh_token: 'bb')
-    end
-  end
-
-  # test "the truth" do
-  #   assert true
-  # end
 end

@@ -32,6 +32,27 @@ module PatreonAPI
     data['data'].first['id']
   end
 
+  # Finds the specified reward in campaign
+  def self.query_reward_by_title(patreon_token, campaign_id, reward_title)
+    response = RestClient.get('https://www.patreon.com/api/oauth2/api/current_user/campaigns',
+                              headers(patreon_token))
+
+    data = JSON.parse(response.body)
+
+    raise StandardError('invalid response object contents') unless data['included']
+
+    data['included'].each { |obj|
+      next if obj['type'] != 'reward'
+
+      if obj['attributes']['title'] == reward_title &&
+         obj['relationships']['campaign']['data']['id'] == campaign_id
+        return obj['id']
+      end
+    }
+
+    nil
+  end
+
   def self.query_all_current_patrons(patreon_token, campaign_id)
     logger = Rails.logger
 
