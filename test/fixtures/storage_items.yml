@@ -1,8 +1,8 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  name: MyString
-  type: 1
+  name: a file
+  ftype: 0
   special: false
   allow_parentless: false
   size: 1
@@ -11,8 +11,8 @@ one:
   owner: one
 
 two:
-  name: MyString
-  type: 1
+  name: folder
+  ftype: 1
   special: false
   allow_parentless: false
   size: 1

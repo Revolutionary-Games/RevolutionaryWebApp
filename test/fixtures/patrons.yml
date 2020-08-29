@@ -3,7 +3,7 @@
 one:
   suspended: false
   username: MyString
-  email: MyString
+  email: test@example.com
   pledge_amount_cents: 1
   email_alias: MyString
   patreon_token: MyString
@@ -12,8 +12,8 @@ one:
 two:
   suspended: false
   username: MyString
-  email: MyString
+  email: test2@example.com
   pledge_amount_cents: 1
-  email_alias: MyString
+  email_alias:
   patreon_token: MyString
   patreon_refresh_token: MyString

@@ -4,14 +4,6 @@ one:
   name: MyString
   path: MyString
   size: 1
-  type: 
+  ftype: 'file'
   lfs_oid: MyString
   lfs_project_id: one
-
-two:
-  name: MyString
-  path: MyString
-  size: 1
-  type: 
-  lfs_oid: MyString
-  lfs_project_id: two

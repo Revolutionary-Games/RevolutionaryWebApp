@@ -6,26 +6,11 @@ one:
   creator_refresh_token: MyString
   campaign_id: 34345134
   webhook_secret: MyString
-  devbuilds_pledge_cents: 500
-  vip_pledge_cents: 1500
+  devbuilds_reward_id: 123
+  vip_reward_id: 124
   last_refreshed: 2020-01-18 13:17:17
   last_webhook: 2020-01-18 13:17:17
   webhook_id: 1234
-  # hack workaround
-  created_at: 2020-01-18 13:17:17
-  updated_at: 2020-01-18 13:17:17
-
-two:
-  active: false
-  creator_token: MyString
-  creator_refresh_token: MyString
-  campaign_id: 12535342341234
-  webhook_secret: MyString
-  devbuilds_pledge_cents: 500
-  vip_pledge_cents: 1500
-  last_refreshed: 2020-01-18 13:17:17
-  last_webhook: 2020-01-18 13:17:17
-  webhook_id: 5678
   # hack workaround
   created_at: 2020-01-18 13:17:17
   updated_at: 2020-01-18 13:17:17

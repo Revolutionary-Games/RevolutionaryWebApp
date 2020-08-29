@@ -3,13 +3,6 @@
 one:
   version: 1
   storage_item: one
-  remote_item: one
   keep: false
-  protected: 
+  protected:
 
-two:
-  version: 1
-  storage_item: two
-  remote_item: two
-  keep: false
-  protected: 

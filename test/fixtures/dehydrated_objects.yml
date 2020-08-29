@@ -1,9 +1,9 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  sha3: MyString
+  sha3: 123456
   storage_item: one
 
 two:
-  sha3: MyString
+  sha3: 67890
   storage_item: two
