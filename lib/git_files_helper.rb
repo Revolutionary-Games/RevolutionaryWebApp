@@ -45,16 +45,37 @@ module GitFilesHelper
     folders = {}
 
     loop_local_files(lfs_project) { |file, inside_path|
-      # Skip folders as we separately detect those from the existing objects
-      next if File.directory? file
-
       dir = process_folder_path(File.dirname(inside_path))
 
+      is_normal = !File.directory?(file)
+
       if folders.include? dir
-        folders[dir] += 1
+        folders[dir][:item_count] += 1
       else
-        folders[dir] = 1
+        folders[dir] = {
+          item_count: 1,
+          recursive_normal_count: 0
+        }
       end
+
+      if is_normal
+        folders[dir][:recursive_normal_count] += 1
+        get_all_parent_folders(dir).each { |parent|
+          if folders.include? parent
+            folders[parent][:recursive_normal_count] += 1
+          else
+            folders[parent] = {
+              item_count: 0,
+              recursive_normal_count: 0
+            }
+          end
+        }
+      end
+
+      # Git can leave behind empty folders, that's why we need complex handling for folders
+      # that don't contain files as child entries (even recursively).
+      # This is because git can leave behind empty folders
+      next unless is_normal
 
       filename = File.basename inside_path
 
@@ -77,7 +98,9 @@ module GitFilesHelper
     }
 
     # Create folders
-    folders.each { |folder, item_count|
+    folders.each { |folder, data|
+      next unless data[:recursive_normal_count]
+
       dir = process_folder_path(File.dirname(folder))
       filename = File.basename folder
 
@@ -86,10 +109,10 @@ module GitFilesHelper
 
       if !existing
         ProjectGitFile.create! lfs_project: lfs_project, name: filename, path: dir,
-                               lfs_oid: nil, size: item_count, ftype: 'folder'
+                               lfs_oid: nil, size: data[:item_count], ftype: 'folder'
       else
         existing.lfs_oid = nil
-        existing.size = item_count
+        existing.size = data[:item_count]
         existing.ftype = 'folder'
         existing.save! if existing.changed?
       end
@@ -116,6 +139,20 @@ module GitFilesHelper
     else
       folder
     end
+  end
+
+  def self.get_all_parent_folders(folder)
+    parts = folder.split '/'
+
+    (1..parts.size).map { |n|
+      result = parts.take(n).join('/')
+
+      if result.blank? || result[0] != '/'
+        '/' + result
+      else
+        result
+      end
+    }
   end
 
   def self.detect_lfs_file(file)
@@ -184,9 +221,9 @@ module GitFilesHelper
 
   # Returns the current git commit
   def self.current_commit(lfs_project)
-    output, status = Open3.capture2 "git rev-parse HEAD", chdir: folder(lfs_project)
+    output, status = Open3.capture2 'git rev-parse HEAD', chdir: folder(lfs_project)
 
-    throw "Git rev-parse failed" if status != 0
+    throw 'Git rev-parse failed' if status != 0
 
     output.strip
   end
