@@ -1,6 +1,11 @@
+# frozen_string_literal: true
+
 module SsoSuspendHandler
+  include PatreonGroupHelper
+
   def self.check_user(user)
     return if user.local
+
     email = user.email
 
     should_be_suspended = true
