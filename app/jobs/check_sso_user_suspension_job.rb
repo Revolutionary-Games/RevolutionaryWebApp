@@ -9,7 +9,7 @@ class CheckSsoUserSuspensionJob < ApplicationJob
     user = User.find_by email: email
 
     unless user
-      logger.info "User to check SSO suspend status for doesn't exist, skipping job"
+      Rails.logger.info "User to check SSO suspend status for doesn't exist, skipping job"
       return
     end
 

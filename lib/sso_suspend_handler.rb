@@ -63,11 +63,11 @@ module SsoSuspendHandler
   def self.apply_changed_suspend_status(email, reason, user)
     # Don't unsuspend if was manually suspended
     if user.suspended && !user.suspended_manually
-      logger.info "Unsuspending '#{email}' from sso sources"
+      Rails.logger.info "Unsuspending '#{email}' from sso sources"
       user.suspended = false
       user.save!
     elsif !user.suspended
-      logger.info "Suspending '#{email}' from sso sources"
+      Rails.logger.info "Suspending '#{email}' from sso sources"
       user.suspended = true
       user.suspended_reason = "Used login option is no longer valid (#{reason})"
       user.save!
