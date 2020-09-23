@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="Rails ThriveDevCenter: test" uuid="c34f6267-63ed-44f7-a2aa-ef91ff94b879">
+      <driver-ref>greenplum</driver-ref>
+      <synchronize>true</synchronize>
+      <imported>true</imported>
+      <remarks>$PROJECT_DIR$/config/database.yml</remarks>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://127.0.0.1:5432/thrivedevcenter_test</jdbc-url>
+    </data-source>
+    <data-source source="LOCAL" name="Rails ThriveDevCenter: development" uuid="590852b7-e24d-4f1f-8c10-071fbda910c2">
+      <driver-ref>greenplum</driver-ref>
+      <synchronize>true</synchronize>
+      <imported>true</imported>
+      <remarks>$PROJECT_DIR$/config/database.yml</remarks>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://127.0.0.1:5432/thrivedevcenter_development</jdbc-url>
+    </data-source>
+    <data-source source="LOCAL" name="Rails ThriveDevCenter: production" uuid="cead171d-df7b-4f56-8d51-e80c171c41b8">
+      <driver-ref>greenplum</driver-ref>
+      <synchronize>true</synchronize>
+      <imported>true</imported>
+      <remarks>$PROJECT_DIR$/config/database.yml</remarks>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://127.0.0.1:5432/thrivedevcenter</jdbc-url>
+    </data-source>
+  </component>
+</project>
