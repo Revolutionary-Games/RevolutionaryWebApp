@@ -13,6 +13,9 @@ class StartTasksJob < ApplicationJob
     check_patrons set
     check_git_trees set
     check_sso set
+    check_devbuild set
+    check_devbuild_versions set
+    check_dehydrated set
 
     CreateStandardFoldersIfMissing.set(wait: 32.seconds).perform_later
 
@@ -61,5 +64,38 @@ class StartTasksJob < ApplicationJob
 
     CheckAllSsoUsers.set(wait: 32.minutes).perform_later
     logger.info 'SSO user check queued'
+  end
+
+  def check_devbuild_versions(set)
+    if set.any? { |job|
+      job.display_class == 'DeleteDevBuildOldVersions'
+    }
+      return
+    end
+
+    DeleteDevBuildOldVersions.set(wait: 38.minutes).perform_later
+    logger.info 'Check devbuild versions check queued'
+  end
+
+  def check_devbuild(set)
+    if set.any? { |job|
+      job.display_class == 'DeleteOldDevBuilds'
+    }
+      return
+    end
+
+    DeleteOldDevBuilds.set(wait: 41.minutes).perform_later
+    logger.info 'Check old devbuilds queued'
+  end
+
+  def check_dehydrated(set)
+    if set.any? { |job|
+      job.display_class == 'DeleteUnusedDehydrated'
+    }
+      return
+    end
+
+    DeleteUnusedDehydrated.set(wait: 51.minutes).perform_later
+    logger.info 'Check unused dehydrated queued'
   end
 end
