@@ -79,14 +79,19 @@ class LoginController < ApplicationController
         return
       end
 
-      user = User.find_by(email: params[:email]).try(:authenticate, params[:password])
-
+      user = User.find_by(email: params[:email])
       unless user
-
         redirect_to action: 'failed'
         return
       end
 
+      begin
+        user.try(:authenticate, params[:password])
+      rescue BCrypt::Errors::InvalidHash => e
+        redirect_to action: 'failed'
+        return
+      end
+      
       # Succeeded
       finish_login user
     end
