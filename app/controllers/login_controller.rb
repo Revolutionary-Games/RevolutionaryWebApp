@@ -68,7 +68,6 @@ class LoginController < ApplicationController
                     "state=#{session[:sso_nonce]}"
       else
         @error = 'Invalid SSO login type selected'
-        return
       end
     else
       # local
@@ -80,18 +79,18 @@ class LoginController < ApplicationController
       end
 
       user = User.find_by(email: params[:email])
-      unless user
+
+      success = begin
+                  user.try(:authenticate, params[:password])
+                rescue BCrypt::Errors::InvalidHash => e
+                  false
+                end
+
+      unless success
         redirect_to action: 'failed'
         return
       end
 
-      begin
-        user.try(:authenticate, params[:password])
-      rescue BCrypt::Errors::InvalidHash => e
-        redirect_to action: 'failed'
-        return
-      end
-      
       # Succeeded
       finish_login user
     end
@@ -403,11 +402,9 @@ class LoginController < ApplicationController
   def finish_login(user)
     if user.suspended
       # Can't login if suspended
-      @error = "Error: your account is suspended"
+      @error = 'Error: your account is suspended'
 
-      if user.suspended_manually
-        @error += " manually"
-      end
+      @error += ' manually' if user.suspended_manually
 
       @error += " with the reason: #{user.suspended_reason}"
       return
