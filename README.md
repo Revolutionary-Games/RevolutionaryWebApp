@@ -1,5 +1,7 @@
 # README
 
+IN PROGRESS ATTEMPT IN REWRITING IN BLAZOR AND ASP.NET CORE
+
 ## System Dependencies
 
 You need to have PostgreSQL and Redis on localhost available to the current user.
