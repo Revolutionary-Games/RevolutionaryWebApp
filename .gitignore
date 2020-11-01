@@ -37,3 +37,8 @@ yarn-debug.log*
 /vendor/bundle
 /SymbolData
 /StackWalk/minidump_stackwalk
+/.idea/.idea.ThriveDevCenter/.idea/workspace.xml
+
+# C#
+bin
+obj
