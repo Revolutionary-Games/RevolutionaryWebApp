@@ -301,7 +301,7 @@ class LoginController < ApplicationController
     elsif patron.suspended
       @error = "Your Patron status is currently suspended. Reason: #{patron.suspended_reason}"
       return
-    elsif !patron.devbuilds?
+    elsif !patron.devbuilds? patreon_settings
       @error = 'Your current reward is not the DevBuilds or higher tier'
       return
     end
