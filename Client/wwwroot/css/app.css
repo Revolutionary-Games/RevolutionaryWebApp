@@ -48,3 +48,14 @@ a, .btn-link {
     right: 0.75rem;
     top: 0.5rem;
 }
+
+/* Table sort */
+th.sort {
+    cursor: pointer;
+}
+
+/* Needed to make the sortable tables behave better in terms of the heading row */
+table.sortable {
+    table-layout: fixed;
+    word-wrap: break-word;
+}

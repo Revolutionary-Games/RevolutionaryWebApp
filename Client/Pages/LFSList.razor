@@ -1,10 +1,11 @@
 @page "/lfs"
 @using ThriveDevCenter.Shared
+@using System.Globalization
 @inject HttpClient Http
 
 <h3>Git LFS Projects</h3>
 
-@if (items == null)
+@if (data == null)
 {
     <div class="spinner-border text-primary" role="status">
         <span class="sr-only">Loading...</span>
@@ -12,17 +13,29 @@
 }
 else
 {
-    <table class="table table-striped table-hover table-responsive-sm">
+    <table class="table sortable table-striped table-hover table-responsive-sm">
         <thead class="thead-light">
         <tr>
-        <th scope="col">Name</th>
-        <th scope="col">Public</th>
-        <th scope="col">Size</th>
-        <th scope="col">Last Modified</th>
+            <th scope="col" class="sort" @onclick="@(() => Sort("Name"))">
+                Name
+                <span class="@sort.SortClass("Name")"></span>
+            </th>
+            <th scope="col" class="sort" @onclick="@(() => Sort("Public"))">
+                Public
+                <span class="@sort.SortClass("Public")"></span>
+            </th>
+            <th scope="col" class="sort" @onclick="@(() => Sort("Size"))">
+                Size
+                <span class="@sort.SortClass("Size")"></span>
+            </th>
+            <th scope="col" class="sort" @onclick="@(() => Sort("LastUpdated"))">
+                Last Modified
+                <span class="@sort.SortClass("LastUpdated")"></span>
+            </th>
         </tr>
         </thead>
         <tbody>
-        @foreach (var item in items)
+        @foreach (var item in data.Results)
         {
             <tr>
                 <td>@item.Name</td>
@@ -33,14 +46,47 @@ else
         }
         </tbody>
     </table>
+    <BlazorPager CurrentPage="@data.CurrentPage"
+                 PageCount="@data.PageCount"
+                 OnPageChanged="(async e => { page = e; await FetchData();})"
+                 ShowFirstLast="true"
+                 ShowPageNumbers="true"
+                 VisiblePages="5"
+                 FirstText="&laquo;"
+                 LastText="&raquo;"
+                 NextText="&rsaquo;"
+                 PreviousText="&lsaquo;"/>
 }
 
 @code {
-    private LFSProjectInfo[] items;
+    private PagedResult<LFSProjectInfo> data;
+    private int page = 1;
+    private int pageSize = 5;
+
+    private readonly SortHelper sort = new SortHelper("Name", SortDirection.Descending);
+
+    public async void Sort(string column)
+    {
+        sort.ColumnClick(column);
+        await FetchData();
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        items = await Http.GetFromJsonAsync<LFSProjectInfo[]>("LFSProject");
+        await FetchData();
+    }
+
+    private async Task FetchData()
+    {
+        var requestParams = new Dictionary<string, string>();
+        requestParams.Add("sortColumn", sort.SortColumn);
+        requestParams.Add("sortDirection", sort.Direction.ToString());
+        requestParams.Add("page", page.ToString(CultureInfo.InvariantCulture));
+        requestParams.Add("pageSize", pageSize.ToString(CultureInfo.InvariantCulture));
+
+        data = await Http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
+            QueryHelpers.AddQueryString("api/v1/LFSProject", requestParams));
+        StateHasChanged();
     }
 
 }

@@ -21,6 +21,7 @@
           <e p="MainLayout.razor.css" t="Include" />
           <e p="NavMenu.razor" t="Include" />
           <e p="NavMenu.razor.css" t="Include" />
+          <e p="SortHelper.cs" t="Include" />
           <e p="SurveyPrompt.razor" t="Include" />
         </e>
         <e p="ThriveDevCenter.Client.csproj" t="IncludeRecursive" />
@@ -94,6 +95,8 @@
       </e>
       <e p="Shared" t="IncludeRecursive">
         <e p="LFSProjectInfo.cs" t="Include" />
+        <e p="LinqHelpers.cs" t="Include" />
+        <e p="SortDirection.cs" t="Include" />
         <e p="ThriveDevCenter.Shared.csproj" t="IncludeRecursive" />
         <e p="WeatherForecast.cs" t="Include" />
         <e p="bin" t="ExcludeRecursive" />
