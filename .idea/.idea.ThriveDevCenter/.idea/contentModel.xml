@@ -17,11 +17,13 @@
           <e p="launchSettings.json" t="Include" />
         </e>
         <e p="Shared" t="Include">
+          <e p="ComponentUrlHelper.cs" t="Include" />
           <e p="MainLayout.razor" t="Include" />
           <e p="MainLayout.razor.css" t="Include" />
           <e p="NavMenu.razor" t="Include" />
           <e p="NavMenu.razor.css" t="Include" />
           <e p="PaginatedPage.cs" t="Include" />
+          <e p="QueryStringParameterHelper.cs" t="Include" />
           <e p="SortHelper.cs" t="Include" />
           <e p="SurveyPrompt.razor" t="Include" />
         </e>

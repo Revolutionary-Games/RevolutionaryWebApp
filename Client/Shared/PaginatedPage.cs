@@ -1,5 +1,7 @@
 namespace ThriveDevCenter.Client.Shared
 {
+    using System.Collections.Generic;
+    using System.Globalization;
     using System.Threading.Tasks;
     using BlazorPagination;
     using Microsoft.AspNetCore.Components;
@@ -18,18 +20,59 @@ namespace ThriveDevCenter.Client.Shared
         public SortDirection DefaultSortDirection { get; set; } = SortDirection.Ascending;
 
         [Parameter]
-        public int DefaultPageSize { get; set; } = 5;
+        public int DefaultPageSize { get; set; } = 25;
+
+        [QueryStringParameter]
+        public int PageSize { get; protected set; }
+
+        [QueryStringParameter]
+        public int Page { get; protected set; } = 1;
+
+        [QueryStringParameter]
+        public string SortColumn
+        {
+            get => Sort.SortColumn;
+            protected set
+            {
+                Sort.SortColumn = value;
+            }
+        }
+
+        [QueryStringParameter]
+        public SortDirection SortDirection
+        {
+            get => Sort.Direction;
+            protected set
+            {
+                Sort.Direction = value;
+            }
+        }
+
+        /// <summary>
+        ///   True when fetching new data. Can be used for example to show a loading spinner
+        /// </summary>
+        public bool FetchInProgress { get; protected set; } = false;
 
         protected readonly SortHelper Sort;
 
         protected PagedResult<T> Data;
-        protected int Page = 1;
-        protected int PageSize = 5;
+
+        public override Task SetParametersAsync(ParameterView parameters)
+        {
+            PageSize = DefaultPageSize;
+
+            return base.SetParametersAsync(parameters);
+        }
 
         public async Task ChangeSort(string column)
         {
             Sort.ColumnClick(column);
             await FetchData();
+        }
+
+        public string SortClass(string currentColumn)
+        {
+            return Sort?.SortClass(currentColumn) ?? string.Empty;
         }
 
         protected PaginatedPage(SortHelper sort)
@@ -45,6 +88,63 @@ namespace ThriveDevCenter.Client.Shared
             await FetchData();
         }
 
-        protected abstract Task FetchData();
+        protected async Task FetchData()
+        {
+            FetchInProgress = true;
+            var requestParams = CreatePageRequestParams();
+
+            var query = StartQuery(requestParams);
+
+            PruneRequestParams(requestParams);
+
+            await OnQuerySent(requestParams);
+
+            StateHasChanged();
+            Data = await query;
+            FetchInProgress = false;
+            StateHasChanged();
+        }
+
+        protected Dictionary<string, string> CreatePageRequestParams()
+        {
+            return new Dictionary<string, string>
+            {
+                { "sortColumn", Sort.SortColumn },
+                { "sortDirection", Sort.Direction.ToString() },
+                { "page", Page.ToString(CultureInfo.InvariantCulture) },
+                { "pageSize", PageSize.ToString(CultureInfo.InvariantCulture) },
+            };
+        }
+
+        /// <summary>
+        ///   Removes the params that have the default values (currently in this object,
+        ///   params aren't parsed back from queryParams)
+        /// </summary>
+        protected void PruneRequestParams(Dictionary<string, string> queryParams)
+        {
+            if (Page == 1)
+                queryParams.Remove("page");
+
+            if (PageSize == DefaultPageSize)
+                queryParams.Remove("pageSize");
+
+            if (Sort.SortColumn == DefaultSortColumn)
+                queryParams.Remove("sortColumn");
+
+            if (Sort.Direction == DefaultSortDirection)
+                queryParams.Remove("sortDirection");
+        }
+
+        /// <summary>
+        ///   Starts the actual query to fetch data from the server
+        /// </summary>
+        /// <param name="requestParams"></param>
+        protected abstract Task<PagedResult<T>> StartQuery(Dictionary<string, string> requestParams);
+
+        /// <summary>
+        ///   Child classes can update the current url or whatever they want here once a query is sent
+        /// </summary>
+        /// <param name="requestParams">The params the query was sent with, this is now safe to modify</param>
+        protected abstract Task OnQuerySent(Dictionary<string, string> requestParams);
     }
 }

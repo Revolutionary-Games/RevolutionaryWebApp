@@ -2,8 +2,8 @@
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
+@inject ComponentUrlHelper UrlHelper
 @using ThriveDevCenter.Shared
-@using System.Globalization
 @inherits PaginatedPage<ThriveDevCenter.Shared.LFSProjectInfo>
 
 <h3>Git LFS Projects</h3>
@@ -21,26 +21,26 @@ else
         <tr>
             <th scope="col" class="sort" @onclick="@(() => ChangeSort("Name"))">
                 Name
-                <span class="@Sort.SortClass("Name")"></span>
+                <span class="@SortClass("Name")"></span>
             </th>
             <th scope="col" class="sort" @onclick="@(() => ChangeSort("Public"))">
                 Public
-                <span class="@Sort.SortClass("Public")"></span>
+                <span class="@SortClass("Public")"></span>
             </th>
             <th scope="col" class="sort" @onclick="@(() => ChangeSort("Size"))">
                 Size
-                <span class="@Sort.SortClass("Size")"></span>
+                <span class="@SortClass("Size")"></span>
             </th>
             <th scope="col" class="sort" @onclick="@(() => ChangeSort("LastUpdated"))">
                 Last Modified
-                <span class="@Sort.SortClass("LastUpdated")"></span>
+                <span class="@SortClass("LastUpdated")"></span>
             </th>
         </tr>
         </thead>
         <tbody>
         @foreach (var item in Data.Results)
         {
-            <tr>
+            <tr @key="item.Name">
                 <td>@item.Name</td>
                 <td>@item.Public</td>
                 <td>@item.Size</td>
@@ -67,34 +67,24 @@ else
     {
     }
 
-    protected override async Task FetchData()
+    public override Task SetParametersAsync(ParameterView parameters)
     {
-        var requestParams = new Dictionary<string, string>
-        {
-            { "sortColumn", Sort.SortColumn },
-            { "sortDirection", Sort.Direction.ToString() },
-            { "page", Page.ToString(CultureInfo.InvariantCulture) },
-            { "pageSize", PageSize.ToString(CultureInfo.InvariantCulture) },
-        };
+        DefaultPageSize = 5;
 
-        var query = Http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    protected override Task<PagedResult<LFSProjectInfo>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
             QueryHelpers.AddQueryString("api/v1/LFSProject", requestParams));
+    }
 
-        // Remove default values
-        if (Page == 1)
-            requestParams.Remove("page");
-
-        if (Sort.SortColumn == DefaultSortColumn)
-            requestParams.Remove("sortColumn");
-
-        var targetUri = QueryHelpers.AddQueryString(NavManager.Uri.Split("?")[0], requestParams);
-
-        // Add new history entry if the uri would change
-        if (targetUri != NavManager.Uri)
-            await JS.InvokeVoidAsync("addToHistory", targetUri);
-
-        Data = await query;
-        StateHasChanged();
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
 }
