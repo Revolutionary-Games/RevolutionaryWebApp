@@ -2,10 +2,13 @@
 @using ThriveDevCenter.Shared
 @using System.Globalization
 @inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inherits PaginatedPage<LFSProjectInfo>
 
 <h3>Git LFS Projects</h3>
 
-@if (data == null)
+@if (Data == null)
 {
     <div class="spinner-border text-primary" role="status">
         <span class="sr-only">Loading...</span>
@@ -16,26 +19,26 @@ else
     <table class="table sortable table-striped table-hover table-responsive-sm">
         <thead class="thead-light">
         <tr>
-            <th scope="col" class="sort" @onclick="@(() => Sort("Name"))">
+            <th scope="col" class="sort" @onclick="@(() => ChangeSort("Name"))">
                 Name
-                <span class="@sort.SortClass("Name")"></span>
+                <span class="@Sort.SortClass("Name")"></span>
             </th>
-            <th scope="col" class="sort" @onclick="@(() => Sort("Public"))">
+            <th scope="col" class="sort" @onclick="@(() => ChangeSort("Public"))">
                 Public
-                <span class="@sort.SortClass("Public")"></span>
+                <span class="@Sort.SortClass("Public")"></span>
             </th>
-            <th scope="col" class="sort" @onclick="@(() => Sort("Size"))">
+            <th scope="col" class="sort" @onclick="@(() => ChangeSort("Size"))">
                 Size
-                <span class="@sort.SortClass("Size")"></span>
+                <span class="@Sort.SortClass("Size")"></span>
             </th>
-            <th scope="col" class="sort" @onclick="@(() => Sort("LastUpdated"))">
+            <th scope="col" class="sort" @onclick="@(() => ChangeSort("LastUpdated"))">
                 Last Modified
-                <span class="@sort.SortClass("LastUpdated")"></span>
+                <span class="@Sort.SortClass("LastUpdated")"></span>
             </th>
         </tr>
         </thead>
         <tbody>
-        @foreach (var item in data.Results)
+        @foreach (var item in Data.Results)
         {
             <tr>
                 <td>@item.Name</td>
@@ -46,46 +49,51 @@ else
         }
         </tbody>
     </table>
-    <BlazorPager CurrentPage="@data.CurrentPage"
-                 PageCount="@data.PageCount"
-                 OnPageChanged="(async e => { page = e; await FetchData();})"
+    <BlazorPager CurrentPage="@Data.CurrentPage"
+                 PageCount="@Data.PageCount"
+                 OnPageChanged="(async e => { Page = e; await FetchData();})"
                  ShowFirstLast="true"
                  ShowPageNumbers="true"
                  VisiblePages="5"
                  FirstText="&laquo;"
                  LastText="&raquo;"
                  NextText="&rsaquo;"
-                 PreviousText="&lsaquo;"/>
+                 PreviousText="&lsaquo;" />
 }
 
 @code {
-    private PagedResult<LFSProjectInfo> data;
-    private int page = 1;
-    private int pageSize = 5;
 
-    private readonly SortHelper sort = new SortHelper("Name", SortDirection.Descending);
-
-    public async void Sort(string column)
+    public LFSList() : base(new SortHelper("Name", SortDirection.Ascending))
     {
-        sort.ColumnClick(column);
-        await FetchData();
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task FetchData()
     {
-        await FetchData();
-    }
+        var requestParams = new Dictionary<string, string>
+        {
+            { "sortColumn", Sort.SortColumn },
+            { "sortDirection", Sort.Direction.ToString() },
+            { "page", Page.ToString(CultureInfo.InvariantCulture) },
+            { "pageSize", PageSize.ToString(CultureInfo.InvariantCulture) }
+        };
 
-    private async Task FetchData()
-    {
-        var requestParams = new Dictionary<string, string>();
-        requestParams.Add("sortColumn", sort.SortColumn);
-        requestParams.Add("sortDirection", sort.Direction.ToString());
-        requestParams.Add("page", page.ToString(CultureInfo.InvariantCulture));
-        requestParams.Add("pageSize", pageSize.ToString(CultureInfo.InvariantCulture));
-
-        data = await Http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
+        var query = Http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
             QueryHelpers.AddQueryString("api/v1/LFSProject", requestParams));
+
+        // Remove default values
+        if (Page == 1)
+            requestParams.Remove("page");
+
+        if (Sort.SortColumn == DefaultSortColumn)
+            requestParams.Remove("sortColumn");
+
+        var targetUri = QueryHelpers.AddQueryString(NavManager.Uri.Split("?")[0], requestParams);
+
+        // Add new history entry if the uri would change
+        if (targetUri != NavManager.Uri)
+            await JS.InvokeVoidAsync("addToHistory", targetUri);
+
+        Data = await query;
         StateHasChanged();
     }
 

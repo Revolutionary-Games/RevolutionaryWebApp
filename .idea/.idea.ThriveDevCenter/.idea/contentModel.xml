@@ -21,6 +21,7 @@
           <e p="MainLayout.razor.css" t="Include" />
           <e p="NavMenu.razor" t="Include" />
           <e p="NavMenu.razor.css" t="Include" />
+          <e p="PaginatedPage.cs" t="Include" />
           <e p="SortHelper.cs" t="Include" />
           <e p="SurveyPrompt.razor" t="Include" />
         </e>
@@ -61,6 +62,7 @@
           </e>
           <e p="favicon.ico" t="Include" />
           <e p="index.html" t="Include" />
+          <e p="interop.js" t="Include" />
         </e>
       </e>
       <e p="Server" t="IncludeRecursive">
