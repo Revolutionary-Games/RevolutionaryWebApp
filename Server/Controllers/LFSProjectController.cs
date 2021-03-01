@@ -25,7 +25,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var rng = new Random();
 
-            var result = Enumerable.Range(1, 22).Select(index => new LFSProjectInfo()
+            var result = Enumerable.Range(1, 122).Select(index => new LFSProjectInfo()
             {
                 Name = "Project_" + index,
                 Public = true,
