@@ -1,10 +1,10 @@
 @page "/lfs"
-@using ThriveDevCenter.Shared
-@using System.Globalization
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
-@inherits PaginatedPage<LFSProjectInfo>
+@using ThriveDevCenter.Shared
+@using System.Globalization
+@inherits PaginatedPage<ThriveDevCenter.Shared.LFSProjectInfo>
 
 <h3>Git LFS Projects</h3>
 
@@ -51,7 +51,7 @@ else
     </table>
     <BlazorPager CurrentPage="@Data.CurrentPage"
                  PageCount="@Data.PageCount"
-                 OnPageChanged="(async e => { Page = e; await FetchData();})"
+                 OnPageChanged="async e => { Page = e; await FetchData();}"
                  ShowFirstLast="true"
                  ShowPageNumbers="true"
                  VisiblePages="5"
@@ -74,7 +74,7 @@ else
             { "sortColumn", Sort.SortColumn },
             { "sortDirection", Sort.Direction.ToString() },
             { "page", Page.ToString(CultureInfo.InvariantCulture) },
-            { "pageSize", PageSize.ToString(CultureInfo.InvariantCulture) }
+            { "pageSize", PageSize.ToString(CultureInfo.InvariantCulture) },
         };
 
         var query = Http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
