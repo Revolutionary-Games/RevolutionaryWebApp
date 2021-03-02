@@ -1,0 +1,136 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Timers
+@using ThriveDevCenter.Shared
+@inject NavigationManager NavManager
+@implements IAsyncDisposable
+
+@if (!string.IsNullOrEmpty(notification))
+{
+    <div class="alert @notificationType.AlertClass()" role="alert">
+        <strong>Site Notice:</strong> @notification
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"
+                @onclick="DismissNotification" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+@if (versionMismatch)
+{
+    <div class="alert alert-danger" role="alert">
+        This version of the app is outdated please
+        <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload</a>.
+    </div>
+}
+
+@if (showConnectionLost)
+{
+    <div class="alert alert-warning" role="alert">
+        Connection to the server has been lost.
+
+        @if (reconnectEnabled)
+        {
+            <span class="spinner-border spinner-border-sm text-secondary m-1" role="status"></span>
+            <span>Reconnecting...</span>
+        }
+
+        <a href="#" class="alert-link m-1" @onclick="ForceReload" @onclick:preventDefault="true">refresh</a>
+    </div>
+}
+
+@code {
+    private HubConnection hubConnection;
+    private string notification;
+    private SiteNoticeType notificationType;
+
+    private bool versionMismatch = false;
+    private bool showConnectionLost = false;
+    private bool reconnectEnabled = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri(
+                $"/notifications?majorVersion={AppVersion.Major}&minorVersion={AppVersion.Minor}"))
+            .WithAutomaticReconnect(new TimeSpan[]
+            {
+                TimeSpan.FromSeconds(0),
+                TimeSpan.FromSeconds(2),
+                TimeSpan.FromSeconds(10),
+                TimeSpan.FromSeconds(30),
+                TimeSpan.FromSeconds(60),
+                TimeSpan.FromSeconds(90),
+                TimeSpan.FromSeconds(120),
+                TimeSpan.FromSeconds(500),
+            })
+            .Build();
+
+        hubConnection.On<SiteNoticeType, string>("ReceiveSiteNotice", (type, message) =>
+        {
+            notification = message;
+            notificationType = type;
+
+            StateHasChanged();
+        });
+
+        hubConnection.On("ReceiveSessionInvalidation", async () =>
+        {
+            reconnectEnabled = false;
+            await hubConnection.StopAsync();
+
+            // Force reload as our session should be invalid now so we need to reopen everything as non-authenticated user
+            ForceReload();
+        });
+
+        hubConnection.On("ReceiveVersionMismatch", () =>
+        {
+            versionMismatch = true;
+            StateHasChanged();
+        });
+
+        hubConnection.Reconnecting += error =>
+        {
+            showConnectionLost = true;
+            StateHasChanged();
+
+            return Task.CompletedTask;
+        };
+
+        hubConnection.Reconnected += newId =>
+        {
+            showConnectionLost = false;
+            StateHasChanged();
+
+            return Task.CompletedTask;
+        };
+
+        hubConnection.Closed += error =>
+        {
+            showConnectionLost = true;
+            reconnectEnabled = false;
+            StateHasChanged();
+
+            return Task.CompletedTask;
+        };
+
+        await hubConnection.StartAsync();
+    }
+
+    public bool IsConnected => hubConnection.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        await hubConnection.DisposeAsync();
+    }
+
+    private void ForceReload()
+    {
+        NavManager.NavigateTo(NavManager.Uri, true);
+    }
+
+    private void DismissNotification()
+    {
+        notification = string.Empty;
+    }
+
+}

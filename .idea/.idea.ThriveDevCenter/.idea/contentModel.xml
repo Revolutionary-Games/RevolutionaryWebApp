@@ -24,6 +24,7 @@
           <e p="NavMenu.razor.css" t="Include" />
           <e p="PaginatedPage.cs" t="Include" />
           <e p="QueryStringParameterHelper.cs" t="Include" />
+          <e p="SiteNotifications.razor" t="Include" />
           <e p="SortHelper.cs" t="Include" />
           <e p="SurveyPrompt.razor" t="Include" />
         </e>
@@ -102,8 +103,10 @@
         </e>
       </e>
       <e p="Shared" t="IncludeRecursive">
+        <e p="AppVersion.cs" t="Include" />
         <e p="LFSProjectInfo.cs" t="Include" />
         <e p="LinqHelpers.cs" t="Include" />
+        <e p="SiteNoticeType.cs" t="Include" />
         <e p="SortDirection.cs" t="Include" />
         <e p="ThriveDevCenter.Shared.csproj" t="IncludeRecursive" />
         <e p="WeatherForecast.cs" t="Include" />
