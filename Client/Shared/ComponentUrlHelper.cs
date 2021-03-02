@@ -22,11 +22,12 @@ namespace ThriveDevCenter.Client.Shared
         {
             var targetUri = QueryHelpers.AddQueryString(navigationManager.Uri.Split("?")[0], newQueryParams);
 
-            // TODO: remove
-            Console.WriteLine($"current uri : {navigationManager.Uri}");
+            // Need to ask the current url from javascript as navigationManager.Uri sometimes returns
+            // the *new* url somehow
+            var currentUrl = await jsRuntime.InvokeAsync<string>("getCurrentURL");
 
             // Add new history entry if the uri would change
-            if (targetUri != navigationManager.Uri)
+            if (targetUri != currentUrl)
                 await jsRuntime.InvokeVoidAsync("addToHistory", targetUri);
         }
     }
