@@ -55,6 +55,7 @@ namespace ThriveDevCenter.Server.Hubs
 
         public Task LeaveGroup(string groupName)
         {
+            // TODO: does this need also group checking?
             return Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         }
 

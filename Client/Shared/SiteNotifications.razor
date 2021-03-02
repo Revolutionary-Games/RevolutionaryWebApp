@@ -96,12 +96,13 @@
             return Task.CompletedTask;
         };
 
-        hubConnection.Reconnected += newId =>
+        hubConnection.Reconnected += async newId =>
         {
+            // Groups need to be re-joined after connection is recreated
+            await hubConnection.InvokeAsync("JoinGroup", "LFS");
+
             showConnectionLost = false;
             StateHasChanged();
-
-            return Task.CompletedTask;
         };
 
         hubConnection.Closed += error =>
@@ -113,7 +114,18 @@
             return Task.CompletedTask;
         };
 
-        await hubConnection.StartAsync();
+        try
+        {
+            await hubConnection.StartAsync();
+        }
+        catch
+        {
+            showConnectionLost = true;
+            reconnectEnabled = false;
+            StateHasChanged();
+        }
+
+        await hubConnection.InvokeAsync("JoinGroup", "LFS");
     }
 
     public bool IsConnected => hubConnection.State == HubConnectionState.Connected;
