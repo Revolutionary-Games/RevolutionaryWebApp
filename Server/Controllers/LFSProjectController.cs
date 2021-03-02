@@ -6,18 +6,23 @@ using Microsoft.Extensions.Logging;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using System.Threading.Tasks;
     using BlazorPagination;
+    using Hubs;
+    using Microsoft.AspNetCore.SignalR;
     using Shared;
 
     [ApiController]
     [Route("api/v1/[controller]")]
     public class LFSProjectController : Controller
     {
-        private readonly ILogger<LFSProjectController> _logger;
+        private readonly ILogger<LFSProjectController> logger;
+        private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
-        public LFSProjectController(ILogger<LFSProjectController> logger)
+        public LFSProjectController(ILogger<LFSProjectController> logger, IHubContext<NotificationsHub, INotifications> notifications)
         {
-            _logger = logger;
+            this.logger = logger;
+            this.notifications = notifications;
         }
 
         [HttpGet]
@@ -35,6 +40,12 @@ namespace ThriveDevCenter.Server.Controllers
             }).AsQueryable().OrderBy(sortColumn, sortDirection);
 
             return result.ToPagedResult(page, pageSize);
+        }
+
+        private async Task ReportUpdatedProject(LFSProjectInfo item)
+        {
+            // For now LFS list and individual LFS info pages use the same group
+            await notifications.Clients.Group("LFS").ReceiveUpdatedLFS(item);
         }
     }
 }

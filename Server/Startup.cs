@@ -8,6 +8,8 @@ using System.Linq;
 
 namespace ThriveDevCenter.Server
 {
+    using Hubs;
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -23,6 +25,7 @@ namespace ThriveDevCenter.Server
         {
             services.AddControllersWithViews();
             services.AddRazorPages();
+            services.AddSignalR();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -47,6 +50,7 @@ namespace ThriveDevCenter.Server
             {
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
+                endpoints.MapHub<NotificationsHub>("/notifications");
                 endpoints.MapFallbackToFile("index.html");
             });
         }

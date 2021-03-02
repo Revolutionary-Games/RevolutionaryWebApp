@@ -70,7 +70,11 @@
       <e p="Server" t="IncludeRecursive">
         <e p="Controllers" t="Include">
           <e p="LFSProjectController.cs" t="Include" />
+          <e p="UserManagementController.cs" t="Include" />
           <e p="WeatherForecastController.cs" t="Include" />
+        </e>
+        <e p="Hubs" t="Include">
+          <e p="NotificationsHub.cs" t="Include" />
         </e>
         <e p="Pages" t="Include">
           <e p="Error.cshtml" t="Include" />
