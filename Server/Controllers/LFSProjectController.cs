@@ -19,7 +19,8 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly ILogger<LFSProjectController> logger;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
-        public LFSProjectController(ILogger<LFSProjectController> logger, IHubContext<NotificationsHub, INotifications> notifications)
+        public LFSProjectController(ILogger<LFSProjectController> logger,
+            IHubContext<NotificationsHub, INotifications> notifications)
         {
             this.logger = logger;
             this.notifications = notifications;
