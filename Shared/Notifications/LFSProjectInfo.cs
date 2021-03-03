@@ -1,8 +1,9 @@
-namespace ThriveDevCenter.Shared
+namespace ThriveDevCenter.Shared.Notifications
 {
     using System;
 
-    public class LFSProjectInfo
+    // TODO: rename this to change event
+    public class LFSProjectInfo : SerializedNotification
     {
         public string Name { get; set; }
 

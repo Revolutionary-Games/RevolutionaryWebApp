@@ -11,6 +11,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
     using Shared;
+    using Shared.Notifications;
 
     [ApiController]
     [Route("api/v1/[controller]")]
@@ -27,7 +28,8 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet]
-        public PagedResult<LFSProjectInfo> Get(string sortColumn, SortDirection sortDirection, int page, int pageSize)
+        public PagedResult<LFSProjectInfo> Get(string sortColumn, SortDirection sortDirection, int page,
+            int pageSize)
         {
             var rng = new Random();
 
@@ -40,13 +42,31 @@ namespace ThriveDevCenter.Server.Controllers
                 CreatedAt = DateTime.Now - TimeSpan.FromSeconds(rng.Next(1000, 10000)),
             }).AsQueryable().OrderBy(sortColumn, sortDirection);
 
+            // TODO: remove
+            notifications.Clients.All.ReceiveSiteNotice(SiteNoticeType.Primary, "page opened: " + page).Wait();
+
+            // notifications.Clients.All.ReceiveNotification(result.First()).Wait();
+            notifications.Clients.All.ReceiveNotification(
+                new LFSProjectInfo()
+                {
+                    Name = "something",
+                    Public = true,
+                    Size = 123,
+                    CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
+                    LastUpdated = DateTime.Parse("2021-01-02T06:15:00"),
+                }
+            ).Wait();
+
+            // await ReportUpdatedProject(result.First());
+
             return result.ToPagedResult(page, pageSize);
         }
 
         private async Task ReportUpdatedProject(LFSProjectInfo item)
         {
             // For now LFS list and individual LFS info pages use the same group
-            await notifications.Clients.Group("LFS").ReceiveUpdatedLFS(item);
+            // await notifications.Clients.Group(NotificationGroups.LFSListUpdated).ReceiveNotification(item);
+            await notifications.Clients.All.ReceiveNotification(item);
         }
     }
 }

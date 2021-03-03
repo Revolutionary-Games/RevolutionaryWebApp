@@ -3,6 +3,10 @@
   <component name="ContentModelStore">
     <e p="$USER_HOME$/.cache/JetBrains/Rider2020.3/extResources" t="IncludeRecursive" />
     <e p="$USER_HOME$/.cache/JetBrains/Rider2020.3/resharper-host/local/Transient/Rider/v203/SolutionCaches/_ThriveDevCenter.−1693860652.00" t="ExcludeRecursive" />
+    <e p="$USER_HOME$/.nuget/packages/microsoft.net.test.sdk/16.9.1/build/netcoreapp2.1" t="Include">
+      <e p="Microsoft.NET.Test.Sdk.Program.cs" t="Include" />
+    </e>
+    <e p="$USER_HOME$/.nuget/packages/microsoft.testplatform.testhost/16.9.1/build/netcoreapp2.1/Microsoft.TestPlatform.PlatformAbstractions.dll" t="Include" />
     <e p="$PROJECT_DIR$" t="IncludeFlat">
       <e p="Client" t="IncludeRecursive">
         <e p="App.razor" t="Include" />
@@ -18,10 +22,13 @@
         </e>
         <e p="Shared" t="Include">
           <e p="ComponentUrlHelper.cs" t="Include" />
+          <e p="INotificationHandler.cs" t="Include" />
+          <e p="JavaScriptConsoleLogger.cs" t="Include" />
           <e p="MainLayout.razor" t="Include" />
           <e p="MainLayout.razor.css" t="Include" />
           <e p="NavMenu.razor" t="Include" />
           <e p="NavMenu.razor.css" t="Include" />
+          <e p="NotificationHandler.cs" t="Include" />
           <e p="PaginatedPage.cs" t="Include" />
           <e p="QueryStringParameterHelper.cs" t="Include" />
           <e p="SiteNotifications.razor" t="Include" />
@@ -104,8 +111,15 @@
       </e>
       <e p="Shared" t="IncludeRecursive">
         <e p="AppVersion.cs" t="Include" />
-        <e p="LFSProjectInfo.cs" t="Include" />
         <e p="LinqHelpers.cs" t="Include" />
+        <e p="Notifications" t="Include">
+          <e p="LFSProjectInfo.cs" t="Include" />
+          <e p="NotificationGroups.cs" t="Include" />
+          <e p="SerializedNotification.cs" t="Include" />
+        </e>
+        <e p="Notifications.Tests" t="Include">
+          <e p="NotificationsSerializationTest.cs" t="Include" />
+        </e>
         <e p="SiteNoticeType.cs" t="Include" />
         <e p="SortDirection.cs" t="Include" />
         <e p="ThriveDevCenter.Shared.csproj" t="IncludeRecursive" />

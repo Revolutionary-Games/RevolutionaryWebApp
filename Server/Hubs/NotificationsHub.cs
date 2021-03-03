@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Hubs
     using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Primitives;
     using Shared;
+    using Shared.Notifications;
 
     public class NotificationsHub : Hub<INotifications>
     {
@@ -45,6 +46,7 @@ namespace ThriveDevCenter.Server.Hubs
             }
 
             await base.OnConnectedAsync();
+            await Clients.Caller.ReceiveSiteNotice(SiteNoticeType.Primary, "hey you connected");
         }
 
         public Task JoinGroup(string groupName)
@@ -61,15 +63,19 @@ namespace ThriveDevCenter.Server.Hubs
 
         public Task SendSiteNotice(SiteNoticeType type, string message)
         {
+            // TODO: needs to be restricted to admin
             return Clients.All.ReceiveSiteNotice(type, message);
         }
     }
 
     public interface INotifications
     {
+        // These are general connection related things sent
         Task ReceiveSiteNotice(SiteNoticeType type, string message);
-        Task ReceiveUpdatedLFS(LFSProjectInfo item);
         Task ReceiveSessionInvalidation();
         Task ReceiveVersionMismatch();
+
+        // All event types are sent through this to ensure proper serialization
+        Task ReceiveNotification(SerializedNotification notification);
     }
 }

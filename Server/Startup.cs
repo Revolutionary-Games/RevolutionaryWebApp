@@ -9,6 +9,7 @@ using System.Linq;
 namespace ThriveDevCenter.Server
 {
     using Hubs;
+    using Shared.Notifications;
 
     public class Startup
     {
@@ -23,7 +24,8 @@ namespace ThriveDevCenter.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSignalR();
+            services.AddSignalR().AddJsonProtocol(o =>
+                o.PayloadSerializerOptions.Converters.Add(new NotificationJsonConverter()));
             services.AddControllersWithViews();
             services.AddRazorPages();
 
@@ -47,6 +49,7 @@ namespace ThriveDevCenter.Server
             else
             {
                 app.UseExceptionHandler("/Error");
+
                 // app.UseHsts();
             }
 

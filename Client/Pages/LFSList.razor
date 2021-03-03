@@ -3,8 +3,13 @@
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
 @inject ComponentUrlHelper UrlHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
-@inherits PaginatedPage<ThriveDevCenter.Shared.LFSProjectInfo>
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@implements INotificationHandler<LFSProjectInfo>
+@implements IDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Notifications.LFSProjectInfo>
 
 <h3>Git LFS Projects</h3>
 
@@ -67,6 +72,12 @@ else
     {
     }
 
+    protected override Task OnInitializedAsync()
+    {
+        NotificationHandler.Register(this);
+        return base.OnInitializedAsync();
+    }
+
     public override Task SetParametersAsync(ParameterView parameters)
     {
         DefaultPageSize = 5;
@@ -74,6 +85,17 @@ else
         this.SetParametersFromQueryString(NavManager);
 
         return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(LFSProjectInfo notification, CancellationToken cancellationToken)
+    {
+        Console.WriteLine("Got LFS project notification");
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<LFSProjectInfo>> StartQuery(Dictionary<string, string> requestParams)
@@ -86,5 +108,4 @@ else
     {
         await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
-
 }

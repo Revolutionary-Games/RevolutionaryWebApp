@@ -2,11 +2,12 @@
 @using System.Timers
 @using ThriveDevCenter.Shared
 @inject NavigationManager NavManager
-@implements IAsyncDisposable
+@inject NotificationHandler NotificationHandler
+@implements IDisposable
 
 @if (!string.IsNullOrEmpty(notification))
 {
-    <div class="alert @notificationType.AlertClass()" role="alert">
+    <div class="alert @NotificationHandler.CurrentNoticeType.AlertClass()" role="alert">
         <strong>Site Notice:</strong> @notification
         <button type="button" class="close" data-dismiss="alert" aria-label="Close"
                 @onclick="DismissNotification" @onclick:preventDefault="true" @onclick:stopPropagation="true">
@@ -15,7 +16,7 @@
     </div>
 }
 
-@if (versionMismatch)
+@if (NotificationHandler.VersionMisMatch)
 {
     <div class="alert alert-danger" role="alert">
         This version of the app is outdated please
@@ -23,12 +24,12 @@
     </div>
 }
 
-@if (showConnectionLost)
+@if (NotificationHandler.ConnectionLost)
 {
     <div class="alert alert-warning" role="alert">
         Connection to the server has been lost.
 
-        @if (reconnectEnabled)
+        @if (!NotificationHandler.ConnectionPermanentlyLost)
         {
             <span class="spinner-border spinner-border-sm text-secondary m-1" role="status"></span>
             <span>Reconnecting...</span>
@@ -39,110 +40,56 @@
 }
 
 @code {
-    private HubConnection hubConnection;
     private string notification;
-    private SiteNoticeType notificationType;
 
-    private bool versionMismatch = false;
-    private bool showConnectionLost = false;
-    private bool reconnectEnabled = true;
-
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavManager.ToAbsoluteUri(
-                $"/notifications?majorVersion={AppVersion.Major}&minorVersion={AppVersion.Minor}"))
-            .WithAutomaticReconnect(new TimeSpan[]
-            {
-                TimeSpan.FromSeconds(0),
-                TimeSpan.FromSeconds(2),
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(30),
-                TimeSpan.FromSeconds(60),
-                TimeSpan.FromSeconds(90),
-                TimeSpan.FromSeconds(120),
-                TimeSpan.FromSeconds(500),
-            })
-            .Build();
+        // Register for changes
+        NotificationHandler.OnVersionMismatch += OnVersionMismatch;
+        NotificationHandler.OnConnectionStatusChanged += OnConnectionChanged;
+        NotificationHandler.OnConnectionRetryModeChanged += OnConnectionChanged;
+        NotificationHandler.OnSiteNoticeReceived += OnSiteNotice;
 
-        hubConnection.On<SiteNoticeType, string>("ReceiveSiteNotice", (type, message) =>
-        {
-            notification = message;
-            notificationType = type;
+        // And read initial status
+        // TODO: can this be out of order so that we need to immediately call StateHasChanged?
+        notification = NotificationHandler.CurrentNotice;
 
-            StateHasChanged();
-        });
-
-        hubConnection.On("ReceiveSessionInvalidation", async () =>
-        {
-            reconnectEnabled = false;
-            await hubConnection.StopAsync();
-
-            // Force reload as our session should be invalid now so we need to reopen everything as non-authenticated user
-            ForceReload();
-        });
-
-        hubConnection.On("ReceiveVersionMismatch", () =>
-        {
-            versionMismatch = true;
-            StateHasChanged();
-        });
-
-        hubConnection.Reconnecting += error =>
-        {
-            showConnectionLost = true;
-            StateHasChanged();
-
-            return Task.CompletedTask;
-        };
-
-        hubConnection.Reconnected += async newId =>
-        {
-            // Groups need to be re-joined after connection is recreated
-            await hubConnection.InvokeAsync("JoinGroup", "LFS");
-
-            showConnectionLost = false;
-            StateHasChanged();
-        };
-
-        hubConnection.Closed += error =>
-        {
-            showConnectionLost = true;
-            reconnectEnabled = false;
-            StateHasChanged();
-
-            return Task.CompletedTask;
-        };
-
-        try
-        {
-            await hubConnection.StartAsync();
-        }
-        catch
-        {
-            showConnectionLost = true;
-            reconnectEnabled = false;
-            StateHasChanged();
-        }
-
-        await hubConnection.InvokeAsync("JoinGroup", "LFS");
+        return Task.CompletedTask;
     }
 
-    public bool IsConnected => hubConnection.State == HubConnectionState.Connected;
-
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await hubConnection.DisposeAsync();
+        NotificationHandler.OnVersionMismatch -= OnVersionMismatch;
+        NotificationHandler.OnConnectionStatusChanged -= OnConnectionChanged;
+        NotificationHandler.OnConnectionRetryModeChanged -= OnConnectionChanged;
+        NotificationHandler.OnSiteNoticeReceived -= OnSiteNotice;
     }
 
-    private void ForceReload()
+    private async void OnVersionMismatch(object sender, EventArgs e)
     {
-        NavManager.NavigateTo(NavManager.Uri, true);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnConnectionChanged(object sender, bool e)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnSiteNotice(object sender, (SiteNoticeType, string) e)
+    {
+        notification = e.Item2;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void DismissNotification()
     {
         notification = string.Empty;
+    }
+
+    // TODO: combine all the ForceReload implementations, perhaps an extension method on NavManager?
+    private void ForceReload()
+    {
+        NavManager.NavigateTo(NavManager.Uri, true);
     }
 
 }

@@ -23,10 +23,20 @@ namespace ThriveDevCenter.Client
 
             builder.Services.AddScoped(sp => new HttpClient
                 { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-            builder.Services.AddScoped(sp => new ComponentUrlHelper((IJSRuntime)sp.GetService(typeof(IJSRuntime)),
-                (NavigationManager)sp.GetService(typeof(NavigationManager))));
+            builder.Services.AddScoped(sp => new ComponentUrlHelper(
+                sp.GetRequiredService<IJSRuntime>(),
+                sp.GetRequiredService<NavigationManager>()));
+            builder.Services.AddSingleton(sp =>
+                new NotificationHandler(sp.GetRequiredService<NavigationManager>()));
 
-            await builder.Build().RunAsync();
+            var app = builder.Build();
+
+            // Setup hub connection as soon as we are able
+            // TODO: should this wait here? If not waited here we need a separate system that queues group
+            // subscriptions before this is ready
+            await app.Services.GetRequiredService<NotificationHandler>().StartConnection();
+
+            await app.RunAsync();
         }
     }
 }
