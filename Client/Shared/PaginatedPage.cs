@@ -51,7 +51,12 @@ namespace ThriveDevCenter.Client.Shared
         /// <summary>
         ///   True when fetching new data. Can be used for example to show a loading spinner
         /// </summary>
-        public bool FetchInProgress { get; protected set; } = false;
+        public bool FetchInProgress { get; protected set; }
+
+        /// <summary>
+        ///   True when fetching status should be shown to the user
+        /// </summary>
+        public bool VisibleFetchInProgress { get; protected set; }
 
         protected readonly SortHelper Sort;
 
@@ -68,6 +73,12 @@ namespace ThriveDevCenter.Client.Shared
         {
             Sort.ColumnClick(column);
             await FetchData();
+        }
+
+        public Task ChangePage(int page)
+        {
+            Page = page;
+            return FetchData();
         }
 
         public string SortClass(string currentColumn)
@@ -88,9 +99,12 @@ namespace ThriveDevCenter.Client.Shared
             await FetchData();
         }
 
-        protected async Task FetchData()
+        protected async Task FetchData(bool hidden = false)
         {
             FetchInProgress = true;
+            if (!hidden)
+                VisibleFetchInProgress = true;
+
             var requestParams = CreatePageRequestParams();
 
             var query = StartQuery(requestParams);
@@ -102,6 +116,7 @@ namespace ThriveDevCenter.Client.Shared
             StateHasChanged();
             Data = await query;
             FetchInProgress = false;
+            VisibleFetchInProgress = false;
             StateHasChanged();
         }
 

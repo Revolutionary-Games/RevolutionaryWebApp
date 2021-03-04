@@ -13,36 +13,13 @@
 
 <h3>Git LFS Projects</h3>
 
-@if (Data == null)
-{
-    <div class="spinner-border text-primary" role="status">
-        <span class="sr-only">Loading...</span>
-    </div>
-}
-else
-{
-    <table class="table sortable table-striped table-hover table-responsive-sm">
-        <thead class="thead-light">
-        <tr>
-            <th scope="col" class="sort" @onclick="@(() => ChangeSort("Name"))">
-                Name
-                <span class="@SortClass("Name")"></span>
-            </th>
-            <th scope="col" class="sort" @onclick="@(() => ChangeSort("Public"))">
-                Public
-                <span class="@SortClass("Public")"></span>
-            </th>
-            <th scope="col" class="sort" @onclick="@(() => ChangeSort("Size"))">
-                Size
-                <span class="@SortClass("Size")"></span>
-            </th>
-            <th scope="col" class="sort" @onclick="@(() => ChangeSort("LastUpdated"))">
-                Last Modified
-                <span class="@SortClass("LastUpdated")"></span>
-            </th>
-        </tr>
-        </thead>
-        <tbody>
+<PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                OnPageChanged="async (e) => await ChangePage(e)"
+                OnSortChanged="async (column) => await ChangeSort(column)"
+                GetSortClass="@SortClass"
+                Columns="@columns">
+    @if (Data != null)
+    {
         @foreach (var item in Data.Results)
         {
             <tr @key="item.Name">
@@ -52,21 +29,18 @@ else
                 <td>@item.LastUpdated.ToLocalTime().ToString("G")</td>
             </tr>
         }
-        </tbody>
-    </table>
-    <BlazorPager CurrentPage="@Data.CurrentPage"
-                 PageCount="@Data.PageCount"
-                 OnPageChanged="async e => { Page = e; await FetchData();}"
-                 ShowFirstLast="true"
-                 ShowPageNumbers="true"
-                 VisiblePages="5"
-                 FirstText="&laquo;"
-                 LastText="&raquo;"
-                 NextText="&rsaquo;"
-                 PreviousText="&lsaquo;" />
-}
+    }
+</PaginatedTable>
 
 @code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true),
+        new TableColumn("Public", true),
+        new TableColumn("Size", true),
+        new TableColumn("Last Updated", true)
+    };
 
     public LFSList() : base(new SortHelper("Name", SortDirection.Ascending))
     {
@@ -90,6 +64,8 @@ else
     public Task Handle(LFSProjectInfo notification, CancellationToken cancellationToken)
     {
         Console.WriteLine("Got LFS project notification");
+
+    // InvokeAsync(() => StateHasChanged());
         return Task.CompletedTask;
     }
 

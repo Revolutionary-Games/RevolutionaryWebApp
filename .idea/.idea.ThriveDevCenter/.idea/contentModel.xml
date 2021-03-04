@@ -30,10 +30,12 @@
           <e p="NavMenu.razor.css" t="Include" />
           <e p="NotificationHandler.cs" t="Include" />
           <e p="PaginatedPage.cs" t="Include" />
+          <e p="PaginatedTable.razor" t="Include" />
           <e p="QueryStringParameterHelper.cs" t="Include" />
           <e p="SiteNotifications.razor" t="Include" />
           <e p="SortHelper.cs" t="Include" />
           <e p="SurveyPrompt.razor" t="Include" />
+          <e p="TableColumn.cs" t="Include" />
         </e>
         <e p="ThriveDevCenter.Client.csproj" t="IncludeRecursive" />
         <e p="_Imports.razor" t="Include" />

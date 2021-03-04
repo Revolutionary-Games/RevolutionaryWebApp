@@ -1,0 +1,79 @@
+<div>
+    <table class="table sortable table-striped table-hover table-responsive-sm">
+        <thead class="thead-light">
+        <tr>
+
+            @foreach (var column in Columns)
+            {
+                <th scope="col" class="@(column.IsSortable ? "sort" : "")"
+                    @onclick="@(async () => {if (column.IsSortable) await OnSortChanged.InvokeAsync(column.Name);})">
+                    Name
+
+                    @if (column.IsSortable)
+                    {
+                        <span class="@GetSortClass.Invoke("Name")"></span>
+                    }
+                </th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+            @ChildContent
+        </tbody>
+    </table>
+
+    @if (ShowPaginator)
+    {
+        <BlazorPager CurrentPage="@(CurrentPage ?? 0)"
+                     PageCount="@(PageCount ?? 1)"
+                     OnPageChanged="async e => { await OnPageChanged.InvokeAsync(e); }"
+                     ShowFirstLast="true"
+                     ShowPageNumbers="true"
+                     VisiblePages="5"
+                     FirstText="&laquo;"
+                     LastText="&raquo;"
+                     NextText="&rsaquo;"
+                     PreviousText="&lsaquo;" />
+    }
+    else
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+
+    public delegate string CalculateSortClass(string column);
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    ///   When true shows the paginator and CurrentPage etc. should be fine. When false shows a spinner
+    /// </summary>
+    [Parameter]
+    public bool ShowPaginator { get; set; }
+
+    [Parameter]
+    public int? CurrentPage { get; set; }
+
+    [Parameter]
+    public int? PageCount { get; set; }
+
+    [Parameter]
+    public List<TableColumn> Columns { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnPageChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnSortChanged { get; set; }
+
+    [Parameter]
+    public CalculateSortClass GetSortClass { get; set; }
+
+}
