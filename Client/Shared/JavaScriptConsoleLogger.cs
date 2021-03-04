@@ -5,10 +5,17 @@ namespace ThriveDevCenter.Client.Shared
 
     public class JavaScriptConsoleLogger : ILogger
     {
+        private readonly string categoryName;
+
+        public JavaScriptConsoleLogger(string categoryName)
+        {
+            this.categoryName = categoryName;
+        }
+
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception,
             Func<TState, Exception, string> formatter)
         {
-            Console.WriteLine(formatter(state, exception));
+            Console.WriteLine(categoryName + ": " + formatter(state, exception));
         }
 
         public bool IsEnabled(LogLevel logLevel)
@@ -27,8 +34,7 @@ namespace ThriveDevCenter.Client.Shared
 
         public ILogger CreateLogger(string categoryName)
         {
-            // TODO: maybe could preserve the category as a prefix
-            return new JavaScriptConsoleLogger();
+            return new JavaScriptConsoleLogger(categoryName);
         }
     }
 }

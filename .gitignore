@@ -42,3 +42,4 @@ yarn-debug.log*
 # C#
 bin
 obj
+/ThriveDevCenter.sln.DotSettings.user

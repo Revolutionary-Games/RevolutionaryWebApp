@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Hubs
 {
     using System;
+    using System.Text.Json;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Primitives;
@@ -46,7 +47,9 @@ namespace ThriveDevCenter.Server.Hubs
             }
 
             await base.OnConnectedAsync();
-            await Clients.Caller.ReceiveSiteNotice(SiteNoticeType.Primary, "hey you connected");
+
+            // TODO: could send some user specific notices here
+            // await Clients.Caller.ReceiveSiteNotice(SiteNoticeType.Primary, "hey you connected");
         }
 
         public Task JoinGroup(string groupName)
@@ -75,7 +78,24 @@ namespace ThriveDevCenter.Server.Hubs
         Task ReceiveSessionInvalidation();
         Task ReceiveVersionMismatch();
 
-        // All event types are sent through this to ensure proper serialization
-        Task ReceiveNotification(SerializedNotification notification);
+        // Directly sending SerializedNotification doesn't work so we hack around that by manually serializing it
+        // to a string before sending
+        Task ReceiveNotificationJSON(string json);
+    }
+
+    public static class NotificationHelpers
+    {
+        private static readonly NotificationJsonConverter Converter = new NotificationJsonConverter();
+
+        /// <summary>
+        ///   Send all SerializedNotification derived classes through this extension method
+        /// </summary>
+        public static Task ReceiveNotification(this INotifications receiver, SerializedNotification notification)
+        {
+            var serialized =
+                JsonSerializer.Serialize(notification, new JsonSerializerOptions() { Converters = { Converter } });
+
+            return receiver.ReceiveNotificationJSON(serialized);
+        }
     }
 }

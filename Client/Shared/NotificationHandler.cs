@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Client.Shared
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Components;
@@ -14,8 +15,12 @@ namespace ThriveDevCenter.Client.Shared
 
     public class NotificationHandler : IAsyncDisposable
     {
+        private const bool FullMessageLogging = false;
+
         private readonly NavigationManager navManager;
         private readonly Dictionary<Type, List<(object, Func<SerializedNotification, Task>)>> handlers = new();
+
+        private readonly NotificationJsonConverter converter = new NotificationJsonConverter();
 
         private HubConnection hubConnection;
 
@@ -128,48 +133,40 @@ namespace ThriveDevCenter.Client.Shared
         private async Task ForwardNotification(SerializedNotification notification)
         {
             var notificationType = notification.GetType();
-            Console.WriteLine("Got notification: " + notificationType);
 
-            try
+            List<(object, Func<SerializedNotification, Task>)> filtered;
+
+            lock (handlers)
             {
-                List<(object, Func<SerializedNotification, Task>)> filtered;
-
-                lock (handlers)
+                if (!handlers.TryGetValue(notificationType, out filtered))
                 {
-                    if (!handlers.TryGetValue(notificationType, out filtered))
-                    {
-                        return;
-                    }
+                    return;
                 }
-
-                // TODO: is it bad that all of the tasks are started at once?
-                var tasks = new List<Task>();
-
-                lock (filtered)
-                {
-                    foreach (var item in filtered)
-                    {
-                        tasks.Add(item.Item2(notification));
-                    }
-                }
-
-                await Task.WhenAll(tasks);
             }
-            catch (Exception e)
+
+            // TODO: is it bad that all of the tasks are started at once?
+            var tasks = new List<Task>();
+
+            lock (filtered)
             {
-                // TODO: is this needed? one tutorial said that signalr has bad error reporting by default
-                await Console.Error.WriteLineAsync(e + " " + e.StackTrace);
-
-                throw;
+                foreach (var item in filtered)
+                {
+                    tasks.Add(item.Item2(notification));
+                }
             }
+
+            await Task.WhenAll(tasks);
         }
 
         public async Task StartConnection()
         {
+#pragma warning disable 0162 // unreachable code caused by const
+
+            // TODO: look into enabling message pack protocol
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(navManager.ToAbsoluteUri(
                     $"/notifications?majorVersion={AppVersion.Major}&minorVersion={AppVersion.Minor}"))
-                .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new NotificationJsonConverter()))
+                .AddJsonProtocol()
                 .WithAutomaticReconnect(new TimeSpan[]
                 {
                     TimeSpan.FromSeconds(0),
@@ -182,11 +179,13 @@ namespace ThriveDevCenter.Client.Shared
                     TimeSpan.FromSeconds(500),
                 }).ConfigureLogging(logging =>
                 {
-                    // Log to the Console
-                    logging.AddProvider(new JavaScriptConsoleLoggerProvider());
+                    // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+                    if (FullMessageLogging)
+                    {
+                        logging.AddProvider(new JavaScriptConsoleLoggerProvider());
 
-                    // This will set ALL logging to Debug level
-                    logging.SetMinimumLevel(LogLevel.Debug);
+                        logging.SetMinimumLevel(LogLevel.Debug);
+                    }
                 })
                 .Build();
 
@@ -213,11 +212,30 @@ namespace ThriveDevCenter.Client.Shared
                 OnVersionMismatch?.Invoke(this, EventArgs.Empty);
             });
 
-            hubConnection.On<SerializedNotification>("ReceiveNotification", async (notification) =>
+            hubConnection.On<string>("ReceiveNotificationJSON", async (json) =>
             {
-                Console.WriteLine("Got a notification handler stuff");
-                await ForwardNotification(notification);
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+                if(FullMessageLogging)
+                    Console.WriteLine("Got a notification handler message: " + json);
+
+                try
+                {
+                    var notification = JsonSerializer.Deserialize<SerializedNotification>(json,
+                        new JsonSerializerOptions() { Converters = { converter } });
+
+                    await ForwardNotification(notification);
+                }
+                catch (Exception e)
+                {
+                    // Error reporting here is needed as otherwise nothing is shown
+                    await Console.Error.WriteLineAsync("Error processing received notification: " + e + " " +
+                        e.StackTrace);
+
+                    throw;
+                }
             });
+
+#pragma warning restore 0162
 
             hubConnection.Reconnecting += error =>
             {

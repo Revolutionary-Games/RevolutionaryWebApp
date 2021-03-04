@@ -24,8 +24,8 @@ namespace ThriveDevCenter.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSignalR().AddJsonProtocol(o =>
-                o.PayloadSerializerOptions.Converters.Add(new NotificationJsonConverter()));
+            // TODO: message pack protocol
+            services.AddSignalR();
             services.AddControllersWithViews();
             services.AddRazorPages();
 
