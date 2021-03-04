@@ -18,10 +18,11 @@ namespace ThriveDevCenter.Client.Shared
         private const bool FullMessageLogging = false;
 
         private readonly NavigationManager navManager;
-        private readonly Dictionary<Type, List<(object, Func<SerializedNotification, Task>)>> handlers = new();
+        private readonly Dictionary<Type, List<(IGroupListener, Func<SerializedNotification, Task>)>> handlers = new();
 
         private readonly NotificationJsonConverter converter = new NotificationJsonConverter();
 
+        private readonly HashSet<string> currentlyJoinedGroups = new();
         private HubConnection hubConnection;
 
         private bool connectionLost = false;
@@ -87,7 +88,7 @@ namespace ThriveDevCenter.Client.Shared
             }
         }
 
-        public void Register<T>(INotificationHandler<T> handler) where T : SerializedNotification
+        public async Task Register<T>(INotificationHandler<T> handler) where T : SerializedNotification
         {
             lock (handlers)
             {
@@ -104,7 +105,7 @@ namespace ThriveDevCenter.Client.Shared
                     var notificationType = item.GenericTypeArguments.First();
                     if (!handlers.TryGetValue(notificationType, out var handlerList))
                     {
-                        handlerList = new List<(object, Func<SerializedNotification, Task>)>();
+                        handlerList = new List<(IGroupListener, Func<SerializedNotification, Task>)>();
                         handlers.Add(notificationType, handlerList);
                     }
 
@@ -114,9 +115,11 @@ namespace ThriveDevCenter.Client.Shared
                     }
                 }
             }
+
+            await ApplyGroupMemberships();
         }
 
-        public void Unregister<T>(INotificationHandler<T> handler) where T : SerializedNotification
+        public async Task Unregister<T>(INotificationHandler<T> handler) where T : SerializedNotification
         {
             lock (handlers)
             {
@@ -128,13 +131,15 @@ namespace ThriveDevCenter.Client.Shared
                     }
                 }
             }
+
+            await ApplyGroupMemberships();
         }
 
         private async Task ForwardNotification(SerializedNotification notification)
         {
             var notificationType = notification.GetType();
 
-            List<(object, Func<SerializedNotification, Task>)> filtered;
+            List<(IGroupListener, Func<SerializedNotification, Task>)> filtered;
 
             lock (handlers)
             {
@@ -158,10 +163,11 @@ namespace ThriveDevCenter.Client.Shared
             await Task.WhenAll(tasks);
         }
 
-        public async Task StartConnection()
-        {
+        // ReSharper disable ConditionIsAlwaysTrueOrFalse
 #pragma warning disable 0162 // unreachable code caused by const
 
+        public async Task StartConnection()
+        {
             // TODO: look into enabling message pack protocol
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(navManager.ToAbsoluteUri(
@@ -179,7 +185,6 @@ namespace ThriveDevCenter.Client.Shared
                     TimeSpan.FromSeconds(500),
                 }).ConfigureLogging(logging =>
                 {
-                    // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                     if (FullMessageLogging)
                     {
                         logging.AddProvider(new JavaScriptConsoleLoggerProvider());
@@ -214,8 +219,7 @@ namespace ThriveDevCenter.Client.Shared
 
             hubConnection.On<string>("ReceiveNotificationJSON", async (json) =>
             {
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if(FullMessageLogging)
+                if (FullMessageLogging)
                     Console.WriteLine("Got a notification handler message: " + json);
 
                 try
@@ -235,8 +239,6 @@ namespace ThriveDevCenter.Client.Shared
                 }
             });
 
-#pragma warning restore 0162
-
             hubConnection.Reconnecting += error =>
             {
                 ConnectionLost = true;
@@ -245,7 +247,16 @@ namespace ThriveDevCenter.Client.Shared
 
             hubConnection.Reconnected += async newId =>
             {
+                // Disallow reconnect in this case if we already gave up
+                if (ConnectionPermanentlyLost)
+                {
+                    Console.WriteLine("Reconnected triggered while we already permanently gave up");
+                    await hubConnection.StopAsync();
+                    return;
+                }
+
                 // Groups need to be re-joined after connection is recreated
+                currentlyJoinedGroups.Clear();
                 await ApplyGroupMemberships();
 
                 ConnectionLost = false;
@@ -279,9 +290,56 @@ namespace ThriveDevCenter.Client.Shared
 
         private async Task ApplyGroupMemberships()
         {
-            Console.WriteLine("joining groups");
-            await hubConnection.InvokeAsync("JoinGroup", NotificationGroups.LFSListUpdated);
+            // TODO: get current user status (once logging in is done)
+            var userStatus = UserAccessLevel.Admin;
+
+            var wantedGroups = new HashSet<string>();
+
+            lock (handlers)
+            {
+                foreach (var entry in handlers)
+                {
+                    lock (entry.Value)
+                    {
+                        foreach (var handler in entry.Value)
+                        {
+                            handler.Item1.GetWantedListenedGroups(userStatus, wantedGroups);
+                        }
+                    }
+                }
+            }
+
+            var groupsToLeave = currentlyJoinedGroups.Except(wantedGroups).ToList();
+            var groupsToJoin = wantedGroups.Except(currentlyJoinedGroups).ToList();
+
+            // All the joins and leaves are run in parallel as they should not be able to have overlapping items
+            var groupTasks = new List<Task>();
+
+            foreach (var group in groupsToLeave)
+            {
+                if(FullMessageLogging)
+                    Console.WriteLine("Leaving group: " + group);
+
+                groupTasks.Add(hubConnection.InvokeAsync("LeaveGroup", group));
+                currentlyJoinedGroups.Remove(group);
+            }
+
+            foreach (var group in groupsToJoin)
+            {
+                if(FullMessageLogging)
+                    Console.WriteLine("Joining group: " + group);
+
+                groupTasks.Add(hubConnection.InvokeAsync("JoinGroup", group));
+                currentlyJoinedGroups.Add(group);
+            }
+
+            await Task.WhenAll(groupTasks);
+
+            // Currently joined groups should now have all the groups we have joined
         }
+
+        // ReSharper restore ConditionIsAlwaysTrueOrFalse
+#pragma warning restore 0162
 
         private void ForceReload()
         {

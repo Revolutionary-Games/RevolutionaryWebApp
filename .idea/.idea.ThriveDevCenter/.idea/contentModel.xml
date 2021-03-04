@@ -123,6 +123,7 @@
         <e p="SiteNoticeType.cs" t="Include" />
         <e p="SortDirection.cs" t="Include" />
         <e p="ThriveDevCenter.Shared.csproj" t="IncludeRecursive" />
+        <e p="UserAccessLevel.cs" t="Include" />
         <e p="WeatherForecast.cs" t="Include" />
         <e p="bin" t="ExcludeRecursive" />
         <e p="obj" t="ExcludeRecursive">
