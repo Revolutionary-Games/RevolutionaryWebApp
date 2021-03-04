@@ -1,26 +1,40 @@
 <div>
-    <table class="table sortable table-striped table-hover table-responsive-sm">
-        <thead class="thead-light">
-        <tr>
+    <div style="position: relative">
+        <table class="table sortable table-striped table-hover table-responsive-sm">
+            <thead class="thead-light">
+            <tr>
+                @foreach (var column in Columns)
+                {
+                    <th scope="col" class="@(column.IsSortable ? "sort" : "")"
+                        @onclick="@(async () => {if (column.IsSortable)
+                                      await OnSortChanged.InvokeAsync(column.Name);})">
+                        @column.Name
 
-            @foreach (var column in Columns)
-            {
-                <th scope="col" class="@(column.IsSortable ? "sort" : "")"
-                    @onclick="@(async () => {if (column.IsSortable) await OnSortChanged.InvokeAsync(column.Name);})">
-                    @column.Name
-
-                    @if (column.IsSortable)
-                    {
-                        <span class="@GetSortClass.Invoke(column.Name)"></span>
-                    }
-                </th>
-            }
-        </tr>
-        </thead>
-        <tbody>
+                        @if (column.IsSortable)
+                        {
+                            <span class="@GetSortClass.Invoke(column.Name)"></span>
+                        }
+                    </th>
+                }
+            </tr>
+            </thead>
+            <tbody>
             @ChildContent
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+        <!-- Firefox gives a warning about this for no reason if placed within the table
+        https://bugzilla.mozilla.org/show_bug.cgi?id=1081683 so instead this is placed over the entire table -->
+        @if (ContentSpinner)
+        {
+            <div class="overlay">
+                <div class="d-flex justify-content-center align-items-center" style="height: 100%;">
+                    <div class="spinner-border text-light" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 
     @if (ShowPaginator)
     {
@@ -53,10 +67,16 @@
     public RenderFragment ChildContent { get; set; }
 
     /// <summary>
-    ///   When true shows the paginator and CurrentPage etc. should be fine. When false shows a spinner
+    ///   When true shows the paginator and CurrentPage etc. should be fine. When false shows a spinner under the table
     /// </summary>
     [Parameter]
     public bool ShowPaginator { get; set; }
+
+    /// <summary>
+    ///   When true shows a spinner overlay on the table body (and ShowPaginator is true)
+    /// </summary>
+    [Parameter]
+    public bool ShowContentSpinner { get; set; }
 
     [Parameter]
     public int? CurrentPage { get; set; }
@@ -76,4 +96,5 @@
     [Parameter]
     public CalculateSortClass GetSortClass { get; set; }
 
+    private bool ContentSpinner => ShowContentSpinner && ShowPaginator;
 }

@@ -17,6 +17,7 @@
                 OnPageChanged="async (e) => await ChangePage(e)"
                 OnSortChanged="async (column) => await ChangeSort(column)"
                 GetSortClass="@SortClass"
+                ShowContentSpinner="@VisibleFetchInProgress"
                 Columns="@columns">
     @if (Data != null)
     {
@@ -65,7 +66,7 @@
     {
         Console.WriteLine("Got LFS project notification");
 
-    // InvokeAsync(() => StateHasChanged());
+        // InvokeAsync(() => StateHasChanged());
         return Task.CompletedTask;
     }
 
