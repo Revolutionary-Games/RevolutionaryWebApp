@@ -71,7 +71,12 @@ namespace ThriveDevCenter.Client.Shared
 
         public async Task ChangeSort(string column)
         {
-            Sort.ColumnClick(column);
+            if (Sort.ColumnClick(column))
+            {
+                // Move to first page when sort column is changed
+                Page = 1;
+            }
+
             await FetchData();
         }
 

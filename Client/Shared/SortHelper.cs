@@ -21,7 +21,8 @@ namespace ThriveDevCenter.Client.Shared
         ///   Handle when a column was clicked
         /// </summary>
         /// <param name="column">The new (or current sort column)</param>
-        public void ColumnClick(string column)
+        /// <returns>True when the sort column was changed, false otherwise.</returns>
+        public bool ColumnClick(string column)
         {
             if (SortColumn == column)
             {
@@ -35,11 +36,12 @@ namespace ThriveDevCenter.Client.Shared
                     Direction = SortDirection.Ascending;
                 }
 
-                return;
+                return false;
             }
 
             SortColumn = column;
             Direction = defaultDirection;
+            return true;
         }
 
         /// <summary>
