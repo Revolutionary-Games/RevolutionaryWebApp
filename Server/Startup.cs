@@ -37,6 +37,26 @@ namespace ThriveDevCenter.Server
                 opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
                     new[] { "application/octet-stream" });
             });
+
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+#pragma warning disable 0162 // unreachable code
+            if (AppVersion.UsePrerendering)
+            {
+                // Register service equivalents when pre-rendering on the server
+
+                // Register a HttpClient that points to itself. From:
+                // https://andrewlock.net/enabling-prerendering-for-blazor-webassembly-apps/ but it says there that
+                // this isn't a very smart solution
+                services.AddSingleton<HttpClient>(sp =>
+                {
+                    // Get the address that the app is currently running at
+                    var server = sp.GetRequiredService<IServer>();
+                    var addressFeature = server.Features.Get<IServerAddressesFeature>();
+                    var baseAddress = addressFeature.Addresses.First();
+                    return new HttpClient { BaseAddress = new Uri(baseAddress) };
+                });
+            }
+#pragma warning restore 0162
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
