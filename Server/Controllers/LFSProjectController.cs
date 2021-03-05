@@ -44,7 +44,7 @@ namespace ThriveDevCenter.Server.Controllers
                 CreatedAt = DateTime.Now - TimeSpan.FromSeconds(rng.Next(1000, 10000)),
             }).AsQueryable().OrderBy(sortColumn, sortDirection);
 
-            ReportUpdatedProject(result.First()).Wait();
+            // ReportUpdatedProject(result.First()).Wait();
 
             return result.ToPagedResult(page, pageSize);
         }
