@@ -13,13 +13,17 @@ namespace ThriveDevCenter.Client
 {
     using Microsoft.AspNetCore.Components;
     using Shared;
+    using ThriveDevCenter.Shared;
 
     public class Program
     {
         public static async Task Main(string[] args)
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
-            builder.RootComponents.Add<App>("#app");
+
+            // Not used when pre-rendering
+            if(!AppVersion.UsePrerendering)
+                builder.RootComponents.Add<App>("#app");
 
             builder.Services.AddScoped(sp => new HttpClient
                 { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });

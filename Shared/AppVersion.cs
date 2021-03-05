@@ -6,6 +6,8 @@ namespace ThriveDevCenter.Shared
     /// </summary>
     public static class AppVersion
     {
+        public const bool UsePrerendering = false;
+
         public static int Major => 1;
         public static int Minor => 5;
     }
