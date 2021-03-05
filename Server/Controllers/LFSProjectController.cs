@@ -11,6 +11,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
     using Shared;
+    using Shared.Models;
     using Shared.Notifications;
 
     [ApiController]
@@ -35,6 +36,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var result = Enumerable.Range(1, 122).Select(index => new LFSProjectInfo()
             {
+                ID = index,
                 Name = "Project_" + index,
                 Public = true,
                 Size = index * 50,
@@ -50,7 +52,8 @@ namespace ThriveDevCenter.Server.Controllers
         private async Task ReportUpdatedProject(LFSProjectInfo item)
         {
             // For now LFS list and individual LFS info pages use the same group
-            await notifications.Clients.Group(NotificationGroups.LFSListUpdated).ReceiveNotification(item);
+            await notifications.Clients.Group(NotificationGroups.LFSListUpdated).ReceiveNotification(new LFSListUpdated
+                { Type = ListItemChangeType.ItemUpdated, Item = item });
         }
     }
 }

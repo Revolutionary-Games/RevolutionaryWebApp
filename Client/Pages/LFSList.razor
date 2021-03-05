@@ -7,9 +7,10 @@
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
-@implements INotificationHandler<LFSProjectInfo>
+@using ThriveDevCenter.Shared.Models
+@implements INotificationHandler<LFSListUpdated>
 @implements IAsyncDisposable
-@inherits PaginatedPage<ThriveDevCenter.Shared.Notifications.LFSProjectInfo>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LFSProjectInfo>
 
 <h3>Git LFS Projects</h3>
 
@@ -62,7 +63,7 @@
         return base.SetParametersAsync(parameters);
     }
 
-    public Task Handle(LFSProjectInfo notification, CancellationToken cancellationToken)
+    public Task Handle(LFSListUpdated notification, CancellationToken cancellationToken)
     {
         Console.WriteLine("Got LFS project notification");
 

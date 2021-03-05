@@ -114,8 +114,12 @@
       <e p="Shared" t="IncludeRecursive">
         <e p="AppVersion.cs" t="Include" />
         <e p="LinqHelpers.cs" t="Include" />
-        <e p="Notifications" t="Include">
+        <e p="Models" t="Include">
           <e p="LFSProjectInfo.cs" t="Include" />
+        </e>
+        <e p="Notifications" t="Include">
+          <e p="ListItemChangeType.cs" t="Include" />
+          <e p="ListUpdated.cs" t="Include" />
           <e p="NotificationGroups.cs" t="Include" />
           <e p="SerializedNotification.cs" t="Include" />
         </e>
