@@ -11,8 +11,6 @@
       <e p="Client" t="IncludeRecursive">
         <e p="App.razor" t="Include" />
         <e p="Pages" t="Include">
-          <e p="Counter.razor" t="Include" />
-          <e p="FetchData.razor" t="Include" />
           <e p="Index.razor" t="Include" />
           <e p="LFSList.razor" t="Include" />
         </e>
@@ -34,7 +32,6 @@
           <e p="QueryStringParameterHelper.cs" t="Include" />
           <e p="SiteNotifications.razor" t="Include" />
           <e p="SortHelper.cs" t="Include" />
-          <e p="SurveyPrompt.razor" t="Include" />
           <e p="TableColumn.cs" t="Include" />
         </e>
         <e p="ThriveDevCenter.Client.csproj" t="IncludeRecursive" />
@@ -81,7 +78,6 @@
         <e p="Controllers" t="Include">
           <e p="LFSProjectController.cs" t="Include" />
           <e p="UserManagementController.cs" t="Include" />
-          <e p="WeatherForecastController.cs" t="Include" />
         </e>
         <e p="Hubs" t="Include">
           <e p="NotificationsHub.cs" t="Include" />
@@ -131,7 +127,6 @@
         <e p="SortDirection.cs" t="Include" />
         <e p="ThriveDevCenter.Shared.csproj" t="IncludeRecursive" />
         <e p="UserAccessLevel.cs" t="Include" />
-        <e p="WeatherForecast.cs" t="Include" />
         <e p="bin" t="ExcludeRecursive" />
         <e p="obj" t="ExcludeRecursive">
           <e p="Debug" t="Include">
