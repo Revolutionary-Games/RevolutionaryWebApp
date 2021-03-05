@@ -285,6 +285,9 @@ namespace ThriveDevCenter.Client.Shared
 
         public async ValueTask DisposeAsync()
         {
+            if (hubConnection == null)
+                return;
+
             await hubConnection.DisposeAsync();
         }
 
@@ -317,7 +320,7 @@ namespace ThriveDevCenter.Client.Shared
 
             foreach (var group in groupsToLeave)
             {
-                if(FullMessageLogging)
+                if (FullMessageLogging)
                     Console.WriteLine("Leaving group: " + group);
 
                 groupTasks.Add(hubConnection.InvokeAsync("LeaveGroup", group));
@@ -326,7 +329,7 @@ namespace ThriveDevCenter.Client.Shared
 
             foreach (var group in groupsToJoin)
             {
-                if(FullMessageLogging)
+                if (FullMessageLogging)
                     Console.WriteLine("Joining group: " + group);
 
                 groupTasks.Add(hubConnection.InvokeAsync("JoinGroup", group));

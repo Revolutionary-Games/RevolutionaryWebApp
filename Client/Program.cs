@@ -32,8 +32,8 @@ namespace ThriveDevCenter.Client
             var app = builder.Build();
 
             // Setup hub connection as soon as we are able
-            // TODO: should this wait here? If not waited here we need a separate system that queues group
-            // subscriptions before this is ready
+            // Not awaiting this here doesn't seem to speed up things and requires some special careful programming,
+            // so that is not done
             await app.Services.GetRequiredService<NotificationHandler>().StartConnection();
 
             await app.RunAsync();
