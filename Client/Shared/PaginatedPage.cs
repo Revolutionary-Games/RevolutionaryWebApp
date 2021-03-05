@@ -1,17 +1,20 @@
 namespace ThriveDevCenter.Client.Shared
 {
+    using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Threading.Tasks;
     using BlazorPagination;
     using Microsoft.AspNetCore.Components;
     using ThriveDevCenter.Shared;
+    using ThriveDevCenter.Shared.Models;
+    using ThriveDevCenter.Shared.Notifications;
 
     /// <summary>
     ///   Base for paginated pages
     /// </summary>
     public abstract class PaginatedPage<T> : ComponentBase
-        where T : class
+        where T : BaseModel
     {
         [Parameter]
         public string DefaultSortColumn { get; set; }
@@ -89,6 +92,57 @@ namespace ThriveDevCenter.Client.Shared
         public string SortClass(string currentColumn)
         {
             return Sort?.SortClass(currentColumn) ?? string.Empty;
+        }
+
+        public async Task HandleItemNotification(ListUpdated<T> notification)
+        {
+            switch (notification.Type)
+            {
+                case ListItemChangeType.ItemUpdated:
+                {
+                    if (notification.Item == null)
+                    {
+                        Console.WriteLine("Got a list notification update with empty Item, can't process this");
+                        break;
+                    }
+
+                    // Can't apply if data not loaded
+                    // TODO: could queue this and retry applying this in 1 second
+                    if (Data == null)
+                    {
+                        Console.WriteLine("Got a list notification update before data was loaded, ignoring for now");
+                        break;
+                    }
+
+                    // Replace the existing item if there is one loaded
+                    for (int i = 0; i < Data.Results.Length; ++i)
+                    {
+                        if (Data.Results[i].ID == notification.Item.ID)
+                        {
+                            // Found an item to replace
+                            Data.Results[i] = notification.Item;
+                            await InvokeAsync(StateHasChanged);
+                            break;
+                        }
+                    }
+
+                    break;
+                }
+                case ListItemChangeType.ItemDeleted:
+                case ListItemChangeType.ItemAdded:
+                {
+                    // TODO: add a timer here that prevents this from firing too often (after the first few times
+                    // this should fire with a 15 second delay)
+
+                    Console.WriteLine("Refreshing current paginated page due to item add or remove");
+
+                    // For these the only 100% working solution is to basically fetch the current page again
+                    // (but don't show the spinner to not annoy the user)
+                    // TODO: should this only fetch if FetchInProgress is not true?
+                    await FetchData(true);
+                    break;
+                }
+            }
         }
 
         protected PaginatedPage(SortHelper sort)

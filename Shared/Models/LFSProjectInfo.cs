@@ -2,10 +2,8 @@ namespace ThriveDevCenter.Shared.Models
 {
     using System;
 
-    public class LFSProjectInfo
+    public class LFSProjectInfo : BaseModel
     {
-        public long ID { get; set; }
-
         public string Name { get; set; }
 
         public bool Public { get; set; }

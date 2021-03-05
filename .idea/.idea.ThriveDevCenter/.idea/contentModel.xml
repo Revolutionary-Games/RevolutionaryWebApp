@@ -115,6 +115,7 @@
         <e p="AppVersion.cs" t="Include" />
         <e p="LinqHelpers.cs" t="Include" />
         <e p="Models" t="Include">
+          <e p="BaseModel.cs" t="Include" />
           <e p="LFSProjectInfo.cs" t="Include" />
         </e>
         <e p="Notifications" t="Include">

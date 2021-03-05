@@ -65,10 +65,7 @@
 
     public Task Handle(LFSListUpdated notification, CancellationToken cancellationToken)
     {
-        Console.WriteLine("Got LFS project notification");
-
-        // InvokeAsync(() => StateHasChanged());
-        return Task.CompletedTask;
+        return HandleItemNotification(notification);
     }
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
