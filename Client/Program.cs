@@ -1,17 +1,12 @@
-using System;
-using System.Net.Http;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Text;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.JSInterop;
-
 namespace ThriveDevCenter.Client
 {
+    using System;
+    using System.Net.Http;
+    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Components;
+    using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.JSInterop;
     using Shared;
     using ThriveDevCenter.Shared;
 
@@ -22,7 +17,8 @@ namespace ThriveDevCenter.Client
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
             // Not used when pre-rendering
-            if(!AppVersion.UsePrerendering)
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            if (!AppVersion.UsePrerendering)
                 builder.RootComponents.Add<App>("#app");
 
             builder.Services.AddScoped(sp => new HttpClient
