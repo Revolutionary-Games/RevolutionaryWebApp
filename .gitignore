@@ -44,3 +44,4 @@ bin
 obj
 /ThriveDevCenter.sln.DotSettings.user
 /.idea/.idea.ThriveDevCenter/.idea/contentModel.xml
+/Server/appsettings.Development.json
