@@ -1,4 +1,7 @@
 {
+  "ConnectionStrings": {
+    "WebApiConnection": "NOT CONFIGURED"
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
