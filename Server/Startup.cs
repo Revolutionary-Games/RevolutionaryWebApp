@@ -9,9 +9,11 @@ namespace ThriveDevCenter.Server
     using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.AspNetCore.Hosting.Server.Features;
     using Microsoft.AspNetCore.ResponseCompression;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Models;
     using Shared;
 
     public class Startup
@@ -37,6 +39,9 @@ namespace ThriveDevCenter.Server
                 opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
                     new[] { "application/octet-stream" });
             });
+
+            services.AddDbContext<WebApiContext>(opts =>
+                opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection")));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

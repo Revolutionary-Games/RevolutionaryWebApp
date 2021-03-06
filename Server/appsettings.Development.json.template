@@ -1,6 +1,6 @@
 {
   "ConnectionStrings": {
-    "WebApiConnection": "NOT CONFIGURED"
+    "WebApiConnection": "User ID=thrivedevcenter;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;"
   },
   "Logging": {
     "LogLevel": {

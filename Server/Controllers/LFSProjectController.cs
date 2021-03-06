@@ -40,7 +40,7 @@ namespace ThriveDevCenter.Server.Controllers
                 Name = "Project_" + index,
                 Public = true,
                 Size = index * 50,
-                LastUpdated = DateTime.Now + TimeSpan.FromSeconds(rng.Next(-20, 55)),
+                UpdatedAt = DateTime.Now + TimeSpan.FromSeconds(rng.Next(-20, 55)),
                 CreatedAt = DateTime.Now - TimeSpan.FromSeconds(rng.Next(1000, 10000)),
             }).AsQueryable().OrderBy(sortColumn, sortDirection);
 

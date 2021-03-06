@@ -22,7 +22,7 @@ namespace ThriveDevCenter.Shared.Notifications.Tests
                     Public = true,
                     Size = 123,
                     CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
-                    LastUpdated = DateTime.Parse("2021-01-02T06:15:00"),
+                    UpdatedAt = DateTime.Parse("2021-01-02T06:15:00"),
                 }
             };
 
@@ -45,7 +45,7 @@ namespace ThriveDevCenter.Shared.Notifications.Tests
                     Public = true,
                     Size = 123,
                     CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
-                    LastUpdated = DateTime.Parse("2021-01-02T06:15:00"),
+                    UpdatedAt = DateTime.Parse("2021-01-02T06:15:00"),
                 }
             };
 
@@ -65,7 +65,7 @@ namespace ThriveDevCenter.Shared.Notifications.Tests
             Assert.Equal(original.Item.Public, item.Public);
             Assert.Equal(original.Item.Size, item.Size);
             Assert.Equal(original.Item.CreatedAt, item.CreatedAt);
-            Assert.Equal(original.Item.LastUpdated, item.LastUpdated);
+            Assert.Equal(original.Item.UpdatedAt, item.UpdatedAt);
         }
     }
 }
