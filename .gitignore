@@ -45,4 +45,4 @@ obj
 /ThriveDevCenter.sln.DotSettings.user
 /.idea/.idea.ThriveDevCenter/.idea/contentModel.xml
 /Server/appsettings.Development.json
-/db_backup.txt
+/db_backup*.txt

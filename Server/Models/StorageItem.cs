@@ -5,9 +5,10 @@ namespace ThriveDevCenter.Server.Models
 {
     using Microsoft.EntityFrameworkCore;
 
-    [Index(new []{nameof(Name), nameof(ParentId)}, IsUnique = true)]
+    [Index(new[] { nameof(Name), nameof(ParentId) }, IsUnique = true)]
     [Index(nameof(AllowParentless))]
     [Index(nameof(OwnerId))]
+
     // TODO: is this a duplicate index that is not needed?
     [Index(nameof(ParentId))]
     public class StorageItem : UpdateableModel
@@ -36,7 +37,7 @@ namespace ThriveDevCenter.Server.Models
         public ICollection<StorageItemVersion> StorageItemVersions { get; set; } = new HashSet<StorageItemVersion>();
 
         // Things that can reference this
-        public ICollection<DehydratedObject> DehydratedObjects { get; set; }  = new HashSet<DehydratedObject>();
-        public ICollection<DevBuild> DevBuilds { get; set; }= new HashSet<DevBuild>();
+        public ICollection<DehydratedObject> DehydratedObjects { get; set; } = new HashSet<DehydratedObject>();
+        public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
     }
 }

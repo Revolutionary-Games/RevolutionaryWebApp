@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Server.Models
 
         [Required]
         public string CreatorToken { get; set; }
+
         public string CreatorRefreshToken { get; set; }
 
         [Required]
@@ -20,6 +21,7 @@ namespace ThriveDevCenter.Server.Models
 
         [Required]
         public string WebhookSecret { get; set; }
+
         public DateTime? LastWebhook { get; set; }
 
         public DateTime? LastRefreshed { get; set; }

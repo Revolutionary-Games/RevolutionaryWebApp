@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
 
-    [Index(new []{nameof(BuildHash), nameof(Platform)}, IsUnique = true)]
+    [Index(new[] { nameof(BuildHash), nameof(Platform) }, IsUnique = true)]
     [Index(nameof(Anonymous))]
     [Index(nameof(StorageItemId))]
     [Index(nameof(VerifiedById))]

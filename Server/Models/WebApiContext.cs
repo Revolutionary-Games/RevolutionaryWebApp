@@ -39,6 +39,8 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<DehydratedObject>(entity =>
             {
+                entity.Property(e => e.Id).UseHiLo();
+
                 entity.HasOne(d => d.StorageItem)
                     .WithMany(p => p.DehydratedObjects).OnDelete(DeleteBehavior.Restrict);
 
@@ -73,6 +75,8 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<LfsObject>(entity =>
             {
+                entity.Property(e => e.Id).UseHiLo();
+
                 entity.HasOne(d => d.LfsProject)
                     .WithMany(p => p.LfsObjects).OnDelete(DeleteBehavior.Cascade);
             });
@@ -85,19 +89,23 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<ProjectGitFile>(entity =>
             {
+                entity.Property(e => e.Id).UseHiLo();
+
                 entity.HasOne(d => d.LfsProject)
                     .WithMany(p => p.ProjectGitFiles).OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<StorageFile>(entity =>
             {
-                entity.Property(e => e.AllowParentless).HasDefaultValue(false);
+                entity.Property(e => e.Id).UseHiLo();
 
-                entity.Property(e => e.Uploading).HasDefaultValue(true);
+                entity.Property(e => e.AllowParentless).HasDefaultValue(false);
             });
 
             modelBuilder.Entity<StorageItem>(entity =>
             {
+                entity.Property(e => e.Id).UseHiLo();
+
                 entity.HasIndex(e => e.Name, "index_storage_items_on_name")
                     .IsUnique()
                     .HasFilter("(parent_id IS NULL)");
@@ -119,11 +127,11 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<StorageItemVersion>(entity =>
             {
+                entity.Property(e => e.Id).UseHiLo();
+
                 entity.Property(e => e.Keep).HasDefaultValue(false);
 
                 entity.Property(e => e.Protected).HasDefaultValue(false);
-
-                entity.Property(e => e.Uploading).HasDefaultValue(true);
 
                 entity.Property(e => e.Version).HasDefaultValue(1);
 

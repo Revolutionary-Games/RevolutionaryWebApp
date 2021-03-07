@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
 
     [Index(nameof(StorageFileId))]
-    [Index(new []{ nameof(StorageItemId), nameof(Version)}, IsUnique = true)]
+    [Index(new[] { nameof(StorageItemId), nameof(Version) }, IsUnique = true)]
     public class StorageItemVersion : UpdateableModel
     {
         public int Version { get; set; } = 1;

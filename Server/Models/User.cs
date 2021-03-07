@@ -16,15 +16,16 @@ namespace ThriveDevCenter.Server.Models
         [Required]
         public string Email { get; set; }
 
-        [Required]
+        // TODO: add the non-null constraint later on once old rails data is imported
+        // [Required]
         public string Name { get; set; }
 
         public bool Local { get; set; }
         public string SsoSource { get; set; }
         public string PasswordDigest { get; set; }
 
-        public bool Developer { get; set; }
-        public bool Admin { get; set; }
+        public bool? Developer { get; set; } = false;
+        public bool? Admin { get; set; } = false;
 
         public string ApiToken { get; set; }
         public string LfsToken { get; set; }
@@ -34,7 +35,7 @@ namespace ThriveDevCenter.Server.Models
         public bool? SuspendedManually { get; set; } = false;
 
         public string LauncherLinkCode { get; set; }
-        public DateTime LauncherCodeExpires { get; set; }
+        public DateTime? LauncherCodeExpires { get; set; }
 
         public int TotalLauncherLinks { get; set; } = 0;
 
@@ -53,6 +54,6 @@ namespace ThriveDevCenter.Server.Models
         /// <summary>
         ///   Stored files owned by this user
         /// </summary>
-        public virtual ICollection<StorageItem> StorageItems { get; set; }= new HashSet<StorageItem>();
+        public virtual ICollection<StorageItem> StorageItems { get; set; } = new HashSet<StorageItem>();
     }
 }

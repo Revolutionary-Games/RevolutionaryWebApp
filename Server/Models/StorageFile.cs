@@ -20,6 +20,7 @@ namespace ThriveDevCenter.Server.Models
         public bool Uploading { get; set; } = true;
         public DateTime? UploadExpires { get; set; }
 
-        public virtual ICollection<StorageItemVersion> StorageItemVersions { get; set; }= new HashSet<StorageItemVersion>();
+        public virtual ICollection<StorageItemVersion> StorageItemVersions { get; set; } =
+            new HashSet<StorageItemVersion>();
     }
 }
