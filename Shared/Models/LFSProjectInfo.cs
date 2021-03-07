@@ -1,8 +1,6 @@
 namespace ThriveDevCenter.Shared.Models
 {
-    using System;
-
-    public class LFSProjectInfo : UpdateableModel
+    public class LFSProjectInfo : ClientSideTimedModel
     {
         public string Name { get; set; }
 

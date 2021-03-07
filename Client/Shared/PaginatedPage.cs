@@ -14,7 +14,7 @@ namespace ThriveDevCenter.Client.Shared
     ///   Base for paginated pages
     /// </summary>
     public abstract class PaginatedPage<T> : ComponentBase
-        where T : BaseModel
+        where T : class, IIdentifiable
     {
         [Parameter]
         public string DefaultSortColumn { get; set; }
@@ -117,7 +117,7 @@ namespace ThriveDevCenter.Client.Shared
                     // Replace the existing item if there is one loaded
                     for (int i = 0; i < Data.Results.Length; ++i)
                     {
-                        if (Data.Results[i].ID == notification.Item.ID)
+                        if (Data.Results[i].Id == notification.Item.Id)
                         {
                             // Found an item to replace
                             Data.Results[i] = notification.Item;

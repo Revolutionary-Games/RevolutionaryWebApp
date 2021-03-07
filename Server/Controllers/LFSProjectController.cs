@@ -36,7 +36,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var result = Enumerable.Range(1, 122).Select(index => new LFSProjectInfo()
             {
-                ID = index,
+                Id = index,
                 Name = "Project_" + index,
                 Public = true,
                 Size = index * 50,
