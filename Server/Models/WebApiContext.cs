@@ -1,8 +1,11 @@
 namespace ThriveDevCenter.Server.Models
 {
+    using Microsoft.AspNetCore.Identity;
+    using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore;
 
-    public class WebApiContext : DbContext
+    // TODO: rename to ApplicationContext
+    public class WebApiContext : IdentityDbContext<User, IdentityRole<long>, long>
     {
         public WebApiContext(DbContextOptions<WebApiContext> options) : base(options) { }
 
@@ -18,7 +21,6 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<StorageFile> StorageFiles { get; set; }
         public DbSet<StorageItem> StorageItems { get; set; }
         public DbSet<StorageItemVersion> StorageItemVersions { get; set; }
-        public DbSet<User> Users { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -144,13 +146,45 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<User>(entity =>
             {
-                entity.Property(e => e.SessionVersion).HasDefaultValue(1);
+                entity.ToTable("users");
+
+                entity.Property(e => e.Email).IsRequired();
+
+                // TODO: add the non-null constraint later on once old rails data is imported
+                entity.Property(e => e.UserName).HasColumnName("name");
 
                 entity.Property(e => e.Suspended).HasDefaultValue(false);
 
                 entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
 
                 entity.Property(e => e.TotalLauncherLinks).HasDefaultValue(0);
+            });
+
+            modelBuilder.Entity<IdentityRole<long>>(entity =>
+            {
+                entity.ToTable("roles");
+
+                entity.HasData(new IdentityRole<long>
+                {
+                    Id = 1,
+                    Name = "Visitor",
+                    NormalizedName = "VISITOR"
+                }, new IdentityRole<long>
+                {
+                    Id = 2,
+                    Name = "User",
+                    NormalizedName = "USER"
+                }, new IdentityRole<long>
+                {
+                    Id = 3,
+                    Name = "Developer",
+                    NormalizedName = "DEVELOPER"
+                }, new IdentityRole<long>
+                {
+                    Id = 4,
+                    Name = "Admin",
+                    NormalizedName = "ADMIN"
+                });
             });
         }
     }

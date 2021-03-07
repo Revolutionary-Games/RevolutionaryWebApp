@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server.Models
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+    using Microsoft.AspNetCore.Identity;
     using Microsoft.EntityFrameworkCore;
     using Shared.Models;
 
@@ -11,19 +12,13 @@ namespace ThriveDevCenter.Server.Models
     [Index(nameof(ApiToken), IsUnique = true)]
     [Index(nameof(LfsToken), IsUnique = true)]
     [Index(nameof(LauncherLinkCode), IsUnique = true)]
-    public class User : UpdateableModel
+    public class User : IdentityUser<long>, ITimestampedModel
     {
-        [Required]
-        public string Email { get; set; }
-
-        // TODO: add the non-null constraint later on once old rails data is imported
-        // [Required]
-        public string Name { get; set; }
-
         public bool Local { get; set; }
         public string SsoSource { get; set; }
         public string PasswordDigest { get; set; }
 
+        // TODO: combine these to a single enum field
         public bool? Developer { get; set; } = false;
         public bool? Admin { get; set; } = false;
 
@@ -39,7 +34,9 @@ namespace ThriveDevCenter.Server.Models
 
         public int TotalLauncherLinks { get; set; } = 0;
 
-        public int SessionVersion { get; set; } = 0;
+        // Need to reimplement these, as we inherit IdentityUser
+        public DateTime CreatedAt { get; set; } = DateTime.Now.ToUniversalTime();
+        public DateTime UpdatedAt { get; set; } = DateTime.Now.ToUniversalTime();
 
         /// <summary>
         ///   Builds verified by this user
