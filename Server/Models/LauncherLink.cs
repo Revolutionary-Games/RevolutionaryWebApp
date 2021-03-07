@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
 
     [Index(nameof(LinkCode), IsUnique = true)]
+    [Index(nameof(UserId))]
     public class LauncherLink : UpdateableModel
     {
         [Required]

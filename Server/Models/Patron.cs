@@ -7,11 +7,13 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
 
     [Index(nameof(Email), IsUnique = true)]
+    [Index(nameof(EmailAlias), IsUnique = true)]
     public class Patron : UpdateableModel
     {
         [Required]
         public string Email { get; set; }
 
+        // TODO: add restriction that email alias can't be a value in Email
         public string EmailAlias { get; set; }
 
         [Required]

@@ -7,6 +7,9 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
 
     [Index(new []{nameof(BuildHash), nameof(Platform)}, IsUnique = true)]
+    [Index(nameof(Anonymous))]
+    [Index(nameof(StorageItemId))]
+    [Index(nameof(VerifiedById))]
     public class DevBuild : UpdateableModel
     {
         [Required]

@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
 
     [Index(nameof(StoragePath), IsUnique = true)]
+    [Index(nameof(Uploading))]
     public class StorageFile : UpdateableModel
     {
         [Required]

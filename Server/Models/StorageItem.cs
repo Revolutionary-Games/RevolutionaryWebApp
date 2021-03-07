@@ -6,6 +6,10 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
 
     [Index(new []{nameof(Name), nameof(ParentId)}, IsUnique = true)]
+    [Index(nameof(AllowParentless))]
+    [Index(nameof(OwnerId))]
+    // TODO: is this a duplicate index that is not needed?
+    [Index(nameof(ParentId))]
     public class StorageItem : UpdateableModel
     {
         public string Name { get; set; }
@@ -28,7 +32,7 @@ namespace ThriveDevCenter.Server.Models
         public bool AllowParentless { get; set; } = false;
 
         // TODO: can this be named something else? This is the children of this item
-        public ICollection<StorageItem> InverseParent { get; set; } = new HashSet<StorageItem>();
+        public ICollection<StorageItem> Children { get; set; } = new HashSet<StorageItem>();
         public ICollection<StorageItemVersion> StorageItemVersions { get; set; } = new HashSet<StorageItemVersion>();
 
         // Things that can reference this

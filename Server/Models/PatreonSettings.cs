@@ -4,7 +4,9 @@ using System.Collections.Generic;
 namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
+    using Microsoft.EntityFrameworkCore;
 
+    [Index(nameof(WebhookId), IsUnique = true)]
     public class PatreonSettings : UpdateableModel
     {
         public bool Active { get; set; } = false;

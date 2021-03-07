@@ -8,12 +8,13 @@ namespace ThriveDevCenter.Server.Models
 
     // TODO: drop the update info from this table as unnecessary in a later migration
     [Index(nameof(Sha3), IsUnique=true)]
+    [Index(nameof(StorageItemId))]
     public class DehydratedObject : UpdateableModel
     {
         [Required]
         public string Sha3 { get; set; }
 
-        public long? StorageItemId { get; set; }
+        public long StorageItemId { get; set; }
 
         public StorageItem StorageItem { get; set; }
 

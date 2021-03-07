@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
 
-    [Index(new []{nameof(Oid), nameof(LfsProjectId)}, IsUnique = true)]
+    [Index(new []{nameof(LfsProjectId)})]
     public class LfsObject : UpdateableModel
     {
         [Required]
