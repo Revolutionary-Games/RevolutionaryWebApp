@@ -41,7 +41,7 @@
         new TableColumn("Name", true),
         new TableColumn("Public", true),
         new TableColumn("Size", true, "TotalObjectSize"),
-        new TableColumn("Updated At", true, "UpdatedAt")
+        new TableColumn("Updated At", true, "UpdatedAt"),
     };
 
     public LFSList() : base(new SortHelper("Name", SortDirection.Ascending))
@@ -56,8 +56,6 @@
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        DefaultPageSize = 5;
-
         this.SetParametersFromQueryString(NavManager);
 
         return base.SetParametersAsync(parameters);
