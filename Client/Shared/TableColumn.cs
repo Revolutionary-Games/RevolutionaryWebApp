@@ -3,12 +3,18 @@ namespace ThriveDevCenter.Client.Shared
     public class TableColumn : ITableColumn
     {
         public string Name { get; set; }
+
+        public string ColumnName { get; set; }
+
         public bool IsSortable { get; set; }
 
-        public TableColumn(string name, bool sortable)
+        public string SortName => ColumnName ?? Name;
+
+        public TableColumn(string name, bool sortable, string sortName = null)
         {
             Name = name;
             IsSortable = sortable;
+            ColumnName = sortName;
         }
     }
 

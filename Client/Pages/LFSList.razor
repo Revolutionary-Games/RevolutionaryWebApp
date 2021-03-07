@@ -40,8 +40,8 @@
     {
         new TableColumn("Name", true),
         new TableColumn("Public", true),
-        new TableColumn("Size", true),
-        new TableColumn("Last Updated", true)
+        new TableColumn("Size", true, "TotalObjectSize"),
+        new TableColumn("Updated At", true, "UpdatedAt")
     };
 
     public LFSList() : base(new SortHelper("Name", SortDirection.Ascending))

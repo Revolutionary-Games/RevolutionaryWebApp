@@ -7,12 +7,12 @@
                 {
                     <th scope="col" class="@(column.IsSortable ? "sort" : "")"
                         @onclick="@(async () => {if (column.IsSortable)
-                                      await OnSortChanged.InvokeAsync(column.Name);})">
+                                      await OnSortChanged.InvokeAsync(column.SortName);})">
                         @column.Name
 
                         @if (column.IsSortable)
                         {
-                            <span class="@GetSortClass.Invoke(column.Name)"></span>
+                            <span class="@GetSortClass.Invoke(column.SortName)"></span>
                         }
                     </th>
                 }
