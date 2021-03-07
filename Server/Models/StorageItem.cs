@@ -1,0 +1,38 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace ThriveDevCenter.Server.Models
+{
+    using Microsoft.EntityFrameworkCore;
+
+    [Index(new []{nameof(Name), nameof(ParentId)}, IsUnique = true)]
+    public class StorageItem : UpdateableModel
+    {
+        public string Name { get; set; }
+
+        // TODO: move to enum
+        public int? Ftype { get; set; }
+        public bool Special { get; set; } = false;
+
+        public int? Size { get; set; }
+
+        // TODO: change these two to enums as well
+        public int? ReadAccess { get; set; }
+        public int? WriteAccess { get; set; }
+
+        public long? OwnerId { get; set; }
+        public User Owner { get; set; }
+
+        public long? ParentId { get; set; }
+        public StorageItem Parent { get; set; }
+        public bool AllowParentless { get; set; } = false;
+
+        // TODO: can this be named something else? This is the children of this item
+        public ICollection<StorageItem> InverseParent { get; set; } = new HashSet<StorageItem>();
+        public ICollection<StorageItemVersion> StorageItemVersions { get; set; } = new HashSet<StorageItemVersion>();
+
+        // Things that can reference this
+        public ICollection<DehydratedObject> DehydratedObjects { get; set; }  = new HashSet<DehydratedObject>();
+        public ICollection<DevBuild> DevBuilds { get; set; }= new HashSet<DevBuild>();
+    }
+}
