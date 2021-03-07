@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Models
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     using Microsoft.EntityFrameworkCore;
@@ -35,10 +36,23 @@ namespace ThriveDevCenter.Server.Models
         public string LauncherLinkCode { get; set; }
         public DateTime LauncherCodeExpires { get; set; }
 
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int TotalLauncherLinks { get; set; } = 0;
 
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int SessionVersion { get; set; } = 0;
+
+        /// <summary>
+        ///   Builds verified by this user
+        /// </summary>
+        public virtual ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
+
+        /// <summary>
+        ///   Launchers linked to this user
+        /// </summary>
+        public virtual ICollection<LauncherLink> LauncherLinks { get; set; } = new HashSet<LauncherLink>();
+
+        /// <summary>
+        ///   Stored files owned by this user
+        /// </summary>
+        public virtual ICollection<StorageItem> StorageItems { get; set; }= new HashSet<StorageItem>();
     }
 }

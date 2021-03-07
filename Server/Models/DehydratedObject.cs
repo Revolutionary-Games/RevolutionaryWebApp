@@ -1,16 +1,25 @@
 namespace ThriveDevCenter.Server.Models
 {
+    using System.Collections;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
     using Shared.Models;
 
     // TODO: drop the update info from this table as unnecessary in a later migration
-    [Index(nameof(sha3), IsUnique=true)]
+    [Index(nameof(Sha3), IsUnique=true)]
     public class DehydratedObject : UpdateableModel
     {
         [Required]
-        public string sha3 { get; set; }
+        public string Sha3 { get; set; }
 
-        // storage_item_id bigint,
+        public long? StorageItemId { get; set; }
+
+        public StorageItem StorageItem { get; set; }
+
+        /// <summary>
+        ///   DevBuilds that contain this object
+        /// </summary>
+        public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
     }
 }
