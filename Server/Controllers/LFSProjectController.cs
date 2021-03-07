@@ -10,6 +10,8 @@ namespace ThriveDevCenter.Server.Controllers
     using BlazorPagination;
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
+    using Microsoft.EntityFrameworkCore;
+    using Models;
     using Shared;
     using Shared.Models;
     using Shared.Notifications;
@@ -19,34 +21,25 @@ namespace ThriveDevCenter.Server.Controllers
     public class LFSProjectController : Controller
     {
         private readonly ILogger<LFSProjectController> logger;
+        private readonly WebApiContext context;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
         public LFSProjectController(ILogger<LFSProjectController> logger,
+            WebApiContext context,
             IHubContext<NotificationsHub, INotifications> notifications)
         {
             this.logger = logger;
+            this.context = context;
             this.notifications = notifications;
         }
 
         [HttpGet]
-        public PagedResult<LFSProjectInfo> Get(string sortColumn, SortDirection sortDirection, int page,
+        public async Task<PagedResult<LFSProjectInfo>> Get(string sortColumn, SortDirection sortDirection, int page,
             int pageSize)
         {
-            var rng = new Random();
+            var objects = await context.LfsProjects.OrderBy(sortColumn, sortDirection).ToPagedResultAsync(page, pageSize);
 
-            var result = Enumerable.Range(1, 122).Select(index => new LFSProjectInfo()
-            {
-                Id = index,
-                Name = "Project_" + index,
-                Public = true,
-                Size = index * 50,
-                UpdatedAt = DateTime.Now + TimeSpan.FromSeconds(rng.Next(-20, 55)),
-                CreatedAt = DateTime.Now - TimeSpan.FromSeconds(rng.Next(1000, 10000)),
-            }).AsQueryable().OrderBy(sortColumn, sortDirection);
-
-            // ReportUpdatedProject(result.First()).Wait();
-
-            return result.ToPagedResult(page, pageSize);
+            return objects.ConvertResult(i => i.GetInfo());
         }
 
         private async Task ReportUpdatedProject(LFSProjectInfo item)

@@ -8,7 +8,8 @@
       "Microsoft": "Warning",
       "Microsoft.Hosting.Lifetime": "Information",
       "Microsoft.AspNetCore.SignalR": "Information",
-      "Microsoft.AspNetCore.Http.Connections": "Information"
+      "Microsoft.AspNetCore.Http.Connections": "Information",
+      "Microsoft.EntityFrameworkCore.Database.Command": "Information"
     }
   }
 }

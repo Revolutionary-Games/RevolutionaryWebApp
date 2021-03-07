@@ -4,8 +4,10 @@ namespace ThriveDevCenter.Shared.Models
     {
         public string Name { get; set; }
 
+        public string Slug { get; set; }
+
         public bool Public { get; set; }
 
-        public long Size { get; set; }
+        public long TotalObjectSize { get; set; }
     }
 }

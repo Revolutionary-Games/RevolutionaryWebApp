@@ -19,8 +19,8 @@ namespace ThriveDevCenter.Shared.Notifications.Tests
                 Item = new LFSProjectInfo()
                 {
                     Name = "something",
+                    Slug = "smth",
                     Public = true,
-                    Size = 123,
                     CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
                     UpdatedAt = DateTime.Parse("2021-01-02T06:15:00"),
                 }
@@ -43,7 +43,7 @@ namespace ThriveDevCenter.Shared.Notifications.Tests
                 {
                     Name = "something",
                     Public = true,
-                    Size = 123,
+                    Slug = "smth",
                     CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
                     UpdatedAt = DateTime.Parse("2021-01-02T06:15:00"),
                 }
@@ -63,7 +63,7 @@ namespace ThriveDevCenter.Shared.Notifications.Tests
 
             Assert.Equal(original.Item.Name, item.Name);
             Assert.Equal(original.Item.Public, item.Public);
-            Assert.Equal(original.Item.Size, item.Size);
+            Assert.Equal(original.Item.Slug, item.Slug);
             Assert.Equal(original.Item.CreatedAt, item.CreatedAt);
             Assert.Equal(original.Item.UpdatedAt, item.UpdatedAt);
         }

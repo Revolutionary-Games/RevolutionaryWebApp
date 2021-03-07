@@ -4,7 +4,10 @@ using System.Collections.Generic;
 namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
+    using System.Data.Common;
+    using System.Drawing;
     using Microsoft.EntityFrameworkCore;
+    using Shared.Models;
 
     [Index(nameof(Name), IsUnique = true)]
     [Index(nameof(Slug), IsUnique = true)]
@@ -26,7 +29,21 @@ namespace ThriveDevCenter.Server.Models
         public DateTime? FileTreeUpdated { get; set; }
         public string FileTreeCommit { get; set; }
 
-        public virtual ICollection<LfsObject> LfsObjects { get; set; } = new HashSet<LfsObject>();
-        public virtual ICollection<ProjectGitFile> ProjectGitFiles { get; set; } = new HashSet<ProjectGitFile>();
+        public ICollection<LfsObject> LfsObjects { get; set; } = new HashSet<LfsObject>();
+        public ICollection<ProjectGitFile> ProjectGitFiles { get; set; } = new HashSet<ProjectGitFile>();
+
+        public LFSProjectInfo GetInfo()
+        {
+            return new()
+            {
+                Id = Id,
+                Name = Name,
+                Slug = Slug,
+                Public = Public,
+                TotalObjectSize = TotalObjectSize ?? 0,
+                UpdatedAt = UpdatedAt,
+                CreatedAt = CreatedAt
+            };
+        }
     }
 }
