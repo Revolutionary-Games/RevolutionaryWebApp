@@ -27,7 +27,7 @@
             <tr @key="item.Name">
                 <td>@item.Name</td>
                 <td>@item.Public</td>
-                <td>@item.TotalObjectSize</td>
+                <td>@item.TotalObjectSize.BytesToMiB()</td>
                 <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
             </tr>
         }
