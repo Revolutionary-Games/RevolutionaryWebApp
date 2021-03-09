@@ -7,22 +7,28 @@ namespace ThriveDevCenter.Server.Models
     using System.Data.Common;
     using System.Drawing;
     using Microsoft.EntityFrameworkCore;
+    using Shared;
     using Shared.Models;
 
     [Index(nameof(Name), IsUnique = true)]
     [Index(nameof(Slug), IsUnique = true)]
     public class LfsProject : UpdateableModel
     {
+        [AllowSortingBy]
         public string Name { get; set; }
 
+        [AllowSortingBy]
         public string Slug { get; set; }
 
+        [AllowSortingBy]
         public bool Public { get; set; } = true;
 
         [Required]
         public string RepoUrl { get; set; }
 
         public string CloneUrl { get; set; }
+
+        [AllowSortingBy]
         public int? TotalObjectSize { get; set; }
         public int? TotalObjectCount { get; set; }
         public DateTime? TotalSizeUpdated { get; set; }

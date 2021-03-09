@@ -37,7 +37,19 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<PagedResult<LFSProjectInfo>> Get(string sortColumn, SortDirection sortDirection, int page,
             int pageSize)
         {
-            var objects = await context.LfsProjects.OrderBy(sortColumn, sortDirection).ToPagedResultAsync(page, pageSize);
+            IQueryable<LfsProject> query;
+
+            try
+            {
+                query = context.LfsProjects.OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException();
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetInfo());
         }
