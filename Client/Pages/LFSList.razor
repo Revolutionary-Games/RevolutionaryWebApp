@@ -24,7 +24,7 @@
     {
         @foreach (var item in Data.Results)
         {
-            <tr @key="item.Name">
+            <tr @key="item.Id">
                 <td>@item.Name</td>
                 <td>@item.Public</td>
                 <td>@item.TotalObjectSize.BytesToMiB()</td>
