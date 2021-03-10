@@ -21,11 +21,11 @@ namespace ThriveDevCenter.Server.Controllers
     public class LFSProjectController : Controller
     {
         private readonly ILogger<LFSProjectController> logger;
-        private readonly WebApiContext context;
+        private readonly ApplicationDbContext context;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
         public LFSProjectController(ILogger<LFSProjectController> logger,
-            WebApiContext context,
+            ApplicationDbContext context,
             IHubContext<NotificationsHub, INotifications> notifications)
         {
             this.logger = logger;

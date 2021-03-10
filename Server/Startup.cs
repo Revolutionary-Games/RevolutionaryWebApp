@@ -41,10 +41,10 @@ namespace ThriveDevCenter.Server
                     new[] { "application/octet-stream" });
             });
 
-            services.AddDbContext<WebApiContext>(opts =>
+            services.AddDbContext<ApplicationDbContext>(opts =>
                 opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection")));
 
-            services.AddIdentity<User, IdentityRole<long>>().AddEntityFrameworkStores<WebApiContext>();
+            services.AddIdentity<User, IdentityRole<long>>().AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddControllers(options =>
                 options.Filters.Add(new HttpResponseExceptionFilter()));

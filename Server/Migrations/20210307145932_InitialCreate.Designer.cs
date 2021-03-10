@@ -9,7 +9,7 @@ using ThriveDevCenter.Server.Models;
 
 namespace ThriveDevCenter.Server.Migrations
 {
-    [DbContext(typeof(WebApiContext))]
+    [DbContext(typeof(ApplicationDbContext))]
     [Migration("20210307145932_InitialCreate")]
     partial class InitialCreate
     {

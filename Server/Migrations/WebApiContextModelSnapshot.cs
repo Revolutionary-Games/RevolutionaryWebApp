@@ -8,7 +8,7 @@ using ThriveDevCenter.Server.Models;
 
 namespace ThriveDevCenter.Server.Migrations
 {
-    [DbContext(typeof(WebApiContext))]
+    [DbContext(typeof(ApplicationDbContext))]
     partial class WebApiContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
