@@ -9,7 +9,7 @@ using ThriveDevCenter.Server.Models;
 
 namespace ThriveDevCenter.Server.Migrations
 {
-    [DbContext(typeof(WebApiContext))]
+    [DbContext(typeof(ApplicationDbContext))]
     [Migration("20210310140116_CreateIdentityUser")]
     partial class CreateIdentityUser
     {

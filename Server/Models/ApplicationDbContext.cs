@@ -4,10 +4,9 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore;
 
-    // TODO: rename to ApplicationContext
-    public class WebApiContext : IdentityDbContext<User, IdentityRole<long>, long>
+    public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<long>, long>
     {
-        public WebApiContext(DbContextOptions<WebApiContext> options) : base(options) { }
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         public DbSet<AccessKey> AccessKeys { get; set; }
         public DbSet<DehydratedObject> DehydratedObjects { get; set; }
@@ -158,6 +157,11 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
 
                 entity.Property(e => e.TotalLauncherLinks).HasDefaultValue(0);
+
+                entity.HasMany(e => e.UserRoles)
+                    .WithOne()
+                    .HasForeignKey(ur => ur.UserId)
+                    .IsRequired();
             });
 
             modelBuilder.Entity<IdentityRole<long>>(entity =>

@@ -52,5 +52,7 @@ namespace ThriveDevCenter.Server.Models
         ///   Stored files owned by this user
         /// </summary>
         public virtual ICollection<StorageItem> StorageItems { get; set; } = new HashSet<StorageItem>();
+
+        public virtual ICollection<IdentityUserRole<long>> UserRoles { get; set; }
     }
 }
