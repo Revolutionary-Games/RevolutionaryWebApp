@@ -18,7 +18,7 @@
 }
 
 @media (max-width: 640.98px) {
-    .top-row:not(.auth) {
+    .top-row-hide {
         display: none;
     }
 
