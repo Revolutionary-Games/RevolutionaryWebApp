@@ -1,4 +1,11 @@
 {
+  "Registration": {
+    "Enabled": true,
+    "RegistrationCode": "Thrive1234"
+  },
+  "CSRF": {
+    "Secret": "PUTARANDOMSTRINGHERE"
+  },
   "ConnectionStrings": {
     "WebApiConnection": "User ID=thrivedevcenter;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;"
   },
@@ -11,5 +18,6 @@
       "Microsoft.AspNetCore.Http.Connections": "Information",
       "Microsoft.EntityFrameworkCore.Database.Command": "Information"
     }
-  }
+  },
+  "AllowedHosts": "*"
 }

@@ -48,6 +48,9 @@ namespace ThriveDevCenter.Server
 
             services.AddControllers(options =>
                 options.Filters.Add(new HttpResponseExceptionFilter()));
+
+            services.AddSingleton<RegistrationStatus>();
+            services.AddSingleton<JwtTokens>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -68,7 +71,10 @@ namespace ThriveDevCenter.Server
             }
 
             app.UseBlazorFrameworkFiles();
-            app.UseStaticFiles();
+
+            // Files are only served in development, in production reverse proxy needs to serve them
+            if(env.IsDevelopment())
+                app.UseStaticFiles();
 
             app.UseRouting();
 
@@ -79,6 +85,9 @@ namespace ThriveDevCenter.Server
                 endpoints.MapHub<NotificationsHub>("/notifications");
                 endpoints.MapFallbackToPage("/_Host");
             });
+
+            // Early load the registration status
+            app.ApplicationServices.GetRequiredService<RegistrationStatus>();
         }
     }
 }

@@ -1,0 +1,94 @@
+@inject NavigationManager NavManager
+@inject CSRFTokenReader Csrf
+@using System.Timers
+@implements IDisposable
+
+@if (!valid)
+{
+    <div class="alert alert-danger" role="alert">
+        This page's authorization has ended, interaction is no longer possible,
+        <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload</a>.
+    </div>
+}
+
+@if (alert != null)
+{
+    <div class="alert alert-warning" role="alert">
+        This page's authorization will end soon. Please save your work and refresh as soon as possible.
+        @alert
+        <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload now</a>.
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public int StartAlertingTimeRemaining { get; set; } = 500;
+
+    private bool valid = true;
+    private string alert;
+
+    private Timer checkTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        // Don't want to waste too much performance on this so this is quite long interval
+        checkTimer = new Timer(5000);
+        checkTimer.Elapsed += OnCheck;
+        checkTimer.Enabled = true;
+    }
+
+    public void Dispose()
+    {
+        checkTimer?.Dispose();
+    }
+
+    private async void OnCheck(object sender, ElapsedEventArgs elapsedEventArgs)
+    {
+        bool changes = false;
+        bool newValid = Csrf.Valid;
+
+        if (newValid != valid)
+        {
+            valid = newValid;
+            changes = true;
+        }
+
+        var remaining = Csrf.TimeRemaining;
+
+        if (remaining < StartAlertingTimeRemaining)
+        {
+            // To make this look better with a countdown the interval is reduced to 1 second here
+            if (checkTimer.Interval != 1000)
+                checkTimer.Interval = 1000;
+
+            if (remaining < 0)
+                remaining = 0;
+
+            var newAlert = $"Time remaining: {remaining} seconds";
+
+            if (newAlert != alert)
+            {
+                alert = newAlert;
+                changes = true;
+            }
+        }
+        else if (alert != null)
+        {
+            alert = null;
+            changes = true;
+        }
+
+        if (changes)
+            await InvokeAsync(StateHasChanged);
+    }
+
+    // TODO: combine all the ForceReload implementations, perhaps an extension method on NavManager?
+    private void ForceReload()
+    {
+        NavManager.NavigateTo(NavManager.Uri, true);
+    }
+
+}

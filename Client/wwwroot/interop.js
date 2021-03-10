@@ -17,3 +17,11 @@ function addToHistory(uri){
 function getCurrentURL(){
     return window.location.href;
 }
+
+function getCSRFToken(){
+    return document.getElementById("csrfTokenValue").value;
+}
+
+function getCSRFTokenExpiry(){
+    return document.getElementById("csrfTokenExpiryTimestamp").value;
+}

@@ -28,6 +28,8 @@ namespace ThriveDevCenter.Client
                 sp.GetRequiredService<NavigationManager>()));
             builder.Services.AddSingleton(sp =>
                 new NotificationHandler(sp.GetRequiredService<NavigationManager>()));
+            builder.Services.AddSingleton(sp =>
+                new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>()));
 
             var app = builder.Build();
 
@@ -35,6 +37,8 @@ namespace ThriveDevCenter.Client
             // Not awaiting this here doesn't seem to speed up things and requires some special careful programming,
             // so that is not done
             await app.Services.GetRequiredService<NotificationHandler>().StartConnection();
+
+            await app.Services.GetRequiredService<CSRFTokenReader>().Read();
 
             await app.RunAsync();
         }
