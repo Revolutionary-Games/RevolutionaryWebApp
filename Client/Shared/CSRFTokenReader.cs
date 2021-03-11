@@ -24,6 +24,8 @@ namespace ThriveDevCenter.Client.Shared
 
         public int TimeRemaining => (int)(csrfTokenExpires - DateTime.UtcNow).TotalSeconds;
 
+        public string Token => csrfToken;
+
         public async Task Read()
         {
             csrfToken = await jsRuntime.InvokeAsync<string>("getCSRFToken");

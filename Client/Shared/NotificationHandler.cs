@@ -11,6 +11,7 @@ namespace ThriveDevCenter.Client.Shared
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using ThriveDevCenter.Shared;
+    using ThriveDevCenter.Shared.Models;
     using ThriveDevCenter.Shared.Notifications;
 
     public class NotificationHandler : IAsyncDisposable
@@ -18,6 +19,8 @@ namespace ThriveDevCenter.Client.Shared
         private const bool FullMessageLogging = false;
 
         private readonly NavigationManager navManager;
+        private readonly CurrentUserInfo userInfoReceiver;
+        private readonly CSRFTokenReader csrfTokenReader;
         private readonly Dictionary<Type, List<(IGroupListener, Func<SerializedNotification, Task>)>> handlers = new();
 
         private readonly NotificationJsonConverter converter = new NotificationJsonConverter();
@@ -28,9 +31,12 @@ namespace ThriveDevCenter.Client.Shared
         private bool connectionLost = false;
         private bool permanentlyLost = false;
 
-        public NotificationHandler(NavigationManager navManager)
+        public NotificationHandler(NavigationManager navManager, CurrentUserInfo userInfoReceiver,
+            CSRFTokenReader csrfTokenReader)
         {
             this.navManager = navManager;
+            this.userInfoReceiver = userInfoReceiver;
+            this.csrfTokenReader = csrfTokenReader;
         }
 
         public delegate void ConnectionStatusEventHandler(object sender, bool connectionLost);
@@ -171,7 +177,20 @@ namespace ThriveDevCenter.Client.Shared
             // TODO: look into enabling message pack protocol
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(navManager.ToAbsoluteUri(
-                    $"/notifications?majorVersion={AppVersion.Major}&minorVersion={AppVersion.Minor}"))
+                        $"/notifications?majorVersion={AppInfo.Major}&minorVersion={AppInfo.Minor}"),
+                    options =>
+                    {
+                        // Apparently we have to leak this in the url as there is no other way to set this...
+                        options.AccessTokenProvider = () => Task.FromResult(csrfTokenReader.Token);
+
+                        // options.WebSocketConfiguration = socketOptions =>
+                        // {
+                        //     // Not supported in browser
+                        //     socketOptions.SetRequestHeader("X-CSRF-Token", csrfTokenReader.Token);
+                        // };
+
+                        // options.Headers["X-CSRF-Token"] = csrfTokenReader.Token;
+                    })
                 .AddJsonProtocol()
                 .WithAutomaticReconnect(new TimeSpan[]
                 {
@@ -216,6 +235,8 @@ namespace ThriveDevCenter.Client.Shared
                 VersionMisMatch = true;
                 OnVersionMismatch?.Invoke(this, EventArgs.Empty);
             });
+
+            hubConnection.On<UserInfo>("ReceiveOwnUserInfo", (user) => { userInfoReceiver.OnReceivedOurInfo(user); });
 
             hubConnection.On<string>("ReceiveNotificationJSON", async (json) =>
             {

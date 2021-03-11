@@ -24,7 +24,7 @@
     #pragma warning disable 0162 // unreachable code
 }
 @* ReSharper disable once ConditionIsAlwaysTrueOrFalse *@
-@if (AppVersion.UsePrerendering)
+@if (AppInfo.UsePrerendering)
 {
     <component type="typeof(ThriveDevCenter.Client.App)" render-mode="WebAssemblyPrerendered" />
 }

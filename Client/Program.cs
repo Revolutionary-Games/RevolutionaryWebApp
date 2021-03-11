@@ -18,27 +18,36 @@ namespace ThriveDevCenter.Client
 
             // Not used when pre-rendering
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-            if (!AppVersion.UsePrerendering)
+            if (!AppInfo.UsePrerendering)
                 builder.RootComponents.Add<App>("#app");
 
-            builder.Services.AddScoped(sp => new HttpClient
-                { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-            builder.Services.AddScoped(sp => new ComponentUrlHelper(
-                sp.GetRequiredService<IJSRuntime>(),
-                sp.GetRequiredService<NavigationManager>()));
-            builder.Services.AddSingleton(sp =>
-                new NotificationHandler(sp.GetRequiredService<NavigationManager>()));
             builder.Services.AddSingleton(sp =>
                 new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>()));
 
+            builder.Services.AddScoped(sp => new HttpClient
+            {
+                BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
+                DefaultRequestHeaders = { { "X-CSRF-Token", sp.GetRequiredService<CSRFTokenReader>().Token } }
+            });
+
+            builder.Services.AddScoped(sp => new ComponentUrlHelper(
+                sp.GetRequiredService<IJSRuntime>(),
+                sp.GetRequiredService<NavigationManager>()));
+
+            builder.Services.AddSingleton(sp => new CurrentUserInfo());
+            builder.Services.AddSingleton(sp =>
+                new NotificationHandler(sp.GetRequiredService<NavigationManager>(),
+                    sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<CSRFTokenReader>()));
+
             var app = builder.Build();
+
+            // CSRF token is already needed here
+            await app.Services.GetRequiredService<CSRFTokenReader>().Read();
 
             // Setup hub connection as soon as we are able
             // Not awaiting this here doesn't seem to speed up things and requires some special careful programming,
             // so that is not done
             await app.Services.GetRequiredService<NotificationHandler>().StartConnection();
-
-            await app.Services.GetRequiredService<CSRFTokenReader>().Read();
 
             await app.RunAsync();
         }
