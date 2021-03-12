@@ -42,7 +42,8 @@ namespace ThriveDevCenter.Server
                     if (notBefore > now)
                         return false;
 
-                    if (expires < now)
+                    // Expires is required
+                    if (expires == null || expires < now)
                         return false;
 
                     return true;

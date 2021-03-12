@@ -52,5 +52,40 @@ namespace ThriveDevCenter.Server.Models
         ///   Stored files owned by this user
         /// </summary>
         public virtual ICollection<StorageItem> StorageItems { get; set; } = new HashSet<StorageItem>();
+
+        public UserInfo GetInfo(RecordAccessLevel infoLevel)
+        {
+            var info = new UserInfo()
+            {
+                Id = Id,
+                Name = UserName,
+                Developer = Developer ?? false
+            };
+
+            switch (infoLevel)
+            {
+                case RecordAccessLevel.Public:
+                    break;
+                case RecordAccessLevel.Private:
+                    info.Email = info.Email;
+                    info.Admin = Admin ?? false;
+                    info.TotalLauncherLinks = TotalLauncherLinks;
+                    info.CreatedAt = CreatedAt;
+                    info.UpdatedAt = UpdatedAt;
+                    info.HasApiToken = !string.IsNullOrEmpty(ApiToken);
+                    info.HasLfsToken = !string.IsNullOrEmpty(LfsToken);
+                    info.Local = Local;
+                    info.SsoSource = SsoSource;
+                    break;
+                case RecordAccessLevel.Admin:
+                    // TODO: add the suspension reasons etc.
+                    info.Suspended = Suspended ?? false;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);
+            }
+
+            return info;
+        }
     }
 }

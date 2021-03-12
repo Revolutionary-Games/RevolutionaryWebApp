@@ -1,5 +1,55 @@
-<span class="auth">UserWidget</span>
+@inject CurrentUserInfo UserInfo
+@using ThriveDevCenter.Shared.Models
+@implements IDisposable
+
+<span class="auth">
+    @if (!UserInfo.InfoReady)
+    {
+        <div class="spinner-border spinner-border-sm text-secondary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    }
+    else if (UserInfo.LoggedIn)
+    {
+        <span>You are logged in</span>
+    }
+    else
+    {
+        <NavLink class="nav-link d-inline-block" href="login">
+            Login
+        </NavLink>
+    }
+
+    <span class="oi oi-person" aria-hidden="true"></span>
+
+    @if (UserInfo.InfoReady && UserInfo.LoggedIn)
+    {
+        <button type="button" class="btn btn-outline-secondary" @onclick=DoLogout>Logout
+            <span class="oi oi-account-logout" aria-hidden="true"></span></button>
+    }
+</span>
 
 @code {
+
+    protected override Task OnInitializedAsync()
+    {
+        UserInfo.OnUserInfoChanged += OnUserInfoUpdated;
+        return base.OnInitializedAsync();
+    }
+
+    public void Dispose()
+    {
+        UserInfo.OnUserInfoChanged -= OnUserInfoUpdated;
+    }
+
+    private void OnUserInfoUpdated(object sender, UserInfo newInfo)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void DoLogout()
+    {
+        Console.WriteLine("TODO: logout");
+    }
 
 }

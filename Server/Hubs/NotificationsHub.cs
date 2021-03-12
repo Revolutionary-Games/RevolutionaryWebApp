@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Server.Hubs
     public class NotificationsHub : Hub<INotifications>
     {
         private readonly JwtTokens csrfVerifier;
+        private User connectedUser;
 
         public NotificationsHub(JwtTokens csrfVerifier)
         {
@@ -60,15 +61,15 @@ namespace ThriveDevCenter.Server.Hubs
 
                 if(http.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string session)){
                     // TODO: handle user detection
+                    connectedUser = null;
                 }
             }
 
-            // TODO: send user info
-            await Clients.Caller.ReceiveOwnUserInfo(null);
+            await Clients.Caller.ReceiveOwnUserInfo(connectedUser?.GetInfo(RecordAccessLevel.Private));
 
             await base.OnConnectedAsync();
 
-            // TODO: could send some user specific notices here
+            // Could send some user specific notices here
             // await Clients.Caller.ReceiveSiteNotice(SiteNoticeType.Primary, "hey you connected");
         }
 
@@ -88,6 +89,12 @@ namespace ThriveDevCenter.Server.Hubs
         {
             // TODO: needs to be restricted to admin
             return Clients.All.ReceiveSiteNotice(type, message);
+        }
+
+        public Task WhoAmI()
+        {
+            // TODO: reload from Db at some interval
+            return Clients.Caller.ReceiveOwnUserInfo(connectedUser?.GetInfo(RecordAccessLevel.Private));
         }
     }
 

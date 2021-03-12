@@ -70,8 +70,16 @@ namespace ThriveDevCenter.Client.Shared
 
         public void OnReceivedOurInfo(UserInfo user)
         {
+            var previousInfo = InfoReady;
+
             InfoReady = true;
             Info = user;
+
+            // Null value doesn't trigger the initial callback, so we force that to happen here
+            if (info == null && !previousInfo)
+            {
+                OnUserInfoChanged?.Invoke(this, info);
+            }
         }
     }
 }
