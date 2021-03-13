@@ -11,7 +11,7 @@ namespace ThriveDevCenter.Server.Models
 
     // TODO: is this a duplicate index that is not needed?
     [Index(nameof(ParentId))]
-    public class StorageItem : UpdateableModel
+    public class StorageItem : UpdateableModel, IOwneableModel
     {
         public string Name { get; set; }
 
