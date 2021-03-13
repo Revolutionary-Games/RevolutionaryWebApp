@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server
     using System;
     using System.Linq;
     using System.Net.Http;
+    using Authorization;
     using Hubs;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
@@ -73,8 +74,20 @@ namespace ThriveDevCenter.Server
             app.UseBlazorFrameworkFiles();
 
             // Files are only served in development, in production reverse proxy needs to serve them
-            if(env.IsDevelopment())
+            if (env.IsDevelopment())
                 app.UseStaticFiles();
+
+            app.UseWhen(
+                context => context.Request.Path.StartsWithSegments("/api"),
+                appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
+
+            app.UseWhen(
+                context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
+                appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
+
+            app.UseWhen(
+                context => context.Request.Path.StartsWithSegments("/api"),
+                appBuilder => { appBuilder.UseMiddleware<TokenOrCookieAuthenticationMiddleware>(); });
 
             app.UseRouting();
 

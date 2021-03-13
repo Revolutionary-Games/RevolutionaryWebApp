@@ -2,17 +2,18 @@ namespace ThriveDevCenter.Server.Models
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+    using System.Security.Principal;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.EntityFrameworkCore;
+    using Shared;
     using Shared.Models;
 
     [Index(nameof(Email), IsUnique = true)]
     [Index(nameof(ApiToken), IsUnique = true)]
     [Index(nameof(LfsToken), IsUnique = true)]
     [Index(nameof(LauncherLinkCode), IsUnique = true)]
-    public class User : IdentityUser<long>, ITimestampedModel
+    public class User : IdentityUser<long>, ITimestampedModel, IIdentity
     {
         public bool Local { get; set; }
         public string SsoSource { get; set; }
@@ -38,6 +39,19 @@ namespace ThriveDevCenter.Server.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now.ToUniversalTime();
         public DateTime UpdatedAt { get; set; } = DateTime.Now.ToUniversalTime();
 
+        [NotMapped]
+        public string AuthenticationType
+        {
+            get => Local ? "LocalUser" : "Sso" + SsoSource;
+            set => throw new NotSupportedException();
+        }
+
+        [NotMapped]
+        public bool IsAuthenticated { get => true; set => throw new NotSupportedException(); }
+
+        [NotMapped]
+        public string Name { get => UserName; set => UserName = value; }
+
         /// <summary>
         ///   Builds verified by this user
         /// </summary>
@@ -52,6 +66,24 @@ namespace ThriveDevCenter.Server.Models
         ///   Stored files owned by this user
         /// </summary>
         public virtual ICollection<StorageItem> StorageItems { get; set; } = new HashSet<StorageItem>();
+
+        public bool HasAccessLevel(UserAccessLevel level)
+        {
+            // Suspended user has no access
+            if (Suspended == true)
+                return false;
+
+            if (level == UserAccessLevel.NotLoggedIn || level == UserAccessLevel.User)
+                return true;
+
+            if (level == UserAccessLevel.Admin)
+                return Admin == true;
+
+            if (level == UserAccessLevel.Developer)
+                return Admin == true || Developer == true;
+
+            return false;
+        }
 
         public UserInfo GetInfo(RecordAccessLevel infoLevel)
         {

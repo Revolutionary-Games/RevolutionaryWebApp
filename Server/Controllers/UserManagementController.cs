@@ -6,6 +6,8 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Threading.Tasks;
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
+    using Authorization;
+    using Shared;
 
     [ApiController]
     [Route("api/v1/[controller]")]
@@ -21,6 +23,7 @@ namespace ThriveDevCenter.Server.Controllers
             this.notifications = notifications;
         }
 
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         [HttpGet]
         public void Get(string username)
         {
