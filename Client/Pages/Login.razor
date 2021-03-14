@@ -44,11 +44,11 @@ else
                 // Form for local login
                 <form method="post" action="/LoginController/login" class="login-form">
                     <div class="form-group">
-                        <input type="hidden" name="csrf" value="@CSRF.Token"/>
-                        <input type="email" class="form-control" name="loginEmail"
+                        <input type="hidden" name="CSRF" value="@CSRF.Token"/>
+                        <input type="email" class="form-control" name="Email"
                                aria-describedby="emailHelp" placeholder="email" @bind="email" @bind:event="oninput">
                         <br />
-                        <input type="password" class="form-control" name="loginPassword"
+                        <input type="password" class="form-control" name="Password"
                                placeholder="password"  @bind="password" @bind:event="oninput">
                     </div>
                     <Button class="my-1" Enabled="@LocalLoginFine" type="submit">

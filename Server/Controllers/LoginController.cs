@@ -67,21 +67,28 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("start")]
-        public LoginOptions StartLogin(string ssoType)
+        public IActionResult StartLogin(string ssoType)
         {
             throw new HttpResponseException() { Value = "Invalid SsoType" };
         }
 
         [HttpGet("return")]
-        public LoginOptions SsoReturn()
+        public IActionResult SsoReturn()
         {
             throw new HttpResponseException() { Value = "Not done..." };
         }
 
         [HttpPost("login")]
-        public LoginOptions PerformLocalLogin(string loginEmail, string loginPassword, string csrf)
+        public IActionResult PerformLocalLogin([FromForm] LoginFormData login)
         {
-            throw new HttpResponseException() { Value = "Not done, email: " + loginEmail };
+            throw new HttpResponseException() { Value = "Not done, email: " + login.Email };
         }
+    }
+
+    public class LoginFormData
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string CSRF { get; set; }
     }
 }
