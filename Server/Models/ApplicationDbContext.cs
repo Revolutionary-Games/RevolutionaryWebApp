@@ -3,11 +3,14 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore;
+    using Shared.Models;
 
-    public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<long>, long>
+    public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
+        public DbSet<User> Users { get; set; }
+        public DbSet<Session> Sessions { get; set; }
         public DbSet<AccessKey> AccessKeys { get; set; }
         public DbSet<DehydratedObject> DehydratedObjects { get; set; }
         public DbSet<DevBuild> DevBuilds { get; set; }
@@ -157,33 +160,8 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
 
                 entity.Property(e => e.TotalLauncherLinks).HasDefaultValue(0);
-            });
 
-            modelBuilder.Entity<IdentityRole<long>>(entity =>
-            {
-                entity.ToTable("roles");
-
-                entity.HasData(new IdentityRole<long>
-                {
-                    Id = 1,
-                    Name = "Visitor",
-                    NormalizedName = "VISITOR"
-                }, new IdentityRole<long>
-                {
-                    Id = 2,
-                    Name = "User",
-                    NormalizedName = "USER"
-                }, new IdentityRole<long>
-                {
-                    Id = 3,
-                    Name = "Developer",
-                    NormalizedName = "DEVELOPER"
-                }, new IdentityRole<long>
-                {
-                    Id = 4,
-                    Name = "Admin",
-                    NormalizedName = "ADMIN"
-                });
+                entity.Property(e => e.SessionVersion).HasDefaultValue(1);
             });
         }
     }

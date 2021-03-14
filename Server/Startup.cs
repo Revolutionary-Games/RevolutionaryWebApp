@@ -45,7 +45,7 @@ namespace ThriveDevCenter.Server
             services.AddDbContext<ApplicationDbContext>(opts =>
                 opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection")));
 
-            services.AddIdentity<User, IdentityRole<long>>().AddEntityFrameworkStores<ApplicationDbContext>();
+            // services.AddIdentity<User, IdentityRole<long>>().AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddControllers(options =>
                 options.Filters.Add(new HttpResponseExceptionFilter()));

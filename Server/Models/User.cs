@@ -35,6 +35,8 @@ namespace ThriveDevCenter.Server.Models
 
         public int TotalLauncherLinks { get; set; } = 0;
 
+        public int SessionVersion { get; set; } = 1;
+
         // Need to reimplement these, as we inherit IdentityUser
         public DateTime CreatedAt { get; set; } = DateTime.Now.ToUniversalTime();
         public DateTime UpdatedAt { get; set; } = DateTime.Now.ToUniversalTime();
