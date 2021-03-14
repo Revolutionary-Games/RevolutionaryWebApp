@@ -8,5 +8,8 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string LFSListUpdated = "LFS";
         public const string PrivateLFSUpdated = "LFS_Developer";
         public const string LFSItemUpdatedPrefix = "SLFS_";
+
+        public const string UserListUpdated = "Users";
+        public const string UserUpdatedPrefix = "SUser_";
     }
 }

@@ -52,6 +52,10 @@ namespace ThriveDevCenter.Server
 
             services.AddSingleton<RegistrationStatus>();
             services.AddSingleton<JwtTokens>();
+
+            services.AddScoped<CSRFCheckerMiddleware>();
+            services.AddScoped<LFSAuthenticationMiddleware>();
+            services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,0 +1,97 @@
+@page "/users"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper UrlHelper
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Shared.Models
+@implements INotificationHandler<UserListUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.UserInfo>
+
+<h3>Users</h3>
+
+<PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                OnPageChanged="async (e) => await ChangePage(e)"
+                OnSortChanged="async (column) => await ChangeSort(column)"
+                GetSortClass="@SortClass"
+                ShowContentSpinner="@VisibleFetchInProgress"
+                Columns="@columns">
+    @if (Data != null)
+    {
+        @foreach (var item in Data.Results)
+        {
+            <tr @key="item.Id">
+                <td>@item.Name</td>
+                <td>@item.Suspended</td>
+                <td>@item.SsoSource</td>
+                <td>@item.Developer</td>
+                <td>@item.Admin</td>
+                <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                <td>@item.HasApiToken</td>
+                <td>@item.HasLfsToken</td>
+            </tr>
+        }
+    }
+</PaginatedTable>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true),
+        new TableColumn("Suspended", true),
+        new TableColumn("SSO", true, "SsoSource"),
+        new TableColumn("Developer", true),
+        new TableColumn("Admin", true),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("API Token?", false),
+        new TableColumn("LFS?", false),
+    };
+
+    public UserList() : base(new SortHelper("CreatedAt", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(UserListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.UserListUpdated);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<UserInfo>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<UserInfo>>(
+            QueryHelpers.AddQueryString("api/v1/UserManagement", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+}

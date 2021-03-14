@@ -10,6 +10,10 @@ namespace ThriveDevCenter.Shared
 
         public const string SessionCookieName = "ThriveDevSession";
 
+        public const string GitLfsContentType = "application/vnd.git-lfs+json";
+
+        public const string CSRFStatusName = "CSRF";
+
         public static int Major => 1;
         public static int Minor => 5;
     }

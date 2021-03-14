@@ -149,6 +149,8 @@ namespace ThriveDevCenter.Client.Shared
         {
             Sort = sort;
 
+            DefaultSortDirection = sort.Direction;
+
             if (string.IsNullOrEmpty(DefaultSortColumn))
                 DefaultSortColumn = Sort.SortColumn;
         }

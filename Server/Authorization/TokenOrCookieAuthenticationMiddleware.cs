@@ -10,35 +10,16 @@ namespace ThriveDevCenter.Server.Authorization
     using Models;
     using Shared;
 
-    public class TokenOrCookieAuthenticationMiddleware : IMiddleware
+    public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
     {
         private readonly ApplicationDbContext database;
-
-        private enum AuthMethodResult
-        {
-            Authenticated,
-            Nothing,
-            Error,
-        }
 
         public TokenOrCookieAuthenticationMiddleware(ApplicationDbContext database)
         {
             this.database = database;
         }
 
-        public async Task InvokeAsync(HttpContext context, RequestDelegate next)
-        {
-            // Skip if already authenticated
-            if (context.User.Identity == null)
-            {
-                if (!await PerformAuthentication(context))
-                    return;
-            }
-
-            await next.Invoke(context);
-        }
-
-        private async Task<bool> PerformAuthentication(HttpContext context)
+        protected override async Task<bool> PerformAuthentication(HttpContext context)
         {
             // API token is allowed to be in "api_token" or "apiToken" query parameter
             var result = await CheckQueryString(context);
@@ -70,7 +51,7 @@ namespace ThriveDevCenter.Server.Authorization
             {
                 var user = database.Users.FirstOrDefault(u => u.ApiToken == queryToken[0]);
 
-                if (user != null)
+                if (user != null && user.Suspended != true)
                 {
                     OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None);
                     return AuthMethodResult.Authenticated;
@@ -85,21 +66,22 @@ namespace ThriveDevCenter.Server.Authorization
             return AuthMethodResult.Nothing;
         }
 
-                private async Task<AuthMethodResult> CheckAuthorizationHeader(HttpContext context)
+        private async Task<AuthMethodResult> CheckAuthorizationHeader(HttpContext context)
         {
             if (context.Request.Headers.TryGetValue("Authorization", out StringValues header) && header.Count > 0)
             {
-                // In format "Bearer TOKEN"
-                // TODO: split off a middleware for authentication in the lfs endpoint that uses different token lookup
-                // Or maybe it would make more sense to detect just the path in here to make things a bit simpler overall
                 var tokenValue = header[0];
 
                 if (tokenValue.StartsWith("Bearer "))
                 {
+                    // In format "Bearer TOKEN"
                     return await CheckBearerToken(context, tokenValue);
                 }
-                else
+
+                if(!tokenValue.Contains(' '))
                 {
+                    // In another format (only check launcher link if no spaces, as that might be basic authentication
+                    // (handled separately in the LFS authentication middleware)
                     return await CheckLauncherLink(context, tokenValue);
                 }
             }
@@ -120,7 +102,7 @@ namespace ThriveDevCenter.Server.Authorization
 
             var user = database.Users.FirstOrDefault(u => u.ApiToken == apiToken);
 
-            if (user != null)
+            if (user != null && user.Suspended != true)
             {
                 OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None);
                 return AuthMethodResult.Authenticated;
@@ -139,7 +121,7 @@ namespace ThriveDevCenter.Server.Authorization
             var link = database.LauncherLinks.Include(l => l.User)
                 .FirstOrDefault(l => l.LinkCode == tokenValue);
 
-            if (link?.User == null)
+            if (link?.User == null || link.User.Suspended == true)
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsync("Invalid token");
@@ -167,7 +149,7 @@ namespace ThriveDevCenter.Server.Authorization
                 if (validSession)
                 {
                     // When inside a cookie CSRF needs to have passed
-                    if (!context.Items.TryGetValue("CSRF", out object csrf) && !(csrf is bool))
+                    if (!context.Items.TryGetValue(AppInfo.CSRFStatusName, out object csrf) && !(csrf is bool))
                     {
                         // TODO: the download endpoint shouldn't require this, or do we need a separate interactive
                         // TODO: page to offer the proper download button for downloads?
@@ -179,7 +161,7 @@ namespace ThriveDevCenter.Server.Authorization
                     // TODO: lookup user
                     User user = null;
 
-                    if (user != null)
+                    if (user != null && user.Suspended != true)
                     {
                         OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None);
                         return AuthMethodResult.Authenticated;
@@ -192,17 +174,6 @@ namespace ThriveDevCenter.Server.Authorization
             }
 
             return AuthMethodResult.Nothing;
-        }
-
-        private void OnAuthenticationSucceeded(HttpContext context, User user,
-            AuthenticationScopeRestriction restriction)
-        {
-            if (user == null)
-                throw new ArgumentException("can't set authenticated user to null");
-
-            context.User.AddIdentity(new ClaimsIdentity(user));
-            context.Items["AuthenticatedUser"] = user;
-            context.Items["AuthenticatedUserScopeRestriction"] = restriction;
         }
     }
 }

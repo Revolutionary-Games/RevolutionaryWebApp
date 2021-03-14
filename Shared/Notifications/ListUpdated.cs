@@ -15,4 +15,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class LFSListUpdated : ListUpdated<LFSProjectInfo>
     {
     }
+
+    public class UserListUpdated : ListUpdated<UserInfo>
+    {
+    }
 }

@@ -65,6 +65,9 @@ namespace ThriveDevCenter.Server.Hubs
                 }
             }
 
+            // TODO: remove this test delay
+            await Task.Delay(TimeSpan.FromMilliseconds(950));
+
             await Clients.Caller.ReceiveOwnUserInfo(connectedUser?.GetInfo(RecordAccessLevel.Private));
 
             await base.OnConnectedAsync();
