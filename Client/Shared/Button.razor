@@ -1,0 +1,39 @@
+<button class="btn btn-@Style @(@class)" aria-disabled="@Disabled" disabled="@Disabled"
+        type="@type" @onclick="PressDetected">
+    @ChildContent
+</button>
+
+@code {
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string Style { get; set; } = "primary";
+
+    [Parameter]
+    public bool Enabled { get; set; } = true;
+
+    // Forwarding normal HTML stuff
+
+    [Parameter]
+    // ReSharper disable InconsistentNaming
+    public string @class { get; set; } = "";
+
+    [Parameter]
+    public string type { get; set; } = "button";
+
+    // ReSharper restore InconsistentNaming
+
+    [Parameter]
+    public EventCallback OnPressed { get; set; }
+
+    public bool Disabled => !Enabled;
+
+    private async void PressDetected()
+    {
+        if (Enabled)
+            await OnPressed.InvokeAsync();
+    }
+
+}

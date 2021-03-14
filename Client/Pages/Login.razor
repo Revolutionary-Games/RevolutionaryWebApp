@@ -1,10 +1,94 @@
 @page "/Login"
+@using ThriveDevCenter.Shared.Models
 @inject HttpClient Http
+@inject NavigationManager NavManager
+@inject CSRFTokenReader CSRF
 
 <h3>Login</h3>
 
+<p>By logging in you accept the use of cookies to track your logged in session.</p>
+
+<br />
+
+@if (options == null)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    bool first = true;
+
+    foreach (var group in options.Categories)
+    {
+        if (!first)
+        {
+            <hr />
+        }
+
+        <h4>@group.Name</h4>
+
+        foreach (var option in group.Options)
+        {
+            if (!option.Local)
+            {
+                <Button class="my-1" OnPressed="@(() => BeginLogin(option.InternalName))" Enabled="@option.Active">
+                    @option.ReadableName
+                </Button>
+            }
+            else
+            {
+                // Form for local login
+                <form method="post" action="/LoginController/login" class="login-form">
+                    <div class="form-group">
+                        <input type="hidden" name="csrf" value="@CSRF.Token"/>
+                        <input type="email" class="form-control" name="loginEmail"
+                               aria-describedby="emailHelp" placeholder="email" @bind="email" @bind:event="oninput">
+                        <br />
+                        <input type="password" class="form-control" name="loginPassword"
+                               placeholder="password"  @bind="password" @bind:event="oninput">
+                    </div>
+                    <Button class="my-1" Enabled="@LocalLoginFine" type="submit">
+                        Login
+                    </Button>
+                </form>
+            }
+
+            <br />
+        }
+
+        first = false;
+    }
+}
+
 @code {
+    private LoginOptions options;
 
+#pragma warning disable 649
+    private string email;
+    private string password;
+#pragma warning restore 649
 
+    private bool LocalLoginFine => !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        options = await Http.GetFromJsonAsync<LoginOptions>("LoginController");
+    }
+
+    private void BeginLogin(string type)
+    {
+        NavManager.NavigateTo(QueryHelpers.AddQueryString("LoginController/start", new Dictionary<string, string>()
+        {
+            {
+                "SsoType", type
+            }
+        }), true);
+    }
 
 }
