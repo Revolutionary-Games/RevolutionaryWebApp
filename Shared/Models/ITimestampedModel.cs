@@ -2,7 +2,11 @@ namespace ThriveDevCenter.Shared.Models
 {
     using System;
 
-    public interface ITimestampedModel : IIdentifiable
+    public interface ITimestampedModel : IIdentifiable, ITimestamped
+    {
+    }
+
+    public interface ITimestamped
     {
         DateTime CreatedAt { get; }
 
@@ -13,7 +17,7 @@ namespace ThriveDevCenter.Shared.Models
     {
         public static void BumpUpdatedAt(this ITimestampedModel entity)
         {
-            entity.UpdatedAt = DateTime.Now.ToUniversalTime();
+            entity.UpdatedAt = DateTime.UtcNow;
         }
     }
 }

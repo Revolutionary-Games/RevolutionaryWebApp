@@ -1,9 +1,12 @@
 namespace ThriveDevCenter.Server.Hubs
 {
     using System;
+    using System.Linq;
     using System.Text.Json;
     using System.Threading.Tasks;
+    using Authorization;
     using Microsoft.AspNetCore.SignalR;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Primitives;
     using Models;
     using Shared;
@@ -13,11 +16,14 @@ namespace ThriveDevCenter.Server.Hubs
     public class NotificationsHub : Hub<INotifications>
     {
         private readonly JwtTokens csrfVerifier;
+        private readonly ApplicationDbContext database;
+
         private User connectedUser;
 
-        public NotificationsHub(JwtTokens csrfVerifier)
+        public NotificationsHub(JwtTokens csrfVerifier, ApplicationDbContext database)
         {
             this.csrfVerifier = csrfVerifier;
+            this.database = database;
         }
 
         public override async Task OnConnectedAsync()
@@ -39,7 +45,7 @@ namespace ThriveDevCenter.Server.Hubs
                     throw new HubException("invalid connection parameters");
 
                 if (!csrfVerifier.IsValidCSRFToken(accessToken[0]))
-                    throw new HubException("invalid csrf token");
+                    throw new HubException("invalid CSRF token");
 
                 bool invalidVersion = false;
 
@@ -59,9 +65,13 @@ namespace ThriveDevCenter.Server.Hubs
                 if (invalidVersion)
                     await Clients.Caller.ReceiveVersionMismatch();
 
-                if(http.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string session)){
-                    // TODO: handle user detection
-                    connectedUser = null;
+                try
+                {
+                    connectedUser = await http.Request.Cookies.GetUserFromSession(database);
+                }
+                catch (ArgumentException)
+                {
+                    throw new HubException("invalid session cookie");
                 }
             }
 

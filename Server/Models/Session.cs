@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models
     using System;
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
+    using Shared;
 
     [Index(nameof(UserId))]
     public class Session
@@ -17,5 +18,11 @@ namespace ThriveDevCenter.Server.Models
 
         public string SsoNonce { get; set; }
         public string StartedSsoLogin { get; set; }
+
+        /// <summary>
+        ///   Used to clear old sessions
+        /// </summary>
+        [AllowSortingBy]
+        public DateTime LastUsed { get; set; } = DateTime.UtcNow;
     }
 }

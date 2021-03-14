@@ -143,10 +143,9 @@ namespace ThriveDevCenter.Server.Authorization
             if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string session) &&
                 !string.IsNullOrEmpty(session))
             {
-                // TODO: sessions
-                bool validSession = false;
+                var user = await context.Request.Cookies.GetUserFromSession(database);
 
-                if (validSession)
+                if (user != null)
                 {
                     // When inside a cookie CSRF needs to have passed
                     if (!context.Items.TryGetValue(AppInfo.CSRFStatusName, out object csrf) && !(csrf is bool))
@@ -158,10 +157,7 @@ namespace ThriveDevCenter.Server.Authorization
                         return AuthMethodResult.Error;
                     }
 
-                    // TODO: lookup user
-                    User user = null;
-
-                    if (user != null && user.Suspended != true)
+                    if (user.Suspended != true)
                     {
                         OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None);
                         return AuthMethodResult.Authenticated;
