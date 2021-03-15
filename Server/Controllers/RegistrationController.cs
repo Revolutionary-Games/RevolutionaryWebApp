@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using Authorization;
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Logging;
+    using Models;
     using Shared;
 
     [ApiController]
@@ -15,14 +17,17 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
         private readonly RegistrationStatus configuration;
         private readonly JwtTokens csrfVerifier;
+        private readonly ApplicationDbContext database;
 
         public RegistrationController(ILogger<RegistrationController> logger,
-            IHubContext<NotificationsHub, INotifications> notifications, RegistrationStatus configuration, JwtTokens csrfVerifier)
+            IHubContext<NotificationsHub, INotifications> notifications, RegistrationStatus configuration,
+            JwtTokens csrfVerifier, ApplicationDbContext database)
         {
             this.logger = logger;
             this.notifications = notifications;
             this.configuration = configuration;
             this.csrfVerifier = csrfVerifier;
+            this.database = database;
         }
 
         /// <summary>
@@ -40,8 +45,19 @@ namespace ThriveDevCenter.Server.Controllers
             if (!csrfVerifier.IsValidCSRFToken(request.CSRF))
                 return BadRequest("Invalid CSRF");
 
-            if (request.RegistrationCode != configuration.RegistrationCode)
+            if (!SecurityHelpers.SlowEquals(request.RegistrationCode, configuration.RegistrationCode))
                 return BadRequest("Invalid registration code");
+
+            if(request.Name == null || request.Name.Length < 3)
+                return BadRequest("Name is too short");
+
+            if(request.Email == null || request.Email.Length < 3 || !request.Email.Contains('@'))
+                return BadRequest("Email is invalid");
+
+            if(request.Password == null || request.Password.Length < 6)
+                return BadRequest("Password is too short");
+
+            var password = Passwords.CreateSaltedPasswordHash(request.Password);
 
             return BadRequest("Not implemented");
         }
