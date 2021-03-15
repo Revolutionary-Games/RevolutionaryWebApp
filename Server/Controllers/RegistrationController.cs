@@ -14,13 +14,15 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly ILogger<RegistrationController> logger;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
         private readonly RegistrationStatus configuration;
+        private readonly JwtTokens csrfVerifier;
 
         public RegistrationController(ILogger<RegistrationController> logger,
-            IHubContext<NotificationsHub, INotifications> notifications, RegistrationStatus configuration)
+            IHubContext<NotificationsHub, INotifications> notifications, RegistrationStatus configuration, JwtTokens csrfVerifier)
         {
             this.logger = logger;
             this.notifications = notifications;
             this.configuration = configuration;
+            this.csrfVerifier = csrfVerifier;
         }
 
         /// <summary>
@@ -35,6 +37,9 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost]
         public IActionResult Post(RegistrationFormData request)
         {
+            if (!csrfVerifier.IsValidCSRFToken(request.CSRF))
+                return BadRequest("Invalid CSRF");
+
             if (request.RegistrationCode != configuration.RegistrationCode)
                 return BadRequest("Invalid registration code");
 

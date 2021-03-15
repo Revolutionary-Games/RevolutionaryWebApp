@@ -72,6 +72,6 @@ table.sortable {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-.login-form {
-    max-width: 300px;
+.login-form > .form-group{
+    max-width: 325px;
 }
