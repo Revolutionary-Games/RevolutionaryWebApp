@@ -20,6 +20,11 @@ namespace ThriveDevCenter.Server.Models
         public string StartedSsoLogin { get; set; }
 
         /// <summary>
+        ///   Used to timeout started sso requests
+        /// </summary>
+        public DateTime? SsoStartTime { get; set; }
+
+        /// <summary>
         ///   Used to clear old sessions
         /// </summary>
         [AllowSortingBy]
