@@ -17,7 +17,6 @@ namespace ThriveDevCenter.Server.Models
     {
         public bool Local { get; set; }
         public string SsoSource { get; set; }
-        public string PasswordDigest { get; set; }
 
         // TODO: combine these to a single enum field
         public bool? Developer { get; set; } = false;
