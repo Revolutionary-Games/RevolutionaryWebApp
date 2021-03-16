@@ -28,6 +28,7 @@ namespace ThriveDevCenter.Server.Authorization.Tests
             Assert.NotEqual(Passwords.CreateSaltedPasswordHash("test1234", salt1),
                 Passwords.CreateSaltedPasswordHash("test1234", salt2));
         }
+
         [Fact]
         public void PasswordHashing_AutomaticallyGeneratedSaltsAreDifferent()
         {
@@ -37,6 +38,16 @@ namespace ThriveDevCenter.Server.Authorization.Tests
 
             if (result1 == result2 && result2 == result3)
                 Assert.True(false, "subsequently created hashes without set salt should be different");
+        }
+
+        [Fact]
+        public void PasswordHashing_PasswordVerificationWorks()
+        {
+            var hashed = Passwords.CreateSaltedPasswordHash("test1234");
+
+            Assert.True(Passwords.CheckPassword(hashed, "test1234"));
+            Assert.False(Passwords.CheckPassword(hashed, "test12345"));
+            Assert.False(Passwords.CheckPassword(hashed, "test123"));
         }
     }
 }

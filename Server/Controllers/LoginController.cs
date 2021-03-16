@@ -3,12 +3,29 @@ using Microsoft.AspNetCore.Mvc;
 namespace ThriveDevCenter.Server.Controllers
 {
     using System.Collections.Generic;
+    using System.Text.Encodings.Web;
+    using System.Threading.Tasks;
+    using Authorization;
+    using Microsoft.AspNetCore.WebUtilities;
+    using Microsoft.Extensions.Logging;
+    using Models;
     using Shared.Models;
 
     [ApiController]
     [Route("LoginController")]
     public class LoginController : Controller
     {
+        private readonly ILogger<LoginController> logger;
+        private readonly ApplicationDbContext database;
+        private readonly JwtTokens csrfVerifier;
+
+        public LoginController(ILogger<LoginController> logger, ApplicationDbContext database, JwtTokens csrfVerifier)
+        {
+            this.logger = logger;
+            this.database = database;
+            this.csrfVerifier = csrfVerifier;
+        }
+
         [HttpGet]
         public LoginOptions Get()
         {
@@ -66,9 +83,11 @@ namespace ThriveDevCenter.Server.Controllers
             };
         }
 
-        [HttpGet("start")]
-        public IActionResult StartLogin(string ssoType)
+        [HttpPost("start")]
+        public async Task<IActionResult> StartLogin(string ssoType, [FromBody] string csrf)
         {
+            await PerformPreLoginChecks(csrf);
+
             throw new HttpResponseException() { Value = "Invalid SsoType" };
         }
 
@@ -79,9 +98,27 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult PerformLocalLogin([FromForm] LoginFormData login)
+        public async Task<IActionResult> PerformLocalLogin([FromForm] LoginFormData login)
         {
-            throw new HttpResponseException() { Value = "Not done, email: " + login.Email };
+            await PerformPreLoginChecks(login.CSRF);
+
+            return Redirect(QueryHelpers.AddQueryString("/login", "error", "Invalid username or password"));
+        }
+
+        private async Task PerformPreLoginChecks(string csrf)
+        {
+            var existingSession = await HttpContext.Request.Cookies.GetSession(database);
+
+            // TODO: verify that the client making the request had up to date token
+            if (!csrfVerifier.IsValidCSRFToken(csrf))
+                throw new HttpResponseException() { Value = "Invalid CSRF token. Please refresh and try logging in again" };
+
+            // If there is an existing session, end it
+            if (existingSession != null)
+            {
+                logger.LogInformation("Destroying an existing session before starting login");
+                await LogoutController.PerformSessionDestroy(existingSession, database);
+            }
         }
     }
 

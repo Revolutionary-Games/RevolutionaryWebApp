@@ -10,6 +10,13 @@
 
 <br />
 
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+
 @if (options == null)
 {
     <div class="text-center">
@@ -69,6 +76,9 @@ else
 @code {
     private LoginOptions options;
 
+    [QueryStringParameter]
+    public string Error { get; set; }
+
 #pragma warning disable 649
     private string email;
     private string password;
@@ -80,9 +90,12 @@ else
     {
         await base.OnInitializedAsync();
 
+        this.SetParametersFromQueryString(NavManager);
+
         options = await Http.GetFromJsonAsync<LoginOptions>("LoginController");
     }
 
+    // ReSharper disable once ParameterHidesMember
     private void BeginLogin(string type)
     {
         NavManager.NavigateTo(QueryHelpers.AddQueryString("LoginController/start", new Dictionary<string, string>()
