@@ -23,7 +23,7 @@ namespace ThriveDevCenter.Server.Controllers
             this.csrfVerifier = csrfVerifier;
         }
 
-        [HttpDelete]
+        [HttpPost]
         public async Task<IActionResult> Logout([FromForm] LogoutFormData request)
         {
             var existingSession = await HttpContext.Request.Cookies.GetSession(database);

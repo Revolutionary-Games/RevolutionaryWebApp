@@ -48,6 +48,7 @@ namespace ThriveDevCenter.Server.Authorization
 
                 // For performance optimization, last used isn't updated always
                 if (now - existingSession.LastUsed >= AppInfo.LastUsedSessionAccuracy ||
+                    existingSession.LastUsedFrom == null ||
                     !existingSession.LastUsedFrom.Equals(clientAddress))
                 {
                     // TODO: perform in a background job?
