@@ -31,6 +31,6 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public DateTime LastUsed { get; set; } = DateTime.UtcNow;
 
-        public IPAddress LastUsedFrom;
+        public IPAddress LastUsedFrom { get; set; }
     }
 }
