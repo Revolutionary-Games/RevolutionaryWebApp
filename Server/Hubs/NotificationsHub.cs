@@ -44,7 +44,17 @@ namespace ThriveDevCenter.Server.Hubs
                 if (minorStr.Count < 1 || majorStr.Count < 1 || accessToken.Count < 1)
                     throw new HubException("invalid connection parameters");
 
-                if (!csrfVerifier.IsValidCSRFToken(accessToken[0]))
+                try
+                {
+                    connectedUser =
+                        await http.Request.Cookies.GetUserFromSession(database, http.Connection.RemoteIpAddress);
+                }
+                catch (ArgumentException)
+                {
+                    throw new HubException("invalid session cookie");
+                }
+
+                if (!csrfVerifier.IsValidCSRFToken(accessToken[0], connectedUser))
                     throw new HubException("invalid CSRF token");
 
                 bool invalidVersion = false;
@@ -64,16 +74,6 @@ namespace ThriveDevCenter.Server.Hubs
 
                 if (invalidVersion)
                     await Clients.Caller.ReceiveVersionMismatch();
-
-                try
-                {
-                    connectedUser =
-                        await http.Request.Cookies.GetUserFromSession(database, http.Connection.RemoteIpAddress);
-                }
-                catch (ArgumentException)
-                {
-                    throw new HubException("invalid session cookie");
-                }
             }
 
             // TODO: remove this test delay

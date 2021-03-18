@@ -28,7 +28,7 @@ namespace ThriveDevCenter.Client
             {
                 BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
                 DefaultRequestHeaders = { { "X-CSRF-Token", sp.GetRequiredService<CSRFTokenReader>().Token } }
-            });
+            }).AddTransient<HttpCookieHandler>();
 
             builder.Services.AddScoped(sp => new ComponentUrlHelper(
                 sp.GetRequiredService<IJSRuntime>(),

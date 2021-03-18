@@ -14,7 +14,9 @@ namespace ThriveDevCenter.Shared
 
         public const string GitLfsContentType = "application/vnd.git-lfs+json";
 
+        public const string CSRFNeededName = "CSRFRequired";
         public const string CSRFStatusName = "CSRF";
+        public const string CurrentUserMiddleWareKey = "AuthenticatedUser";
 
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days

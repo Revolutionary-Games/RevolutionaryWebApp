@@ -19,7 +19,7 @@ function getCurrentURL(){
 }
 
 function getCSRFToken(){
-    return document.getElementById("csrfTokenValue").value;
+    return document.getElementById("csrfUserToken").value;
 }
 
 function getCSRFTokenExpiry(){

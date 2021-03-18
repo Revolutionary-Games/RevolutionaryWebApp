@@ -45,7 +45,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost]
         public async Task<IActionResult> Post(RegistrationFormData request)
         {
-            if (!csrfVerifier.IsValidCSRFToken(request.CSRF))
+            if (!csrfVerifier.IsValidCSRFToken(request.CSRF, null, false))
                 return BadRequest("Invalid CSRF");
 
             if (!SecurityHelpers.SlowEquals(request.RegistrationCode, configuration.RegistrationCode))

@@ -28,10 +28,10 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var existingSession = await HttpContext.Request.Cookies.GetSession(database);
 
-            if (existingSession == null)
+            if (existingSession?.User == null)
                 return BadRequest("You are not currently logged in");
 
-            if (!csrfVerifier.IsValidCSRFToken(request.CSRF))
+            if (!csrfVerifier.IsValidCSRFToken(request.CSRF, existingSession.User))
                 return BadRequest("Invalid CSRF token, please try refreshing and then try again");
 
             // Session version doesn't need to be enforced here as logging out a session should always be safe

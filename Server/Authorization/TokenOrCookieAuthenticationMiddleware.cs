@@ -149,14 +149,10 @@ namespace ThriveDevCenter.Server.Authorization
                 if (user != null)
                 {
                     // When inside a cookie CSRF needs to have passed
-                    if (!context.Items.TryGetValue(AppInfo.CSRFStatusName, out object csrf) && !(csrf is bool))
-                    {
-                        // TODO: the download endpoint shouldn't require this, or do we need a separate interactive
-                        // TODO: page to offer the proper download button for downloads?
-                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await context.Response.WriteAsync("CSRF token is required when using cookies.");
-                        return AuthMethodResult.Error;
-                    }
+                    // TODO: the download endpoint shouldn't require this, or do we need a separate interactive
+                    // TODO: page to offer the proper download button for downloads?
+
+                    context.Items[AppInfo.CSRFNeededName] = true;
 
                     if (user.Suspended != true)
                     {

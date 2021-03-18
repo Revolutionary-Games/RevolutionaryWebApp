@@ -1,11 +1,15 @@
 namespace ThriveDevCenter.Server
 {
     using System;
+    using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
+    using System.Linq;
+    using System.Security.Claims;
     using System.Text;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Microsoft.IdentityModel.Tokens;
+    using Models;
 
     public class JwtTokens
     {
@@ -56,11 +60,15 @@ namespace ThriveDevCenter.Server
             };
         }
 
-        // TODO: should this take in the current user id? to make previous pages not valid after login?
-        // Though that might be more annoying than the extra security it gives is worth
-        public string GenerateCSRFToken()
+        public string GenerateCSRFToken(User user)
         {
-            var token = new JwtSecurityToken(Issuer, string.Empty, null, null, GetCSRFTokenExpiry(),
+            var claims = new List<Claim>()
+            {
+                new Claim("LoggedIn", "true"),
+                new Claim("UserId", UserIdFromPotentiallyNull(user))
+            };
+
+            var token = new JwtSecurityToken(Issuer, string.Empty, claims, null, GetCSRFTokenExpiry(),
                 signingCredentials);
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
@@ -72,7 +80,7 @@ namespace ThriveDevCenter.Server
             return DateTime.UtcNow + TimeSpan.FromSeconds(csrfExpiry);
         }
 
-        public bool IsValidCSRFToken(string tokenString)
+        public bool IsValidCSRFToken(string tokenString, User requiredUser, bool verifyUser = true)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
 
@@ -82,6 +90,16 @@ namespace ThriveDevCenter.Server
 
                 if (validatedToken == null)
                     return false;
+
+                if (verifyUser)
+                {
+                    // In some rare cases (like signup), we don't really care who is making the request
+                    if (principal.Claims.First(c => c.Type == "UserId").Value !=
+                        UserIdFromPotentiallyNull(requiredUser))
+                    {
+                        throw new ArgumentException("UserId contained in token doesn't match required user id");
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -91,6 +109,14 @@ namespace ThriveDevCenter.Server
             }
 
             return true;
+        }
+
+        private string UserIdFromPotentiallyNull(User user)
+        {
+            if (user == null)
+                return "null";
+
+            return user.Id.ToString();
         }
     }
 }

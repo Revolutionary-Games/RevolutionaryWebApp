@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Authorization
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Models;
+    using Shared;
 
     public abstract class BaseAuthenticationHelper : IMiddleware
     {
@@ -18,7 +19,9 @@ namespace ThriveDevCenter.Server.Authorization
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
         {
             // Skip if already authenticated
-            if (context.User.Identity == null)
+            // For some reason now when cookies are sent the Identity, by default is set to some unauthenticated one
+            // TODO: could try to figure out what does that and try to disable it
+            if (context.User.Identity == null || !context.Items.ContainsKey(AppInfo.CurrentUserMiddleWareKey))
             {
                 if (!await PerformAuthentication(context))
                     return;
@@ -40,8 +43,10 @@ namespace ThriveDevCenter.Server.Authorization
             if (user == null)
                 throw new ArgumentException("can't set authenticated user to null");
 
-            context.User.AddIdentity(new ClaimsIdentity(user));
-            context.Items["AuthenticatedUser"] = user;
+            var identity = new ClaimsIdentity(user);
+
+            context.User.AddIdentity(identity);
+            context.Items[AppInfo.CurrentUserMiddleWareKey] = user;
             context.Items["AuthenticatedUserScopeRestriction"] = restriction;
         }
     }

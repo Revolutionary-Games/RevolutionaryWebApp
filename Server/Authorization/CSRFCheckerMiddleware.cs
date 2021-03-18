@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Authorization
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Primitives;
+    using Models;
     using Shared;
 
     public class CSRFCheckerMiddleware : IMiddleware
@@ -25,13 +26,27 @@ namespace ThriveDevCenter.Server.Authorization
                     return;
                 }
 
-                if (!csrfVerifier.IsValidCSRFToken(headerValues[0]))
+                User user = null;
+
+                if (context.Items.TryGetValue(AppInfo.CurrentUserMiddleWareKey, out object userRaw))
+                {
+                    user = userRaw as User;
+                }
+
+                if (!csrfVerifier.IsValidCSRFToken(headerValues[0], user))
                 {
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     await context.Response.WriteAsync("CSRF token is invalid. Please refresh and try again.");
+                    return;
                 }
 
                 context.Items[AppInfo.CSRFStatusName] = true;
+            }
+            else if (context.Items.ContainsKey(AppInfo.CSRFNeededName))
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsync("CSRF token is required for this request.");
+                return;
             }
 
             await next.Invoke(context);

@@ -124,9 +124,11 @@ namespace ThriveDevCenter.Server.Controllers
             var existingSession = await HttpContext.Request.Cookies.GetSession(database);
 
             // TODO: verify that the client making the request had up to date token
-            if (!csrfVerifier.IsValidCSRFToken(csrf))
+            if (!csrfVerifier.IsValidCSRFToken(csrf, existingSession?.User))
+            {
                 throw new HttpResponseException()
                     { Value = "Invalid CSRF token. Please refresh and try logging in again" };
+            }
 
             // If there is an existing session, end it
             if (existingSession != null)

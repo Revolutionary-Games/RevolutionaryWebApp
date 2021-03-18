@@ -82,16 +82,16 @@ namespace ThriveDevCenter.Server
                 app.UseStaticFiles();
 
             app.UseWhen(
-                context => context.Request.Path.StartsWithSegments("/api"),
-                appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
-
-            app.UseWhen(
                 context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
                 appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
 
             app.UseWhen(
                 context => context.Request.Path.StartsWithSegments("/api"),
                 appBuilder => { appBuilder.UseMiddleware<TokenOrCookieAuthenticationMiddleware>(); });
+
+            app.UseWhen(
+                context => context.Request.Path.StartsWithSegments("/api"),
+                appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
 
             app.UseRouting();
 
