@@ -2,13 +2,17 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using System;
     using System.Collections.Generic;
     using System.Text.Encodings.Web;
     using System.Threading.Tasks;
     using Authorization;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.WebUtilities;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Shared;
     using Shared.Models;
 
     [ApiController]
@@ -102,7 +106,17 @@ namespace ThriveDevCenter.Server.Controllers
         {
             await PerformPreLoginChecks(login.CSRF);
 
-            return Redirect(QueryHelpers.AddQueryString("/login", "error", "Invalid username or password"));
+            var user = await database.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
+
+            if (user == null || string.IsNullOrEmpty(user.PasswordHash) ||
+                !Passwords.CheckPassword(user.PasswordHash, login.Password))
+                return Redirect(QueryHelpers.AddQueryString("/login", "error", "Invalid username or password"));
+
+            // Login is successful
+            await BeginNewSession(user);
+
+            // TODO: implement return to URL for login requests
+            return Redirect("/");
         }
 
         private async Task PerformPreLoginChecks(string csrf)
@@ -111,7 +125,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             // TODO: verify that the client making the request had up to date token
             if (!csrfVerifier.IsValidCSRFToken(csrf))
-                throw new HttpResponseException() { Value = "Invalid CSRF token. Please refresh and try logging in again" };
+                throw new HttpResponseException()
+                    { Value = "Invalid CSRF token. Please refresh and try logging in again" };
 
             // If there is an existing session, end it
             if (existingSession != null)
@@ -119,6 +134,41 @@ namespace ThriveDevCenter.Server.Controllers
                 logger.LogInformation("Destroying an existing session before starting login");
                 await LogoutController.PerformSessionDestroy(existingSession, database);
             }
+        }
+
+        private async Task BeginNewSession(User user)
+        {
+            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+
+            var session = new Session
+            {
+                User = user, SessionVersion = user.SessionVersion, LastUsedFrom = remoteAddress
+            };
+
+            await database.Sessions.AddAsync(session);
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("Successful login for user {Email} from {RemoteAddress}, session: {Id}", user.Email,
+                remoteAddress, session.Id);
+
+            var options = new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddSeconds(AppInfo.SessionExpirySeconds),
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+
+                // TODO: do we need to set the domain explicitly?
+                // options.Domain;
+
+                // This might cause issues when locally testing with Chrome
+                Secure = true,
+
+                // Sessions are used for logins, they are essential. This might need to be re-thought out if non-essential
+                // info is attached to sessions later
+                IsEssential = true
+            };
+
+            Response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
         }
     }
 

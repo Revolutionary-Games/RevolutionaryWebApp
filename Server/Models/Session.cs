@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Models
 {
     using System;
     using System.ComponentModel.DataAnnotations;
+    using System.Net;
     using Microsoft.EntityFrameworkCore;
     using Shared;
 
@@ -29,5 +30,7 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         [AllowSortingBy]
         public DateTime LastUsed { get; set; } = DateTime.UtcNow;
+
+        public IPAddress LastUsedFrom;
     }
 }

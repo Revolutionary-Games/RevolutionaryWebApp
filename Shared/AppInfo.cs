@@ -1,5 +1,7 @@
 namespace ThriveDevCenter.Shared
 {
+    using System;
+
     /// <summary>
     ///   Holds the current version of the app, to detect mismatch between the client and the server.
     ///   Increment these numbers when the signalr definitions change or the APIs change
@@ -13,6 +15,16 @@ namespace ThriveDevCenter.Shared
         public const string GitLfsContentType = "application/vnd.git-lfs+json";
 
         public const string CSRFStatusName = "CSRF";
+
+        /// <summary>
+        ///   Sessions (and cookies) expire after 30 days
+        /// </summary>
+        public const int SessionExpirySeconds = 60 * 60 * 24 * 30;
+
+        /// <summary>
+        ///   The interval in seconds that a session use is updated to the database
+        /// </summary>
+        public static readonly TimeSpan LastUsedSessionAccuracy = TimeSpan.FromSeconds(60);
 
         public static int Major => 1;
         public static int Minor => 5;

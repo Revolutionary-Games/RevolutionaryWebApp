@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Authorization
 {
     using System;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.SignalR;
@@ -16,19 +17,20 @@ namespace ThriveDevCenter.Server.Authorization
         /// </summary>
         /// <param name="cookies">Cookies to read the session cookie from</param>
         /// <param name="database">Where to get users from</param>
+        /// <param name="clientAddress">The address the cookies are from (used to track where session is used)</param>
         /// <returns>The user for the session cookie or null</returns>
         /// <exception cref="ArgumentException">If the cookie is malformed</exception>
         public static Task<User> GetUserFromSession(this IRequestCookieCollection cookies,
-            ApplicationDbContext database)
+            ApplicationDbContext database, IPAddress clientAddress)
         {
             if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string session) || string.IsNullOrEmpty(session))
                 return Task.FromResult<User>(null);
 
-            return GetUserFromSession(session, database);
+            return GetUserFromSession(session, database, true, clientAddress);
         }
 
         public static async Task<User> GetUserFromSession(string sessionId, ApplicationDbContext database,
-            bool updateLastUsed = true)
+            bool updateLastUsed = true, IPAddress clientAddress = null)
         {
             var existingSession = await GetSession(sessionId, database);
 
@@ -42,9 +44,17 @@ namespace ThriveDevCenter.Server.Authorization
 
             if (updateLastUsed)
             {
-                // TODO: perform in a background job?
-                existingSession.LastUsed = DateTime.UtcNow;
-                await database.SaveChangesAsync();
+                var now = DateTime.UtcNow;
+
+                // For performance optimization, last used isn't updated always
+                if (now - existingSession.LastUsed >= AppInfo.LastUsedSessionAccuracy ||
+                    !existingSession.LastUsedFrom.Equals(clientAddress))
+                {
+                    // TODO: perform in a background job?
+                    existingSession.LastUsed = now;
+                    existingSession.LastUsedFrom = clientAddress;
+                    await database.SaveChangesAsync();
+                }
             }
 
             return existingSession.User;

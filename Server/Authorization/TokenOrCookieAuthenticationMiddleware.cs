@@ -78,7 +78,7 @@ namespace ThriveDevCenter.Server.Authorization
                     return await CheckBearerToken(context, tokenValue);
                 }
 
-                if(!tokenValue.Contains(' '))
+                if (!tokenValue.Contains(' '))
                 {
                     // In another format (only check launcher link if no spaces, as that might be basic authentication
                     // (handled separately in the LFS authentication middleware)
@@ -143,7 +143,8 @@ namespace ThriveDevCenter.Server.Authorization
             if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string session) &&
                 !string.IsNullOrEmpty(session))
             {
-                var user = await context.Request.Cookies.GetUserFromSession(database);
+                var user = await context.Request.Cookies.GetUserFromSession(database,
+                    context.Connection.RemoteIpAddress);
 
                 if (user != null)
                 {

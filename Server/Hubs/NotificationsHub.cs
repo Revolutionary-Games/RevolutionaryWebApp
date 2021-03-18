@@ -67,7 +67,8 @@ namespace ThriveDevCenter.Server.Hubs
 
                 try
                 {
-                    connectedUser = await http.Request.Cookies.GetUserFromSession(database);
+                    connectedUser =
+                        await http.Request.Cookies.GetUserFromSession(database, http.Connection.RemoteIpAddress);
                 }
                 catch (ArgumentException)
                 {
