@@ -4,7 +4,10 @@ namespace ThriveDevCenter.Client.Shared
     using System.Globalization;
     using System.Text.Json;
     using System.Threading.Tasks;
+    using Blazored.LocalStorage;
     using Microsoft.JSInterop;
+    using Models;
+    using ThriveDevCenter.Shared;
     using ThriveDevCenter.Shared.Models;
 
     /// <summary>
@@ -40,6 +43,22 @@ namespace ThriveDevCenter.Client.Shared
             var timeStr = await jsRuntime.InvokeAsync<string>("getCSRFTokenExpiry");
 
             csrfTokenExpires = DateTime.Parse(timeStr, null, DateTimeStyles.RoundtripKind);
+        }
+
+        public async Task ReportInitialUserIdToLocalStorage(ILocalStorageService localStorage)
+        {
+            try
+            {
+                await localStorage.SetItemAsync(AppInfo.LocalStorageUserInfo, new LocalStorageUserInfo()
+                {
+                    LastSignedInUserId = InitialUserId
+                });
+            }
+            catch (Exception e)
+            {
+                await Console.Error.WriteLineAsync(
+                    $"Cannot set item in local storage, detecting login actions from other windows won't work: {e}");
+            }
         }
     }
 }

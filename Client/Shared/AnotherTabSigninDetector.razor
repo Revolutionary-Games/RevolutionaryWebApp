@@ -1,0 +1,93 @@
+@using System.Timers
+@using ThriveDevCenter.Client.Models
+@using ThriveDevCenter.Shared
+@inject NavigationManager NavManager
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject CSRFTokenReader InitialUserData
+@inject NotificationHandler NotificationHandler
+@implements IDisposable
+
+@if (error)
+{
+    <div class="alert alert-warning" role="alert">
+        Your browser doesn't seem to support local storage. You won't get alerts of the site breaking
+        if you log in, in another tab.
+    </div>
+}
+
+@if (signinDetected)
+{
+    <div class="alert alert-danger" role="alert">
+        You have signed in or out in another tab. The site will not function correctly until you
+        <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload</a>.
+    </div>
+}
+
+@code {
+    private bool signinDetected;
+    private bool error;
+
+    private Timer timer;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        if (firstRender)
+        {
+            // This should be relative short to quickly report login happening in another tab as that almost immediately
+            // breaks the site if the user tries to interact with something
+            timer = new Timer(3000);
+            timer.Elapsed += CheckCurrentUser;
+            timer.Enabled = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+
+    private async void CheckCurrentUser(object sender, ElapsedEventArgs elapsedEventArgs)
+    {
+        // Try to detect if the data in the storage has changed
+        LocalStorageUserInfo updatedInfo;
+
+        try
+        {
+            updatedInfo = await LocalStorage.GetItemAsync<LocalStorageUserInfo>(AppInfo.LocalStorageUserInfo);
+        }
+        catch (Exception e)
+        {
+            error = true;
+            await Console.Error.WriteLineAsync(
+                $"Cannot read from local storage, detecting login actions from other windows won't work: {e}");
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        // Fail to read / local storage is empty
+        if (updatedInfo == null)
+            return;
+
+        if (updatedInfo.LastSignedInUserId == InitialUserData.InitialUserId)
+            return;
+
+        // Detected a change, we can stop trying to look for them
+        timer.Stop();
+        signinDetected = true;
+
+        Console.WriteLine($"Detected change of the logged in user, our page load: '{InitialUserData.InitialUserId}' "
+            + $"!= new from local storage: '{updatedInfo.LastSignedInUserId}'");
+
+        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(NotificationHandler.OnRequireStoppingConnection);
+    }
+
+    // TODO: combine all the ForceReload implementations, perhaps an extension method on NavManager?
+    private void ForceReload()
+    {
+        NavManager.NavigateTo(NavManager.Uri, true);
+    }
+
+}

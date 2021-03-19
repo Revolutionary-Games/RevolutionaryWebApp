@@ -18,6 +18,8 @@ namespace ThriveDevCenter.Shared
         public const string CSRFStatusName = "CSRF";
         public const string CurrentUserMiddleWareKey = "AuthenticatedUser";
 
+        public const string LocalStorageUserInfo = "LastPageLoadUser";
+
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days
         /// </summary>

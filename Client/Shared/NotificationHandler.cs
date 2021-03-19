@@ -223,8 +223,7 @@ namespace ThriveDevCenter.Client.Shared
 
             hubConnection.On("ReceiveSessionInvalidation", async () =>
             {
-                ConnectionPermanentlyLost = true;
-                await hubConnection.StopAsync();
+                await OnRequireStoppingConnection();
 
                 // Force reload as our session should be invalid now so we need to reopen everything as non-authenticated user
                 ForceReload();
@@ -272,7 +271,7 @@ namespace ThriveDevCenter.Client.Shared
                 if (ConnectionPermanentlyLost)
                 {
                     Console.WriteLine("Reconnected triggered while we already permanently gave up");
-                    await hubConnection.StopAsync();
+                    await OnRequireStoppingConnection();
                     return;
                 }
 
@@ -302,6 +301,16 @@ namespace ThriveDevCenter.Client.Shared
             }
 
             await ApplyGroupMemberships();
+        }
+
+        public async Task OnRequireStoppingConnection()
+        {
+            if (hubConnection == null || ConnectionPermanentlyLost)
+                return;
+
+            Console.WriteLine("Stopping hub connection as we have detected a condition that we need to do so");
+            ConnectionPermanentlyLost = true;
+            await hubConnection.StopAsync();
         }
 
         public async ValueTask DisposeAsync()
