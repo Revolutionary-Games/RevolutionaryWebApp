@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Authorization
             if (existingSession?.User == null || existingSession.SessionVersion != existingSession.User.SessionVersion)
                 return null;
 
-            // TODO: should this suspended check be here?
+            // TODO: should this suspended check be here? At least now NotificationsHub depends on this
             if (existingSession.User.Suspended == true)
                 return null;
 

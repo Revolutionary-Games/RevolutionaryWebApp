@@ -89,7 +89,9 @@ namespace ThriveDevCenter.Server.Hubs
 
         public Task JoinGroup(string groupName)
         {
-            // TODO: This needs authentication to ensure protected groups can't be joined
+            if (!IsUserAllowedInGroup(groupName, connectedUser))
+                throw new HubException("You don't have access to the specified group");
+
             return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
@@ -101,7 +103,10 @@ namespace ThriveDevCenter.Server.Hubs
 
         public Task SendSiteNotice(SiteNoticeType type, string message)
         {
-            // TODO: needs to be restricted to admin
+            // Only admins can send
+            if (connectedUser == null || !connectedUser.HasAccessLevel(UserAccessLevel.Admin))
+                throw new HubException("You don't have permission to perform this operation");
+
             return Clients.All.ReceiveSiteNotice(type, message);
         }
 
@@ -109,6 +114,38 @@ namespace ThriveDevCenter.Server.Hubs
         {
             // TODO: reload from Db at some interval
             return Clients.Caller.ReceiveOwnUserInfo(connectedUser?.GetInfo(RecordAccessLevel.Private));
+        }
+
+        private static bool IsUserAllowedInGroup(string groupName, User user)
+        {
+            // First check explicitly named groups
+            switch (groupName)
+            {
+                case NotificationGroups.UserListUpdated:
+                    return RequireAccessLevel(UserAccessLevel.Admin, user);
+                case NotificationGroups.LFSListUpdated:
+                    return RequireAccessLevel(UserAccessLevel.NotLoggedIn, user);
+                case NotificationGroups.PrivateLFSUpdated:
+                    return RequireAccessLevel(UserAccessLevel.Developer, user);
+            }
+
+            // Then check prefixes
+
+            // Unknown groups are not allowed
+            return false;
+        }
+
+        private static bool RequireAccessLevel(UserAccessLevel level, User user)
+        {
+            // All users have the not logged in access level
+            if (level == UserAccessLevel.NotLoggedIn)
+                return true;
+
+            // All other access levels require a user
+            if (user == null)
+                return false;
+
+            return user.HasAccessLevel(level);
         }
     }
 

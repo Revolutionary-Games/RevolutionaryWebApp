@@ -1,7 +1,8 @@
 namespace ThriveDevCenter.Shared.Notifications
 {
     /// <summary>
-    ///   Lists the names of notification groups (or in case of dynamically generated ones, the name prefix)
+    ///   Lists the names of notification groups (or in case of dynamically generated ones, the name prefix).
+    ///   TODO: maybe there is a better place to put the authorization checks than in the hub directly
     /// </summary>
     public static class NotificationGroups
     {
