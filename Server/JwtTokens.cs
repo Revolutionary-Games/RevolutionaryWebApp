@@ -64,7 +64,7 @@ namespace ThriveDevCenter.Server
         {
             var claims = new List<Claim>()
             {
-                new Claim("LoggedIn", "true"),
+                new Claim("LoggedIn", user != null ? "true" : "false"),
                 new Claim("UserId", UserIdFromPotentiallyNull(user))
             };
 
