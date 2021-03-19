@@ -49,7 +49,7 @@ namespace ThriveDevCenter.Server.Authorization
 
             if (foundToken && !string.IsNullOrEmpty(queryToken[0]))
             {
-                var user = database.Users.FirstOrDefault(u => u.ApiToken == queryToken[0]);
+                var user = await database.Users.FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
 
                 if (user != null && user.Suspended != true)
                 {
@@ -100,7 +100,7 @@ namespace ThriveDevCenter.Server.Authorization
                 return AuthMethodResult.Error;
             }
 
-            var user = database.Users.FirstOrDefault(u => u.ApiToken == apiToken);
+            var user = await database.Users.FirstOrDefaultAsync(u => u.ApiToken == apiToken);
 
             if (user != null && user.Suspended != true)
             {
@@ -118,8 +118,8 @@ namespace ThriveDevCenter.Server.Authorization
             // TODO: should maybe move the launcher to use a more standard format
             // Or just a plain which is an active launcher link
 
-            var link = database.LauncherLinks.Include(l => l.User)
-                .FirstOrDefault(l => l.LinkCode == tokenValue);
+            var link = await database.LauncherLinks.Include(l => l.User)
+                .FirstOrDefaultAsync(l => l.LinkCode == tokenValue);
 
             if (link?.User == null || link.User.Suspended == true)
             {

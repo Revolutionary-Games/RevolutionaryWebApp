@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Authorization;
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
@@ -62,8 +63,8 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Password is too short");
 
             // Check for conflicting username or email
-            if (database.Users.FirstOrDefault(u => u.UserName == request.Name) != null ||
-                database.Users.FirstOrDefault(u => u.Email == request.Email) != null)
+            if (await database.Users.FirstOrDefaultAsync(u => u.UserName == request.Name) != null ||
+                await database.Users.FirstOrDefaultAsync(u => u.Email == request.Email) != null)
                 return BadRequest("There is already an account associated with the given email or name");
 
             var password = Passwords.CreateSaltedPasswordHash(request.Password);

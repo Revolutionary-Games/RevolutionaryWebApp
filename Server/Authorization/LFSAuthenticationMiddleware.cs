@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server.Authorization
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Primitives;
     using Models;
     using Shared;
@@ -51,7 +52,7 @@ namespace ThriveDevCenter.Server.Authorization
                 return false;
             }
 
-            var user = database.Users.FirstOrDefault(u => u.LfsToken == parts[1]);
+            var user = await database.Users.FirstOrDefaultAsync(u => u.LfsToken == parts[1]);
 
             // The given "username" part of the basic auth needs to either match the email or name of the found user
             if (user != null && user.Suspended != true && (user.UserName == parts[0] || user.Email == parts[0]))
