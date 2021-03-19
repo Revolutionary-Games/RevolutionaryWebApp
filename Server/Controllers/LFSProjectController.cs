@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using BlazorPagination;
     using Hubs;
@@ -34,8 +35,9 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet]
-        public async Task<PagedResult<LFSProjectInfo>> Get(string sortColumn, SortDirection sortDirection, int page,
-            int pageSize)
+        public async Task<PagedResult<LFSProjectInfo>> Get([Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] int page,
+            [Required] [Range(1, 50)] int pageSize)
         {
             IQueryable<LfsProject> query;
 

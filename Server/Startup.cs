@@ -1,22 +1,16 @@
 namespace ThriveDevCenter.Server
 {
-    using System;
     using System.Linq;
-    using System.Net.Http;
     using Authorization;
     using Hubs;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Hosting.Server;
-    using Microsoft.AspNetCore.Hosting.Server.Features;
-    using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.ResponseCompression;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Models;
-    using Shared;
 
     public class Startup
     {
@@ -48,7 +42,10 @@ namespace ThriveDevCenter.Server
             // services.AddIdentity<User, IdentityRole<long>>().AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddControllers(options =>
-                options.Filters.Add(new HttpResponseExceptionFilter()));
+            {
+                options.ModelMetadataDetailsProviders.Add(new RequiredBindingMetadataProvider());
+                options.Filters.Add(new HttpResponseExceptionFilter());
+            });
 
             services.AddSingleton<RegistrationStatus>();
             services.AddSingleton<JwtTokens>();

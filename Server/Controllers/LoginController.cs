@@ -4,7 +4,7 @@ namespace ThriveDevCenter.Server.Controllers
 {
     using System;
     using System.Collections.Generic;
-    using System.Text.Encodings.Web;
+    using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using Authorization;
     using Microsoft.AspNetCore.Http;
@@ -88,7 +88,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("start")]
-        public async Task<IActionResult> StartLogin(string ssoType, [FromBody] string csrf)
+        public async Task<IActionResult> StartLogin([Required] string ssoType, [FromBody] [Required] string csrf)
         {
             await PerformPreLoginChecks(csrf);
 
@@ -176,8 +176,13 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class LoginFormData
     {
+        [Required]
         public string Email { get; set; }
+
+        [Required]
         public string Password { get; set; }
+
+        [Required]
         public string CSRF { get; set; }
     }
 }

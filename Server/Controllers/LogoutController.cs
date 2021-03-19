@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using Authorization;
     using Microsoft.Extensions.Logging;
@@ -54,7 +55,9 @@ namespace ThriveDevCenter.Server.Controllers
         }
     }
 
-    public class LogoutFormData {
+    public class LogoutFormData
+    {
+        [Required]
         public string CSRF { get; set; }
     }
 }

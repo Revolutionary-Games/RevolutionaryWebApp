@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace ThriveDevCenter.Server.Controllers
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Threading.Tasks;
     using Hubs;
@@ -33,8 +34,9 @@ namespace ThriveDevCenter.Server.Controllers
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         [HttpGet]
-        public async Task<PagedResult<UserInfo>> Get(string sortColumn, SortDirection sortDirection, int page,
-            int pageSize)
+        public async Task<PagedResult<UserInfo>> Get([Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] int page,
+            [Required] [Range(1, 100)] int pageSize)
         {
             IQueryable<User> query;
 
