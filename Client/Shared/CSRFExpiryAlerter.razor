@@ -15,7 +15,7 @@
 @if (alert != null && valid)
 {
     <div class="alert alert-warning" role="alert">
-        This page's authorization will end soon. Please save your work and refresh as soon as possible.
+        This page's authorization will end soon. Please save your work and reload as soon as possible.
         @alert
         <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload now</a>.
     </div>
