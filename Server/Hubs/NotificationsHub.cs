@@ -76,9 +76,6 @@ namespace ThriveDevCenter.Server.Hubs
                     await Clients.Caller.ReceiveVersionMismatch();
             }
 
-            // TODO: remove this test delay
-            await Task.Delay(TimeSpan.FromMilliseconds(950));
-
             await Clients.Caller.ReceiveOwnUserInfo(connectedUser?.GetInfo(RecordAccessLevel.Private));
 
             await base.OnConnectedAsync();
