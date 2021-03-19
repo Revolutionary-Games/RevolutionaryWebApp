@@ -51,7 +51,7 @@ namespace ThriveDevCenter.Client.Shared
         public bool IsDeveloper => Info?.Developer ?? false;
         public bool IsUser => LoggedIn;
 
-        public UserAccessLevel AccessLevel => Info.AccessLevel;
+        public UserAccessLevel AccessLevel => Info?.AccessLevel ?? UserAccessLevel.NotLoggedIn;
 
         public string Username => Info.Name;
         public string Email => Info.Email;
