@@ -11,6 +11,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Models;
     using Shared;
     using Shared.Models;
+    using Shared.Notifications;
 
     [ApiController]
     [Route("api/v1/[controller]")]
@@ -77,6 +78,13 @@ namespace ThriveDevCenter.Server.Controllers
 
             await database.Users.AddAsync(user);
             await database.SaveChangesAsync();
+
+            await notifications.Clients.Group(NotificationGroups.UserListUpdated).ReceiveNotification(
+                new UserListUpdated()
+                {
+                    Type = ListItemChangeType.ItemAdded,
+                    Item = user.GetInfo(RecordAccessLevel.Admin)
+                });
 
             return Created($"/users/{user.Id}", user.GetInfo(RecordAccessLevel.Private));
         }
