@@ -16,14 +16,16 @@ namespace ThriveDevCenter.Client.Shared
     public class CSRFTokenReader
     {
         private readonly IJSRuntime jsRuntime;
+        private readonly CurrentUserInfo currentUserInfo;
 
         private UserToken tokenAndUser;
 
         private DateTime csrfTokenExpires;
 
-        public CSRFTokenReader(IJSRuntime jsRuntime)
+        public CSRFTokenReader(IJSRuntime jsRuntime, CurrentUserInfo currentUserInfo)
         {
             this.jsRuntime = jsRuntime;
+            this.currentUserInfo = currentUserInfo;
         }
 
         public bool Valid => TimeRemaining > 0 && !string.IsNullOrEmpty(Token);
@@ -40,9 +42,15 @@ namespace ThriveDevCenter.Client.Shared
 
             tokenAndUser = JsonSerializer.Deserialize<UserToken>(rawData);
 
+            if (tokenAndUser == null)
+                throw new InvalidOperationException("The page we loaded from didn't contain CSRF token");
+
             var timeStr = await jsRuntime.InvokeAsync<string>("getCSRFTokenExpiry");
 
             csrfTokenExpires = DateTime.Parse(timeStr, null, DateTimeStyles.RoundtripKind);
+
+            // Send our initial user info through
+            currentUserInfo.OnReceivedOurInfo(tokenAndUser.User);
         }
 
         public async Task ReportInitialUserIdToLocalStorage(ILocalStorageService localStorage)

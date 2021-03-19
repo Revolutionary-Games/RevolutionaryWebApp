@@ -86,6 +86,18 @@ namespace ThriveDevCenter.Server.Models
             return false;
         }
 
+        public UserAccessLevel ComputeAccessLevel()
+        {
+            if (Admin == true)
+                return UserAccessLevel.Admin;
+            if (Developer == true)
+                return UserAccessLevel.Developer;
+            if (Suspended != true)
+                return UserAccessLevel.User;
+
+            return UserAccessLevel.NotLoggedIn;
+        }
+
         public UserInfo GetInfo(RecordAccessLevel infoLevel)
         {
             var info = new UserInfo()
@@ -99,6 +111,12 @@ namespace ThriveDevCenter.Server.Models
             {
                 case RecordAccessLevel.Public:
                     break;
+                case RecordAccessLevel.Admin:
+                    // TODO: add the suspension reasons etc.
+                    info.Suspended = Suspended ?? false;
+
+                    // And also add all the private stuff on top
+                    goto case RecordAccessLevel.Private;
                 case RecordAccessLevel.Private:
                     info.Email = info.Email;
                     info.Admin = Admin ?? false;
@@ -109,10 +127,7 @@ namespace ThriveDevCenter.Server.Models
                     info.HasLfsToken = !string.IsNullOrEmpty(LfsToken);
                     info.Local = Local;
                     info.SsoSource = SsoSource;
-                    break;
-                case RecordAccessLevel.Admin:
-                    // TODO: add the suspension reasons etc.
-                    info.Suspended = Suspended ?? false;
+                    info.AccessLevel = ComputeAccessLevel();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);

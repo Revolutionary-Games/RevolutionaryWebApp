@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Client.Shared
 {
     using System;
+    using ThriveDevCenter.Shared;
     using ThriveDevCenter.Shared.Models;
 
     /// <summary>
@@ -49,6 +50,8 @@ namespace ThriveDevCenter.Client.Shared
         public bool IsAdmin => Info?.Admin ?? false;
         public bool IsDeveloper => Info?.Developer ?? false;
         public bool IsUser => LoggedIn;
+
+        public UserAccessLevel AccessLevel => Info.AccessLevel;
 
         public string Username => Info.Name;
         public string Email => Info.Email;

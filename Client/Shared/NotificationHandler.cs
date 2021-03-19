@@ -301,6 +301,9 @@ namespace ThriveDevCenter.Client.Shared
             }
 
             await ApplyGroupMemberships();
+
+            // Listen for future user info updates (as those affect which groups we want to be in)
+            userInfoReceiver.OnUserInfoChanged += OnUserInfoChanged;
         }
 
         public async Task OnRequireStoppingConnection()
@@ -315,16 +318,26 @@ namespace ThriveDevCenter.Client.Shared
 
         public async ValueTask DisposeAsync()
         {
+            userInfoReceiver.OnUserInfoChanged -= OnUserInfoChanged;
+
             if (hubConnection == null)
                 return;
 
             await hubConnection.DisposeAsync();
         }
 
+        private async void OnUserInfoChanged(object sender, UserInfo info)
+        {
+            await ApplyGroupMemberships();
+        }
+
         private async Task ApplyGroupMemberships()
         {
-            // TODO: get current user status (once logging in is done)
-            var userStatus = UserAccessLevel.Admin;
+            // Can't run this yet if we don't have user info. We'll receive a callback when user info is ready
+            if (!userInfoReceiver.InfoReady)
+                return;
+
+            var userStatus = userInfoReceiver.AccessLevel;
 
             var wantedGroups = new HashSet<string>();
 

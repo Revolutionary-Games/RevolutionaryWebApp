@@ -22,8 +22,10 @@ namespace ThriveDevCenter.Client
             if (!AppInfo.UsePrerendering)
                 builder.RootComponents.Add<App>("#app");
 
+            builder.Services.AddSingleton(sp => new CurrentUserInfo());
+
             builder.Services.AddSingleton(sp =>
-                new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>()));
+                new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>(), sp.GetRequiredService<CurrentUserInfo>()));
 
             builder.Services.AddScoped(sp => new HttpClient
             {
@@ -37,7 +39,6 @@ namespace ThriveDevCenter.Client
                 sp.GetRequiredService<IJSRuntime>(),
                 sp.GetRequiredService<NavigationManager>()));
 
-            builder.Services.AddSingleton(sp => new CurrentUserInfo());
             builder.Services.AddSingleton(sp =>
                 new NotificationHandler(sp.GetRequiredService<NavigationManager>(),
                     sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<CSRFTokenReader>()));
@@ -55,7 +56,8 @@ namespace ThriveDevCenter.Client
 
             // This isn't really needed to happen instantly, so maybe this could not be waited for here if this
             // increases the app load time at all
-            await tokenReader.ReportInitialUserIdToLocalStorage(app.Services.GetRequiredService<ILocalStorageService>());
+            await tokenReader.ReportInitialUserIdToLocalStorage(app.Services
+                .GetRequiredService<ILocalStorageService>());
 
             await app.RunAsync();
         }
