@@ -2,6 +2,24 @@
 
 IN PROGRESS ATTEMPT IN REWRITING IN BLAZOR AND ASP.NET CORE
 
+## Database setup
+
+
+### Jobs database setup
+
+Once the database is setup, you need to run the following SQL script
+on it, once:
+https://github.com/quartznet/quartznet/blob/main/database/tables/tables_postgres.sql
+
+Example command if you have downloaded that to the current folder:
+```sh
+psql -d thrivedevcenter -U thrivedevcenter -h 127.0.0.1 < tables_postgres.sql
+```
+
+--
+
+OLD CONTENT:
+
 ## System Dependencies
 
 You need to have PostgreSQL and Redis on localhost available to the current user.

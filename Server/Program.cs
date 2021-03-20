@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Server
     using System.Configuration;
     using System.Data;
     using Jobs;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Quartz;
 
@@ -46,14 +47,22 @@ namespace ThriveDevCenter.Server
                                 options.MaxConcurrency = concurrency;
                             });
 
-                            // Setup default jobs
-                            q.AddJob<SessionCleanupJob>(opts => opts.WithIdentity(nameof(SessionCleanupJob)));
+                            q.UsePersistentStore(configure =>
+                            {
+                                // Same db used for the models and jobs, for now this is done for simplicity
+                                configure.UsePostgres(options =>
+                                {
+                                    options.ConnectionString =
+                                        hostContext.Configuration.GetConnectionString("WebApiConnection");
+                                    options.TablePrefix = "qrtz_";
+                                });
 
-                            q.AddTrigger(opts =>
-                                opts.ForJob(nameof(SessionCleanupJob))
-                                    .WithIdentity(nameof(SessionCleanupJob) + "-trigger")
-                                    .WithSimpleSchedule(x => x.WithIntervalInSeconds(15)
-                                        .RepeatForever()));
+                                configure.UseJsonSerializer();
+                                configure.UseProperties = true;
+                            });
+
+                            // Setup default jobs
+                            q.AddJobAndTrigger<SessionCleanupJob>(hostContext.Configuration);
                         });
 
                         services.AddQuartzHostedService(options =>
