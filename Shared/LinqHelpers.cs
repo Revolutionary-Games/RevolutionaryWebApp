@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -22,7 +23,12 @@ namespace ThriveDevCenter.Shared
             var attribute = selector.Member.GetCustomAttribute(typeof(AllowSortingByAttribute));
 
             if (attribute == null)
-                throw new ArgumentException($"sorting by the selected property ({column}) is not allowed");
+            {
+                // Sorting by the "Key" field is explicitly allowed. This is needed for the User model that inherits
+                // the id key, so we can't set attributes on that
+                if (selector.Member.GetCustomAttribute(typeof(KeyAttribute)) == null)
+                    throw new ArgumentException($"sorting by the selected property ({column}) is not allowed");
+            }
 
             var method = direction == SortDirection.Descending ? "OrderByDescending" : "OrderBy";
             expression = Expression.Call(typeof(Queryable), method,
