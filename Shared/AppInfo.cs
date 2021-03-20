@@ -16,7 +16,7 @@ namespace ThriveDevCenter.Shared
 
         public const string CSRFNeededName = "CSRFRequired";
         public const string CSRFStatusName = "CSRF";
-        public const string CurrentUserMiddleWareKey = "AuthenticatedUser";
+        public const string CurrentUserMiddlewareKey = "AuthenticatedUser";
 
         public const string LocalStorageUserInfo = "LastPageLoadUser";
 

@@ -16,7 +16,7 @@ namespace ThriveDevCenter.Server.Authorization
         public Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
             if (context.HttpContext.User.Identity == null ||
-                !context.HttpContext.Items.TryGetValue(AppInfo.CurrentUserMiddleWareKey, out object rawUser))
+                !context.HttpContext.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser))
             {
                 context.Result = new UnauthorizedResult();
                 return Task.CompletedTask;

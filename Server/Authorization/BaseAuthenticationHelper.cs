@@ -21,7 +21,7 @@ namespace ThriveDevCenter.Server.Authorization
             // Skip if already authenticated
             // For some reason now when cookies are sent the Identity, by default is set to some unauthenticated one
             // TODO: could try to figure out what does that and try to disable it
-            if (context.User.Identity == null || !context.Items.ContainsKey(AppInfo.CurrentUserMiddleWareKey))
+            if (context.User.Identity == null || !context.Items.ContainsKey(AppInfo.CurrentUserMiddlewareKey))
             {
                 if (!await PerformAuthentication(context))
                     return;
@@ -46,7 +46,7 @@ namespace ThriveDevCenter.Server.Authorization
             var identity = new ClaimsIdentity(user);
 
             context.User.AddIdentity(identity);
-            context.Items[AppInfo.CurrentUserMiddleWareKey] = user;
+            context.Items[AppInfo.CurrentUserMiddlewareKey] = user;
             context.Items["AuthenticatedUserScopeRestriction"] = restriction;
         }
     }

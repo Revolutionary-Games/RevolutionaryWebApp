@@ -14,6 +14,7 @@ namespace ThriveDevCenter.Server
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
     using Models;
 
     public class Startup
@@ -61,6 +62,7 @@ namespace ThriveDevCenter.Server
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();
             services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+            services.AddScoped<CookieOnlyBasicAuthenticationMiddleware>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -91,6 +93,10 @@ namespace ThriveDevCenter.Server
                 appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
 
             app.UseWhen(
+                context => context.Request.Path.StartsWithSegments("/hangfire"),
+                appBuilder => { appBuilder.UseMiddleware<CookieOnlyBasicAuthenticationMiddleware>(); });
+
+            app.UseWhen(
                 context => context.Request.Path.StartsWithSegments("/api"),
                 appBuilder => { appBuilder.UseMiddleware<TokenOrCookieAuthenticationMiddleware>(); });
 
@@ -98,8 +104,14 @@ namespace ThriveDevCenter.Server
                 context => context.Request.Path.StartsWithSegments("/api"),
                 appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
 
-            // TODO: get authentication working for this
-            app.UseHangfireDashboard();
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions()
+            {
+                Authorization = new[]
+                {
+                    new HangfireDashboardAuthorization(
+                        app.ApplicationServices.GetRequiredService<ILogger<HangfireDashboardAuthorization>>())
+                }
+            });
 
             app.UseHangfireServer(new BackgroundJobServerOptions()
             {
@@ -128,7 +140,7 @@ namespace ThriveDevCenter.Server
             AddJobHelper<SessionCleanupJob>(configurationSection);
         }
 
-        private static void AddJobHelper<T>(IConfigurationSection configuration) where T: class, IJob
+        private static void AddJobHelper<T>(IConfigurationSection configuration) where T : class, IJob
         {
             var name = typeof(T).Name;
 
