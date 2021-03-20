@@ -3,9 +3,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Models;
-    using Quartz;
 
-    [DisallowConcurrentExecution]
     public class SessionCleanupJob : IJob
     {
         private readonly ILogger<SessionCleanupJob> logger;
@@ -17,7 +15,7 @@ namespace ThriveDevCenter.Server.Jobs
             this.database = database;
         }
 
-        public Task Execute(IJobExecutionContext context)
+        public Task Execute()
         {
             logger.LogInformation("Starting database sessions cleanup");
             return Task.CompletedTask;

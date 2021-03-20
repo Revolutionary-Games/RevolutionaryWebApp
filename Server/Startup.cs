@@ -1,8 +1,12 @@
 namespace ThriveDevCenter.Server
 {
+    using System;
     using System.Linq;
     using Authorization;
+    using Hangfire;
+    using Hangfire.PostgreSql;
     using Hubs;
+    using Jobs;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.ResponseCompression;
@@ -40,6 +44,10 @@ namespace ThriveDevCenter.Server
                 opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection")));
 
             // services.AddIdentity<User, IdentityRole<long>>().AddEntityFrameworkStores<ApplicationDbContext>();
+
+            // For now the same DB is used for jobs
+            services.AddHangfire(opts =>
+                opts.UsePostgreSqlStorage(Configuration.GetConnectionString("WebApiConnection")));
 
             services.AddControllers(options =>
             {
@@ -90,6 +98,17 @@ namespace ThriveDevCenter.Server
                 context => context.Request.Path.StartsWithSegments("/api"),
                 appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
 
+            // TODO: get authentication working for this
+            app.UseHangfireDashboard();
+
+            app.UseHangfireServer(new BackgroundJobServerOptions()
+            {
+                WorkerCount = Convert.ToInt32(Configuration["Tasks:ThreadCount"]),
+                SchedulePollingInterval = TimeSpan.FromSeconds(3),
+            });
+
+            SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));
+
             app.UseRouting();
 
             app.UseEndpoints(endpoints =>
@@ -102,6 +121,18 @@ namespace ThriveDevCenter.Server
 
             // Early load the registration status
             app.ApplicationServices.GetRequiredService<RegistrationStatus>();
+        }
+
+        private void SetupDefaultJobs(IConfigurationSection configurationSection)
+        {
+            AddJobHelper<SessionCleanupJob>(configurationSection);
+        }
+
+        private static void AddJobHelper<T>(IConfigurationSection configuration) where T: class, IJob
+        {
+            var name = typeof(T).Name;
+
+            RecurringJob.AddOrUpdate<T>(s => s.Execute(), configuration["SessionCleanupJob"]);
         }
     }
 }
