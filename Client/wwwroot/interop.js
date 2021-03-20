@@ -8,9 +8,6 @@ function addToHistory(uri){
         return;
     }
 
-    // TODO: remove
-    console.log("history push:", uri);
-
     history.pushState(null, "", uri);
 }
 
