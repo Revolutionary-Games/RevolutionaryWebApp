@@ -1,13 +1,17 @@
 namespace ThriveDevCenter.Client.Services
 {
     using System;
+    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using ThriveDevCenter.Shared;
     using ThriveDevCenter.Shared.Models;
+    using ThriveDevCenter.Shared.Notifications;
 
     /// <summary>
     ///   Receives and holds current user info from the server. Currently not designed that the info changes later
     /// </summary>
-    public class CurrentUserInfo
+    public class CurrentUserInfo : INotificationHandler<UserUpdated>, INotificationHandler<UserListUpdated>
     {
         private UserInfo info;
 
@@ -62,7 +66,7 @@ namespace ThriveDevCenter.Client.Services
         /// <param name="user">The user info we received</param>
         public void OnReceivedAnUsersInfo(UserInfo user)
         {
-            if (!InfoReady)
+            if (!InfoReady || user == null)
                 return;
 
             if (info == null || info.Id != user.Id)
@@ -82,6 +86,35 @@ namespace ThriveDevCenter.Client.Services
             if (info == null && !previousInfo)
             {
                 OnUserInfoChanged?.Invoke(this, info);
+            }
+        }
+
+        public Task Handle(UserUpdated notification, CancellationToken cancellationToken)
+        {
+            OnReceivedAnUsersInfo(notification.Item);
+            return Task.CompletedTask;
+        }
+
+        public Task Handle(UserListUpdated notification, CancellationToken cancellationToken)
+        {
+            OnReceivedAnUsersInfo(notification.Item);
+            return Task.CompletedTask;
+        }
+
+        public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+        {
+            if (!InfoReady || info == null)
+                return;
+
+            // Want to listen to our user updates
+            var idStr = Convert.ToString(Info.Id);
+
+            groups.Add(NotificationGroups.UserUpdatedPrefix + idStr);
+
+            // Admins can get more info about themselves
+            if (IsAdmin)
+            {
+                groups.Add(NotificationGroups.UserUpdatedPrefixAdminInfo + idStr);
             }
         }
     }

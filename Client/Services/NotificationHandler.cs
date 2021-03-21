@@ -29,8 +29,9 @@ namespace ThriveDevCenter.Client.Services
         private readonly HashSet<string> currentlyJoinedGroups = new();
         private HubConnection hubConnection;
 
-        private bool connectionLost = false;
-        private bool permanentlyLost = false;
+        private bool connectionLost;
+        private bool permanentlyLost;
+        private bool userInfoRegistered;
 
         public NotificationHandler(NavigationManager navManager, CurrentUserInfo userInfoReceiver,
             CSRFTokenReader csrfTokenReader)
@@ -161,6 +162,9 @@ namespace ThriveDevCenter.Client.Services
 
             lock (filtered)
             {
+                // Bug: user info (especially redeeming codes) seems to cause an error in some .Next method
+                // we need to queue or disallow (and require components to invoke) group changes in relation to
+                // notifications
                 foreach (var item in filtered)
                 {
                     tasks.Add(item.Item2(notification));
@@ -301,7 +305,18 @@ namespace ThriveDevCenter.Client.Services
                 ConnectionPermanentlyLost = true;
             }
 
-            await ApplyGroupMemberships();
+            if (!userInfoRegistered)
+            {
+                // Due to difficult ordering, we register on behalf of the UserInfoReceiver
+                // TODO: would be nice to cause just one group membership checking due to this
+                await Register<UserUpdated>(userInfoReceiver);
+                await Register<UserListUpdated>(userInfoReceiver);
+                userInfoRegistered = true;
+            }
+            else
+            {
+                await ApplyGroupMemberships();
+            }
 
             // Listen for future user info updates (as those affect which groups we want to be in)
             userInfoReceiver.OnUserInfoChanged += OnUserInfoChanged;
