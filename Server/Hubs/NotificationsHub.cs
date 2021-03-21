@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Hubs
 {
     using System;
+    using System.Linq;
     using System.Text.Json;
     using System.Threading.Tasks;
     using Authorization;
@@ -16,8 +17,6 @@ namespace ThriveDevCenter.Server.Hubs
         private readonly JwtTokens csrfVerifier;
         private readonly ApplicationDbContext database;
 
-        private User connectedUser;
-
         public NotificationsHub(JwtTokens csrfVerifier, ApplicationDbContext database)
         {
             this.csrfVerifier = csrfVerifier;
@@ -27,6 +26,7 @@ namespace ThriveDevCenter.Server.Hubs
         public override async Task OnConnectedAsync()
         {
             var http = Context.GetHttpContext();
+            User connectedUser = null;
 
             if (http != null)
             {
@@ -74,17 +74,29 @@ namespace ThriveDevCenter.Server.Hubs
                     await Clients.Caller.ReceiveVersionMismatch();
             }
 
-            await Clients.Caller.ReceiveOwnUserInfo(connectedUser?.GetInfo(RecordAccessLevel.Private));
+            Context.Items["User"] = connectedUser;
 
             await base.OnConnectedAsync();
 
-            // Could send some user specific notices here
-            // await Clients.Caller.ReceiveSiteNotice(SiteNoticeType.Primary, "hey you connected");
+            if (connectedUser == null)
+            {
+                await Clients.Caller.ReceiveOwnUserInfo(null);
+            }
+            else
+            {
+                await Clients.Caller.ReceiveOwnUserInfo(connectedUser.GetInfo(
+                    connectedUser.HasAccessLevel(UserAccessLevel.Admin) ?
+                        RecordAccessLevel.Admin :
+                        RecordAccessLevel.Private));
+
+                // Could send some user specific notices here
+                // await Clients.Caller.ReceiveSiteNotice(SiteNoticeType.Primary, "hey you connected");
+            }
         }
 
         public Task JoinGroup(string groupName)
         {
-            if (!IsUserAllowedInGroup(groupName, connectedUser))
+            if (!IsUserAllowedInGroup(groupName, Context.Items["User"] as User))
                 throw new HubException("You don't have access to the specified group");
 
             return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
@@ -99,7 +111,7 @@ namespace ThriveDevCenter.Server.Hubs
         public Task SendSiteNotice(SiteNoticeType type, string message)
         {
             // Only admins can send
-            if (connectedUser == null || !connectedUser.HasAccessLevel(UserAccessLevel.Admin))
+            if (!RequireAccessLevel(UserAccessLevel.Admin, Context.Items["User"] as User))
                 throw new HubException("You don't have permission to perform this operation");
 
             return Clients.All.ReceiveSiteNotice(type, message);
@@ -108,7 +120,8 @@ namespace ThriveDevCenter.Server.Hubs
         public Task WhoAmI()
         {
             // TODO: reload from Db at some interval
-            return Clients.Caller.ReceiveOwnUserInfo(connectedUser?.GetInfo(RecordAccessLevel.Private));
+            return Clients.Caller.ReceiveOwnUserInfo(
+                (Context.Items["User"] as User)?.GetInfo(RecordAccessLevel.Private));
         }
 
         private static bool IsUserAllowedInGroup(string groupName, User user)
@@ -125,6 +138,26 @@ namespace ThriveDevCenter.Server.Hubs
             }
 
             // Then check prefixes
+            if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefix))
+            {
+                // Admins can see all user info
+                if (RequireAccessLevel(UserAccessLevel.Admin, user))
+                    return true;
+
+                // People can see their own info
+                var id = groupName.Split('_').Last();
+
+                if (!long.TryParse(id, out long idNumber))
+                {
+                    return false;
+                }
+
+                return idNumber == user?.Id;
+            }
+
+            // Only admins see this
+            if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo))
+                return RequireAccessLevel(UserAccessLevel.Admin, user);
 
             // Unknown groups are not allowed
             return false;
@@ -132,7 +165,7 @@ namespace ThriveDevCenter.Server.Hubs
 
         private static bool RequireAccessLevel(UserAccessLevel level, User user)
         {
-            // All users have the not logged in access level
+            // All site visitors have the not logged in access level
             if (level == UserAccessLevel.NotLoggedIn)
                 return true;
 
