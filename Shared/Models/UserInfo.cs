@@ -21,5 +21,11 @@ namespace ThriveDevCenter.Shared.Models
         public int TotalLauncherLinks { get; set; }
 
         public bool Suspended { get; set; }
+        public string SuspendedReason { get; set; }
+        public bool SuspendedManually { get; set; }
+
+        public int SessionVersion { get; set; }
+
+
     }
 }

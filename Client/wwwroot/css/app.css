@@ -75,3 +75,7 @@ table.sortable {
 .login-form > .form-group{
     max-width: 325px;
 }
+
+.no-right-padding {
+    padding-right: 0 !important;
+}

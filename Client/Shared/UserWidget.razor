@@ -12,11 +12,13 @@
     }
     else if (UserInfo.LoggedIn)
     {
-        <span>@UserInfo.Username</span>
+        <NavLink class="nav-link d-inline-block no-right-padding" href="me">
+            @UserInfo.Username
+        </NavLink>
     }
     else
     {
-        <NavLink class="nav-link d-inline-block" href="login">
+        <NavLink class="nav-link d-inline-block no-right-padding" href="login">
             Login
         </NavLink>
     }

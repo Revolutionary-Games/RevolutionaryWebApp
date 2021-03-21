@@ -1,0 +1,16 @@
+@page "/me"
+@inject CurrentUserInfo CurrentUserInfo
+<h3>Your Profile</h3>
+
+<LoggedInContent>
+    <NotLoggedIn>
+        <RedirectToLogin />
+    </NotLoggedIn>
+    <LoggedIn>
+        <UserInfoPageContent User="@CurrentUserInfo.Info" />
+    </LoggedIn>
+</LoggedInContent>
+
+@code {
+
+}

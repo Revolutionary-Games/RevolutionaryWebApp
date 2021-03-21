@@ -5,16 +5,17 @@ IN PROGRESS ATTEMPT IN REWRITING IN BLAZOR AND ASP.NET CORE
 ## Database setup
 
 
-### Jobs database setup
 
-Once the database is setup, you need to run the following SQL script
-on it, once:
-https://github.com/quartznet/quartznet/blob/main/database/tables/tables_postgres.sql
+### Getting an admin account
 
-Example command if you have downloaded that to the current folder:
-```sh
-psql -d thrivedevcenter -U thrivedevcenter -h 127.0.0.1 < tables_postgres.sql
+To get the first admin account, first setup the DB then run this SQL
+on it (replace the id with a uuid):
+```sql
+INSERT INTO redeemable_codes (id, granted_resource) VALUES ('UUID_GOES_HERE', 'GroupAdmin');
 ```
+
+Then you can redeem the code on your user profile after logging in to become an admin.
+
 
 --
 

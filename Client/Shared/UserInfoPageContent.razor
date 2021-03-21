@@ -1,0 +1,78 @@
+@{
+    #pragma warning disable 108,114 // invalid warning for razor override
+}
+@inject CurrentUserInfo CurrentUserInfo
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@inherits UserInfoReactingComponent
+
+<h4>User Info For @User.Name (ID: @User.Id)</h4>
+
+@if (ShowSelfIdentification && LookingAtSelf)
+{
+    <p>This is you.</p>
+}
+
+<ul>
+    <li><strong>Email</strong>: @User.Email</li>
+    <li><strong>Name</strong>: @User.Name</li>
+    <li><strong>Access level</strong>: @User.AccessLevel</li>
+    <li><strong>SSO</strong>: @User.SsoSource</li>
+    <li><strong>Local</strong>: @User.Local</li>
+    <li><strong>Session version</strong>: @User.SessionVersion</li>
+    <li><strong>Total Launcher links</strong>: @User.TotalLauncherLinks</li>
+
+    <li><strong>API token</strong>: @User.HasApiToken</li>
+
+    @if (LookingAtSelf)
+    {
+        @* TODO: generation buttons for this *@
+    }
+
+    <li><strong>Git LFS token</strong>: @User.HasLfsToken</li>
+
+    @if (LookingAtSelf)
+    {
+        @* TODO: generation buttons for this *@
+    }
+
+    @if (CurrentUserInfo.InfoReady && CurrentUserInfo.IsAdmin)
+    {
+        <li><strong>Admin</strong>: @User.Admin</li>
+        <li><strong>Developer</strong>: @User.Developer</li>
+        <li><strong>Suspended</strong>: @User.Suspended</li>
+        <li><strong>Suspension reason</strong>: @User.SuspendedReason</li>
+        <li><strong>Suspended manually</strong>: @User.SuspendedManually</li>
+    }
+</ul>
+
+<h4>Launcher Links</h4>
+<p>
+    You can link up to @AppInfo.DefaultMaxLauncherLinks Thrive Launchers to your account to access dev center features
+    from the launcher. By linking a launcher you can access devbuilds. Linking the launcher to your account is meant
+    for your personally use only. Please do not share your account.
+</p>
+
+<p>TODO: list launcher links for user</p>
+
+<div>
+    @if (LookingAtSelf)
+    {
+        <Button ButtonStyle="success" Enabled="false">Link Launcher</Button>
+    }
+    <Button class="mx-1" ButtonStyle="danger" Enabled="false">Unlink All Launchers</Button>
+</div>
+
+
+@code {
+
+    [Parameter]
+    public UserInfo User { get; set; }
+
+    [Parameter]
+    public bool ShowSelfIdentification { get; set; }
+
+    private bool LookingAtSelf => CurrentUserInfo.InfoReady && CurrentUserInfo.Email ==
+        User.Email;
+
+}

@@ -114,11 +114,13 @@ namespace ThriveDevCenter.Server.Models
                 case RecordAccessLevel.Admin:
                     // TODO: add the suspension reasons etc.
                     info.Suspended = Suspended ?? false;
+                    info.SuspendedReason = SuspendedReason;
+                    info.SuspendedManually = SuspendedManually ?? false;
 
                     // And also add all the private stuff on top
                     goto case RecordAccessLevel.Private;
                 case RecordAccessLevel.Private:
-                    info.Email = info.Email;
+                    info.Email = Email;
                     info.Admin = Admin ?? false;
                     info.TotalLauncherLinks = TotalLauncherLinks;
                     info.CreatedAt = CreatedAt;
@@ -128,6 +130,7 @@ namespace ThriveDevCenter.Server.Models
                     info.Local = Local;
                     info.SsoSource = SsoSource;
                     info.AccessLevel = ComputeAccessLevel();
+                    info.SessionVersion = SessionVersion;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);

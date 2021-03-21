@@ -30,7 +30,9 @@ namespace ThriveDevCenter.Shared
         /// </summary>
         public static readonly TimeSpan LastUsedSessionAccuracy = TimeSpan.FromSeconds(60);
 
-        public static int Major => 1;
-        public static int Minor => 5;
+        public const int Major = 1;
+        public const int Minor = 5;
+
+        public const int DefaultMaxLauncherLinks = 5;
     }
 }

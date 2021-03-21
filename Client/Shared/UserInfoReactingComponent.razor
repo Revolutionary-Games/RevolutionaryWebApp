@@ -1,0 +1,24 @@
+@using ThriveDevCenter.Shared.Models
+@inject CurrentUserInfo CurrentUserInfo
+
+@code {
+    // Base for all component types that want to react to user info changes
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        CurrentUserInfo.OnUserInfoChanged += OnUserInfoChanged;
+    }
+
+    public void Dispose()
+    {
+        CurrentUserInfo.OnUserInfoChanged -= OnUserInfoChanged;
+    }
+
+    protected virtual async void OnUserInfoChanged(object sender, UserInfo newInfo)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

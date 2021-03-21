@@ -1,4 +1,4 @@
-<button class="btn btn-@Style @(@class)" aria-disabled="@Disabled" disabled="@Disabled"
+<button class="btn btn-@ButtonStyle @(@class)" aria-disabled="@Disabled" disabled="@Disabled"
         type="@type" @onclick="PressDetected">
     @ChildContent
 </button>
@@ -9,7 +9,7 @@
     public RenderFragment ChildContent { get; set; }
 
     [Parameter]
-    public string Style { get; set; } = "primary";
+    public string ButtonStyle { get; set; } = "primary";
 
     [Parameter]
     public bool Enabled { get; set; } = true;

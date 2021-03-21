@@ -1,0 +1,42 @@
+@{
+    #pragma warning disable 108,114 // invalid warning for razor override
+}
+@inject CurrentUserInfo CurrentUserInfo
+@implements IDisposable
+@inherits UserInfoReactingComponent
+
+
+@if (CurrentUserInfo.InfoReady)
+{
+    // For now only show something when info is ready, to reduce having infinite number of spinners on one page
+    if (!CurrentUserInfo.LoggedIn)
+    {
+        @NotLoggedIn
+    }
+    else if (LoggedIn != null)
+    {
+        @LoggedIn
+    }
+    else
+    {
+        @ChildContent
+    }
+}
+
+
+@code {
+
+    [Parameter]
+    public RenderFragment NotLoggedIn { get; set; }
+
+    [Parameter]
+    public RenderFragment LoggedIn { get; set; }
+
+    /// <summary>
+    ///   Alternative to LoggedIn (only used if LoggedIn is not set)
+    /// </summary>
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+
+}
