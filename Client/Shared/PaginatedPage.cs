@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Client.Shared
         public string DefaultSortColumn { get; set; }
 
         [Parameter]
-        public SortDirection DefaultSortDirection { get; set; } = SortDirection.Ascending;
+        public SortDirection DefaultSortDirection { get; set; }
 
         [Parameter]
         public int DefaultPageSize { get; set; } = 25;
