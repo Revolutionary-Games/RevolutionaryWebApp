@@ -23,6 +23,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<StorageFile> StorageFiles { get; set; }
         public DbSet<StorageItem> StorageItems { get; set; }
         public DbSet<StorageItemVersion> StorageItemVersions { get; set; }
+        public DbSet<RedeemableCode> RedeemableCodes { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -162,6 +163,14 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.TotalLauncherLinks).HasDefaultValue(0);
 
                 entity.Property(e => e.SessionVersion).HasDefaultValue(1);
+            });
+
+            modelBuilder.Entity<RedeemableCode>(entity =>
+            {
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
+                entity.Property(e => e.MultiUse).HasDefaultValue(false);
+                entity.Property(e => e.MultiUse).HasDefaultValue(false);
+                entity.Property(e => e.Uses).HasDefaultValue(0);
             });
         }
     }
