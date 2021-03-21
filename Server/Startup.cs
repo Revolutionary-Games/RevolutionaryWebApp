@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server
 {
     using System;
     using System.Linq;
+    using System.Threading;
     using Authorization;
     using Hangfire;
     using Hangfire.PostgreSql;
@@ -144,7 +145,7 @@ namespace ThriveDevCenter.Server
         {
             var name = typeof(T).Name;
 
-            RecurringJob.AddOrUpdate<T>(s => s.Execute(), configuration["SessionCleanupJob"]);
+            RecurringJob.AddOrUpdate<T>(x => x.Execute(CancellationToken.None), configuration["SessionCleanupJob"]);
         }
     }
 }
