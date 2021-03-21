@@ -24,6 +24,8 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<StorageItem> StorageItems { get; set; }
         public DbSet<StorageItemVersion> StorageItemVersions { get; set; }
         public DbSet<RedeemableCode> RedeemableCodes { get; set; }
+        public DbSet<AdminAction> AdminActions { get; set; }
+        public DbSet<LogEntry> LogEntries { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -171,6 +173,19 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.MultiUse).HasDefaultValue(false);
                 entity.Property(e => e.MultiUse).HasDefaultValue(false);
                 entity.Property(e => e.Uses).HasDefaultValue(0);
+            });
+
+            modelBuilder.Entity<LogEntry>(entity =>
+            {
+                entity.HasOne(d => d.TargetUser).WithMany(p => p.TargetedInLogs).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<AdminAction>(entity =>
+            {
+                entity.HasOne(d => d.TargetUser).WithMany(p => p.TargetedByAdminActions)
+                    .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(d => d.PerformedBy).WithMany(p => p.PerformedAdminActions)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

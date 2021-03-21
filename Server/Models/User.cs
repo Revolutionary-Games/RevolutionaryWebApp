@@ -55,17 +55,32 @@ namespace ThriveDevCenter.Server.Models
         /// <summary>
         ///   Builds verified by this user
         /// </summary>
-        public virtual ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
+        public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
 
         /// <summary>
         ///   Launchers linked to this user
         /// </summary>
-        public virtual ICollection<LauncherLink> LauncherLinks { get; set; } = new HashSet<LauncherLink>();
+        public ICollection<LauncherLink> LauncherLinks { get; set; } = new HashSet<LauncherLink>();
 
         /// <summary>
         ///   Stored files owned by this user
         /// </summary>
-        public virtual ICollection<StorageItem> StorageItems { get; set; } = new HashSet<StorageItem>();
+        public ICollection<StorageItem> StorageItems { get; set; } = new HashSet<StorageItem>();
+
+        /// <summary>
+        ///   Automated server actions that have targeted this user
+        /// </summary>
+        public ICollection<LogEntry> TargetedInLogs { get; set; } = new HashSet<LogEntry>();
+
+        /// <summary>
+        ///   Admin actions that have been performed targeting this user
+        /// </summary>
+        public ICollection<AdminAction> TargetedByAdminActions { get; set; } = new HashSet<AdminAction>();
+
+        /// <summary>
+        ///   Admin actions performed by this user
+        /// </summary>
+        public ICollection<AdminAction> PerformedAdminActions { get; set; } = new HashSet<AdminAction>();
 
         public bool HasAccessLevel(UserAccessLevel level)
         {
