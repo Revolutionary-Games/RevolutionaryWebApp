@@ -70,20 +70,7 @@ namespace ThriveDevCenter.Server.Models
 
         public bool HasAccessLevel(UserAccessLevel level)
         {
-            // Suspended user has no access
-            if (Suspended == true)
-                return false;
-
-            if (level == UserAccessLevel.NotLoggedIn || level == UserAccessLevel.User)
-                return true;
-
-            if (level == UserAccessLevel.Admin)
-                return Admin == true;
-
-            if (level == UserAccessLevel.Developer)
-                return Admin == true || Developer == true;
-
-            return false;
+            return ComputeAccessLevel().HasAccess(level);
         }
 
         public UserAccessLevel ComputeAccessLevel()
@@ -92,6 +79,8 @@ namespace ThriveDevCenter.Server.Models
                 return UserAccessLevel.Admin;
             if (Developer == true)
                 return UserAccessLevel.Developer;
+
+            // Suspended user has no access
             if (Suspended != true)
                 return UserAccessLevel.User;
 

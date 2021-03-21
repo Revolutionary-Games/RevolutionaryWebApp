@@ -1,0 +1,63 @@
+@{
+    #pragma warning disable 108,114 // invalid warning for razor override
+}
+@inject CurrentUserInfo CurrentUserInfo
+@implements IDisposable
+@using ThriveDevCenter.Shared
+@inherits UserInfoReactingComponent
+
+
+@if (CurrentUserInfo.InfoReady)
+{
+    // For now only show something when info is ready, to reduce having infinite number of spinners on one page
+    if (CurrentUserInfo.AccessLevel.HasAccess(RequiredAccess))
+    {
+        if (AuthorizedContent == null)
+        {
+            @ChildContent
+        }
+        else
+        {
+            @AuthorizedContent
+        }
+    }
+    else
+    {
+        if (AutoRedirectIfNotLoggedIn && !CurrentUserInfo.LoggedIn)
+        {
+            <RedirectToLogin />
+        }
+        else if(ShowDefaultNoAccess)
+        {
+            <div>You lack the needed permission to view this content.</div>
+        }
+        else
+        {
+            @AccessMissingContent
+        }
+    }
+}
+
+@code {
+
+    [Parameter]
+    public UserAccessLevel RequiredAccess { get; set; } = UserAccessLevel.Developer;
+
+    [Parameter]
+    public bool ShowDefaultNoAccess { get; set; }
+
+    [Parameter]
+    public bool AutoRedirectIfNotLoggedIn { get; set; }
+
+    [Parameter]
+    public RenderFragment AccessMissingContent { get; set; }
+
+    [Parameter]
+    public RenderFragment AuthorizedContent { get; set; }
+
+    /// <summary>
+    ///   Alternative to AuthorizedContent if that isn't set
+    /// </summary>
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+}

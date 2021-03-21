@@ -1,5 +1,7 @@
 namespace ThriveDevCenter.Shared
 {
+    using System;
+
     /// <summary>
     ///   The level of access a given user (or no user) has to the system
     /// </summary>
@@ -36,6 +38,24 @@ namespace ThriveDevCenter.Shared
             }
 
             return false;
+        }
+
+        public static bool HasAccess(this UserAccessLevel currentAccess, UserAccessLevel requiredAccess)
+        {
+            switch (requiredAccess)
+            {
+                case UserAccessLevel.NotLoggedIn:
+                    // All possible currentAccess values are acceptable here
+                    return true;
+                case UserAccessLevel.User:
+                    return currentAccess != UserAccessLevel.NotLoggedIn;
+                case UserAccessLevel.Developer:
+                    return currentAccess == UserAccessLevel.Developer || currentAccess == UserAccessLevel.Admin;
+                case UserAccessLevel.Admin:
+                    return currentAccess == UserAccessLevel.Admin;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(requiredAccess), requiredAccess, null);
+            }
         }
     }
 }

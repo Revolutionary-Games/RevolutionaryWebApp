@@ -36,14 +36,13 @@
         @* TODO: generation buttons for this *@
     }
 
-    @if (CurrentUserInfo.InfoReady && CurrentUserInfo.IsAdmin)
-    {
+    <AccessLimited RequiredAccess="UserAccessLevel.Admin">
         <li><strong>Admin</strong>: @User.Admin</li>
         <li><strong>Developer</strong>: @User.Developer</li>
         <li><strong>Suspended</strong>: @User.Suspended</li>
         <li><strong>Suspension reason</strong>: @User.SuspendedReason</li>
         <li><strong>Suspended manually</strong>: @User.SuspendedManually</li>
-    }
+    </AccessLimited>
 </ul>
 
 <h4>Launcher Links</h4>
