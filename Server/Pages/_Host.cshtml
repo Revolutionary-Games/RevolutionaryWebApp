@@ -70,10 +70,19 @@ else
         var user = await Request.Cookies.GetUserFromSession(Database,
             Request.HttpContext.Connection.RemoteIpAddress);
 
+        UserInfo info = null;
+
+        if (user != null)
+        {
+            info = user.GetInfo(user.HasAccessLevel(UserAccessLevel.Admin) ?
+                RecordAccessLevel.Admin :
+                RecordAccessLevel.Private);
+        }
+
         var result = new UserToken()
         {
             CSRF = Jwt.GenerateCSRFToken(user),
-            User = user?.GetInfo(RecordAccessLevel.Private)
+            User = info
         };
 
         return JsonSerializer.Serialize(result);
