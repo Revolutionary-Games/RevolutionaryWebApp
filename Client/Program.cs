@@ -8,7 +8,7 @@ namespace ThriveDevCenter.Client
     using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.JSInterop;
-    using Shared;
+    using Services;
     using ThriveDevCenter.Shared;
 
     public class Program

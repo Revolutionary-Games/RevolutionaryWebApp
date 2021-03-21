@@ -6,7 +6,6 @@ namespace ThriveDevCenter.Server.Models
     using System.Security.Principal;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.EntityFrameworkCore;
-    using Shared;
     using Shared.Models;
 
     [Index(nameof(Email), IsUnique = true)]

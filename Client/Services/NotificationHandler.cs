@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Shared
+namespace ThriveDevCenter.Client.Services
 {
     using System;
     using System.Collections.Generic;
@@ -10,6 +10,7 @@ namespace ThriveDevCenter.Client.Shared
     using Microsoft.AspNetCore.SignalR.Client;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Shared;
     using ThriveDevCenter.Shared;
     using ThriveDevCenter.Shared.Models;
     using ThriveDevCenter.Shared.Notifications;

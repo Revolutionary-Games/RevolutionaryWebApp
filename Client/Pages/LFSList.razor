@@ -7,8 +7,9 @@
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
+@using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
-@implements INotificationHandler<LFSListUpdated>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LFSListUpdated>
 @implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LFSProjectInfo>
 

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared
+namespace ThriveDevCenter.Shared.Models
 {
     using System;
 

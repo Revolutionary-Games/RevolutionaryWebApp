@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Authorization
     using Microsoft.AspNetCore.Mvc.Filters;
     using Models;
     using Shared;
+    using Shared.Models;
 
     [AttributeUsage(AttributeTargets.Method)]
     public class AuthorizeRoleFilterAttribute : Attribute, IAsyncAuthorizationFilter

@@ -1,12 +1,10 @@
 namespace ThriveDevCenter.Server.Hubs
 {
     using System;
-    using System.Linq;
     using System.Text.Json;
     using System.Threading.Tasks;
     using Authorization;
     using Microsoft.AspNetCore.SignalR;
-    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Primitives;
     using Models;
     using Shared;

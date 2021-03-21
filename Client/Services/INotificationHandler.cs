@@ -1,9 +1,9 @@
-namespace ThriveDevCenter.Client.Shared
+namespace ThriveDevCenter.Client.Services
 {
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using ThriveDevCenter.Shared;
+    using ThriveDevCenter.Shared.Models;
     using ThriveDevCenter.Shared.Notifications;
 
     public interface INotificationHandler<in T> : IGroupListener

@@ -1,11 +1,11 @@
 namespace ThriveDevCenter.Server.Authorization
 {
     using System.Net;
-    using System.Threading.Tasks;
     using Hangfire.Dashboard;
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
+    using Shared.Models;
 
     public class HangfireDashboardAuthorization : IDashboardAuthorizationFilter
     {

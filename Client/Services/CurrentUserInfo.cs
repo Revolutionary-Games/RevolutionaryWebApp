@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Shared
+namespace ThriveDevCenter.Client.Services
 {
     using System;
     using ThriveDevCenter.Shared;
