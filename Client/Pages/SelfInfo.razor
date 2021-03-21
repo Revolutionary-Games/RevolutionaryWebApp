@@ -1,6 +1,9 @@
 @page "/me"
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
 @inject CurrentUserInfo CurrentUserInfo
+@inject HttpClient Http
 
 <h3>Your Profile</h3>
 
@@ -10,9 +13,91 @@
     </NotLoggedIn>
     <LoggedIn>
         <UserInfoPageContent User="@CurrentUserInfo.Info" />
+
+        <br />
+        <hr />
+
+        <h4>Redeem Code</h4>
+
+        <p>If you have a special code to redeem in the ThriveDevCenter, you can redeem one here.</p>
+
+        @if (statusMessage != null)
+        {
+            <div class="alert alert-info" role="alert">
+                @statusMessage
+            </div>
+        }
+        @if (errorMessage != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @errorMessage
+            </div>
+        }
+
+        <form class="login-form">
+            <div class="form-group">
+                <input type="text" class="form-control" placeholder="code" @bind="codeRedeem" @bind:event="oninput">
+            </div>
+            <Button class="my-1" Enabled="CodeEntered" OnPressed="Submit">
+                @if (processing)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                }
+                Redeem
+            </Button>
+        </form>
     </LoggedIn>
 </LoggedInContent>
 
 @code {
+    private bool processing;
+    private string errorMessage;
+    private string statusMessage;
+
+    private string codeRedeem;
+
+    private bool CodeEntered => !string.IsNullOrEmpty(codeRedeem) && codeRedeem.Length >= AppInfo.MinimumRedeemableCodeLength;
+
+    private async void Submit()
+    {
+        processing = true;
+
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+        errorMessage = null;
+        statusMessage = null;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/CodeRedeem", new RedeemCodeData()
+            {
+                Code = codeRedeem
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            errorMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Code redeemed: {content}. If this changed your access level, you may need to " +
+                "refresh to get things working.";
+            codeRedeem = null;
+        }
+        else
+        {
+            errorMessage = $"Failed to redeem the code. Server responded with: {content}, {result.StatusCode}";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 
 }

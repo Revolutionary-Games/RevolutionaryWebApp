@@ -34,5 +34,7 @@ namespace ThriveDevCenter.Shared
         public const int Minor = 5;
 
         public const int DefaultMaxLauncherLinks = 5;
+
+        public const int MinimumRedeemableCodeLength = 8;
     }
 }
