@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Models
     using System.Security.Principal;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.EntityFrameworkCore;
+    using Shared;
     using Shared.Models;
 
     [Index(nameof(Email), IsUnique = true)]
@@ -15,15 +16,21 @@ namespace ThriveDevCenter.Server.Models
     public class User : IdentityUser<long>, ITimestampedModel, IIdentity
     {
         public bool Local { get; set; }
+
+        [AllowSortingBy]
         public string SsoSource { get; set; }
 
-        // TODO: combine these to a single enum field
+        // TODO: combine these to a single enum field (replace these 2 properties with UserAccessLevel)
+        [AllowSortingBy]
         public bool? Developer { get; set; } = false;
+
+        [AllowSortingBy]
         public bool? Admin { get; set; } = false;
 
         public string ApiToken { get; set; }
         public string LfsToken { get; set; }
 
+        [AllowSortingBy]
         public bool? Suspended { get; set; } = false;
         public string SuspendedReason { get; set; }
         public bool? SuspendedManually { get; set; } = false;
@@ -36,7 +43,10 @@ namespace ThriveDevCenter.Server.Models
         public int SessionVersion { get; set; } = 1;
 
         // Need to reimplement these, as we inherit IdentityUser
+        [AllowSortingBy]
         public DateTime CreatedAt { get; set; } = DateTime.Now.ToUniversalTime();
+
+        [AllowSortingBy]
         public DateTime UpdatedAt { get; set; } = DateTime.Now.ToUniversalTime();
 
         [NotMapped]
