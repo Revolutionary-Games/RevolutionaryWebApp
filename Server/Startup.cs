@@ -49,7 +49,12 @@ namespace ThriveDevCenter.Server
 
             // For now the same DB is used for jobs
             services.AddHangfire(opts =>
-                opts.UsePostgreSqlStorage(Configuration.GetConnectionString("WebApiConnection")));
+            {
+                opts.UsePostgreSqlStorage(Configuration.GetConnectionString("WebApiConnection"));
+                opts.SetDataCompatibilityLevel(CompatibilityLevel.Version_170);
+                opts.UseSimpleAssemblyNameTypeSerializer();
+                opts.UseDefaultTypeSerializer();
+            });
 
             services.AddControllers(options =>
             {
