@@ -72,6 +72,21 @@ table.sortable {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-.login-form > .form-group{
+.login-form > .form-group {
     max-width: 325px;
+}
+
+.paginator-container {
+    max-width: 100%;
+    overflow-x: auto;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.paginator-container > nav {
+    width: 100%;
+}
+
+.pagination {
+    width: 100%;
 }

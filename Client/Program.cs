@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Client
     using System.Net.Http;
     using System.Threading.Tasks;
     using Blazored.LocalStorage;
+    using BlazorPro.BlazorSize;
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
     using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +35,7 @@ namespace ThriveDevCenter.Client
             }).AddTransient<HttpCookieHandler>();
 
             builder.Services.AddBlazoredLocalStorage();
+            builder.Services.AddMediaQueryService();
 
             builder.Services.AddScoped(sp => new ComponentUrlHelper(
                 sp.GetRequiredService<IJSRuntime>(),

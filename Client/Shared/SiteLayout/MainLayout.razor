@@ -1,19 +1,22 @@
 @inherits LayoutComponentBase
 
+
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <div class="main">
-        <TopNavBar />
-
-        <AnotherTabSigninDetector />
-        <CSRFExpiryAlerter />
-        <SiteNotifications />
-
-        <div class="content px-4">
-            @Body
+    <MediaQueryList>
+        <div class="sidebar">
+            <NavMenu />
         </div>
-    </div>
+
+        <div class="main">
+            <TopNavBar />
+
+            <AnotherTabSigninDetector />
+            <CSRFExpiryAlerter />
+            <SiteNotifications />
+
+            <div class="content px-4">
+                @Body
+            </div>
+        </div>
+    </MediaQueryList>
 </div>

@@ -38,16 +38,18 @@
 
     @if (ShowPaginator)
     {
-        <BlazorPager CurrentPage="@(CurrentPage ?? 0)"
-                     PageCount="@(PageCount ?? 1)"
-                     OnPageChanged="async e => { await OnPageChanged.InvokeAsync(e); }"
-                     ShowFirstLast="true"
-                     ShowPageNumbers="true"
-                     VisiblePages="5"
-                     FirstText="&laquo;"
-                     LastText="&raquo;"
-                     NextText="&rsaquo;"
-                     PreviousText="&lsaquo;" />
+        <div class="paginator-container">
+            <BlazorPager CurrentPage="@(CurrentPage ?? 0)"
+                         PageCount="@(PageCount ?? 1)"
+                         OnPageChanged="async e => { await OnPageChanged.InvokeAsync(e); }"
+                         ShowFirstLast="true"
+                         ShowPageNumbers="true"
+                         VisiblePages="@PaginatorVisiblePages"
+                         FirstText="&laquo;"
+                         LastText="&raquo;"
+                         NextText="&rsaquo;"
+                         PreviousText="&lsaquo;" />
+        </div>
     }
     else
     {
@@ -59,7 +61,13 @@
     }
 </div>
 
+<MediaQuery Media="@Breakpoints.SmallDown" @bind-Matches="isSmall" />
+<MediaQuery Media="@Breakpoints.LargeUp" @bind-Matches="isLarge" />
+
 @code {
+
+    private bool isSmall;
+    private bool isLarge;
 
     public delegate string CalculateSortClass(string column);
 
@@ -95,6 +103,20 @@
 
     [Parameter]
     public CalculateSortClass GetSortClass { get; set; }
+
+    private int PaginatorVisiblePages
+    {
+        get
+        {
+            if (isSmall)
+                return 3;
+
+            if (isLarge)
+                return 10;
+
+            return 5;
+        }
+    }
 
     private bool ContentSpinner => ShowContentSpinner && ShowPaginator;
 }
