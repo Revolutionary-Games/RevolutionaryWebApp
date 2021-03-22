@@ -20,7 +20,8 @@
                 OnSortChanged="async (column) => await ChangeSort(column)"
                 GetSortClass="@SortClass"
                 ShowContentSpinner="@VisibleFetchInProgress"
-                Columns="@columns">
+                Columns="@columns"
+                ShowNoContent="@NoItemsFound">
     @if (Data != null)
     {
         @foreach (var item in Data.Results)
@@ -71,7 +72,7 @@
     {
         groups.Add(NotificationGroups.LFSListUpdated);
 
-        if (currentAccessLevel.IsDeveloper())
+        if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
             groups.Add(NotificationGroups.PrivateLFSUpdated);
     }
 

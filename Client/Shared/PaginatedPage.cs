@@ -61,6 +61,8 @@ namespace ThriveDevCenter.Client.Shared
         /// </summary>
         public bool VisibleFetchInProgress { get; protected set; }
 
+        public bool NoItemsFound => Data != null && Data.Results.Length < 1;
+
         protected readonly SortHelper Sort;
 
         protected PagedResult<T> Data;

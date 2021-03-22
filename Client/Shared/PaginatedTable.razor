@@ -36,6 +36,11 @@
         }
     </div>
 
+    @if (ShowNoContent)
+    {
+        <div>No items found</div>
+    }
+
     @if (ShowPaginator)
     {
         <div class="paginator-container">
@@ -85,6 +90,9 @@
     /// </summary>
     [Parameter]
     public bool ShowContentSpinner { get; set; }
+
+    [Parameter]
+    public bool ShowNoContent { get; set; }
 
     [Parameter]
     public int? CurrentPage { get; set; }

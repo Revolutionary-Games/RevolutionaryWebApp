@@ -20,7 +20,8 @@
                 OnSortChanged="async (column) => await ChangeSort(column)"
                 GetSortClass="@SortClass"
                 ShowContentSpinner="@VisibleFetchInProgress"
-                Columns="@columns">
+                Columns="@columns"
+                ShowNoContent="@NoItemsFound">
     @if (Data != null)
     {
         @foreach (var item in Data.Results)
