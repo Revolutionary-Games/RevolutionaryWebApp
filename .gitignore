@@ -46,3 +46,4 @@ obj
 /.idea/.idea.ThriveDevCenter/.idea/contentModel.xml
 /Server/appsettings.Development.json
 /db_backup*.txt
+/migration.sql

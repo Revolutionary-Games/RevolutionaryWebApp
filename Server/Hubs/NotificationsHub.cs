@@ -33,14 +33,37 @@ namespace ThriveDevCenter.Server.Hubs
                 var queryParams = http.Request.Query;
 
                 if (!queryParams.TryGetValue("minorVersion", out StringValues minorStr) ||
-                    !queryParams.TryGetValue("majorVersion", out StringValues majorStr) ||
-                    !queryParams.TryGetValue("access_token", out StringValues accessToken))
+                    !queryParams.TryGetValue("majorVersion", out StringValues majorStr))
                 {
                     throw new HubException("invalid connection parameters");
                 }
 
-                if (minorStr.Count < 1 || majorStr.Count < 1 || accessToken.Count < 1)
+                if (minorStr.Count < 1 || majorStr.Count < 1)
                     throw new HubException("invalid connection parameters");
+
+                string csrf;
+
+                if (!queryParams.TryGetValue("access_token", out StringValues accessToken))
+                {
+                    // In release mode (at least I saw this happen once) the access token is in a header
+                    if (http.Request.Headers.TryGetValue("Authorization", out StringValues header) &&
+                        header.Count > 0 && header[0].StartsWith("Bearer "))
+                    {
+                        // In format "Bearer TOKEN"
+                        csrf = header[0].Split(' ').Last();
+                    }
+                    else
+                    {
+                        throw new HubException("invalid connection parameters");
+                    }
+                }
+                else
+                {
+                    if (accessToken.Count < 1)
+                        throw new HubException("invalid connection parameters");
+
+                    csrf = accessToken[0];
+                }
 
                 try
                 {
@@ -52,7 +75,7 @@ namespace ThriveDevCenter.Server.Hubs
                     throw new HubException("invalid session cookie");
                 }
 
-                if (!csrfVerifier.IsValidCSRFToken(accessToken[0], connectedUser))
+                if (!csrfVerifier.IsValidCSRFToken(csrf, connectedUser))
                     throw new HubException("invalid CSRF token");
 
                 bool invalidVersion = false;
