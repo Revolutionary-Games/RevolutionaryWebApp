@@ -12,6 +12,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Services;
     using Shared;
     using Shared.Models;
 
@@ -22,12 +23,15 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly ILogger<LoginController> logger;
         private readonly ApplicationDbContext database;
         private readonly JwtTokens csrfVerifier;
+        private readonly RedirectVerifier redirectVerifier;
 
-        public LoginController(ILogger<LoginController> logger, ApplicationDbContext database, JwtTokens csrfVerifier)
+        public LoginController(ILogger<LoginController> logger, ApplicationDbContext database, JwtTokens csrfVerifier,
+            RedirectVerifier redirectVerifier)
         {
             this.logger = logger;
             this.database = database;
             this.csrfVerifier = csrfVerifier;
+            this.redirectVerifier = redirectVerifier;
         }
 
         [HttpGet]
@@ -115,8 +119,15 @@ namespace ThriveDevCenter.Server.Controllers
             // Login is successful
             await BeginNewSession(user);
 
-            // TODO: implement return to URL for login requests
-            return Redirect("/");
+            if (string.IsNullOrEmpty(login.ReturnUrl) ||
+                !redirectVerifier.SanitizeRedirectUrl(login.ReturnUrl, out string redirect))
+            {
+                return Redirect("/");
+            }
+            else
+            {
+                return Redirect(redirect);
+            }
         }
 
         private async Task PerformPreLoginChecks(string csrf)
@@ -165,8 +176,8 @@ namespace ThriveDevCenter.Server.Controllers
                 // This might cause issues when locally testing with Chrome
                 Secure = true,
 
-                // Sessions are used for logins, they are essential. This might need to be re-thought out if non-essential
-                // info is attached to sessions later
+                // Sessions are used for logins, they are essential. This might need to be re-thought out if
+                // non-essential info is attached to sessions later
                 IsEssential = true
             };
 
@@ -184,5 +195,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [Required]
         public string CSRF { get; set; }
+
+        public string ReturnUrl { get; set; }
     }
 }

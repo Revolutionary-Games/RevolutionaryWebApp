@@ -17,6 +17,7 @@ namespace ThriveDevCenter.Server
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Services;
 
     public class Startup
     {
@@ -64,6 +65,7 @@ namespace ThriveDevCenter.Server
 
             services.AddSingleton<RegistrationStatus>();
             services.AddSingleton<JwtTokens>();
+            services.AddSingleton<RedirectVerifier>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();
@@ -139,6 +141,9 @@ namespace ThriveDevCenter.Server
 
             // Early load the registration status
             app.ApplicationServices.GetRequiredService<RegistrationStatus>();
+
+            // Early load the redirect verification to check that BaseUrl is set
+            app.ApplicationServices.GetRequiredService<RedirectVerifier>();
         }
 
         private void SetupDefaultJobs(IConfigurationSection configurationSection)

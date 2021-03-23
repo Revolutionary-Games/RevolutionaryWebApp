@@ -53,6 +53,7 @@ else
                 <form method="post" action="/LoginController/login" class="login-form">
                     <div class="form-group">
                         <input type="hidden" name="CSRF" value="@CSRF.Token" />
+                        <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
                         <input type="email" class="form-control" name="Email"
                                aria-describedby="emailHelp" placeholder="email" @bind="email" @bind:event="oninput">
                         <br />
@@ -79,6 +80,9 @@ else
 
     [QueryStringParameter]
     public string Error { get; set; }
+
+    [QueryStringParameter]
+    public string ReturnUrl { get; set; }
 
 #pragma warning disable 649
     private string email;
