@@ -6,7 +6,7 @@
 
 @if (!string.IsNullOrEmpty(notification))
 {
-    <div class="alert @NotificationHandler.CurrentNoticeType.AlertClass()" role="alert">
+    <div class="alert @currentNoticeType.AlertClass()" role="alert">
         <strong>Site Notice:</strong> @notification
         <button type="button" class="close" data-dismiss="alert" aria-label="Close"
                 @onclick="DismissNotification" @onclick:preventDefault="true" @onclick:stopPropagation="true">
@@ -40,6 +40,7 @@
 
 @code {
     private string notification;
+    private SiteNoticeType currentNoticeType;
 
     protected override Task OnInitializedAsync()
     {
@@ -50,8 +51,8 @@
         NotificationHandler.OnSiteNoticeReceived += OnSiteNotice;
 
         // And read initial status
-        // TODO: can this be out of order so that we need to immediately call StateHasChanged?
         notification = NotificationHandler.CurrentNotice;
+        currentNoticeType = NotificationHandler.CurrentNoticeType;
 
         return Task.CompletedTask;
     }
@@ -77,6 +78,7 @@
     private async void OnSiteNotice(object sender, (SiteNoticeType, string) e)
     {
         notification = e.Item2;
+        currentNoticeType = e.Item1;
         await InvokeAsync(StateHasChanged);
     }
 

@@ -395,7 +395,20 @@ namespace ThriveDevCenter.Client.Services
                 currentlyJoinedGroups.Add(group);
             }
 
-            await Task.WhenAll(groupTasks);
+            try
+            {
+                await Task.WhenAll(groupTasks);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error joining some notification group: {e}");
+
+                // Let's send this info as a site notice to not require a new component to show this, and the user can
+                // dismiss that if they want to
+                OnSiteNoticeReceived?.Invoke(this,
+                    (SiteNoticeType.Warning,
+                        "Error joining a notification message group. You may not receive realtime data updates."));
+            }
 
             // Currently joined groups should now have all the groups we have joined
         }
