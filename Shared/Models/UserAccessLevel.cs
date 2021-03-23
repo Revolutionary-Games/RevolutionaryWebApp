@@ -42,6 +42,9 @@ namespace ThriveDevCenter.Shared.Models
 
         public static bool HasAccess(this UserAccessLevel currentAccess, UserAccessLevel requiredAccess)
         {
+            if (currentAccess == requiredAccess)
+                return true;
+
             switch (requiredAccess)
             {
                 case UserAccessLevel.NotLoggedIn:

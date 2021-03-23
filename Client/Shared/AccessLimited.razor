@@ -25,9 +25,13 @@
     }
     else
     {
-        if (AutoRedirectIfNotLoggedIn && !CurrentUserInfo.LoggedIn)
+        if ((AutoRedirectIfNotLoggedIn || RedirectOnInsufficientPermission) && !CurrentUserInfo.LoggedIn)
         {
             <RedirectToLogin />
+        }
+        else if (RedirectOnInsufficientPermission && CurrentUserInfo.LoggedIn)
+        {
+            <RedirectToLogin PermissionsProblem="true" />
         }
         else if(ShowDefaultNoAccess)
         {
@@ -49,7 +53,10 @@
     public bool ShowDefaultNoAccess { get; set; }
 
     [Parameter]
-    public bool AutoRedirectIfNotLoggedIn { get; set; }
+    public bool RedirectOnInsufficientPermission { get; set; }
+
+    [Parameter]
+    public bool AutoRedirectIfNotLoggedIn { get; set; } = true;
 
     [Parameter]
     public RenderFragment AccessMissingContent { get; set; }

@@ -1,8 +1,16 @@
 @inject NavigationManager Navigation
 
 @code {
+
+    [Parameter]
+    public bool PermissionsProblem { get; set; }
+
     protected override void OnInitialized()
     {
-        Navigation.NavigateTo($"login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+        var message = Uri.EscapeDataString(PermissionsProblem ?
+            "You don't have the necessary permissions to view this page" : "You need to login to view this page");
+
+        Navigation.NavigateTo($"login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}&error={message}");
     }
+
 }

@@ -15,26 +15,35 @@
 
 <h3>Git LFS Projects</h3>
 
-<PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                OnPageChanged="async (e) => await ChangePage(e)"
-                OnSortChanged="async (column) => await ChangeSort(column)"
-                GetSortClass="@SortClass"
-                ShowContentSpinner="@VisibleFetchInProgress"
-                Columns="@columns"
-                ShowNoContent="@NoItemsFound">
-    @if (Data != null)
-    {
-        @foreach (var item in Data.Results)
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
         {
-            <tr @key="item.Id">
-                <td>@item.Name</td>
-                <td>@item.Public</td>
-                <td>@item.TotalObjectSize.BytesToMiB()</td>
-                <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
-            </tr>
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <td>@item.Name</td>
+                    <td>@item.Public</td>
+                    <td>@item.TotalObjectSize.BytesToMiB()</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                </tr>
+            }
         }
-    }
-</PaginatedTable>
+    </PaginatedTable>
+}
 
 @code {
 

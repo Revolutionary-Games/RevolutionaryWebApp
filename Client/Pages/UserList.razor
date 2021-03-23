@@ -15,30 +15,41 @@
 
 <h3>Users</h3>
 
-<PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                OnPageChanged="async (e) => await ChangePage(e)"
-                OnSortChanged="async (column) => await ChangeSort(column)"
-                GetSortClass="@SortClass"
-                ShowContentSpinner="@VisibleFetchInProgress"
-                Columns="@columns"
-                ShowNoContent="@NoItemsFound">
-    @if (Data != null)
-    {
-        @foreach (var item in Data.Results)
-        {
-            <tr @key="item.Id">
-                <td>@item.Name</td>
-                <td>@item.Suspended</td>
-                <td>@item.SsoSource</td>
-                <td>@item.Developer</td>
-                <td>@item.Admin</td>
-                <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
-                <td>@item.HasApiToken</td>
-                <td>@item.HasLfsToken</td>
-            </tr>
-        }
-    }
-</PaginatedTable>
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="true">
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        <td>@item.Name</td>
+                        <td>@item.Suspended</td>
+                        <td>@item.SsoSource</td>
+                        <td>@item.Developer</td>
+                        <td>@item.Admin</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.HasApiToken</td>
+                        <td>@item.HasLfsToken</td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    </AccessLimited>
+}
 
 @code {
     private readonly List<TableColumn> columns = new()
@@ -77,6 +88,9 @@
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
+        if (!currentAccessLevel.HasAccess(UserAccessLevel.Admin))
+            return;
+
         groups.Add(NotificationGroups.UserListUpdated);
     }
 

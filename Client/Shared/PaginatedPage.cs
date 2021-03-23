@@ -51,6 +51,8 @@ namespace ThriveDevCenter.Client.Shared
             }
         }
 
+        public string Error { get; private set; }
+
         /// <summary>
         ///   True when fetching new data. Can be used for example to show a loading spinner
         /// </summary>
@@ -177,7 +179,18 @@ namespace ThriveDevCenter.Client.Shared
             await OnQuerySent(requestParams);
 
             StateHasChanged();
-            Data = await query;
+
+            try
+            {
+                Data = await query;
+            }
+            catch (Exception e)
+            {
+                // Error write is not used here as we don't want to cause the blazor standard uncaught error popup
+                Console.WriteLine($"Error getting query results for a PaginatedPage: {e}");
+                Error = $"Error fetching data: {e.Message}";
+            }
+
             FetchInProgress = false;
             VisibleFetchInProgress = false;
             StateHasChanged();
