@@ -12,7 +12,8 @@ require_relative 'fix_boot_json_hashes.rb'
   mode: 'staging',
   # TODO: add running only specific migrations mode
   migration: 'idempotent',
-  use_migrations: true
+  use_migrations: true,
+  use_deploy: true
 }
 
 CLIENT_BUILT_WEBROOT = 'Client/bin/Release/net5.0/publish/wwwroot/'
@@ -32,6 +33,10 @@ OptionParser.new do |opts|
   opts.on('--skip-migrations',
           'Skip applying migrations') do |_f|
     @options[:use_migrations] = false
+  end
+  opts.on('--skip-deploy',
+          'Skip actually deploying the code to the server') do |_f|
+    @options[:use_deploy] = false
   end
 end.parse!
 
@@ -120,6 +125,11 @@ Dir.glob("#{CLIENT_BUILT_WEBROOT}**/blazor.boot.json") { |file|
 }
 
 puts 'Build finished. Sending files'
+
+unless @options[:use_deploy]
+  puts 'Skipping deploy'
+  exit 0
+end
 
 system('rsync', '-hr', CLIENT_BUILT_WEBROOT, "root@#{target_host}:#{TARGET_HOST_WWW_ROOT}",
        '--delete')
