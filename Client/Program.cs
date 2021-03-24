@@ -52,9 +52,11 @@ namespace ThriveDevCenter.Client
             await tokenReader.Read();
 
             // Setup hub connection as soon as we are able
-            // Not awaiting this here doesn't seem to speed up things and requires some special careful programming,
-            // so that is not done
-            await app.Services.GetRequiredService<NotificationHandler>().StartConnection();
+            // If this is awaited (especially in production) it slows down the app startup time, so that isn't done.
+            // This in turn requires some careful programming before the connection has properly been established
+#pragma warning disable 4014 // see comment above
+            app.Services.GetRequiredService<NotificationHandler>().StartConnection();
+#pragma warning restore 4014
 
             // This isn't really needed to happen instantly, so maybe this could not be waited for here if this
             // increases the app load time at all
