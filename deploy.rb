@@ -6,6 +6,8 @@
 require 'English'
 require 'optparse'
 
+require_relative 'fix_boot_json_hashes.rb'
+
 @options = {
   mode: 'staging',
   # TODO: add running only specific migrations mode
@@ -51,7 +53,7 @@ target_host = if @options[:mode] == 'production'
              'thrivedevcenter'
            else
              'thrivedevcenter_staging'
-          end
+           end
 
 puts "Starting deploy to: #{target_host}"
 
@@ -109,6 +111,13 @@ end
 system('dotnet publish -c Release')
 
 abort('failed to build') if $CHILD_STATUS.exitstatus != 0
+
+puts 'Making sure blazor.boot.json has correct hashes'
+
+Dir.glob("#{CLIENT_BUILT_WEBROOT}**/blazor.boot.json") { |file|
+  puts "Checking boot file: #{file}"
+  fix_boot_json_hashes file
+}
 
 puts 'Build finished. Sending files'
 
