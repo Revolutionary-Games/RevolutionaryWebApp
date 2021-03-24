@@ -1,9 +1,10 @@
-namespace ThriveDevCenter.Shared.Notifications.Tests
+namespace ThriveDevCenter.Shared.Tests.Notifications.Tests
 {
     using System;
     using System.Text.Json;
     using System.Text.RegularExpressions;
-    using Models;
+    using Shared.Models;
+    using Shared.Notifications;
     using Xunit;
 
     public class NotificationsSerializationTest

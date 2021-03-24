@@ -1,5 +1,6 @@
-namespace ThriveDevCenter.Shared.Models.Tests
+namespace ThriveDevCenter.Shared.Tests.Models.Tests
 {
+    using Shared.Models;
     using Xunit;
 
     public class UserAccessLevelTest
@@ -37,7 +38,7 @@ namespace ThriveDevCenter.Shared.Models.Tests
             Assert.False(UserAccessLevel.NotLoggedIn.HasAccess(UserAccessLevel.Admin));
             Assert.False(UserAccessLevel.NotLoggedIn.HasAccess(UserAccessLevel.Developer));
             Assert.False(UserAccessLevel.NotLoggedIn.HasAccess(UserAccessLevel.User));
-            Assert.False(UserAccessLevel.NotLoggedIn.HasAccess(UserAccessLevel.NotLoggedIn));
+            Assert.True(UserAccessLevel.NotLoggedIn.HasAccess(UserAccessLevel.NotLoggedIn));
         }
     }
 }
