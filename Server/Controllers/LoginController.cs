@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Controllers
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
@@ -187,12 +188,18 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("return/" + SsoTypePatreon)]
-        public async Task<IActionResult> SsoReturnPatreon()
+        public async Task<IActionResult> SsoReturnPatreon([Required] string state, [Required] string code, string error)
         {
             if (!PatreonConfigured)
                 return CreateResponseForDisabledOption();
 
-            throw new HttpResponseException() { Value = "Not done..." };
+            if (!string.IsNullOrEmpty(error))
+            {
+                // TODO: is it safe to show this to the user?
+                return Redirect(QueryHelpers.AddQueryString("/login", "error", $"Error from patreon: {error}"));
+            }
+
+            return await HandlePatreonSsoReturn(state, code);
         }
 
         [HttpPost("login")]
@@ -221,6 +228,47 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 return Redirect(redirect);
             }
+        }
+
+        [NonAction]
+        private async Task BeginNewSession(User user)
+        {
+            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+
+            var session = new Session
+            {
+                User = user, SessionVersion = user.SessionVersion, LastUsedFrom = remoteAddress
+            };
+
+            await database.Sessions.AddAsync(session);
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("Successful login for user {Email} from {RemoteAddress}, session: {Id}", user.Email,
+                remoteAddress, session.Id);
+
+            SetSessionCookie(session);
+        }
+
+        private void SetSessionCookie(Session session)
+        {
+            var options = new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddSeconds(AppInfo.SessionExpirySeconds),
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+
+                // TODO: do we need to set the domain explicitly?
+                // options.Domain;
+
+                // This might cause issues when locally testing with Chrome
+                Secure = true,
+
+                // Sessions are used for logins, they are essential. This might need to be re-thought out if
+                // non-essential info is attached to sessions later
+                IsEssential = true
+            };
+
+            Response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
         }
 
         [NonAction]
@@ -264,6 +312,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             await database.Sessions.AddAsync(session);
             await database.SaveChangesAsync();
+
+            SetSessionCookie(session);
+
             return session;
         }
 
@@ -301,40 +352,35 @@ namespace ThriveDevCenter.Server.Controllers
             return Convert.ToBase64String(Encoding.UTF8.GetBytes($"nonce={nonce}&return_sso_url={returnUrl}"));
         }
 
-        [NonAction]
-        private async Task BeginNewSession(User user)
+        private async Task<(Session session, IActionResult result)> FetchAndCheckSessionForSsoReturn(string nonce)
         {
+            var session = await HttpContext.Request.Cookies.GetSession(database);
+
+            if (session == null || session.StartedSsoLogin != SsoTypeDevForum)
+            {
+                return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "Your session was invalid. Please try again.")));
+            }
+
+            if (IsSsoTimedOut(session, out IActionResult timedOut))
+                return (session, timedOut);
+
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
 
-            var session = new Session
+            // Maybe this offers some extra security
+            if (!session.LastUsedFrom.Equals(remoteAddress))
             {
-                User = user, SessionVersion = user.SessionVersion, LastUsedFrom = remoteAddress
-            };
+                return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "Your IP address changed during the login attempt.")));
+            }
 
-            await database.Sessions.AddAsync(session);
-            await database.SaveChangesAsync();
+            if (session.SsoNonce != nonce || string.IsNullOrEmpty(session.SsoNonce))
+                return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "Invalid request nonce. Please try again.")));
 
-            logger.LogInformation("Successful login for user {Email} from {RemoteAddress}, session: {Id}", user.Email,
-                remoteAddress, session.Id);
-
-            var options = new CookieOptions
-            {
-                Expires = DateTime.UtcNow.AddSeconds(AppInfo.SessionExpirySeconds),
-                HttpOnly = true,
-                SameSite = SameSiteMode.Lax,
-
-                // TODO: do we need to set the domain explicitly?
-                // options.Domain;
-
-                // This might cause issues when locally testing with Chrome
-                Secure = true,
-
-                // Sessions are used for logins, they are essential. This might need to be re-thought out if
-                // non-essential info is attached to sessions later
-                IsEssential = true
-            };
-
-            Response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
+            // Clear nonce after checking to disallow duplicate requests (needs to make sure to save)
+            session.SsoNonce = null;
+            return (session, null);
         }
 
         [NonAction]
@@ -349,6 +395,13 @@ namespace ThriveDevCenter.Server.Controllers
 
             result = null;
             return false;
+        }
+
+        [NonAction]
+        private IActionResult GetInvalidSsoParametersResult()
+        {
+            return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                "Invalid SSO parameters received"));
         }
 
         [NonAction]
@@ -380,28 +433,15 @@ namespace ThriveDevCenter.Server.Controllers
             // TODO: exception catching here?
             var payload = QueryHelpers.ParseQuery(Encoding.UTF8.GetString(Convert.FromBase64String(ssoPayload)));
 
-            var session = await HttpContext.Request.Cookies.GetSession(database);
+            if (!payload.TryGetValue("nonce", out StringValues payloadNonce) || payloadNonce.Count != 1)
+                return GetInvalidSsoParametersResult();
 
-            if (session == null || session.StartedSsoLogin != SsoTypeDevForum)
-            {
-                return Redirect(QueryHelpers.AddQueryString("/login", "error",
-                    "Your session was invalid. Please try again."));
-            }
+            var (session, result) = await FetchAndCheckSessionForSsoReturn(payloadNonce[0]);
 
-            if (IsSsoTimedOut(session, out IActionResult timedOut))
-                return timedOut;
+            // Return in case of failure
+            if (result != null)
+                return result;
 
-            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
-
-            // Maybe this offers some extra security
-            if (!session.LastUsedFrom.Equals(remoteAddress))
-            {
-                return Redirect(QueryHelpers.AddQueryString("/login", "error",
-                    "Your IP address changed during the login attempt."));
-            }
-
-            // Clear nonce after checking to disallow duplicate requests (needs to make sure to save)
-            session.SsoNonce = null;
             bool requireSave = true;
 
             try
@@ -411,27 +451,177 @@ namespace ThriveDevCenter.Server.Controllers
 
                 var email = emailRaw[0];
 
-                if(string.IsNullOrEmpty(email))
-                    return GetInvalidSsoParametersResult();
+                if (ssoType == SsoTypeCommunityForum)
+                {
+                    // Check membership in required groups
 
-                // The user account login, will always perform a database write so we don't need a separate write here
-                requireSave = false;
+                    if (!payload.TryGetValue("groups", out StringValues groups))
+                        return GetInvalidSsoParametersResult();
+
+                    if (!groups.Contains(DiscourseApiHelpers.CommunityDevBuildGroup) &&
+                        !groups.Contains(DiscourseApiHelpers.CommunityVIPGroup))
+                    {
+                        logger.LogInformation("Not allowing login due to missing group membership for: {Email}", email);
+                        return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                            "You must be either in the Supporter or VIP supporter group to login. " +
+                            "These are granted to our Patrons. If you just signed up, please wait up to an " +
+                            "hour for groups to sync."));
+                    }
+                }
+
+                var username = email;
+
+                if (payload.TryGetValue("email", out StringValues usernameRaw) && usernameRaw.Count != 1)
+                {
+                    username = usernameRaw[0];
+                }
+
+                var tuple = await HandleSsoLoginToAccount(session, email, username, ssoType, developer);
+                requireSave = !tuple.saved;
+                return tuple.result;
             }
             finally
             {
-                if(requireSave)
+                if (requireSave)
                     await database.SaveChangesAsync();
             }
-
-            return Redirect(QueryHelpers.AddQueryString("/login", "error",
-                "Not implemented."));
         }
 
         [NonAction]
-        private IActionResult GetInvalidSsoParametersResult()
+        private async Task<IActionResult> HandlePatreonSsoReturn(string state, string code)
         {
+            if (string.IsNullOrEmpty(code))
+                return GetInvalidSsoParametersResult();
+
+            string secret;
+
+            var (session, result) = await FetchAndCheckSessionForSsoReturn(state);
+
+            // Return in case of failure
+            if (result != null)
+                return result;
+
             return Redirect(QueryHelpers.AddQueryString("/login", "error",
-                "Invalid SSO parameters received"));
+                "Not implemented yet."));
+
+            bool requireSave = true;
+
+            try
+            {
+                // var tuple = await HandleSsoLoginToAccount(session, email, username, ssoType, developer);
+                // requireSave = !tuple.saved;
+                // return tuple.result;
+            }
+            finally
+            {
+                if (requireSave)
+                    await database.SaveChangesAsync();
+            }
+        }
+
+        [NonAction]
+        private async Task<(IActionResult result, bool saved)> HandleSsoLoginToAccount(Session session, string email,
+            string username,
+            string ssoType,
+            bool developerLogin)
+        {
+            if (string.IsNullOrEmpty(email))
+                return (GetInvalidSsoParametersResult(), false);
+
+            logger.LogInformation("Logging in SSO login user with email: {Email}", email);
+
+            var user = await database.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+            {
+                // New account needed
+                logger.LogInformation("Creating new account for SSO login: {Email} developer: {DeveloperLogin}",
+                    email, developerLogin);
+
+                user = new User()
+                {
+                    Email = email,
+                    UserName = username,
+                    Local = false,
+                    SsoSource = ssoType,
+                    Developer = developerLogin,
+                    Admin = false
+                };
+
+                await database.Users.AddAsync(user);
+            }
+            else if (user.Local == true)
+            {
+                return (Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "Can't login to local account using SSO")), false);
+            }
+            else if (user.SsoSource != ssoType)
+            {
+                logger.LogInformation(
+                    "User logged in with different SSO source than before, new: {SsoType}, old: {SsoSource}", ssoType,
+                    user.SsoSource);
+
+                if (user.SsoSource == SsoTypeDevForum || user.Developer == true)
+                {
+                    return (Redirect(QueryHelpers.AddQueryString("/login", "error",
+                            "Your account is a developer account. You need to login through the Development Forums.")),
+                        false);
+                }
+
+                if (ssoType == SsoTypeDevForum)
+                {
+                    // Conversion to a developer account
+                    await database.LogEntries.AddAsync(new LogEntry()
+                    {
+                        Message = "User is now a developer due to different SSO login type",
+                        TargetUser = user
+                    });
+
+                    user.Developer = true;
+                    user.SsoSource = SsoTypeDevForum;
+                }
+                else if (user.SsoSource == SsoTypePatreon && ssoType == SsoTypeCommunityForum)
+                {
+                    logger.LogInformation("Patron logged in using a community forum account");
+                }
+                else if (user.SsoSource == SsoTypeCommunityForum && ssoType == SsoTypePatreon)
+                {
+                    logger.LogInformation("Community forum user logged in using patreon");
+                }
+                else
+                {
+                    throw new Exception("Unknown sso type (old, new) combination to move an user to");
+                }
+            }
+
+            var result = await FinishSsoLoginToAccount(user, session);
+            return (result, true);
+        }
+
+        [NonAction]
+        private async Task<IActionResult> FinishSsoLoginToAccount(User user,
+            Session session)
+        {
+            logger.LogInformation("Sso login succeeded to account: {Id}", user.Id);
+
+            session.User = user;
+            session.LastUsed = DateTime.UtcNow;
+            session.StartedSsoLogin = null;
+            session.SessionVersion = user.SessionVersion;
+
+            await database.SaveChangesAsync();
+
+            string returnUrl = null;
+
+            if (string.IsNullOrEmpty(returnUrl) ||
+                !redirectVerifier.SanitizeRedirectUrl(returnUrl, out string redirect))
+            {
+                return Redirect("/");
+            }
+            else
+            {
+                return Redirect(redirect);
+            }
         }
     }
 
