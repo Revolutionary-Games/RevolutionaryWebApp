@@ -345,7 +345,9 @@ namespace ThriveDevCenter.Server.Controllers
         {
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
 
-            return Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)));
+            // We need the hex string in lowercase, so we need to convert it here as there doesn't seem to be a built in
+            // way to do that
+            return Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
         }
 
         [NonAction]
@@ -377,8 +379,10 @@ namespace ThriveDevCenter.Server.Controllers
             }
 
             if (session.SsoNonce != nonce || string.IsNullOrEmpty(session.SsoNonce))
+            {
                 return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
                     "Invalid request nonce. Please try again.")));
+            }
 
             // Clear nonce after checking to disallow duplicate requests (needs to make sure to save)
             session.SsoNonce = null;
