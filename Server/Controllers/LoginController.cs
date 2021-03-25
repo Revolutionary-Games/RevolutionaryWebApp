@@ -10,6 +10,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.WebUtilities;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
@@ -22,17 +23,30 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<LoginController> logger;
         private readonly ApplicationDbContext database;
+        private readonly IConfiguration configuration;
         private readonly JwtTokens csrfVerifier;
         private readonly RedirectVerifier redirectVerifier;
 
-        public LoginController(ILogger<LoginController> logger, ApplicationDbContext database, JwtTokens csrfVerifier,
+        private readonly bool localLoginEnabled;
+
+        public LoginController(ILogger<LoginController> logger, ApplicationDbContext database,
+            IConfiguration configuration, JwtTokens csrfVerifier,
             RedirectVerifier redirectVerifier)
         {
             this.logger = logger;
             this.database = database;
+            this.configuration = configuration;
             this.csrfVerifier = csrfVerifier;
             this.redirectVerifier = redirectVerifier;
+
+            localLoginEnabled = Convert.ToBoolean(configuration["Login:Local:Enabled"]);
         }
+
+        private bool DevForumConfigured => !string.IsNullOrEmpty(configuration["Login:DevForum:SsoSecret"]);
+        private bool CommunityForumConfigured => !string.IsNullOrEmpty(configuration["Login:CommunityForum:SsoSecret"]);
+
+        private bool PatreonConfigured => !string.IsNullOrEmpty(configuration["Login:Patreon:ClientId"]) &&
+            !string.IsNullOrEmpty(configuration["Login:Patreon:ClientSecret"]);
 
         [HttpGet]
         public LoginOptions Get()
@@ -50,7 +64,7 @@ namespace ThriveDevCenter.Server.Controllers
                             {
                                 ReadableName = "Login Using a Development Forum Account",
                                 InternalName = "devforum",
-                                Active = true
+                                Active = DevForumConfigured
                             }
                         }
                     },
@@ -63,13 +77,13 @@ namespace ThriveDevCenter.Server.Controllers
                             {
                                 ReadableName = "Login Using a Community Forum Account",
                                 InternalName = "communityforum",
-                                Active = true
+                                Active = CommunityForumConfigured
                             },
                             new()
                             {
                                 ReadableName = "Login Using Patreon",
                                 InternalName = "patreon",
-                                Active = false
+                                Active = PatreonConfigured
                             }
                         }
                     },
@@ -82,7 +96,7 @@ namespace ThriveDevCenter.Server.Controllers
                             {
                                 ReadableName = "Login using a local account",
                                 InternalName = "local",
-                                Active = true,
+                                Active = localLoginEnabled,
                                 Local = true
                             }
                         }
@@ -96,7 +110,32 @@ namespace ThriveDevCenter.Server.Controllers
         {
             await PerformPreLoginChecks(csrf);
 
-            throw new HttpResponseException() { Value = "Invalid SsoType" };
+            switch (ssoType)
+            {
+                case "devforum":
+                {
+                    if (!DevForumConfigured)
+                        return CreateResponseForDisabledOption();
+
+                    break;
+                }
+                case "communityforum":
+                {
+                    if (!CommunityForumConfigured)
+                        return CreateResponseForDisabledOption();
+
+                    break;
+                }
+                case "patreon":
+                {
+                    if (!PatreonConfigured)
+                        return CreateResponseForDisabledOption();
+
+                    break;
+                }
+            }
+
+            return Redirect(QueryHelpers.AddQueryString("/login", "error", "Invalid SsoType"));
         }
 
         [HttpGet("return")]
@@ -108,6 +147,9 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> PerformLocalLogin([FromForm] LoginFormData login)
         {
+            if (!localLoginEnabled)
+                return CreateResponseForDisabledOption();
+
             await PerformPreLoginChecks(login.CSRF);
 
             var user = await database.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
@@ -130,6 +172,13 @@ namespace ThriveDevCenter.Server.Controllers
             }
         }
 
+        [NonAction]
+        private IActionResult CreateResponseForDisabledOption()
+        {
+            return Redirect(QueryHelpers.AddQueryString("/login", "error", "This login option is not enabled"));
+        }
+
+        [NonAction]
         private async Task PerformPreLoginChecks(string csrf)
         {
             var existingSession = await HttpContext.Request.Cookies.GetSession(database);
@@ -149,6 +198,7 @@ namespace ThriveDevCenter.Server.Controllers
             }
         }
 
+        [NonAction]
         private async Task BeginNewSession(User user)
         {
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
