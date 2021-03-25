@@ -26,6 +26,14 @@ namespace ThriveDevCenter.Server.Controllers
     [Route("LoginController")]
     public class LoginController : Controller
     {
+        private const string DiscourseSsoEndpoint = "/session/sso_provider";
+        private const int SsoNonceLength = 32;
+        private const string SsoTypeDevForum = "devforum";
+        private const string SsoTypeCommunityForum = "communityforum";
+        private const string SsoTypePatreon = "patreon";
+
+        private static readonly TimeSpan SsoTimeout = TimeSpan.FromMinutes(20);
+
         private readonly ILogger<LoginController> logger;
         private readonly ApplicationDbContext database;
         private readonly IConfiguration configuration;
@@ -68,7 +76,7 @@ namespace ThriveDevCenter.Server.Controllers
                             new()
                             {
                                 ReadableName = "Login Using a Development Forum Account",
-                                InternalName = "devforum",
+                                InternalName = SsoTypeDevForum,
                                 Active = DevForumConfigured
                             }
                         }
@@ -81,13 +89,13 @@ namespace ThriveDevCenter.Server.Controllers
                             new()
                             {
                                 ReadableName = "Login Using a Community Forum Account",
-                                InternalName = "communityforum",
+                                InternalName = SsoTypeCommunityForum,
                                 Active = CommunityForumConfigured
                             },
                             new()
                             {
                                 ReadableName = "Login Using Patreon",
-                                InternalName = "patreon",
+                                InternalName = SsoTypePatreon,
                                 Active = PatreonConfigured
                             }
                         }
@@ -111,41 +119,79 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("start")]
-        public async Task<IActionResult> StartLogin([Required] string ssoType, [FromBody] [Required] string csrf)
+        public async Task<IActionResult> StartSsoLogin([Required] string ssoType, [FromBody] [Required] string csrf)
         {
             await PerformPreLoginChecks(csrf);
 
             switch (ssoType)
             {
-                case "devforum":
+                case SsoTypeDevForum:
                 {
                     if (!DevForumConfigured)
                         return CreateResponseForDisabledOption();
 
-                    break;
+                    return await DoDiscourseLoginRedirect(SsoTypeDevForum, configuration["Login:DevForum:SsoSecret"],
+                        configuration["Login:DevForum:BaseUrl"]);
                 }
-                case "communityforum":
+                case SsoTypeCommunityForum:
                 {
                     if (!CommunityForumConfigured)
                         return CreateResponseForDisabledOption();
 
-                    break;
+                    return await DoDiscourseLoginRedirect(SsoTypeCommunityForum,
+                        configuration["Login:CommunityForum:SsoSecret"],
+                        configuration["Login:CommunityForum:BaseUrl"]);
                 }
-                case "patreon":
+                case SsoTypePatreon:
                 {
                     if (!PatreonConfigured)
                         return CreateResponseForDisabledOption();
 
-                    break;
+                    var returnUrl = new Uri(configuration.GetBaseUrl(), $"/LoginController/return/{ssoType}")
+                        .ToString();
+
+                    var session = await BeginSsoLogin(ssoType);
+
+                    var scopes = "identity identity[email]";
+
+                    return Redirect(QueryHelpers.AddQueryString(
+                        configuration["Login:Patreon:BaseUrl"],
+                        new Dictionary<string, string>()
+                        {
+                            { "redirect_uri", returnUrl },
+                            { "scope", scopes },
+                            { "state", session.SsoNonce }
+                        }));
                 }
             }
 
             return Redirect(QueryHelpers.AddQueryString("/login", "error", "Invalid SsoType"));
         }
 
-        [HttpGet("return")]
-        public IActionResult SsoReturn()
+        [HttpGet("return/" + SsoTypeDevForum)]
+        public async Task<IActionResult> SsoReturnDev([Required] string sso, [Required] string sig)
         {
+            if (!DevForumConfigured)
+                return CreateResponseForDisabledOption();
+
+            return await HandleDiscourseSsoReturn(sso, sig, SsoTypeDevForum);
+        }
+
+        [HttpGet("return/" + SsoTypeCommunityForum)]
+        public async Task<IActionResult> SsoReturnCommunity([Required] string sso, [Required] string sig)
+        {
+            if (!CommunityForumConfigured)
+                return CreateResponseForDisabledOption();
+
+            return await HandleDiscourseSsoReturn(sso, sig, SsoTypeCommunityForum);
+        }
+
+        [HttpGet("return/" + SsoTypePatreon)]
+        public async Task<IActionResult> SsoReturnPatreon()
+        {
+            if (!PatreonConfigured)
+                return CreateResponseForDisabledOption();
+
             throw new HttpResponseException() { Value = "Not done..." };
         }
 
@@ -204,6 +250,58 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
+        private async Task<Session> BeginSsoLogin(string ssoSource)
+        {
+            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+
+            var session = new Session
+            {
+                LastUsedFrom = remoteAddress,
+                SsoNonce = NonceGenerator.GenerateNonce(SsoNonceLength),
+                StartedSsoLogin = ssoSource,
+                SsoStartTime = DateTime.UtcNow
+            };
+
+            await database.Sessions.AddAsync(session);
+            await database.SaveChangesAsync();
+            return session;
+        }
+
+        [NonAction]
+        private async Task<IActionResult> DoDiscourseLoginRedirect(string ssoType, string secret, string redirectBase)
+        {
+            var returnUrl = new Uri(configuration.GetBaseUrl(), $"/LoginController/return/{ssoType}").ToString();
+
+            var session = await BeginSsoLogin(ssoType);
+
+            var payload = PrepareDiscoursePayload(session.SsoNonce, returnUrl);
+
+            var signature = CalculateDiscourseSsoParamSignature(payload, secret);
+
+            return Redirect(QueryHelpers.AddQueryString(
+                new Uri(new Uri(redirectBase), DiscourseSsoEndpoint).ToString(),
+                new Dictionary<string, string>()
+                {
+                    { "sso", payload },
+                    { "sig", signature }
+                }));
+        }
+
+        [NonAction]
+        private string CalculateDiscourseSsoParamSignature(string payload, string secret)
+        {
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+
+            return Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)));
+        }
+
+        [NonAction]
+        private string PrepareDiscoursePayload(string nonce, string returnUrl)
+        {
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes($"nonce={nonce}&return_sso_url={returnUrl}"));
+        }
+
+        [NonAction]
         private async Task BeginNewSession(User user)
         {
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
@@ -237,6 +335,103 @@ namespace ThriveDevCenter.Server.Controllers
             };
 
             Response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
+        }
+
+        [NonAction]
+        private bool IsSsoTimedOut(Session session, out IActionResult result)
+        {
+            if (session.SsoStartTime == null || DateTime.UtcNow - session.SsoStartTime > SsoTimeout)
+            {
+                result = Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "The login attempt has expired. Please try again."));
+                return true;
+            }
+
+            result = null;
+            return false;
+        }
+
+        [NonAction]
+        private async Task<IActionResult> HandleDiscourseSsoReturn(string ssoPayload, string signature, string ssoType)
+        {
+            string secret;
+            bool developer;
+
+            switch (ssoType)
+            {
+                case SsoTypeDevForum:
+                    secret = configuration["Login:DevForum:SsoSecret"];
+                    developer = true;
+                    break;
+                case SsoTypeCommunityForum:
+                    secret = configuration["Login:CommunityForum:SsoSecret"];
+                    developer = false;
+                    break;
+                default:
+                    throw new ArgumentException("invalid discourse ssoType");
+            }
+
+            // Make sure the signature is right first
+            var actualRequestSignature = CalculateDiscourseSsoParamSignature(ssoPayload, secret);
+
+            if (actualRequestSignature != signature)
+                return GetInvalidSsoParametersResult();
+
+            // TODO: exception catching here?
+            var payload = QueryHelpers.ParseQuery(Encoding.UTF8.GetString(Convert.FromBase64String(ssoPayload)));
+
+            var session = await HttpContext.Request.Cookies.GetSession(database);
+
+            if (session == null || session.StartedSsoLogin != SsoTypeDevForum)
+            {
+                return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "Your session was invalid. Please try again."));
+            }
+
+            if (IsSsoTimedOut(session, out IActionResult timedOut))
+                return timedOut;
+
+            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+
+            // Maybe this offers some extra security
+            if (!session.LastUsedFrom.Equals(remoteAddress))
+            {
+                return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "Your IP address changed during the login attempt."));
+            }
+
+            // Clear nonce after checking to disallow duplicate requests (needs to make sure to save)
+            session.SsoNonce = null;
+            bool requireSave = true;
+
+            try
+            {
+                if (!payload.TryGetValue("email", out StringValues emailRaw) || emailRaw.Count != 1)
+                    return GetInvalidSsoParametersResult();
+
+                var email = emailRaw[0];
+
+                if(string.IsNullOrEmpty(email))
+                    return GetInvalidSsoParametersResult();
+
+                // The user account login, will always perform a database write so we don't need a separate write here
+                requireSave = false;
+            }
+            finally
+            {
+                if(requireSave)
+                    await database.SaveChangesAsync();
+            }
+
+            return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                "Not implemented."));
+        }
+
+        [NonAction]
+        private IActionResult GetInvalidSsoParametersResult()
+        {
+            return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                "Invalid SSO parameters received"));
         }
     }
 
