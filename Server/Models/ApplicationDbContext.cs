@@ -167,6 +167,11 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.SessionVersion).HasDefaultValue(1);
             });
 
+            modelBuilder.Entity<Session>(entity =>
+            {
+                entity.HasOne(d => d.User).WithMany(p => p.Sessions).OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<RedeemableCode>(entity =>
             {
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");

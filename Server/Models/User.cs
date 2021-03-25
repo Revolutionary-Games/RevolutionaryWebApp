@@ -92,6 +92,11 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         public ICollection<AdminAction> PerformedAdminActions { get; set; } = new HashSet<AdminAction>();
 
+        /// <summary>
+        ///   Active sessions of user
+        /// </summary>
+        public ICollection<Session> Sessions { get; set; } = new HashSet<Session>();
+
         public bool HasAccessLevel(UserAccessLevel level)
         {
             return ComputeAccessLevel().HasAccess(level);
