@@ -120,11 +120,11 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("start")]
-        public async Task<IActionResult> StartSsoLogin([Required] string ssoType, [FromBody] [Required] string csrf)
+        public async Task<IActionResult> StartSsoLogin([FromForm] [Required] SsoStartFormData data)
         {
-            await PerformPreLoginChecks(csrf);
+            await PerformPreLoginChecks(data.CSRF);
 
-            switch (ssoType)
+            switch (data.SsoType)
             {
                 case SsoTypeDevForum:
                 {
@@ -132,7 +132,7 @@ namespace ThriveDevCenter.Server.Controllers
                         return CreateResponseForDisabledOption();
 
                     return await DoDiscourseLoginRedirect(SsoTypeDevForum, configuration["Login:DevForum:SsoSecret"],
-                        configuration["Login:DevForum:BaseUrl"]);
+                        configuration["Login:DevForum:BaseUrl"], data.ReturnUrl);
                 }
                 case SsoTypeCommunityForum:
                 {
@@ -141,17 +141,17 @@ namespace ThriveDevCenter.Server.Controllers
 
                     return await DoDiscourseLoginRedirect(SsoTypeCommunityForum,
                         configuration["Login:CommunityForum:SsoSecret"],
-                        configuration["Login:CommunityForum:BaseUrl"]);
+                        configuration["Login:CommunityForum:BaseUrl"], data.ReturnUrl);
                 }
                 case SsoTypePatreon:
                 {
                     if (!PatreonConfigured)
                         return CreateResponseForDisabledOption();
 
-                    var returnUrl = new Uri(configuration.GetBaseUrl(), $"/LoginController/return/{ssoType}")
+                    var returnUrl = new Uri(configuration.GetBaseUrl(), $"/LoginController/return/{SsoTypePatreon}")
                         .ToString();
 
-                    var session = await BeginSsoLogin(ssoType);
+                    var session = await BeginSsoLogin(data.SsoType, data.ReturnUrl);
 
                     var scopes = "identity identity[email]";
 
@@ -298,7 +298,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<Session> BeginSsoLogin(string ssoSource)
+        private async Task<Session> BeginSsoLogin(string ssoSource, string returnTo)
         {
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
 
@@ -307,7 +307,8 @@ namespace ThriveDevCenter.Server.Controllers
                 LastUsedFrom = remoteAddress,
                 SsoNonce = NonceGenerator.GenerateNonce(SsoNonceLength),
                 StartedSsoLogin = ssoSource,
-                SsoStartTime = DateTime.UtcNow
+                SsoStartTime = DateTime.UtcNow,
+                SsoReturnUrl = returnTo
             };
 
             await database.Sessions.AddAsync(session);
@@ -319,11 +320,12 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<IActionResult> DoDiscourseLoginRedirect(string ssoType, string secret, string redirectBase)
+        private async Task<IActionResult> DoDiscourseLoginRedirect(string ssoType, string secret, string redirectBase,
+            string returnUrlOnSuccess)
         {
             var returnUrl = new Uri(configuration.GetBaseUrl(), $"/LoginController/return/{ssoType}").ToString();
 
-            var session = await BeginSsoLogin(ssoType);
+            var session = await BeginSsoLogin(ssoType, returnUrlOnSuccess);
 
             var payload = PrepareDiscoursePayload(session.SsoNonce, returnUrl);
 
@@ -604,14 +606,17 @@ namespace ThriveDevCenter.Server.Controllers
         {
             logger.LogInformation("Sso login succeeded to account: {Id}", user.Id);
 
+            string returnUrl = session.SsoReturnUrl;
+
             session.User = user;
             session.LastUsed = DateTime.UtcNow;
             session.StartedSsoLogin = null;
             session.SessionVersion = user.SessionVersion;
 
-            await database.SaveChangesAsync();
+            // Clear the return url to not leave it hanging around in the db
+            session.SsoReturnUrl = null;
 
-            string returnUrl = null;
+            await database.SaveChangesAsync();
 
             if (string.IsNullOrEmpty(returnUrl) ||
                 !redirectVerifier.SanitizeRedirectUrl(returnUrl, out string redirect))
@@ -632,6 +637,17 @@ namespace ThriveDevCenter.Server.Controllers
 
         [Required]
         public string Password { get; set; }
+
+        [Required]
+        public string CSRF { get; set; }
+
+        public string ReturnUrl { get; set; }
+    }
+
+    public class SsoStartFormData
+    {
+        [Required]
+        public string SsoType { get; set; }
 
         [Required]
         public string CSRF { get; set; }

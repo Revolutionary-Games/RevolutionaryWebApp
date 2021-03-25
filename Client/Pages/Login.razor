@@ -43,9 +43,14 @@ else
         {
             if (!option.Local)
             {
-                <Button class="my-1" OnPressed="@(() => BeginLogin(option.InternalName))" Enabled="@option.Active">
-                    @option.ReadableName
-                </Button>
+                <form method="post" action="/LoginController/start">
+                    <input type="hidden" name="CSRF" value="@CSRF.Token" />
+                    <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+                    <input type="hidden" name="SsoType" value="@option.InternalName" />
+                    <Button class="my-1" type="submit" Enabled="@option.Active">
+                        @option.ReadableName
+                    </Button>
+                </form>
             }
             else
             {
@@ -62,7 +67,7 @@ else
                             <input type="password" class="form-control" name="Password"
                                    placeholder="password" @bind="password" @bind:event="oninput">
                         </div>
-                        <Button class="my-1" Enabled="                    LocalLoginFine" type="submit">
+                        <Button class="my-1" Enabled="LocalLoginFine" type="submit">
                             Login
                         </Button>
                     </form>
@@ -105,17 +110,6 @@ else
         this.SetParametersFromQueryString(NavManager);
 
         options = await Http.GetFromJsonAsync<LoginOptions>("LoginController");
-    }
-
-    // ReSharper disable once ParameterHidesMember
-    private void BeginLogin(string type)
-    {
-        NavManager.NavigateTo(QueryHelpers.AddQueryString("LoginController/start", new Dictionary<string, string>()
-        {
-            {
-                "SsoType", type
-            }
-        }), true);
     }
 
 }
