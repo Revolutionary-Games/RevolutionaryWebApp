@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Services
     using System;
     using System.Diagnostics.CodeAnalysis;
     using Microsoft.Extensions.Configuration;
+    using Utilities;
 
     /// <summary>
     ///   Checks redirects that they are safe before sending them to the client

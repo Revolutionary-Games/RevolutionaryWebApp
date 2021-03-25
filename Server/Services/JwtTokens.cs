@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server
+namespace ThriveDevCenter.Server.Services
 {
     using System;
     using System.Collections.Generic;

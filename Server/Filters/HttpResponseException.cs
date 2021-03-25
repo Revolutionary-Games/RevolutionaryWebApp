@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server
+namespace ThriveDevCenter.Server.Filters
 {
     using System;
     using Microsoft.AspNetCore.Http;

@@ -5,17 +5,22 @@ namespace ThriveDevCenter.Server.Controllers
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Security.Cryptography;
+    using System.Text;
     using System.Threading.Tasks;
     using Authorization;
+    using Filters;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.WebUtilities;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Primitives;
     using Models;
     using Services;
     using Shared;
     using Shared.Models;
+    using Utilities;
 
     [ApiController]
     [Route("LoginController")]

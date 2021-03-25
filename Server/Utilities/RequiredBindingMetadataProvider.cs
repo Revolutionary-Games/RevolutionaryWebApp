@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server
+namespace ThriveDevCenter.Server.Utilities
 {
     using System.ComponentModel.DataAnnotations;
     using System.Linq;

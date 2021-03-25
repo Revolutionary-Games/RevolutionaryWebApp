@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Server.Hubs
     using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Primitives;
     using Models;
+    using Services;
     using Shared;
     using Shared.Models;
     using Shared.Notifications;

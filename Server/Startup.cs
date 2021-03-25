@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server
     using System.Linq;
     using System.Threading;
     using Authorization;
+    using Filters;
     using Hangfire;
     using Hangfire.PostgreSql;
     using Hubs;
@@ -19,6 +20,7 @@ namespace ThriveDevCenter.Server
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
+    using Utilities;
 
     public class Startup
     {

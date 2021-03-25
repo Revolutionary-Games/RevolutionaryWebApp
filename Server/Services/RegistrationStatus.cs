@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server
+namespace ThriveDevCenter.Server.Services
 {
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;

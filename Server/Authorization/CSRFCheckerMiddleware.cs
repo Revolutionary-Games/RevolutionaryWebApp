@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server.Authorization
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Primitives;
     using Models;
+    using Services;
     using Shared;
 
     public class CSRFCheckerMiddleware : IMiddleware
