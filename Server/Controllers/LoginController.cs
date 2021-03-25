@@ -596,6 +596,17 @@ namespace ThriveDevCenter.Server.Controllers
                 }
             }
 
+            if (user.Suspended == true)
+            {
+                var suspension = user.SuspendedManually == true ?
+                    " manually" :
+                    $" with the reason: {user.SuspendedReason}";
+
+                return (Redirect(QueryHelpers.AddQueryString("/login", "error",
+                        $"Your account is suspended {suspension}")),
+                    false);
+            }
+
             var result = await FinishSsoLoginToAccount(user, session);
             return (result, true);
         }
