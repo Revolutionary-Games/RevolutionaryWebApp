@@ -477,7 +477,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 var username = email;
 
-                if (payload.TryGetValue("email", out StringValues usernameRaw) && usernameRaw.Count != 1)
+                if (payload.TryGetValue("username", out StringValues usernameRaw) && usernameRaw.Count > 0)
                 {
                     username = usernameRaw[0];
                 }
