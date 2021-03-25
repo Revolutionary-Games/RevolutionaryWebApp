@@ -17,9 +17,13 @@ namespace ThriveDevCenter.Server.Services
             baseUrl = configuration["BaseUrl"];
 
             if (string.IsNullOrEmpty(baseUrl))
-            {
                 throw new Exception("Base URL is not configured");
-            }
+
+            if (baseUrl[^1] != '/')
+                throw new Exception("Base url should end with a slash");
+
+            // Make sure that accessing this doesn't cause an exception
+            configuration.GetBaseUrl();
         }
 
         /// <summary>
