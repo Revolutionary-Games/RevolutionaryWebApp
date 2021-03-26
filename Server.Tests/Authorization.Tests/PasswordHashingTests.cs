@@ -1,12 +1,7 @@
-namespace ThriveDevCenter.Server.Authorization.Tests
+namespace ThriveDevCenter.Server.Tests.Authorization.Tests
 {
-    using System;
-    using System.Text.Json;
-    using System.Text.RegularExpressions;
-    using Shared.Models;
-    using Shared.Notifications;
+    using Server.Authorization;
     using Xunit;
-    using Xunit.Abstractions;
 
     public class PasswordHashingTests
     {
