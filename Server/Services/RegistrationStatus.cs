@@ -3,7 +3,7 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
-    public class RegistrationStatus
+    public class RegistrationStatus : IRegistrationStatus
     {
         public RegistrationStatus(IConfiguration configuration, ILogger<RegistrationStatus> logger)
         {
@@ -22,5 +22,11 @@ namespace ThriveDevCenter.Server.Services
 
         public bool RegistrationEnabled { get; }
         public string RegistrationCode { get; }
+    }
+
+    public interface IRegistrationStatus
+    {
+        bool RegistrationEnabled { get; }
+        string RegistrationCode { get; }
     }
 }

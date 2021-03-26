@@ -22,12 +22,12 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<RegistrationController> logger;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
-        private readonly RegistrationStatus configuration;
+        private readonly IRegistrationStatus configuration;
         private readonly JwtTokens csrfVerifier;
         private readonly ApplicationDbContext database;
 
         public RegistrationController(ILogger<RegistrationController> logger,
-            IHubContext<NotificationsHub, INotifications> notifications, RegistrationStatus configuration,
+            IHubContext<NotificationsHub, INotifications> notifications, IRegistrationStatus configuration,
             JwtTokens csrfVerifier, ApplicationDbContext database)
         {
             this.logger = logger;
