@@ -619,7 +619,12 @@ namespace ThriveDevCenter.Server.Controllers
         private async Task<IActionResult> FinishSsoLoginToAccount(User user,
             Session session)
         {
-            logger.LogInformation("Sso login succeeded to account: {Id}", user.Id);
+            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+
+            var sessionId = session.Id;
+
+            logger.LogInformation("SSO login succeeded to user id: {Id}, from: {RemoteAddress}, session: {SessionId}",
+                user.Id, remoteAddress, sessionId);
 
             string returnUrl = session.SsoReturnUrl;
 
@@ -628,7 +633,7 @@ namespace ThriveDevCenter.Server.Controllers
             session.StartedSsoLogin = null;
             session.SessionVersion = user.SessionVersion;
 
-            // Clear the return url to not leave it hanging around in the db
+            // Clear the return url to not leave it hanging around in the database
             session.SsoReturnUrl = null;
 
             await database.SaveChangesAsync();
