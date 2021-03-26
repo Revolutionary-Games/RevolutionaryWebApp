@@ -16,9 +16,9 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<LogoutController> logger;
         private readonly ApplicationDbContext database;
-        private readonly JwtTokens csrfVerifier;
+        private readonly ITokenVerifier csrfVerifier;
 
-        public LogoutController(ILogger<LogoutController> logger, ApplicationDbContext database, JwtTokens csrfVerifier)
+        public LogoutController(ILogger<LogoutController> logger, ApplicationDbContext database, ITokenVerifier csrfVerifier)
         {
             this.logger = logger;
             this.database = database;

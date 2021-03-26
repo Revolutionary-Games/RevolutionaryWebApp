@@ -15,10 +15,10 @@ namespace ThriveDevCenter.Server.Hubs
 
     public class NotificationsHub : Hub<INotifications>
     {
-        private readonly JwtTokens csrfVerifier;
+        private readonly ITokenVerifier csrfVerifier;
         private readonly ApplicationDbContext database;
 
-        public NotificationsHub(JwtTokens csrfVerifier, ApplicationDbContext database)
+        public NotificationsHub(ITokenVerifier csrfVerifier, ApplicationDbContext database)
         {
             this.csrfVerifier = csrfVerifier;
             this.database = database;

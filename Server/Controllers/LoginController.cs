@@ -38,13 +38,13 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly ILogger<LoginController> logger;
         private readonly ApplicationDbContext database;
         private readonly IConfiguration configuration;
-        private readonly JwtTokens csrfVerifier;
+        private readonly ITokenVerifier csrfVerifier;
         private readonly RedirectVerifier redirectVerifier;
 
         private readonly bool localLoginEnabled;
 
         public LoginController(ILogger<LoginController> logger, ApplicationDbContext database,
-            IConfiguration configuration, JwtTokens csrfVerifier,
+            IConfiguration configuration, ITokenVerifier csrfVerifier,
             RedirectVerifier redirectVerifier)
         {
             this.logger = logger;

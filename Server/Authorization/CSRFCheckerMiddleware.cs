@@ -9,9 +9,9 @@ namespace ThriveDevCenter.Server.Authorization
 
     public class CSRFCheckerMiddleware : IMiddleware
     {
-        private readonly JwtTokens csrfVerifier;
+        private readonly ITokenVerifier csrfVerifier;
 
-        public CSRFCheckerMiddleware(JwtTokens csrfVerifier)
+        public CSRFCheckerMiddleware(ITokenVerifier csrfVerifier)
         {
             this.csrfVerifier = csrfVerifier;
         }

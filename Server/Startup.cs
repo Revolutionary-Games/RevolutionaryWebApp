@@ -66,8 +66,9 @@ namespace ThriveDevCenter.Server
                 options.Filters.Add(new HttpResponseExceptionFilter());
             });
 
-            services.AddSingleton<RegistrationStatus>();
-            services.AddSingleton<JwtTokens>();
+            services.AddSingleton<IRegistrationStatus, RegistrationStatus>();
+            services.AddSingleton<ITokenGenerator, TokenGenerator>();
+            services.AddSingleton<ITokenVerifier, TokenVerifier>();
             services.AddSingleton<RedirectVerifier>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
@@ -148,7 +149,7 @@ namespace ThriveDevCenter.Server
             });
 
             // Early load the registration status
-            app.ApplicationServices.GetRequiredService<RegistrationStatus>();
+            app.ApplicationServices.GetRequiredService<IRegistrationStatus>();
 
             // Early load the redirect verification to check that BaseUrl is set
             app.ApplicationServices.GetRequiredService<RedirectVerifier>();

@@ -11,53 +11,52 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.IdentityModel.Tokens;
     using Models;
 
-    public class JwtTokens
+    public abstract class JwtBase
     {
-        private readonly ILogger<JwtTokens> logger;
-        private const string Issuer = "ThriveDevCenter";
+        protected const string Issuer = "ThriveDevCenter";
+        protected readonly byte[] CSRFSecret;
 
-        private readonly int csrfExpiry;
-        private readonly TokenValidationParameters validationParameters;
-        private readonly SigningCredentials signingCredentials;
-
-        public JwtTokens(IConfiguration configuration, ILogger<JwtTokens> logger)
+        protected JwtBase(IConfiguration configuration)
         {
-            this.logger = logger;
             string secret = configuration.GetValue<string>("CSRF:Secret");
 
             if (string.IsNullOrEmpty(secret))
                 throw new ArgumentException("no CSRF token secret defined");
 
-            var csrfSecret = Encoding.UTF8.GetBytes(secret);
+            CSRFSecret = Encoding.UTF8.GetBytes(secret);
+        }
 
+        protected string UserIdFromPotentiallyNull(User user)
+        {
+            if (user == null)
+                return "null";
+
+            return user.Id.ToString();
+        }
+    }
+
+    public interface ITokenVerifier
+    {
+        bool IsValidCSRFToken(string tokenString, User requiredUser, bool verifyUser = true);
+    }
+
+    public interface ITokenGenerator
+    {
+        string GenerateCSRFToken(User user);
+        DateTime GetCSRFTokenExpiry();
+    }
+
+    public class TokenGenerator : JwtBase, ITokenGenerator
+    {
+        private readonly int csrfExpiry;
+        private readonly SigningCredentials signingCredentials;
+
+        public TokenGenerator(IConfiguration configuration) : base(configuration)
+        {
             csrfExpiry = configuration.GetValue<int>("CSRF:Expiry");
 
-            // Setup the signing and verifying
-            signingCredentials = new SigningCredentials(new SymmetricSecurityKey(csrfSecret),
+            signingCredentials = new SigningCredentials(new SymmetricSecurityKey(CSRFSecret),
                 SecurityAlgorithms.HmacSha256Signature);
-
-            validationParameters = new TokenValidationParameters()
-            {
-                // The default seems to allow a bit expired tokens, so a more strict check is used
-                LifetimeValidator = (notBefore, expires, securityToken, parameters) =>
-                {
-                    var now = DateTime.UtcNow;
-
-                    if (notBefore > now)
-                        return false;
-
-                    // Expires is required
-                    if (expires == null || expires < now)
-                        return false;
-
-                    return true;
-                },
-                ValidateIssuer = true,
-                ValidateAudience = false,
-                ValidIssuer = Issuer,
-                IssuerSigningKey = new SymmetricSecurityKey(csrfSecret),
-                ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256Signature }
-            };
         }
 
         public string GenerateCSRFToken(User user)
@@ -78,6 +77,41 @@ namespace ThriveDevCenter.Server.Services
         public DateTime GetCSRFTokenExpiry()
         {
             return DateTime.UtcNow + TimeSpan.FromSeconds(csrfExpiry);
+        }
+    }
+
+    public class TokenVerifier : JwtBase, ITokenVerifier
+    {
+        private readonly ILogger<TokenVerifier> logger;
+
+        private readonly TokenValidationParameters validationParameters;
+
+        public TokenVerifier(IConfiguration configuration, ILogger<TokenVerifier> logger) : base(configuration)
+        {
+            this.logger = logger;
+
+            validationParameters = new TokenValidationParameters()
+            {
+                // The default seems to allow a bit expired tokens, so a more strict check is used
+                LifetimeValidator = (notBefore, expires, securityToken, parameters) =>
+                {
+                    var now = DateTime.UtcNow;
+
+                    if (notBefore > now)
+                        return false;
+
+                    // Expires is required
+                    if (expires == null || expires < now)
+                        return false;
+
+                    return true;
+                },
+                ValidateIssuer = true,
+                ValidateAudience = false,
+                ValidIssuer = Issuer,
+                IssuerSigningKey = new SymmetricSecurityKey(CSRFSecret),
+                ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256Signature }
+            };
         }
 
         public bool IsValidCSRFToken(string tokenString, User requiredUser, bool verifyUser = true)
@@ -109,14 +143,6 @@ namespace ThriveDevCenter.Server.Services
             }
 
             return true;
-        }
-
-        private string UserIdFromPotentiallyNull(User user)
-        {
-            if (user == null)
-                return "null";
-
-            return user.Id.ToString();
         }
     }
 }
