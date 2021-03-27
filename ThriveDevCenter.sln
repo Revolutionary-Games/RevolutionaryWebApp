@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThriveDevCenter.Shared.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThriveDevCenter.Server.Tests", "Server.Tests\ThriveDevCenter.Server.Tests.csproj", "{6A576157-A970-4D63-A5F5-7E925F9A51A3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThriveDevCenter.Client.Tests", "Client.Tests\ThriveDevCenter.Client.Tests.csproj", "{AE0EA146-EFB2-4A45-8665-9C276EA58B73}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,18 @@ Global
 		{6A576157-A970-4D63-A5F5-7E925F9A51A3}.Release|x64.Build.0 = Release|Any CPU
 		{6A576157-A970-4D63-A5F5-7E925F9A51A3}.Release|x86.ActiveCfg = Release|Any CPU
 		{6A576157-A970-4D63-A5F5-7E925F9A51A3}.Release|x86.Build.0 = Release|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Debug|x64.Build.0 = Debug|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Debug|x86.Build.0 = Debug|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Release|x64.ActiveCfg = Release|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Release|x64.Build.0 = Release|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Release|x86.ActiveCfg = Release|Any CPU
+		{AE0EA146-EFB2-4A45-8665-9C276EA58B73}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

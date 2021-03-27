@@ -25,13 +25,13 @@ namespace ThriveDevCenter.Client
 
             builder.Services.AddSingleton(sp => new CurrentUserInfo());
 
-            builder.Services.AddSingleton(sp =>
+            builder.Services.AddSingleton<ICSRFTokenReader>(sp =>
                 new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>(), sp.GetRequiredService<CurrentUserInfo>()));
 
             builder.Services.AddScoped(sp => new HttpClient
             {
                 BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
-                DefaultRequestHeaders = { { "X-CSRF-Token", sp.GetRequiredService<CSRFTokenReader>().Token } }
+                DefaultRequestHeaders = { { "X-CSRF-Token", sp.GetRequiredService<ICSRFTokenReader>().Token } }
             }).AddTransient<HttpCookieHandler>();
 
             builder.Services.AddBlazoredLocalStorage();
@@ -43,13 +43,16 @@ namespace ThriveDevCenter.Client
 
             builder.Services.AddSingleton(sp =>
                 new NotificationHandler(sp.GetRequiredService<NavigationManager>(),
-                    sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<CSRFTokenReader>()));
+                    sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<ICSRFTokenReader>()));
 
             var app = builder.Build();
 
             // CSRF token is already needed here
-            var tokenReader = app.Services.GetRequiredService<CSRFTokenReader>();
-            await tokenReader.Read();
+            var tokenReader = app.Services.GetRequiredService<ICSRFTokenReader>();
+
+            // This is probably a bit unkosher, but this is the only place where we need to trigger these methods
+            var concreteReader = (CSRFTokenReader)tokenReader;
+            await concreteReader.Read();
 
             // Setup hub connection as soon as we are able
             // If this is awaited (especially in production) it slows down the app startup time, so that isn't done.
@@ -60,7 +63,7 @@ namespace ThriveDevCenter.Client
 
             // This isn't really needed to happen instantly, so maybe this could not be waited for here if this
             // increases the app load time at all
-            await tokenReader.ReportInitialUserIdToLocalStorage(app.Services
+            await concreteReader.ReportInitialUserIdToLocalStorage(app.Services
                 .GetRequiredService<ILocalStorageService>());
 
             await app.RunAsync();

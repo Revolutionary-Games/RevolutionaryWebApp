@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Client.Services
     /// <summary>
     ///   Reads the CSRF token on the current page and makes it available
     /// </summary>
-    public class CSRFTokenReader
+    public class CSRFTokenReader : ICSRFTokenReader
     {
         private readonly IJSRuntime jsRuntime;
         private readonly CurrentUserInfo currentUserInfo;
@@ -68,5 +68,13 @@ namespace ThriveDevCenter.Client.Services
                     $"Cannot set item in local storage, detecting login actions from other windows won't work: {e}");
             }
         }
+    }
+
+    public interface ICSRFTokenReader
+    {
+        bool Valid { get; }
+        int TimeRemaining { get; }
+        string Token { get; }
+        long? InitialUserId { get; }
     }
 }

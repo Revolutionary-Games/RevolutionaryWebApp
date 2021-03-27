@@ -21,7 +21,7 @@ namespace ThriveDevCenter.Client.Services
 
         private readonly NavigationManager navManager;
         private readonly CurrentUserInfo userInfoReceiver;
-        private readonly CSRFTokenReader csrfTokenReader;
+        private readonly ICSRFTokenReader csrfTokenReader;
         private readonly Dictionary<Type, List<(IGroupListener, Func<SerializedNotification, Task>)>> handlers = new();
 
         private readonly NotificationJsonConverter converter = new NotificationJsonConverter();
@@ -34,7 +34,7 @@ namespace ThriveDevCenter.Client.Services
         private bool userInfoRegistered;
 
         public NotificationHandler(NavigationManager navManager, CurrentUserInfo userInfoReceiver,
-            CSRFTokenReader csrfTokenReader)
+            ICSRFTokenReader csrfTokenReader)
         {
             this.navManager = navManager;
             this.userInfoReceiver = userInfoReceiver;

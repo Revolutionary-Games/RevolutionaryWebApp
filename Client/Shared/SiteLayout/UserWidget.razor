@@ -2,7 +2,7 @@
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
 @implements IDisposable
-@inject CSRFTokenReader CSRF
+@inject ICSRFTokenReader CSRF
 
 <span class="auth">
     @if (!UserInfo.InfoReady)
