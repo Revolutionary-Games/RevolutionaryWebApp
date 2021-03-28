@@ -113,7 +113,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
 
             var csrfMock = new Mock<ITokenVerifier>();
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user, true))
-                .Returns(true);
+                .Returns(true).Verifiable();
 
             using var server = new TestServer(new WebHostBuilder()
                 .ConfigureServices(services =>
@@ -142,7 +142,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             var response = await requestBuilder.GetAsync();
 
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-            csrfMock.Verify(csrf => csrf.IsValidCSRFToken(csrfValue, user, true));
+            csrfMock.Verify();
         }
 
         [Fact]
@@ -154,7 +154,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
 
             var csrfMock = new Mock<ITokenVerifier>();
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user, true))
-                .Returns(true);
+                .Returns(true).Verifiable();
 
             using var server = new TestServer(new WebHostBuilder()
                 .ConfigureServices(services =>
@@ -183,7 +183,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             var response = await requestBuilder.GetAsync();
 
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-            csrfMock.Verify(csrf => csrf.IsValidCSRFToken(csrfValue, user, true));
+            csrfMock.Verify();
         }
     }
 }

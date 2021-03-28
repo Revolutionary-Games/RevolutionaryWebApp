@@ -71,7 +71,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         {
             var csrfMock = new Mock<ITokenVerifier>();
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, null, false))
-                .Returns(false);
+                .Returns(false).Verifiable();
 
             var notificationsMock = new Mock<IHubContext<NotificationsHub, INotifications>>();
 
@@ -91,7 +91,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             Assert.Equal(400, objectResult.StatusCode);
             Assert.Empty(database.Users);
 
-            csrfMock.Verify(csrf => csrf.IsValidCSRFToken(csrfValue, null, false));
+            csrfMock.Verify();
         }
 
         [Fact]
@@ -99,7 +99,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         {
             var csrfMock = new Mock<ITokenVerifier>();
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(It.IsNotNull<string>(), null, false))
-                .Returns(true);
+                .Returns(true).Verifiable();
 
             var notificationsMock = new Mock<IHubContext<NotificationsHub, INotifications>>();
 
@@ -118,6 +118,8 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.Equal(400, objectResult.StatusCode);
             Assert.Empty(database.Users);
+
+            csrfMock.Verify();
         }
 
         [Fact]
@@ -127,7 +129,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             var csrfMock = new Mock<ITokenVerifier>();
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, null, false))
-                .Returns(true);
+                .Returns(true).Verifiable();
             var notificationsMock = new Mock<IHubContext<NotificationsHub, INotifications>>();
             var mockClients = new Mock<IHubClients<INotifications>>();
             var groupsMock = new Mock<INotifications>();
@@ -159,7 +161,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             Assert.NotEqual("password12345", user.PasswordHash);
             Assert.True(Passwords.CheckPassword(user.PasswordHash, "password12345"));
 
-            groupsMock.Verify(group => group.ReceiveNotificationJSON(It.IsNotNull<string>()));
+            groupsMock.Verify();
         }
     }
 }
