@@ -75,6 +75,11 @@ namespace ThriveDevCenter.Server
             services.AddScoped<LFSAuthenticationMiddleware>();
             services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
             services.AddScoped<CookieOnlyBasicAuthenticationMiddleware>();
+            services.AddAuthentication(options =>
+            {
+                options.DefaultForbidScheme = "forbidScheme";
+                options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
