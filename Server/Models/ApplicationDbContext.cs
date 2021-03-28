@@ -40,6 +40,7 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.HasAnnotation("Relational:Collation", "en_GB.UTF-8");
             modelBuilder.UseIdentityColumns();
+            modelBuilder.UseDatabaseTemplate("template0");
 
             // Need to manually specify defaults as the auto generation doesn't seem to work with postgresql in EF
             // And also set more sensible on delete behaviours

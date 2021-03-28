@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
 
         protected sealed override void Seed()
         {
-            var user1 = new User()
+            var user1 = new User
             {
                 Id = 1,
                 Email = "test@example.com",
@@ -40,13 +40,13 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
 
             Database.Users.Add(user1);
 
-            Database.Sessions.Add(new Session()
+            Database.Sessions.Add(new Session
             {
                 Id = SessionId1,
                 User = user1
             });
 
-            var user2 = new User()
+            var user2 = new User
             {
                 Id = 2,
                 Email = "test2@example.com",
@@ -57,13 +57,13 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
 
             Database.Users.Add(user2);
 
-            Database.Sessions.Add(new Session()
+            Database.Sessions.Add(new Session
             {
                 Id = SessionId2,
                 User = user2
             });
 
-            var user3 = new User()
+            var user3 = new User
             {
                 Id = 3,
                 Email = "test3@example.com",
@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
 
             Database.Users.Add(user3);
 
-            Database.Sessions.Add(new Session()
+            Database.Sessions.Add(new Session
             {
                 Id = SessionId3,
                 User = user3

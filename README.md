@@ -4,6 +4,15 @@ IN PROGRESS ATTEMPT IN REWRITING IN BLAZOR AND ASP.NET CORE
 
 ## Database setup
 
+ThriveDevCenter requires a PostgreSQL database to operate.
+
+You can create a new account with `psql`:
+
+And a database for the account:
+```sql
+CREATE USER thrivedevcenter WITH LOGIN PASSWORD 'PUTAPASSWORDHERE';
+```
+
 
 
 ### Getting an admin account
@@ -15,6 +24,31 @@ INSERT INTO redeemable_codes (id, granted_resource) VALUES ('UUID_GOES_HERE', 'G
 ```
 
 Then you can redeem the code on your user profile after logging in to become an admin.
+
+
+## Testing
+
+To test the project (run the xunit tests), you need to have some extra
+services setup for integration tests to work.
+
+### Test database
+
+Testing requires separate databases. See the database setup part for
+how to setup new accounts. In addition to the other permissions the
+account needs to be able to create databases:
+
+```sql
+ALTER USER thrivedevcenter_test CREATEDB;
+```
+
+Note that while you can use a single user for testing, the unittest
+and test databases need to be separate.
+
+Now set the secrets by running in the Server.Tests folder:
+```sh
+dotnet user-secrets set UnitTestConnection 'User ID=thrivedevcenter_test;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter_unittest;Integrated Security=true;Pooling=true;'
+dotnet user-secrets set IntegrationTestConnection 'User ID=thrivedevcenter_test;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter_test;Integrated Security=true;Pooling=true;'
+```
 
 
 --
