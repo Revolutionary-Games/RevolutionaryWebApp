@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         private readonly XunitLogger<RegistrationController> logger;
 
         private readonly DbContextOptions<ApplicationDbContext> dbOptions =
-            new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase("TestDatabase").Options;
+            new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase("RegistrationTestDB").Options;
 
         private readonly DummyRegistrationStatus dummyRegistrationStatus = new DummyRegistrationStatus()
         {
