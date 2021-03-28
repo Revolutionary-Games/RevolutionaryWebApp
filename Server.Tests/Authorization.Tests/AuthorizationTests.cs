@@ -11,9 +11,9 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Net.Http.Headers;
-    using Models;
     using Moq;
     using Server.Authorization;
+    using Server.Models;
     using Server.Services;
     using Shared;
     using Shared.Models;

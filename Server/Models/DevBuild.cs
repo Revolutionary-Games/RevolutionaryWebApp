@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
+    using ModelVerifiers;
 
     [Index(new[] { nameof(BuildHash), nameof(Platform) }, IsUnique = true)]
     [Index(nameof(Anonymous))]
@@ -24,6 +25,7 @@ namespace ThriveDevCenter.Server.Models
         [Required]
         public string BuildZipHash { get; set; }
 
+        [NotNullOrEmptyIf(BooleanPropertyIsTrue = nameof(BuildOfTheDay))]
         public string Description { get; set; }
 
         public int Score { get; set; } = 0;

@@ -1,7 +1,7 @@
 namespace ThriveDevCenter.Server.Tests.Fixtures
 {
     using System;
-    using Models;
+    using Server.Models;
 
     public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
     {

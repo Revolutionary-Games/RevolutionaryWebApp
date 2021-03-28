@@ -1,12 +1,11 @@
 namespace ThriveDevCenter.Server.Tests.Jobs.Tests
 {
     using System;
-    using System.Linq;
     using System.Threading.Tasks;
     using Fixtures;
     using Microsoft.EntityFrameworkCore;
-    using Models;
     using Server.Jobs;
+    using Server.Models;
     using Utilities;
     using Xunit;
     using Xunit.Abstractions;

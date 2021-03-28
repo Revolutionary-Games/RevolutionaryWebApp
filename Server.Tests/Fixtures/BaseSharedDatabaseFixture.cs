@@ -2,7 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
 {
     using System;
     using Microsoft.EntityFrameworkCore;
-    using Models;
+    using Server.Models;
 
     public abstract class BaseSharedDatabaseFixture : IDisposable
     {

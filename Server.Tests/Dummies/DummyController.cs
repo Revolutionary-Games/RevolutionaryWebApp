@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ThriveDevCenter.Server.Tests.Dummies
 {
     using System;
-    using Models;
     using Server.Authorization;
+    using Server.Models;
     using Shared;
     using Shared.Models;
 
