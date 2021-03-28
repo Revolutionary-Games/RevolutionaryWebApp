@@ -117,6 +117,7 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok($"You have been granted: {granted}");
         }
 
+        [NonAction]
         private IActionResult GetAlreadyGotResult()
         {
             return Conflict("You already have the resource you were trying to redeem");

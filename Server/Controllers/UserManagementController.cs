@@ -57,6 +57,7 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.ConvertResult(i => i.GetInfo(RecordAccessLevel.Admin));
         }
 
+        [NonAction]
         private async Task InvalidateUserSessions(string userId)
         {
             await notifications.Clients.User(userId).ReceiveSessionInvalidation();
