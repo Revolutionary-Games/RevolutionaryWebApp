@@ -3,7 +3,27 @@
   <component name="NewModuleRootManager">
     <content url="file://$USER_HOME$/.nuget/packages/microsoft.net.test.sdk/16.9.1/build/netcoreapp2.1" />
     <content url="file://$USER_HOME$/.nuget/packages/microsoft.testplatform.testhost/16.9.1/build/netcoreapp2.1/Microsoft.TestPlatform.PlatformAbstractions.dll" />
-    <content url="file://$MODULE_DIR$/../.." />
+    <content url="file://$MODULE_DIR$/../..">
+      <excludeFolder url="file://$MODULE_DIR$/../../.bundle" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/dataSources" />
+      <excludeFolder url="file://$MODULE_DIR$/../dataSources" />
+      <excludeFolder url="file://$MODULE_DIR$/../httpRequests" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Client.Tests/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Client.Tests/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Client/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Client/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Server.Tests/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Server.Tests/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Server/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Server/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Shared.Tests/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Shared.Tests/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Shared/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Shared/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../SymbolData" />
+      <excludeFolder url="file://$MODULE_DIR$/../../tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/../../vendor" />
+    </content>
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
