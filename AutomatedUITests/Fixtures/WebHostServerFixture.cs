@@ -8,6 +8,7 @@ namespace AutomatedUITests.Fixtures
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.AspNetCore.Hosting.Server.Features;
+    using Microsoft.AspNetCore.TestHost;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -99,11 +100,10 @@ namespace AutomatedUITests.Fixtures
 
             return new HostBuilder()
                 .ConfigureWebHost(webHostBuilder => webHostBuilder
-                    .UseEnvironment("Testing")
+                    .UseEnvironment("Development")
                     .UseConfiguration(configuration)
                     .UseKestrel()
-
-                    // .UseSolutionRelativeContentRoot(typeof(TStartup).Assembly.GetName().Name)
+                    .UseSolutionRelativeContentRoot("Client/wwwroot")
                     .UseStaticWebAssets()
                     .UseStartup<TStartup>()
 

@@ -6,9 +6,18 @@ namespace AutomatedUITests.Fixtures
 
     public class WebDriverFixture : IDisposable
     {
+        private static readonly bool Headless = false;
+
         public WebDriverFixture()
         {
-            Driver = new ChromeDriver();
+            var options = new ChromeOptions();
+
+            if (Headless)
+            {
+                options.AddArgument("--headless");
+            }
+
+            Driver = new ChromeDriver(options);
         }
 
         public IWebDriver Driver { get; }
