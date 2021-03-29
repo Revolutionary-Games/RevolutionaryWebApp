@@ -25,6 +25,15 @@
         "environmentVariables": {
           "ASPNETCORE_ENVIRONMENT": "Development"
         }
+      },
+      "ThriveDevCenter.Server.Testing": {
+        "commandName": "Project",
+        "dotnetRunMessages": "true",
+        "applicationUrl": "http://localhost:5001",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Testing",
+          "RECREATE_DB_IN_TESTING": "true"
+        }
       }
     }
   }

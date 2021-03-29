@@ -92,7 +92,7 @@ namespace ThriveDevCenter.Server
 
             app.UseResponseCompression();
 
-            if (env.IsDevelopment())
+            if (env.IsDevelopment() || env.IsTesting())
             {
                 app.UseDeveloperExceptionPage();
                 app.UseWebAssemblyDebugging();
@@ -104,10 +104,27 @@ namespace ThriveDevCenter.Server
                 // app.UseHsts();
             }
 
+            if (env.IsTesting())
+            {
+                var deleteDb = Convert.ToBoolean(Environment.GetEnvironmentVariable("RECREATE_DB_IN_TESTING") ?? "false");
+
+                if (deleteDb)
+                {
+                    var logger = app.ApplicationServices.GetRequiredService<ILogger<Startup>>();
+                    logger.LogInformation("Recreating DB because in Testing environment with that enabled");
+
+                    var db = app.ApplicationServices.GetRequiredService<ApplicationDbContext>();
+                    db.Database.EnsureDeleted();
+                    db.Database.EnsureCreated();
+
+                    // TODO: seed some special data
+                }
+            }
+
             app.UseBlazorFrameworkFiles();
 
             // Files are only served in development, in production reverse proxy needs to serve them
-            if (env.IsDevelopment())
+            if (env.IsDevelopment() || env.IsTesting())
                 app.UseStaticFiles();
 
             app.UseWhen(

@@ -5,7 +5,7 @@ namespace AutomatedUITests.Fixtures
     using Microsoft.Extensions.Configuration;
     using ThriveDevCenter.Server.Models;
 
-    public class RealIntegrationTestDatabaseFixture
+    public sealed class RealIntegrationTestDatabaseFixture
     {
         private static readonly object Lock = new object();
         private static bool databaseInitialized;
@@ -50,16 +50,7 @@ namespace AutomatedUITests.Fixtures
 
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                Database.Dispose();
-            }
+            Database.Dispose();
         }
 
         private void Seed()

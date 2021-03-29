@@ -9,7 +9,6 @@ namespace AutomatedUITests.Fixtures
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.AspNetCore.Hosting.Server.Features;
-    using Microsoft.AspNetCore.TestHost;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -18,7 +17,9 @@ namespace AutomatedUITests.Fixtures
     /// <summary>
     ///   Runs the application in Testing environment for use in unit tests.
     ///   From: https://www.meziantou.net/automated-ui-tests-an-asp-net-core-application-with-playwright-and-xunit.htm
-    ///   with modifications
+    ///   with modifications.
+    ///   NOTE: that this doesn't currently work. See:
+    ///   https://github.com/dotnet/aspnetcore/issues/4892#issuecomment-809476424
     /// </summary>
     public abstract class WebHostServerFixture : IDisposable
     {
