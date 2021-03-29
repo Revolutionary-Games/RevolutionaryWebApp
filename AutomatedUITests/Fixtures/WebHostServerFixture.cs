@@ -102,6 +102,19 @@ namespace AutomatedUITests.Fixtures
 
             var solutionFolder = SolutionRootFolderFinder.FindSolutionRootFolder();
 
+            return Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder
+                        .UseEnvironment("Development")
+                        .UseConfiguration(configuration)
+                        .UseContentRoot(Path.GetFullPath(Path.Join(solutionFolder, "Client/wwwroot")))
+                        .UseWebRoot(Path.GetFullPath(Path.Join(solutionFolder, "Client/wwwroot")))
+                        .UseStaticWebAssets()
+                        .UseStartup<TStartup>()
+                        .UseUrls("http://127.0.0.1:0");
+                }).Build();
+
             return new HostBuilder()
                 .ConfigureWebHost(webHostBuilder => webHostBuilder
                     .UseEnvironment("Development")
