@@ -26,7 +26,18 @@ namespace ThriveDevCenter.Server
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            var extra = Environment.GetEnvironmentVariable("HACK_LOAD_EXTRA_ENVIRONMENT");
+
+            if (extra != null)
+            {
+                var builder = new ConfigurationBuilder().AddConfiguration(configuration).AddJsonFile(extra);
+
+                Configuration = builder.Build();
+            }
+            else
+            {
+                Configuration = configuration;
+            }
         }
 
         public IConfiguration Configuration { get; }
@@ -85,6 +96,30 @@ namespace ThriveDevCenter.Server
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            if (env.IsDevelopment() && !string.IsNullOrEmpty(Configuration["IsActuallyTesting"]))
+            {
+                var isTesting = Convert.ToBoolean(Configuration["IsActuallyTesting"]);
+
+                var deleteDb =
+                    Convert.ToBoolean(Environment.GetEnvironmentVariable("RECREATE_DB_IN_TESTING") ?? "false");
+
+                if (isTesting && deleteDb)
+                {
+                    var logger = app.ApplicationServices.GetRequiredService<ILogger<Startup>>();
+                    logger.LogInformation("Recreating DB because in Testing environment with that enabled");
+
+                    var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                        .UseNpgsql(Configuration.GetConnectionString("WebApiConnection"))
+                        .Options;
+
+                    var db = new ApplicationDbContext(options);
+                    db.Database.EnsureDeleted();
+                    db.Database.EnsureCreated();
+
+                    // TODO: seed some special data
+                }
+            }
+
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -92,7 +127,7 @@ namespace ThriveDevCenter.Server
 
             app.UseResponseCompression();
 
-            if (env.IsDevelopment() || env.IsTesting())
+            if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
                 app.UseWebAssemblyDebugging();
@@ -104,27 +139,10 @@ namespace ThriveDevCenter.Server
                 // app.UseHsts();
             }
 
-            if (env.IsTesting())
-            {
-                var deleteDb = Convert.ToBoolean(Environment.GetEnvironmentVariable("RECREATE_DB_IN_TESTING") ?? "false");
-
-                if (deleteDb)
-                {
-                    var logger = app.ApplicationServices.GetRequiredService<ILogger<Startup>>();
-                    logger.LogInformation("Recreating DB because in Testing environment with that enabled");
-
-                    var db = app.ApplicationServices.GetRequiredService<ApplicationDbContext>();
-                    db.Database.EnsureDeleted();
-                    db.Database.EnsureCreated();
-
-                    // TODO: seed some special data
-                }
-            }
-
             app.UseBlazorFrameworkFiles();
 
             // Files are only served in development, in production reverse proxy needs to serve them
-            if (env.IsDevelopment() || env.IsTesting())
+            if (env.IsDevelopment())
                 app.UseStaticFiles();
 
             app.UseWhen(

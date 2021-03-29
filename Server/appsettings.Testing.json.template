@@ -4,6 +4,7 @@
     "Enabled": true,
     "RegistrationCode": "test_code_1234"
   },
+  "IsActuallyTesting": true,
   "CSRF": {
     "Secret": "testing_csrf_secret_value_is_this",
     "Expiry": 1000
