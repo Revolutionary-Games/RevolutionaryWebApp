@@ -2,6 +2,7 @@ namespace AutomatedUITests.Fixtures
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Runtime.ExceptionServices;
     using System.Threading;
@@ -12,6 +13,7 @@ namespace AutomatedUITests.Fixtures
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Utilities;
 
     /// <summary>
     ///   Runs the application in Testing environment for use in unit tests.
@@ -98,12 +100,15 @@ namespace AutomatedUITests.Fixtures
                 })
                 .Build();
 
+            var solutionFolder = SolutionRootFolderFinder.FindSolutionRootFolder();
+
             return new HostBuilder()
                 .ConfigureWebHost(webHostBuilder => webHostBuilder
                     .UseEnvironment("Development")
                     .UseConfiguration(configuration)
                     .UseKestrel()
-                    .UseSolutionRelativeContentRoot("Client/wwwroot")
+                    .UseContentRoot(Path.GetFullPath(Path.Join(solutionFolder, "Client/wwwroot")))
+                    .UseWebRoot(Path.GetFullPath(Path.Join(solutionFolder, "Client/wwwroot")))
                     .UseStaticWebAssets()
                     .UseStartup<TStartup>()
 
