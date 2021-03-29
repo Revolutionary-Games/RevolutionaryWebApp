@@ -9,22 +9,22 @@
 <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
     <ul class="nav flex-column">
         <li class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+            <NavLink id="leftHomeButton" class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="oi oi-home" aria-hidden="true"></span> Home
             </NavLink>
         </li>
         <li class="nav-item px-3">
-            <NavLink class="nav-link" href="builds">
+            <NavLink id="leftDevBuildButton" class="nav-link" href="builds">
                 <span class="oi oi-cloud-download" aria-hidden="true"></span> DevBuilds
             </NavLink>
         </li>
         <li class="nav-item px-3">
-            <NavLink class="nav-link" href="files">
+            <NavLink id="leftFilesButton" class="nav-link" href="files">
                 <span class="oi oi-file" aria-hidden="true"></span> Files
             </NavLink>
         </li>
         <li class="nav-item px-3">
-            <NavLink class="nav-link" href="lfs">
+            <NavLink id="leftLFSButton" class="nav-link" href="lfs">
                 <span class="oi oi-briefcase" aria-hidden="true"></span> Git LFS
             </NavLink>
         </li>
@@ -36,7 +36,7 @@
         <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="false">
             <hr/>
             <li class="nav-item px-3">
-                <NavLink class="nav-link" href="users">
+                <NavLink id="leftUsersButton" class="nav-link" href="users">
                     <span class="oi oi-spreadsheet" aria-hidden="true"></span> Users
                 </NavLink>
             </li>

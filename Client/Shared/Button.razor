@@ -1,4 +1,4 @@
-<button class="btn btn-@ButtonStyle @(@class)" aria-disabled="@Disabled" disabled="@Disabled"
+<button id="@id" class="btn btn-@ButtonStyle @(@class)" aria-disabled="@Disabled" disabled="@Disabled"
         type="@type" @onclick="PressDetected">
     @ChildContent
 </button>
@@ -22,6 +22,9 @@
 
     [Parameter]
     public string type { get; set; } = "button";
+
+    [Parameter]
+    public string id { get; set; }
 
     // ReSharper restore InconsistentNaming
 

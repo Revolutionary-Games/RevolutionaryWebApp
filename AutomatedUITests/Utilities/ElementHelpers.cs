@@ -21,5 +21,24 @@ namespace AutomatedUITests.Utilities
                 return false;
             }
         }
+
+        public static bool ElementDoesNotExist(IWebDriver driver, string cssSelector)
+        {
+            try
+            {
+                var elementToBeDisplayed = driver.FindElement(By.CssSelector(cssSelector));
+                return !elementToBeDisplayed.Displayed;
+            }
+            catch (StaleElementReferenceException)
+            {
+                return false;
+            }
+            catch (NoSuchElementException)
+            {
+                return true;
+            }
+        }
+
+
     }
 }
