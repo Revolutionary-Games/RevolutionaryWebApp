@@ -40,18 +40,20 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly IConfiguration configuration;
         private readonly ITokenVerifier csrfVerifier;
         private readonly RedirectVerifier redirectVerifier;
+        private readonly IPatreonAPI patreonAPI;
 
         private readonly bool localLoginEnabled;
 
         public LoginController(ILogger<LoginController> logger, ApplicationDbContext database,
             IConfiguration configuration, ITokenVerifier csrfVerifier,
-            RedirectVerifier redirectVerifier)
+            RedirectVerifier redirectVerifier, IPatreonAPI patreonAPI)
         {
             this.logger = logger;
             this.database = database;
             this.configuration = configuration;
             this.csrfVerifier = csrfVerifier;
             this.redirectVerifier = redirectVerifier;
+            this.patreonAPI = patreonAPI;
 
             localLoginEnabled = Convert.ToBoolean(configuration["Login:Local:Enabled"]);
         }
@@ -159,6 +161,8 @@ namespace ThriveDevCenter.Server.Controllers
                         configuration["Login:Patreon:BaseUrl"],
                         new Dictionary<string, string>()
                         {
+                            { "response_type", "code" },
+                            { "client_id", configuration["Login:Patreon:ClientId"] },
                             { "redirect_uri", returnUrl },
                             { "scope", scopes },
                             { "state", session.SsoNonce }
@@ -188,7 +192,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("return/" + SsoTypePatreon)]
-        public async Task<IActionResult> SsoReturnPatreon([Required] string state, [Required] string code, string error)
+        public async Task<IActionResult> SsoReturnPatreon([Required] string state, string code, string error)
         {
             if (!PatreonConfigured)
                 return CreateResponseForDisabledOption();
@@ -498,7 +502,7 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private async Task<IActionResult> HandlePatreonSsoReturn(string state, string code)
         {
-            if (string.IsNullOrEmpty(code))
+            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
                 return GetInvalidSsoParametersResult();
 
             var (session, result) = await FetchAndCheckSessionForSsoReturn(state, SsoTypePatreon);
@@ -507,16 +511,66 @@ namespace ThriveDevCenter.Server.Controllers
             if (result != null)
                 return result;
 
-            return Redirect(QueryHelpers.AddQueryString("/login", "error",
-                "Not implemented yet."));
-
             bool requireSave = true;
 
             try
             {
-                // var tuple = await HandleSsoLoginToAccount(session, email, username, ssoType, developer);
-                // requireSave = !tuple.saved;
-                // return tuple.result;
+                patreonAPI.Initialize(configuration["Login:Patreon:ClientId"],
+                    configuration["Login:Patreon:ClientSecret"]);
+
+                // We need to fetch the actual user email and details directly from Patreon's API
+                var token = await patreonAPI.TurnCodeIntoTokens(code,
+                    new Uri(configuration.GetBaseUrl(), $"/LoginController/return/{SsoTypePatreon}")
+                        .ToString());
+
+                patreonAPI.LoginAsUser(token);
+
+                var userDetails = await patreonAPI.GetOwnDetails();
+
+                var email = userDetails.Data.Attributes["email"];
+
+                var patron = await database.Patrons.Where(p => p.Email == email).FirstOrDefaultAsync();
+
+                if (patron == null)
+                {
+                    return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                        "You aren't a patron of Thrive Game according to our latest information. Please become our patron and try again."));
+                }
+
+                if (patron.Suspended == true)
+                {
+                    return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                        $"Your Patron status is currently suspended. Reason: {patron.SuspendedReason}"));
+                }
+
+                var patreonSettings = await database.PatreonSettings.FirstOrDefaultAsync();
+
+                if (patreonSettings == null)
+                {
+                    return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                        "Patreon settings are currently unconfigured, please contact a site admin."));
+                }
+
+                if (!patreonSettings.IsEntitledToDevBuilds(patron))
+                {
+                    return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                        "Your current reward is not the DevBuilds or higher tier"));
+                }
+
+                logger.LogInformation("Patron ({Email}) logging in", email);
+
+                // TODO: alias handling
+                // email = patron.EmailAlias ?? patron.Email;
+
+                var tuple = await HandleSsoLoginToAccount(session, email, patron.Username, SsoTypePatreon, false);
+                requireSave = !tuple.saved;
+                return tuple.result;
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning("Exception when processing Patreon return: {@E}", e);
+                return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "Failed to retrieve account details from Patreon."));
             }
             finally
             {

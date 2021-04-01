@@ -29,5 +29,21 @@ namespace ThriveDevCenter.Server.Models
         public string CampaignId { get; set; }
         public string DevbuildsRewardId { get; set; }
         public string VipRewardId { get; set; }
+
+        public bool IsEntitledToDevBuilds(Patron patron)
+        {
+            if (patron == null)
+                return false;
+
+            return patron.RewardId == DevbuildsRewardId || patron.RewardId == VipRewardId;
+        }
+
+        public bool IsEntitledToVIP(Patron patron)
+        {
+            if (patron == null)
+                return false;
+
+            return patron.RewardId == VipRewardId;
+        }
     }
 }

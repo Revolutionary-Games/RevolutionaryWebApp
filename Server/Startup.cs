@@ -82,6 +82,8 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<ITokenVerifier, TokenVerifier>();
             services.AddSingleton<RedirectVerifier>();
 
+            services.AddScoped<IPatreonAPI, PatreonAPI>();
+
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();
             services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
