@@ -356,11 +356,12 @@ namespace ThriveDevCenter.Server.Controllers
             return Convert.ToBase64String(Encoding.UTF8.GetBytes($"nonce={nonce}&return_sso_url={returnUrl}"));
         }
 
-        private async Task<(Session session, IActionResult result)> FetchAndCheckSessionForSsoReturn(string nonce)
+        private async Task<(Session session, IActionResult result)> FetchAndCheckSessionForSsoReturn(string nonce,
+            string ssoType)
         {
             var session = await HttpContext.Request.Cookies.GetSession(database);
 
-            if (session == null || session.StartedSsoLogin != SsoTypeDevForum)
+            if (session == null || session.StartedSsoLogin != ssoType)
             {
                 return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
                     "Your session was invalid. Please try again.")));
@@ -384,7 +385,8 @@ namespace ThriveDevCenter.Server.Controllers
                     "Invalid request nonce. Please try again.")));
             }
 
-            // Clear nonce after checking to disallow duplicate requests (needs to make sure to save)
+            // Clear nonce after checking to disallow duplicate requests (need to make sure to save in code
+            // calling this method)
             session.SsoNonce = null;
             return (session, null);
         }
@@ -442,7 +444,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!payload.TryGetValue("nonce", out StringValues payloadNonce) || payloadNonce.Count != 1)
                 return GetInvalidSsoParametersResult();
 
-            var (session, result) = await FetchAndCheckSessionForSsoReturn(payloadNonce[0]);
+            var (session, result) = await FetchAndCheckSessionForSsoReturn(payloadNonce[0], ssoType);
 
             // Return in case of failure
             if (result != null)
@@ -499,9 +501,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (string.IsNullOrEmpty(code))
                 return GetInvalidSsoParametersResult();
 
-            string secret;
-
-            var (session, result) = await FetchAndCheckSessionForSsoReturn(state);
+            var (session, result) = await FetchAndCheckSessionForSsoReturn(state, SsoTypePatreon);
 
             // Return in case of failure
             if (result != null)
