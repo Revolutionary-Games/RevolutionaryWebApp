@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Authorization
 {
+    using System;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
@@ -130,7 +131,14 @@ namespace ThriveDevCenter.Server.Authorization
                 return AuthMethodResult.Error;
             }
 
-            // TODO: update last ip
+            if (context.Connection.RemoteIpAddress == null)
+            {
+                await context.Response.WriteAsync("Internal server error getting remote address");
+                return AuthMethodResult.Error;
+            }
+
+            link.LastConnection = DateTime.UtcNow;
+            link.LastIp = context.Connection.RemoteIpAddress.ToString();
             link.TotalApiCalls += 1;
 
             // TODO: maybe run this part in a task
