@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server
     using System;
     using System.Linq;
     using System.Threading;
+    using AspNetCoreRateLimit;
     using Authorization;
     using Filters;
     using Hangfire;
@@ -46,6 +47,11 @@ namespace ThriveDevCenter.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddOptions();
+
+            // Used for rate limit storage
+            services.AddMemoryCache();
+
             // TODO: message pack protocol
             services.AddSignalR();
             services.AddControllersWithViews();
@@ -56,6 +62,14 @@ namespace ThriveDevCenter.Server
                 opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
                     new[] { "application/octet-stream" });
             });
+
+            // Rate limit
+            services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
+            services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
+
+            // Make rate-limit services available
+            services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+            services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 
             services.AddDbContext<ApplicationDbContext>(opts =>
                 opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection")));
@@ -93,6 +107,12 @@ namespace ThriveDevCenter.Server
                 options.DefaultForbidScheme = "forbidScheme";
                 options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
             });
+
+            // Required by rate limiting
+            services.AddHttpContextAccessor();
+
+            // Make dynamic rate limit configuration available
+            services.AddSingleton<IRateLimitConfiguration, CustomRateLimitConfiguration>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -128,6 +148,8 @@ namespace ThriveDevCenter.Server
             });
 
             app.UseResponseCompression();
+
+            app.UseIpRateLimiting();
 
             if (env.IsDevelopment())
             {
