@@ -257,7 +257,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var options = new CookieOptions
             {
-                Expires = DateTime.UtcNow.AddSeconds(AppInfo.SessionExpirySeconds),
+                Expires = DateTime.UtcNow.AddSeconds(AppInfo.ClientCookieExpirySeconds),
                 HttpOnly = true,
                 SameSite = SameSiteMode.Lax,
 

@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Shared;
 
     public class SessionCleanupJob : IJob
     {
@@ -22,7 +23,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             logger.LogInformation("Starting database sessions cleanup");
 
-            var deleteCutoff = DateTime.UtcNow - TimeSpan.FromDays(30);
+            var deleteCutoff = DateTime.UtcNow - TimeSpan.FromSeconds(AppInfo.SessionExpirySeconds);
 
             // Increase timeout, as it might take a while to cleanup the sessions,
             // and being a cancellable job background job this won't cause problems
@@ -32,6 +33,8 @@ namespace ThriveDevCenter.Server.Jobs
             var deleted =
                 await database.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM sessions WHERE last_used < {deleteCutoff}", cancellationToken);
+
+            // TODO: add absolute (based on creation time) of session cutoff for ClientCookieExpirySeconds
 
             logger.LogInformation("Session cleanup finished, and deleted: {Deleted} row(s)", deleted);
         }

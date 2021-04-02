@@ -21,9 +21,15 @@ namespace ThriveDevCenter.Shared
         public const string LocalStorageUserInfo = "LastPageLoadUser";
 
         /// <summary>
-        ///   Sessions (and cookies) expire after 30 days
+        ///   Sessions (and cookies) expire after 30 days of inactivity
         /// </summary>
         public const int SessionExpirySeconds = 60 * 60 * 24 * 30;
+
+        /// <summary>
+        ///   Cookies expire 60 days after creation as there is no refresh mechanism this is set higher
+        ///   than the session expiry
+        /// </summary>
+        public const int ClientCookieExpirySeconds = 60 * 60 * 24 * 60;
 
         /// <summary>
         ///   The interval in seconds that a session use is updated to the database
