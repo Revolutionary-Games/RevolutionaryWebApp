@@ -5,10 +5,10 @@ namespace ThriveDevCenter.Server.Authorization
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.AspNetCore.SignalR;
     using Microsoft.EntityFrameworkCore;
     using Models;
     using Shared;
+    using Utilities;
 
     public static class UserFromCookiesHelper
     {
@@ -77,7 +77,8 @@ namespace ThriveDevCenter.Server.Authorization
                 throw new ArgumentException("invalid session format");
             }
 
-            return await database.Sessions.Where(s => s.Id == parsed).Include(s => s.User).FirstOrDefaultAsync();
+            return await database.Sessions.WhereHashed(nameof(Session.Id), sessionId).Include(s => s.User)
+                .ToAsyncEnumerable().Where(s => s.Id == parsed).FirstOrDefaultAsync();
         }
 
         public static Task<Session> GetSession(this IRequestCookieCollection cookies,

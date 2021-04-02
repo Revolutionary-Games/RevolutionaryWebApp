@@ -49,7 +49,7 @@ namespace ThriveDevCenter.Server.Authorization
 
             if (foundToken && !string.IsNullOrEmpty(queryToken[0]))
             {
-                var user = await database.Users.FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
+                var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
 
                 if (user != null && user.Suspended != true)
                 {
@@ -100,7 +100,7 @@ namespace ThriveDevCenter.Server.Authorization
                 return AuthMethodResult.Error;
             }
 
-            var user = await database.Users.FirstOrDefaultAsync(u => u.ApiToken == apiToken);
+            var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.ApiToken == apiToken);
 
             if (user != null && user.Suspended != true)
             {

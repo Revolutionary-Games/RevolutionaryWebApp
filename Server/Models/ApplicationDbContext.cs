@@ -1,9 +1,10 @@
 namespace ThriveDevCenter.Server.Models
 {
-    using Microsoft.AspNetCore.Identity;
-    using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
-    using Shared.Models;
+    using Utilities;
 
     public class ApplicationDbContext : DbContext
     {
@@ -26,6 +27,44 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<RedeemableCode> RedeemableCodes { get; set; }
         public DbSet<AdminAction> AdminActions { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
+
+        public override int SaveChanges()
+        {
+            RunPreSaveChecks();
+
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        {
+            RunPreSaveChecks();
+
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        public void RunPreSaveChecks()
+        {
+            var changedEntities = ChangeTracker
+                .Entries()
+                .Where(e => e.State == EntityState.Added ||
+                    e.State == EntityState.Modified).ToList();
+
+            foreach (var entry in changedEntities)
+            {
+                if (entry.Entity is IContainsHashedLookUps containsHashedLookUps)
+                {
+                    containsHashedLookUps.ComputeHashedLookUpValues();
+                }
+            }
+
+            // TODO: do we want to run the validations here?
+            // var errors = new List<ValidationResult>();
+            // foreach (var e in changedEntities)
+            // {
+            //     Validator.TryValidateObject(
+            //         e.Entity, new ValidationContext(e.Entity), errors, true);
+            // }
+        }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -58,6 +97,9 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<DevBuild>(entity =>
             {
+                // Seems like adding custom validation on a property requires this to mark it as nullable
+                entity.Property(e => e.Description).IsRequired(false);
+
                 entity.Property(e => e.BuildOfTheDay).HasDefaultValue(false);
                 entity.Property(e => e.Downloads).HasDefaultValue(0);
                 entity.Property(e => e.Important).HasDefaultValue(false);

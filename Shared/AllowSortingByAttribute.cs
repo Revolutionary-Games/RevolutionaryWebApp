@@ -8,6 +8,5 @@ namespace ThriveDevCenter.Shared
     [AttributeUsage(AttributeTargets.Property)]
     public class AllowSortingByAttribute : Attribute
     {
-        
     }
 }

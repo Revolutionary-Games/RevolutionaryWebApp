@@ -5,12 +5,17 @@ namespace ThriveDevCenter.Server.Models
     using System.Net;
     using Microsoft.EntityFrameworkCore;
     using Shared;
+    using Utilities;
 
     [Index(nameof(UserId))]
-    public class Session
+    [Index(nameof(HashedId), IsUnique = true)]
+    public class Session : IContainsHashedLookUps
     {
         [Key]
+        [HashedLookUp]
         public Guid Id { get; set; } = Guid.NewGuid();
+
+        public string HashedId { get; set; }
 
         public long? UserId { get; set; }
         public User User { get; set; }

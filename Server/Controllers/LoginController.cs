@@ -214,7 +214,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             await PerformPreLoginChecks(login.CSRF);
 
-            var user = await database.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
+            var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
 
             if (user == null || string.IsNullOrEmpty(user.PasswordHash) ||
                 !Passwords.CheckPassword(user.PasswordHash, login.Password))
@@ -529,7 +529,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 var email = userDetails.Data.Attributes["email"];
 
-                var patron = await database.Patrons.Where(p => p.Email == email).FirstOrDefaultAsync();
+                var patron = await database.Patrons.AsQueryable().Where(p => p.Email == email).FirstOrDefaultAsync();
 
                 if (patron == null)
                 {
@@ -543,7 +543,7 @@ namespace ThriveDevCenter.Server.Controllers
                         $"Your Patron status is currently suspended. Reason: {patron.SuspendedReason}"));
                 }
 
-                var patreonSettings = await database.PatreonSettings.FirstOrDefaultAsync();
+                var patreonSettings = await database.PatreonSettings.AsQueryable().FirstOrDefaultAsync();
 
                 if (patreonSettings == null)
                 {
@@ -590,7 +590,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             logger.LogInformation("Logging in SSO login user with email: {Email}", email);
 
-            var user = await database.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == email);
 
             if (user == null)
             {
