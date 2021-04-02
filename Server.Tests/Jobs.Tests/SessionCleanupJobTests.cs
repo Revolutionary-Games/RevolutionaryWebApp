@@ -54,9 +54,8 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
             var job = new SessionCleanupJob(logger, database);
             await job.Execute(default);
 
-            // To detect the removal, we need actually a different db context, but due to the
-            using var secondDb = new RealUnitTestDatabaseFixture();
-
+            // To detect the removal, we need actually a different db context, but due to the transaction, it wouldn't
+            // see the changes, so we fallback on raw SQL
             var retrieved1 = await database.Sessions
                 .FromSqlInterpolated($"SELECT * FROM sessions WHERE id = {created1.Id}").FirstOrDefaultAsync();
             Assert.NotNull(retrieved1);

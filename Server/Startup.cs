@@ -200,6 +200,9 @@ namespace ThriveDevCenter.Server
         private void SetupDefaultJobs(IConfigurationSection configurationSection)
         {
             AddJobHelper<SessionCleanupJob>(configurationSection);
+
+            // TODO: remove this job once this has also been ran in production for a while
+            BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
         }
 
         private static void AddJobHelper<T>(IConfigurationSection configuration) where T : class, IJob
