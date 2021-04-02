@@ -2,11 +2,17 @@ namespace ThriveDevCenter.Server.Models
 {
     using System;
     using System.ComponentModel.DataAnnotations;
+    using Microsoft.EntityFrameworkCore;
+    using Utilities;
 
-    public class RedeemableCode
+    [Index(nameof(HashedId), IsUnique = true)]
+    public class RedeemableCode : IContainsHashedLookUps
     {
         [Key]
+        [HashedLookUp]
         public Guid Id { get; set; } = Guid.NewGuid();
+
+        public string HashedId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

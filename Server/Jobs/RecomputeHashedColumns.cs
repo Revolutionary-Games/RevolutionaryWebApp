@@ -29,6 +29,10 @@ namespace ThriveDevCenter.Server.Jobs
             logger.LogInformation("Starting recompute for hashed database columns");
 
             await ProcessSingleModel(database.Sessions, cancellationToken);
+            await ProcessSingleModel(database.AccessKeys, cancellationToken);
+            await ProcessSingleModel(database.LauncherLinks, cancellationToken);
+            await ProcessSingleModel(database.RedeemableCodes, cancellationToken);
+            await ProcessSingleModel(database.Users, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested)
                 return;

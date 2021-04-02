@@ -197,6 +197,9 @@ namespace ThriveDevCenter.Server.Models
                 entity.ToTable("users");
 
                 entity.Property(e => e.Email).IsRequired();
+                entity.Property(e => e.ApiToken).IsRequired(false);
+                entity.Property(e => e.LfsToken).IsRequired(false);
+                entity.Property(e => e.LauncherLinkCode).IsRequired(false);
 
                 // TODO: add the non-null constraint later on once old rails data is imported
                 entity.Property(e => e.UserName).HasColumnName("name");

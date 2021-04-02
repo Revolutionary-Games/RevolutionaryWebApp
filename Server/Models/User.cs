@@ -8,12 +8,13 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
+    using Utilities;
 
     [Index(nameof(Email), IsUnique = true)]
-    [Index(nameof(ApiToken), IsUnique = true)]
-    [Index(nameof(LfsToken), IsUnique = true)]
-    [Index(nameof(LauncherLinkCode), IsUnique = true)]
-    public class User : IdentityUser<long>, ITimestampedModel, IIdentity
+    [Index(nameof(HashedApiToken), IsUnique = true)]
+    [Index(nameof(HashedLfsToken), IsUnique = true)]
+    [Index(nameof(HashedLauncherLinkCode), IsUnique = true)]
+    public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsHashedLookUps
     {
         public bool Local { get; set; }
 
@@ -27,15 +28,22 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public bool? Admin { get; set; } = false;
 
+        [HashedLookUp]
         public string ApiToken { get; set; }
+        public string HashedApiToken { get; set; }
+
+        [HashedLookUp]
         public string LfsToken { get; set; }
+        public string HashedLfsToken { get; set; }
 
         [AllowSortingBy]
         public bool? Suspended { get; set; } = false;
         public string SuspendedReason { get; set; }
         public bool? SuspendedManually { get; set; } = false;
 
+        [HashedLookUp]
         public string LauncherLinkCode { get; set; }
+        public string HashedLauncherLinkCode { get; set; }
         public DateTime? LauncherCodeExpires { get; set; }
 
         public int TotalLauncherLinks { get; set; } = 0;

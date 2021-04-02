@@ -1,14 +1,13 @@
 namespace ThriveDevCenter.Server.Authorization
 {
-    using System;
     using System.Linq;
-    using System.Security.Claims;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Primitives;
     using Models;
     using Shared;
+    using Utilities;
 
     public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
     {
@@ -49,7 +48,8 @@ namespace ThriveDevCenter.Server.Authorization
 
             if (foundToken && !string.IsNullOrEmpty(queryToken[0]))
             {
-                var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
+                var user = await database.Users.WhereHashed(nameof(User.ApiToken), queryToken[0]).AsAsyncEnumerable()
+                    .FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
 
                 if (user != null && user.Suspended != true)
                 {
@@ -100,7 +100,8 @@ namespace ThriveDevCenter.Server.Authorization
                 return AuthMethodResult.Error;
             }
 
-            var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.ApiToken == apiToken);
+            var user = await database.Users.WhereHashed(nameof(User.ApiToken), apiToken).AsAsyncEnumerable()
+                .FirstOrDefaultAsync(u => u.ApiToken == apiToken);
 
             if (user != null && user.Suspended != true)
             {
@@ -118,8 +119,9 @@ namespace ThriveDevCenter.Server.Authorization
             // TODO: should maybe move the launcher to use a more standard format
             // Or just a plain which is an active launcher link
 
-            var link = await database.LauncherLinks.Include(l => l.User)
-                .FirstOrDefaultAsync(l => l.LinkCode == tokenValue);
+            var link = await database.LauncherLinks.WhereHashed(nameof(LauncherLink.LinkCode), tokenValue)
+                .Include(l => l.User)
+                .FirstOrDefaultAsync();
 
             if (link?.User == null || link.User.Suspended == true)
             {

@@ -4,13 +4,17 @@ namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
+    using Utilities;
 
-    [Index(nameof(LinkCode), IsUnique = true)]
+    [Index(nameof(HashedLinkCode), IsUnique = true)]
     [Index(nameof(UserId))]
-    public class LauncherLink : UpdateableModel
+    public class LauncherLink : UpdateableModel, IContainsHashedLookUps
     {
         [Required]
+        [HashedLookUp]
         public string LinkCode { get; set; }
+
+        public string HashedLinkCode { get; set; }
 
         [Required]
         public string LastIp { get; set; }

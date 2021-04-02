@@ -4,9 +4,10 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
+    using Microsoft.EntityFrameworkCore;
     using Models;
 
-    public class QueueRecomputeHashIfNeededJob :IJob
+    public class QueueRecomputeHashIfNeededJob : IJob
     {
         private readonly ApplicationDbContext database;
 
@@ -17,10 +18,9 @@ namespace ThriveDevCenter.Server.Jobs
 
         public async Task Execute(CancellationToken cancellationToken)
         {
-            // TODO: fix this once all the hashed columns have been added
-            // bool needToRun = await database.Users.AsQueryable().Where(u => u.LfsToken != null && u.HashedLfsToken == null).AnyAsync();
+            bool needToRun = await database.Users.AsQueryable()
+                .Where(u => u.LfsToken != null && u.HashedLfsToken == null).AnyAsync(cancellationToken);
 
-            bool needToRun = true;
             if (needToRun)
             {
                 BackgroundJob.Enqueue<RecomputeHashedColumns>(x => x.Execute(CancellationToken.None));

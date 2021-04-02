@@ -20,7 +20,14 @@ CREATE USER thrivedevcenter WITH LOGIN PASSWORD 'PUTAPASSWORDHERE';
 To get the first admin account, first setup the DB then run this SQL
 on it (replace the id with a uuid):
 ```sql
-INSERT INTO redeemable_codes (id, granted_resource) VALUES ('UUID_GOES_HERE', 'GroupAdmin');
+INSERT INTO redeemable_codes (id, hashed_id, granted_resource) VALUES ('UUID_GOES_HERE', 'HASH', 'GroupAdmin');
+```
+
+The `HASH` value needs to be replaced by the sha256 hash of the `id`
+this is done to protect against timing attacks. To compute that for
+example on Linux, you can use:
+```sh
+echo -n VALUEHERE | openssl dgst -binary -sha256 | openssl base64
 ```
 
 Then you can redeem the code on your user profile after logging in to become an admin.

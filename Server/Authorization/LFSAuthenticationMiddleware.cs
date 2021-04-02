@@ -1,6 +1,5 @@
 namespace ThriveDevCenter.Server.Authorization
 {
-    using System.Buffers.Text;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
@@ -9,6 +8,7 @@ namespace ThriveDevCenter.Server.Authorization
     using Models;
     using Shared;
     using Shared.Models;
+    using Utilities;
 
     public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
     {
@@ -52,7 +52,8 @@ namespace ThriveDevCenter.Server.Authorization
                 return false;
             }
 
-            var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.LfsToken == parts[1]);
+            var user = await database.Users.WhereHashed(nameof(User.LfsToken), parts[1]).AsAsyncEnumerable()
+                .FirstOrDefaultAsync(u => u.LfsToken == parts[1]);
 
             // The given "username" part of the basic auth needs to either match the email or name of the found user
             if (user != null && user.Suspended != true && (user.UserName == parts[0] || user.Email == parts[0]))

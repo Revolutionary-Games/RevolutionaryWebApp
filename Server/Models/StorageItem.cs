@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Server.Models
     [Index(nameof(ParentId))]
     public class StorageItem : UpdateableModel, IOwneableModel
     {
+        // TODO: is there a threat from timing attack trying to enumerate existing files?
         public string Name { get; set; }
 
         // TODO: move to enum

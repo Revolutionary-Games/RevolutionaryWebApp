@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace ThriveDevCenter.Server.Models
+﻿namespace ThriveDevCenter.Server.Models
 {
     using Microsoft.EntityFrameworkCore;
 
-    [Index(new[] { nameof(Path), nameof(Name), nameof(LfsProjectId) }, IsUnique = true)]
+    [Index(new[] { nameof(LfsProjectId), nameof(Name), nameof(Path) }, IsUnique = true)]
     public class ProjectGitFile : UpdateableModel
     {
         public string Name { get; set; }

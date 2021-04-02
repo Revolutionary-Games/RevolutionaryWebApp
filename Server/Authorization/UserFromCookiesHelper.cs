@@ -78,7 +78,7 @@ namespace ThriveDevCenter.Server.Authorization
             }
 
             return await database.Sessions.WhereHashed(nameof(Session.Id), sessionId).Include(s => s.User)
-                .ToAsyncEnumerable().Where(s => s.Id == parsed).FirstOrDefaultAsync();
+                .ToAsyncEnumerable().FirstOrDefaultAsync(s => s.Id == parsed);
         }
 
         public static Task<Session> GetSession(this IRequestCookieCollection cookies,
