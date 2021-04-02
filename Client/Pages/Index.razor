@@ -1,5 +1,24 @@
 ﻿@page "/"
+@using ThriveDevCenter.Client.Services
+@inject StaticHomePageNotice StaticHomePageNotice
 
 <h1>ThriveDevCenter</h1>
 
 Welcome to the new ThriveDevCenter.
+
+@if (!string.IsNullOrEmpty(notice))
+{
+    <p>@notice</p>
+}
+
+@code {
+    private string notice;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        notice = await StaticHomePageNotice.ReadNotice();
+    }
+
+}

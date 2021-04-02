@@ -45,6 +45,8 @@ namespace ThriveDevCenter.Client
                 new NotificationHandler(sp.GetRequiredService<NavigationManager>(),
                     sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<ICSRFTokenReader>()));
 
+            builder.Services.AddSingleton<StaticHomePageNotice>();
+
             var app = builder.Build();
 
             // CSRF token is already needed here

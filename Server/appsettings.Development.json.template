@@ -1,5 +1,6 @@
 {
   "BaseUrl": "http://localhost:5000/",
+  "StaticSiteHomePageNotice": "This site is running in Development mode!",
   "Registration": {
     "Enabled": true,
     "RegistrationCode": "Thrive1234"

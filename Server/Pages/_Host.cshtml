@@ -1,6 +1,7 @@
 ﻿@page
 @inject ITokenGenerator Jwt
 @inject ApplicationDbContext Database
+@inject StaticHomePageNotice StaticHomePageNotice
 @using System.Text.Json
 @using ThriveDevCenter.Server.Authorization
 @using ThriveDevCenter.Server.Models
@@ -23,6 +24,11 @@
 
 <input type="hidden" id="csrfUserToken" value="@(await GenerateUserTokenJSON())" />
 <input type="hidden" id="csrfTokenExpiryTimestamp" value="@GenerateExpiryTimeString()" />
+
+@if (StaticHomePageNotice.Enabled)
+{
+    <input type="hidden" id="homePageNoticeTextSource" value="@StaticHomePageNotice.Text" />
+}
 
 @{
     #pragma warning disable 0162 // unreachable code

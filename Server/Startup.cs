@@ -95,6 +95,7 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<ITokenGenerator, TokenGenerator>();
             services.AddSingleton<ITokenVerifier, TokenVerifier>();
             services.AddSingleton<RedirectVerifier>();
+            services.AddSingleton<StaticHomePageNotice>();
 
             services.AddScoped<IPatreonAPI, PatreonAPI>();
 
