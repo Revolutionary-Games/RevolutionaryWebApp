@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Linq.Expressions;
@@ -8,7 +9,8 @@ namespace ThriveDevCenter.Shared
 
     public static class LinqHelpers
     {
-        public static IQueryable<T> OrderBy<T>(this IQueryable<T> source, string column, SortDirection direction)
+        public static IQueryable<T> OrderBy<T>(this IQueryable<T> source, string column, SortDirection direction,
+            IEnumerable<string> extraAllowedColumns = null)
         {
             if (source == null)
                 return null;
@@ -22,7 +24,8 @@ namespace ThriveDevCenter.Shared
             // Only allow sorting by explicitly allowed properties
             var attribute = selector.Member.GetCustomAttribute(typeof(AllowSortingByAttribute));
 
-            if (attribute == null)
+            if (attribute == null &&
+                (extraAllowedColumns == null || !extraAllowedColumns.Contains(selector.Member.Name)))
             {
                 // Sorting by the "Key" field is explicitly allowed. This is needed for the User model that inherits
                 // the id key, so we can't set attributes on that
