@@ -470,10 +470,16 @@ namespace ThriveDevCenter.Server.Controllers
                     if (!payload.TryGetValue("groups", out StringValues groups))
                         return GetInvalidSsoParametersResult();
 
-                    if (!groups.Contains(DiscourseApiHelpers.CommunityDevBuildGroup) &&
-                        !groups.Contains(DiscourseApiHelpers.CommunityVIPGroup))
+                    var parsedGroups = groups.SelectMany(groupList => groupList.Split(','));
+
+                    if (!parsedGroups.Any(group =>
+                        DiscourseApiHelpers.CommunityDevBuildGroup.Equals(group) ||
+                        DiscourseApiHelpers.CommunityVIPGroup.Equals(group)))
                     {
-                        logger.LogInformation("Not allowing login due to missing group membership for: {Email}", email);
+                        logger.LogInformation(
+                            "Not allowing login due to missing group membership for: {Email}, groups: {ParsedGroups}",
+                            email,
+                            parsedGroups);
                         return Redirect(QueryHelpers.AddQueryString("/login", "error",
                             "You must be either in the Supporter or VIP supporter group to login. " +
                             "These are granted to our Patrons. If you just signed up, please wait up to an " +
