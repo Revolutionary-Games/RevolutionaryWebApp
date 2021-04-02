@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Utilities
         ///     after this. Just need to use something like "AsAsyncEnumerable" to make sure that that Where is not
         ///     evaluated in the database. For example:
         ///     <code>
-        ///       a.WhereHashed("id", session).ToAsyncEnumerable().Where(s => s.Id == session).FirstOrDefault();
+        ///       a.WhereHashed("id", session).ToAsyncEnumerable().FirstOrDefault(s => s.Id == session);
         ///     </code>
         ///   </para>>
         /// </remarks>
@@ -96,21 +96,27 @@ namespace ThriveDevCenter.Server.Utilities
                 if (attribute == null)
                     continue;
 
-                var valueToHash = property.GetValue(instance);
-
-                if (valueToHash == null)
-                    continue;
-
-                // Hash this value and put in the target field
                 var target = type.GetProperty(GetTargetPropertyName(property.Name, (HashedLookUpAttribute)attribute));
 
                 if (target == null)
                     throw new InvalidOperationException("the property the hash should be saved in was not found");
 
+                var valueToHash = property.GetValue(instance);
+
+                if (valueToHash == null)
+                {
+                    // Make sure hash is also null
+                    if (target.GetValue(instance) != null)
+                        target.SetValue(instance, null);
+
+                    continue;
+                }
+
                 // Skip if there is already a value
                 if (target.GetValue(instance) != null)
                     continue;
 
+                // Hash this value and put in the target field
                 var valueToSet = HashForDatabaseValue(valueToHash.ToString());
 
                 target.SetValue(instance, valueToSet);
