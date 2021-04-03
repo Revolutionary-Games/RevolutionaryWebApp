@@ -7,10 +7,8 @@
 
     protected override void OnInitialized()
     {
-        var message = Uri.EscapeDataString(PermissionsProblem ?
-            "You don't have the necessary permissions to view this page" : "You need to login to view this page");
-
-        Navigation.NavigateTo($"login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}&error={message}");
+        Navigation.NavigateTo(Navigation.GetLinkToLogin(PermissionsProblem ?
+            NavigationManagerExtensions.PermissionProblemErrorMessage :
+            NavigationManagerExtensions.LoginRequiredErrorMessage));
     }
-
 }

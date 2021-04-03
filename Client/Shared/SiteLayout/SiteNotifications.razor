@@ -19,7 +19,7 @@
 {
     <div class="alert alert-danger" role="alert">
         This version of the app is outdated please
-        <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload</a>.
+        <a href="#" class="alert-link" @onclick="NavManager.ForceReload" @onclick:preventDefault="true">reload</a>.
     </div>
 }
 
@@ -34,7 +34,7 @@
             <span>Reconnecting...</span>
         }
 
-        <a href="#" class="alert-link m-1" @onclick="ForceReload" @onclick:preventDefault="true">reload</a>
+        <a href="#" class="alert-link m-1" @onclick="NavManager.ForceReload" @onclick:preventDefault="true">reload</a>
     </div>
 }
 

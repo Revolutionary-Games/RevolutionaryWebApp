@@ -231,7 +231,7 @@ namespace ThriveDevCenter.Client.Services
                 await OnRequireStoppingConnection();
 
                 // Force reload as our session should be invalid now so we need to reopen everything as non-authenticated user
-                ForceReload();
+                navManager.ForceReload();
             });
 
             hubConnection.On("ReceiveVersionMismatch", () =>
@@ -415,10 +415,5 @@ namespace ThriveDevCenter.Client.Services
 
         // ReSharper restore ConditionIsAlwaysTrueOrFalse
 #pragma warning restore 0162
-
-        private void ForceReload()
-        {
-            navManager.NavigateTo(navManager.Uri, true);
-        }
     }
 }

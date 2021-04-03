@@ -20,7 +20,7 @@
 {
     <div class="alert alert-danger" role="alert">
         You have signed in or out in another tab. The site will not function correctly until you
-        <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload</a>.
+        <a href="#" class="alert-link" @onclick="NavManager.ForceReload" @onclick:preventDefault="true">reload</a>.
     </div>
 }
 
@@ -84,11 +84,4 @@
         await InvokeAsync(StateHasChanged);
         await InvokeAsync(NotificationHandler.OnRequireStoppingConnection);
     }
-
-    // TODO: combine all the ForceReload implementations, perhaps an extension method on NavManager?
-    private void ForceReload()
-    {
-        NavManager.NavigateTo(NavManager.Uri, true);
-    }
-
 }

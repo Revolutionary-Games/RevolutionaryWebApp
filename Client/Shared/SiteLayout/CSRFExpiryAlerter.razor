@@ -8,7 +8,7 @@
 {
     <div class="alert alert-danger" role="alert">
         This page's authorization has ended, interaction is no longer possible,
-        <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload</a>.
+        <a href="#" class="alert-link" @onclick="NavManager.ForceReload" @onclick:preventDefault="true">reload</a>.
     </div>
 }
 
@@ -18,7 +18,7 @@
     <div class="alert alert-warning" role="alert">
         This page's authorization will end soon. Please save your work and reload as soon as possible.
         @alert
-        <a href="#" class="alert-link" @onclick="ForceReload" @onclick:preventDefault="true">reload now</a>.
+        <a href="#" class="alert-link" @onclick="NavManager.ForceReload" @onclick:preventDefault="true">reload now</a>.
     </div>
 }
 
@@ -85,12 +85,6 @@
 
         if (changes)
             await InvokeAsync(StateHasChanged);
-    }
-
-    // TODO: combine all the ForceReload implementations, perhaps an extension method on NavManager?
-    private void ForceReload()
-    {
-        NavManager.NavigateTo(NavManager.Uri, true);
     }
 
 }
