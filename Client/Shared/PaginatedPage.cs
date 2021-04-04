@@ -229,7 +229,7 @@ namespace ThriveDevCenter.Client.Shared
         /// <summary>
         ///   Starts the actual query to fetch data from the server
         /// </summary>
-        /// <param name="requestParams"></param>
+        /// <param name="requestParams">The parameters to query with</param>
         protected abstract Task<PagedResult<T>> StartQuery(Dictionary<string, string> requestParams);
 
         /// <summary>

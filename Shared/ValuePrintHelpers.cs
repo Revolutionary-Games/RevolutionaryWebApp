@@ -22,5 +22,10 @@ namespace ThriveDevCenter.Shared
         {
             return ((float)number).BytesToMiB(decimals, suffix);
         }
+
+        public static string BytesToMiB(this int number, int decimals = 2, bool suffix = true)
+        {
+            return ((float)number).BytesToMiB(decimals, suffix);
+        }
     }
 }

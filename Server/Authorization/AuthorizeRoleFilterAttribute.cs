@@ -16,34 +16,21 @@ namespace ThriveDevCenter.Server.Authorization
 
         public Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
-            if (context.HttpContext.User.Identity == null ||
-                !context.HttpContext.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser))
+            var result =
+                context.HttpContext.HasAuthenticatedUserWithAccessExtended(RequiredAccess, RequiredRestriction);
+
+            switch (result)
             {
-                context.Result = new UnauthorizedResult();
-                return Task.CompletedTask;
-            }
-
-            var user = rawUser as User;
-
-            if (user == null || !user.HasAccessLevel(RequiredAccess))
-            {
-                context.Result = new ForbidResult();
-                return Task.CompletedTask;
-            }
-
-            if (RequiredRestriction != null)
-            {
-                if (!context.HttpContext.Items.TryGetValue("AuthenticatedUserScopeRestriction",
-                    out object restrictionRaw))
-                    throw new InvalidOperationException("authentication scope restriction was not set");
-
-                var restriction = (AuthenticationScopeRestriction)restrictionRaw;
-
-                if (restriction != RequiredRestriction)
-                {
+                case HttpContextAuthorizationExtensions.AuthenticationResult.NoUser:
+                    context.Result = new UnauthorizedResult();
+                    break;
+                case HttpContextAuthorizationExtensions.AuthenticationResult.NoAccess:
                     context.Result = new ForbidResult();
-                    return Task.CompletedTask;
-                }
+                    break;
+                case HttpContextAuthorizationExtensions.AuthenticationResult.Success:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
             return Task.CompletedTask;

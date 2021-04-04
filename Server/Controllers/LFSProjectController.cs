@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
@@ -8,11 +7,11 @@ namespace ThriveDevCenter.Server.Controllers
 {
     using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
+    using Authorization;
     using BlazorPagination;
     using Filters;
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
-    using Microsoft.EntityFrameworkCore;
     using Models;
     using Shared;
     using Shared.Models;
@@ -24,15 +23,15 @@ namespace ThriveDevCenter.Server.Controllers
     public class LFSProjectController : Controller
     {
         private readonly ILogger<LFSProjectController> logger;
-        private readonly ApplicationDbContext context;
+        private readonly ApplicationDbContext database;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
         public LFSProjectController(ILogger<LFSProjectController> logger,
-            ApplicationDbContext context,
+            ApplicationDbContext database,
             IHubContext<NotificationsHub, INotifications> notifications)
         {
             this.logger = logger;
-            this.context = context;
+            this.database = database;
             this.notifications = notifications;
         }
 
@@ -45,7 +44,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = context.LfsProjects.OrderBy(sortColumn, sortDirection);
+                query = database.LfsProjects.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -56,6 +55,27 @@ namespace ThriveDevCenter.Server.Controllers
             var objects = await query.ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetInfo());
+        }
+
+        [HttpGet("{id:long}")]
+        public async Task<ActionResult<LFSProjectDTO>> GetSingle([Required] long id)
+        {
+            var item = await database.LfsProjects.FindAsync(id);
+
+            if(item == null)
+                return NotFound();
+
+            // Only developers can see private
+            if (!item.Public)
+            {
+                if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
+                    AuthenticationScopeRestriction.None))
+                {
+                    return NotFound();
+                }
+            }
+
+            return item.GetDTO();
         }
 
         private async Task ReportUpdatedProject(LFSProjectInfo item)
