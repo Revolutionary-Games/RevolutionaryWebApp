@@ -1,0 +1,50 @@
+@page "/lfs/{Id:long}/{*FileBrowserPath}"
+@inject HttpClient Http
+@inherits SingleResourcePage<LFSProjectDTO>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <h3>Git LFS Project @Data.Name</h3>
+
+        <ul>
+            <li><strong>Public</strong>: @Data.Public</li>
+            <li><strong>TotalObjectSize</strong>: @Data.TotalObjectSize.BytesToMiB()</li>
+            <li><strong>TotalObjectCount</strong>: @Data.TotalObjectCount</li>
+            <li><strong>TotalSizeUpdated</strong>: @Data.TotalSizeUpdated?.ToLocalTime().ToString("G")</li>
+
+            <li><strong>FileTreeCommit</strong>: @Data.FileTreeCommit</li>
+            <li><strong>Git LFS URL</strong>: TODO: reimplement this</li>
+            <li><strong>Repository URL</strong>: <a href="@Data.RepoUrl">@Data.RepoUrl</a></li>
+            <li><strong>Clone URL</strong>: @Data.CloneUrl</li>
+            <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+        </ul>
+
+        <p>
+            Visit your profile to find you LFS access token, which you need to use in place of your password when
+            Git asks to authenticate for Git LFS access.
+        </p>
+
+        <h3>Files</h3>
+        <p>
+            File tree generated at: @Data.FileTreeUpdated?.ToLocalTime().ToString("G")
+        </p>
+
+        <Breadcrumbs BasePath="@($"lfs/{Data.Id}/")" CurrentPath="@FileBrowserPath" RootPathName="@Data.Name" />
+    }
+</SingleResourceDisplayer>
+
+@code {
+
+    [Parameter]
+    public string FileBrowserPath { get; set; }
+
+    protected override Task<LFSProjectDTO> StartQuery()
+    {
+        return Http.GetFromJsonAsync<LFSProjectDTO>($"api/v1/LFSProject/{Id}");
+    }
+
+}

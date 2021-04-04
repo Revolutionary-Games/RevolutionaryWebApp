@@ -8,6 +8,16 @@ a, .btn-link {
     color: #0366d6;
 }
 
+a.active {
+    color: #6c757d;
+}
+
+a.active:hover {
+    color: #6c757d;
+    cursor: default;
+    text-decoration: none;
+}
+
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;

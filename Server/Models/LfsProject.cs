@@ -4,8 +4,6 @@ using System.Collections.Generic;
 namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
-    using System.Data.Common;
-    using System.Drawing;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
@@ -47,6 +45,26 @@ namespace ThriveDevCenter.Server.Models
                 Slug = Slug,
                 Public = Public,
                 TotalObjectSize = TotalObjectSize ?? 0,
+                UpdatedAt = UpdatedAt,
+                CreatedAt = CreatedAt
+            };
+        }
+
+        public LFSProjectDTO GetDTO()
+        {
+            return new()
+            {
+                Id = Id,
+                Name = Name,
+                Slug = Slug,
+                Public = Public,
+                TotalObjectSize = TotalObjectSize ?? 0,
+                TotalObjectCount = TotalObjectCount ?? 0,
+                TotalSizeUpdated = TotalSizeUpdated,
+                FileTreeUpdated = FileTreeUpdated,
+                FileTreeCommit = FileTreeCommit,
+                RepoUrl = RepoUrl,
+                CloneUrl = CloneUrl,
                 UpdatedAt = UpdatedAt,
                 CreatedAt = CreatedAt
             };
