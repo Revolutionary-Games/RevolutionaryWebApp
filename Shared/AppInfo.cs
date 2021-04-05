@@ -20,6 +20,9 @@ namespace ThriveDevCenter.Shared
 
         public const string LocalStorageUserInfo = "LastPageLoadUser";
 
+        public const string ItemTypeFolder = "folder";
+        public const string ItemTypeFile = "file";
+
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days of inactivity
         /// </summary>

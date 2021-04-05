@@ -21,7 +21,18 @@ namespace ThriveDevCenter.Shared
             var parameter = Expression.Parameter(typeof(T), "x");
             var selector = Expression.PropertyOrField(parameter, column);
 
-            // Only allow sorting by explicitly allowed properties
+            CheckTargetColumn<T>(column, extraAllowedColumns, selector);
+
+            var method = direction == SortDirection.Descending ? "OrderByDescending" : "OrderBy";
+            expression = Expression.Call(typeof(Queryable), method,
+                new[] { source.ElementType, selector.Type },
+                expression, Expression.Quote(Expression.Lambda(selector, parameter)));
+            return source.Provider.CreateQuery<T>(expression);
+        }
+
+        public static void CheckTargetColumn<T>(string column, IEnumerable<string> extraAllowedColumns,
+            MemberExpression selector)
+        {
             var attribute = selector.Member.GetCustomAttribute(typeof(AllowSortingByAttribute));
 
             if (attribute == null &&
@@ -32,12 +43,6 @@ namespace ThriveDevCenter.Shared
                 if (selector.Member.GetCustomAttribute(typeof(KeyAttribute)) == null)
                     throw new ArgumentException($"sorting by the selected property ({column}) is not allowed");
             }
-
-            var method = direction == SortDirection.Descending ? "OrderByDescending" : "OrderBy";
-            expression = Expression.Call(typeof(Queryable), method,
-                new[] { source.ElementType, selector.Type },
-                expression, Expression.Quote(Expression.Lambda(selector, parameter)));
-            return source.Provider.CreateQuery<T>(expression);
         }
     }
 }

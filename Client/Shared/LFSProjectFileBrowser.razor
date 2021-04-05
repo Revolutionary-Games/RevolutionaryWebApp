@@ -33,12 +33,37 @@ else
         {
             @foreach (var item in Data.Results)
             {
+                // Ignore self folder when looking at the root folder
+                if(item.Name == "/" && string.IsNullOrEmpty(FileBrowserPath))
+                    continue;
+
                 <tr @key="item.Id">
-                    @* TODO: move to proper icons *@
-                    <td>@item.Ftype</td>
-                    <th scope="row"><NavLink href="@($"{BasePath}/{item.Name}")">@item.Name</NavLink></th>
-                    <td>@item.Size</td>
-                    <td>@(!string.IsNullOrEmpty(@item.LfsOid))</td>
+                    @if (item.Ftype == AppInfo.ItemTypeFolder)
+                    {
+                        <td>
+                            <span class="oi oi-folder pl-1" aria-hidden="true"></span>
+                            <span class="sr-only">Folder</span>
+                        </td>
+                    }
+                    else
+                    {
+                        <td></td>
+                    }
+
+                    <th scope="row">
+                        <NavLink href="@($"{BasePath}{item.Name}")">@item.Name</NavLink>
+                    </th>
+
+                    @if (item.Ftype == AppInfo.ItemTypeFolder)
+                    {
+                        <td>@("item".PrintCount(item.Size))</td>
+                    }
+                    else
+                    {
+                        <td>@item.Size.BytesToMiB()</td>
+                    }
+
+                    <td>@(item.UsesLfsOid ? "True" : "")</td>
                 </tr>
             }
         }
@@ -46,6 +71,7 @@ else
 }
 
 @code {
+
     private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Type", true, "Ftype"),
@@ -56,6 +82,7 @@ else
 
     public LFSProjectFileBrowser() : base(new SortHelper("Name", SortDirection.Ascending))
     {
+        DefaultPageSize = 100;
     }
 
     [Parameter]
@@ -105,9 +132,17 @@ else
     {
         var requestParams = base.CreatePageRequestParams();
 
-        requestParams["path"] = FileBrowserPath ?? string.Empty;
+        // In the API paths need to start with a slash
+        requestParams["path"] = "/" + (FileBrowserPath ?? String.Empty);
 
         return requestParams;
+    }
+
+    protected override void PruneRequestParams(Dictionary<string, string> queryParams)
+    {
+        base.PruneRequestParams(queryParams);
+
+        queryParams.Remove("path");
     }
 
     protected override Task<PagedResult<ProjectGitFileDTO>> StartQuery(Dictionary<string, string> requestParams)
@@ -120,4 +155,5 @@ else
     {
         await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
+
 }

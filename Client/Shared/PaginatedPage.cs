@@ -211,7 +211,7 @@ namespace ThriveDevCenter.Client.Shared
         ///   Removes the params that have the default values (currently in this object,
         ///   params aren't parsed back from queryParams)
         /// </summary>
-        protected void PruneRequestParams(Dictionary<string, string> queryParams)
+        protected virtual void PruneRequestParams(Dictionary<string, string> queryParams)
         {
             if (Page == 1)
                 queryParams.Remove("page");

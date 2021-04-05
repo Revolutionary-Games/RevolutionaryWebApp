@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using Authorization;
@@ -49,7 +50,7 @@ namespace ThriveDevCenter.Server.Controllers
             catch (ArgumentException e)
             {
                 logger.LogWarning("Invalid requested order: {@E}", e);
-                throw new HttpResponseException(){Value = "Invalid data selection or sort"};
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
             }
 
             var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -60,29 +61,71 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpGet("{id:long}")]
         public async Task<ActionResult<LFSProjectDTO>> GetSingle([Required] long id)
         {
-            var item = await database.LfsProjects.FindAsync(id);
+            var item = await FindAndCheckAccess(id);
 
-            if(item == null)
+            if (item == null)
                 return NotFound();
-
-            // Only developers can see private
-            if (!item.Public)
-            {
-                if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
-                    AuthenticationScopeRestriction.None))
-                {
-                    return NotFound();
-                }
-            }
 
             return item.GetDTO();
         }
 
+        [HttpGet("{id:long}/files")]
+        public async Task<ActionResult<PagedResult<ProjectGitFileDTO>>> GetProjectFiles([Required] long id,
+            [Required] string path,
+            [Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+            [Required] [Range(1, 200)] int pageSize)
+        {
+            var item = await FindAndCheckAccess(id);
+
+            if (item == null)
+                return NotFound();
+
+            IAsyncEnumerable<ProjectGitFile> query;
+
+            try
+            {
+                query = database.ProjectGitFiles.AsAsyncEnumerable().Where(p => p.LfsProjectId == item.Id && p.Path == path).AsAsyncEnumerable().
+                    OrderByDescending(p => p.Ftype).ThenBy(p => p.Name);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        [NonAction]
         private async Task ReportUpdatedProject(LFSProjectInfo item)
         {
             // For now LFS list and individual LFS info pages use the same group
             await notifications.Clients.Group(NotificationGroups.LFSListUpdated).ReceiveNotification(new LFSListUpdated
                 { Type = ListItemChangeType.ItemUpdated, Item = item });
+        }
+
+        [NonAction]
+        private async Task<LfsProject> FindAndCheckAccess(long id)
+        {
+            var project = await database.LfsProjects.FindAsync(id);
+
+            if (project == null)
+                return null;
+
+            // Only developers can see private projects
+            if (!project.Public)
+            {
+                if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
+                    AuthenticationScopeRestriction.None))
+                {
+                    return null;
+                }
+            }
+
+            return project;
         }
     }
 }

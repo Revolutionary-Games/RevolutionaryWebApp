@@ -4,10 +4,10 @@ namespace ThriveDevCenter.Shared.Models
     {
         public string Name { get; set; }
 
-        public int? Size { get; set; }
+        public int Size { get; set; }
 
         public string Ftype { get; set; }
 
-        public string LfsOid { get; set; }
+        public bool UsesLfsOid { get; set; }
     }
 }
