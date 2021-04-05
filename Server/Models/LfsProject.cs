@@ -28,6 +28,7 @@ namespace ThriveDevCenter.Server.Models
 
         [AllowSortingBy]
         public int? TotalObjectSize { get; set; }
+
         public int? TotalObjectCount { get; set; }
         public DateTime? TotalSizeUpdated { get; set; }
         public DateTime? FileTreeUpdated { get; set; }
@@ -50,7 +51,7 @@ namespace ThriveDevCenter.Server.Models
             };
         }
 
-        public LFSProjectDTO GetDTO()
+        public LFSProjectDTO GetDTO(string lfsBaseUrl)
         {
             return new()
             {
@@ -66,7 +67,8 @@ namespace ThriveDevCenter.Server.Models
                 RepoUrl = RepoUrl,
                 CloneUrl = CloneUrl,
                 UpdatedAt = UpdatedAt,
-                CreatedAt = CreatedAt
+                CreatedAt = CreatedAt,
+                LfsBaseUrl = lfsBaseUrl
             };
         }
     }

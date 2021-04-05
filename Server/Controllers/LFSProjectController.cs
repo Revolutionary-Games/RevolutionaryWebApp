@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Filters;
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
+    using Microsoft.Extensions.Configuration;
     using Models;
     using Shared;
     using Shared.Models;
@@ -25,14 +26,17 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<LFSProjectController> logger;
         private readonly ApplicationDbContext database;
+        private readonly IConfiguration configuration;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
         public LFSProjectController(ILogger<LFSProjectController> logger,
             ApplicationDbContext database,
+            IConfiguration configuration,
             IHubContext<NotificationsHub, INotifications> notifications)
         {
             this.logger = logger;
             this.database = database;
+            this.configuration = configuration;
             this.notifications = notifications;
         }
 
@@ -66,7 +70,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (item == null)
                 return NotFound();
 
-            return item.GetDTO();
+            return item.GetDTO(ComputeProjectGitLFSAccessUrl(item));
         }
 
         [HttpGet("{id:long}/files")]
@@ -111,7 +115,8 @@ namespace ThriveDevCenter.Server.Controllers
             if (item == null)
                 return NotFound();
 
-            var objects = await database.LfsObjects.AsQueryable().Where(l => l.LfsProjectId == item.Id).OrderByDescending(l => l.Id).ToPagedResultAsync(page, pageSize);
+            var objects = await database.LfsObjects.AsQueryable().Where(l => l.LfsProjectId == item.Id)
+                .OrderByDescending(l => l.Id).ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetDTO());
         }
@@ -122,6 +127,12 @@ namespace ThriveDevCenter.Server.Controllers
             // For now LFS list and individual LFS info pages use the same group
             await notifications.Clients.Group(NotificationGroups.LFSListUpdated).ReceiveNotification(new LFSListUpdated
                 { Type = ListItemChangeType.ItemUpdated, Item = item });
+        }
+
+        [NonAction]
+        private string ComputeProjectGitLFSAccessUrl(LfsProject item)
+        {
+            return new Uri(new Uri(configuration["BaseUrl"]), $"/api/v1/lfs/{item.Slug}").ToString();
         }
 
         [NonAction]
