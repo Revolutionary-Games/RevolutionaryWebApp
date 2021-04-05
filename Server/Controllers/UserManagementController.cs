@@ -22,15 +22,15 @@ namespace ThriveDevCenter.Server.Controllers
     public class UserManagementController : Controller
     {
         private readonly ILogger<UserManagementController> logger;
-        private readonly ApplicationDbContext context;
+        private readonly ApplicationDbContext database;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
         public UserManagementController(ILogger<UserManagementController> logger,
-            ApplicationDbContext context,
+            ApplicationDbContext database,
             IHubContext<NotificationsHub, INotifications> notifications)
         {
             this.logger = logger;
-            this.context = context;
+            this.database = database;
             this.notifications = notifications;
         }
 
@@ -44,7 +44,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = context.Users.OrderBy(sortColumn, sortDirection, new[] { "UserName" });
+                query = database.Users.OrderBy(sortColumn, sortDirection, new[] { "UserName" });
             }
             catch (ArgumentException e)
             {
