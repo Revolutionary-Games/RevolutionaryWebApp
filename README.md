@@ -13,6 +13,33 @@ And a database for the account:
 CREATE USER thrivedevcenter WITH LOGIN PASSWORD 'PUTAPASSWORDHERE';
 ```
 
+## Site configuration
+
+To configure the site in production you should use environment
+variables with double underscores, for example: `Tasks__ThreadCount=1`
+
+One of the most important things is to define the `BaseUrl` with a
+trailing slash. For development environment this is already included
+in the template.
+
+To setup local running in development mode, copy the
+`appsettings.Development.json.template` file without the `.template`
+suffix and edit with your database details and potentially other
+tweaks.
+
+Now you can use the dotnet tool to setup the local database (run in the Server folder):
+```sh
+dotnet ef database update
+```
+
+After that running in development should work if you execute
+the following in the Server folder:
+```sh
+dotnet watch run
+```
+
+Then the development site should be available at http://localhost:5000
+now.
 
 
 ### Getting an admin account
