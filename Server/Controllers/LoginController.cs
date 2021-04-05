@@ -645,6 +645,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                     user.Developer = true;
                     user.SsoSource = SsoTypeDevForum;
+                    user.BumpUpdatedAt();
                 }
                 else if (user.SsoSource == SsoTypePatreon && ssoType == SsoTypeCommunityForum)
                 {

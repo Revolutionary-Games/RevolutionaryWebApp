@@ -40,6 +40,8 @@
     <AccessLimited RequiredAccess="UserAccessLevel.Admin">
         <li><strong>Admin</strong>: @User.Admin</li>
         <li><strong>Developer</strong>: @User.Developer</li>
+        <li><strong>Created At</strong>: @User.CreatedAt.ToLocalTime().ToString("G")</li>
+        <li><strong>Updated At</strong>: @User.UpdatedAt.ToLocalTime().ToString("G")</li>
         <li><strong>Suspended</strong>: @User.Suspended</li>
         <li><strong>Suspension reason</strong>: @User.SuspendedReason</li>
         <li><strong>Suspended manually</strong>: @User.SuspendedManually</li>
