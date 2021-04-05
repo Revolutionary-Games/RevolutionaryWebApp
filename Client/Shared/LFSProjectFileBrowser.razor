@@ -51,16 +51,20 @@ else
                     }
 
                     <th scope="row">
-                        <NavLink href="@($"{BasePath}{item.Name}")">@item.Name</NavLink>
+                        <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
                     </th>
 
                     @if (item.Ftype == AppInfo.ItemTypeFolder)
                     {
                         <td>@("item".PrintCount(item.Size))</td>
                     }
-                    else
+                    else if (item.UsesLfsOid)
                     {
                         <td>@item.Size.BytesToMiB()</td>
+                    }
+                    else
+                    {
+                        <td></td>
                     }
 
                     <td>@(item.UsesLfsOid ? "True" : "")</td>
@@ -71,6 +75,8 @@ else
 }
 
 @code {
+
+    private bool reactToParameterChange;
 
     private readonly List<TableColumn> columns = new()
     {
@@ -101,6 +107,14 @@ else
     {
         await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (reactToParameterChange)
+            await FetchData();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
@@ -147,6 +161,7 @@ else
 
     protected override Task<PagedResult<ProjectGitFileDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
+        reactToParameterChange = true;
         return Http.GetFromJsonAsync<PagedResult<ProjectGitFileDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LFSProject/{ProjectId}/files", requestParams));
     }
@@ -156,4 +171,13 @@ else
         await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
+    private string FolderLink(string name)
+    {
+        if (string.IsNullOrEmpty(FileBrowserPath))
+        {
+            return $"{BasePath}{name}";
+        }
+
+        return $"{BasePath}{FileBrowserPath}/{name}";
+    }
 }
