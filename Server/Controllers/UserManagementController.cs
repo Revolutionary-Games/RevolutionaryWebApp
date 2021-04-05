@@ -44,7 +44,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.Users.OrderBy(sortColumn, sortDirection, new[] { "UserName" });
+                query = database.Users.AsQueryable().OrderBy(sortColumn, sortDirection, new[] { "UserName" });
             }
             catch (ArgumentException e)
             {

@@ -45,7 +45,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.LfsProjects.OrderBy(sortColumn, sortDirection);
+                query = database.LfsProjects.AsQueryable().OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -85,8 +85,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.ProjectGitFiles.AsAsyncEnumerable().Where(p => p.LfsProjectId == item.Id && p.Path == path).AsAsyncEnumerable().
-                    OrderByDescending(p => p.Ftype).ThenBy(p => p.Name);
+                query = database.ProjectGitFiles.AsQueryable()
+                    .Where(p => p.LfsProjectId == item.Id && p.Path == path).ToAsyncEnumerable()
+                    .OrderByDescending(p => p.Ftype).ThenBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
