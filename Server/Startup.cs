@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server
     using System;
     using System.Linq;
     using System.Threading;
+    using System.Threading.Tasks;
     using AspNetCoreRateLimit;
     using Authorization;
     using Filters;
@@ -12,6 +13,7 @@ namespace ThriveDevCenter.Server
     using Jobs;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.AspNetCore.ResponseCompression;
     using Microsoft.EntityFrameworkCore;
@@ -210,6 +212,15 @@ namespace ThriveDevCenter.Server
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
                 endpoints.MapHub<NotificationsHub>("/notifications");
+
+                // Fallback to 404 for non-existent API routes
+                endpoints.Map("/api/{*anything}", context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return Task.CompletedTask;
+                });
+
+                // For other routes the client side app loads and then that displays the path not found
                 endpoints.MapFallbackToPage("/_Host");
             });
 
