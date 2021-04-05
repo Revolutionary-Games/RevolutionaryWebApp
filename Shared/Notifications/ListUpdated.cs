@@ -23,4 +23,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class ProjectGitFileUpdated : ListUpdated<ProjectGitFileDTO>
     {
     }
+
+    public class LfsObjectUpdated : ListUpdated<LfsObjectDTO>
+    {
+    }
 }

@@ -100,6 +100,22 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.ConvertResult(i => i.GetDTO());
         }
 
+        [HttpGet("{id:long}/raw")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        public async Task<ActionResult<PagedResult<LfsObjectDTO>>> GetRawObjects([Required] long id,
+            [Required] [Range(1, int.MaxValue)] int page,
+            [Required] [Range(1, 200)] int pageSize)
+        {
+            var item = await FindAndCheckAccess(id);
+
+            if (item == null)
+                return NotFound();
+
+            var objects = await database.LfsObjects.AsQueryable().Where(l => l.LfsProjectId == item.Id).OrderByDescending(l => l.Id).ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO());
+        }
+
         [NonAction]
         private async Task ReportUpdatedProject(LFSProjectInfo item)
         {

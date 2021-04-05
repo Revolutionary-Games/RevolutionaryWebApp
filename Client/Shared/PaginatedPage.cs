@@ -63,6 +63,8 @@ namespace ThriveDevCenter.Client.Shared
         /// </summary>
         public bool VisibleFetchInProgress { get; protected set; }
 
+        public bool AutoFetchDataOnInit { get; set; } = true;
+
         public bool NoItemsFound => Data != null && Data.Results.Length < 1;
 
         protected readonly SortHelper Sort;
@@ -161,7 +163,8 @@ namespace ThriveDevCenter.Client.Shared
 
         protected override async Task OnInitializedAsync()
         {
-            await FetchData();
+            if(AutoFetchDataOnInit)
+                await FetchData();
         }
 
         protected async Task FetchData(bool hidden = false)
@@ -236,6 +239,9 @@ namespace ThriveDevCenter.Client.Shared
         ///   Child classes can update the current url or whatever they want here once a query is sent
         /// </summary>
         /// <param name="requestParams">The params the query was sent with, this is now safe to modify</param>
-        protected abstract Task OnQuerySent(Dictionary<string, string> requestParams);
+        protected virtual Task OnQuerySent(Dictionary<string, string> requestParams)
+        {
+            return Task.CompletedTask;
+        }
     }
 }
