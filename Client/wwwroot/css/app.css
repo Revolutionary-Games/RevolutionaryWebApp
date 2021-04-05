@@ -26,6 +26,7 @@ a.active:hover {
 
 .content {
     padding-top: 1.1rem;
+    padding-bottom: 0.5rem;
 }
 
 .valid.modified:not([type=checkbox]) {
