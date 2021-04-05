@@ -45,9 +45,14 @@ namespace ThriveDevCenter.Server.Authorization
             }
             else if (context.Items.ContainsKey(AppInfo.CSRFNeededName))
             {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsync("CSRF token is required for this request.");
-                return;
+                // Download endpoints (for usability with direct links, don't require this)
+                if (!context.Request.Path.StartsWithSegments("/api/v1/download") &&
+                    !context.Request.Path.StartsWithSegments("/api/v1/download_lfs"))
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsync("CSRF token is required for this request.");
+                    return;
+                }
             }
 
             await next.Invoke(context);
