@@ -51,7 +51,18 @@ else
                     }
 
                     <th scope="row">
-                        <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
+                        @if (item.Ftype == AppInfo.ItemTypeFolder)
+                        {
+                            <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
+                        }
+                        else if(item.UsesLfsOid)
+                        {
+                            <a href="@ApiDownloadLink(item.Name)" target="_blank">@item.Name</a>
+                        }
+                        else
+                        {
+                            <a href="@GitRepoUrl(item.Name)" target="_blank">@item.Name</a>
+                        }
                     </th>
 
                     @if (item.Ftype == AppInfo.ItemTypeFolder)
@@ -101,7 +112,11 @@ else
     public string Name { get; set; }
 
     [Parameter]
-    public long ProjectId { get; set; }
+    public LFSProjectDTO Project { get; set; }
+
+    private string CurrentPathSlashPrefix => "/" + (FileBrowserPath ?? string.Empty);
+
+    private string SlashIfPathNotEmpty => string.IsNullOrEmpty(FileBrowserPath) ? string.Empty : "/";
 
     protected override async Task OnInitializedAsync()
     {
@@ -147,7 +162,7 @@ else
         var requestParams = base.CreatePageRequestParams();
 
         // In the API paths need to start with a slash
-        requestParams["path"] = "/" + (FileBrowserPath ?? String.Empty);
+        requestParams["path"] = CurrentPathSlashPrefix;
 
         return requestParams;
     }
@@ -163,7 +178,7 @@ else
     {
         reactToParameterChange = true;
         return Http.GetFromJsonAsync<PagedResult<ProjectGitFileDTO>>(
-            QueryHelpers.AddQueryString($"api/v1/LFSProject/{ProjectId}/files", requestParams));
+            QueryHelpers.AddQueryString($"api/v1/LFSProject/{Project.Id}/files", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
@@ -173,11 +188,22 @@ else
 
     private string FolderLink(string name)
     {
-        if (string.IsNullOrEmpty(FileBrowserPath))
-        {
-            return $"{BasePath}{name}";
-        }
-
-        return $"{BasePath}{FileBrowserPath}/{name}";
+        return $"{BasePath}{FileBrowserPath}{SlashIfPathNotEmpty}{name}";
     }
+
+    private string ApiDownloadLink(string name)
+    {
+        return QueryHelpers.AddQueryString("/api/v1/download_lfs", new Dictionary<string, string>
+        {
+            {"project", Project.Id.ToString()},
+            { "path", CurrentPathSlashPrefix },
+            { "name", name }
+        });
+    }
+
+    private string GitRepoUrl(string name)
+    {
+        return $"{Project.RepoUrl}/tree/master{CurrentPathSlashPrefix}{SlashIfPathNotEmpty}{name}";
+    }
+
 }
