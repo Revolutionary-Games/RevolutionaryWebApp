@@ -29,7 +29,7 @@
             @Data.FileTreeCommit
         </p>
 
-        <LFSProjectFileBrowser BasePath="@($"lfs/{Data.Id}/")" Name="@Data.Name" Project="@Data"
+        <LFSProjectFileBrowser BasePath="@($"lfs/{Data.Id}/")" RootFolderName="@Data.Name" Project="@Data"
                                FileBrowserPath="@FileBrowserPath"/>
 
         <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">

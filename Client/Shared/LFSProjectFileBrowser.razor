@@ -10,9 +10,9 @@
 @using System.Threading
 @implements ThriveDevCenter.Client.Services.INotificationHandler<ProjectGitFileUpdated>
 @implements IAsyncDisposable
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ProjectGitFileDTO>
+@inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.ProjectGitFileDTO>
 
-<Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="@Name" />
+<Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="@RootFolderName" />
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -86,9 +86,6 @@ else
 }
 
 @code {
-
-    private bool reactToParameterChange;
-
     private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Type", false),
@@ -97,39 +94,13 @@ else
         new TableColumn("LFS?", false),
     };
 
-    public LFSProjectFileBrowser() : base(new SortHelper("Name", SortDirection.Ascending))
-    {
-        DefaultPageSize = 100;
-    }
-
-    [Parameter]
-    public string FileBrowserPath { get; set; }
-
-    [Parameter]
-    public string BasePath { get; set; }
-
-    [Parameter]
-    public string Name { get; set; }
-
     [Parameter]
     public LFSProjectDTO Project { get; set; }
-
-    private string CurrentPathSlashPrefix => "/" + (FileBrowserPath ?? string.Empty);
-
-    private string SlashIfPathNotEmpty => string.IsNullOrEmpty(FileBrowserPath) ? string.Empty : "/";
 
     protected override async Task OnInitializedAsync()
     {
         await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        await base.OnParametersSetAsync();
-
-        if (reactToParameterChange)
-            await FetchData();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
@@ -146,10 +117,10 @@ else
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.LFSListUpdated);
-
+        // TODO: implement notifications
+        /* groups.Add(NotificationGroups.LFSGitFileUpdated);
         if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
-            groups.Add(NotificationGroups.PrivateLFSUpdated);
+            groups.Add(NotificationGroups.PrivateLFSGitFile + Project.Id.ToString()); */
     }
 
     public async ValueTask DisposeAsync()
@@ -176,26 +147,21 @@ else
 
     protected override Task<PagedResult<ProjectGitFileDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
-        reactToParameterChange = true;
         return Http.GetFromJsonAsync<PagedResult<ProjectGitFileDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LFSProject/{Project.Id}/files", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
+        await base.OnQuerySent(requestParams);
         await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
-    }
-
-    private string FolderLink(string name)
-    {
-        return $"{BasePath}{FileBrowserPath}{SlashIfPathNotEmpty}{name}";
     }
 
     private string ApiDownloadLink(string name)
     {
         return QueryHelpers.AddQueryString("/api/v1/download_lfs", new Dictionary<string, string>
         {
-            {"project", Project.Id.ToString()},
+            { "project", Project.Id.ToString() },
             { "path", CurrentPathSlashPrefix },
             { "name", name }
         });
