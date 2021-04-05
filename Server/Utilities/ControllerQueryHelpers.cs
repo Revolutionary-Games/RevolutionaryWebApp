@@ -77,7 +77,7 @@ namespace ThriveDevCenter.Server.Utilities
             return source.ThenBy(lambda);
         }
 
-        private static Func<T, dynamic> CreatePropertySelector<T>(string column, IEnumerable<string> extraAllowedColumns)
+        private static Func<T, object> CreatePropertySelector<T>(string column, IEnumerable<string> extraAllowedColumns)
         {
             var parameter = Expression.Parameter(typeof(T), "x");
             var selector = Expression.PropertyOrField(parameter, column);
@@ -86,8 +86,7 @@ namespace ThriveDevCenter.Server.Utilities
 
             var cast = Expression.Convert(selector, typeof(object));
 
-            // Using dynamic here might not be optimal, but I couldn't think of another way to get this to compile
-            return (Func<T, dynamic>)Expression.Lambda(cast, parameter).Compile();
+            return (Func<T, object>)Expression.Lambda(cast, parameter).Compile();
         }
     }
 }
