@@ -1,0 +1,35 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="/admin">Admin</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="@NavMenuCssClass navbar-collapse" @onclick="ToggleNavMenu">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+                <NavLink Match="NavLinkMatch.All" href="admin" class="nav-link">Home</NavLink>
+            </li>
+            <li class="nav-item">
+                <NavLink href="admin/email" class="nav-link">Email</NavLink>
+            </li>
+            <li class="nav-item">
+                <NavLink href="admin/patreon" class="nav-link">Patreon</NavLink>
+            </li>
+            <li class="nav-item">
+                <NavLink href="admin/accessKeys" class="nav-link">Access Keys</NavLink>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+}

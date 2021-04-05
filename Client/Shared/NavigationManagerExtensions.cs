@@ -26,5 +26,13 @@ namespace ThriveDevCenter.Client.Shared
         {
             navigationManager.NavigateTo(navigationManager.Uri, true);
         }
+
+        public static string RelativeUrl(this NavigationManager navigationManager)
+        {
+            if (!navigationManager.Uri.StartsWith(navigationManager.BaseUri))
+                return navigationManager.Uri;
+
+            return navigationManager.Uri.Substring(navigationManager.BaseUri.Length);
+        }
     }
 }

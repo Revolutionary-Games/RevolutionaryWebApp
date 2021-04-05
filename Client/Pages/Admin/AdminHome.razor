@@ -1,0 +1,15 @@
+@page "/admin"
+@using ThriveDevCenter.Shared.Models
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+
+    <h3>Admin Area</h3>
+
+    <p>This is the site admin area.</p>
+
+    <span>You can view background job statuses <a href="/hangfire" target="_blank">here</a>.</span>
+
+</AccessLimited>
+
+@code {
+}

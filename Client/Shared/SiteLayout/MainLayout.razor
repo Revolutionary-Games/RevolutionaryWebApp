@@ -1,5 +1,5 @@
 @inherits LayoutComponentBase
-
+@inject NavigationManager NavigationManager
 
 <div class="page">
     <MediaQueryList>
@@ -9,6 +9,11 @@
 
         <div class="main">
             <TopNavBar />
+
+            @if (NavigationManager.RelativeUrl().StartsWith("admin"))
+            {
+                <AdminNavBar />
+            }
 
             <AnotherTabSigninDetector />
             <CSRFExpiryAlerter />

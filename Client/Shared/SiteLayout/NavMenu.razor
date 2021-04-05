@@ -33,11 +33,16 @@
                 <span class="oi oi-info" aria-hidden="true"></span> About
             </NavLink>
         </li>
-        <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="false">
+        <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
             <hr/>
             <li class="nav-item px-3">
                 <NavLink id="leftUsersButton" class="nav-link" href="users">
                     <span class="oi oi-spreadsheet" aria-hidden="true"></span> Users
+                </NavLink>
+            </li>
+            <li class="nav-item px-3">
+                <NavLink id="leftAdminButton" class="nav-link" href="admin">
+                    <span class="oi oi-shield" aria-hidden="true"></span> Admin
                 </NavLink>
             </li>
         </AccessLimited>
