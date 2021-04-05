@@ -19,4 +19,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class UserListUpdated : ListUpdated<UserInfo>
     {
     }
+
+    public class ProjectGitFileUpdated : ListUpdated<ProjectGitFileDTO>
+    {
+    }
 }

@@ -11,11 +11,6 @@
 
         <ul>
             <li><strong>Public</strong>: @Data.Public</li>
-            <li><strong>TotalObjectSize</strong>: @Data.TotalObjectSize.BytesToMiB()</li>
-            <li><strong>TotalObjectCount</strong>: @Data.TotalObjectCount</li>
-            <li><strong>TotalSizeUpdated</strong>: @Data.TotalSizeUpdated?.ToLocalTime().ToString("G")</li>
-
-            <li><strong>FileTreeCommit</strong>: @Data.FileTreeCommit</li>
             <li><strong>Git LFS URL</strong>: TODO: reimplement this</li>
             <li><strong>Repository URL</strong>: <a href="@Data.RepoUrl">@Data.RepoUrl</a></li>
             <li><strong>Clone URL</strong>: @Data.CloneUrl</li>
@@ -30,10 +25,42 @@
 
         <h3>Files</h3>
         <p>
-            File tree generated at: @Data.FileTreeUpdated?.ToLocalTime().ToString("G")
+            File tree generated at: @Data.FileTreeUpdated?.ToLocalTime().ToString("G") from commit:
+            @Data.FileTreeCommit
         </p>
 
-        <Breadcrumbs BasePath="@($"lfs/{Data.Id}/")" CurrentPath="@FileBrowserPath" RootPathName="@Data.Name" />
+        <LFSProjectFileBrowser BasePath="@($"lfs/{Data.Id}/")" Name="@Data.Name" ProjectId="@Data.Id"
+                               FileBrowserPath="@FileBrowserPath"/>
+
+        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+            <p>TODO: reimplement these:</p>
+            <Button ButtonStyle="warning" Enabled="false">Refresh</Button>
+            <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Admin">
+                <Button class="mx-1" ButtonStyle="danger" Enabled="false">Rebuild</Button>
+            </AccessLimited>
+        </AccessLimited>
+
+        <hr />
+        <h3>Statistics</h3>
+        <table class="table table-bordered">
+            <caption>Statistics updated: @Data.TotalSizeUpdated?.ToLocalTime().ToString("G")</caption>
+            <tbody>
+            <tr>
+                <th scope="row">Total size (MiB)</th>
+                <td>@Data.TotalObjectSize.BytesToMiB()</td>
+            </tr>
+            <tr>
+                <th scope="row">Object count</th>
+                <td>@Data.TotalObjectCount</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+            <h3>Raw Objects</h3>
+            <p>TODO: reimplement</p>
+            <Button ButtonStyle="secondary" Enabled="false">View Raw Git LFS Objects</Button>
+        </AccessLimited>
     }
 </SingleResourceDisplayer>
 

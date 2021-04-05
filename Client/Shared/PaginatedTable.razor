@@ -1,6 +1,6 @@
 <div>
     <div style="position: relative">
-        <table class="table sortable table-striped table-hover table-responsive-sm">
+        <table class="table sortable table-striped table-hover @ResponsiveType">
             <thead class="thead-light">
             <tr>
                 @foreach (var column in Columns)
@@ -78,6 +78,9 @@
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string ResponsiveType { get; set; } = "table-responsive-sm";
 
     /// <summary>
     ///   When true shows the paginator and CurrentPage etc. should be fine. When false shows a spinner under the table

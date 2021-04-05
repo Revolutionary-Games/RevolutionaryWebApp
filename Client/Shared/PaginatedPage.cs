@@ -196,7 +196,7 @@ namespace ThriveDevCenter.Client.Shared
             StateHasChanged();
         }
 
-        protected Dictionary<string, string> CreatePageRequestParams()
+        protected virtual Dictionary<string, string> CreatePageRequestParams()
         {
             return new Dictionary<string, string>
             {

@@ -1,0 +1,123 @@
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper UrlHelper
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Client.Services
+@using System.Threading
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ProjectGitFileUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ProjectGitFileDTO>
+
+<Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="@Name" />
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    @* TODO: move to proper icons *@
+                    <td>@item.Ftype</td>
+                    <th scope="row"><NavLink href="@($"{BasePath}/{item.Name}")">@item.Name</NavLink></th>
+                    <td>@item.Size</td>
+                    <td>@(!string.IsNullOrEmpty(@item.LfsOid))</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Type", true, "Ftype"),
+        new TableColumn("Name", true),
+        new TableColumn("Size", true),
+        new TableColumn("LFS?", false),
+    };
+
+    public LFSProjectFileBrowser() : base(new SortHelper("Name", SortDirection.Ascending))
+    {
+    }
+
+    [Parameter]
+    public string FileBrowserPath { get; set; }
+
+    [Parameter]
+    public string BasePath { get; set; }
+
+    [Parameter]
+    public string Name { get; set; }
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(ProjectGitFileUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.LFSListUpdated);
+
+        if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
+            groups.Add(NotificationGroups.PrivateLFSUpdated);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Dictionary<string, string> CreatePageRequestParams()
+    {
+        var requestParams = base.CreatePageRequestParams();
+
+        requestParams["path"] = FileBrowserPath ?? string.Empty;
+
+        return requestParams;
+    }
+
+    protected override Task<PagedResult<ProjectGitFileDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<ProjectGitFileDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/LFSProject/{ProjectId}/files", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+}
