@@ -31,4 +31,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class PatronListUpdated : ListUpdated<PatronDTO>
     {
     }
+
+    public class AccessKeyListUpdated : ListUpdated<AccessKeyDTO>
+    {
+    }
 }
