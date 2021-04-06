@@ -5,7 +5,7 @@
 @using ThriveDevCenter.Shared
 @inject NotificationHandler NotificationHandler
 @inject HttpClient Http
-@implements ThriveDevCenter.Client.Services.INotificationHandler<ThriveDevCenter.Shared.Notifications.LfsObjectUpdated>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ThriveDevCenter.Shared.Notifications.LfsObjectListUpdated>
 @implements IAsyncDisposable
 @inherits PaginatedPage<LfsObjectDTO>
 
@@ -75,7 +75,7 @@ else
         await base.OnInitializedAsync();
     }
 
-    public Task Handle(LfsObjectUpdated notification, CancellationToken cancellationToken)
+    public Task Handle(LfsObjectListUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
     }

@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Shared.Notifications
     {
     }
 
-    public class LfsObjectUpdated : ListUpdated<LfsObjectDTO>
+    public class LfsObjectListUpdated : ListUpdated<LfsObjectDTO>
     {
     }
 
