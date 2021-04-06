@@ -57,6 +57,25 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.ConvertResult(i => i.GetInfo(RecordAccessLevel.Admin));
         }
 
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [HttpGet("{id:long}")]
+        public async Task<ActionResult<UserInfo>> GetUser([Required] long id)
+        {
+            bool admin =
+                HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
+
+            var user = await database.Users.FindAsync(id);
+
+            if (user == null)
+                return NotFound();
+
+            // Has to be an admin or looking at their own data
+            if (!admin && HttpContext.AuthenticatedUser().Id != user.Id)
+                return NotFound();
+
+            return user.GetInfo(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
+        }
+
         [NonAction]
         private async Task InvalidateUserSessions(string userId)
         {

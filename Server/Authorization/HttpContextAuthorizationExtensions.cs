@@ -27,18 +27,13 @@ namespace ThriveDevCenter.Server.Authorization
             if (requiredAccess == UserAccessLevel.NotLoggedIn)
                 return AuthenticationResult.Success;
 
-            if (context.User.Identity == null ||
-                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser))
-            {
+            var user = context.AuthenticatedUser();
+
+            if (user == null)
                 return AuthenticationResult.NoUser;
-            }
 
-            var user = rawUser as User;
-
-            if (user == null || !user.HasAccessLevel(requiredAccess))
-            {
+            if (!user.HasAccessLevel(requiredAccess))
                 return AuthenticationResult.NoAccess;
-            }
 
             if (requiredRestriction != null)
             {
@@ -62,6 +57,17 @@ namespace ThriveDevCenter.Server.Authorization
         {
             return context.HasAuthenticatedUserWithAccessExtended(requiredAccess, requiredRestriction) ==
                 AuthenticationResult.Success;
+        }
+
+        public static User AuthenticatedUser(this HttpContext context)
+        {
+            if (context.User.Identity == null ||
+                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser))
+            {
+                return null;
+            }
+
+            return rawUser as User;
         }
     }
 }

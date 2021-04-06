@@ -1,0 +1,27 @@
+@page "/users/{Id:long}"
+@inject HttpClient Http
+@inherits SingleResourcePage<UserInfo>
+@using ThriveDevCenter.Shared.Models
+
+<h3>User: @Id</h3>
+
+<LoggedInContent>
+    <NotLoggedIn>
+        <RedirectToLogin />
+    </NotLoggedIn>
+    <LoggedIn>
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                <UserInfoPageContent User="@Data" ShowSelfIdentification="@true" />
+            }
+        </SingleResourceDisplayer>
+    </LoggedIn>
+</LoggedInContent>
+
+@code {
+    protected override Task<UserInfo> StartQuery()
+    {
+        return Http.GetFromJsonAsync<UserInfo>($"api/v1/UserManagement/{Id}");
+    }
+}

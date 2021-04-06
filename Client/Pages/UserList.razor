@@ -36,7 +36,7 @@ else
                 @foreach (var item in Data.Results)
                 {
                     <tr @key="item.Id">
-                        <td>@item.Name</td>
+                        <th scope="row"><NavLink href="@($"users/{item.Id}")">@item.Name</NavLink></th>
                         <td>@item.Suspended</td>
                         <td>@item.SsoSource</td>
                         <td>@item.Developer</td>

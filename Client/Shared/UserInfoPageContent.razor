@@ -60,11 +60,38 @@
 <div>
     @if (LookingAtSelf)
     {
-        <Button ButtonStyle="success" Enabled="false">Link Launcher</Button>
+        <Button class="mb-2" ButtonStyle="success" Enabled="@false">Link Launcher</Button>
     }
-    <Button class="mx-1" ButtonStyle="danger" Enabled="false">Unlink All Launchers</Button>
+    <Button class="mx-1 mb-2" ButtonStyle="danger" Enabled="@false">Unlink All Launchers</Button>
 </div>
 
+<h4>Sessions</h4>
+
+<p>TODO: implement session list</p>
+
+<h4>Actions</h4>
+
+@if (LookingAtSelf)
+{
+    <Button class="mb-1" ButtonStyle="warning" Enabled="@false">Logout Everywhere</Button>
+    <br />
+}
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin">
+    <Button class="mb-1" ButtonStyle="danger" Enabled="@false">Force Logout</Button>
+    <br />
+    <Button class="mb-1" ButtonStyle="danger" Enabled="@false">Force Clear Tokens</Button>
+    <br />
+
+    @if (User.Suspended != true)
+    {
+        <Button class="mb-1" ButtonStyle="danger" Enabled="@false">Suspend</Button>
+    } else
+    {
+        <Button class="mb-1" ButtonStyle="secondary" Enabled="@false">Remove Suspension</Button>
+    }
+    <br />
+</AccessLimited>
 
 @code {
 
