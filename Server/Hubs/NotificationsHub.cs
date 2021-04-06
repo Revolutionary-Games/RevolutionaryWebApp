@@ -154,11 +154,12 @@ namespace ThriveDevCenter.Server.Hubs
             switch (groupName)
             {
                 case NotificationGroups.UserListUpdated:
+                case NotificationGroups.PatronListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
-                case NotificationGroups.LFSListUpdated:
-                    return RequireAccessLevel(UserAccessLevel.NotLoggedIn, user);
                 case NotificationGroups.PrivateLFSUpdated:
                     return RequireAccessLevel(UserAccessLevel.Developer, user);
+                case NotificationGroups.LFSListUpdated:
+                    return RequireAccessLevel(UserAccessLevel.NotLoggedIn, user);
             }
 
             // Then check prefixes

@@ -29,6 +29,11 @@ a.active:hover {
     padding-bottom: 0.5rem;
 }
 
+.full-width {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }
