@@ -71,13 +71,6 @@ else
         await base.OnInitializedAsync();
     }
 
-    public override Task SetParametersAsync(ParameterView parameters)
-    {
-        this.SetParametersFromQueryString(NavManager);
-
-        return base.SetParametersAsync(parameters);
-    }
-
     public Task Handle(PatronListUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
@@ -85,7 +78,8 @@ else
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.UserListUpdated);
+        // TODO: this notification group currently isn't called at all
+        groups.Add(NotificationGroups.PatronListUpdated);
     }
 
     public async ValueTask DisposeAsync()
