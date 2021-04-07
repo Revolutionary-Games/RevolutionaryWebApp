@@ -126,7 +126,7 @@ install. With this you just need docker to build the images with and a
 server running docker where you can deploy the images as running
 containers.
 
-```
+```sh
 docker build . --target proxy --tag thrivedevcenter-proxy:latest
 docker build . --target application --tag thrivedevcenter-web:latest
 
@@ -138,6 +138,15 @@ docker run -d -v redis_data:/data --rm --restart on-failure --name thrivedevcent
 docker run -d --rm --restart on-failure --name thrivedevcenter_web --network=thrivedevcenter -e PGPASSWORD=SPECIFYAPASSWORD thrivedevcenter-web:latest
 docker run -d -p 80:80 --rm --restart on-failure --name thrivedevcenter_proxy --network=thrivedevcenter thrivedevcenter-proxy:latest
 ```
+
+Currently the proxy container only resolves the web backend IP on
+startup, so if you restart the containers or start them in the wrong
+order, run:
+```sh
+docker restart thrivedevcenter_proxy
+```
+
+To get things working again.
 
 --
 
