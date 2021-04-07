@@ -47,7 +47,7 @@ http {
         # Can't use http2 without SSL... Turn it on if you configure SSL
         listen [::]:80 ipv6only=on;
         listen 80;
-        root         /var/www/html;
+        root         /var/www/html/thrivedevcenter;
 
         # Load configuration files for the default server block.
         include /etc/nginx/default.d/*.conf;
@@ -65,7 +65,7 @@ http {
             limit_conn devcenterwebsocket 15;
             limit_conn_status 429;
 
-            proxy_pass http://localhost:5000;
+            proxy_pass http://thrivedevcenter_web:5000;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
@@ -83,7 +83,7 @@ http {
              limit_req zone=devcenterproxy burst=20 delay=10;
              limit_req_status 429;
 
-             proxy_pass http://localhost:5000;
+             proxy_pass http://thrivedevcenter_web:5000;
              proxy_http_version 1.1;
              proxy_set_header Connection keep-alive;
              proxy_set_header Host $host;

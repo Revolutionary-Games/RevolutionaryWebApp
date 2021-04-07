@@ -14,7 +14,7 @@
     "Expiry": 1209600
   },
   "ConnectionStrings": {
-    "WebApiConnection": "NOT CONFIGURED"
+    "WebApiConnection": "User ID=postgres;Password=PASSWORDHERE;Server=thrivedevcenter_db;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;"
   },
   "AllowedHosts": "*"
 }
