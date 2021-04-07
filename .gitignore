@@ -12,3 +12,4 @@ obj
 /.idea/.idea.ThriveDevCenter/.idea/dataSources/
 /.idea/.idea.ThriveDevCenter/.idea/dataSources.local.xml
 /tmp
+/docker*

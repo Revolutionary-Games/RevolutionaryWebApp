@@ -1,0 +1,20 @@
+{
+  "BaseUrl": "SETBASEURLHERE",
+  "Login": {
+    "Local": {
+      "Enabled": true
+    }
+  },
+  "Registration": {
+    "Enabled": true,
+    "RegistrationCode": "SETASECUREREGISTRATIONCODEHERE"
+  },
+  "CSRF": {
+    "Secret": "SETASECURERANDOMSTRINGHERE",
+    "Expiry": 1209600
+  },
+  "ConnectionStrings": {
+    "WebApiConnection": "NOT CONFIGURED"
+  },
+  "AllowedHosts": "*"
+}

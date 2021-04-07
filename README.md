@@ -118,6 +118,19 @@ You should then stop the test server once the tests have been ran.
 
 See: https://github.com/dotnet/aspnetcore/issues/4892 for why this is needed
 
+
+## Running with Docker
+
+The app can be ran entirely in docker instead of a system
+install. With this you just need docker to build the images with and a
+server running docker where you can deploy the images as running
+containers.
+
+```
+docker build . --target proxy --tag thrivedevcenter-proxy:latest
+docker build . --target application --tag thrivedevcenter-web:latest
+```
+
 --
 
 OLD CONTENT:
