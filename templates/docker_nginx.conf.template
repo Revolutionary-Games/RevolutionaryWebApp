@@ -39,6 +39,8 @@ http {
         '' close;
     }
 
+    include resolvers.conf;
+
     limit_req_zone $binary_remote_addr zone=devcenterfiles:10m rate=12r/s;
     limit_req_zone $binary_remote_addr zone=devcenterproxy:10m rate=2r/s;
     limit_conn_zone $binary_remote_addr zone=devcenterwebsocket:10m;
@@ -59,13 +61,15 @@ http {
         sendfile on;
         try_files $uri @proxy;
 
+        set $backend "http://thrivedevcenter_web:5000";
+
         location /notifications {
             limit_req zone=devcenterproxy burst=10 delay=5;
             limit_req_status 429;
             limit_conn devcenterwebsocket 15;
             limit_conn_status 429;
 
-            proxy_pass http://thrivedevcenter_web:5000;
+            proxy_pass $backend;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
@@ -83,7 +87,7 @@ http {
              limit_req zone=devcenterproxy burst=20 delay=10;
              limit_req_status 429;
 
-             proxy_pass http://thrivedevcenter_web:5000;
+             proxy_pass $backend;
              proxy_http_version 1.1;
              proxy_set_header Connection keep-alive;
              proxy_set_header Host $host;

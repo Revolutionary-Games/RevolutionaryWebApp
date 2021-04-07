@@ -30,9 +30,12 @@ COPY --from=builder /root/build/Client/bin/Release/net${DOTNET_VERSION}/publish/
 
 COPY docker_nginx.conf /etc/nginx/nginx.conf
 
+COPY docker/nginx_entrypoint.sh /entrypoint.sh
+
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
 
-CMD nginx
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["nginx"]
 
 FROM fedora:33 as application
 ENV DOTNET_VERSION "5.0"

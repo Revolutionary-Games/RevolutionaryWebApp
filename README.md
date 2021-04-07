@@ -139,15 +139,6 @@ docker run -d --rm --restart on-failure --name thrivedevcenter_web --network=thr
 docker run -d -p 80:80 --rm --restart on-failure --name thrivedevcenter_proxy --network=thrivedevcenter thrivedevcenter-proxy:latest
 ```
 
-Currently the proxy container only resolves the web backend IP on
-startup, so if you restart the containers or start them in the wrong
-order, run:
-```sh
-docker restart thrivedevcenter_proxy
-```
-
-To get things working again.
-
 --
 
 OLD CONTENT:
