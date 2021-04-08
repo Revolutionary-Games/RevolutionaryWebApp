@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
     using Shared;
+    using Shared.Models;
 
     /// <summary>
     ///   A logged admin action
@@ -20,10 +21,24 @@ namespace ThriveDevCenter.Server.Models
         /// <summary>
         ///   The user targeted in this action (maybe null). This is implicitly indexed
         /// </summary>
+        [AllowSortingBy]
         public long? TargetUserId { get; set; }
         public User TargetUser { get; set; }
 
+        [AllowSortingBy]
         public long? PerformedById { get; set; }
         public User PerformedBy { get; set; }
+
+        public AdminActionDTO GetDTO()
+        {
+            return new()
+            {
+                Id = Id,
+                Message = Message,
+                CreatedAt = CreatedAt,
+                TargetUserId = TargetUserId,
+                PerformedById = PerformedById
+            };
+        }
     }
 }

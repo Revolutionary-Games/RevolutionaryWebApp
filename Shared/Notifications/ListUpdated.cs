@@ -35,4 +35,12 @@ namespace ThriveDevCenter.Shared.Notifications
     public class AccessKeyListUpdated : ListUpdated<AccessKeyDTO>
     {
     }
+
+    public class LogEntriesUpdated : ListUpdated<LogEntryDTO>
+    {
+    }
+
+    public class AdminActionsUpdated : ListUpdated<AdminActionDTO>
+    {
+    }
 }
