@@ -12,6 +12,7 @@ namespace ThriveDevCenter.Server
     using Hubs;
     using Jobs;
     using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.DataProtection;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.HttpOverrides;
@@ -23,6 +24,7 @@ namespace ThriveDevCenter.Server
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
+    using StackExchange.Redis;
     using Utilities;
 
     public class Startup
@@ -45,17 +47,50 @@ namespace ThriveDevCenter.Server
 
         public IConfiguration Configuration { get; }
 
+        private string SharedStateRedisConnectionString => Configuration.GetConnectionString("RedisSharedState");
+
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddOptions();
 
-            // Used for rate limit storage
+            if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))
+            {
+                var redis = ConnectionMultiplexer.Connect(SharedStateRedisConnectionString);
+
+                services.AddSingleton<IConnectionMultiplexer>(redis);
+
+                services.AddDataProtection()
+                    .PersistKeysToStackExchangeRedis(redis, "ThriveDevCenterDataProtectionKeys");
+
+                services.AddStackExchangeRedisCache(options =>
+                {
+                    options.ConfigurationOptions = ConfigurationOptions.Parse(SharedStateRedisConnectionString);
+                    // Silent background retry
+                    options.ConfigurationOptions.AbortOnConnectFail = false;
+
+                    options.Configuration = SharedStateRedisConnectionString;
+
+                    // This already works for channel prefix
+                    options.InstanceName = "ThriveDevSharedCache";
+                });
+            }
+
+            // Used for rate limit storage (when not using redis)
             services.AddMemoryCache();
 
             // TODO: message pack protocol
-            services.AddSignalR();
+            if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))
+            {
+                services.AddSignalR().AddStackExchangeRedis(SharedStateRedisConnectionString,
+                    options => { options.Configuration.ChannelPrefix = "ThriveDevNotifications"; });
+            }
+            else
+            {
+                services.AddSignalR();
+            }
+
             services.AddControllersWithViews();
             services.AddRazorPages();
 
@@ -69,9 +104,19 @@ namespace ThriveDevCenter.Server
             services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
             services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
-            // Make rate-limit services available
-            services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
-            services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+            // Rate limit service setup
+            if (!string.IsNullOrEmpty(SharedStateRedisConnectionString) &&
+                Convert.ToBoolean(Configuration["RateLimitStorageAllowRedis"]))
+            {
+                // Due to https://github.com/stefanprodan/AspNetCoreRateLimit/issues/83 this is disabled by default
+                services.AddSingleton<IIpPolicyStore, DistributedCacheIpPolicyStore>();
+                services.AddSingleton<IRateLimitCounterStore, DistributedCacheRateLimitCounterStore>();
+            }
+            else
+            {
+                services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+                services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+            }
 
             services.AddDbContext<ApplicationDbContext>(opts =>
                 opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection")));
@@ -121,6 +166,8 @@ namespace ThriveDevCenter.Server
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            var logger = app.ApplicationServices.GetRequiredService<ILogger<Startup>>();
+
             if (env.IsDevelopment() && !string.IsNullOrEmpty(Configuration["IsActuallyTesting"]))
             {
                 var isTesting = Convert.ToBoolean(Configuration["IsActuallyTesting"]);
@@ -130,7 +177,6 @@ namespace ThriveDevCenter.Server
 
                 if (isTesting && deleteDb)
                 {
-                    var logger = app.ApplicationServices.GetRequiredService<ILogger<Startup>>();
                     logger.LogInformation("Recreating DB because in Testing environment with that enabled");
 
                     var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -144,6 +190,9 @@ namespace ThriveDevCenter.Server
                     // TODO: seed some special data
                 }
             }
+
+            if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))
+                logger.LogInformation("Shared state redis is configured");
 
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
