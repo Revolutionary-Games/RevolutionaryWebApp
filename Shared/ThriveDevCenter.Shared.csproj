@@ -7,7 +7,4 @@
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
-
-  <ItemGroup>
-  </ItemGroup>
 </Project>

@@ -1,5 +1,9 @@
 <button id="@id" class="btn btn-@ButtonStyle @(@class)" aria-disabled="@Disabled" disabled="@Disabled"
-        type="@type" @onclick="PressDetected">
+        type="@type" @onclick="PressDetected" @onclick:preventDefault="@HasCallback">
+    @if (Spinner)
+    {
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+    }
     @ChildContent
 </button>
 
@@ -13,6 +17,9 @@
 
     [Parameter]
     public bool Enabled { get; set; } = true;
+
+    [Parameter]
+    public bool Spinner { get; set; }
 
     // Forwarding normal HTML stuff
 
@@ -32,6 +39,8 @@
     public EventCallback OnPressed { get; set; }
 
     public bool Disabled => !Enabled;
+
+    private bool HasCallback => OnPressed.HasDelegate;
 
     private async void PressDetected()
     {

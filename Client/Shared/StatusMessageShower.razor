@@ -1,0 +1,17 @@
+@using ThriveDevCenter.Shared
+
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert @Type.AlertClass()" role="alert">
+        @Message
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Message { get; set; }
+
+    [Parameter]
+    public SiteNoticeType Type { get; set; } = SiteNoticeType.Danger;
+
+}

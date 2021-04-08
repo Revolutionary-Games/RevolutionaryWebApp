@@ -132,20 +132,18 @@ namespace ThriveDevCenter.Server.Hubs
             return Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         }
 
-        public Task SendSiteNotice(SiteNoticeType type, string message)
-        {
-            // Only admins can send
-            if (!RequireAccessLevel(UserAccessLevel.Admin, Context.Items["User"] as User))
-                throw new HubException("You don't have permission to perform this operation");
-
-            return Clients.All.ReceiveSiteNotice(type, message);
-        }
-
         public Task WhoAmI()
         {
             // TODO: reload from Db at some interval
+            var user = Context.Items["User"] as User;
+            RecordAccessLevel accessLevel;
+
+            accessLevel = RequireAccessLevel(UserAccessLevel.Admin, user) ?
+                RecordAccessLevel.Admin :
+                RecordAccessLevel.Private;
+
             return Clients.Caller.ReceiveOwnUserInfo(
-                (Context.Items["User"] as User)?.GetInfo(RecordAccessLevel.Private));
+                user?.GetInfo(accessLevel));
         }
 
         private static bool IsUserAllowedInGroup(string groupName, User user)

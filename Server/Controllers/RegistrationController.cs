@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ThriveDevCenter.Server.Controllers
 {
-    using System.ComponentModel.DataAnnotations;
-    using System.Linq;
     using System.Threading.Tasks;
     using Authorization;
     using Hubs;
@@ -12,7 +10,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
-    using Shared;
+    using Shared.Forms;
     using Shared.Models;
     using Shared.Notifications;
 

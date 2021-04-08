@@ -1,6 +1,7 @@
 @using ThriveDevCenter.Shared
 @using System.Net
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Forms
 @inject HttpClient Http
 @inject ICSRFTokenReader CSRF
 
@@ -35,11 +36,7 @@
                 @statusMessage
             </div>
         }
-        <Button class="my-1" Enabled="CanRegister" OnPressed="Submit">
-            @if (processing)
-            {
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            }
+        <Button class="my-1" Enabled="CanRegister" OnPressed="Submit" Spinner="@processing">
             Register
         </Button>
     </form>
@@ -92,7 +89,6 @@ else
     private async void Submit()
     {
         processing = true;
-
         await InvokeAsync(StateHasChanged);
 
         HttpResponseMessage result;

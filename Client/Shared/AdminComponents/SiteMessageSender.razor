@@ -1,0 +1,84 @@
+@using ThriveDevCenter.Shared
+@using System.Net
+@using ThriveDevCenter.Shared.Forms
+@inject HttpClient Http
+<h4>Send a site message</h4>
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+<form class="form-inline">
+    <label class="sr-only" for="siteNoticeMessageInput">Notice to send:</label>
+    <input type="text" class="form-control mb-2 flex-fill" id="siteNoticeMessageInput"
+           placeholder="Notice message..." @bind="message" @bind:event="oninput">
+
+    <label class="mb-md-2 ml-md-3 ml-1 mr-1" for="siteNoticeTypeSelect">Type</label>
+    <select class="custom-select mb-2 mr-md-3" id="siteNoticeTypeSelect" @bind="noticeType">
+        @foreach (var value in Enum.GetValues<SiteNoticeType>())
+        {
+            <option value="@value.ToString()">@value.ToString()</option>
+        }
+    </select>
+
+    <Button class="mb-2" type="submit" ButtonStyle="primary"
+            Enabled="@CanSend" OnPressed="@SendNotice" Spinner="@processing">
+        Send
+    </Button>
+</form>
+
+@code {
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private string message;
+    private SiteNoticeType noticeType = SiteNoticeType.Primary;
+
+    private bool CanSend => !string.IsNullOrWhiteSpace(message) && !processing;
+
+    private async void SendNotice()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/SiteNotifications/ephemeralNotice", new SiteNoticeFormData()
+            {
+                Message = message,
+                Type = noticeType
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            // Success
+            statusMessage = "Site notice sent";
+            statusMessageType = SiteNoticeType.Info;
+
+            // Clear notice to not be able to immediately send the same one again
+            message = null;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

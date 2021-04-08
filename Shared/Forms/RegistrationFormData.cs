@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared
+namespace ThriveDevCenter.Shared.Forms
 {
     using System.ComponentModel.DataAnnotations;
 
