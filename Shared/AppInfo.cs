@@ -36,6 +36,12 @@ namespace ThriveDevCenter.Shared
         /// </summary>
         public const int ClientCookieExpirySeconds = 60 * 60 * 24 * 60;
 
+        public const int DefaultTableNotificationFetchTimer = 1000;
+        public const int LongerTableNotificationFetchTimer = 5000;
+        public const int LongestTableNotificationFetchTimer = 30000;
+        public const int LongerTableRefreshIntervalCutoff = 4;
+        public const int LongestTableRefreshIntervalCutoff = 11;
+
         /// <summary>
         ///   The interval in seconds that a session use is updated to the database
         /// </summary>

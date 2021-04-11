@@ -123,8 +123,9 @@ else
             groups.Add(NotificationGroups.PrivateLFSGitFile + Project.Id.ToString()); */
     }
 
-    public async ValueTask DisposeAsync()
+    public override async ValueTask DisposeAsync()
     {
+        await base.DisposeAsync();
         await NotificationHandler.Unregister(this);
     }
 

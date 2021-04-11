@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Client.Shared
     using System.Collections.Generic;
     using System.Globalization;
     using System.Threading.Tasks;
+    using System.Timers;
     using BlazorPagination;
     using Microsoft.AspNetCore.Components;
     using ThriveDevCenter.Shared;
@@ -13,7 +14,7 @@ namespace ThriveDevCenter.Client.Shared
     /// <summary>
     ///   Base for paginated pages
     /// </summary>
-    public abstract class PaginatedPage<T> : ComponentBase
+    public abstract class PaginatedPage<T> : ComponentBase, IAsyncDisposable
         where T : class, IIdentifiable
     {
         [Parameter]
@@ -67,9 +68,57 @@ namespace ThriveDevCenter.Client.Shared
 
         public bool NoItemsFound => Data != null && Data.Results.Length < 1;
 
+        protected int DataFetchCount { get; private set; }
+
+        protected bool WantsToFetchDataAgain
+        {
+            get => wantsToFetchDataAgain;
+            set
+            {
+                if (wantsToFetchDataAgain == value)
+                    return;
+
+                wantsToFetchDataAgain = value;
+                fetchStartTimer.Interval = FetchTimerInterval;
+                fetchStartTimer.Enabled = wantsToFetchDataAgain;
+            }
+        }
+
+        /// <summary>
+        ///   Computes the fetch timer interval based on how many times data has been fetched
+        /// </summary>
+        private int FetchTimerInterval
+        {
+            get
+            {
+                if (DataFetchCount < AppInfo.LongerTableRefreshIntervalCutoff)
+                    return AppInfo.DefaultTableNotificationFetchTimer;
+
+                if (DataFetchCount < AppInfo.LongestTableRefreshIntervalCutoff)
+                    return AppInfo.LongerTableNotificationFetchTimer;
+
+                return AppInfo.LongestTableNotificationFetchTimer;
+            }
+        }
+
         protected readonly SortHelper Sort;
 
         protected PagedResult<T> Data;
+
+        private readonly Timer fetchStartTimer;
+        private bool wantsToFetchDataAgain;
+
+        protected PaginatedPage(SortHelper sort)
+        {
+            Sort = sort;
+            fetchStartTimer = new Timer { Interval = FetchTimerInterval };
+            fetchStartTimer.Elapsed += OnFetchTimer;
+
+            DefaultSortDirection = sort.Direction;
+
+            if (string.IsNullOrEmpty(DefaultSortColumn))
+                DefaultSortColumn = Sort.SortColumn;
+        }
 
         public override Task SetParametersAsync(ParameterView parameters)
         {
@@ -137,41 +186,39 @@ namespace ThriveDevCenter.Client.Shared
                 case ListItemChangeType.ItemDeleted:
                 case ListItemChangeType.ItemAdded:
                 {
-                    // TODO: add a timer here that prevents this from firing too often (after the first few times
-                    // this should fire with a 15 second delay)
-
-                    Console.WriteLine("Refreshing current paginated page due to item add or remove");
-
                     // For these the only 100% working solution is to basically fetch the current page again
-                    // (but don't show the spinner to not annoy the user)
-                    // TODO: should this only fetch if FetchInProgress is not true?
-                    await FetchData(true);
+                    // We could make a 99% working solution by comparing the current items on the client to determine
+                    // if the data is part of this page or not, before refreshing
+                    WantsToFetchDataAgain = true;
+
+                    Console.WriteLine(
+                        "Refreshing current paginated page due to item add or remove, delay to avoid too "+
+                        $"many requests: {FetchTimerInterval}");
                     break;
                 }
             }
         }
 
-        protected PaginatedPage(SortHelper sort)
+        public virtual ValueTask DisposeAsync()
         {
-            Sort = sort;
-
-            DefaultSortDirection = sort.Direction;
-
-            if (string.IsNullOrEmpty(DefaultSortColumn))
-                DefaultSortColumn = Sort.SortColumn;
+            fetchStartTimer?.Dispose();
+            return ValueTask.CompletedTask;
         }
 
         protected override async Task OnInitializedAsync()
         {
-            if(AutoFetchDataOnInit)
+            if (AutoFetchDataOnInit)
                 await FetchData();
         }
 
         protected async Task FetchData(bool hidden = false)
         {
+            wantsToFetchDataAgain = false;
             FetchInProgress = true;
             if (!hidden)
                 VisibleFetchInProgress = true;
+
+            ++DataFetchCount;
 
             var requestParams = CreatePageRequestParams();
 
@@ -242,6 +289,20 @@ namespace ThriveDevCenter.Client.Shared
         protected virtual Task OnQuerySent(Dictionary<string, string> requestParams)
         {
             return Task.CompletedTask;
+        }
+
+        private async void OnFetchTimer(object sender, ElapsedEventArgs elapsedEventArgs)
+        {
+            if (FetchInProgress)
+                return;
+
+            // Can now start a new fetch
+
+            // First disable this timer
+            fetchStartTimer.Enabled = false;
+
+            // Then start the fetch
+            await FetchData(true);
         }
     }
 }

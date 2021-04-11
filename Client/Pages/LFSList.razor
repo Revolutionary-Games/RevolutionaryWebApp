@@ -145,8 +145,9 @@ else
             groups.Add(NotificationGroups.PrivateLFSUpdated);
     }
 
-    public async ValueTask DisposeAsync()
+    public override async ValueTask DisposeAsync()
     {
+        await base.DisposeAsync();
         await NotificationHandler.Unregister(this);
     }
 
