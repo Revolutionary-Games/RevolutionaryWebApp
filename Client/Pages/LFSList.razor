@@ -45,7 +45,67 @@ else
     </PaginatedTable>
 }
 
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+    <hr />
+
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+    }
+
+    <Button class="mb-3" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+        New
+    </Button>
+
+    @if (showNewForm)
+    {
+        <form>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="newLFSItemName">New Project Name</label>
+                    <input type="text" class="form-control" id="newLFSItemName" @bind="newName">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="newLFSItemSlug">Project Slug</label>
+                    <input type="text" class="form-control" id="newLFSItemSlug" @bind="newSlug">
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="newLFSItemPublic" @bind="newPublic">
+                    <label class="form-check-label" for="newLFSItemPublic">Visible to non-developers?</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="newLFSRepoURL">Repository URL</label>
+                <input type="text" class="form-control" id="newLFSRepoURL" @bind="newRepoURL">
+            </div>
+
+            <div class="form-group">
+                <label for="newLFSCloneURL">Git Clone URL</label>
+                <input type="text" class="form-control" id="newLFSCloneURL" @bind="newCloneURL">
+            </div>
+
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+            <Button class="my-1" Enabled="@(!processingNewForm)" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                Create
+            </Button>
+        </form>
+    }
+</AccessLimited>
+
 @code {
+
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newName;
+    private string newSlug;
+    private bool newPublic;
+    private string newRepoURL;
+    private string newCloneURL;
 
     private readonly List<TableColumn> columns = new()
     {
@@ -99,6 +159,75 @@ else
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
         await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+
+            // Reset form status
+            newName = null;
+            newSlug = null;
+            newPublic = true;
+            newRepoURL = null;
+            newCloneURL = null;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/LFSProject", new LFSProjectDTO()
+            {
+                Name =  newName,
+                Slug = newSlug,
+                RepoUrl = newRepoURL,
+                CloneUrl = newCloneURL,
+                Public = newPublic
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New project created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
 }
