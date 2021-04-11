@@ -191,6 +191,42 @@ namespace ThriveDevCenter.Server.Controllers
             return Created($"/lfs/{project.Id}", project.GetDTO(ComputeProjectGitLFSAccessUrl(project)));
         }
 
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpDelete("{id:long}")]
+        public async Task<ActionResult> DeleteProject([Required] long id)
+        {
+            var item = await FindAndCheckAccess(id);
+
+            if (item == null)
+                return NotFound();
+
+            if (item.Deleted)
+                return BadRequest("Resource is already deleted");
+
+            item.Deleted = true;
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpPost("{id:long}/restore")]
+        public async Task<ActionResult> RestoreProject([Required] long id)
+        {
+            var item = await FindAndCheckAccess(id);
+
+            if (item == null)
+                return NotFound();
+
+            if (!item.Deleted)
+                return BadRequest("Resource is not deleted");
+
+            item.Deleted = false;
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
         [NonAction]
         private string ComputeProjectGitLFSAccessUrl(LfsProject item)
         {
