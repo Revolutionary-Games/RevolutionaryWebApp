@@ -23,6 +23,8 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public bool Public { get; set; } = true;
 
+        public bool Deleted { get; set; } = false;
+
         [Required]
         public string RepoUrl { get; set; }
 
@@ -61,6 +63,7 @@ namespace ThriveDevCenter.Server.Models
                 Name = Name,
                 Slug = Slug,
                 Public = Public,
+                Deleted = Deleted,
                 TotalObjectSize = TotalObjectSize ?? 0,
                 TotalObjectCount = TotalObjectCount ?? 0,
                 TotalSizeUpdated = TotalSizeUpdated,

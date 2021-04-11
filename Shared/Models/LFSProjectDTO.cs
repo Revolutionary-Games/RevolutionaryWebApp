@@ -15,5 +15,10 @@ namespace ThriveDevCenter.Shared.Models
         public string RepoUrl { get; set; }
         public string CloneUrl { get; set; }
         public string LfsBaseUrl { get; set; }
+
+        /// <summary>
+        ///   Admins can view deleted items to restore them
+        /// </summary>
+        public bool Deleted { get; set; }
     }
 }

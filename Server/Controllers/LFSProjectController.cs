@@ -12,6 +12,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Authorization;
     using BlazorPagination;
     using Filters;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Models;
@@ -39,13 +40,22 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpGet]
         public async Task<PagedResult<LFSProjectInfo>> Get([Required] string sortColumn,
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-            [Required] [Range(1, 50)] int pageSize)
+            [Required] [Range(1, 50)] int pageSize, bool deleted = false)
         {
+            // Only admins can view deleted items
+            if (deleted &&
+                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            {
+                throw new HttpResponseException()
+                    { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
+            }
+
             IQueryable<LfsProject> query;
 
             try
             {
-                query = database.LfsProjects.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.LfsProjects.AsQueryable().Where(p => p.Deleted == deleted)
+                    .OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -66,6 +76,13 @@ namespace ThriveDevCenter.Server.Controllers
             if (item == null)
                 return NotFound();
 
+            // Only admins can view deleted items
+            if (item.Deleted &&
+                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            {
+                return NotFound();
+            }
+
             return item.GetDTO(ComputeProjectGitLFSAccessUrl(item));
         }
 
@@ -78,7 +95,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var item = await FindAndCheckAccess(id);
 
-            if (item == null)
+            if (item == null || item.Deleted)
                 return NotFound();
 
             IAsyncEnumerable<ProjectGitFile> query;
@@ -108,7 +125,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var item = await FindAndCheckAccess(id);
 
-            if (item == null)
+            if (item == null || item.Deleted)
                 return NotFound();
 
             var objects = await database.LfsObjects.AsQueryable().Where(l => l.LfsProjectId == item.Id)
