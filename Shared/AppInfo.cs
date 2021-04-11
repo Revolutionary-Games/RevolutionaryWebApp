@@ -23,6 +23,8 @@ namespace ThriveDevCenter.Shared
         public const string ItemTypeFolder = "folder";
         public const string ItemTypeFile = "file";
 
+        public const string SoftDeleteAttribute = "Deleted";
+
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days of inactivity
         /// </summary>

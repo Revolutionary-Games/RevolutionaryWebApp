@@ -1,9 +1,12 @@
 namespace ThriveDevCenter.Server.Models
 {
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
+    using Services;
+    using Shared;
     using Utilities;
 
     public class ApplicationDbContext : DbContext
@@ -28,29 +31,43 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<AdminAction> AdminActions { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
 
+        /// <summary>
+        ///   If non-null this will be used to send model update notifications on save
+        /// </summary>
+        public IModelUpdateNotificationSender AutoSendNotifications { get; set; }
+
         public override int SaveChanges()
         {
-            RunPreSaveChecks();
+            RunPreSaveChecks().Wait();
 
             return base.SaveChanges();
         }
 
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {
-            RunPreSaveChecks();
+            // This runs the important checks synchronously before waiting for just notifications, so we can start the
+            // db write before this completes fully
+            var checkTask = RunPreSaveChecks();
 
-            return base.SaveChangesAsync(cancellationToken);
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            await checkTask;
+
+            return result;
         }
 
-        public void RunPreSaveChecks()
+        public Task RunPreSaveChecks()
         {
             var changedEntities = ChangeTracker
                 .Entries()
                 .Where(e => e.State == EntityState.Added ||
-                    e.State == EntityState.Modified).ToList();
+                    e.State == EntityState.Modified || e.State == EntityState.Deleted).ToList();
 
             foreach (var entry in changedEntities)
             {
+                if(entry.State != EntityState.Added && entry.State != EntityState.Modified)
+                    continue;
+
                 if (entry.Entity is IContainsHashedLookUps containsHashedLookUps)
                 {
                     containsHashedLookUps.ComputeHashedLookUpValues();
@@ -64,6 +81,30 @@ namespace ThriveDevCenter.Server.Models
             //     Validator.TryValidateObject(
             //         e.Entity, new ValidationContext(e.Entity), errors, true);
             // }
+
+            var notifications = AutoSendNotifications;
+
+            if (notifications != null)
+            {
+                var tasks = new List<Task> { Capacity = changedEntities.Count };
+
+                foreach (var entry in changedEntities)
+                {
+                    if (entry.Entity is IUpdateNotifications notifiable)
+                    {
+                        bool previousSoftDeleted = false;
+
+                        if (notifiable.UsesSoftDelete)
+                            previousSoftDeleted = (bool)entry.OriginalValues[AppInfo.SoftDeleteAttribute];
+
+                        tasks.Add(notifications.OnChangesDetected(entry.State, notifiable, previousSoftDeleted));
+                    }
+                }
+
+                return Task.WhenAll(tasks);
+            }
+
+            return Task.CompletedTask;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

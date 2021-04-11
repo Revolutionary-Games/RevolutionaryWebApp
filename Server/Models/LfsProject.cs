@@ -7,10 +7,12 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
+    using Shared.Notifications;
+    using Utilities;
 
     [Index(nameof(Name), IsUnique = true)]
     [Index(nameof(Slug), IsUnique = true)]
-    public class LfsProject : UpdateableModel
+    public class LfsProject : UpdateableModel, IUpdateNotifications
     {
         [AllowSortingBy]
         public string Name { get; set; }
@@ -70,6 +72,16 @@ namespace ThriveDevCenter.Server.Models
                 CreatedAt = CreatedAt,
                 LfsBaseUrl = lfsBaseUrl
             };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            var listGroup = Public ? NotificationGroups.LFSListUpdated : NotificationGroups.PrivateLFSUpdated;
+            yield return new Tuple<SerializedNotification, string>(new LFSListUpdated
+                    { Type = entityState.ToChangeType(), Item = GetInfo() },
+                listGroup);
+
+            // TODO: send per-item group, DTO based notification
         }
     }
 }

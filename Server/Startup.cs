@@ -91,6 +91,8 @@ namespace ThriveDevCenter.Server
                 services.AddSignalR();
             }
 
+            services.AddSingleton<IModelUpdateNotificationSender, ModelUpdateNotificationSender>();
+
             services.AddControllersWithViews();
             services.AddRazorPages();
 
@@ -119,6 +121,9 @@ namespace ThriveDevCenter.Server
             }
 
             services.AddDbContext<ApplicationDbContext>(opts =>
+                opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection")));
+
+            services.AddDbContext<NotificationsEnabledDb>(opts =>
                 opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection")));
 
             // services.AddIdentity<User, IdentityRole<long>>().AddEntityFrameworkStores<ApplicationDbContext>();

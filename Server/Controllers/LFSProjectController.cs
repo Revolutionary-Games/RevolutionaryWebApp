@@ -11,13 +11,10 @@ namespace ThriveDevCenter.Server.Controllers
     using Authorization;
     using BlazorPagination;
     using Filters;
-    using Hubs;
-    using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Configuration;
     using Models;
     using Shared;
     using Shared.Models;
-    using Shared.Notifications;
     using Utilities;
 
     [ApiController]
@@ -25,19 +22,16 @@ namespace ThriveDevCenter.Server.Controllers
     public class LFSProjectController : Controller
     {
         private readonly ILogger<LFSProjectController> logger;
-        private readonly ApplicationDbContext database;
+        private readonly NotificationsEnabledDb database;
         private readonly IConfiguration configuration;
-        private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
         public LFSProjectController(ILogger<LFSProjectController> logger,
-            ApplicationDbContext database,
-            IConfiguration configuration,
-            IHubContext<NotificationsHub, INotifications> notifications)
+            NotificationsEnabledDb database,
+            IConfiguration configuration)
         {
             this.logger = logger;
             this.database = database;
             this.configuration = configuration;
-            this.notifications = notifications;
         }
 
         [HttpGet]
@@ -119,14 +113,6 @@ namespace ThriveDevCenter.Server.Controllers
                 .OrderByDescending(l => l.Id).ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetDTO());
-        }
-
-        [NonAction]
-        private async Task ReportUpdatedProject(LFSProjectInfo item)
-        {
-            // For now LFS list and individual LFS info pages use the same group
-            await notifications.Clients.Group(NotificationGroups.LFSListUpdated).ReceiveNotification(new LFSListUpdated
-                { Type = ListItemChangeType.ItemUpdated, Item = item });
         }
 
         [NonAction]
