@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Client
     using System.Net.Http;
     using System.Threading.Tasks;
     using Blazored.LocalStorage;
+    using Blazored.Modal;
     using BlazorPro.BlazorSize;
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -46,6 +47,8 @@ namespace ThriveDevCenter.Client
                     sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<ICSRFTokenReader>()));
 
             builder.Services.AddSingleton<StaticHomePageNotice>();
+
+            builder.Services.AddBlazoredModal();
 
             var app = builder.Build();
 

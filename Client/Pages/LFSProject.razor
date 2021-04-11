@@ -17,7 +17,14 @@
             <li><strong>Clone URL</strong>: @Data.CloneUrl</li>
             <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
             <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+
+            <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+                <li><strong>Deleted</strong>: @Data.Deleted</li>
+            </AccessLimited>
         </ul>
+
+        <AdminResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Name" Id="@Data.Id"
+                                    DeleteURLBase="api/v1/LFSProject" />
 
         <p>
             Visit your profile to find you LFS access token, which you need to use in place of your password when

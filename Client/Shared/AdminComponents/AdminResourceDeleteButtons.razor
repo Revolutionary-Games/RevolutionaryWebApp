@@ -1,0 +1,151 @@
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@inject HttpClient Http
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+    @if (!Deleted)
+    {
+        <Button class="mb-3" ButtonStyle="danger" OnPressed="@AskDeleteConfirm"
+                Enabled="@(!processing)" Spinner="@processing">
+            Delete
+        </Button>
+    }
+    else
+    {
+        <Button class="mb-3" ButtonStyle="success" OnPressed="@PerformRestore"
+                Enabled="@(!processing)" Spinner="@processing">
+            Restore
+        </Button>
+    }
+</AccessLimited>
+
+@code {
+
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public bool Deleted { get; set; }
+
+    [Parameter]
+    public bool UsesSoftDelete { get; set; } = true;
+
+    [Parameter]
+    public string Name { get; set; }
+
+    [Parameter]
+    public long Id { get; set; }
+
+    [Parameter]
+    public string DeleteURLBase { get; set; }
+
+    // If not specified defaults to also be the DeleteURLBase/id/restore
+    [Parameter]
+    public string RestoreURLBase { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    private string DeleteURL => $"{DeleteURLBase}/{Id}";
+    private string RestoreURL => string.IsNullOrEmpty(RestoreURLBase) ? $"{DeleteURLBase}/{Id}/restore" :
+        $"{RestoreURLBase}/{Id}";
+
+    private async void AskDeleteConfirm()
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmDelete.Name), Name);
+        parameters.Add(nameof(ConfirmDelete.SoftDelete), UsesSoftDelete);
+
+        var modal = Modal.Show<ConfirmDelete>("Delete this LFS Project?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await PerformDelete();
+    }
+
+    private async Task PerformDelete()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync(DeleteURL);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Resource successfully deleted";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PerformRestore()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync(RestoreURL, new Dictionary<string,long>()
+            {
+                {"Id", Id}
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Resource successfully restored";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}
