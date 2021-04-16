@@ -8,6 +8,7 @@ namespace AutomatedUITests.Fixtures
 
     public class WebDriverFixture : IDisposable
     {
+        private const int SiteLoadMaxWaitTime = 20;
         private static readonly bool Headless = true;
 
         public WebDriverFixture()
@@ -25,7 +26,7 @@ namespace AutomatedUITests.Fixtures
         public void WaitUntilBlazorIsLoaded()
         {
             // Wait until the app is loaded and the main "page" body div has appeared
-            var wait = new WebDriverWait(Driver, TimeSpan.FromSeconds(20));
+            var wait = new WebDriverWait(Driver, TimeSpan.FromSeconds(SiteLoadMaxWaitTime));
             wait.Until((d) => ElementHelpers.ElementExists(d, ".page"));
         }
 
