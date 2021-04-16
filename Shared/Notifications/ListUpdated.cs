@@ -12,6 +12,8 @@ namespace ThriveDevCenter.Shared.Notifications
         public T Item { get; init; }
     }
 
+    // These separate class types are needed for JSON serialization to work
+
     public class LFSListUpdated : ListUpdated<LFSProjectInfo>
     {
     }

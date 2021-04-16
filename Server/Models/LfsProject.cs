@@ -55,7 +55,7 @@ namespace ThriveDevCenter.Server.Models
             };
         }
 
-        public LFSProjectDTO GetDTO(string lfsBaseUrl)
+        public LFSProjectDTO GetDTO()
         {
             return new()
             {
@@ -73,18 +73,28 @@ namespace ThriveDevCenter.Server.Models
                 CloneUrl = CloneUrl,
                 UpdatedAt = UpdatedAt,
                 CreatedAt = CreatedAt,
-                LfsBaseUrl = lfsBaseUrl
+                LfsUrlSuffix = $"/api/v1/lfs/{Slug}"
             };
         }
 
         public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
         {
-            var listGroup = Public ? NotificationGroups.LFSListUpdated : NotificationGroups.PrivateLFSUpdated;
-            yield return new Tuple<SerializedNotification, string>(new LFSListUpdated
-                    { Type = entityState.ToChangeType(), Item = GetInfo() },
-                listGroup);
+            // Skip sending normal updates if this is in deleted state (and didn't currently become undeleted
+            // or deleted)
+            if (entityState != EntityState.Modified || !Deleted)
+            {
+                var listGroup = Public ? NotificationGroups.LFSListUpdated : NotificationGroups.PrivateLFSUpdated;
+                yield return new Tuple<SerializedNotification, string>(new LFSListUpdated
+                        { Type = entityState.ToChangeType(), Item = GetInfo() },
+                    listGroup);
+            }
 
-            // TODO: send per-item group, DTO based notification
+            // TODO: should there be a separate groups for private and deleted items as if someone joins the
+            // notification group before this goes into a state where they couldn't join anymore, they still receive
+            // notifications and that leaks some information
+            yield return new Tuple<SerializedNotification, string>(
+                new LFSProjectUpdated { Item = GetDTO() },
+                NotificationGroups.LFSItemUpdatedPrefix + Id);
         }
     }
 }

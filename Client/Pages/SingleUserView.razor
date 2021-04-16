@@ -1,7 +1,10 @@
 @page "/users/{Id:long}"
-@inject HttpClient Http
-@inherits SingleResourcePage<UserInfo>
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inherits SingleResourcePage<UserInfo, UserUpdated>
 @using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Client.Services
 
 <h3>User: @Id</h3>
 
@@ -22,6 +25,22 @@
 @code {
     protected override Task<UserInfo> StartQuery()
     {
-        return Http.GetFromJsonAsync<UserInfo>($"api/v1/UserManagement/{Id}");
+        return http.GetFromJsonAsync<UserInfo>($"api/v1/UserManagement/{Id}");
     }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.UserUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
 }

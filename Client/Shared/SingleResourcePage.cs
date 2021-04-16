@@ -1,18 +1,25 @@
 namespace ThriveDevCenter.Client.Shared
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Net.Http;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Components;
+    using Services;
     using ThriveDevCenter.Shared.Models;
+    using ThriveDevCenter.Shared.Notifications;
 
     /// <summary>
     ///   Base class for blazor pages that show a single resource
     /// </summary>
-    public abstract class SingleResourcePage<T> : ComponentBase
+    public abstract class SingleResourcePage<T, TNotification> : ComponentBase, INotificationHandler<TNotification>
         where T : class, IIdentifiable
+        where TNotification : ModelUpdated<T>
     {
+        private bool dataReceived;
+
         /// <summary>
         ///   Id of the resource to show
         /// </summary>
@@ -30,6 +37,24 @@ namespace ThriveDevCenter.Client.Shared
         public bool Loading { get; protected set; } = true;
 
         public T Data { get; private set; }
+
+        public Task Handle(TNotification notification, CancellationToken cancellationToken)
+        {
+            // TODO: could buffer the update if we are currently fetching data
+            if (Data == null)
+                return Task.CompletedTask;
+
+            if (Data.Id == notification.Item.Id)
+            {
+                // Received an update for our data
+                Data = notification.Item;
+                return InvokeAsync(StateHasChanged);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public abstract void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
 
         protected override async Task OnInitializedAsync()
         {
@@ -64,12 +89,31 @@ namespace ThriveDevCenter.Client.Shared
             }
 
             Loading = false;
-            StateHasChanged();
+
+            if (Data != null)
+            {
+                if (!dataReceived)
+                {
+                    await OnFirstDataReceived();
+                    dataReceived = true;
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
         }
 
         /// <summary>
         ///   Starts the actual query to fetch data from the server
         /// </summary>
         protected abstract Task<T> StartQuery();
+
+        /// <summary>
+        ///   Useful for registering to receive notifications about data updates. This is done this way to avoid trying
+        ///   to register for non-existent object's updates
+        /// </summary>
+        protected virtual Task OnFirstDataReceived()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

@@ -14,7 +14,6 @@ namespace ThriveDevCenter.Server.Controllers
     using Filters;
     using Microsoft.AspNetCore.Http;
     using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Configuration;
     using Models;
     using Shared;
     using Shared.Models;
@@ -26,15 +25,12 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<LFSProjectController> logger;
         private readonly NotificationsEnabledDb database;
-        private readonly IConfiguration configuration;
 
         public LFSProjectController(ILogger<LFSProjectController> logger,
-            NotificationsEnabledDb database,
-            IConfiguration configuration)
+            NotificationsEnabledDb database)
         {
             this.logger = logger;
             this.database = database;
-            this.configuration = configuration;
         }
 
         [HttpGet]
@@ -83,7 +79,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
             }
 
-            return item.GetDTO(ComputeProjectGitLFSAccessUrl(item));
+            return item.GetDTO();
         }
 
         [HttpGet("{id:long}/files")]
@@ -188,7 +184,7 @@ namespace ThriveDevCenter.Server.Controllers
                     "Error saving data to database, if the error persists the data likely violates some constraints");
             }
 
-            return Created($"/lfs/{project.Id}", project.GetDTO(ComputeProjectGitLFSAccessUrl(project)));
+            return Created($"/lfs/{project.Id}", project.GetDTO());
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
@@ -225,12 +221,6 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             return Ok();
-        }
-
-        [NonAction]
-        private string ComputeProjectGitLFSAccessUrl(LfsProject item)
-        {
-            return new Uri(new Uri(configuration["BaseUrl"]), $"/api/v1/lfs/{item.Slug}").ToString();
         }
 
         [NonAction]

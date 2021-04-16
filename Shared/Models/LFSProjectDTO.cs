@@ -14,7 +14,7 @@ namespace ThriveDevCenter.Shared.Models
         public string FileTreeCommit { get; set; }
         public string RepoUrl { get; set; }
         public string CloneUrl { get; set; }
-        public string LfsBaseUrl { get; set; }
+        public string LfsUrlSuffix { get; set; }
 
         /// <summary>
         ///   Admins can view deleted items to restore them

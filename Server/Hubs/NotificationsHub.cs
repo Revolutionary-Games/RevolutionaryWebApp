@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Hubs
     using System.Threading.Tasks;
     using Authorization;
     using Microsoft.AspNetCore.SignalR;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Primitives;
     using Models;
     using Services;
@@ -146,7 +147,7 @@ namespace ThriveDevCenter.Server.Hubs
                 user?.GetInfo(accessLevel));
         }
 
-        private static bool IsUserAllowedInGroup(string groupName, User user)
+        private bool IsUserAllowedInGroup(string groupName, User user)
         {
             // First check explicitly named groups
             switch (groupName)
@@ -163,19 +164,43 @@ namespace ThriveDevCenter.Server.Hubs
             // Then check prefixes
             if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefix))
             {
+                if (!GetIDPartFromGroup(groupName, out long id))
+                    return false;
+
+                // Early return if the user is not an admin and not looking at themselves, this prevents user id
+                // enumeration from this endpoint
+                if (user?.Id != id && !RequireAccessLevel(UserAccessLevel.Admin, user))
+                    return false;
+
+                // Can't join non-existent user groups
+                if (!GetTargetModelFromGroup(groupName, database.Users, out User item))
+                    return false;
+
                 // Admins can see all user info
                 if (RequireAccessLevel(UserAccessLevel.Admin, user))
                     return true;
 
                 // People can see their own info
-                var id = groupName.Split('_').Last();
+                return item.Id == user?.Id;
+            }
 
-                if (!long.TryParse(id, out long idNumber))
-                {
+            if (groupName.StartsWith(NotificationGroups.LFSItemUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.LfsProjects, out LfsProject item))
                     return false;
-                }
 
-                return idNumber == user?.Id;
+                if (RequireAccessLevel(UserAccessLevel.Admin, user))
+                    return true;
+
+                // Only admins see deleted items
+                if (item.Deleted)
+                    return false;
+
+                // Everyone sees public projects
+                if (item.Public)
+                    return true;
+
+                return RequireAccessLevel(UserAccessLevel.Developer, user);
             }
 
             // Only admins see this
@@ -184,6 +209,33 @@ namespace ThriveDevCenter.Server.Hubs
 
             // Unknown groups are not allowed
             return false;
+        }
+
+        private static bool GetTargetModelFromGroup<T>(string groupName, DbSet<T> existingItems, out T item)
+        where T: class
+        {
+            if (!GetIDPartFromGroup(groupName, out long id))
+            {
+                item = null;
+                return false;
+            }
+
+            // This lookup probably can timing attack leak the IDs of objects
+            item = existingItems.Find(id);
+
+            return item != null;
+        }
+
+        private static bool GetIDPartFromGroup(string groupName, out long id)
+        {
+            var idRaw = groupName.Split('_').Last();
+
+            if (!long.TryParse(idRaw, out id))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static bool RequireAccessLevel(UserAccessLevel level, User user)
