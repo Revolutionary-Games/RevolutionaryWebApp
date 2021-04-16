@@ -4,6 +4,7 @@ using System.Collections.Generic;
 namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
@@ -40,6 +41,12 @@ namespace ThriveDevCenter.Server.Models
 
         public ICollection<LfsObject> LfsObjects { get; set; } = new HashSet<LfsObject>();
         public ICollection<ProjectGitFile> ProjectGitFiles { get; set; } = new HashSet<ProjectGitFile>();
+
+        [NotMapped]
+        public bool UsesSoftDelete => true;
+
+        [NotMapped]
+        public bool IsSoftDeleted => Deleted;
 
         public LFSProjectInfo GetInfo()
         {

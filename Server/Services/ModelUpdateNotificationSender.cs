@@ -33,7 +33,7 @@ namespace ThriveDevCenter.Server.Services
             }
 
             // Detect soft delete
-            if (newState == EntityState.Modified)
+            if (value.UsesSoftDelete && newState == EntityState.Modified)
             {
                 if (value.IsSoftDeleted != previousSoftDeleted)
                 {

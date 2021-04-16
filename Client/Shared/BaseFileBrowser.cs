@@ -45,10 +45,10 @@ namespace ThriveDevCenter.Client.Shared
                 await FetchData();
         }
 
-        protected override Task OnQuerySent(Dictionary<string, string> requestParams)
+        protected override Task OnDataReceived()
         {
             ReactToParameterChange = true;
-            return base.OnQuerySent(requestParams);
+            return base.OnDataReceived();
         }
     }
 }

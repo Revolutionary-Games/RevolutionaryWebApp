@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Server.Models
         ///   reasons as it is then easy to notice that something has been deleted and restore it before it is hard
         ///   deleted from the database
         /// </summary>
-        public bool UsesSoftDelete
+        public virtual bool UsesSoftDelete
         {
             get
             {
@@ -23,7 +23,7 @@ namespace ThriveDevCenter.Server.Models
         /// <summary>
         ///   Returns the soft delete status if UsesSoftDelete is true
         /// </summary>
-        public bool IsSoftDeleted
+        public virtual bool IsSoftDeleted
         {
             get
             {

@@ -192,7 +192,7 @@ namespace ThriveDevCenter.Client.Shared
                     WantsToFetchDataAgain = true;
 
                     Console.WriteLine(
-                        "Refreshing current paginated page due to item add or remove, delay to avoid too "+
+                        "Refreshing current paginated page due to item add or remove. Delay to avoid too "+
                         $"many requests: {FetchTimerInterval}");
                     break;
                 }
@@ -213,6 +213,20 @@ namespace ThriveDevCenter.Client.Shared
 
         protected async Task FetchData(bool hidden = false)
         {
+            if (FetchInProgress)
+            {
+                // Queue a separate fetch if already fetching
+                Console.WriteLine("Already fetching paginated page, queued another fetch");
+                WantsToFetchDataAgain = true;
+
+                // Make fetch visible, if wanted. This doesn't fully solve things as the queued fetch will be in
+                // the background, but at least the spinner will be visible for some time
+                if (!hidden && !VisibleFetchInProgress)
+                    VisibleFetchInProgress = true;
+
+                return;
+            }
+
             wantsToFetchDataAgain = false;
             FetchInProgress = true;
             if (!hidden)
@@ -228,7 +242,7 @@ namespace ThriveDevCenter.Client.Shared
 
             await OnQuerySent(requestParams);
 
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
 
             try
             {
@@ -243,12 +257,14 @@ namespace ThriveDevCenter.Client.Shared
 
             FetchInProgress = false;
             VisibleFetchInProgress = false;
-            StateHasChanged();
+
+            await OnDataReceived();
+            await InvokeAsync(StateHasChanged);
         }
 
         protected virtual Dictionary<string, string> CreatePageRequestParams()
         {
-            return new Dictionary<string, string>
+            return new()
             {
                 { "sortColumn", Sort.SortColumn },
                 { "sortDirection", Sort.Direction.ToString() },
@@ -291,6 +307,11 @@ namespace ThriveDevCenter.Client.Shared
             return Task.CompletedTask;
         }
 
+        protected virtual Task OnDataReceived()
+        {
+            return Task.CompletedTask;
+        }
+
         private async void OnFetchTimer(object sender, ElapsedEventArgs elapsedEventArgs)
         {
             if (FetchInProgress)
@@ -302,7 +323,10 @@ namespace ThriveDevCenter.Client.Shared
             fetchStartTimer.Enabled = false;
 
             // Then start the fetch
-            await FetchData(true);
+            if (WantsToFetchDataAgain)
+            {
+                await FetchData(true);
+            }
         }
     }
 }

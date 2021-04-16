@@ -95,12 +95,22 @@ else
     };
 
     [Parameter]
-    public LFSProjectDTO Project { get; set; }
+    public string ProjectRepoURL { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    public LFSProjectFileBrowser()
+    {
+        // We fetch data on the parameters change, which is always called after init so we don't want a duplicate fetch
+        AutoFetchDataOnInit = false;
+    }
+
+    protected override async Task OnParametersSetAsync()
     {
         await NotificationHandler.Register(this);
-        await base.OnInitializedAsync();
+        await base.OnParametersSetAsync();
+        await FetchData();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
@@ -149,7 +159,7 @@ else
     protected override Task<PagedResult<ProjectGitFileDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<ProjectGitFileDTO>>(
-            QueryHelpers.AddQueryString($"api/v1/LFSProject/{Project.Id}/files", requestParams));
+            QueryHelpers.AddQueryString($"api/v1/LFSProject/{ProjectId}/files", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
@@ -162,7 +172,7 @@ else
     {
         return QueryHelpers.AddQueryString("/api/v1/download_lfs", new Dictionary<string, string>
         {
-            { "project", Project.Id.ToString() },
+            { "project", ProjectId.ToString() },
             { "path", CurrentPathSlashPrefix },
             { "name", name }
         });
@@ -170,7 +180,7 @@ else
 
     private string GitRepoUrl(string name)
     {
-        return $"{Project.RepoUrl}/tree/master{CurrentPathSlashPrefix}{SlashIfPathNotEmpty}{name}";
+        return $"{ProjectRepoURL}/tree/master{CurrentPathSlashPrefix}{SlashIfPathNotEmpty}{name}";
     }
 
 }
