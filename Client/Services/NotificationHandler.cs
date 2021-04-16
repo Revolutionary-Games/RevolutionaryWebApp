@@ -98,6 +98,8 @@ namespace ThriveDevCenter.Client.Services
 
         public async Task Register<T>(INotificationHandler<T> handler) where T : SerializedNotification
         {
+            bool hadAny = false;
+
             lock (handlers)
             {
                 // Magic from https://remibou.github.io/Realtime-update-with-Blazor-WASM-SignalR-and-MediatR/
@@ -108,8 +110,11 @@ namespace ThriveDevCenter.Client.Services
                         x.IsGenericType &&
                         x.GetGenericTypeDefinition() == typeof(INotificationHandler<>))
                     .ToList();
+
                 foreach (var item in handlerInterfaces)
                 {
+                    hadAny = true;
+
                     var notificationType = item.GenericTypeArguments.First();
                     if (!handlers.TryGetValue(notificationType, out var handlerList))
                     {
@@ -119,28 +124,35 @@ namespace ThriveDevCenter.Client.Services
 
                     lock (handlerList)
                     {
-                        handlerList.Add((handler, async s => await handler.Handle((T)s, default(CancellationToken))));
+                        handlerList.Add((handler, async s => await handler.Handle((T)s, default)));
                     }
                 }
             }
+
+            if (!hadAny)
+                throw new ArgumentException("Object given to Register didn't implement any listener interfaces");
 
             await ApplyGroupMemberships();
         }
 
         public async Task Unregister<T>(INotificationHandler<T> handler) where T : SerializedNotification
         {
+            bool removed = false;
+
             lock (handlers)
             {
                 foreach (var item in handlers)
                 {
                     lock (item.Value)
                     {
-                        item.Value.RemoveAll(h => h.Item1.Equals(handler));
+                        if (item.Value.RemoveAll(h => h.Item1.Equals(handler)) > 0)
+                            removed = true;
                     }
                 }
             }
 
-            await ApplyGroupMemberships();
+            if (removed)
+                await ApplyGroupMemberships();
         }
 
         private async Task ForwardNotification(SerializedNotification notification)
