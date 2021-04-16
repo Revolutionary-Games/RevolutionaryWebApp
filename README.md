@@ -88,15 +88,6 @@ And in the AutomatedUITests folder:
 dotnet user-secrets set IntegrationTestConnection 'User ID=thrivedevcenter_test;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter_test;Integrated Security=true;Pooling=true;'
 ```
 
-### Test settings
-
-The second database connection string needs to be also setup for
-running the actual application for use in browser-based tests. To set
-this up copy the `appsettings.Testing.json.template` as
-`appsettings.Testing.json.template` and adjust the database connection
-string in it.
-
-
 ### Selenium
 
 For selenium to work you need to have Chrome / Chromium installed.

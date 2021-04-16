@@ -5,7 +5,6 @@ bin
 obj
 /ThriveDevCenter.sln.DotSettings.user
 /Server/appsettings.Development.json
-/Server/appsettings.Testing.json
 /db_backup*.txt
 /migration.sql
 /.idea/.idea.ThriveDevCenter/.idea/contentModel.xml
