@@ -18,9 +18,13 @@ namespace AutomatedUITests.Fixtures
     ///   Runs the application in Testing environment for use in unit tests.
     ///   From: https://www.meziantou.net/automated-ui-tests-an-asp-net-core-application-with-playwright-and-xunit.htm
     ///   with modifications.
-    ///   NOTE: that this doesn't currently work. See:
-    ///   https://github.com/dotnet/aspnetcore/issues/4892#issuecomment-809476424
     /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///      This currently used a pretty hacked together approach to get this working, see this issue for improving
+    ///      things: https://github.com/dotnet/aspnetcore/issues/4892
+    ///   </para>
+    /// </remarks>
     public abstract class WebHostServerFixture : IDisposable
     {
         private readonly Lazy<Uri> rootUriInitializer;
@@ -37,16 +41,6 @@ namespace AutomatedUITests.Fixtures
             rootUriInitializer = new Lazy<Uri>(() => new Uri(StartAndGetRootUri()));
         }
 
-        protected virtual string StartAndGetRootUri()
-        {
-            // As the port is generated automatically, we can use IServerAddressesFeature to get the actual server URL
-            Host = CreateWebHost();
-            RunInBackgroundThread(Host.Start);
-            return Host.Services.GetRequiredService<IServer>().Features
-                .Get<IServerAddressesFeature>()
-                .Addresses.Single();
-        }
-
         public virtual void Dispose()
         {
             DatabaseFixture.Dispose();
@@ -57,6 +51,16 @@ namespace AutomatedUITests.Fixtures
         }
 
         protected abstract IHost CreateWebHost();
+
+        private string StartAndGetRootUri()
+        {
+            // As the port is generated automatically, we can use IServerAddressesFeature to get the actual server URL
+            Host = CreateWebHost();
+            RunInBackgroundThread(Host.Start);
+            return Host.Services.GetRequiredService<IServer>().Features
+                .Get<IServerAddressesFeature>()
+                .Addresses.Single();
+        }
 
         private static void RunInBackgroundThread(Action action)
         {
@@ -103,20 +107,21 @@ namespace AutomatedUITests.Fixtures
 
             var solutionFolder = SolutionRootFolderFinder.FindSolutionRootFolder();
 
-            return Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder
-                        .UseEnvironment("Development")
-                        .UseConfiguration(configuration)
-                        .UseContentRoot(Path.GetFullPath(Path.Join(solutionFolder, "Client/wwwroot")))
-                        .UseWebRoot(Path.GetFullPath(Path.Join(solutionFolder, "Client/wwwroot")))
-                        .UseStaticWebAssets()
-                        .UseStartup<TStartup>()
-                        .UseUrls("http://127.0.0.1:0");
-                }).Build();
-
             return new HostBuilder()
+                .ConfigureHostConfiguration(config =>
+                {
+                    // Make static asset and framework asset serving work
+                    var applicationPath = typeof(TStartup).Assembly.Location;
+                    var applicationDirectory = Path.GetDirectoryName(applicationPath);
+                    var name = Path.ChangeExtension(applicationPath, ".StaticWebAssets.xml");
+
+                    var inMemoryConfiguration = new Dictionary<string, string>
+                    {
+                        [WebHostDefaults.StaticWebAssetsKey] = name,
+                    };
+
+                    config.AddInMemoryCollection(inMemoryConfiguration);
+                })
                 .ConfigureWebHost(webHostBuilder => webHostBuilder
                     .UseEnvironment("Development")
                     .UseConfiguration(configuration)

@@ -4,22 +4,27 @@ namespace AutomatedUITests.Tests
     using Fixtures;
     using OpenQA.Selenium;
     using OpenQA.Selenium.Support.UI;
+    using ThriveDevCenter.Server;
     using Utilities;
     using Xunit;
 
-    public class SiteNavigationTests : IClassFixture<WebDriverFixture>
+    public class SiteNavigationTests : IClassFixture<WebHostServerFixture<Startup>>, IClassFixture<WebDriverFixture>
     {
         private readonly WebDriverFixture driver;
+        private readonly WebHostServerFixture server;
 
-        public SiteNavigationTests(WebDriverFixture driver)
+        public SiteNavigationTests(WebHostServerFixture<Startup> server, WebDriverFixture driver)
         {
             this.driver = driver;
+            this.server = server;
         }
 
         [Fact]
         public void Navigation_MainPageLoadsAndCanNavigate()
         {
-            driver.Driver.Navigate().GoToUrl(ManualTestServerInstance.BaseUrl);
+            var root = server.RootUri;
+
+            driver.Driver.Navigate().GoToUrl(root);
 
             driver.WaitUntilBlazorIsLoaded();
 
