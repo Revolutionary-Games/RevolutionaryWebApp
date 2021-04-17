@@ -53,7 +53,7 @@ else
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
     }
 
-    <Button class="mb-3" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
         New
     </Button>
 
@@ -92,6 +92,10 @@ else
             </Button>
         </form>
     }
+
+    <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/LFSProject?deleted=true"
+                           RestoreEndpoint="api/v1/LFSProject/{0}/restore" />
+
 </AccessLimited>
 
 @code {

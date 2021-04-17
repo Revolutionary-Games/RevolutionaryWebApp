@@ -52,7 +52,7 @@ namespace ThriveDevCenter.Client.Shared
             }
         }
 
-        public string Error { get; private set; }
+        public string Error { get; protected set; }
 
         /// <summary>
         ///   True when fetching new data. Can be used for example to show a loading spinner
