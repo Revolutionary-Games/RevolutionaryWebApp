@@ -200,6 +200,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Resource is already deleted");
 
             item.Deleted = true;
+            item.BumpUpdatedAt();
             await database.SaveChangesAsync();
 
             return Ok();
@@ -218,6 +219,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Resource is not deleted");
 
             item.Deleted = false;
+            item.BumpUpdatedAt();
             await database.SaveChangesAsync();
 
             return Ok();
