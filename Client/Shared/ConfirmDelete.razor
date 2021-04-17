@@ -1,15 +1,20 @@
-<p>Are you sure you want to delete "@Name"?</p>
+<BootstrapModal OnCancel="@Cancel">
+    <div class="modal-body">
+        <p>Are you sure you want to delete "@Name"?</p>
 
-@if (SoftDelete)
-{
-    <p>
-        You can still undo this action after deletion. <br />
-        This item will be permamently deleted after a retention period.
-    </p>
-}
-
-<Button class="mr-1" ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
-<Button class="mr-1" ButtonStyle="danger" OnPressed="@Confirm">Delete</Button>
+        @if (SoftDelete)
+        {
+            <p>
+                You can still undo this action after deletion. <br />
+                This item will be permamently deleted after a retention period.
+            </p>
+        }
+    </div>
+    <div class="modal-footer">
+        <Button class="mr-1" ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+        <Button class="mr-1" ButtonStyle="danger" OnPressed="@Confirm">Delete</Button>
+    </div>
+</BootstrapModal>
 
 @code {
 

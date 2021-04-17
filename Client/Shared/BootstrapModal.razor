@@ -1,0 +1,32 @@
+<div class="modal fade show d-block" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+        <div class="modal-backdrop fade show" @onclick="Cancel"></div>
+        <div class="modal-dialog" style="z-index: 1050">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Modal.Title</h5>
+                    <button type="button" class="close" aria-label="Close" @onclick="Cancel">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                @ChildContent
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [CascadingParameter]
+    BlazoredModalInstance Modal { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private async Task Cancel() => await OnCancel.InvokeAsync();
+
+}
