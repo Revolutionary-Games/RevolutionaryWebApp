@@ -30,6 +30,11 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private const string LfsUploadProtectionPurposeString = "LFSController.Upload.v1";
 
+        /// <summary>
+        ///   Maximum size of a file to upload through LFS
+        /// </summary>
+        private const long MaxLfsUploadSize = 75 * 1024 * 1024;
+
         private static readonly TimeSpan UploadValidTime = TimeSpan.FromMinutes(60);
         private static readonly TimeSpan S3UploadValidTime = UploadValidTime + TimeSpan.FromSeconds(15);
         private static readonly TimeSpan UploadTokenValidTime = UploadValidTime + TimeSpan.FromSeconds(30);
@@ -187,11 +192,12 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var storagePath = LfsDownloadUrls.OidStoragePath(project, verifiedToken.Oid);
+            var finalStoragePath = LfsDownloadUrls.OidStoragePath(project, verifiedToken.Oid);
+            var uploadStoragePath = "uploads/" + finalStoragePath;
 
             try
             {
-                var actualSize = await remoteStorage.GetObjectSize(storagePath);
+                var actualSize = await remoteStorage.GetObjectSize(uploadStoragePath);
 
                 if (actualSize != verifiedToken.Size)
                 {
@@ -217,6 +223,39 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
+            try
+            {
+                // Move the uploaded file to a path the user can't anymore access to overwrite it
+                await remoteStorage.MoveObject(uploadStoragePath, finalStoragePath);
+
+                // Check the stored file hash
+                var actualHash = await remoteStorage.ComputeSha256OfObject(finalStoragePath);
+
+                if (actualHash != verifiedToken.Oid)
+                {
+                    logger.LogWarning("Uploaded file OID doesn't match: {Oid}, actual: {ActualHash}", verifiedToken.Oid,
+                        actualHash);
+                    return new ObjectResult(new BasicJSONErrorResult("Verification failed",
+                            "The file you uploaded doesn't match the oid you claimed it to be")
+                        .ToString())
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                    };
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogError("Upload verify storage operation failed: {@E}", e);
+                return new ObjectResult(new BasicJSONErrorResult("Internal storage operation failed",
+                        "Some remote storage operation failed while processing the file")
+                    .ToString())
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                };
+            }
+
             // Everything has been verified now so we can save the object
             // TODO: store the user Id who uploaded the object / if this was anonymous (for PRs)
             await database.LfsObjects.AddAsync(new LfsObject()
@@ -224,9 +263,12 @@ namespace ThriveDevCenter.Server.Controllers
                 LfsOid = verifiedToken.Oid,
                 Size = verifiedToken.Size,
                 LfsProjectId = project.Id,
-                StoragePath = storagePath
+                StoragePath = finalStoragePath
             });
             await database.SaveChangesAsync();
+
+            // TODO: queue one more hash check to happen in 30 minutes to ensure the file is right to avoid any possible
+            // timing attack against managing to replace the file with incorrect content
 
             logger.LogInformation("New LFS object uploaded: {Oid} for project: {Name}", verifiedToken.Oid,
                 project.Name);
@@ -379,6 +421,12 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
+            if (obj.Size > MaxLfsUploadSize)
+            {
+                return new LFSResponse.LFSObject(obj.Oid, obj.Size,
+                    new LFSResponse.LFSObject.ErrorInfo(StatusCodes.Status422UnprocessableEntity, "File is too large"));
+            }
+
             logger.LogTrace("Requesting auth because new object is to be uploaded {Oid} for project {Name}", obj.Oid,
                 project.Name);
 
@@ -389,7 +437,9 @@ namespace ThriveDevCenter.Server.Controllers
             // We don't yet create the LfsObject here to guard against upload failures
             // instead the verify callback does that
 
-            var storagePath = LfsDownloadUrls.OidStoragePath(project, obj.Oid);
+            // The uploads prefix is used here to ensure the user can't overwrite the file after uploading and
+            // verification
+            var storagePath = "uploads/" + LfsDownloadUrls.OidStoragePath(project, obj.Oid);
 
             if (!bucketChecked)
             {
@@ -397,6 +447,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     if (!await remoteStorage.BucketExists())
                     {
+                        throw new Exception("bucket doesn't exist");
                     }
                 }
                 catch (Exception e)

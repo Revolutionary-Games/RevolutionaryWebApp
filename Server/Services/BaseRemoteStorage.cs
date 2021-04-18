@@ -1,8 +1,10 @@
 namespace ThriveDevCenter.Server.Services
 {
     using System;
+    using System.IO;
+    using System.Net;
+    using System.Security.Cryptography;
     using System.Threading.Tasks;
-    using Amazon;
     using Amazon.Runtime;
     using Amazon.S3;
     using Amazon.S3.Model;
@@ -60,7 +62,63 @@ namespace ThriveDevCenter.Server.Services
             ThrowIfNotConfigured();
 
             var data = await s3Client.GetObjectMetadataAsync(bucket, path);
+
+            if(data.HttpStatusCode != HttpStatusCode.OK)
+                throw new Exception($"s3 object size get failed: {data.HttpStatusCode}");
+
             return data.Headers.ContentLength;
+        }
+
+        public async Task MoveObject(string currentPath, string newPath)
+        {
+            var copyResult = await s3Client.CopyObjectAsync(new CopyObjectRequest()
+            {
+                SourceBucket = bucket,
+                SourceKey = currentPath,
+                DestinationBucket = bucket,
+                DestinationKey = newPath
+            });
+
+            if (copyResult.HttpStatusCode != HttpStatusCode.OK)
+                throw new Exception($"s3 object copy failed, status: {copyResult.HttpStatusCode}");
+
+            var deleteResult = await s3Client.DeleteObjectAsync(new DeleteObjectRequest()
+            {
+                BucketName = bucket,
+                Key = currentPath
+            });
+
+            if(deleteResult.HttpStatusCode != HttpStatusCode.OK)
+                throw new Exception($"s3 object delete failed, status: {deleteResult.HttpStatusCode}");
+        }
+
+        /// <summary>
+        ///   Gets object content as a stream. Note the result needs to be disposed
+        /// </summary>
+        public async Task<Stream> GetObjectContent(string path)
+        {
+            ThrowIfNotConfigured();
+
+            var result =  await s3Client.GetObjectAsync(new GetObjectRequest()
+            {
+                BucketName = bucket,
+                Key = path
+            });
+
+            if(result.HttpStatusCode != HttpStatusCode.OK)
+                throw new Exception($"s3 object content retrieve failed, status: {result.HttpStatusCode}");
+
+            return result.ResponseStream;
+        }
+
+        public async Task<string> ComputeSha256OfObject(string path)
+        {
+            await using var dataStream = await GetObjectContent(path);
+
+            var sha256 = SHA256.Create();
+            var hash = await sha256.ComputeHashAsync(dataStream);
+
+            return Convert.ToHexString(hash).ToLowerInvariant();
         }
 
         protected void ThrowIfNotConfigured()
