@@ -4,6 +4,6 @@ namespace ThriveDevCenter.Shared.Models
     {
         public string LfsOid { get; set; }
 
-        public int Size { get; set; }
+        public long Size { get; set; }
     }
 }

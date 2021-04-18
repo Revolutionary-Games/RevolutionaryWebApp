@@ -17,7 +17,7 @@ namespace ThriveDevCenter.Server.Models
         [Required]
         public string LfsOid { get; set; }
 
-        public int Size { get; set; }
+        public long Size { get; set; }
 
         [Required]
         public string StoragePath { get; set; }

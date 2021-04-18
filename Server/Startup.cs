@@ -148,8 +148,10 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<ITokenVerifier, TokenVerifier>();
             services.AddSingleton<RedirectVerifier>();
             services.AddSingleton<StaticHomePageNotice>();
+            services.AddSingleton<LfsDownloadUrls>();
 
             services.AddScoped<IPatreonAPI, PatreonAPI>();
+            services.AddScoped<LfsRemoteStorage>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();

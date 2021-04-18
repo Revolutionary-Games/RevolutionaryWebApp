@@ -6,10 +6,12 @@
 
   <ItemGroup>
     <PackageReference Include="AspNetCoreRateLimit" Version="3.2.2" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.0.14" />
     <PackageReference Include="EFCore.NamingConventions" Version="5.0.2" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.20" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.8.2" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="5.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="5.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="5.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="5.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="5.0.4" />
