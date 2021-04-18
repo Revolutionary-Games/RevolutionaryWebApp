@@ -6,7 +6,7 @@
 require 'English'
 require 'optparse'
 
-require_relative 'fix_boot_json_hashes.rb'
+require_relative 'fix_boot_json_hashes'
 
 @options = {
   mode: 'staging',
@@ -78,7 +78,8 @@ if @options[:use_migrations]
   puts 'Generating migration'
 
   system('dotnet', 'ef', 'migrations', 'script', '--idempotent', '--project',
-         'Server/ThriveDevCenter.Server.csproj', '-o', 'migration.sql')
+         'Server/ThriveDevCenter.Server.csproj', '--context', 'ApplicationDbContext',
+         '-o', 'migration.sql')
 
   abort('failed to create migration') if $CHILD_STATUS.exitstatus != 0
 
