@@ -67,6 +67,7 @@ namespace ThriveDevCenter.Server
                 services.AddStackExchangeRedisCache(options =>
                 {
                     options.ConfigurationOptions = ConfigurationOptions.Parse(SharedStateRedisConnectionString);
+
                     // Silent background retry
                     options.ConfigurationOptions.AbortOnConnectFail = false;
 
@@ -131,7 +132,11 @@ namespace ThriveDevCenter.Server
             // For now the same DB is used for jobs
             services.AddHangfire(opts =>
             {
-                opts.UsePostgreSqlStorage(Configuration.GetConnectionString("WebApiConnection"));
+                opts.UsePostgreSqlStorage(Configuration.GetConnectionString("WebApiConnection"),
+                    new PostgreSqlStorageOptions()
+                    {
+                        QueuePollInterval = TimeSpan.FromSeconds(3)
+                    });
                 opts.SetDataCompatibilityLevel(CompatibilityLevel.Version_170);
                 opts.UseSimpleAssemblyNameTypeSerializer();
                 opts.UseDefaultTypeSerializer();
@@ -256,7 +261,7 @@ namespace ThriveDevCenter.Server
             app.UseHangfireServer(new BackgroundJobServerOptions()
             {
                 WorkerCount = Convert.ToInt32(Configuration["Tasks:ThreadCount"]),
-                SchedulePollingInterval = TimeSpan.FromSeconds(3),
+                SchedulePollingInterval = TimeSpan.FromSeconds(10),
             });
 
             SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));
