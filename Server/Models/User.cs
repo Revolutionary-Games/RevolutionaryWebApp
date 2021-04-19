@@ -8,13 +8,14 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
+    using Shared.Notifications;
     using Utilities;
 
     [Index(nameof(Email), IsUnique = true)]
     [Index(nameof(HashedApiToken), IsUnique = true)]
     [Index(nameof(HashedLfsToken), IsUnique = true)]
     [Index(nameof(HashedLauncherLinkCode), IsUnique = true)]
-    public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsHashedLookUps
+    public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsHashedLookUps, IUpdateNotifications
     {
         public bool Local { get; set; }
 
@@ -30,19 +31,23 @@ namespace ThriveDevCenter.Server.Models
 
         [HashedLookUp]
         public string ApiToken { get; set; }
+
         public string HashedApiToken { get; set; }
 
         [HashedLookUp]
         public string LfsToken { get; set; }
+
         public string HashedLfsToken { get; set; }
 
         [AllowSortingBy]
         public bool? Suspended { get; set; } = false;
+
         public string SuspendedReason { get; set; }
         public bool? SuspendedManually { get; set; } = false;
 
         [HashedLookUp]
         public string LauncherLinkCode { get; set; }
+
         public string HashedLauncherLinkCode { get; set; }
         public DateTime? LauncherCodeExpires { get; set; }
 
@@ -138,7 +143,6 @@ namespace ThriveDevCenter.Server.Models
                 case RecordAccessLevel.Public:
                     break;
                 case RecordAccessLevel.Admin:
-                    // TODO: add the suspension reasons etc.
                     info.Suspended = Suspended ?? false;
                     info.SuspendedReason = SuspendedReason;
                     info.SuspendedManually = SuspendedManually ?? false;
@@ -163,6 +167,35 @@ namespace ThriveDevCenter.Server.Models
             }
 
             return info;
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            yield return new Tuple<SerializedNotification, string>(new UserListUpdated()
+            {
+                Type = entityState.ToChangeType(),
+                // TODO: create a separate UserInfo type to use for the list here
+                Item = GetInfo(RecordAccessLevel.Admin)
+            }, NotificationGroups.UserListUpdated);
+
+            if (entityState != EntityState.Deleted)
+            {
+                yield return new Tuple<SerializedNotification, string>(new UserUpdated()
+                {
+                    Item = GetInfo(RecordAccessLevel.Admin)
+                }, NotificationGroups.UserUpdatedPrefixAdminInfo + Id);
+            }
+
+            if (entityState == EntityState.Modified)
+            {
+                Console.WriteLine("sending user notification");
+
+                yield return new Tuple<SerializedNotification, string>(new UserUpdated()
+                {
+                    // Private is safe here as only admins and the user itself can join this group
+                    Item = GetInfo(RecordAccessLevel.Private)
+                }, NotificationGroups.UserUpdatedPrefix + Id);
+            }
         }
     }
 }

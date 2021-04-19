@@ -25,6 +25,8 @@ namespace ThriveDevCenter.Shared
 
         public const string SoftDeleteAttribute = "Deleted";
 
+        public const int APITokenByteCount = 34;
+
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days of inactivity
         /// </summary>

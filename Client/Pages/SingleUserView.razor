@@ -30,6 +30,9 @@
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
+        if(currentAccessLevel == UserAccessLevel.Admin)
+            groups.Add(NotificationGroups.UserUpdatedPrefixAdminInfo + Id);
+
         groups.Add(NotificationGroups.UserUpdatedPrefix + Id);
     }
 

@@ -1,7 +1,7 @@
 @{
     #pragma warning disable 108,114 // invalid warning for razor override
 }
-@inject CurrentUserInfo CurrentUserInfo
+@inject CurrentUserInfo currentUserInfo
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Client.Services
@@ -27,14 +27,14 @@
 
     @if (LookingAtSelf)
     {
-        @* TODO: generation buttons for this *@
+        <UserTokenControls HasThisToken="@User.HasApiToken" TokenType="API" TokenCreateAPI="api/v1/Tokens/api/self" />
     }
 
     <li><strong>Git LFS token</strong>: @User.HasLfsToken</li>
 
     @if (LookingAtSelf)
     {
-        @* TODO: generation buttons for this *@
+        <UserTokenControls HasThisToken="@User.HasLfsToken" TokenType="LFS" TokenCreateAPI="api/v1/Tokens/lfs/self" />
     }
 
     <AccessLimited RequiredAccess="UserAccessLevel.Admin">
@@ -101,7 +101,7 @@
     [Parameter]
     public bool ShowSelfIdentification { get; set; }
 
-    private bool LookingAtSelf => CurrentUserInfo.InfoReady && CurrentUserInfo.Email ==
+    private bool LookingAtSelf => currentUserInfo.InfoReady && currentUserInfo.Email ==
         User.Email;
 
 }
