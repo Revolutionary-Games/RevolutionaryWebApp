@@ -19,17 +19,14 @@ namespace ThriveDevCenter.Server.Controllers
     public class RegistrationController : Controller
     {
         private readonly ILogger<RegistrationController> logger;
-        private readonly IHubContext<NotificationsHub, INotifications> notifications;
         private readonly IRegistrationStatus configuration;
         private readonly ITokenVerifier csrfVerifier;
-        private readonly ApplicationDbContext database;
+        private readonly NotificationsEnabledDb database;
 
-        public RegistrationController(ILogger<RegistrationController> logger,
-            IHubContext<NotificationsHub, INotifications> notifications, IRegistrationStatus configuration,
-            ITokenVerifier csrfVerifier, ApplicationDbContext database)
+        public RegistrationController(ILogger<RegistrationController> logger,IRegistrationStatus configuration,
+            ITokenVerifier csrfVerifier, NotificationsEnabledDb database)
         {
             this.logger = logger;
-            this.notifications = notifications;
             this.configuration = configuration;
             this.csrfVerifier = csrfVerifier;
             this.database = database;
@@ -79,13 +76,6 @@ namespace ThriveDevCenter.Server.Controllers
 
             await database.Users.AddAsync(user);
             await database.SaveChangesAsync();
-
-            await notifications.Clients.Group(NotificationGroups.UserListUpdated).ReceiveNotification(
-                new UserListUpdated()
-                {
-                    Type = ListItemChangeType.ItemAdded,
-                    Item = user.GetInfo(RecordAccessLevel.Admin)
-                });
 
             return Created($"/users/{user.Id}", user.GetInfo(RecordAccessLevel.Private));
         }

@@ -40,7 +40,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         [Fact]
         public void Get_ReturnsRegistrationEnabledStatus()
         {
-            var controller = new RegistrationController(logger, null, new DummyRegistrationStatus()
+            var controller = new RegistrationController(logger, new DummyRegistrationStatus()
             {
                 RegistrationEnabled = true,
                 RegistrationCode = "abc123"
@@ -54,7 +54,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         [Fact]
         public void Get_ReturnsRegistrationDisabledStatus()
         {
-            var controller = new RegistrationController(logger, null, new DummyRegistrationStatus()
+            var controller = new RegistrationController(logger, new DummyRegistrationStatus()
             {
                 RegistrationEnabled = false
             }, null, null);
@@ -73,12 +73,11 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, null, false))
                 .Returns(false).Verifiable();
 
-            var notificationsMock = new Mock<IHubContext<NotificationsHub, INotifications>>();
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
 
-            await using var database = new ApplicationDbContext(dbOptions);
+            await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
-            var controller = new RegistrationController(logger, notificationsMock.Object, dummyRegistrationStatus,
-                csrfMock.Object, database);
+            var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database);
 
             var result = await controller.Post(new RegistrationFormData()
             {
@@ -101,11 +100,11 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(It.IsNotNull<string>(), null, false))
                 .Returns(true).Verifiable();
 
-            var notificationsMock = new Mock<IHubContext<NotificationsHub, INotifications>>();
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
 
-            await using var database = new ApplicationDbContext(dbOptions);
+            await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
-            var controller = new RegistrationController(logger, notificationsMock.Object, dummyRegistrationStatus,
+            var controller = new RegistrationController(logger, dummyRegistrationStatus,
                 csrfMock.Object, database);
 
             var result = await controller.Post(new RegistrationFormData()
@@ -130,18 +129,16 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             var csrfMock = new Mock<ITokenVerifier>();
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, null, false))
                 .Returns(true).Verifiable();
-            var notificationsMock = new Mock<IHubContext<NotificationsHub, INotifications>>();
-            var mockClients = new Mock<IHubClients<INotifications>>();
-            var groupsMock = new Mock<INotifications>();
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
 
-            notificationsMock.Setup(notifications => notifications.Clients).Returns(mockClients.Object);
-            mockClients.Setup(clients => clients.Group(NotificationGroups.UserListUpdated)).Returns(groupsMock.Object);
-            groupsMock.Setup(group => group.ReceiveNotificationJSON(It.IsNotNull<string>()));
+            notificationsMock
+                .Setup(notifications => notifications.OnChangesDetected(EntityState.Added,
+                    It.IsAny<User>(), false))
+                .Returns(Task.CompletedTask).Verifiable();
 
-            await using var database = new ApplicationDbContext(dbOptions);
+            await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
-            var controller = new RegistrationController(logger, notificationsMock.Object, dummyRegistrationStatus,
-                csrfMock.Object, database);
+            var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database);
 
             var result = await controller.Post(new RegistrationFormData()
             {
@@ -161,7 +158,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             Assert.NotEqual("password12345", user.PasswordHash);
             Assert.True(Passwords.CheckPassword(user.PasswordHash, "password12345"));
 
-            groupsMock.Verify();
+            notificationsMock.Verify();
         }
     }
 }

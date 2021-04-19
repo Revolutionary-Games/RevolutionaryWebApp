@@ -72,7 +72,7 @@ namespace ThriveDevCenter.Client.Services
             if (info == null || info.Id != user.Id)
                 return;
 
-            Info = user;
+            OnReceivedOurInfo(user);
         }
 
         public void OnReceivedOurInfo(UserInfo user)

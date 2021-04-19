@@ -21,15 +21,12 @@ namespace ThriveDevCenter.Server.Controllers
     public class CodeRedeemController : Controller
     {
         private readonly ILogger<CodeRedeemController> logger;
-        private readonly ApplicationDbContext database;
-        private readonly IHubContext<NotificationsHub, INotifications> notifications;
+        private readonly NotificationsEnabledDb database;
 
-        public CodeRedeemController(ILogger<CodeRedeemController> logger, ApplicationDbContext database,
-            IHubContext<NotificationsHub, INotifications> notifications)
+        public CodeRedeemController(ILogger<CodeRedeemController> logger, NotificationsEnabledDb database)
         {
             this.logger = logger;
             this.database = database;
-            this.notifications = notifications;
         }
 
         [AuthorizeRoleFilter]
@@ -104,19 +101,6 @@ namespace ThriveDevCenter.Server.Controllers
                 target.Email, granted);
 
             var idStr = Convert.ToString(target.Id);
-
-            await notifications.Clients.Group(NotificationGroups.UserUpdatedPrefix + idStr).ReceiveNotification(
-                new UserUpdated
-                {
-                    // Private is safe here as only admins and the user itself can join this group
-                    Item = target.GetInfo(RecordAccessLevel.Private)
-                });
-
-            await notifications.Clients.Group(NotificationGroups.UserUpdatedPrefixAdminInfo + idStr)
-                .ReceiveNotification(new UserUpdated
-                {
-                    Item = target.GetInfo(RecordAccessLevel.Admin)
-                });
 
             return Ok($"You have been granted: {granted}");
         }

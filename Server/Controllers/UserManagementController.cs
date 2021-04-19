@@ -54,6 +54,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var objects = await query.ToPagedResultAsync(page, pageSize);
 
+            // TODO: create a separate UserInfo type to use for the list here
             return objects.ConvertResult(i => i.GetInfo(RecordAccessLevel.Admin));
         }
 
