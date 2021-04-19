@@ -235,6 +235,11 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     logger.LogWarning("Uploaded file OID doesn't match: {Oid}, actual: {ActualHash}", verifiedToken.Oid,
                         actualHash);
+
+                    logger.LogInformation("Attempting to delete the copied invalid file");
+
+                    await remoteStorage.DeleteObject(finalStoragePath);
+
                     return new ObjectResult(new BasicJSONErrorResult("Verification failed",
                             "The file you uploaded doesn't match the oid you claimed it to be")
                         .ToString())

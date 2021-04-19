@@ -111,6 +111,15 @@ namespace ThriveDevCenter.Server.Services
             return result.ResponseStream;
         }
 
+        public async Task DeleteObject(string path)
+        {
+            await s3Client.DeleteObjectAsync(new DeleteObjectRequest()
+            {
+                BucketName = bucket,
+                Key = path
+            });
+        }
+
         public async Task<string> ComputeSha256OfObject(string path)
         {
             await using var dataStream = await GetObjectContent(path);
