@@ -6,9 +6,7 @@ IN PROGRESS ATTEMPT IN REWRITING IN BLAZOR AND ASP.NET CORE
 
 ThriveDevCenter requires a PostgreSQL database to operate.
 
-You can create a new account with `psql`:
-
-And a database for the account:
+You can create a new account and a database for the account with `psql`:
 ```sql
 CREATE USER thrivedevcenter WITH LOGIN PASSWORD 'PUTAPASSWORDHERE';
 ```
@@ -29,7 +27,7 @@ tweaks.
 
 Now you can use the dotnet tool to setup the local database (run in the Server folder):
 ```sh
-dotnet ef database update
+dotnet ef database update --context ApplicationDbContext
 ```
 
 After that running in development should work if you execute
