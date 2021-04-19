@@ -96,6 +96,20 @@ namespace ThriveDevCenter.Client.Services
             }
         }
 
+        /// <summary>
+        ///   Register an object to receive notifications
+        /// </summary>
+        /// <param name="handler">The object that should receive the notifications</param>
+        /// <typeparam name="T">The notification type to register for. NOTE: only one type is required</typeparam>
+        /// <exception cref="ArgumentException">handler is null</exception>
+        /// <exception cref="InvalidOperationException">handler's class is missing somethings</exception>
+        /// <remarks>
+        ///   <para>
+        ///     A single call to this method is enough no matter how many interfaces handler implements.
+        ///     This is because this loops all the implemented notification interfaces and registers each one
+        ///     of them in a single call.
+        ///   </para>
+        /// </remarks>
         public async Task Register<T>(INotificationHandler<T> handler) where T : SerializedNotification
         {
             if (handler == null)
@@ -345,9 +359,7 @@ namespace ThriveDevCenter.Client.Services
             if (!userInfoRegistered)
             {
                 // Due to difficult ordering, we register on behalf of the UserInfoReceiver
-                // TODO: would be nice to cause just one group membership checking due to this
                 await Register<UserUpdated>(userInfoReceiver);
-                await Register<UserListUpdated>(userInfoReceiver);
                 userInfoRegistered = true;
             }
             else
