@@ -98,19 +98,22 @@ namespace ThriveDevCenter.Client.Services
 
         public async Task Register<T>(INotificationHandler<T> handler) where T : SerializedNotification
         {
+            if (handler == null)
+                throw new ArgumentException();
+
             bool hadAny = false;
+
+            // Magic from https://remibou.github.io/Realtime-update-with-Blazor-WASM-SignalR-and-MediatR/
+            var handlerInterfaces = handler
+                .GetType()
+                .GetInterfaces()
+                .Where(x =>
+                    x.IsGenericType &&
+                    x.GetGenericTypeDefinition() == typeof(INotificationHandler<>))
+                .ToList();
 
             lock (handlers)
             {
-                // Magic from https://remibou.github.io/Realtime-update-with-Blazor-WASM-SignalR-and-MediatR/
-                var handlerInterfaces = handler
-                    .GetType()
-                    .GetInterfaces()
-                    .Where(x =>
-                        x.IsGenericType &&
-                        x.GetGenericTypeDefinition() == typeof(INotificationHandler<>))
-                    .ToList();
-
                 foreach (var item in handlerInterfaces)
                 {
                     hadAny = true;
@@ -122,15 +125,34 @@ namespace ThriveDevCenter.Client.Services
                         handlers.Add(notificationType, handlerList);
                     }
 
+                    var method = handler.GetType().GetMethod(nameof(handler.Handle),
+                        new[] { notificationType, typeof(CancellationToken) });
+
+                    if (method == null)
+                    {
+                        var error = "Failed to find handler for specific notification in type";
+                        Console.Error.WriteLine(error);
+                        throw new InvalidOperationException(error);
+                    }
+
                     lock (handlerList)
                     {
-                        handlerList.Add((handler, async s => await handler.Handle((T)s, default)));
+                        handlerList.Add((handler,
+                            async s =>
+                            {
+                                // ReSharper disable once PossibleNullReferenceException
+                                await (Task)method.Invoke(handler, new object[] { s, default(CancellationToken) });
+                            }));
                     }
                 }
             }
 
             if (!hadAny)
-                throw new ArgumentException("Object given to Register didn't implement any listener interfaces");
+            {
+                var error = "Object given to Register didn't implement any listener interfaces";
+                await Console.Error.WriteLineAsync(error);
+                throw new InvalidOperationException(error);
+            }
 
             await ApplyGroupMemberships();
         }
@@ -209,7 +231,7 @@ namespace ThriveDevCenter.Client.Services
                         // options.Headers["X-CSRF-Token"] = csrfTokenReader.Token;
                     })
                 .AddJsonProtocol()
-                .WithAutomaticReconnect(new TimeSpan[]
+                .WithAutomaticReconnect(new[]
                 {
                     TimeSpan.FromSeconds(0),
                     TimeSpan.FromSeconds(2),
@@ -317,6 +339,9 @@ namespace ThriveDevCenter.Client.Services
                 ConnectionPermanentlyLost = true;
             }
 
+            if (FullMessageLogging)
+                Console.WriteLine("Performing post hub connection start operations");
+
             if (!userInfoRegistered)
             {
                 // Due to difficult ordering, we register on behalf of the UserInfoReceiver
@@ -356,6 +381,9 @@ namespace ThriveDevCenter.Client.Services
 
         private async void OnUserInfoChanged(object sender, UserInfo info)
         {
+            if (FullMessageLogging)
+                Console.WriteLine("Applying groups because we got user info change notification");
+
             await ApplyGroupMemberships();
         }
 
@@ -363,7 +391,11 @@ namespace ThriveDevCenter.Client.Services
         {
             // Can't run this yet if we don't have user info. We'll receive a callback when user info is ready
             if (!userInfoReceiver.InfoReady)
+            {
+                if (FullMessageLogging)
+                    Console.WriteLine("User info not ready yet, can't check groups");
                 return;
+            }
 
             var userStatus = userInfoReceiver.AccessLevel;
 
@@ -382,6 +414,9 @@ namespace ThriveDevCenter.Client.Services
                     }
                 }
             }
+
+            if (FullMessageLogging)
+                Console.WriteLine($"Wanted groups: {string.Join(' ', wantedGroups)}");
 
             var groupsToLeave = currentlyJoinedGroups.Except(wantedGroups).ToList();
             var groupsToJoin = wantedGroups.Except(currentlyJoinedGroups).ToList();
