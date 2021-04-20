@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
+    using System.Runtime.Serialization;
     using System.Text.Json;
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
@@ -85,7 +86,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [HttpPost("{slug}/objects/batch")]
         public async Task<ActionResult<LFSResponse>> BatchOperation([Required] string slug,
-            [Required] [FromBody] LFSRequest request)
+            [Required] LFSRequest request)
         {
             SetContentType();
 
@@ -537,9 +538,11 @@ namespace ThriveDevCenter.Server.Controllers
         public LFSRef Ref { get; set; }
 
         [Required]
+        [MinLength(1)]
+        [MaxLength(200)]
         public List<LFSObject> Objects { get; set; }
 
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public bool SupportsBasicTransfer
         {
             get
@@ -553,12 +556,13 @@ namespace ThriveDevCenter.Server.Controllers
             }
         }
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public enum OperationType
         {
-            [JsonPropertyName("download")]
+            [EnumMember(Value = "download")]
             Download,
 
-            [JsonPropertyName("download")]
+            [EnumMember(Value = "download")]
             Upload
         }
 
