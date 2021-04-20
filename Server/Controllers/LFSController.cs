@@ -131,14 +131,27 @@ namespace ThriveDevCenter.Server.Controllers
                         "No valid objects found in request to process")
                     .ToString())
                 {
-                    StatusCode = StatusCodes.Status400BadRequest,
+                    StatusCode = StatusCodes.Status422UnprocessableEntity,
                     ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
                 };
             }
 
-            return new LFSResponse
+            var status = StatusCodes.Status200OK;
+
+            // If all objects are in an error state, also use that for the primary return value
+            if (objects.All(o => o.Error != null))
             {
-                Objects = objects
+                status = objects.Where(o => o.Error != null).Select(o => o.Error.Code).First();
+            }
+
+            return new ObjectResult(
+                new LFSResponse
+                {
+                    Objects = objects
+                })
+            {
+                StatusCode = status,
+                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
             };
         }
 
@@ -538,7 +551,6 @@ namespace ThriveDevCenter.Server.Controllers
         public LFSRef Ref { get; set; }
 
         [Required]
-        [MinLength(1)]
         [MaxLength(200)]
         public List<LFSObject> Objects { get; set; }
 
