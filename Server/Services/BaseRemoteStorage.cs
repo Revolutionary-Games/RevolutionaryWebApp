@@ -63,7 +63,7 @@ namespace ThriveDevCenter.Server.Services
 
             var data = await s3Client.GetObjectMetadataAsync(bucket, path);
 
-            if(data.HttpStatusCode != HttpStatusCode.OK)
+            if (data.HttpStatusCode != HttpStatusCode.OK)
                 throw new Exception($"s3 object size get failed: {data.HttpStatusCode}");
 
             return data.Headers.ContentLength;
@@ -82,14 +82,7 @@ namespace ThriveDevCenter.Server.Services
             if (copyResult.HttpStatusCode != HttpStatusCode.OK)
                 throw new Exception($"s3 object copy failed, status: {copyResult.HttpStatusCode}");
 
-            var deleteResult = await s3Client.DeleteObjectAsync(new DeleteObjectRequest()
-            {
-                BucketName = bucket,
-                Key = currentPath
-            });
-
-            if(deleteResult.HttpStatusCode != HttpStatusCode.OK)
-                throw new Exception($"s3 object delete failed, status: {deleteResult.HttpStatusCode}");
+            await DeleteObject(currentPath);
         }
 
         /// <summary>
@@ -99,13 +92,13 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var result =  await s3Client.GetObjectAsync(new GetObjectRequest()
+            var result = await s3Client.GetObjectAsync(new GetObjectRequest()
             {
                 BucketName = bucket,
                 Key = path
             });
 
-            if(result.HttpStatusCode != HttpStatusCode.OK)
+            if (result.HttpStatusCode != HttpStatusCode.OK)
                 throw new Exception($"s3 object content retrieve failed, status: {result.HttpStatusCode}");
 
             return result.ResponseStream;
@@ -113,11 +106,15 @@ namespace ThriveDevCenter.Server.Services
 
         public async Task DeleteObject(string path)
         {
-            await s3Client.DeleteObjectAsync(new DeleteObjectRequest()
+            var deleteResult = await s3Client.DeleteObjectAsync(new DeleteObjectRequest()
             {
                 BucketName = bucket,
                 Key = path
             });
+
+            if (deleteResult.HttpStatusCode != HttpStatusCode.NoContent &&
+                deleteResult.HttpStatusCode != HttpStatusCode.OK)
+                throw new Exception($"s3 object delete failed, status: {deleteResult.HttpStatusCode}");
         }
 
         public async Task<string> ComputeSha256OfObject(string path)
