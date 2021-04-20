@@ -613,12 +613,15 @@ namespace ThriveDevCenter.Server.Controllers
 
             [Required]
             [JsonPropertyName("authenticated")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public bool? Authenticated { get; set; } = true;
 
             [JsonPropertyName("actions")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public Dictionary<string, Action> Actions { get; set; }
 
             [JsonPropertyName("error")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public ErrorInfo Error { get; set; }
 
             public LFSObject(string oid, long size)
