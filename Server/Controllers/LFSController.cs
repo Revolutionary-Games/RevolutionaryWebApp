@@ -156,8 +156,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("{slug}/verify")]
-        public async Task<IActionResult> VerifyUpload([Required] string slug,
-            [Required] string token, [Required] string oid, [Required] long size)
+        public async Task<IActionResult> VerifyUpload([Required] string slug, [Required] string token)
         {
             SetContentType();
 
@@ -182,9 +181,6 @@ namespace ThriveDevCenter.Server.Controllers
                     ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
                 };
             }
-
-            if (verifiedToken.Oid != oid || verifiedToken.Size != size)
-                return BadRequest("token does not match provided parameters");
 
             var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug).FirstOrDefaultAsync();
 
