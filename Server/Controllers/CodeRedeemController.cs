@@ -33,10 +33,10 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost]
         public async Task<IActionResult> Redeem([Required] RedeemCodeData data)
         {
-            var target = HttpContext.Items[AppInfo.CurrentUserMiddlewareKey] as User;
+            var target = await database.Users.FindAsync(HttpContext.AuthenticatedUser().Id);
 
             if (target == null)
-                throw new Exception("User is null after authorization");
+                throw new Exception("User not found after authorization");
 
             if (string.IsNullOrEmpty(data.Code) || data.Code.Length < AppInfo.MinimumRedeemableCodeLength)
                 return BadRequest("The code is too short");
@@ -92,15 +92,13 @@ namespace ThriveDevCenter.Server.Controllers
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = $"Granted {granted} for redeeming a redeemable code",
-                TargetUser = target,
+                TargetUserId = target.Id,
             });
 
             await database.SaveChangesAsync();
 
             logger.LogInformation("Code: {Code} has been redeemed by {Email}, granting: {Granted}", data.Code,
                 target.Email, granted);
-
-            var idStr = Convert.ToString(target.Id);
 
             return Ok($"You have been granted: {granted}");
         }
