@@ -115,6 +115,11 @@ install. With this you just need docker to build the images with and a
 server running docker where you can deploy the images as running
 containers.
 
+Before building the images you need to copy the template files for
+docker usage from the `templates` folder. Remove the `.template`
+suffix after copying and then edit the values to be suitable for your
+setup.
+
 ```sh
 docker build . --target proxy --tag thrivedevcenter-proxy:latest
 docker build . --target application --tag thrivedevcenter-web:latest
@@ -127,6 +132,16 @@ docker run -d -v redis_data:/data --rm --restart on-failure --name thrivedevcent
 docker run -d --rm --restart on-failure --name thrivedevcenter_web --network=thrivedevcenter -e PGPASSWORD=SPECIFYAPASSWORD thrivedevcenter-web:latest
 docker run -d -p 80:80 --rm --restart on-failure --name thrivedevcenter_proxy --network=thrivedevcenter thrivedevcenter-proxy:latest
 ```
+
+Creating an admin redeem code:
+```sh
+docker exec -it thrivedevcenter_db psql -U postgres -d thrivedevcenter
+```
+
+Provide the password used in the previous step if prompted.
+
+And now follow the instructions in the "Getting an admin account"
+section.
 
 --
 

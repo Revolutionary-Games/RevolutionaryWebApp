@@ -18,7 +18,8 @@ RUN dotnet publish -c Release Client/ThriveDevCenter.Client.csproj && \
 # Migrations file
 RUN dotnet tool install --global dotnet-ef
 RUN PATH="$PATH:/root/.dotnet/tools" dotnet ef migrations script --idempotent \
-    --project Server/ThriveDevCenter.Server.csproj -o /migration.sql
+    --project Server/ThriveDevCenter.Server.csproj --context ApplicationDbContext \
+    -o /migration.sql
 
 FROM fedora:33 as proxy
 ENV DOTNET_VERSION "5.0"
