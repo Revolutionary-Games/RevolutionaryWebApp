@@ -130,7 +130,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             // Early exit if already cleared
             if (target.LfsToken == null && target.ApiToken == null)
-                return Ok("already cleared");
+                return Ok("Tokens already cleared");
 
             var user = HttpContext.AuthenticatedUser();
             logger.LogInformation("Force clearing tokens on user {Id} by admin {Email}", target.Id, user.Email);
@@ -143,12 +143,12 @@ namespace ThriveDevCenter.Server.Controllers
             });
 
             // It's assumed here that the authentication also used ApplicationDbContext so that this works
-            user.LfsToken = null;
-            user.ApiToken = null;
+            target.LfsToken = null;
+            target.ApiToken = null;
 
             await database.SaveChangesAsync();
 
-            return Ok("cleared");
+            return Ok("Tokens cleared");
         }
     }
 }
