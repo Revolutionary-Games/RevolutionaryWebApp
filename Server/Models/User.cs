@@ -188,8 +188,6 @@ namespace ThriveDevCenter.Server.Models
 
             if (entityState == EntityState.Modified)
             {
-                Console.WriteLine("sending user notification");
-
                 yield return new Tuple<SerializedNotification, string>(new UserUpdated()
                 {
                     // Private is safe here as only admins and the user itself can join this group
