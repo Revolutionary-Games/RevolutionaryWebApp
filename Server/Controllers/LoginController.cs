@@ -42,6 +42,7 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly RedirectVerifier redirectVerifier;
         private readonly IPatreonAPI patreonAPI;
 
+        private readonly bool useSecureCookies;
         private readonly bool localLoginEnabled;
 
         public LoginController(ILogger<LoginController> logger, ApplicationDbContext database,
@@ -54,6 +55,8 @@ namespace ThriveDevCenter.Server.Controllers
             this.csrfVerifier = csrfVerifier;
             this.redirectVerifier = redirectVerifier;
             this.patreonAPI = patreonAPI;
+
+            useSecureCookies = Convert.ToBoolean(configuration["Login:SecureCookies"]);
 
             localLoginEnabled = Convert.ToBoolean(configuration["Login:Local:Enabled"]);
         }
@@ -264,8 +267,7 @@ namespace ThriveDevCenter.Server.Controllers
                 // TODO: do we need to set the domain explicitly?
                 // options.Domain;
 
-                // This might cause issues when locally testing with Chrome
-                Secure = true,
+                Secure = useSecureCookies,
 
                 // Sessions are used for logins, they are essential. This might need to be re-thought out if
                 // non-essential info is attached to sessions later
