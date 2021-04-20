@@ -7,7 +7,7 @@ namespace ThriveDevCenter.Server.Services
     public class LfsDownloadUrls : BaseCDNDownload
     {
         public LfsDownloadUrls(IConfiguration configuration) : base(configuration["Lfs:Download:URL"],
-            configuration["Lfs:Download:KEY"])
+            configuration["Lfs:Download:Key"])
         {
         }
 
