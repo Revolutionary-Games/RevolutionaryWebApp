@@ -7,7 +7,7 @@ namespace ThriveDevCenter.Shared.Models
     {
         public string Description { get; set; }
         public DateTime? LastUsed { get; set; }
-        public int KeyType { get; set; }
+        public AccessKeyType KeyType { get; set; }
         public IPAddress LastUsedFrom { get; set; }
     }
 }

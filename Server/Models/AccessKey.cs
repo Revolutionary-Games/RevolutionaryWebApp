@@ -26,9 +26,8 @@ namespace ThriveDevCenter.Server.Models
 
         public string HashedKeyCode { get; set; }
 
-        // TODO: change this into an enum
         [AllowSortingBy]
-        public int KeyType { get; set; }
+        public AccessKeyType KeyType { get; set; }
 
         public AccessKeyDTO GetDTO()
         {
