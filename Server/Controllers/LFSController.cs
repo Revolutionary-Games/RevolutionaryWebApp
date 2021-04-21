@@ -31,11 +31,6 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private const string LfsUploadProtectionPurposeString = "LFSController.Upload.v1";
 
-        /// <summary>
-        ///   Maximum size of a file to upload through LFS
-        /// </summary>
-        private const long MaxLfsUploadSize = 75 * 1024 * 1024;
-
         private static readonly TimeSpan UploadValidTime = TimeSpan.FromMinutes(60);
         private static readonly TimeSpan S3UploadValidTime = UploadValidTime + TimeSpan.FromSeconds(15);
         private static readonly TimeSpan UploadTokenValidTime = UploadValidTime + TimeSpan.FromSeconds(30);
@@ -439,7 +434,7 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            if (obj.Size > MaxLfsUploadSize)
+            if (obj.Size > AppInfo.MaxLfsUploadSize)
             {
                 return new LFSResponse.LFSObject(obj.Oid, obj.Size,
                     new LFSResponse.LFSObject.ErrorInfo(StatusCodes.Status422UnprocessableEntity, "File is too large"));

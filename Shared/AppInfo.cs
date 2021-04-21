@@ -3,8 +3,9 @@ namespace ThriveDevCenter.Shared
     using System;
 
     /// <summary>
-    ///   Holds the current version of the app, to detect mismatch between the client and the server.
-    ///   Increment these numbers when the signalr definitions change or the APIs change
+    ///   Holds App-wide constant values.
+    ///   Contains the current version of the app, to detect mismatch between the client and the server.
+    ///   Increment these numbers when the signalr definitions change or the APIs change.
     /// </summary>
     public static class AppInfo
     {
@@ -27,6 +28,26 @@ namespace ThriveDevCenter.Shared
         public const string SoftDeleteAttribute = "Deleted";
 
         public const int APITokenByteCount = 34;
+
+        public const int MaxDehydratedObjectsPerOffer = 100;
+
+        public const int KIBIBYTE = 1024;
+        public const int MEBIBYTE = KIBIBYTE * KIBIBYTE;
+
+        /// <summary>
+        ///   Maximum size of a file to upload through LFS
+        /// </summary>
+        public const long MaxLfsUploadSize = 75 * MEBIBYTE;
+
+        /// <summary>
+        ///   Maximum size of a dehydrated file
+        /// </summary>
+        public const long MaxDehydratedUploadSize = 200 * MEBIBYTE;
+
+        /// <summary>
+        ///   Maximum size of a devbuild file
+        /// </summary>
+        public const long MaxDevBuildUploadSize = 50 * MEBIBYTE;
 
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days of inactivity
