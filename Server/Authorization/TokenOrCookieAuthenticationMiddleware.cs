@@ -118,11 +118,10 @@ namespace ThriveDevCenter.Server.Authorization
         private async Task<AuthMethodResult> CheckLauncherLink(HttpContext context, string tokenValue)
         {
             // TODO: should maybe move the launcher to use a more standard format
-            // Or just a plain which is an active launcher link
 
             var link = await database.LauncherLinks.WhereHashed(nameof(LauncherLink.LinkCode), tokenValue)
                 .Include(l => l.User)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(l => l.LinkCode == tokenValue);
 
             if (link?.User == null || link.User.Suspended == true)
             {
@@ -131,12 +130,14 @@ namespace ThriveDevCenter.Server.Authorization
                 return AuthMethodResult.Error;
             }
 
+            // TODO: this should probably be removed? or not used just here
             if (context.Connection.RemoteIpAddress == null)
             {
                 await context.Response.WriteAsync("Internal server error getting remote address");
                 return AuthMethodResult.Error;
             }
 
+            // As total API calls is updated anyway, the last connection and last IP are updated at the same time
             link.LastConnection = DateTime.UtcNow;
             link.LastIp = context.Connection.RemoteIpAddress.ToString();
             link.TotalApiCalls += 1;
