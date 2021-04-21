@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Models
 {
     using System;
     using System.ComponentModel.DataAnnotations;
+    using System.Net;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
@@ -15,7 +16,9 @@ namespace ThriveDevCenter.Server.Models
         public string Description { get; set; }
 
         [AllowSortingBy]
-        public DateTime LastUsed { get; set; }
+        public DateTime? LastUsed { get; set; }
+
+        public IPAddress LastUsedFrom { get; set; }
 
         [Required]
         [HashedLookUp]
@@ -36,6 +39,7 @@ namespace ThriveDevCenter.Server.Models
                 UpdatedAt = UpdatedAt,
                 Description = Description,
                 LastUsed = LastUsed,
+                LastUsedFrom = LastUsedFrom,
                 KeyType = KeyType
             };
         }

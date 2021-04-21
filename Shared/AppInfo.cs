@@ -17,6 +17,7 @@ namespace ThriveDevCenter.Shared
         public const string CSRFNeededName = "CSRFRequired";
         public const string CSRFStatusName = "CSRF";
         public const string CurrentUserMiddlewareKey = "AuthenticatedUser";
+        public const string AccessKeyMiddlewareKey = "UsedAccessKey";
 
         public const string LocalStorageUserInfo = "LastPageLoadUser";
 
@@ -48,6 +49,8 @@ namespace ThriveDevCenter.Shared
         ///   The interval in seconds that a session use is updated to the database
         /// </summary>
         public static readonly TimeSpan LastUsedSessionAccuracy = TimeSpan.FromSeconds(60);
+
+        public static readonly TimeSpan LastUsedAccessKeyAccuracy = TimeSpan.FromSeconds(60);
 
         public const int Major = 1;
         public const int Minor = 7;

@@ -162,6 +162,7 @@ namespace ThriveDevCenter.Server
             services.AddScoped<LFSAuthenticationMiddleware>();
             services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
             services.AddScoped<CookieOnlyBasicAuthenticationMiddleware>();
+            services.AddScoped<AccessCodeAuthenticationMiddleware>();
             services.AddAuthentication(options =>
             {
                 options.DefaultForbidScheme = "forbidScheme";
@@ -236,6 +237,10 @@ namespace ThriveDevCenter.Server
             app.UseWhen(
                 context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
                 appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
+
+            app.UseWhen(
+                context => context.Request.Path.StartsWithSegments("/api/v1/devbuild"),
+                appBuilder => { appBuilder.UseMiddleware<AccessCodeAuthenticationMiddleware>(); });
 
             app.UseWhen(
                 context => context.Request.Path.StartsWithSegments("/hangfire"),
