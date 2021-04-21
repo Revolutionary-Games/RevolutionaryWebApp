@@ -68,7 +68,8 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpGet("{slug}")]
         public async Task<ActionResult<LFSProjectInfo>> GetBasicInfo([Required] string slug)
         {
-            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug).FirstOrDefaultAsync();
+            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug && p.Deleted != true)
+                .FirstOrDefaultAsync();
 
             if (project == null)
                 return NotFound("Not found or project is private");
@@ -93,7 +94,8 @@ namespace ThriveDevCenter.Server.Controllers
             if (request == null || !request.SupportsBasicTransfer)
                 return CreateErrorResult("Only basic transfer adapter is supported");
 
-            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug).FirstOrDefaultAsync();
+            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug && p.Deleted != true)
+                .FirstOrDefaultAsync();
 
             if (project?.Public != true)
             {
@@ -182,7 +184,8 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug).FirstOrDefaultAsync();
+            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug && p.Deleted != true)
+                .FirstOrDefaultAsync();
 
             if (project == null)
                 return NotFound();
