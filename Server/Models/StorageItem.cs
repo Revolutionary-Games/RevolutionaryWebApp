@@ -1,8 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ThriveDevCenter.Server.Models
 {
+    using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
 
     [Index(new[] { nameof(Name), nameof(ParentId) }, IsUnique = true)]
@@ -40,5 +41,11 @@ namespace ThriveDevCenter.Server.Models
         // Things that can reference this
         public ICollection<DehydratedObject> DehydratedObjects { get; set; } = new HashSet<DehydratedObject>();
         public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
+
+        public Task<StorageItemVersion> GetHighestVersion(ApplicationDbContext database)
+        {
+            return database.StorageItemVersions.AsQueryable().Where(v => v.StorageItemId == Id)
+                .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
+        }
     }
 }

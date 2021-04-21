@@ -59,6 +59,28 @@ namespace ThriveDevCenter.Server.Authorization
                 AuthenticationResult.Success;
         }
 
+        /// <summary>
+        ///   Variant that returns also information if any key was provided
+        /// </summary>
+        public static AuthenticationResult HasAuthenticatedAccessKeyExtended(this HttpContext context,
+            AccessKeyType requiredAccess)
+        {
+            var key = context.AuthenticatedAccessKey();
+
+            if (key == null)
+                return AuthenticationResult.NoUser;
+
+            if (key.KeyType != requiredAccess)
+                return AuthenticationResult.NoAccess;
+
+            return AuthenticationResult.Success;
+        }
+
+        public static bool HasAuthenticatedAccessKey(this HttpContext context, AccessKeyType requiredAccess)
+        {
+            return context.HasAuthenticatedAccessKeyExtended(requiredAccess) == AuthenticationResult.Success;
+        }
+
         public static User AuthenticatedUser(this HttpContext context)
         {
             if (context.User.Identity == null ||
@@ -68,6 +90,18 @@ namespace ThriveDevCenter.Server.Authorization
             }
 
             return rawUser as User;
+        }
+
+
+
+        public static AccessKey AuthenticatedAccessKey(this HttpContext context)
+        {
+            if (!context.Items.TryGetValue(AppInfo.AccessKeyMiddlewareKey, out object raw))
+            {
+                return null;
+            }
+
+            return raw as AccessKey;
         }
     }
 }

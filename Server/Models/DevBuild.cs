@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
+    using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using ModelVerifiers;
 
@@ -52,5 +52,15 @@ namespace ThriveDevCenter.Server.Models
         ///   that are no longer needed
         /// </summary>
         public ICollection<DehydratedObject> DehydratedObjects { get; set; } = new HashSet<DehydratedObject>();
+
+        public async Task<bool> IsUploaded(ApplicationDbContext database)
+        {
+            var version = await StorageItem.GetHighestVersion(database);
+
+            if (version == null)
+                return false;
+
+            return !version.Uploading;
+        }
     }
 }
