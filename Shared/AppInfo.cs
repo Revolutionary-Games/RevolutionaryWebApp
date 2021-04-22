@@ -30,6 +30,7 @@ namespace ThriveDevCenter.Shared
         public const int APITokenByteCount = 34;
 
         public const int MaxDehydratedObjectsPerOffer = 100;
+        public const int MaxDehydratedObjectsInDevBuild = 5000;
 
         public const int KIBIBYTE = 1024;
         public const int MEBIBYTE = KIBIBYTE * KIBIBYTE;
