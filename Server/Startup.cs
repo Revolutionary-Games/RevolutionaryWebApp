@@ -301,6 +301,8 @@ namespace ThriveDevCenter.Server
         {
             AddJobHelper<SessionCleanupJob>(configurationSection);
 
+            BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
+
             // TODO: remove this job once this has also been ran in production for a while
             BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
         }
