@@ -2,18 +2,14 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 {
     using System.Threading.Tasks;
     using Dummies;
-    using Hubs;
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.AspNetCore.SignalR;
     using Microsoft.EntityFrameworkCore;
     using Moq;
     using Server.Authorization;
     using Server.Controllers;
     using Server.Models;
     using Server.Services;
-    using Shared;
     using Shared.Forms;
-    using Shared.Notifications;
     using Utilities;
     using Xunit;
     using Xunit.Abstractions;

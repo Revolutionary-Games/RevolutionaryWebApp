@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Models
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
+    using Shared.Models;
 
     [Index(new[] { nameof(Name), nameof(ParentId) }, IsUnique = true)]
     [Index(nameof(AllowParentless))]
@@ -17,15 +18,16 @@ namespace ThriveDevCenter.Server.Models
         // TODO: is there a threat from timing attack trying to enumerate existing files?
         public string Name { get; set; }
 
-        // TODO: move to enum
-        public int? Ftype { get; set; }
+        // TODO: change to required
+        public FileType Ftype { get; set; }
         public bool Special { get; set; } = false;
 
         public int? Size { get; set; }
 
-        // TODO: change these two to enums as well
-        public int? ReadAccess { get; set; }
-        public int? WriteAccess { get; set; }
+        // TODO: change to required
+        public FileAccess ReadAccess { get; set; } = FileAccess.Developer;
+
+        public FileAccess WriteAccess { get; set; } = FileAccess.Developer;
 
         public long? OwnerId { get; set; }
         public User Owner { get; set; }
@@ -41,6 +43,28 @@ namespace ThriveDevCenter.Server.Models
         // Things that can reference this
         public ICollection<DehydratedObject> DehydratedObjects { get; set; } = new HashSet<DehydratedObject>();
         public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
+
+        public static Task<StorageItem> GetDevBuildsFolder(ApplicationDbContext database)
+        {
+            return database.StorageItems.AsQueryable()
+                .FirstAsync(i => i.ParentId == null && i.Name == "DevBuild files");
+        }
+
+        public static async Task<StorageItem> GetDehydratedFolder(ApplicationDbContext database)
+        {
+            var devbuilds = await GetDevBuildsFolder(database);
+
+            return await database.StorageItems.AsQueryable()
+                .FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Objects");
+        }
+
+        public static async Task<StorageItem> GetDevBuildBuildsFolder(ApplicationDbContext database)
+        {
+            var devbuilds = await GetDevBuildsFolder(database);
+
+            return await database.StorageItems.AsQueryable()
+                .FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Dehydrated");
+        }
 
         public Task<StorageItemVersion> GetHighestVersion(ApplicationDbContext database)
         {

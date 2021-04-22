@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
     using Services;
     using Shared;
+    using Shared.Models;
     using Utilities;
 
     public class ApplicationDbContext : DbContext
@@ -206,8 +207,8 @@ namespace ThriveDevCenter.Server.Models
 
                 entity.Property(e => e.AllowParentless).HasDefaultValue(false);
 
-                entity.Property(e => e.ReadAccess).HasDefaultValue(2);
-                entity.Property(e => e.WriteAccess).HasDefaultValue(2);
+                entity.Property(e => e.ReadAccess).HasDefaultValue(FileAccess.Developer);
+                entity.Property(e => e.WriteAccess).HasDefaultValue(FileAccess.Developer);
 
                 entity.Property(e => e.Special).HasDefaultValue(false);
 
