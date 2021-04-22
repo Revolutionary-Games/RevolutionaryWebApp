@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models
     using System.Collections;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using Shared.Models;
 
@@ -22,5 +23,15 @@ namespace ThriveDevCenter.Server.Models
         ///   DevBuilds that contain this object
         /// </summary>
         public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
+
+        public async Task<bool> IsUploaded(ApplicationDbContext database)
+        {
+            var version = await StorageItem.GetHighestVersion(database);
+
+            if (version == null)
+                return false;
+
+            return !version.Uploading;
+        }
     }
 }

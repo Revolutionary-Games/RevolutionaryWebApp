@@ -68,7 +68,7 @@ namespace ThriveDevCenter.Server.Jobs
                 if (item == null)
                     continue;
 
-                jobClient.Enqueue<CountFolderItems>((x) => x.Execute(item.Id, CancellationToken.None));
+                jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(item.Id, CancellationToken.None));
             }
         }
 

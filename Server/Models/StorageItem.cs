@@ -2,6 +2,7 @@
 
 namespace ThriveDevCenter.Server.Models
 {
+    using System;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
@@ -70,6 +71,57 @@ namespace ThriveDevCenter.Server.Models
         {
             return database.StorageItemVersions.AsQueryable().Where(v => v.StorageItemId == Id)
                 .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
+        }
+
+        public async Task<int> GetNextVersionNumber(ApplicationDbContext database)
+        {
+            var highest = await GetHighestVersion(database);
+
+            if (highest == null)
+                return 1;
+
+            return highest.Version + 1;
+        }
+
+        /// <summary>
+        ///   Creates the next StorageItemVersion for this object. Doesn't save the database
+        /// </summary>
+        public async Task<StorageItemVersion> CreateNextVersion(ApplicationDbContext database)
+        {
+            var number = await GetNextVersionNumber(database);
+
+            var version = new StorageItemVersion()
+            {
+                Version = number,
+                StorageItemId = Id
+            };
+
+            StorageItemVersions.Add(version);
+
+            await database.StorageItemVersions.AddAsync(version);
+            return version;
+        }
+
+        public async Task<string> ComputeStoragePath(ApplicationDbContext database)
+        {
+            string parentPath = string.Empty;
+
+            if (ParentId != null)
+            {
+                var parent = Parent;
+
+                if (parent == null)
+                {
+                    parent = await database.StorageItems.FindAsync(ParentId);
+
+                    if (parent == null)
+                        throw new NullReferenceException("failed to get the StorageItem parent for path calculation");
+                }
+
+                parentPath = await parent.ComputeStoragePath(database) + '/';
+            }
+
+            return parentPath + Name;
         }
     }
 }

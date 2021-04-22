@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
 
             await database.SaveChangesAsync();
 
-            var instance = new CountFolderItems(database);
+            var instance = new CountFolderItemsJob(database);
 
             Assert.Null(folder1.Size);
             Assert.Null(folder2.Size);

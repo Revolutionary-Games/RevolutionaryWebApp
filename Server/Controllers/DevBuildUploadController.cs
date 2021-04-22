@@ -6,20 +6,31 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
+    using System.Reflection.Metadata;
     using System.Text.Json.Serialization;
+    using System.Threading;
     using System.Threading.Tasks;
     using Authorization;
+    using Filters;
+    using Hangfire;
+    using Jobs;
+    using Microsoft.AspNetCore.DataProtection;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Services;
     using Shared;
     using Shared.Forms;
     using Shared.Models;
+    using Utilities;
 
     [ApiController]
     [Route("api/v1/devbuild")]
     public class DevBuildUploadController : Controller
     {
+        private const string DevBuildUploadProtectionPurposeString = "DevBuild.Upload.v1";
+
         /// <summary>
         ///   Platforms which we accept devbuilds for
         /// </summary>
@@ -31,11 +42,19 @@ namespace ThriveDevCenter.Server.Controllers
 
         private readonly ILogger<DevBuildUploadController> logger;
         private readonly NotificationsEnabledDb database;
+        private readonly IBackgroundJobClient jobClient;
+        private readonly GeneralRemoteStorage remoteStorage;
+        private readonly IDataProtector dataProtector;
 
-        public DevBuildUploadController(ILogger<DevBuildUploadController> logger, NotificationsEnabledDb database)
+        public DevBuildUploadController(ILogger<DevBuildUploadController> logger, NotificationsEnabledDb database,
+            IBackgroundJobClient jobClient, GeneralRemoteStorage remoteStorage,
+            IDataProtectionProvider dataProtectionProvider)
         {
             this.logger = logger;
             this.database = database;
+            this.jobClient = jobClient;
+            this.remoteStorage = remoteStorage;
+            this.dataProtector = dataProtectionProvider.CreateProtector(DevBuildUploadProtectionPurposeString);
         }
 
         /// <summary>
@@ -127,6 +146,18 @@ namespace ThriveDevCenter.Server.Controllers
             if (failResult != null)
                 return failResult;
 
+            if (!remoteStorage.Configured)
+            {
+                throw new HttpResponseException()
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Value = "Remote storage is not configured"
+                };
+            }
+
+            if (request.BuildHash.Contains('/'))
+                return BadRequest("The hash contains an invalid character");
+
             var existing = await database.DevBuilds.AsQueryable().FirstOrDefaultAsync(d =>
                 d.BuildHash == request.BuildHash && d.Platform == request.BuildPlatform);
 
@@ -158,9 +189,96 @@ namespace ThriveDevCenter.Server.Controllers
                 }
             }
 
-            throw new NotImplementedException();
-
             var folder = await StorageItem.GetDevBuildBuildsFolder(database);
+
+            if (folder == null)
+            {
+                throw new HttpResponseException()
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Value = "Storage folder is missing"
+                };
+            }
+
+            if (existing == null)
+            {
+                var sanitizedPlatform = request.BuildPlatform.Replace("/", "");
+
+                var fileName = $"{request.BuildHash}_{sanitizedPlatform}.7z";
+
+                var storageItem = await database.StorageItems.AsQueryable()
+                    .FirstOrDefaultAsync(i => i.Name == fileName && i.Parent == folder);
+
+                if (storageItem == null)
+                {
+                    storageItem = new StorageItem()
+                    {
+                        Name = fileName,
+                        Parent = folder,
+                        Ftype = FileType.File,
+                        Special = true,
+                        ReadAccess = FileAccess.User,
+                        WriteAccess = FileAccess.Nobody
+                    };
+
+                    await database.StorageItems.AddAsync(storageItem);
+                }
+
+                existing = new DevBuild()
+                {
+                    BuildHash = request.BuildHash,
+                    Platform = request.BuildPlatform,
+                    Branch = request.BuildBranch,
+                    StorageItem = storageItem,
+                    Anonymous = anonymous,
+
+                    // TODO: put this logic in somewhere more obvious
+                    Important = !anonymous && (request.BuildBranch == "master" || request.BuildBranch == "main")
+                };
+
+                await database.DevBuilds.AddAsync(existing);
+                await database.SaveChangesAsync();
+
+                jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(folder.Id, CancellationToken.None));
+            }
+
+            // Apply objects
+
+            var dehydrated = await request.RequiredDehydratedObjects.ToAsyncEnumerable().SelectAwait(hash =>
+                new ValueTask<DehydratedObject>(database.DehydratedObjects.AsQueryable()
+                    .FirstOrDefaultAsync(d => d.Sha3 == hash))).ToListAsync();
+
+            if (dehydrated.Any(item => item == null))
+                return BadRequest("One or more dehydrated object hashes doesn't exist");
+
+            foreach (var dehydratedObject in dehydrated)
+                existing.DehydratedObjects.Add(dehydratedObject);
+
+            // Upload a version of the build
+            var version = await existing.StorageItem.CreateNextVersion(database);
+            var file = await version.CreateStorageFile(database,
+                DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime,
+                request.BuildSize);
+
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("Upload of ({BuildHash} on {Platform}) starting from {RemoteIpAddress}",
+                existing.BuildHash, existing.Platform, HttpContext.Connection.RemoteIpAddress);
+
+            if (file.Size == null)
+            {
+                // Should not happen, can be removed once Size is no longer nullable
+                throw new Exception("this shouldn't happen");
+            }
+
+            return new DevBuildUploadResult()
+            {
+                UploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
+                    AppInfo.RemoteStorageUploadExpireTime),
+                VerifyToken = new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
+                    file.Size.Value,
+                    file.Id, existing.Id, null, request.BuildZipHash).ToString()
+            };
         }
 
         /// <summary>
@@ -174,7 +292,100 @@ namespace ThriveDevCenter.Server.Controllers
             if (failResult != null)
                 return failResult;
 
-            throw new NotImplementedException();
+            if (!remoteStorage.Configured)
+            {
+                throw new HttpResponseException()
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Value = "Remote storage is not configured"
+                };
+            }
+
+            var result = new DehydratedUploadResult();
+
+            var folder = await StorageItem.GetDehydratedFolder(database);
+
+            if (folder == null)
+            {
+                throw new HttpResponseException()
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Value = "Storage folder is missing"
+                };
+            }
+
+            bool addedItems = false;
+
+            if (request.Objects.Any(o => o.Sha3.Contains('/')))
+                return BadRequest("A hash contains an invalid character");
+
+            var expiresAt = DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime;
+
+            foreach (var obj in request.Objects)
+            {
+                var dehydrated = await database.DehydratedObjects.AsQueryable()
+                    .FirstOrDefaultAsync(d => d.Sha3 == obj.Sha3);
+
+                if (dehydrated != null && await dehydrated.IsUploaded(database))
+                {
+                    continue;
+                }
+
+                // Needs to be uploaded (wasn't uploaded already)
+
+                if (dehydrated == null)
+                {
+                    var storageItem = new StorageItem()
+                    {
+                        Name = $"{obj.Sha3}.gz",
+                        Parent = folder,
+                        Ftype = FileType.File,
+                        Special = true,
+                        ReadAccess = FileAccess.User,
+                        WriteAccess = FileAccess.Nobody
+                    };
+
+                    dehydrated = new DehydratedObject()
+                    {
+                        Sha3 = obj.Sha3,
+                        StorageItem = storageItem
+                    };
+
+                    await database.StorageItems.AddAsync(storageItem);
+                    await database.DehydratedObjects.AddAsync(dehydrated);
+
+                    addedItems = true;
+                }
+
+                var version = await dehydrated.StorageItem.CreateNextVersion(database);
+                var file = await version.CreateStorageFile(database, expiresAt, obj.Size);
+
+                if (file.Size == null)
+                {
+                    // Should not happen, can be removed once Size is no longer nullable
+                    throw new Exception("this shouldn't happen");
+                }
+
+                logger.LogInformation("Upload of a dehydrated object ({Sha3}) starting from {RemoteIpAddress}",
+                    obj.Sha3, HttpContext.Connection.RemoteIpAddress);
+
+                result.Uploads.Add(new DehydratedUploadResult.Upload()
+                {
+                    Sha3 = obj.Sha3,
+                    UploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
+                        AppInfo.RemoteStorageUploadExpireTime),
+                    VerifyToken = new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
+                        file.Size.Value,
+                        file.Id, null, obj.Sha3, null).ToString()
+                });
+            }
+
+            await database.SaveChangesAsync();
+
+            if (addedItems)
+                jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(folder.Id, CancellationToken.None));
+
+            return result;
         }
 
         /// <summary>
@@ -183,11 +394,117 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost("finish")]
         public async Task<IActionResult> FinishUpload([Required] [FromBody] TokenForm request)
         {
+            // TODO: could include the key info in the token
             var failResult = GetAccessStatus(out var anonymous);
             if (failResult != null)
                 return failResult;
 
-            throw new NotImplementedException();
+            if (!remoteStorage.Configured)
+            {
+                throw new HttpResponseException()
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Value = "Remote storage is not configured"
+                };
+            }
+
+            var decodedToken = StorageUploadVerifyToken.TryToLoadFromString(dataProtector, request.Token);
+
+            if (decodedToken == null)
+                return BadRequest("Invalid finished upload token");
+
+            StorageFile file;
+            try
+            {
+                file = await remoteStorage.HandleFinishedUploadToken(database, decodedToken);
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning("Failed to check upload token / resulting file: {@E}", e);
+                return BadRequest("Failed to verify that uploaded file is valid");
+            }
+
+            DevBuild build = null;
+
+            if (decodedToken.ParentId != null)
+            {
+                // This is used in the token here to store the devbuild ID
+                build = await database.DevBuilds.FindAsync(decodedToken.ParentId.Value);
+
+                if (build == null)
+                    return BadRequest("No build found with id in token");
+
+                if (anonymous && !build.Anonymous)
+                {
+                    return BadRequest("Can't upload over a non-anonymous build without a key");
+                }
+            }
+
+            // Check that item hash matches
+            string actualHash;
+            string expectedHash;
+            try
+            {
+                if (string.IsNullOrEmpty(decodedToken.UnGzippedHash))
+                {
+                    expectedHash = decodedToken.PlainFileHash;
+                    actualHash = await remoteStorage.ComputeSha3OfObject(file.StoragePath);
+                }
+                else
+                {
+                    expectedHash = decodedToken.UnGzippedHash;
+                    actualHash = await remoteStorage.ComputeSha3UnZippedObject(file.StoragePath);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning("Hash calculation failed: {@E}", e);
+                return BadRequest("Failed to calculate uploaded file hash");
+            }
+
+            if (actualHash != expectedHash)
+            {
+                // Delete the uploaded file to not leave it hanging around
+                await remoteStorage.DeleteObject(file.StoragePath);
+                return BadRequest("Uploaded file hash doesn't match the expected value");
+            }
+
+            if (build != null)
+            {
+                // Update build hash if this is the latest version
+                var highestVersion = await database.StorageItemVersions.AsQueryable()
+                    .Where(s => s.StorageItemId == build.StorageItemId).MaxAsync(s => s.Version);
+
+                if (file.StorageItemVersions.Max(s => s.Version) >= highestVersion)
+                {
+                    build.BuildZipHash = decodedToken.PlainFileHash;
+                }
+                else
+                {
+                    logger.LogInformation("Uploaded a non-highest version item, not updating hash");
+                }
+            }
+
+            file.BumpUpdatedAt();
+            foreach (var version in file.StorageItemVersions)
+            {
+                version.BumpUpdatedAt();
+
+                // Update StorageItems if the version is the latest
+                if (version.Version >= await database.StorageItemVersions.AsQueryable()
+                    .Where(s => s.StorageItemId == version.StorageItemId).MaxAsync(s => s.Version))
+                {
+                    version.StorageItem.Size = file.Size;
+                    version.StorageItem.BumpUpdatedAt();
+                }
+            }
+
+            remoteStorage.MarkFileAndVersionsAsUploaded(file);
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("DevBuild item ({StoragePath}) is now uploaded", file.StoragePath);
+
+            return Ok();
         }
 
         /// <summary>
@@ -198,22 +515,20 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private ActionResult GetAccessStatus(out bool anonymous)
         {
-            anonymous = false;
-
             switch (HttpContext.HasAuthenticatedAccessKeyExtended(AccessKeyType.DevBuilds))
             {
                 case HttpContextAuthorizationExtensions.AuthenticationResult.NoUser:
                     anonymous = true;
-                    break;
+                    return null;
                 case HttpContextAuthorizationExtensions.AuthenticationResult.NoAccess:
+                    anonymous = true;
                     return Forbid();
                 case HttpContextAuthorizationExtensions.AuthenticationResult.Success:
-                    break;
+                    anonymous = false;
+                    return null;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-
-            return null;
         }
     }
 
@@ -250,7 +565,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [Required]
         [Range(1, AppInfo.MaxDehydratedUploadSize)]
-        public long Size { get; set; }
+        public int Size { get; set; }
     }
 
     public class DevObjectOfferResult
@@ -283,7 +598,7 @@ namespace ThriveDevCenter.Server.Controllers
         [Required]
         [JsonPropertyName("build_size")]
         [Range(1, AppInfo.MaxDehydratedObjectsInDevBuild)]
-        public long BuildSize { get; set; }
+        public int BuildSize { get; set; }
 
         [Required]
         [JsonPropertyName("build_zip_hash")]
@@ -299,6 +614,11 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class DevBuildUploadResult
     {
+        [JsonPropertyName("upload_url")]
+        public string UploadUrl { get; set; }
+
+        [JsonPropertyName("verify_token")]
+        public string VerifyToken { get; set; }
     }
 
     public class DehydratedUploadRequest
@@ -310,5 +630,19 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class DehydratedUploadResult
     {
+        [JsonPropertyName("uploads")]
+        public List<Upload> Uploads { get; set; } = new();
+
+        public class Upload
+        {
+            [JsonPropertyName("sha3")]
+            public string Sha3 { get; set; }
+
+            [JsonPropertyName("upload_url")]
+            public string UploadUrl { get; set; }
+
+            [JsonPropertyName("verify_token")]
+            public string VerifyToken { get; set; }
+        }
     }
 }

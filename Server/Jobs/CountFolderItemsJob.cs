@@ -6,11 +6,11 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.EntityFrameworkCore;
     using Models;
 
-    public class CountFolderItems
+    public class CountFolderItemsJob
     {
         private readonly ApplicationDbContext database;
 
-        public CountFolderItems(ApplicationDbContext database)
+        public CountFolderItemsJob(ApplicationDbContext database)
         {
             this.database = database;
         }

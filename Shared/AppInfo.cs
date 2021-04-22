@@ -74,6 +74,13 @@ namespace ThriveDevCenter.Shared
 
         public static readonly TimeSpan LastUsedAccessKeyAccuracy = TimeSpan.FromSeconds(60);
 
+        /// <summary>
+        ///   How long the token is valid to upload to the general remote storage
+        /// </summary>
+        public static readonly TimeSpan RemoteStorageUploadExpireTime = TimeSpan.FromMinutes(60);
+
+        public static readonly TimeSpan RemoteStorageDownloadExpireTime = TimeSpan.FromMinutes(15);
+
         public const int Major = 1;
         public const int Minor = 7;
 
