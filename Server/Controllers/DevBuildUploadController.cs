@@ -158,8 +158,10 @@ namespace ThriveDevCenter.Server.Controllers
             if (request.BuildHash.Contains('/'))
                 return BadRequest("The hash contains an invalid character");
 
-            var existing = await database.DevBuilds.AsQueryable().FirstOrDefaultAsync(d =>
-                d.BuildHash == request.BuildHash && d.Platform == request.BuildPlatform);
+            var existing = await database.DevBuilds.AsQueryable()
+                .Include(d => d.StorageItem)
+                .Include(d => d.DehydratedObjects).FirstOrDefaultAsync(d =>
+                    d.BuildHash == request.BuildHash && d.Platform == request.BuildPlatform);
 
             if (anonymous)
             {
@@ -231,6 +233,10 @@ namespace ThriveDevCenter.Server.Controllers
                     Branch = request.BuildBranch,
                     StorageItem = storageItem,
                     Anonymous = anonymous,
+
+                    // This will get overwritten when the actual file upload finishes
+                    // (if it was for the latest version)
+                    BuildZipHash = "notUploaded",
 
                     // TODO: put this logic in somewhere more obvious
                     Important = !anonymous && (request.BuildBranch == "master" || request.BuildBranch == "main")
@@ -323,7 +329,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             foreach (var obj in request.Objects)
             {
-                var dehydrated = await database.DehydratedObjects.AsQueryable()
+                var dehydrated = await database.DehydratedObjects.AsQueryable().Include(d => d.StorageItem)
                     .FirstOrDefaultAsync(d => d.Sha3 == obj.Sha3);
 
                 if (dehydrated != null && await dehydrated.IsUploaded(database))
@@ -369,7 +375,7 @@ namespace ThriveDevCenter.Server.Controllers
                 logger.LogInformation("Upload of a dehydrated object ({Sha3}) starting from {RemoteIpAddress}",
                     obj.Sha3, HttpContext.Connection.RemoteIpAddress);
 
-                result.Uploads.Add(new DehydratedUploadResult.Upload()
+                result.Upload.Add(new DehydratedUploadResult.ObjectToUpload()
                 {
                     Sha3 = obj.Sha3,
                     UploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
@@ -597,7 +603,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [Required]
         [JsonPropertyName("build_size")]
-        [Range(1, AppInfo.MaxDehydratedObjectsInDevBuild)]
+        [Range(1, AppInfo.MaxDevBuildUploadSize)]
         public int BuildSize { get; set; }
 
         [Required]
@@ -630,10 +636,10 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class DehydratedUploadResult
     {
-        [JsonPropertyName("uploads")]
-        public List<Upload> Uploads { get; set; } = new();
+        [JsonPropertyName("upload")]
+        public List<ObjectToUpload> Upload { get; set; } = new();
 
-        public class Upload
+        public class ObjectToUpload
         {
             [JsonPropertyName("sha3")]
             public string Sha3 { get; set; }

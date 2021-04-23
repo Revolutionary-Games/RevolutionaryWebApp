@@ -2,12 +2,16 @@ namespace ThriveDevCenter.Server.Utilities
 {
     using System.Security.Cryptography;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using Microsoft.AspNetCore.DataProtection;
 
     public class StorageUploadVerifyToken
     {
         private readonly IDataProtector dataProtector;
 
+        /// <summary>
+        ///   Constructs a new instance on the server that can be converted to string to be sent to a client
+        /// </summary>
         public StorageUploadVerifyToken(IDataProtector dataProtector, string fileUploadPath, string fileStoragePath,
             int fileSize, long fileId, long? parentId, string unGzippedHash, string plainFileHash)
         {
@@ -19,6 +23,16 @@ namespace ThriveDevCenter.Server.Utilities
             ParentId = parentId;
             UnGzippedHash = unGzippedHash;
             PlainFileHash = plainFileHash;
+        }
+
+        [JsonConstructor]
+        public StorageUploadVerifyToken(string fileUploadPath, string fileStoragePath,
+            int fileSize, long fileId)
+        {
+            FileUploadPath = fileUploadPath;
+            FileStoragePath = fileStoragePath;
+            FileSize = fileSize;
+            FileId = fileId;
         }
 
         public string FileUploadPath { get; set; }
