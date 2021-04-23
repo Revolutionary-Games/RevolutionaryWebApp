@@ -15,5 +15,6 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string UserUpdatedPrefixAdminInfo = "SAUser_";
 
         public const string PatronListUpdated = "Patrons";
+        public const string AccessKeyListUpdated = "AccessKeys";
     }
 }

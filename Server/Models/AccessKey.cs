@@ -1,15 +1,17 @@
 namespace ThriveDevCenter.Server.Models
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Net;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
+    using Shared.Notifications;
     using Utilities;
 
     [Index(nameof(HashedKeyCode), IsUnique = true)]
-    public class AccessKey : UpdateableModel, IContainsHashedLookUps
+    public class AccessKey : UpdateableModel, IContainsHashedLookUps, IUpdateNotifications
     {
         [Required]
         [AllowSortingBy]
@@ -41,6 +43,13 @@ namespace ThriveDevCenter.Server.Models
                 LastUsedFrom = LastUsedFrom,
                 KeyType = KeyType
             };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            yield return new Tuple<SerializedNotification, string>(new AccessKeyListUpdated
+                    { Type = entityState.ToChangeType(), Item = GetDTO() },
+                NotificationGroups.AccessKeyListUpdated);
         }
     }
 }

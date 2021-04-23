@@ -154,6 +154,7 @@ namespace ThriveDevCenter.Server.Hubs
             {
                 case NotificationGroups.UserListUpdated:
                 case NotificationGroups.PatronListUpdated:
+                case NotificationGroups.AccessKeyListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
                     return RequireAccessLevel(UserAccessLevel.Developer, user);
@@ -212,7 +213,7 @@ namespace ThriveDevCenter.Server.Hubs
         }
 
         private static bool GetTargetModelFromGroup<T>(string groupName, DbSet<T> existingItems, out T item)
-        where T: class
+            where T : class
         {
             if (!GetIDPartFromGroup(groupName, out long id))
             {
