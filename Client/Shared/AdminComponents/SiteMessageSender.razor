@@ -13,9 +13,9 @@
 
     <label class="mb-md-2 ml-md-3 ml-1 mr-1" for="siteNoticeTypeSelect">Type</label>
     <select class="custom-select mb-2 mr-md-3" id="siteNoticeTypeSelect" @bind="noticeType">
-        @foreach (var value in Enum.GetValues<SiteNoticeType>())
+        @foreach (var name in Enum.GetNames<SiteNoticeType>())
         {
-            <option value="@value.ToString()">@value.ToString()</option>
+            <option value="@name">@name</option>
         }
     </select>
 

@@ -99,6 +99,13 @@ else
 </AccessLimited>
 
 @code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true),
+        new TableColumn("Public", true),
+        new TableColumn("Size", true, "TotalObjectSize"),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+    };
 
     private string createMessage;
     private SiteNoticeType createMessageType;
@@ -110,14 +117,6 @@ else
     private bool newPublic;
     private string newRepoURL;
     private string newCloneURL;
-
-    private readonly List<TableColumn> columns = new()
-    {
-        new TableColumn("Name", true),
-        new TableColumn("Public", true),
-        new TableColumn("Size", true, "TotalObjectSize"),
-        new TableColumn("Updated At", true, "UpdatedAt"),
-    };
 
     public LFSList() : base(new SortHelper("Name", SortDirection.Ascending))
     {
@@ -175,6 +174,7 @@ else
         else
         {
             showNewForm = true;
+            createMessage = null;
 
             // Reset form status
             newName = null;
