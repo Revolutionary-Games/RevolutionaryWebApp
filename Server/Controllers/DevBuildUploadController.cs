@@ -170,7 +170,7 @@ namespace ThriveDevCenter.Server.Controllers
                     return Unauthorized("Can't upload over an existing build without an access key");
                 }
             }
-            else
+            else if(existing != null)
             {
                 // Non-anonymous upload can overwrite an anonymous upload
                 if (existing.Anonymous)
