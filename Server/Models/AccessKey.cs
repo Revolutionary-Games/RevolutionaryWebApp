@@ -22,6 +22,7 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public DateTime? LastUsed { get; set; }
 
+        [AllowSortingBy]
         [JsonConverter(typeof(IPAddressConverter))]
         public IPAddress LastUsedFrom { get; set; }
 

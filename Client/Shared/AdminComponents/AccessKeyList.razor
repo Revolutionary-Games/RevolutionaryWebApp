@@ -44,6 +44,9 @@ else
                         <td>
                             @(item.LastUsed == null ? "never" : item.LastUsed.Value.ToLocalTime().ToString("G"))
                         </td>
+                        <td>
+                            @(item.LastUsedFrom == null ? "" : item.LastUsedFrom.ToString())
+                        </td>
                         <td>@item.KeyType</td>
                         <td>
                             <AdminResourceDeleteButtons Deleted="@false" Name="@item.Description" Id="@item.Id"
@@ -66,6 +69,7 @@ else
         new TableColumn("Id", true),
         new TableColumn("Description", true),
         new TableColumn("Last Accessed", true, "LastUsed"),
+        new TableColumn("Last Used From", true, "LastUsedFrom"),
         new TableColumn("Scope", true, "KeyType"),
         new TableColumn("Actions", false)
     };
