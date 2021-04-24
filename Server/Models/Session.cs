@@ -3,6 +3,8 @@ namespace ThriveDevCenter.Server.Models
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.Net;
+    using System.Text.Json.Serialization;
+    using Shared.Converters;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Utilities;
@@ -38,6 +40,7 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public DateTime LastUsed { get; set; } = DateTime.UtcNow;
 
+        [JsonConverter(typeof(IPAddressConverter))]
         public IPAddress LastUsedFrom { get; set; }
     }
 }

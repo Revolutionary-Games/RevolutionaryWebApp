@@ -95,6 +95,13 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<IModelUpdateNotificationSender, ModelUpdateNotificationSender>();
 
             services.AddControllersWithViews();
+
+            // For now custom serializers are not needed
+            //     .AddJsonOptions(options =>
+            // {
+            //     options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
+            // });
+
             services.AddRazorPages();
 
             services.AddResponseCompression(opts =>
