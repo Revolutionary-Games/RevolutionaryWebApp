@@ -37,13 +37,7 @@ namespace ThriveDevCenter.Server.Authorization
 
             if (requiredRestriction != null)
             {
-                if (!context.Items.TryGetValue("AuthenticatedUserScopeRestriction",
-                    out object restrictionRaw))
-                    throw new InvalidOperationException("authentication scope restriction was not set");
-
-                var restriction = (AuthenticationScopeRestriction)restrictionRaw;
-
-                if (restriction != requiredRestriction)
+                if (context.AuthenticatedUserRestriction() != requiredRestriction)
                 {
                     return AuthenticationResult.NoAccess;
                 }
@@ -81,6 +75,24 @@ namespace ThriveDevCenter.Server.Authorization
             return context.HasAuthenticatedAccessKeyExtended(requiredAccess) == AuthenticationResult.Success;
         }
 
+        /// <summary>
+        ///   Gets the scope restriction of currently active user
+        /// </summary>
+        /// <param name="context">The http context</param>
+        /// <returns>The restriction applying to the current user based on how they authenticated</returns>
+        /// <exception cref="InvalidOperationException">
+        ///   If there is none set. NOTE: an user must be set, so if you don't want to handle this exception first get
+        ///   the authenticated user and check that the user is not null.
+        /// </exception>
+        public static AuthenticationScopeRestriction AuthenticatedUserRestriction(this HttpContext context)
+        {
+            if (!context.Items.TryGetValue("AuthenticatedUserScopeRestriction",
+                out object restrictionRaw))
+                throw new InvalidOperationException("authentication scope restriction was not set");
+
+            return (AuthenticationScopeRestriction)restrictionRaw;
+        }
+
         public static User AuthenticatedUser(this HttpContext context)
         {
             if (context.User.Identity == null ||
@@ -92,7 +104,17 @@ namespace ThriveDevCenter.Server.Authorization
             return rawUser as User;
         }
 
+        public static (User user, AuthenticationScopeRestriction restriction) AuthenticatedUserWithRestriction(
+            this HttpContext context)
+        {
+            if (context.User.Identity == null ||
+                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser))
+            {
+                return (null, AuthenticationScopeRestriction.None);
+            }
 
+            return (rawUser as User, context.AuthenticatedUserRestriction());
+        }
 
         public static AccessKey AuthenticatedAccessKey(this HttpContext context)
         {

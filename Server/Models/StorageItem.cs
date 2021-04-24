@@ -67,9 +67,27 @@ namespace ThriveDevCenter.Server.Models
                 .FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Dehydrated");
         }
 
+        public bool IsReadableBy(User user)
+        {
+            return ReadAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId);
+        }
+
+        public bool IsWritableBy(User user)
+        {
+            // Special files aren't writable by anyone
+            return WriteAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId) && !Special;
+        }
+
         public Task<StorageItemVersion> GetHighestVersion(ApplicationDbContext database)
         {
             return database.StorageItemVersions.AsQueryable().Where(v => v.StorageItemId == Id)
+                .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
+        }
+
+        public Task<StorageItemVersion> GetHighestUploadedVersion(ApplicationDbContext database)
+        {
+            return database.StorageItemVersions.AsQueryable().Include(v => v.StorageFile)
+                .Where(v => v.StorageItemId == Id && v.Uploading != true)
                 .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
         }
 

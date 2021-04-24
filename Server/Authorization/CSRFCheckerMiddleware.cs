@@ -45,7 +45,7 @@ namespace ThriveDevCenter.Server.Authorization
             }
             else if (context.Items.ContainsKey(AppInfo.CSRFNeededName))
             {
-                // Download endpoints (for usability with direct links, don't require this)
+                // Download endpoints (for usability with direct links) don't require this
                 if (!context.Request.Path.StartsWithSegments("/api/v1/download") &&
                     !context.Request.Path.StartsWithSegments("/api/v1/download_lfs"))
                 {

@@ -161,6 +161,7 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<RedirectVerifier>();
             services.AddSingleton<StaticHomePageNotice>();
             services.AddSingleton<LfsDownloadUrls>();
+            services.AddSingleton<GeneralRemoteDownloadUrls>();
 
             services.AddScoped<IPatreonAPI, PatreonAPI>();
             services.AddScoped<LfsRemoteStorage>();
