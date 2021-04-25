@@ -461,7 +461,7 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class LauncherUnlinkResult
     {
-        [JsonPropertyName("Success")]
+        [JsonPropertyName("success")]
         public bool Success { get; set; }
     }
 
