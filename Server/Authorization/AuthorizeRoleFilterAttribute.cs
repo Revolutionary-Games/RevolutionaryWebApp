@@ -11,13 +11,28 @@ namespace ThriveDevCenter.Server.Authorization
     [AttributeUsage(AttributeTargets.Method)]
     public class AuthorizeRoleFilterAttribute : Attribute, IAsyncAuthorizationFilter
     {
+        private AuthenticationScopeRestriction? requiredRestriction = AuthenticationScopeRestriction.None;
         public UserAccessLevel RequiredAccess { get; set; } = UserAccessLevel.User;
-        public AuthenticationScopeRestriction? RequiredRestriction { get; set; } = AuthenticationScopeRestriction.None;
+
+        public string RequiredRestriction
+        {
+            get => requiredRestriction.ToString();
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    requiredRestriction = null;
+                    return;
+                }
+
+                requiredRestriction = Enum.Parse<AuthenticationScopeRestriction>(value);
+            }
+        }
 
         public Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
             var result =
-                context.HttpContext.HasAuthenticatedUserWithAccessExtended(RequiredAccess, RequiredRestriction);
+                context.HttpContext.HasAuthenticatedUserWithAccessExtended(RequiredAccess, requiredRestriction);
 
             switch (result)
             {
