@@ -59,12 +59,20 @@
 
 <LauncherLinkList UserId="@User.Id" />
 
+<StatusMessageShower Message="@linkResult" Type="@linkResultType" OnClosed="@HideLinkResult" />
+
 <div>
     @if (LookingAtSelf)
     {
-        <Button class="mb-2" ButtonStyle="success" Enabled="@false">Link Launcher</Button>
+        <Button class="mb-2" ButtonStyle="success" Enabled="@(!gettingLauncherLinkCode)"
+                Spinner="@gettingLauncherLinkCode" OnPressed="@StartLauncherLink">
+            Link Launcher
+        </Button>
     }
-    <Button class="mx-1 mb-2" ButtonStyle="danger" Enabled="@false">Unlink All Launchers</Button>
+    <Button class="mx-1 mb-2" ButtonStyle="danger" Enabled="@(!clearingAllLinks)" Spinner="@clearingAllLinks"
+            OnPressed="@ClearLauncherLinksOnUser">
+        Unlink All Launchers
+    </Button>
 </div>
 
 <h4>Sessions</h4>
@@ -73,7 +81,7 @@
 
 <h4>Actions</h4>
 
-<StatusMessageShower Message="@actionResult" Type="@actionResultType"/>
+<StatusMessageShower Message="@actionResult" Type="@actionResultType" />
 
 @if (LookingAtSelf)
 {
@@ -93,7 +101,8 @@
     @if (User.Suspended != true)
     {
         <Button class="mb-1" ButtonStyle="danger" Enabled="@false">Suspend</Button>
-    } else
+    }
+    else
     {
         <Button class="mb-1" ButtonStyle="secondary" Enabled="@false">Remove Suspension</Button>
     }
@@ -101,6 +110,13 @@
 </AccessLimited>
 
 @code {
+
+    private bool clearingAllLinks;
+    private bool gettingLauncherLinkCode;
+
+    private string linkResult;
+    private SiteNoticeType linkResultType = SiteNoticeType.Danger;
+
     private bool clearingTokens;
 
     private string actionResult;
@@ -162,6 +178,88 @@
         {
             actionResult = $"Tokens successfully cleared for user ({content})";
             actionResultType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void ClearLauncherLinksOnUser()
+    {
+        clearingAllLinks = true;
+        linkResult = null;
+        linkResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/LauncherLinks/{User.Id}");
+        }
+        catch (HttpRequestException e)
+        {
+            linkResult = $"Network request failed: {e.Message}";
+            clearingAllLinks = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        clearingAllLinks = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            linkResult = $"Failed to delete launcher links. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            linkResult = $"Successfully deleted all launcher links for user";
+            linkResultType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HideLinkResult()
+    {
+        linkResult = null;
+    }
+
+    private async void StartLauncherLink()
+    {
+        gettingLauncherLinkCode = true;
+        linkResult = null;
+        linkResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/LauncherLinks", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            linkResult = $"Network request failed: {e.Message}";
+            clearingAllLinks = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        gettingLauncherLinkCode = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            linkResult = $"Failed to start launcher link. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            var expiryTime = (DateTime.Now + AppInfo.LauncherLinkCodeExpireTime).ToShortTimeString();
+
+            linkResult = $"Your launcher link code is: {content} Please copy it into the Thrive Launcher to " +
+                $"continue. The code expires at {expiryTime}";
+            linkResultType = SiteNoticeType.Info;
         }
 
         await InvokeAsync(StateHasChanged);

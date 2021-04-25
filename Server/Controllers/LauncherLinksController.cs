@@ -9,6 +9,8 @@ namespace ThriveDevCenter.Server.Controllers
     using Authorization;
     using BlazorPagination;
     using Filters;
+    using Microsoft.AspNetCore.Http;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
@@ -59,6 +61,79 @@ namespace ThriveDevCenter.Server.Controllers
             var objects = await query.ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        [HttpDelete("{userId:long}")]
+        [AuthorizeRoleFilter]
+        public async Task<IActionResult> DeleteAllLinks([Required] long userId)
+        {
+            var performingUser = HttpContext.AuthenticatedUser();
+
+            // Only admins can delete other user's links
+            if (userId != performingUser.Id &&
+                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            {
+                return Forbid();
+            }
+
+            var linksToDelete = await database.LauncherLinks.AsQueryable().Where(l => l.UserId == userId).ToListAsync();
+
+            // Skip doing anything if there's nothing to delete
+            if (linksToDelete.Count < 1)
+                return Ok();
+
+            if (userId == performingUser.Id)
+            {
+                await database.LogEntries.AddAsync(new LogEntry()
+                {
+                    Message = "All launcher links deleted by self",
+                    TargetUserId = userId
+                });
+            }
+            else
+            {
+                await database.AdminActions.AddAsync(new AdminAction()
+                {
+                    Message = "All launcher links deleted by self",
+                    TargetUserId = userId,
+                    PerformedById = performingUser.Id
+                });
+            }
+
+            database.LauncherLinks.RemoveRange(linksToDelete);
+
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpPost()]
+        [AuthorizeRoleFilter]
+        public async Task<IActionResult> CreateLinkCode()
+        {
+            var user = HttpContext.AuthenticatedUser();
+
+            // Fail if too many links
+            if (await database.LauncherLinks.AsQueryable().CountAsync(l => l.UserId == user.Id) >=
+                AppInfo.DefaultMaxLauncherLinks)
+            {
+                return BadRequest("You already have the maximum number of launchers linked");
+            }
+
+            var modifiableUser = await database.Users.FindAsync(user.Id);
+
+            if (modifiableUser == null)
+            {
+                throw new HttpResponseException()
+                    { Status = StatusCodes.Status500InternalServerError, Value = "Failed to find target user" };
+            }
+
+            modifiableUser.LauncherLinkCode = Guid.NewGuid().ToString();
+            modifiableUser.LauncherCodeExpires = DateTime.UtcNow + AppInfo.LauncherLinkCodeExpireTime;
+
+            await database.SaveChangesAsync();
+
+            return Ok(modifiableUser.LauncherLinkCode);
         }
     }
 }

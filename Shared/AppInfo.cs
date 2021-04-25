@@ -84,6 +84,8 @@ namespace ThriveDevCenter.Shared
 
         public static readonly TimeSpan RemoteStorageDownloadExpireTime = TimeSpan.FromMinutes(15);
 
+        public static readonly TimeSpan LauncherLinkCodeExpireTime = TimeSpan.FromMinutes(15);
+
         public const int Major = 1;
         public const int Minor = 7;
 
