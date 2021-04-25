@@ -1,0 +1,92 @@
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherLinkListUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherLinkDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <td>
+                        @(item.LastConnection != null ? item.LastConnection.Value.ToLocalTime().ToString("G") :
+                            "never")
+                    </td>
+                    <td>@item.LastIp</td>
+                    <td>@item.TotalApiCalls</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td></td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Last Used", true, "LastConnection"),
+        new TableColumn("Last Used From", true, "LastIp"),
+        new TableColumn("Total Uses", true, "TotalApiCalls"),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Actions", false),
+    };
+
+    [Parameter]
+    public long UserId { get; set; }
+
+    public LauncherLinkList() : base(new SortHelper("LastConnection", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(LauncherLinkListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.UserLauncherLinksUpdatedPrefix + UserId);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<LauncherLinkDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<LauncherLinkDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/LauncherLinks/{UserId}", requestParams));
+    }
+
+}

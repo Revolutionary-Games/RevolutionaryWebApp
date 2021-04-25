@@ -204,6 +204,19 @@ namespace ThriveDevCenter.Server.Hubs
                 return RequireAccessLevel(UserAccessLevel.Developer, user);
             }
 
+            if (groupName.StartsWith(NotificationGroups.UserLauncherLinksUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.Users, out User item))
+                    return false;
+
+                // Admin can view other people's launcher links
+                if (RequireAccessLevel(UserAccessLevel.Admin, user))
+                    return true;
+
+                // Users can see their own links
+                return item.Id == user?.Id;
+            }
+
             // Only admins see this
             if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo))
                 return RequireAccessLevel(UserAccessLevel.Admin, user);
