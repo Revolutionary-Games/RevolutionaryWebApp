@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Utilities
+namespace ThriveDevCenter.Shared.Converters
 {
     using System.Reflection;
 

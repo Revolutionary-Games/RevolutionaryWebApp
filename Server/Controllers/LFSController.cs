@@ -23,6 +23,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Services;
     using Shared;
     using Shared.Models;
+    using Shared.Utilities;
     using Utilities;
 
     [ApiController]
@@ -562,7 +563,7 @@ namespace ThriveDevCenter.Server.Controllers
             }
         }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(ActualEnumStringConverter))]
         public enum OperationType
         {
             [EnumMember(Value = "download")]

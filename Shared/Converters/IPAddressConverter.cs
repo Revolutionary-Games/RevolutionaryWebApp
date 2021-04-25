@@ -5,7 +5,7 @@ namespace ThriveDevCenter.Shared.Converters
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
-    public class IPAddressConverter: JsonConverter<IPAddress>
+    public class IPAddressConverter : JsonConverter<IPAddress>
     {
         public override IPAddress Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
