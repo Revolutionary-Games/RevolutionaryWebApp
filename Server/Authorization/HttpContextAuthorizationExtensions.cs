@@ -125,5 +125,15 @@ namespace ThriveDevCenter.Server.Authorization
 
             return raw as AccessKey;
         }
+
+        public static LauncherLink UsedLauncherLink(this HttpContext context)
+        {
+            if (!context.Items.TryGetValue(AppInfo.LauncherLinkMiddlewareKey, out object raw))
+            {
+                return null;
+            }
+
+            return raw as LauncherLink;
+        }
     }
 }

@@ -19,6 +19,7 @@ namespace ThriveDevCenter.Shared
         public const string CSRFStatusName = "CSRF";
         public const string CurrentUserMiddlewareKey = "AuthenticatedUser";
         public const string AccessKeyMiddlewareKey = "UsedAccessKey";
+        public const string LauncherLinkMiddlewareKey = "UsedLauncherLink";
 
         public const string LocalStorageUserInfo = "LastPageLoadUser";
 
@@ -31,6 +32,8 @@ namespace ThriveDevCenter.Shared
 
         public const int MaxDehydratedObjectsPerOffer = 100;
         public const int MaxDehydratedObjectsInDevBuild = 5000;
+        public const int MaxPageSizeForBuildSearch = 100;
+        public const int MaxDehydratedDownloadBatch = 100;
 
         public const int KIBIBYTE = 1024;
         public const int MEBIBYTE = KIBIBYTE * KIBIBYTE;
@@ -87,5 +90,6 @@ namespace ThriveDevCenter.Shared
         public const int DefaultMaxLauncherLinks = 5;
 
         public const int MinimumRedeemableCodeLength = 8;
+
     }
 }

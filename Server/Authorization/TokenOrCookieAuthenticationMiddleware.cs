@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Server.Authorization
     using Microsoft.Extensions.Primitives;
     using Models;
     using Shared;
+    using Shared.Models;
     using Utilities;
 
     public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
@@ -126,14 +127,20 @@ namespace ThriveDevCenter.Server.Authorization
             if (link?.User == null || link.User.Suspended == true)
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsync("Invalid token");
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(new BasicJSONErrorResult("Invalid token", "Access token is invalid")
+                    .ToString());
                 return AuthMethodResult.Error;
             }
 
             // TODO: this should probably be removed? or not used just here
             if (context.Connection.RemoteIpAddress == null)
             {
-                await context.Response.WriteAsync("Internal server error getting remote address");
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(
+                    new BasicJSONErrorResult("Internal server error",
+                            "Internal server error when getting remote address")
+                        .ToString());
                 return AuthMethodResult.Error;
             }
 
@@ -144,6 +151,8 @@ namespace ThriveDevCenter.Server.Authorization
 
             // TODO: maybe run this part in a task
             await database.SaveChangesAsync();
+
+            context.Items[AppInfo.LauncherLinkMiddlewareKey] = link;
 
             OnAuthenticationSucceeded(context, link.User, AuthenticationScopeRestriction.LauncherOnly);
             return AuthMethodResult.Authenticated;

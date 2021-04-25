@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Models
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using ModelVerifiers;
+    using Shared.Models;
 
     [Index(new[] { nameof(BuildHash), nameof(Platform) }, IsUnique = true)]
     [Index(nameof(Anonymous))]
@@ -61,6 +62,28 @@ namespace ThriveDevCenter.Server.Models
                 return false;
 
             return !version.Uploading;
+        }
+
+        public DevBuildLauncherDTO GetLauncherDTO()
+        {
+            return new()
+            {
+                Id = Id,
+                BuildHash = BuildHash,
+                Platform = Platform,
+                Branch = Branch,
+                BuildZipHash = BuildZipHash,
+                Description = Description,
+                Score = Score,
+                Downloads = Downloads,
+                Important = Important,
+                Keep = Keep,
+                BuildOfTheDay = BuildOfTheDay,
+                Anonymous = Anonymous,
+                Verified = Verified,
+                CreatedAt = CreatedAt,
+                UpdatedAt = UpdatedAt
+            };
         }
     }
 }

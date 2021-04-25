@@ -562,13 +562,17 @@ namespace ThriveDevCenter.Server.Controllers
         public List<DehydratedObjectRequest> Objects { get; set; }
     }
 
-    public class DehydratedObjectRequest
+    public class DehydratedObjectIdentification
     {
+        [JsonPropertyName("sha3")]
         [Required]
         [MinLength(5)]
         [MaxLength(100)]
         public string Sha3 { get; set; }
+    }
 
+    public class DehydratedObjectRequest : DehydratedObjectIdentification
+    {
         [Required]
         [Range(1, AppInfo.MaxDehydratedUploadSize)]
         public int Size { get; set; }
