@@ -185,7 +185,7 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            if (build.StorageItem.IsReadableBy(HttpContext.AuthenticatedUser()))
+            if (!build.StorageItem.IsReadableBy(HttpContext.AuthenticatedUser()))
             {
                 throw new HttpResponseException()
                 {
