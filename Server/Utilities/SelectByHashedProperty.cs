@@ -112,12 +112,12 @@ namespace ThriveDevCenter.Server.Utilities
                     continue;
                 }
 
-                // Skip if there is already a value
-                if (target.GetValue(instance) != null)
-                    continue;
-
                 // Hash this value and put in the target field
                 var valueToSet = HashForDatabaseValue(valueToHash.ToString());
+
+                // Skip if the value is already there
+                if (Equals(target.GetValue(instance), valueToSet))
+                    continue;
 
                 target.SetValue(instance, valueToSet);
             }
