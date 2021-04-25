@@ -353,9 +353,13 @@ namespace ThriveDevCenter.Server.Controllers
         private async Task<User> GetUserForNewLink(string code)
         {
             var now = DateTime.UtcNow;
+
+            // To make accidental whitespace after or before the code less serious
+            code = code.Trim();
+
             var user = await database.Users.WhereHashed(nameof(Models.User.LauncherLinkCode), code)
                 .Where(u => u.LauncherCodeExpires != null && u.LauncherCodeExpires >= now).Include(u => u.LauncherLinks)
-                .FirstOrDefaultAsync();
+                .ToAsyncEnumerable().FirstOrDefaultAsync(u => u.LauncherLinkCode == code);
 
             if (user == null)
             {
