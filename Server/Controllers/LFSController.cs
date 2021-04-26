@@ -309,6 +309,7 @@ namespace ThriveDevCenter.Server.Controllers
             HttpContext.Response.ContentType = AppInfo.GitLfsContentType;
         }
 
+        [NonAction]
         private bool RequireWriteAccess(out ActionResult resultIfFailed)
         {
             switch (HttpContext.HasAuthenticatedUserWithAccessExtended(UserAccessLevel.Developer,
