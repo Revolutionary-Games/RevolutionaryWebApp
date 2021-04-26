@@ -136,6 +136,17 @@ namespace ThriveDevCenter.Server.Services
 
         public List<PatreonObjectData> Included { get; set; } = new();
         public Dictionary<string, string> Links { get; set; } = new();
+
+        public PatreonObjectData FindIncludedObject(string objectId)
+        {
+            foreach (var item in Included)
+            {
+                if (item.Id == objectId)
+                    return item;
+            }
+
+            return null;
+        }
     }
 
     public class PatreonObjectData
