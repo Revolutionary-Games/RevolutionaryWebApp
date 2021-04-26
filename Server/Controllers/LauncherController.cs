@@ -339,7 +339,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var user = HttpContext.AuthenticatedUser();
 
-            var objects = await request.Objects.AsQueryable().AsAsyncEnumerable()
+            var objects = await request.Objects.ToAsyncEnumerable()
                 .Select(i => i.Sha3)
                 .SelectAwait(i => GetDehydratedFromHash(i, user)).ToListAsync();
 
