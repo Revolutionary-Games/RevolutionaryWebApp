@@ -577,6 +577,7 @@ namespace ThriveDevCenter.Server.Controllers
         public class LFSObject
         {
             [Required]
+            [StringLength(128, MinimumLength = 5)]
             public string Oid { get; set; }
 
             [Required]

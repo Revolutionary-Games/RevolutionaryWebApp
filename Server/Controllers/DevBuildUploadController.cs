@@ -603,6 +603,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [Required]
         [JsonPropertyName("build_platform")]
+        [MaxLength(255)]
         public string BuildPlatform { get; set; }
 
         [Required]
