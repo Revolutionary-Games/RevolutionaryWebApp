@@ -94,7 +94,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
-                    Message = "All launcher links deleted by self",
+                    Message = "All launcher links deleted by an admin",
                     TargetUserId = userId,
                     PerformedById = performingUser.Id
                 });
@@ -107,7 +107,51 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [HttpPost()]
+        [HttpDelete("{userId:long}/{linkId:long}")]
+        [AuthorizeRoleFilter]
+        public async Task<IActionResult> DeleteSpecificLink([Required] long userId, [Required] long linkId)
+        {
+            var performingUser = HttpContext.AuthenticatedUser();
+
+            // Only admins can delete other user's links
+            if (userId != performingUser.Id &&
+                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            {
+                return Forbid();
+            }
+
+            var linkToDelete = await database.LauncherLinks.AsQueryable()
+                .FirstOrDefaultAsync(l => l.Id == linkId && l.UserId == userId);
+
+            if (linkToDelete == null)
+                return NotFound("Link with the given ID not found, or it doesn't belong to the target user");
+
+            if (userId == performingUser.Id)
+            {
+                await database.LogEntries.AddAsync(new LogEntry()
+                {
+                    Message = $"Launcher link ({linkId}) deleted by owning user",
+                    TargetUserId = userId
+                });
+            }
+            else
+            {
+                await database.AdminActions.AddAsync(new AdminAction()
+                {
+                    Message = $"Launcher link ({linkId}) for user deleted by an admin",
+                    TargetUserId = userId,
+                    PerformedById = performingUser.Id
+                });
+            }
+
+            database.LauncherLinks.Remove(linkToDelete);
+
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpPost]
         [AuthorizeRoleFilter]
         public async Task<IActionResult> CreateLinkCode()
         {
@@ -132,6 +176,8 @@ namespace ThriveDevCenter.Server.Controllers
             modifiableUser.LauncherCodeExpires = DateTime.UtcNow + AppInfo.LauncherLinkCodeExpireTime;
 
             await database.SaveChangesAsync();
+
+            logger.LogInformation("User {Email} started linking a new launcher (code created)", user.Email);
 
             return Ok(modifiableUser.LauncherLinkCode);
         }

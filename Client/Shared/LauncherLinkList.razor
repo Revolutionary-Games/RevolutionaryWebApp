@@ -4,6 +4,7 @@
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherLinkListUpdated>
 @implements IAsyncDisposable
@@ -17,6 +18,8 @@
 }
 else
 {
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
     <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                     OnPageChanged="async (e) => await ChangePage(e)"
                     OnSortChanged="async (column) => await ChangeSort(column)"
@@ -28,6 +31,9 @@ else
         {
             @foreach (var item in Data.Results)
             {
+                if (resourceStatus.IsDeleted(item.Id))
+                    continue;
+
                 <tr @key="item.Id">
                     <td>
                         @(item.LastConnection != null ? item.LastConnection.Value.ToLocalTime().ToString("G") :
@@ -36,7 +42,15 @@ else
                     <td>@item.LastIp</td>
                     <td>@item.TotalApiCalls</td>
                     <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
-                    <td></td>
+                    <td>
+                        <AdminResourceDeleteButtons Deleted="@false"
+                                                    Name="@item.CreatedAt.ToLocalTime().ToString("G")" Id="@item.Id"
+                                                    ButtonClass="btn-sm" UsesSoftDelete="false"
+                                                    DeleteURLBase="@($"api/v1/LauncherLinks/{UserId}")"
+                                                    DeletePromptTitle="Delete this launcher link?"
+                                                    OnDeleted="@(() => resourceStatus.SetDeletedStatus(item.Id))"
+                                                    CustomErrorDisplay="@SetStatusMessage" />
+                    </td>
                 </tr>
             }
         }
@@ -53,6 +67,11 @@ else
         new TableColumn("Created At", true, "CreatedAt"),
         new TableColumn("Actions", false),
     };
+
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
+
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
     public long UserId { get; set; }
@@ -87,6 +106,13 @@ else
     {
         return http.GetFromJsonAsync<PagedResult<LauncherLinkDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LauncherLinks/{UserId}", requestParams));
+    }
+
+    private void SetStatusMessage(string message, SiteNoticeType noticeType)
+    {
+        statusMessage = message;
+        statusMessageType = noticeType;
+        StateHasChanged();
     }
 
 }

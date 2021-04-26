@@ -7,6 +7,7 @@
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<AccessKeyListUpdated>
 @implements IAsyncDisposable
@@ -35,7 +36,7 @@ else
             {
                 @foreach (var item in Data.Results)
                 {
-                    if (IsDeleted(item.Id))
+                    if (resourceStatus.IsDeleted(item.Id))
                         continue;
 
                     <tr @key="item.Id">
@@ -53,7 +54,7 @@ else
                                                         ButtonClass="btn-sm" UsesSoftDelete="false"
                                                         DeleteURLBase="api/v1/AccessKey"
                                                         DeletePromptTitle="Delete this access key?"
-                                                        OnDeleted="@(() => SetDeletedStatus(item.Id))"
+                                                        OnDeleted="@(() => resourceStatus.SetDeletedStatus(item.Id))"
                                                         CustomErrorDisplay="@SetStatusMessage" />
                         </td>
                     </tr>
@@ -74,7 +75,7 @@ else
         new TableColumn("Actions", false)
     };
 
-    private readonly Dictionary<long, ResourceStatus> statuses = new();
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
 
     private string statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
@@ -123,34 +124,10 @@ else
         await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
-    private void SetDeletedStatus(long resourceId)
-    {
-        if (!statuses.ContainsKey(resourceId))
-            statuses[resourceId] = new ResourceStatus();
-
-        statuses[resourceId].Deleted = true;
-    }
-
-    private bool IsDeleted(long resourceId)
-    {
-        if (!statuses.ContainsKey(resourceId))
-            return false;
-
-        return statuses[resourceId].Deleted;
-    }
-
     private void SetStatusMessage(string message, SiteNoticeType noticeType)
     {
         statusMessage = message;
         statusMessageType = noticeType;
         StateHasChanged();
-    }
-
-    private class ResourceStatus
-    {
-        /// <summary>
-        ///   This is used to pretend that an item is deleted before we get the server re-fetch of data done
-        /// </summary>
-        public bool Deleted;
     }
 }
