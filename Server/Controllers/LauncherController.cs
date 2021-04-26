@@ -343,6 +343,9 @@ namespace ThriveDevCenter.Server.Controllers
                 .Select(i => i.Sha3)
                 .SelectAwait(i => GetDehydratedFromHash(i, user)).ToListAsync();
 
+            logger.LogInformation("{Count} dehydrated objects downloaded from {RemoteAddress} with the launcher",
+                objects.Count, HttpContext.Connection.RemoteIpAddress);
+
             return new DehydratedObjectDownloads()
             {
                 Downloads = objects
