@@ -73,6 +73,7 @@ else
 
     public DevBuildList() : base(new SortHelper("Id", SortDirection.Descending))
     {
+        AutoFetchDataOnInit = false;
     }
 
     protected override async Task OnInitializedAsync()
@@ -81,12 +82,15 @@ else
         await base.OnInitializedAsync();
     }
 
-    public override Task SetParametersAsync(ParameterView parameters)
+    public override async Task SetParametersAsync(ParameterView parameters)
     {
-        if(UseQueryParams)
+        await base.SetParametersAsync(parameters);
+
+        if (UseQueryParams)
             this.SetParametersFromQueryString(navManager);
 
-        return base.SetParametersAsync(parameters);
+        if (Data == null)
+            await FetchData();
     }
 
     public Task Handle(DevBuildListUpdated notification, CancellationToken cancellationToken)
@@ -127,6 +131,7 @@ else
 
     protected override void PruneRequestParams(Dictionary<string, string> queryParams)
     {
+        base.PruneRequestParams(queryParams);
         queryParams.Remove("type");
     }
 

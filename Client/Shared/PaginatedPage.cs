@@ -207,6 +207,8 @@ namespace ThriveDevCenter.Client.Shared
 
         protected override async Task OnInitializedAsync()
         {
+            await base.OnInitializedAsync();
+
             if (AutoFetchDataOnInit)
                 await FetchData();
         }
