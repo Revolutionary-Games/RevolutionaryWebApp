@@ -16,6 +16,8 @@ namespace ThriveDevCenter.Server.Models
     [Index(nameof(Anonymous))]
     [Index(nameof(StorageItemId))]
     [Index(nameof(VerifiedById))]
+    [Index(nameof(Platform))]
+    [Index(nameof(Branch))]
     public class DevBuild : UpdateableModel, IUpdateNotifications
     {
         [Required]
