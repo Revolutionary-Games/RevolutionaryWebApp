@@ -1,0 +1,31 @@
+@inject HttpClient http
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@inherits SimpleResourceFetcher<ThriveDevCenter.Shared.Models.DevBuildsStatisticsDTO>
+<h4>DevBuild Statistics</h4>
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)" ShowDataWithError="@false">
+    @if (Data != null)
+    {
+        <div>
+            Latest build: @(Data.LatestBuild.HasValue ?
+                              Data.LatestBuild.Value.ToLocalTime().ToString("G") : "never")
+            latest Build Of The day: @(Data.BOTDUpdated.HasValue ?
+                                         Data.BOTDUpdated.Value.ToLocalTime().ToString("G") : "never")
+        </div>
+        <div>
+            Total builds: @Data.TotalBuilds with @("dehydrated object".PrintCount(Data.DehydratedFiles))
+            taking up @Data.TotalSpaceUsed.BytesToMiB() of storage. Total downloads: @Data.TotalDownloads
+        </div>
+    }
+</SingleResourceDisplayer>
+
+
+@code {
+
+    protected override Task<DevBuildsStatisticsDTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<DevBuildsStatisticsDTO>("api/v1/DevBuilds");
+    }
+
+}

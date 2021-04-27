@@ -1,7 +1,41 @@
 @page "/builds"
+@using ThriveDevCenter.Shared.Models
+@inject NavigationManager navigation
+
+<DevBuildOverallStatistics />
+
+<br />
+
 <h3>DevBuilds</h3>
 
-<p>TODO: reimplement this</p>
+<p>
+    DevBuilds are preview versions of Thrive with new features and fixes that have been done after the previous release.
+</p>
+
+<LoggedInContent>
+    <NotLoggedIn>
+        <a href="@navigation.GetLinkToLogin("Login to view DevBuilds")">Login to view builds</a>
+    </NotLoggedIn>
+    <LoggedIn>
+        <h4>Build of the Day (BOTD)</h4>
+        <DevBuildList BuildType="@DevBuildSearchType.BOTD" />
+
+        <h4>Trusted Builds</h4>
+        <p>
+            These devbuilds are created from each commit in the official Thrive repository, and are safe as long as the
+            repository security is not compromised.
+        </p>
+        <DevBuildList BuildType="@DevBuildSearchType.NonAnonymous" UseQueryParams="@true" />
+
+        <h4>Untrusted Builds</h4>
+        <p>
+            These devbuilds have been uploaded without authentication. As such these files should not be trusted without
+            scrutiny. For example pull requests from people outside the team show up here. The verified column says
+            true, when a Thrive developer has verified the build.
+        </p>
+        <DevBuildList BuildType="@DevBuildSearchType.Anonymous" />
+    </LoggedIn>
+</LoggedInContent>
 
 @code {
 

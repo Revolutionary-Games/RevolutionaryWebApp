@@ -3,12 +3,18 @@ using Microsoft.AspNetCore.Mvc;
 namespace ThriveDevCenter.Server.Controllers
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Threading.Tasks;
+    using Authorization;
+    using BlazorPagination;
+    using Filters;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Shared;
     using Shared.Models;
+    using Utilities;
 
     [ApiController]
     [Route("api/v1/[controller]")]
@@ -66,6 +72,35 @@ namespace ThriveDevCenter.Server.Controllers
             };
 
             return result;
+        }
+
+        [HttpGet("list")]
+        [AuthorizeRoleFilter]
+        public async Task<ActionResult<PagedResult<DevBuildDTO>>> GetBuilds([Required] DevBuildSearchType type,
+            [Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+            [Required] [Range(1, 100)] int pageSize)
+        {
+            IQueryable<DevBuild> query;
+
+            try
+            {
+                query = database.DevBuilds.AsQueryable()
+                    .Where(b =>
+                        type == DevBuildSearchType.BOTD ?
+                            b.BuildOfTheDay :
+                            (type == DevBuildSearchType.NonAnonymous ? !b.Anonymous : b.Anonymous)
+                    ).OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO());
         }
     }
 }

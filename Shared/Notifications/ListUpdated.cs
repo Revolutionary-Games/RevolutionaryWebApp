@@ -49,4 +49,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class LauncherLinkListUpdated : ListUpdated<LauncherLinkDTO>
     {
     }
+
+    public class DevBuildListUpdated : ListUpdated<DevBuildDTO>
+    {
+    }
 }

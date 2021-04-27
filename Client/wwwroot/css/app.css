@@ -71,9 +71,14 @@ th.sort {
 }
 
 /* Needed to make the sortable tables behave better in terms of the heading row */
+/* though with responsive this in turn doesn't look good, so this is overrideable with the class below */
 table.sortable {
     table-layout: fixed;
     word-wrap: break-word;
+}
+
+table.non-fixed {
+    table-layout: auto !important;
 }
 
 .overlay {

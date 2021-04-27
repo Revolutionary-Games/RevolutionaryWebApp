@@ -2,25 +2,31 @@
 
 namespace ThriveDevCenter.Server.Models
 {
+    using System;
     using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using ModelVerifiers;
+    using Shared;
     using Shared.Models;
+    using Shared.Notifications;
+    using Utilities;
 
     [Index(new[] { nameof(BuildHash), nameof(Platform) }, IsUnique = true)]
     [Index(nameof(Anonymous))]
     [Index(nameof(StorageItemId))]
     [Index(nameof(VerifiedById))]
-    public class DevBuild : UpdateableModel
+    public class DevBuild : UpdateableModel, IUpdateNotifications
     {
         [Required]
         public string BuildHash { get; set; }
 
         [Required]
+        [AllowSortingBy]
         public string Platform { get; set; }
 
         [Required]
+        [AllowSortingBy]
         public string Branch { get; set; }
 
         [Required]
@@ -64,6 +70,28 @@ namespace ThriveDevCenter.Server.Models
             return !version.Uploading;
         }
 
+        public DevBuildDTO GetDTO()
+        {
+            return new()
+            {
+                Id = Id,
+                BuildHash = BuildHash,
+                Platform = Platform,
+                Branch = Branch,
+                BuildZipHash = BuildZipHash,
+                Description = Description,
+                Score = Score,
+                Downloads = Downloads,
+                Important = Important,
+                Keep = Keep,
+                BuildOfTheDay = BuildOfTheDay,
+                Anonymous = Anonymous,
+                Verified = Verified,
+                CreatedAt = CreatedAt,
+                UpdatedAt = UpdatedAt
+            };
+        }
+
         public DevBuildLauncherDTO GetLauncherDTO()
         {
             return new()
@@ -84,6 +112,17 @@ namespace ThriveDevCenter.Server.Models
                 CreatedAt = CreatedAt,
                 UpdatedAt = UpdatedAt
             };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            yield return new Tuple<SerializedNotification, string>(new DevBuildListUpdated()
+            {
+                Type = entityState.ToChangeType(),
+
+                // TODO: create a separate type for use with the list
+                Item = GetDTO()
+            }, NotificationGroups.DevBuildsListUpdated);
         }
     }
 }

@@ -1,6 +1,6 @@
 <div>
     <div style="position: relative">
-        <table class="table sortable table-striped table-hover @ResponsiveType">
+        <table class="table sortable table-striped table-hover @ResponsiveType @ExtraCSS">
             <thead class="thead-light">
             <tr>
                 @foreach (var column in Columns)
@@ -82,6 +82,9 @@
     [Parameter]
     public string ResponsiveType { get; set; } = "table-responsive-sm";
 
+    [Parameter]
+    public bool UseNonFixedColumns { get; set; }
+
     /// <summary>
     ///   When true shows the paginator and CurrentPage etc. should be fine. When false shows a spinner under the table
     /// </summary>
@@ -128,6 +131,8 @@
             return 5;
         }
     }
+
+    private string ExtraCSS => UseNonFixedColumns ? "non-fixed" : string.Empty;
 
     private bool ContentSpinner => ShowContentSpinner && ShowPaginator;
 }

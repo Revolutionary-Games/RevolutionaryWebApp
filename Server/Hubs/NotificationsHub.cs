@@ -158,6 +158,8 @@ namespace ThriveDevCenter.Server.Hubs
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
                     return RequireAccessLevel(UserAccessLevel.Developer, user);
+                case NotificationGroups.DevBuildsListUpdated:
+                    return RequireAccessLevel(UserAccessLevel.User, user);
                 case NotificationGroups.LFSListUpdated:
                     return RequireAccessLevel(UserAccessLevel.NotLoggedIn, user);
             }
