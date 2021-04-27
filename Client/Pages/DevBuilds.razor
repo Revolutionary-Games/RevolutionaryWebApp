@@ -18,14 +18,14 @@
     </NotLoggedIn>
     <LoggedIn>
         <h4>Build of the Day (BOTD)</h4>
-        <DevBuildList BuildType="@DevBuildSearchType.BOTD" />
+        <DevBuildList BuildType="@DevBuildSearchType.BOTD" DefaultPageSize="70" />
 
         <h4>Trusted Builds</h4>
         <p>
             These devbuilds are created from each commit in the official Thrive repository, and are safe as long as the
             repository security is not compromised.
         </p>
-        <DevBuildList BuildType="@DevBuildSearchType.NonAnonymous" UseQueryParams="@true" />
+        <DevBuildList BuildType="@DevBuildSearchType.NonAnonymous" UseQueryParams="@true" DefaultPageSize="70" />
 
         <h4>Untrusted Builds</h4>
         <p>
@@ -33,7 +33,7 @@
             scrutiny. For example pull requests from people outside the team show up here. The verified column says
             true, when a Thrive developer has verified the build.
         </p>
-        <DevBuildList BuildType="@DevBuildSearchType.Anonymous" />
+        <DevBuildList BuildType="@DevBuildSearchType.Anonymous" DefaultPageSize="20" />
     </LoggedIn>
 </LoggedInContent>
 
