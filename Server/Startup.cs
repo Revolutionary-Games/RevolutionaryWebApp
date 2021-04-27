@@ -94,6 +94,12 @@ namespace ThriveDevCenter.Server
 
             services.AddSingleton<IModelUpdateNotificationSender, ModelUpdateNotificationSender>();
 
+            // Caching used for expensive API endpoints
+            services.AddResponseCaching(options =>
+            {
+                options.UseCaseSensitivePaths = true;
+            });
+
             services.AddControllersWithViews();
 
             // For now custom serializers are not needed
@@ -234,6 +240,8 @@ namespace ThriveDevCenter.Server
             {
                 app.UseExceptionHandler("/Error");
 
+                // Configure CORS?
+
                 // app.UseHsts();
             }
 
@@ -242,6 +250,8 @@ namespace ThriveDevCenter.Server
             // Files are only served in development, in production reverse proxy needs to serve them
             if (env.IsDevelopment())
                 app.UseStaticFiles();
+
+            app.UseResponseCaching();
 
             app.UseWhen(
                 context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
