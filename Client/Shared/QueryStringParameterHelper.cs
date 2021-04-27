@@ -8,6 +8,13 @@ namespace ThriveDevCenter.Client.Shared
 
     public static class QueryStringParameterHelper
     {
+        /// <summary>
+        ///   Used to set component parameters from a query string on the current url
+        /// </summary>
+        /// <param name="component">The target component</param>
+        /// <param name="navigationManager">Where to get the URL from</param>
+        /// <typeparam name="T">Type of component</typeparam>
+        /// <exception cref="InvalidOperationException">If URI parse fails</exception>
         public static void SetParametersFromQueryString<T>(this T component,
             NavigationManager navigationManager)
             where T : ComponentBase
