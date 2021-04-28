@@ -1,6 +1,6 @@
 namespace ThriveDevCenter.Client.Shared
 {
-    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Components;
     using ThriveDevCenter.Shared;
@@ -34,9 +34,28 @@ namespace ThriveDevCenter.Client.Shared
 
         protected string SlashIfPathNotEmpty => string.IsNullOrEmpty(FileBrowserPath) ? string.Empty : "/";
 
-        protected string FolderLink(string name)
+        /// <summary>
+        ///   Creates a link to navigate to sub folder
+        /// </summary>
+        /// <param name="name">Name of the sub folder</param>
+        /// <param name="skipLastPart">
+        ///   If true the last component of FileBrowserPath is ignored. Used when the last part can be a file
+        /// </param>
+        /// <returns>A navigation link URL</returns>
+        protected string FolderLink(string name, bool skipLastPart = false)
         {
-            return $"{BasePath}{FileBrowserPath}{SlashIfPathNotEmpty}{name}";
+            var browserPath = FileBrowserPath;
+
+            if (skipLastPart && browserPath.Contains('/'))
+            {
+                // TODO: there's probably a more elegant algorithm possible here
+                var pathParts = browserPath.Split('/');
+                browserPath = string.Join('/', pathParts.Take(pathParts.Length - 1));
+            }
+
+            var slash = string.IsNullOrEmpty(browserPath) ? string.Empty : "/";
+
+            return $"{BasePath}{browserPath}{slash}{name}";
         }
 
         protected override async Task OnParametersSetAsync()

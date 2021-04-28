@@ -54,7 +54,7 @@ else
                     }
 
                     <th scope="row">
-                        <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
+                        <NavLink href="@FolderLink(item.Name, shownFile != null)">@item.Name</NavLink>
                     </th>
 
 
@@ -179,7 +179,6 @@ else
     {
         var requestParams = base.CreatePageRequestParams();
 
-        Console.WriteLine($"adding params for: {parsedFolderId}");
         requestParams["parentId"] = parsedFolderId.ToString();
 
         return requestParams;
@@ -240,30 +239,25 @@ else
         }
         else
         {
-            var parsedResult = JsonSerializer.Deserialize<PathParseResult>(content);
+            var parsedResult = JsonSerializer.Deserialize<PathParseResult>(content,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
             if (parsedResult != null)
             {
                 // FinalItem may be null here if we are looking at the root folder
-                Console.WriteLine($"raw body: {content}");
-                Console.WriteLine($"serialized json again {JsonSerializer.Serialize(parsedResult)}");
-
                 folderPathParsed = true;
 
                 if (parsedResult.FinalItem?.Ftype == FileType.File)
                 {
-                    Console.WriteLine($"this is a file");
                     // We should show a file currently
                     parsedFolderInfo = parsedResult.ParentFolder;
                     shownFile = parsedResult.FinalItem;
                 }
                 else
                 {
-                    Console.WriteLine($"final item: {parsedResult.FinalItem}");
                     parsedFolderInfo = parsedResult.FinalItem;
                 }
 
                 parsedFolderId = parsedFolderInfo?.Id;
-                Console.WriteLine($"received folder id: {parsedFolderId}");
 
                 // TODO: implement, needed for when folders are browsed otherwise listened groups will get out of sync
                 // await notificationHandler.NotifyWantedGroupsChanged();
