@@ -53,4 +53,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class DevBuildListUpdated : ListUpdated<DevBuildDTO>
     {
     }
+
+    public class FolderContentsUpdated : ListUpdated<StorageItemInfo>
+    {
+    }
 }

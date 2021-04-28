@@ -6,7 +6,10 @@ namespace ThriveDevCenter.Server.Models
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
+    using Shared;
     using Shared.Models;
+    using Shared.Notifications;
+    using Utilities;
 
     [Index(new[] { nameof(Name), nameof(ParentId) }, IsUnique = true)]
     [Index(nameof(AllowParentless))]
@@ -14,9 +17,10 @@ namespace ThriveDevCenter.Server.Models
 
     // TODO: is this a duplicate index that is not needed?
     [Index(nameof(ParentId))]
-    public class StorageItem : UpdateableModel, IOwneableModel
+    public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
     {
         // TODO: is there a threat from timing attack trying to enumerate existing files?
+        [AllowSortingBy]
         public string Name { get; set; }
 
         // TODO: change to required
@@ -140,6 +144,86 @@ namespace ThriveDevCenter.Server.Models
             }
 
             return parentPath + Name;
+        }
+
+        public StorageItemInfo GetInfo()
+        {
+            return new()
+            {
+                Id = Id,
+                Name = Name,
+                Ftype = Ftype,
+                Size = Size,
+                ReadAccess = ReadAccess
+            };
+        }
+
+        public StorageItemDTO GetDTO()
+        {
+            return new()
+            {
+                Id = Id,
+                Name = Name,
+                Ftype = Ftype,
+                Special = Special,
+                Size = Size,
+                ReadAccess = ReadAccess,
+                WriteAccess = WriteAccess,
+                OwnerId = OwnerId,
+                ParentId = ParentId,
+                AllowParentless = AllowParentless,
+                CreatedAt = CreatedAt,
+                UpdatedAt = UpdatedAt
+            };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            if (ReadAccess == FileAccess.Nobody)
+                yield break;
+
+            var info = GetInfo();
+            var type = entityState.ToChangeType();
+
+            string parent = ParentId != null ? ParentId.ToString() : "root";
+
+            if (ReadAccess == FileAccess.Public)
+            {
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                {
+                    Type = type,
+                    Item = info
+                }, NotificationGroups.FolderContentsUpdatedPublicPrefix + parent);
+            }
+            else if (ReadAccess == FileAccess.User)
+            {
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                {
+                    Type = type,
+                    Item = info
+                }, NotificationGroups.FolderContentsUpdatedUserPrefix + parent);
+            }
+            else if (ReadAccess == FileAccess.Developer)
+            {
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                {
+                    Type = type,
+                    Item = info
+                }, NotificationGroups.FolderContentsUpdatedDeveloperPrefix + parent);
+            }
+            else if (ReadAccess == FileAccess.OwnerOrAdmin)
+            {
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                {
+                    Type = type,
+                    Item = info
+                }, NotificationGroups.FolderContentsUpdatedOwnerPrefix + parent);
+            }
+
+            yield return new Tuple<SerializedNotification, string>(new StorageItemUpdated()
+            {
+                Item = GetDTO()
+            }, NotificationGroups.StorageItemUpdatedPrefix + Id);
         }
     }
 }

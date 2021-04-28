@@ -1,8 +1,278 @@
-@page "/files"
+@page "/files/{*FileBrowserPath}"
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@inject CurrentUserInfo currentUserInfo
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Client.Services
+@using System.Threading
+@using System.Net
+@using System.Text.Json
+@implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
+@implements IAsyncDisposable
+@inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.StorageItemInfo>
 <h3>Files</h3>
 
-<p>TODO: reimplement this</p>
+<p>This is a service to store files needed for Thrive development, which aren't included in the code repository.</p>
+
+<Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="Files" />
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    @if (item.Ftype == FileType.Folder)
+                    {
+                        <td>
+                            <span class="oi oi-folder pl-1" aria-hidden="true"></span>
+                            <span class="sr-only">Folder</span>
+                        </td>
+                    }
+                    else
+                    {
+                        <td></td>
+                    }
+
+                    <th scope="row">
+                        <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
+                    </th>
+
+
+                    @if (!item.Size.HasValue)
+                    {
+                        <td>?</td>
+                    }
+                    else if (item.Ftype == FileType.Folder)
+                    {
+                        <td>@("item".PrintCount(item.Size.Value))</td>
+                    }
+                    else
+                    {
+                        <td>@item.Size.Value.BytesToMiB()</td>
+                    }
+
+                    <td>@item.ReadAccess.ToUserReadableString()</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+
+    @if (folderPathParsed)
+    {
+        <Button Enabled="@false" class="mr-1" ButtonStyle="primary">Upload</Button>
+
+        <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
+            <Button Enabled="@false" class="mr-1" ButtonStyle="info">Show Folder Info</Button>
+            <Button Enabled="@false" class="mr-1" ButtonStyle="success">New Folder</Button>
+        </AccessLimited>
+    }
+}
 
 @code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Type", false),
+        new TableColumn("Name", true),
+        new TableColumn("Size", true),
+        new TableColumn("Access", false),
+    };
 
+    private bool folderPathParsed;
+
+    private long? parsedFolderId;
+
+    private StorageItemDTO parsedFolderInfo;
+    private StorageItemDTO shownFile;
+
+    [Parameter]
+    public string ProjectRepoURL { get; set; }
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    public Files()
+    {
+        BasePath = "files/";
+
+        DefaultPageSize = 100;
+
+        // We can only fetch data once we have parsed the current path to a folder id
+        AutoFetchDataOnInit = false;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnParametersSetAsync();
+        await ParseCurrentPath();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(FolderContentsUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // We can't register for listeners before the folder path is parsed to a folder id
+        if (!folderPathParsed)
+            return;
+
+        // Current folder properties listening
+        if (parsedFolderId != null)
+            groups.Add(NotificationGroups.StorageItemUpdatedPrefix + parsedFolderId);
+
+        // Current file properties listening (only if we are looking at a folder)
+        if (shownFile != null)
+            groups.Add(NotificationGroups.StorageItemUpdatedPrefix + shownFile.Id);
+
+        string folderId = parsedFolderId != null ? parsedFolderId.ToString() : "root";
+
+        // Folder content change listening
+        groups.Add(NotificationGroups.FolderContentsUpdatedPublicPrefix + folderId);
+
+        if (currentAccessLevel.HasAccess(UserAccessLevel.User))
+            groups.Add(NotificationGroups.FolderContentsUpdatedUserPrefix + folderId);
+        if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
+            groups.Add(NotificationGroups.FolderContentsUpdatedDeveloperPrefix + folderId);
+        if (currentAccessLevel.HasAccess(UserAccessLevel.Admin) || (parsedFolderInfo?.OwnerId != null &&
+            currentUserInfo?.Info.Id == parsedFolderInfo.OwnerId))
+        {
+            groups.Add(NotificationGroups.FolderContentsUpdatedOwnerPrefix + folderId);
+        }
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Dictionary<string, string> CreatePageRequestParams()
+    {
+        var requestParams = base.CreatePageRequestParams();
+
+        Console.WriteLine($"adding params for: {parsedFolderId}");
+        requestParams["parentId"] = parsedFolderId.ToString();
+
+        return requestParams;
+    }
+
+    protected override void PruneRequestParams(Dictionary<string, string> queryParams)
+    {
+        base.PruneRequestParams(queryParams);
+
+        queryParams.Remove("parentId");
+    }
+
+    protected override Task<PagedResult<StorageItemInfo>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<StorageItemInfo>>(
+            QueryHelpers.AddQueryString($"api/v1/Files/folderContents", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await base.OnQuerySent(requestParams);
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private async Task ParseCurrentPath()
+    {
+        folderPathParsed = false;
+        parsedFolderInfo = null;
+        shownFile = null;
+        VisibleFetchInProgress = true;
+        Error = null;
+
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.GetAsync(QueryHelpers.AddQueryString(
+                "api/v1/Files/itemFromPath","path", NonNullPath));
+        }
+        catch (HttpRequestException e)
+        {
+            Error = $"Network request failed: {e.Message}";
+            VisibleFetchInProgress = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var content = await result.Content.ReadAsStringAsync();
+        VisibleFetchInProgress = false;
+
+        if (result.StatusCode != HttpStatusCode.OK)
+        {
+            Error = $"Failed to process current path: {content}";
+            if (string.IsNullOrEmpty(content))
+                Error += result.StatusCode.ToString();
+        }
+        else
+        {
+            var parsedResult = JsonSerializer.Deserialize<PathParseResult>(content);
+            if (parsedResult != null)
+            {
+                // FinalItem may be null here if we are looking at the root folder
+                Console.WriteLine($"raw body: {content}");
+                Console.WriteLine($"serialized json again {JsonSerializer.Serialize(parsedResult)}");
+
+                folderPathParsed = true;
+
+                if (parsedResult.FinalItem?.Ftype == FileType.File)
+                {
+                    Console.WriteLine($"this is a file");
+                    // We should show a file currently
+                    parsedFolderInfo = parsedResult.ParentFolder;
+                    shownFile = parsedResult.FinalItem;
+                }
+                else
+                {
+                    Console.WriteLine($"final item: {parsedResult.FinalItem}");
+                    parsedFolderInfo = parsedResult.FinalItem;
+                }
+
+                parsedFolderId = parsedFolderInfo?.Id;
+                Console.WriteLine($"received folder id: {parsedFolderId}");
+
+                // TODO: implement, needed for when folders are browsed otherwise listened groups will get out of sync
+                // await notificationHandler.NotifyWantedGroupsChanged();
+                await FetchData();
+            }
+            else
+            {
+                Error = "Failed to parse response JSON";
+            }
+        }
+    }
 }

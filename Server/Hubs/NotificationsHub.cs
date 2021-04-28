@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Server.Hubs
     using Authorization;
     using Microsoft.AspNetCore.SignalR;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using Models;
     using Services;
@@ -16,11 +17,14 @@ namespace ThriveDevCenter.Server.Hubs
 
     public class NotificationsHub : Hub<INotifications>
     {
+        private readonly ILogger<NotificationsHub> logger;
         private readonly ITokenVerifier csrfVerifier;
         private readonly ApplicationDbContext database;
 
-        public NotificationsHub(ITokenVerifier csrfVerifier, ApplicationDbContext database)
+        public NotificationsHub(ILogger<NotificationsHub> logger, ITokenVerifier csrfVerifier,
+            ApplicationDbContext database)
         {
+            this.logger = logger;
             this.csrfVerifier = csrfVerifier;
             this.database = database;
         }
@@ -122,7 +126,10 @@ namespace ThriveDevCenter.Server.Hubs
         public Task JoinGroup(string groupName)
         {
             if (!IsUserAllowedInGroup(groupName, Context.Items["User"] as User))
+            {
+                logger.LogWarning("Client failed to join group: {GroupName}", groupName);
                 throw new HubException("You don't have access to the specified group");
+            }
 
             return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
@@ -137,9 +144,8 @@ namespace ThriveDevCenter.Server.Hubs
         {
             // TODO: reload from Db at some interval
             var user = Context.Items["User"] as User;
-            RecordAccessLevel accessLevel;
 
-            accessLevel = RequireAccessLevel(UserAccessLevel.Admin, user) ?
+            var accessLevel = RequireAccessLevel(UserAccessLevel.Admin, user) ?
                 RecordAccessLevel.Admin :
                 RecordAccessLevel.Private;
 
@@ -227,6 +233,64 @@ namespace ThriveDevCenter.Server.Hubs
                 return RequireAccessLevel(UserAccessLevel.User, user);
             }
 
+            if (groupName.StartsWith(NotificationGroups.StorageItemUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.StorageItems, out StorageItem item))
+                    return false;
+
+                return item.IsReadableBy(user);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedPublicPrefix))
+            {
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem item))
+                    return false;
+
+                return CheckFolderContentsAccess(user, UserAccessLevel.NotLoggedIn, item);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedUserPrefix))
+            {
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem item))
+                    return false;
+
+                return CheckFolderContentsAccess(user, UserAccessLevel.User, item);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedDeveloperPrefix))
+            {
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem item))
+                    return false;
+
+                return CheckFolderContentsAccess(user, UserAccessLevel.Developer, item);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedOwnerPrefix))
+            {
+                // Anonymous users can't be the owners of any folders
+                if (user == null)
+                    return false;
+
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem item))
+                    return false;
+
+                // Admins can act like the owner of any folder for listening to it
+                if (RequireAccessLevel(UserAccessLevel.Admin, user))
+                    return true;
+
+                // Base folder can't be owned by anyone. Only admins can join this group (see above)
+                // ReSharper disable once UseNullPropagation
+                if (item == null)
+                    return false;
+
+                // Folders with no owner can't be listened to by normal users
+                if (item.OwnerId == null)
+                    return false;
+
+                // Only owner can join this group
+                return user.Id == item.OwnerId;
+            }
+
             // Only admins see this
             if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo))
                 return RequireAccessLevel(UserAccessLevel.Admin, user);
@@ -248,6 +312,41 @@ namespace ThriveDevCenter.Server.Hubs
             item = existingItems.Find(id);
 
             return item != null;
+        }
+
+        private static bool GetTargetFolderFromGroup(string groupName, DbSet<StorageItem> existingItems,
+            out StorageItem item)
+        {
+            var idRaw = groupName.Split('_').Last();
+
+            if (long.TryParse(idRaw, out long id))
+            {
+                // This lookup probably can timing attack leak the IDs of objects
+                item = existingItems.Find(id);
+                return item != null;
+            }
+
+            item = null;
+
+            // Raw may be also "root" to listen for root folder items
+            if (idRaw == "root")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool CheckFolderContentsAccess(User user, UserAccessLevel baseAccessLevel, StorageItem folder)
+        {
+            if (!RequireAccessLevel(baseAccessLevel, user))
+                return false;
+
+            // Base folder is null, and it has public read by default
+            if (folder == null)
+                return true;
+
+            return folder.IsReadableBy(user);
         }
 
         private static bool GetIDPartFromGroup(string groupName, out long id)

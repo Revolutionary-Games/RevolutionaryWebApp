@@ -20,6 +20,12 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string DevBuildsListUpdated = "DevBuilds";
         public const string DevBuildUpdatedPrefix = "SDevBuild_";
 
+        public const string StorageItemUpdatedPrefix = "StorageItem_";
+        public const string FolderContentsUpdatedPublicPrefix = "PubFolder_";
+        public const string FolderContentsUpdatedUserPrefix = "UserFolder_";
+        public const string FolderContentsUpdatedDeveloperPrefix = "DeveloperFolder_";
+        public const string FolderContentsUpdatedOwnerPrefix = "OwnerFolder_";
+
         public const string UserLauncherLinksUpdatedPrefix = "UserLaunchers_";
     }
 }

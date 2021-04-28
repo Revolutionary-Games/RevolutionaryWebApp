@@ -24,4 +24,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class DevBuildUpdated : ModelUpdated<DevBuildDTO>
     {
     }
+
+    public class StorageItemUpdated : ModelUpdated<StorageItemDTO>
+    {
+    }
 }
