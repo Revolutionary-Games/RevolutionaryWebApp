@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Shared.Utilities
                 typeof(ActualEnumConverter<>).MakeGenericType(typeToConvert),
                 BindingFlags.Instance | BindingFlags.Public,
                 binder: null,
-                new object?[] { options },
+                new object[] { options },
                 culture: null)!;
 
             return converter;
