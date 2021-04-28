@@ -28,6 +28,8 @@ namespace ThriveDevCenter.Client.Shared
         /// </summary>
         public bool ReactToParameterChange { get; protected set; }
 
+        public bool AutoSetReactToParameterChangeAfterDataReceived { get; protected set; } = true;
+
         protected string NonNullPath => FileBrowserPath ?? string.Empty;
 
         protected string CurrentPathSlashPrefix => "/" + NonNullPath;
@@ -44,7 +46,7 @@ namespace ThriveDevCenter.Client.Shared
         /// <returns>A navigation link URL</returns>
         protected string FolderLink(string name, bool skipLastPart = false)
         {
-            var browserPath = FileBrowserPath;
+            var browserPath = NonNullPath;
 
             if (skipLastPart && browserPath.Contains('/'))
             {
@@ -68,7 +70,8 @@ namespace ThriveDevCenter.Client.Shared
 
         protected override Task OnDataReceived()
         {
-            ReactToParameterChange = true;
+            if(AutoSetReactToParameterChangeAfterDataReceived)
+                ReactToParameterChange = true;
             return base.OnDataReceived();
         }
     }

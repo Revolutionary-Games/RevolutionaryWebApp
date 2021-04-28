@@ -35,7 +35,8 @@ else
                     GetSortClass="@SortClass"
                     ShowContentSpinner="@VisibleFetchInProgress"
                     Columns="@columns"
-                    ShowNoContent="@NoItemsFound">
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="@true">
         @if (Data != null)
         {
             @foreach (var item in Data.Results)
@@ -77,15 +78,13 @@ else
         }
     </PaginatedTable>
 
-    @if (folderPathParsed)
-    {
-        <Button Enabled="@false" class="mr-1" ButtonStyle="primary">Upload</Button>
+    @*These are always shown to avoid brief flashes while navigating *@
+    <Button Enabled="@false" class="mr-1" ButtonStyle="primary">Upload</Button>
 
-        <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
-            <Button Enabled="@false" class="mr-1" ButtonStyle="info">Show Folder Info</Button>
-            <Button Enabled="@false" class="mr-1" ButtonStyle="success">New Folder</Button>
-        </AccessLimited>
-    }
+    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
+        <Button Enabled="@false" class="mr-1" ButtonStyle="info">Show Folder Info</Button>
+        <Button Enabled="@false" class="mr-1" ButtonStyle="success">New Folder</Button>
+    </AccessLimited>
 }
 
 @code {
@@ -118,6 +117,7 @@ else
 
         // We can only fetch data once we have parsed the current path to a folder id
         AutoFetchDataOnInit = false;
+        AutoSetReactToParameterChangeAfterDataReceived = false;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -258,6 +258,8 @@ else
                 }
 
                 parsedFolderId = parsedFolderInfo?.Id;
+
+                VisibleFetchInProgress = true;
 
                 await notificationHandler.NotifyWantedGroupsChanged();
                 await FetchData();
