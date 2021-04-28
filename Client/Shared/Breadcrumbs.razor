@@ -1,5 +1,5 @@
 @using System.Text
-@inject NavigationManager NavigationManager
+@inject NavigationManager navigationManager
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -57,7 +57,7 @@
 
         if (parts.Length == 0)
         {
-            // Add root path first
+            // Only root path here
             result.Add(new PathItem()
             {
                 ItemName = RootPathName,
@@ -68,6 +68,7 @@
         }
         else
         {
+            // Add root path first
             result.Add(new PathItem()
             {
                 ItemName = RootPathName,
@@ -105,20 +106,40 @@
 
     private string PathForItem(PathItem item)
     {
-        // Special case for the root path
-        if (item.Root)
-            return BasePath;
+        // Last item needs query parameters appended to work correctly
+        string query = null;
 
-        if (item.PathSoFar.Length < 1)
+        if (item.Active)
         {
-            return BasePath + item.ItemName;
+            var uri = navigationManager.Uri;
+            var questionMark = uri.IndexOf('?');
+            if (questionMark >= 0)
+            {
+                query = uri.Substring(questionMark);
+            }
         }
 
         var builder = new StringBuilder();
         builder.Append(BasePath);
-        builder.Append(item.PathSoFar);
-        builder.Append('/');
-        builder.Append(item.ItemName);
+
+        if (item.Root)
+        {
+            // Special case for the root path, just the base path
+        } else if (item.PathSoFar.Length < 1)
+        {
+            builder.Append(item.ItemName);
+        }
+        else
+        {
+            builder.Append(item.PathSoFar);
+            builder.Append('/');
+            builder.Append(item.ItemName);
+        }
+
+        if (query != null)
+        {
+            builder.Append(query);
+        }
 
         return builder.ToString();
     }
