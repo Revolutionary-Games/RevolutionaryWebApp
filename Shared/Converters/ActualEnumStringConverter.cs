@@ -1,4 +1,3 @@
-#nullable enable
 namespace ThriveDevCenter.Shared.Utilities
 {
     using System;
@@ -47,7 +46,7 @@ namespace ThriveDevCenter.Shared.Utilities
 
                 var stringValue = attribute?.Value ?? value.Name;
 
-                valueToStringMap[realValue] = stringValue;
+                valueToStringMap[realValue!] = stringValue;
                 stringToValueMap[stringValue.ToLowerInvariant()] = realValue;
             }
         }

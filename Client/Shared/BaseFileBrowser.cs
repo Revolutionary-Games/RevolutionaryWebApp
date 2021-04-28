@@ -28,7 +28,9 @@ namespace ThriveDevCenter.Client.Shared
         /// </summary>
         public bool ReactToParameterChange { get; protected set; }
 
-        protected string CurrentPathSlashPrefix => "/" + (FileBrowserPath ?? string.Empty);
+        protected string NonNullPath => FileBrowserPath ?? string.Empty;
+
+        protected string CurrentPathSlashPrefix => "/" + NonNullPath;
 
         protected string SlashIfPathNotEmpty => string.IsNullOrEmpty(FileBrowserPath) ? string.Empty : "/";
 
