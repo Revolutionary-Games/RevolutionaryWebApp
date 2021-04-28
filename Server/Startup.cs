@@ -95,18 +95,16 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<IModelUpdateNotificationSender, ModelUpdateNotificationSender>();
 
             // Caching used for expensive API endpoints
-            services.AddResponseCaching(options =>
+            services.AddResponseCaching(options => { options.UseCaseSensitivePaths = true; });
+
+            services.AddControllersWithViews().AddJsonOptions(options =>
             {
-                options.UseCaseSensitivePaths = true;
+                // For now custom serializers are not needed
+                // options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
+
+                // This doesn't seem to do anything... So manual deserialize on client needs case insensitive mode on
+                // options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             });
-
-            services.AddControllersWithViews();
-
-            // For now custom serializers are not needed
-            //     .AddJsonOptions(options =>
-            // {
-            //     options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
-            // });
 
             services.AddRazorPages();
 
@@ -304,6 +302,10 @@ namespace ThriveDevCenter.Server
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return Task.CompletedTask;
                 });
+
+                // Fix for accessing these with ".something" as an URL suffix
+                endpoints.MapFallbackToPage("/files/{*param}", "/_Host");
+                endpoints.MapFallbackToPage("/lfs/{*param}", "/_Host");
 
                 // For other routes the client side app loads and then that displays the path not found
                 endpoints.MapFallbackToPage("/_Host");
