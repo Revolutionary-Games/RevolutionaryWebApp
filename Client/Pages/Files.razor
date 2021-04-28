@@ -259,8 +259,7 @@ else
 
                 parsedFolderId = parsedFolderInfo?.Id;
 
-                // TODO: implement, needed for when folders are browsed otherwise listened groups will get out of sync
-                // await notificationHandler.NotifyWantedGroupsChanged();
+                await notificationHandler.NotifyWantedGroupsChanged();
                 await FetchData();
             }
             else

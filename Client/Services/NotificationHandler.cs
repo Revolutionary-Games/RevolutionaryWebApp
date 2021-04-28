@@ -24,6 +24,8 @@ namespace ThriveDevCenter.Client.Services
         private readonly ICSRFTokenReader csrfTokenReader;
         private readonly Dictionary<Type, List<(IGroupListener, Func<SerializedNotification, Task>)>> handlers = new();
 
+        private readonly SemaphoreSlim groupJoinSemaphore = new SemaphoreSlim(1, 1);
+
         private readonly NotificationJsonConverter converter = new NotificationJsonConverter();
 
         private readonly HashSet<string> currentlyJoinedGroups = new();
@@ -189,6 +191,20 @@ namespace ThriveDevCenter.Client.Services
 
             if (removed)
                 await ApplyGroupMemberships();
+        }
+
+        /// <summary>
+        ///   Notifies that some listener has changed which groups it wants to listen to. Internally this triggers full
+        ///   rechecking of groups.
+        /// </summary>
+        /// <remarks>
+        ///   <para>
+        ///      TODO: for performance reasons it would be nice to rate-limit this
+        ///   </para>
+        /// </remarks>
+        public Task NotifyWantedGroupsChanged()
+        {
+            return ApplyGroupMemberships();
         }
 
         private async Task ForwardNotification(SerializedNotification notification)
@@ -409,6 +425,25 @@ namespace ThriveDevCenter.Client.Services
                 return;
             }
 
+            // We use a semaphore here to ensure only one thread applies groups at once
+            if (!await groupJoinSemaphore.WaitAsync(TimeSpan.FromMinutes(1)))
+            {
+                await Console.Error.WriteLineAsync("Failed to get group join semaphore after one minute, can't join groups");
+                return;
+            }
+
+            try
+            {
+                await PerformGroupApply();
+            }
+            finally
+            {
+                groupJoinSemaphore.Release();
+            }
+        }
+
+        private async Task PerformGroupApply()
+        {
             var userStatus = userInfoReceiver.AccessLevel;
 
             var wantedGroups = new HashSet<string>();
