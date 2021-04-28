@@ -27,6 +27,7 @@ namespace ThriveDevCenter.Server.Models
         public FileType Ftype { get; set; }
         public bool Special { get; set; } = false;
 
+        [AllowSortingBy]
         public int? Size { get; set; }
 
         // TODO: change to required
