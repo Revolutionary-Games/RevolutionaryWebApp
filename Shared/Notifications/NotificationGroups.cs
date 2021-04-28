@@ -16,7 +16,9 @@ namespace ThriveDevCenter.Shared.Notifications
 
         public const string PatronListUpdated = "Patrons";
         public const string AccessKeyListUpdated = "AccessKeys";
+
         public const string DevBuildsListUpdated = "DevBuilds";
+        public const string DevBuildUpdatedPrefix = "SDevBuild_";
 
         public const string UserLauncherLinksUpdatedPrefix = "UserLaunchers_";
     }

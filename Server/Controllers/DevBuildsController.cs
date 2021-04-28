@@ -102,5 +102,17 @@ namespace ThriveDevCenter.Server.Controllers
 
             return objects.ConvertResult(i => i.GetDTO());
         }
+
+        [HttpGet("{id:long}")]
+        [AuthorizeRoleFilter]
+        public async Task<ActionResult<DevBuildDTO>> GetSingleBuild([Required] long id)
+        {
+            var build = await database.DevBuilds.FindAsync(id);
+
+            if (build == null)
+                return NotFound();
+
+            return build.GetDTO();
+        }
     }
 }

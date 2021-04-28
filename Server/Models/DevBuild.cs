@@ -125,6 +125,11 @@ namespace ThriveDevCenter.Server.Models
                 // TODO: create a separate type for use with the list
                 Item = GetDTO()
             }, NotificationGroups.DevBuildsListUpdated);
+
+            yield return new Tuple<SerializedNotification, string>(new DevBuildUpdated()
+            {
+                Item = GetDTO()
+            }, NotificationGroups.DevBuildUpdatedPrefix + Id);
         }
     }
 }

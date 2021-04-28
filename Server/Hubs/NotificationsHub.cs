@@ -219,6 +219,14 @@ namespace ThriveDevCenter.Server.Hubs
                 return item.Id == user?.Id;
             }
 
+            if (groupName.StartsWith(NotificationGroups.DevBuildUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.DevBuilds, out DevBuild item))
+                    return false;
+
+                return RequireAccessLevel(UserAccessLevel.User, user);
+            }
+
             // Only admins see this
             if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo))
                 return RequireAccessLevel(UserAccessLevel.Admin, user);

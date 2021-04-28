@@ -1,7 +1,85 @@
 @page "/builds/{Id:long}"
-<h3>DevBuild</h3>
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<DevBuildDTO, DevBuildUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+@if (Data == null)
+{
+    <h3>DevBuild (@Id)</h3>
+}
+
+<AccessLimited RequiredAccess="@UserAccessLevel.User">
+    <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+        @if (Data != null)
+        {
+            <h3>DevBuild (@Id) @Data.BuildHash for @Data.Platform</h3>
+
+            <h4>Properties</h4>
+
+            <ul>
+                <li><strong>Hash</strong>: @Data.BuildHash</li>
+                <li><strong>Platform</strong>: @Data.Platform</li>
+                <li><strong>Build of the Day (BOTD)</strong>: @Data.BuildOfTheDay</li>
+                <li><strong>Branch (reported by uploader)</strong>: @Data.Branch</li>
+                <li><strong>Verified</strong>: @Data.Verified <strong>by</strong>: ?</li>
+                <li><strong>Anonymous</strong>: @Data.Anonymous</li>
+                <li><strong>Important</strong>: @Data.Important</li>
+                <li><strong>Keep</strong>: @Data.Keep</li>
+                <li><strong>Downloads</strong>: @Data.Downloads</li>
+                <li><strong>Score</strong>: @Data.Score</li>
+                <li><strong>Related PR (not implemented yet)</strong>: </li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+            </ul>
+
+            <h4>Description</h4>
+            <pre>@Data.Description</pre>
+
+            <AccessLimited RequiredAccess="UserAccessLevel.Developer">
+                <Button Enabled="@false" ButtonStyle="secondary">Edit</Button>
+
+                <h4 class="mt-3">Actions</h4>
+
+                <Button Enabled="@false" ButtonStyle="primary" class="mb-2">Make Build of the Day</Button>
+
+                <br />
+
+                <Button Enabled="@false" ButtonStyle="primary">Verify This Build</Button>
+
+                <hr />
+
+                <Button Enabled="@false" ButtonStyle="danger">Delete</Button>
+
+            </AccessLimited>
+        }
+    </SingleResourceDisplayer>
+</AccessLimited>
 
 @code {
-    [Parameter]
-    public long Id { get; set; }
+
+    protected override Task<DevBuildDTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<DevBuildDTO>($"api/v1/DevBuilds/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.DevBuildUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
 }

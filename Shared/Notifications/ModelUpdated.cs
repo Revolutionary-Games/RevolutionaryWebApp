@@ -20,4 +20,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class LFSProjectUpdated : ModelUpdated<LFSProjectDTO>
     {
     }
+
+    public class DevBuildUpdated : ModelUpdated<DevBuildDTO>
+    {
+    }
 }
