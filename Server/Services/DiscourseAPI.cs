@@ -266,16 +266,16 @@ namespace ThriveDevCenter.Server.Services
         public long Id { get; set; }
 
         [Required]
-        public long Name { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         ///   Display name of the group. Not set when getting the actual group data. Instead FullName is included
         /// </summary>
         [JsonPropertyName("display_name")]
-        public long DisplayName { get; set; }
+        public string DisplayName { get; set; }
 
         [JsonPropertyName("full_name")]
-        public long FullName { get; set; }
+        public string FullName { get; set; }
     }
 
     public class DiscourseUser
@@ -301,6 +301,11 @@ namespace ThriveDevCenter.Server.Services
 
         [JsonIgnore]
         public bool Marked { get; set; }
+
+        public bool IsInGroup(string groupName)
+        {
+            return Groups.Any(g => g.Name == groupName);
+        }
     }
 
     public class DiscourseSingleUserInfo
