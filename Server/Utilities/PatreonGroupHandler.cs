@@ -11,6 +11,16 @@ namespace ThriveDevCenter.Server.Utilities
 
     public static class PatreonGroupHandler
     {
+        public const string CommunityDevBuildGroup = "Supporter";
+        public const string CommunityVIPGroup = "VIP_Supporter";
+
+        public enum RewardGroup
+        {
+            None,
+            DevBuild,
+            VIP
+        }
+
         public static async Task<bool> HandlePatreonPledgeObject(PatreonObjectData pledge, PatreonObjectData user,
             string rewardId, NotificationsEnabledDb database, IBackgroundJobClient jobClient)
         {
@@ -106,6 +116,23 @@ namespace ThriveDevCenter.Server.Utilities
             }
 
             return changes;
+        }
+
+        public static RewardGroup ShouldBeInGroupForPatron(Patron patron, PatreonSettings settings)
+        {
+            if (settings == null)
+                throw new ArgumentException("patreon settings is null");
+
+            if (patron == null || patron.Suspended == true)
+                return RewardGroup.None;
+
+            if (patron.RewardId == settings.VipRewardId)
+                return RewardGroup.VIP;
+
+            if (patron.RewardId == settings.DevbuildsRewardId)
+                return RewardGroup.DevBuild;
+
+            return RewardGroup.None;
         }
     }
 }
