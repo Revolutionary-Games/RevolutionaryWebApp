@@ -27,18 +27,37 @@ sed -i 's/COPY public.dehydrated_objects_dev_builds (dehydrated_object_id, dev_b
 ```
 
 
+You can create a script to just setup the initial database tables
+version (which supports the migration) by running in the `Server`
+folder:
+```sh
+dotnet ef migrations script 0 InitialCreate --context ApplicationDbContext -o initial_setup.sql
+```
+
+To setup the initial database, run inside `psql`:
+```sql
+CREATE USER thrivedevcenter WITH LOGIN PASSWORD 'ASECUREPASSWORDHERE';
+CREATE DATABASE thrivedevcenter WITH OWNER thrivedevcenter;
+```
+
+and in a terminal as the postgres user:
+```sh
+psql -d thrivedevcenter < initial_setup.sql
+```
 
 
-Now on the new server create the `thrivedevcenter` database, then run
-(adjust login info as needed):
+Then run, to import the old data:
 
 ```sh
-psql -d thrivedevcenter -U thrivedevcenter -h 127.0.0.1 --single-transaction < db_backup_part_1.txt
-psql -d thrivedevcenter -U thrivedevcenter -h 127.0.0.1 --single-transaction < db_backup_part_2.txt
+psql -d thrivedevcenter --single-transaction < db_backup_part_1.txt
+psql -d thrivedevcenter --single-transaction < db_backup_part_2.txt
 ```
+
 
 Then run the post import actions (NOTE: that this drops data that
 can't be used anymore):
 ```sh
-psql -d thrivedevcenter -U thrivedevcenter -h 127.0.0.1 < post_rails_migration.sql
+psql -d thrivedevcenter < post_rails_migration.sql
 ```
+
+After this you should run normal migration before attempting to run the server process.
