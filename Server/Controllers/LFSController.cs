@@ -570,7 +570,7 @@ namespace ThriveDevCenter.Server.Controllers
             [EnumMember(Value = "download")]
             Download,
 
-            [EnumMember(Value = "download")]
+            [EnumMember(Value = "upload")]
             Upload
         }
 
