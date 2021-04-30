@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Jobs
 {
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
@@ -30,7 +31,7 @@ namespace ThriveDevCenter.Server.Jobs
             bool requiresSave = false;
 
             // TODO: even though batching (Buffer) could be used here, won't the database context keep things in memory?
-            foreach (var user in database.Users)
+            foreach (var user in await database.Users.ToListAsync(cancellationToken))
             {
                 if (await SSOSuspendHandler.CheckUser(user, database, communityAPI, devForumAPI, cancellationToken))
                     requiresSave = true;
