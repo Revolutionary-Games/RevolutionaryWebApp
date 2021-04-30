@@ -170,6 +170,8 @@ namespace ThriveDevCenter.Server
             services.AddScoped<IPatreonAPI, PatreonAPI>();
             services.AddScoped<LfsRemoteStorage>();
             services.AddScoped<GeneralRemoteStorage>();
+            services.AddScoped<DevForumAPI>();
+            services.AddScoped<CommunityForumAPI>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();

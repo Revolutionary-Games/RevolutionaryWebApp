@@ -24,20 +24,31 @@ namespace ThriveDevCenter.Server.Utilities
         public static async Task<bool> HandlePatreonPledgeObject(PatreonObjectData pledge, PatreonObjectData user,
             string rewardId, NotificationsEnabledDb database, IBackgroundJobClient jobClient)
         {
-            var pledgeCents = Convert.ToInt32(pledge.Attributes["amount_cents"]);
+            if (pledge.Attributes.AmountCents == null || user.Attributes.Email == null)
+                throw new Exception("Invalid patron API object, missing key properties");
 
-            bool declined = pledge.Attributes.ContainsKey("declined_since") &&
-                !string.IsNullOrEmpty(pledge.Attributes["declined_since"]);
+            var pledgeCents = pledge.Attributes.AmountCents.Value;
 
-            var email = user.Attributes["email"];
+            bool declined = !string.IsNullOrEmpty(pledge.Attributes.DeclinedSince);
+
+            var email = user.Attributes.Email;
+
+            if(string.IsNullOrEmpty(email))
+                throw new Exception("Patron object has null email");
 
             var patron = await database.Patrons.AsQueryable().FirstOrDefaultAsync(p => p.Email == email);
 
-            var username = user.Attributes["full_name"];
+            var username = user.Attributes.FullName;
 
-            if (user.Attributes.TryGetValue("vanity", out string vanity) && !string.IsNullOrEmpty(vanity))
+            if (string.IsNullOrEmpty(user.Attributes.Vanity))
             {
-                username = vanity;
+                username = user.Attributes.Vanity;
+            }
+
+            if (string.IsNullOrEmpty(username))
+            {
+                // Fallback to using the email if everything failed...
+                username = email;
             }
 
             if (patron == null)

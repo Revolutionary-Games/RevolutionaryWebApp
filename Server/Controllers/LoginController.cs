@@ -536,7 +536,10 @@ namespace ThriveDevCenter.Server.Controllers
 
                 var userDetails = await patreonAPI.GetOwnDetails();
 
-                var email = userDetails.Data.Attributes["email"];
+                var email = userDetails.Data.Attributes.Email;
+
+                if (email == null)
+                    throw new NullReferenceException();
 
                 var patron = await database.Patrons.AsQueryable().Where(p => p.Email == email).FirstOrDefaultAsync();
 

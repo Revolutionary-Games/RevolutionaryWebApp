@@ -158,7 +158,7 @@ namespace ThriveDevCenter.Server.Services
                     if (data.Type != "pledge")
                         continue;
 
-                    var patronRelationship = data.Relationships["patron"];
+                    var patronRelationship = data.Relationships.Patron;
 
                     var userData =
                         response.FindIncludedObject(patronRelationship.Data.Id, patronRelationship.Data.Type);
@@ -166,7 +166,9 @@ namespace ThriveDevCenter.Server.Services
                     if (userData == null)
                         throw new PatreonAPIDataException("Failed to find pledge's related user object");
 
-                    if (!data.Relationships.TryGetValue("reward", out PatreonRelationshipInfo rewardRelationship))
+                    var rewardRelationship = data.Relationships.Reward;
+
+                    if (rewardRelationship == null)
                         throw new PatreonAPIDataException("reward data is not included for user");
 
                     var rewardData =
@@ -236,7 +238,7 @@ namespace ThriveDevCenter.Server.Services
     {
         public List<PatreonObjectData> Included { get; set; } = new();
         public Dictionary<string, string> Links { get; set; } = new();
-        public Dictionary<string, string> Meta { get; set; } = new();
+        public PatreonAPIMeta Meta { get; set; } = new();
 
         public PatreonObjectData FindIncludedObject(string objectId, string neededType = null)
         {
@@ -253,6 +255,11 @@ namespace ThriveDevCenter.Server.Services
 
             return null;
         }
+    }
+
+    public class PatreonAPIMeta
+    {
+        public int Count { get; set; }
     }
 
     public class PatreonAPIObjectResponse : PatreonAPIBaseResponse
@@ -275,9 +282,42 @@ namespace ThriveDevCenter.Server.Services
         [Required]
         public string Type { get; set; }
 
-        public Dictionary<string, string> Attributes { get; set; } = new();
+        public PatreonObjectAttributes Attributes { get; set; } = new();
 
-        public Dictionary<string, PatreonRelationshipInfo> Relationships { get; set; } = new();
+        public PatreonObjectRelationships Relationships { get; set; } = new();
+    }
+
+    // The next two classes are split due to the data being non-uniform coming from patreon
+    public class PatreonObjectAttributes
+    {
+        public string Email { get; set; }
+
+        [JsonPropertyName("full_name")]
+        public string FullName { get; set; }
+
+        public string Vanity { get; set; }
+
+        [JsonPropertyName("declined_since")]
+        public string DeclinedSince { get; set; }
+
+        [JsonPropertyName("amount_cents")]
+        public int? AmountCents { get; set; }
+
+        public string Currency { get; set; }
+
+        [JsonPropertyName("pledge_cap_cents")]
+        public int? PledgeCapCents { get; set; }
+    }
+
+    public class PatreonObjectRelationships
+    {
+        public PatreonRelationshipInfo Patron { get; set; }
+        public PatreonRelationshipInfo Reward { get; set; }
+
+        public PatreonRelationshipInfo Creator { get; set; }
+
+        public PatreonObjectDataList Rewards { get; set; }
+        public PatreonObjectDataList Goals { get; set; }
     }
 
     public class PatreonRelationshipInfo
@@ -286,5 +326,11 @@ namespace ThriveDevCenter.Server.Services
         public PatreonObjectData Data { get; set; }
 
         public Dictionary<string, string> Links { get; set; } = new();
+    }
+
+    public class PatreonObjectDataList
+    {
+        [Required]
+        public List<PatreonObjectData> Data { get; set; }
     }
 }

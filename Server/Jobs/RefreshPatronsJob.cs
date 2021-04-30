@@ -2,9 +2,11 @@ namespace ThriveDevCenter.Server.Jobs
 {
     using System;
     using System.Linq;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
+    using Microsoft.Extensions.Logging;
     using Models;
     using Services;
     using Utilities;
@@ -15,11 +17,14 @@ namespace ThriveDevCenter.Server.Jobs
     [DisableConcurrentExecution(1200)]
     public class RefreshPatronsJob : IJob
     {
+        private readonly ILogger<RefreshPatronsJob> logger;
         private readonly NotificationsEnabledDb database;
         private readonly IBackgroundJobClient jobClient;
 
-        public RefreshPatronsJob(NotificationsEnabledDb database, IBackgroundJobClient jobClient)
+        public RefreshPatronsJob(ILogger<RefreshPatronsJob> logger, NotificationsEnabledDb database,
+            IBackgroundJobClient jobClient)
         {
+            this.logger = logger;
             this.database = database;
             this.jobClient = jobClient;
         }
@@ -33,7 +38,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             patrons.ForEach(p => p.Marked = false);
 
-            foreach (var settings in database.PatreonSettings)
+            foreach (var settings in await database.PatreonSettings.ToListAsync(cancellationToken))
             {
                 if (settings.Active == false)
                     continue;
@@ -42,6 +47,12 @@ namespace ThriveDevCenter.Server.Jobs
 
                 foreach (var actualPatron in await api.GetPatrons(settings, cancellationToken))
                 {
+                    if (actualPatron.User.Attributes.FullName == null)
+                    {
+                        var stuff = JsonSerializer.Serialize(actualPatron.User);
+                        logger.LogInformation("Processing patron: {Stuff}", stuff);
+                    }
+
                     await PatreonGroupHandler.HandlePatreonPledgeObject(actualPatron.Pledge, actualPatron.User,
                         actualPatron.Reward.Id, database, jobClient);
 

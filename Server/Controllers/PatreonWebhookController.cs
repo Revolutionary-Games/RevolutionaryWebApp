@@ -85,7 +85,7 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var patronHookData = pledge.Relationships["patron"].Data;
+            var patronHookData = pledge.Relationships.Patron.Data;
 
             var userData = data.FindIncludedObject(patronHookData.Id);
 
@@ -98,7 +98,16 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var email = userData.Attributes["email"];
+            var email = userData.Attributes.Email;
+
+            if(string.IsNullOrEmpty(email))
+            {
+                throw new HttpResponseException()
+                {
+                    Value = new BasicJSONErrorResult("Bad data", "User object is missing email")
+                        .ToString()
+                };
+            }
 
             switch (type)
             {
@@ -112,7 +121,7 @@ namespace ThriveDevCenter.Server.Controllers
                         // This was what the old code did, no clue why it would be necessary to unnecessarily
                         // look up the reward object...
                         // rewardId = data.FindIncludedObject(pledge.Relationships["reward"].Data.Id).Id;
-                        rewardId = pledge.Relationships["reward"].Data.Id;
+                        rewardId = pledge.Relationships.Reward.Data.Id;
                     }
                     catch (Exception e)
                     {
