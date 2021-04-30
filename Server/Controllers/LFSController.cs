@@ -111,6 +111,17 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
+            if (request.Objects.Count < 1)
+            {
+                return new ObjectResult(new BasicJSONErrorResult("No processable objects",
+                        "No objects found in the request to process")
+                    .ToString())
+                {
+                    StatusCode = StatusCodes.Status422UnprocessableEntity,
+                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                };
+            }
+
             List<LFSResponse.LFSObject> objects;
 
             try
@@ -384,6 +395,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (existingObject == null)
             {
+                logger.LogWarning("Non-existing OID requested: {Oid}", obj.Oid);
+
                 return new LFSResponse.LFSObject(obj.Oid, obj.Size,
                     new LFSResponse.LFSObject.ErrorInfo(StatusCodes.Status404NotFound, "OID not found"));
             }
@@ -598,7 +611,7 @@ namespace ThriveDevCenter.Server.Controllers
         public string Transfer { get; set; } = "basic";
 
         [JsonPropertyName("objects")]
-        public List<LFSObject> Objects { get; set; } = new List<LFSObject>();
+        public List<LFSObject> Objects { get; set; }
 
         public class LFSObject
         {
