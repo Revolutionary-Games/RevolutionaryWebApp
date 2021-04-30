@@ -27,11 +27,12 @@ namespace ThriveDevCenter.Server.Controllers
     [Route("LoginController")]
     public class LoginController : Controller
     {
+        public const string SsoTypeDevForum = "devforum";
+        public const string SsoTypeCommunityForum = "communityforum";
+        public const string SsoTypePatreon = "patreon";
+
         private const string DiscourseSsoEndpoint = "/session/sso_provider";
         private const int SsoNonceLength = 32;
-        private const string SsoTypeDevForum = "devforum";
-        private const string SsoTypeCommunityForum = "communityforum";
-        private const string SsoTypePatreon = "patreon";
 
         private static readonly TimeSpan SsoTimeout = TimeSpan.FromMinutes(20);
 

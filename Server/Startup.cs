@@ -320,7 +320,8 @@ namespace ThriveDevCenter.Server
 
         private void SetupDefaultJobs(IConfigurationSection configurationSection)
         {
-            AddJobHelper<SessionCleanupJob>(configurationSection);
+            AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
+            AddJobHelper<CheckAllSSOUsersJob>(configurationSection["CheckAllSSOUsers"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
@@ -328,11 +329,9 @@ namespace ThriveDevCenter.Server
             BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
         }
 
-        private static void AddJobHelper<T>(IConfigurationSection configuration) where T : class, IJob
+        private static void AddJobHelper<T>(string schedule) where T : class, IJob
         {
-            var name = typeof(T).Name;
-
-            RecurringJob.AddOrUpdate<T>(x => x.Execute(CancellationToken.None), configuration["SessionCleanupJob"]);
+            RecurringJob.AddOrUpdate<T>(x => x.Execute(CancellationToken.None), schedule);
         }
     }
 }

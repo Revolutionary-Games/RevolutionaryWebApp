@@ -66,6 +66,9 @@ namespace ThriveDevCenter.Server.Services
         /// </summary>
         /// <param name="email">The email address</param>
         /// <param name="cancellationToken">Can cancel this request</param>
+        /// <param name="includeNonActive">
+        ///   If true even suspended users (ie. users that discourse doesn't consider "active") can be returned
+        /// </param>
         /// <returns>The user or null</returns>
         /// <remarks>
         ///   <para>
@@ -73,14 +76,21 @@ namespace ThriveDevCenter.Server.Services
         ///     as the group members list doesn't include emails
         ///   </para>
         /// </remarks>
-        public async Task<DiscourseUser> FindUserByEmail(string email, CancellationToken cancellationToken)
+        public async Task<DiscourseUser> FindUserByEmail(string email, CancellationToken cancellationToken,
+            bool includeNonActive = false)
         {
             ThrowIfNotConfigured();
 
             if (string.IsNullOrEmpty(email))
                 return null;
 
-            var url = QueryHelpers.AddQueryString(new Uri(apiBaseUrl, "admin/users/list/all.json").ToString(),
+            // All used to be the default search but it's probably better to just get the active users whenever needed?
+            var searchType = "active";
+
+            if (includeNonActive)
+                searchType = "all";
+
+            var url = QueryHelpers.AddQueryString(new Uri(apiBaseUrl, $"admin/users/list/{searchType}.json").ToString(),
                 new Dictionary<string, string>()
                 {
                     { "email", email },

@@ -39,6 +39,7 @@ namespace ThriveDevCenter.Server.Models
 
         public string HashedLfsToken { get; set; }
 
+        // TODO: remove the nullability here
         [AllowSortingBy]
         public bool? Suspended { get; set; } = false;
 
