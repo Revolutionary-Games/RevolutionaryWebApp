@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Jobs
 {
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
@@ -37,7 +38,8 @@ namespace ThriveDevCenter.Server.Jobs
                 return false;
             }
 
-            Settings = await Database.PatreonSettings.FirstOrDefaultAsync(cancellationToken);
+            Settings = await Database.PatreonSettings.AsQueryable().OrderBy(p => p.Id)
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (Settings == null)
             {
