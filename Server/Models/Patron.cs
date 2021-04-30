@@ -24,6 +24,8 @@
         [AllowSortingBy]
         public int PledgeAmountCents { get; set; }
 
+        // TODO: add pledge currency here
+
         [Required]
         public string RewardId { get; set; }
 
