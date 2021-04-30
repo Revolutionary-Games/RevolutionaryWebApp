@@ -322,6 +322,7 @@ namespace ThriveDevCenter.Server
         {
             AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
             AddJobHelper<CheckAllSSOUsersJob>(configurationSection["CheckAllSSOUsers"]);
+            AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

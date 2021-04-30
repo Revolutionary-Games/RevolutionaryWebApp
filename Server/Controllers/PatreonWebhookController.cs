@@ -53,7 +53,7 @@ namespace ThriveDevCenter.Server.Controllers
             var type = GetEventType();
 
             var settings = await database.PatreonSettings.AsQueryable()
-                .FirstOrDefaultAsync(s => s.WebhookId == webhookId);
+                .FirstOrDefaultAsync(s => s.WebhookId == webhookId && s.Active == true);
 
             var verifiedPayload = await CheckSignature(HttpContext.Request.BodyReader, settings);
             logger.LogTrace("Got patreon payload: {VerifiedPayload}", verifiedPayload);

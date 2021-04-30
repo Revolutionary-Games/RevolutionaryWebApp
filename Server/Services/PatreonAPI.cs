@@ -8,9 +8,14 @@ namespace ThriveDevCenter.Server.Services
     using System.Net.Http.Headers;
     using System.Net.Http.Json;
     using System.Text.Json.Serialization;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.WebUtilities;
+    using Models;
 
+    /// <summary>
+    ///   The V2 oauth patreon API, used when using oauth login, the creator API is used with a static creator token
+    /// </summary>
     public class PatreonAPI : IPatreonAPI
     {
         private readonly Lazy<HttpClient> client = new Lazy<HttpClient>();
@@ -110,6 +115,104 @@ namespace ThriveDevCenter.Server.Services
         Task<PatreonAPIObjectResponse> GetOwnDetails();
     }
 
+    public class PatreonCreatorAPI
+    {
+        private HttpClient client;
+
+        public PatreonCreatorAPI(string patreonToken)
+        {
+            client = new HttpClient()
+            {
+                DefaultRequestHeaders = { Authorization = new AuthenticationHeaderValue("Bearer", patreonToken) }
+            };
+        }
+
+        public PatreonCreatorAPI(PatreonSettings settings) : this(settings.CreatorToken)
+        {
+        }
+
+        /// <summary>
+        ///   Gets all patrons of the active campaign
+        /// </summary>
+        /// <param name="settings">Where to get the campaign from</param>
+        /// <param name="cancellationToken">Supports canceling this while waiting</param>
+        /// <returns>API response with all the patron objects</returns>
+        public async Task<List<PatronMemberInfo>> GetPatrons(PatreonSettings settings, CancellationToken cancellationToken)
+        {
+            // ReSharper disable once StringLiteralTypo
+            var url =
+                $"https://www.patreon.com/api/oauth2/api/campaigns/{settings.CampaignId}/pledges?include=patron.null," +
+                "reward&fields%5Bpledge%5D=status,currency,amount_cents,declined_since";
+
+            var result = new List<PatronMemberInfo>();
+
+            while (!string.IsNullOrEmpty(url))
+            {
+                var response = await client.GetFromJsonAsync<PatreonAPIListResponse>(url, cancellationToken);
+
+                if (response == null)
+                    throw new PatreonAPIDataException("failed to deserialize response from patreon API");
+
+                foreach (var data in response.Data)
+                {
+                    if (data.Type != "pledge")
+                        continue;
+
+                    var patronRelationship = data.Relationships["patron"];
+
+                    var userData =
+                        response.FindIncludedObject(patronRelationship.Data.Id, patronRelationship.Data.Type);
+
+                    if (userData == null)
+                        throw new PatreonAPIDataException("Failed to find pledge's related user object");
+
+                    if (!data.Relationships.TryGetValue("reward", out PatreonRelationshipInfo rewardRelationship))
+                        throw new PatreonAPIDataException("reward data is not included for user");
+
+                    var rewardData =
+                        response.FindIncludedObject(rewardRelationship.Data.Id, rewardRelationship.Data.Type);
+
+                    if (rewardData == null)
+                        throw new PatreonAPIDataException("Failed to find pledge's related reward object");
+
+                    result.Add(new PatronMemberInfo()
+                    {
+                        Pledge = data,
+                        User = userData,
+                        Reward = rewardData,
+                    });
+                }
+
+                // Pagination
+                if (response.Links != null && response.Links.TryGetValue("next", out string nextUrl))
+                {
+                    url = nextUrl;
+                }
+                else
+                {
+                    // No more pages time to break the loop
+                    url = null;
+                }
+            }
+
+            return result;
+        }
+
+        public class PatronMemberInfo
+        {
+            public PatreonObjectData Pledge { get; set; }
+            public PatreonObjectData User { get; set; }
+            public PatreonObjectData Reward { get; set; }
+        }
+    }
+
+    public class PatreonAPIDataException : Exception
+    {
+        public PatreonAPIDataException(string message) : base(message)
+        {
+        }
+    }
+
     public class PatreonAPIBearerToken
     {
         [Required]
@@ -129,24 +232,39 @@ namespace ThriveDevCenter.Server.Services
         public string TokenType { get; set; }
     }
 
-    public class PatreonAPIObjectResponse
+    public class PatreonAPIBaseResponse
     {
-        [Required]
-        public PatreonObjectData Data { get; set; }
-
         public List<PatreonObjectData> Included { get; set; } = new();
         public Dictionary<string, string> Links { get; set; } = new();
+        public Dictionary<string, string> Meta { get; set; } = new();
 
-        public PatreonObjectData FindIncludedObject(string objectId)
+        public PatreonObjectData FindIncludedObject(string objectId, string neededType = null)
         {
             foreach (var item in Included)
             {
                 if (item.Id == objectId)
+                {
+                    if(neededType != null && item.Type != neededType)
+                        continue;
+
                     return item;
+                }
             }
 
             return null;
         }
+    }
+
+    public class PatreonAPIObjectResponse : PatreonAPIBaseResponse
+    {
+        [Required]
+        public PatreonObjectData Data { get; set; }
+    }
+
+    public class PatreonAPIListResponse : PatreonAPIBaseResponse
+    {
+        [Required]
+        public List<PatreonObjectData> Data { get; set; }
     }
 
     public class PatreonObjectData
