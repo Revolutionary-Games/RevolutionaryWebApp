@@ -128,7 +128,7 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<DehydratedObject>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("dehydrated_objects_hilo");
 
                 entity.HasOne(d => d.StorageItem)
                     .WithMany(p => p.DehydratedObjects).OnDelete(DeleteBehavior.Restrict);
@@ -167,7 +167,7 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<LfsObject>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("lfs_objects_hilo");
 
                 entity.HasOne(d => d.LfsProject)
                     .WithMany(p => p.LfsObjects).OnDelete(DeleteBehavior.Cascade);
@@ -184,7 +184,7 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<ProjectGitFile>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("project_git_files_hilo");
 
                 entity.HasOne(d => d.LfsProject)
                     .WithMany(p => p.ProjectGitFiles).OnDelete(DeleteBehavior.Cascade);
@@ -192,14 +192,14 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<StorageFile>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("storage_files_hilo");
 
                 entity.Property(e => e.AllowParentless).HasDefaultValue(false);
             });
 
             modelBuilder.Entity<StorageItem>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("storage_items_hilo");
 
                 entity.HasIndex(e => e.Name, "index_storage_items_on_name")
                     .IsUnique()
@@ -222,7 +222,7 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<StorageItemVersion>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("storage_item_versions_hilo");
 
                 entity.Property(e => e.Keep).HasDefaultValue(false);
 

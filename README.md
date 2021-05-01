@@ -143,6 +143,15 @@ Provide the password used in the previous step if prompted.
 And now follow the instructions in the "Getting an admin account"
 section.
 
+## Maintenance
+
+### Out of sync sequences
+
+HiLo sequences can be synced with actual data with a provided script:
+```sh
+psql -d thrivedevcenter < fix_hilo_sequences.sql
+```
+
 --
 
 OLD CONTENT:
