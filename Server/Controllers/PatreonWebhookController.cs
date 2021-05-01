@@ -25,7 +25,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Utilities;
 
     [ApiController]
-    [Route("api/v1/patreon")]
+    [Route("api/v1/webhook/patreon")]
     public class PatreonWebhookController : Controller
     {
         private readonly ILogger<PatreonWebhookController> logger;
@@ -48,7 +48,8 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Get([Required] [MaxLength(200)] [Bind(Prefix = "webhook_id")] string webhookId)
+        public async Task<IActionResult> PostWebhook(
+            [Required] [MaxLength(200)] [Bind(Prefix = "webhook_id")] string webhookId)
         {
             var type = GetEventType();
 
@@ -62,7 +63,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                data = JsonSerializer.Deserialize<PatreonAPIObjectResponse>(verifiedPayload);
+                data = JsonSerializer.Deserialize<PatreonAPIObjectResponse>(verifiedPayload,
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web));
                 if (data == null)
                     throw new Exception("deserialized data is null");
             }
@@ -100,7 +102,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var email = userData.Attributes.Email;
 
-            if(string.IsNullOrEmpty(email))
+            if (string.IsNullOrEmpty(email))
             {
                 throw new HttpResponseException()
                 {
@@ -128,7 +130,8 @@ namespace ThriveDevCenter.Server.Controllers
                         logger.LogWarning("Couldn't find reward ID in patreon webhook: {@E}", e);
                     }
 
-                    await PatreonGroupHandler.HandlePatreonPledgeObject(pledge, userData, rewardId, database, jobClient);
+                    await PatreonGroupHandler.HandlePatreonPledgeObject(pledge, userData, rewardId, database,
+                        jobClient);
                     break;
                 }
                 case EventType.Delete:
@@ -217,13 +220,19 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var rawPayload = (await payload.ReadAsync()).Buffer.ToArray();
+            var readBody = await Request.BodyReader.ReadAsync();
+
+            // This line is needed to suppress "System.InvalidOperationException: Reading is already in progress."
+            Request.BodyReader.AdvanceTo(readBody.Buffer.Start, readBody.Buffer.End);
+
+            var rawPayload = readBody.Buffer.ToArray();
 
             var neededSignature = Convert.ToHexString(new HMACMD5(Encoding.UTF8.GetBytes(settings.WebhookSecret))
                 .ComputeHash(rawPayload)).ToLowerInvariant();
 
             if (neededSignature != actualSignature)
             {
+                logger.LogWarning("Patreon webhook signature didn't match expected value");
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status403Forbidden,
