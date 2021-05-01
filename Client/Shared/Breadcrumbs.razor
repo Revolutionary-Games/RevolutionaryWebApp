@@ -1,0 +1,155 @@
+@using System.Text
+@inject NavigationManager navigationManager
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        @foreach (var item in SplitPath())
+        {
+            <li class="breadcrumb-item @ActiveClassForItem(item)">
+                <NavLink href="@PathForItem(item)" Match="NavLinkMatch.All">@item.ItemName</NavLink>
+            </li>
+        }
+    </ol>
+</nav>
+
+@code {
+    /// <summary>
+    ///   Used to construct full NavLink paths. Needs to end with a slash
+    /// </summary>
+    [Parameter]
+    public string BasePath { get; set; }
+
+    /// <summary>
+    ///   The currently shown path
+    /// </summary>
+    [Parameter]
+    public string CurrentPath { get; set; }
+
+    /// <summary>
+    ///   The name of the root item in the paths
+    /// </summary>
+    [Parameter]
+    public string RootPathName { get; set; } = "Home";
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (BasePath == null || BasePath.Last() != '/')
+            throw new ArgumentException("BasePath needs to end with a slash");
+    }
+
+    private class PathItem
+    {
+        public string ItemName;
+        public string PathSoFar;
+        public bool Active = false;
+        public bool Root = false;
+    }
+
+    private List<PathItem> SplitPath()
+    {
+        var pathToCheck = CurrentPath ?? string.Empty;
+
+        var parts = pathToCheck.Split('/');
+
+        var result = new List<PathItem>();
+
+        if (parts.Length == 0)
+        {
+            // Only root path here
+            result.Add(new PathItem()
+            {
+                ItemName = RootPathName,
+                PathSoFar = "",
+                Active = true,
+                Root = true
+            });
+        }
+        else
+        {
+            // Add root path first
+            result.Add(new PathItem()
+            {
+                ItemName = RootPathName,
+                PathSoFar = "",
+                Root = true
+            });
+
+            string pathSoFar = "";
+
+            foreach (var item in parts)
+            {
+                // Skip empty path parts
+                if(string.IsNullOrWhiteSpace(item))
+                    continue;
+
+                result.Add(new PathItem()
+                {
+                    ItemName = item,
+                    PathSoFar = pathSoFar
+                });
+
+                if (pathSoFar.Length > 0)
+                    pathSoFar += "/";
+
+                pathSoFar += item;
+            }
+
+            // Last item is active
+            var last = result.Last();
+            last.Active = true;
+        }
+
+        return result;
+    }
+
+    private string PathForItem(PathItem item)
+    {
+        // Last item needs query parameters appended to work correctly
+        string query = null;
+
+        if (item.Active)
+        {
+            var uri = navigationManager.Uri;
+            var questionMark = uri.IndexOf('?');
+            if (questionMark >= 0)
+            {
+                query = uri.Substring(questionMark);
+            }
+        }
+
+        var builder = new StringBuilder();
+        builder.Append(BasePath);
+
+        if (item.Root)
+        {
+            // Special case for the root path, just the base path
+        } else if (item.PathSoFar.Length < 1)
+        {
+            builder.Append(item.ItemName);
+        }
+        else
+        {
+            builder.Append(item.PathSoFar);
+            builder.Append('/');
+            builder.Append(item.ItemName);
+        }
+
+        if (query != null)
+        {
+            builder.Append(query);
+        }
+
+        return builder.ToString();
+    }
+
+    private string ActiveClassForItem(PathItem item)
+    {
+        // Return "active" for the last part of a path
+        if (item.Active)
+            return "active";
+
+        return "";
+    }
+}

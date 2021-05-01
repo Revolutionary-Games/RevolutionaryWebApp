@@ -1,0 +1,197 @@
+@inject HttpClient http
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.SoftDeletedResource>
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+    @if(!visible || ShowHideButtonWhenVisible){
+        <Button class="@ButtonClass" ButtonStyle="secondary" OnPressed="@TogglePressed">
+            @(visible ? "Hide Deleted" : "View Deleted")
+        </Button>
+    }
+    @if (visible)
+    {
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <div class="alert alert-danger" role="alert">
+                @Error
+            </div>
+        }
+        else
+        {
+            <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage"
+                            PageCount="@Data?.PageCount"
+                            OnPageChanged="async (e) => await ChangePage(e)"
+                            OnSortChanged="async (column) => await ChangeSort(column)"
+                            GetSortClass="@SortClass"
+                            ShowContentSpinner="@VisibleFetchInProgress"
+                            Columns="@columns"
+                            ShowNoContent="@NoItemsFound">
+                @if (Data != null)
+                {
+                    @foreach (var item in Data.Results)
+                    {
+                        if (IsRestored(item.Id))
+                            continue;
+
+                        <tr @key="item.Id">
+                            <th scope="row">@item.Id</th>
+                            <td>@item.Name</td>
+                            <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                            <td>
+                                <Button ButtonStyle="success btn-sm" Enabled="@(!IsProcessing(item.Id))"
+                                        Spinner="@IsProcessing(item.Id)"
+                                        OnPressed="@(async () => await RestorePressed(item.Id))">
+                                    Restore
+                                </Button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </PaginatedTable>
+        }
+    }
+</AccessLimited>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("ID", true),
+        new TableColumn("Name", true),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Actions", false)
+    };
+
+    private readonly Dictionary<long, ResourceStatus> statuses = new Dictionary<long, ResourceStatus>();
+
+    private bool visible;
+
+    [Parameter]
+    public string FetchListEndpoint { get; set; }
+
+    [Parameter]
+    public string RestoreEndpoint { get; set; }
+
+    [Parameter]
+    public bool AutoVisible { get; set; }
+
+    [Parameter]
+    public bool ShowHideButtonWhenVisible { get; set; } = true;
+
+    [Parameter]
+    public string ButtonClass { get; set; }
+
+    public DeletedResourceViewer() : base(new SortHelper("UpdatedAt", SortDirection.Descending))
+    {
+        AutoFetchDataOnInit = false;
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        if (AutoVisible)
+            visible = true;
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (visible && Data == null)
+        {
+            // This should detect initially visible configurations and start the fetch
+            await FetchData();
+        }
+    }
+
+    protected override Task<PagedResult<SoftDeletedResource>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<SoftDeletedResource>>(
+            QueryHelpers.AddQueryString(FetchListEndpoint, requestParams));
+    }
+
+    private async void TogglePressed()
+    {
+        visible = !visible;
+
+        // Refresh data when becoming visible (as currently this has no realtime updates)
+        if (visible)
+        {
+            await FetchData();
+        }
+    }
+
+    private async Task RestorePressed(long resourceId)
+    {
+        if (!statuses.ContainsKey(resourceId))
+            statuses[resourceId] = new ResourceStatus();
+
+        statuses[resourceId].Processing = true;
+        Error = null;
+        await InvokeAsync(StateHasChanged);
+
+        var restoreUrl = string.Format(RestoreEndpoint, resourceId);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync(restoreUrl, new Dictionary<string, long>()
+            {
+                { "Id", resourceId }
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            Error = $"Network request failed: {e.Message}";
+            statuses[resourceId].Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        statuses[resourceId].Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            Error = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statuses[resourceId].Restored = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool IsProcessing(long resourceId)
+    {
+        if (!statuses.ContainsKey(resourceId))
+            return false;
+
+        return statuses[resourceId].Processing;
+    }
+
+    private bool IsRestored(long resourceId)
+    {
+        if (!statuses.ContainsKey(resourceId))
+            return false;
+
+        return statuses[resourceId].Restored;
+    }
+
+    private void OnSuccessfulRestore(long resourceId)
+    {
+        statuses[resourceId].Processing = false;
+        statuses[resourceId].Restored = true;
+        StateHasChanged();
+    }
+
+    private class ResourceStatus
+    {
+        public bool Processing;
+        public bool Restored;
+    }
+}

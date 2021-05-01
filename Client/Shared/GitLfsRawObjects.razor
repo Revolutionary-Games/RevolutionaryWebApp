@@ -1,0 +1,106 @@
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Client.Services
+@using System.Threading
+@using ThriveDevCenter.Shared
+@inject NotificationHandler NotificationHandler
+@inject HttpClient Http
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ThriveDevCenter.Shared.Notifications.LfsObjectListUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<LfsObjectDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+        <h3>Raw Objects</h3>
+
+        @if (showing)
+        {
+            <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                            OnPageChanged="async (e) => await ChangePage(e)"
+                            OnSortChanged="async (column) => await ChangeSort(column)"
+                            GetSortClass="@SortClass"
+                            ShowContentSpinner="@VisibleFetchInProgress"
+                            Columns="@columns"
+                            ShowNoContent="@NoItemsFound"
+                            ResponsiveType="table-responsive">
+                @if (Data != null)
+                {
+                    @foreach (var item in Data.Results)
+                    {
+                        <tr @key="item.Id">
+                            <td>@item.LfsOid</td>
+                            <td>@item.Size.BytesToMiB()</td>
+                            <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        </tr>
+                    }
+                }
+            </PaginatedTable>
+        }
+        else
+        {
+            <Button ButtonStyle="secondary" OnPressed="@Show">View Raw Git LFS Objects</Button>
+        }
+    </AccessLimited>
+}
+
+@code {
+    private bool showing;
+
+    [Parameter]
+    public long Id { get; set; }
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("OID", false),
+        new TableColumn("Size", false),
+        new TableColumn("Created At", false),
+    };
+
+    public GitLfsRawObjects() : base(new SortHelper("Id", SortDirection.Descending))
+    {
+        DefaultPageSize = 100;
+        AutoFetchDataOnInit = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(LfsObjectListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // TODO: notifications group for the lfs objects?
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<LfsObjectDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<LfsObjectDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/LFSProject/{Id}/raw", requestParams));
+    }
+
+    private Task Show()
+    {
+        showing = true;
+        return FetchData();
+    }
+
+}

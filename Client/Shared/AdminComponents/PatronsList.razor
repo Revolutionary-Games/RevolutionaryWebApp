@@ -1,0 +1,96 @@
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper UrlHelper
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<PatronListUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.PatronDTO>
+<h3>Patrons</h3>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="true">
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound"
+                        ResponsiveType="table-responsive-lg">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        <th scope="row" class="text-nowrap">@item.Email</th>
+                        <td>@item.Suspended</td>
+                        <td>@item.Username</td>
+                        <td>@item.PledgeAmountCents</td>
+                        <td>@item.EmailAlias</td>
+                        <td>@item.HasForumAccount</td>
+                        <td>-</td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    </AccessLimited>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Email", true),
+        new TableColumn("Suspended", true),
+        new TableColumn("Username", true),
+        new TableColumn("Pledge Cents", true, "PledgeAmountCents"),
+        new TableColumn("Alias", true, "EmailAlias"),
+        new TableColumn("Forum Account?", false),
+        new TableColumn("Patreon Login?", false)
+    };
+
+    public PatronsList() : base(new SortHelper("Id", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(PatronListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // TODO: this notification group currently isn't called at all
+        groups.Add(NotificationGroups.PatronListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<PatronDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<PatronDTO>>(
+            QueryHelpers.AddQueryString("api/v1/Patrons", requestParams));
+    }
+}

@@ -1,0 +1,19 @@
+@page "/admin/patreon"
+@using ThriveDevCenter.Shared.Models
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+
+    <h3>Patreon Settings</h3>
+
+    <p>TODO: reimplement settings</p>
+
+    <hr />
+
+    <PatronsList />
+
+</AccessLimited>
+
+
+@code {
+
+}

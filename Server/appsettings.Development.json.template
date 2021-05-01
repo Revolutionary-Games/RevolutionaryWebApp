@@ -1,0 +1,25 @@
+{
+  "BaseUrl": "http://localhost:5000/",
+  "StaticSiteHomePageNotice": "This site is running in Development mode!",
+  "Registration": {
+    "Enabled": true,
+    "RegistrationCode": "Thrive1234"
+  },
+  "CSRF": {
+    "Secret": "PUTARANDOMSTRINGHERE"
+  },
+  "ConnectionStrings": {
+    "WebApiConnection": "User ID=thrivedevcenter;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information",
+      "Microsoft.AspNetCore.SignalR": "Information",
+      "Microsoft.AspNetCore.Http.Connections": "Information",
+      "Microsoft.EntityFrameworkCore.Database.Command": "Information"
+    }
+  },
+  "AllowedHosts": "*"
+}

@@ -1,0 +1,138 @@
+<div>
+    <div style="position: relative">
+        <table class="table sortable table-striped table-hover @ResponsiveType @ExtraCSS">
+            <thead class="thead-light">
+            <tr>
+                @foreach (var column in Columns)
+                {
+                    <th scope="col" class="@(column.IsSortable ? "sort" : "")"
+                        @onclick="@(async () => {if (column.IsSortable)
+                                      await OnSortChanged.InvokeAsync(column.SortName);})">
+                        @column.Name
+
+                        @if (column.IsSortable)
+                        {
+                            <span class="@GetSortClass.Invoke(column.SortName)"></span>
+                        }
+                    </th>
+                }
+            </tr>
+            </thead>
+            <tbody>
+            @ChildContent
+            </tbody>
+        </table>
+        <!-- Firefox gives a warning about this for no reason if placed within the table
+        https://bugzilla.mozilla.org/show_bug.cgi?id=1081683 so instead this is placed over the entire table -->
+        @if (ContentSpinner)
+        {
+            <div class="overlay">
+                <div class="d-flex justify-content-center align-items-center" style="height: 100%;">
+                    <div class="spinner-border text-light" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (ShowNoContent)
+    {
+        <div>No items found</div>
+    }
+
+    @if (ShowPaginator)
+    {
+        <div class="paginator-container">
+            <BlazorPager CurrentPage="@(CurrentPage ?? 0)"
+                         PageCount="@(PageCount ?? 1)"
+                         OnPageChanged="async e => { await OnPageChanged.InvokeAsync(e); }"
+                         ShowFirstLast="true"
+                         ShowPageNumbers="true"
+                         VisiblePages="@PaginatorVisiblePages"
+                         FirstText="&laquo;"
+                         LastText="&raquo;"
+                         NextText="&rsaquo;"
+                         PreviousText="&lsaquo;" />
+        </div>
+    }
+    else
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    }
+</div>
+
+<MediaQuery Media="@Breakpoints.SmallDown" @bind-Matches="isSmall" />
+<MediaQuery Media="@Breakpoints.LargeUp" @bind-Matches="isLarge" />
+
+@code {
+
+    private bool isSmall;
+    private bool isLarge;
+
+    public delegate string CalculateSortClass(string column);
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string ResponsiveType { get; set; } = "table-responsive-sm";
+
+    [Parameter]
+    public bool UseNonFixedColumns { get; set; }
+
+    /// <summary>
+    ///   When true shows the paginator and CurrentPage etc. should be fine. When false shows a spinner under the table
+    /// </summary>
+    [Parameter]
+    public bool ShowPaginator { get; set; }
+
+    /// <summary>
+    ///   When true shows a spinner overlay on the table body (and ShowPaginator is true)
+    /// </summary>
+    [Parameter]
+    public bool ShowContentSpinner { get; set; }
+
+    [Parameter]
+    public bool ShowNoContent { get; set; }
+
+    [Parameter]
+    public int? CurrentPage { get; set; }
+
+    [Parameter]
+    public int? PageCount { get; set; }
+
+    [Parameter]
+    public List<TableColumn> Columns { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnPageChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnSortChanged { get; set; }
+
+    [Parameter]
+    public CalculateSortClass GetSortClass { get; set; }
+
+    private int PaginatorVisiblePages
+    {
+        get
+        {
+            if (isSmall)
+                return 3;
+
+            if (isLarge)
+                return 10;
+
+            return 5;
+        }
+    }
+
+    private string ExtraCSS => UseNonFixedColumns ? "non-fixed" : string.Empty;
+
+    private bool ContentSpinner => ShowContentSpinner && ShowPaginator;
+}

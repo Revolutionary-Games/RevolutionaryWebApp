@@ -1,0 +1,37 @@
+@using ThriveDevCenter.Shared
+
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert @Type.AlertClass()" role="alert">
+        @Message
+
+        @if (HasCallback)
+        {
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"
+                    @onclick="DismissNotification" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Message { get; set; }
+
+    [Parameter]
+    public SiteNoticeType Type { get; set; } = SiteNoticeType.Danger;
+
+    /// <summary>
+    ///   Adds support for closing this. The button is automatically added if this is not null
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClosed { get; set; }
+
+    private bool HasCallback => OnClosed.HasDelegate;
+
+    private async void DismissNotification()
+    {
+        await OnClosed.InvokeAsync();
+    }
+}

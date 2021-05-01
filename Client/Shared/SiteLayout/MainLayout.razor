@@ -1,0 +1,27 @@
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+
+<div class="page">
+    <MediaQueryList>
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+
+        <div class="main">
+            <TopNavBar />
+
+            @if (NavigationManager.RelativeUrl().StartsWith("admin"))
+            {
+                <AdminNavBar />
+            }
+
+            <AnotherTabSigninDetector />
+            <CSRFExpiryAlerter />
+            <SiteNotifications />
+
+            <div class="content px-4">
+                @Body
+            </div>
+        </div>
+    </MediaQueryList>
+</div>

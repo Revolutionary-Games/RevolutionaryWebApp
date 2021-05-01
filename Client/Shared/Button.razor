@@ -1,0 +1,51 @@
+<button id="@id" class="btn btn-@ButtonStyle @(@class)" aria-disabled="@Disabled" disabled="@Disabled"
+        type="@type" @onclick="PressDetected" @onclick:preventDefault="@HasCallback">
+    @if (Spinner)
+    {
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+    }
+    @ChildContent
+</button>
+
+@code {
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string ButtonStyle { get; set; } = "primary";
+
+    [Parameter]
+    public bool Enabled { get; set; } = true;
+
+    [Parameter]
+    public bool Spinner { get; set; }
+
+    // Forwarding normal HTML stuff
+
+    [Parameter]
+    // ReSharper disable InconsistentNaming
+    public string @class { get; set; } = "";
+
+    [Parameter]
+    public string type { get; set; } = "button";
+
+    [Parameter]
+    public string id { get; set; }
+
+    // ReSharper restore InconsistentNaming
+
+    [Parameter]
+    public EventCallback OnPressed { get; set; }
+
+    public bool Disabled => !Enabled;
+
+    private bool HasCallback => OnPressed.HasDelegate;
+
+    private async void PressDetected()
+    {
+        if (Enabled)
+            await OnPressed.InvokeAsync();
+    }
+
+}

@@ -1,0 +1,62 @@
+﻿@using ThriveDevCenter.Shared.Models
+<div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">ThriveDevCenter</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <ul class="nav flex-column">
+        <li class="nav-item px-3">
+            <NavLink id="leftHomeButton" class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span> Home
+            </NavLink>
+        </li>
+        <li class="nav-item px-3">
+            <NavLink id="leftDevBuildButton" class="nav-link" href="builds">
+                <span class="oi oi-cloud-download" aria-hidden="true"></span> DevBuilds
+            </NavLink>
+        </li>
+        <li class="nav-item px-3">
+            <NavLink id="leftFilesButton" class="nav-link" href="files">
+                <span class="oi oi-file" aria-hidden="true"></span> Files
+            </NavLink>
+        </li>
+        <li class="nav-item px-3">
+            <NavLink id="leftLFSButton" class="nav-link" href="lfs">
+                <span class="oi oi-briefcase" aria-hidden="true"></span> Git LFS
+            </NavLink>
+        </li>
+        <li class="nav-item px-3 backup-left-item">
+            <NavLink class="nav-link" href="about">
+                <span class="oi oi-info" aria-hidden="true"></span> About
+            </NavLink>
+        </li>
+        <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+            <hr/>
+            <li class="nav-item px-3">
+                <NavLink id="leftUsersButton" class="nav-link" href="users">
+                    <span class="oi oi-spreadsheet" aria-hidden="true"></span> Users
+                </NavLink>
+            </li>
+            <li class="nav-item px-3">
+                <NavLink id="leftAdminButton" class="nav-link" href="admin">
+                    <span class="oi oi-shield" aria-hidden="true"></span> Admin
+                </NavLink>
+            </li>
+        </AccessLimited>
+    </ul>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+}

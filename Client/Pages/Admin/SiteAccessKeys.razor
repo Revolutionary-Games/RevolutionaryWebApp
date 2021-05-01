@@ -1,0 +1,131 @@
+@page "/admin/accessKeys"
+@inject HttpClient http
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+
+    <h3>Access Keys</h3>
+
+    <AccessKeyList />
+
+    <Button class="mb-3" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+        New
+    </Button>
+
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" OnClosed="@DismissCreateMessage" />
+    }
+    else
+    {
+        <form>
+            <div class="form-row">
+                <div class="form-group col-md-8">
+                    <label for="newAccessKeyDescription">New key description</label>
+                    <input type="text" class="form-control" id="newAccessKeyDescription" @bind="newDescription"
+                           @bind:event="oninput"
+                           placeholder="What this key is used for?">
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="newAccessKeyScopeSelect">Scope:</label>
+                    <select class="custom-select" id="newAccessKeyScopeSelect" @bind="newKeyType">
+                        @foreach (var name in Enum.GetNames<AccessKeyType>())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" OnClosed="@DismissCreateMessage" />
+            <Button Enabled="@CanCreateNew" type="submit" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                Create
+            </Button>
+        </form>
+    }
+
+</AccessLimited>
+
+
+@code {
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newDescription;
+    private AccessKeyType newKeyType;
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newDescription);
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newDescription = null;
+            newKeyType = AccessKeyType.DevBuilds;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/AccessKey", new AccessKeyDTO()
+            {
+                Description = newDescription,
+                KeyType = newKeyType
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = $"New key created. Copy the code now. You won't see it again! {content}";
+            createMessageType = SiteNoticeType.Info;
+
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void DismissCreateMessage()
+    {
+        createMessage = null;
+        StateHasChanged();
+    }
+
+}

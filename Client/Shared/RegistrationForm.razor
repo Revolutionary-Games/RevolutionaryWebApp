@@ -1,0 +1,133 @@
+@using ThriveDevCenter.Shared
+@using System.Net
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Forms
+@inject HttpClient Http
+@inject ICSRFTokenReader CSRF
+
+@if (registrationEnabled)
+{
+    <hr />
+    <h3>Register</h3>
+
+    <form class="login-form">
+        <div class="form-group">
+            <input type="email" class="form-control"
+                   aria-describedby="emailHelp" placeholder="email" @bind="email" @bind:event="oninput">
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" placeholder="username" @bind="name" @bind:event="oninput">
+        </div>
+        <div class="form-group">
+            <input type="password" class="form-control" placeholder="password" @bind="password" @bind:event="oninput">
+            <input type="password" class="form-control" placeholder="password (again)" @bind="passwordVerification"
+                   @bind:event="oninput">
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" placeholder="registration code" @bind="code" @bind:event="oninput">
+        </div>
+        @if (ErrorMessage != null)
+        {
+            <p>@ErrorMessage</p>
+        }
+        @if (statusMessage != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @statusMessage
+            </div>
+        }
+        <Button class="my-1" Enabled="CanRegister" OnPressed="Submit" Spinner="@processing">
+            Register
+        </Button>
+    </form>
+}
+else
+{
+    if (statusMessage != null)
+    {
+        <div class="alert alert-info" role="alert">
+            @statusMessage
+        </div>
+    }
+}
+
+@code {
+    private bool registrationEnabled;
+    private bool processing;
+    private string statusMessage;
+
+    private string email;
+    private string name;
+    private string password;
+    private string passwordVerification;
+    private string code;
+
+    private bool CanRegister => !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(name) &&
+        !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(code) && password == passwordVerification;
+
+    private string ErrorMessage
+    {
+        get
+        {
+            if (CanRegister)
+                return null;
+
+            if (!string.IsNullOrEmpty(password) && password != passwordVerification)
+                return "Password verification doesn't match entered password";
+
+            return null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        registrationEnabled = await Http.GetFromJsonAsync<bool>("api/v1/Registration");
+    }
+
+    private async void Submit()
+    {
+        processing = true;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/Registration", new RegistrationFormData()
+            {
+                Email = email,
+                Name = name,
+                Password = password,
+                RegistrationCode = code,
+                CSRF = CSRF.Token
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (result.StatusCode != HttpStatusCode.Created)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Failed to create account. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            // Success
+            statusMessage = "Account created. You can now login using the local login option.";
+            registrationEnabled = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

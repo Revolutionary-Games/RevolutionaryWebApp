@@ -1,0 +1,133 @@
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<AccessKeyListUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.AccessKeyDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="true">
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    if (resourceStatus.IsDeleted(item.Id))
+                        continue;
+
+                    <tr @key="item.Id">
+                        <th scope="row">@item.Id</th>
+                        <td>@item.Description</td>
+                        <td>
+                            @(item.LastUsed == null ? "never" : item.LastUsed.Value.ToLocalTime().ToString("G"))
+                        </td>
+                        <td>
+                            @(item.LastUsedFrom == null ? "" : item.LastUsedFrom.ToString())
+                        </td>
+                        <td>@item.KeyType</td>
+                        <td>
+                            <AdminResourceDeleteButtons Deleted="@false" Name="@item.Description" Id="@item.Id"
+                                                        ButtonClass="btn-sm" UsesSoftDelete="false"
+                                                        DeleteURLBase="api/v1/AccessKey"
+                                                        DeletePromptTitle="Delete this access key?"
+                                                        OnDeleted="@(() => resourceStatus.SetDeletedStatus(item.Id))"
+                                                        CustomErrorDisplay="@SetStatusMessage" />
+                        </td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    </AccessLimited>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Description", true),
+        new TableColumn("Last Accessed", true, "LastUsed"),
+        new TableColumn("Last Used From", true, "LastUsedFrom"),
+        new TableColumn("Scope", true, "KeyType"),
+        new TableColumn("Actions", false)
+    };
+
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
+
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    public AccessKeyList() : base(new SortHelper("Id", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(AccessKeyListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.AccessKeyListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<AccessKeyDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<AccessKeyDTO>>(
+            QueryHelpers.AddQueryString("api/v1/AccessKey", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private void SetStatusMessage(string message, SiteNoticeType noticeType)
+    {
+        statusMessage = message;
+        statusMessageType = noticeType;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,14 @@
+@inject NavigationManager Navigation
+
+@code {
+
+    [Parameter]
+    public bool PermissionsProblem { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo(Navigation.GetLinkToLogin(PermissionsProblem ?
+            NavigationManagerExtensions.PermissionProblemErrorMessage :
+            NavigationManagerExtensions.LoginRequiredErrorMessage));
+    }
+}

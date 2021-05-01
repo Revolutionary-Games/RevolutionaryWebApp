@@ -1,0 +1,113 @@
+@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+a, .btn-link {
+    color: #0366d6;
+}
+
+a.active {
+    color: #6c757d;
+}
+
+a.active:hover {
+    color: #6c757d;
+    cursor: default;
+    text-decoration: none;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.content {
+    padding-top: 1.1rem;
+    padding-bottom: 0.5rem;
+}
+
+.full-width {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+/* Table sort */
+th.sort {
+    cursor: pointer;
+}
+
+/* Needed to make the sortable tables behave better in terms of the heading row */
+/* though with responsive this in turn doesn't look good, so this is overrideable with the class below */
+table.sortable {
+    table-layout: fixed;
+    word-wrap: break-word;
+}
+
+table.non-fixed {
+    table-layout: auto !important;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 20px;
+    z-index: 5;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.login-form > .form-group {
+    max-width: 325px;
+}
+
+.paginator-container {
+    max-width: 100%;
+    overflow-x: auto;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.paginator-container > nav {
+    width: 100%;
+}
+
+.pagination {
+    width: 100%;
+}

@@ -1,0 +1,100 @@
+@page "/admin/serverLog"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper UrlHelper
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LogEntriesUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LogEntryDTO>
+
+<h3>Server Logs</h3>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <td>@item.Message</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.TargetUserId</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Message", false),
+        new TableColumn("Time", true, "CreatedAt"),
+        new TableColumn("Target User", true, "TargetUserId")
+    };
+
+    public ServerLogs() : base(new SortHelper("CreatedAt", SortDirection.Descending))
+    {
+        DefaultPageSize = 100;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(LogEntriesUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // TODO: group for this
+        // groups.Add(NotificationGroups.LFSListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<LogEntryDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<LogEntryDTO>>(
+            QueryHelpers.AddQueryString("api/v1/Logs/logs", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+}

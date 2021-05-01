@@ -1,0 +1,49 @@
+@page "/users/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inherits SingleResourcePage<UserInfo, UserUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Client.Services
+
+<h3>User: @Id</h3>
+
+<LoggedInContent>
+    <NotLoggedIn>
+        <RedirectToLogin />
+    </NotLoggedIn>
+    <LoggedIn>
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                <UserInfoPageContent User="@Data" ShowSelfIdentification="@true" />
+            }
+        </SingleResourceDisplayer>
+    </LoggedIn>
+</LoggedInContent>
+
+@code {
+    protected override Task<UserInfo> StartQuery()
+    {
+        return http.GetFromJsonAsync<UserInfo>($"api/v1/UserManagement/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        if(currentAccessLevel == UserAccessLevel.Admin)
+            groups.Add(NotificationGroups.UserUpdatedPrefixAdminInfo + Id);
+
+        groups.Add(NotificationGroups.UserUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
+}

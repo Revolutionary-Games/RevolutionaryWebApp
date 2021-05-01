@@ -1,0 +1,46 @@
+<BootstrapModal OnCancel="@Cancel">
+    <div class="modal-body">
+        <p>Are you sure you want to delete "@Name"?</p>
+
+        @if (SoftDelete)
+        {
+            <p>
+                You can still undo this action after deletion. <br />
+                This item will be permamently deleted after a retention period.
+            </p>
+        }
+        else
+        {
+            <p>
+                This resource will be <strong>immediately</strong> deleted and <strong>cannot</strong> be restored!
+            </p>
+        }
+    </div>
+    <div class="modal-footer">
+        <Button class="mr-1" ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+        <Button class="mr-1" ButtonStyle="danger" OnPressed="@Confirm">Delete</Button>
+    </div>
+</BootstrapModal>
+
+@code {
+
+    [CascadingParameter]
+    BlazoredModalInstance ModalInstance { get; set; }
+
+    [Parameter]
+    public string Name { get; set; }
+
+    [Parameter]
+    public bool SoftDelete { get; set; }
+
+    private void Confirm()
+    {
+        ModalInstance.CloseAsync(ModalResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        ModalInstance.CloseAsync(ModalResult.Cancel());
+    }
+
+}

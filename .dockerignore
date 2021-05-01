@@ -1,0 +1,10 @@
+**/bin
+**/obj
+tmp
+*.sql
+*.txt
+.git
+.idea
+.circleci
+Dockerfile
+.dockerignore

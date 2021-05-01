@@ -1,0 +1,268 @@
+@{
+    #pragma warning disable 108,114 // invalid warning for razor override
+}
+@inject CurrentUserInfo currentUserInfo
+@inject HttpClient http
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Forms
+@inherits UserInfoReactingComponent
+
+<h4>User Info For @User.Name (ID: @User.Id)</h4>
+
+@if (ShowSelfIdentification && LookingAtSelf)
+{
+    <p>This is you.</p>
+}
+
+<ul>
+    <li><strong>Email</strong>: @User.Email</li>
+    <li><strong>Name</strong>: @User.Name</li>
+    <li><strong>Access level</strong>: @User.AccessLevel</li>
+    <li><strong>SSO</strong>: @User.SsoSource</li>
+    <li><strong>Local</strong>: @User.Local</li>
+    <li><strong>Session version</strong>: @User.SessionVersion</li>
+    <li><strong>Total launcher links</strong>: @User.TotalLauncherLinks</li>
+
+    <li><strong>API token</strong>: @User.HasApiToken</li>
+
+    @if (LookingAtSelf)
+    {
+        <UserTokenControls HasThisToken="@User.HasApiToken" TokenType="API" TokenCreateAPI="api/v1/Tokens/api/self" />
+    }
+
+    <li><strong>Git LFS token</strong>: @User.HasLfsToken</li>
+
+    @if (LookingAtSelf)
+    {
+        <UserTokenControls HasThisToken="@User.HasLfsToken" TokenType="LFS" TokenCreateAPI="api/v1/Tokens/lfs/self" />
+    }
+
+    <AccessLimited RequiredAccess="UserAccessLevel.Admin">
+        <li><strong>Admin</strong>: @User.Admin</li>
+        <li><strong>Developer</strong>: @User.Developer</li>
+        <li><strong>Created At</strong>: @User.CreatedAt.ToLocalTime().ToString("G")</li>
+        <li><strong>Updated At</strong>: @User.UpdatedAt.ToLocalTime().ToString("G")</li>
+        <li><strong>Suspended</strong>: @User.Suspended</li>
+        <li><strong>Suspension reason</strong>: @User.SuspendedReason</li>
+        <li><strong>Suspended manually</strong>: @User.SuspendedManually</li>
+    </AccessLimited>
+</ul>
+
+<h4>Launcher Links</h4>
+<p>
+    You can link up to @AppInfo.DefaultMaxLauncherLinks Thrive Launchers to your account to access dev center features
+    from the launcher. By linking a launcher you can access devbuilds. Linking the launcher to your account is meant
+    for your personally use only. Please do not share your account.
+</p>
+
+<LauncherLinkList UserId="@User.Id" />
+
+<StatusMessageShower Message="@linkResult" Type="@linkResultType" OnClosed="@HideLinkResult" />
+
+<div>
+    @if (LookingAtSelf)
+    {
+        <Button class="mb-2" ButtonStyle="success" Enabled="@(!gettingLauncherLinkCode)"
+                Spinner="@gettingLauncherLinkCode" OnPressed="@StartLauncherLink">
+            Link Launcher
+        </Button>
+    }
+    <Button class="mx-1 mb-2" ButtonStyle="danger" Enabled="@(!clearingAllLinks)" Spinner="@clearingAllLinks"
+            OnPressed="@ClearLauncherLinksOnUser">
+        Unlink All Launchers
+    </Button>
+</div>
+
+<h4>Sessions</h4>
+
+<p>TODO: implement session list</p>
+
+<h4>Actions</h4>
+
+<StatusMessageShower Message="@actionResult" Type="@actionResultType" />
+
+@if (LookingAtSelf)
+{
+    <Button class="mb-1" ButtonStyle="warning" Enabled="@false">Logout Everywhere</Button>
+    <br />
+}
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin">
+    <Button class="mb-1" ButtonStyle="danger" Enabled="@false">Force Logout</Button>
+    <br />
+    <Button class="mb-1" ButtonStyle="danger" Enabled="@CanClearTokens" Spinner="@clearingTokens"
+            OnPressed="@ClearTokensOnUser">
+        Force Clear Tokens
+    </Button>
+    <br />
+
+    @if (User.Suspended != true)
+    {
+        <Button class="mb-1" ButtonStyle="danger" Enabled="@false">Suspend</Button>
+    }
+    else
+    {
+        <Button class="mb-1" ButtonStyle="secondary" Enabled="@false">Remove Suspension</Button>
+    }
+    <br />
+</AccessLimited>
+
+@code {
+
+    private bool clearingAllLinks;
+    private bool gettingLauncherLinkCode;
+
+    private string linkResult;
+    private SiteNoticeType linkResultType = SiteNoticeType.Danger;
+
+    private bool clearingTokens;
+
+    private string actionResult;
+    private SiteNoticeType actionResultType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public UserInfo User { get; set; }
+
+    [Parameter]
+    public bool ShowSelfIdentification { get; set; }
+
+    private bool CanClearTokens
+    {
+        get
+        {
+            if (clearingTokens)
+                return false;
+
+            return User.HasApiToken || User.HasLfsToken;
+        }
+    }
+
+    private bool LookingAtSelf => currentUserInfo.InfoReady && currentUserInfo.Email ==
+        User.Email;
+
+    private async void ClearTokensOnUser()
+    {
+        clearingTokens = true;
+        actionResult = null;
+        actionResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/Tokens/clear", new ForceClearTokensForm()
+            {
+                TargetUserId = User.Id
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            actionResult = $"Network request failed: {e.Message}";
+            clearingTokens = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        clearingTokens = false;
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            actionResult = $"Failed to clear tokens. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionResult = $"Tokens successfully cleared for user ({content})";
+            actionResultType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void ClearLauncherLinksOnUser()
+    {
+        clearingAllLinks = true;
+        linkResult = null;
+        linkResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/LauncherLinks/{User.Id}");
+        }
+        catch (HttpRequestException e)
+        {
+            linkResult = $"Network request failed: {e.Message}";
+            clearingAllLinks = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        clearingAllLinks = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            linkResult = $"Failed to delete launcher links. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            linkResult = $"Successfully deleted all launcher links for user";
+            linkResultType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HideLinkResult()
+    {
+        linkResult = null;
+    }
+
+    private async void StartLauncherLink()
+    {
+        gettingLauncherLinkCode = true;
+        linkResult = null;
+        linkResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/LauncherLinks", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            linkResult = $"Network request failed: {e.Message}";
+            clearingAllLinks = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        gettingLauncherLinkCode = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            linkResult = $"Failed to start launcher link. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            var expiryTime = (DateTime.Now + AppInfo.LauncherLinkCodeExpireTime).ToShortTimeString();
+
+            linkResult = $"Your launcher link code is: {content} Please copy it into the Thrive Launcher to " +
+                $"continue. The code expires at {expiryTime}";
+            linkResultType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

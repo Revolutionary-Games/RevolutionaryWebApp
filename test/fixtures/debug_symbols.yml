@@ -1,9 +1,0 @@
-# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
-one:
-  symbol_hash: MyString
-  path: MyString
-
-two:
-  symbol_hash: MyString
-  path: MyString

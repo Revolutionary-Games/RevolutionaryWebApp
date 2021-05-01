@@ -1,0 +1,215 @@
+@inject HttpClient http
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger" role="alert">
+        @error
+    </div>
+}
+
+@if (HasThisToken)
+{
+    <Button class="mr-1" ButtonStyle="primary" OnPressed="@ToggleShow">
+        @(showToken ? $"Hide {TokenType} Token" : $"Show {TokenType} Token")
+    </Button>
+
+    if (showToken && string.IsNullOrEmpty(error))
+    {
+        <p>
+            Your @TokenType token is:
+            @if (tokenLoading)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            }
+            else
+            {
+                @token
+            }
+        </p>
+    }
+
+    <Button class="mr-1" ButtonStyle="secondary" OnPressed="@CreateToken"
+            Spinner="@creatingToken" Enabled="@(!creatingToken)">
+        Regenerate Token
+    </Button>
+
+    <Button class="mr-1" ButtonStyle="secondary" OnPressed="@ClearToken"
+            Spinner="@clearingToken" Enabled="@(!clearingToken)">
+        Clear Token
+    </Button>
+}
+else
+{
+    <Button class="mr-1" ButtonStyle="primary" OnPressed="@CreateToken"
+            Spinner="@creatingToken" Enabled="@(!creatingToken)">
+        Generate @TokenType Token
+    </Button>
+}
+
+
+@code {
+    private bool showToken;
+    private bool tokenLoading;
+    private bool creatingToken;
+    private bool clearingToken;
+
+    private string token;
+
+    private string error;
+
+    [Parameter]
+    public bool HasThisToken { get; set; }
+
+    [Parameter]
+    public string TokenType { get; set; }
+
+    /// <summary>
+    ///   If only this is specified also the other two API endpoints use the same URL (but different method)
+    /// </summary>
+    [Parameter]
+    public string TokenCreateAPI { get; set; }
+
+    [Parameter]
+    public string TokenRetrieveAPI { get; set; }
+
+    [Parameter]
+    public string TokenDeleteAPI { get; set; }
+
+    private string Retrieve => TokenRetrieveAPI ?? TokenCreateAPI;
+    private string Delete => TokenDeleteAPI ?? TokenCreateAPI;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        // Start token fetch when needed
+        if (showToken && token == null && !tokenLoading && string.IsNullOrEmpty(error))
+        {
+            await FetchToken();
+        }
+    }
+
+    private void ToggleShow()
+    {
+        showToken = !showToken;
+
+        if (showToken)
+        {
+            // Clear error to make automatic fetch work
+            error = null;
+        }
+    }
+
+    private async Task FetchToken()
+    {
+        error = null;
+        tokenLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.GetAsync(Retrieve);
+        }
+        catch (HttpRequestException e)
+        {
+            error = $"Network request failed: {e.Message}";
+            tokenLoading = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        tokenLoading = false;
+        var resultContent = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            error = $"Failed to retrieve token. Server responded with: {resultContent}, {result.StatusCode}";
+        }
+        else
+        {
+            token = resultContent;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void CreateToken()
+    {
+        error = null;
+        creatingToken = true;
+        showToken = false;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync(TokenCreateAPI, new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            error = $"Network request failed: {e.Message}";
+            creatingToken = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        creatingToken = false;
+        var resultContent = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            error = $"Failed to create token. Server responded with: {resultContent}, {result.StatusCode}";
+        }
+        else
+        {
+            token = resultContent;
+            HasThisToken = true;
+            showToken = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void ClearToken()
+    {
+        error = null;
+        clearingToken = true;
+        showToken = false;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync(Delete);
+        }
+        catch (HttpRequestException e)
+        {
+            error = $"Network request failed: {e.Message}";
+            clearingToken = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        clearingToken = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            error = $"Failed to clear token. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            token = null;
+            HasThisToken = false;
+            showToken = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

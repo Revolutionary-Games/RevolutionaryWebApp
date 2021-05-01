@@ -1,0 +1,115 @@
+@page "/Login"
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ICSRFTokenReader CSRF
+
+<h3>Login</h3>
+
+<p>By logging in you accept the use of cookies to track your logged in session.</p>
+
+<br />
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+
+@if (options == null)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    bool first = true;
+
+    foreach (var group in options.Categories)
+    {
+        if (!first)
+        {
+            <hr />
+        }
+
+        <h4>@group.Name</h4>
+
+        foreach (var option in group.Options)
+        {
+            if (!option.Local)
+            {
+                <form method="post" action="/LoginController/start">
+                    <input type="hidden" name="CSRF" value="@CSRF.Token" />
+                    <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+                    <input type="hidden" name="SsoType" value="@option.InternalName" />
+                    <Button class="my-1" type="submit" Enabled="@option.Active">
+                        @option.ReadableName
+                    </Button>
+                </form>
+            }
+            else
+            {
+                if (option.Active)
+                {
+                    // Form for local login (which is active)
+                    <form method="post" action="/LoginController/login" class="login-form">
+                        <div class="form-group">
+                            <input type="hidden" name="CSRF" value="@CSRF.Token" />
+                            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+                            <input type="email" class="form-control" name="Email"
+                                   aria-describedby="emailHelp" placeholder="email" @bind="email" @bind:event="oninput">
+                            <br />
+                            <input type="password" class="form-control" name="Password"
+                                   placeholder="password" @bind="password" @bind:event="oninput">
+                        </div>
+                        <Button id="localLoginButton" class="my-1" Enabled="LocalLoginFine" type="submit">
+                            Login
+                        </Button>
+                    </form>
+                }
+                else
+                {
+                    <p>Local login is disabled.</p>
+                }
+            }
+
+            <br />
+        }
+
+        first = false;
+    }
+}
+
+<RegistrationForm />
+
+@code {
+    private LoginOptions options;
+
+    [QueryStringParameter]
+    public string Error { get; set; }
+
+    [QueryStringParameter]
+    public string ReturnUrl { get; set; }
+
+#pragma warning disable 649
+    private string email;
+    private string password;
+#pragma warning restore 649
+
+    private bool LocalLoginFine => !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        this.SetParametersFromQueryString(NavManager);
+
+        options = await Http.GetFromJsonAsync<LoginOptions>("LoginController");
+    }
+
+}

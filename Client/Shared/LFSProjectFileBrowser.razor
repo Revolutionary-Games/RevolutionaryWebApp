@@ -1,0 +1,186 @@
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper UrlHelper
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Client.Services
+@using System.Threading
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ProjectGitFileUpdated>
+@implements IAsyncDisposable
+@inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.ProjectGitFileDTO>
+
+<Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="@RootFolderName" />
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                // Ignore self folder when looking at the root folder
+                if(item.Name == "/" && string.IsNullOrEmpty(FileBrowserPath))
+                    continue;
+
+                <tr @key="item.Id">
+                    @if (item.Ftype == AppInfo.ItemTypeFolder)
+                    {
+                        <td>
+                            <span class="oi oi-folder pl-1" aria-hidden="true"></span>
+                            <span class="sr-only">Folder</span>
+                        </td>
+                    }
+                    else
+                    {
+                        <td></td>
+                    }
+
+                    <th scope="row">
+                        @if (item.Ftype == AppInfo.ItemTypeFolder)
+                        {
+                            <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
+                        }
+                        else if(item.UsesLfsOid)
+                        {
+                            <a href="@ApiDownloadLink(item.Name)" target="_blank">@item.Name</a>
+                        }
+                        else
+                        {
+                            <a href="@GitRepoUrl(item.Name)" target="_blank">@item.Name</a>
+                        }
+                    </th>
+
+                    @if (item.Ftype == AppInfo.ItemTypeFolder)
+                    {
+                        <td>@("item".PrintCount(item.Size))</td>
+                    }
+                    else if (item.UsesLfsOid)
+                    {
+                        <td>@item.Size.BytesToMiB()</td>
+                    }
+                    else
+                    {
+                        <td></td>
+                    }
+
+                    <td>@(item.UsesLfsOid ? "True" : "")</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Type", false),
+        new TableColumn("Name", true),
+        new TableColumn("Size", true),
+        new TableColumn("LFS?", false),
+    };
+
+    [Parameter]
+    public string ProjectRepoURL { get; set; }
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    public LFSProjectFileBrowser()
+    {
+        // We fetch data on the parameters change, which is always called after init so we don't want a duplicate fetch
+        AutoFetchDataOnInit = false;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnParametersSetAsync();
+        await FetchData();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(ProjectGitFileUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // TODO: implement notifications
+        /* groups.Add(NotificationGroups.LFSGitFileUpdated);
+        if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
+            groups.Add(NotificationGroups.PrivateLFSGitFile + Project.Id.ToString()); */
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Dictionary<string, string> CreatePageRequestParams()
+    {
+        var requestParams = base.CreatePageRequestParams();
+
+        // In the API paths need to start with a slash
+        requestParams["path"] = CurrentPathSlashPrefix;
+
+        return requestParams;
+    }
+
+    protected override void PruneRequestParams(Dictionary<string, string> queryParams)
+    {
+        base.PruneRequestParams(queryParams);
+
+        queryParams.Remove("path");
+    }
+
+    protected override Task<PagedResult<ProjectGitFileDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<ProjectGitFileDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/LFSProject/{ProjectId}/files", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await base.OnQuerySent(requestParams);
+        await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private string ApiDownloadLink(string name)
+    {
+        return QueryHelpers.AddQueryString("/api/v1/download_lfs", new Dictionary<string, string>
+        {
+            { "project", ProjectId.ToString() },
+            { "path", CurrentPathSlashPrefix },
+            { "name", name }
+        });
+    }
+
+    private string GitRepoUrl(string name)
+    {
+        return $"{ProjectRepoURL}/tree/master{CurrentPathSlashPrefix}{SlashIfPathNotEmpty}{name}";
+    }
+
+}

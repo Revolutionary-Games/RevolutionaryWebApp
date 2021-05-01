@@ -1,0 +1,50 @@
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+
+    @if (HasData && ShowDataWithError)
+    {
+        @ChildContent
+    }
+}
+else
+{
+    @if (Loading)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    }
+    else if (!HasData)
+    {
+        <ResourceNotFoundOrPrivate />
+    }
+    else
+    {
+        @ChildContent
+    }
+}
+
+@code {
+
+    [Parameter]
+    public bool Loading { get; set; }
+
+    [Parameter]
+    public bool HasData { get; set; }
+
+    /// <summary>
+    ///   If true content is shown even with a subsequent fetch error
+    /// </summary>
+    [Parameter]
+    public bool ShowDataWithError { get; set; } = true;
+
+    [Parameter]
+    public string Error { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+}
