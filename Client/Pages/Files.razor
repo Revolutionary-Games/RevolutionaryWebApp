@@ -12,6 +12,7 @@
 @using System.Threading
 @using System.Net
 @using System.Text.Json
+@using ThriveDevCenter.Shared.Forms
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
 @implements IAsyncDisposable
 @inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.StorageItemInfo>
@@ -82,6 +83,12 @@ else
     <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="primary">Upload</Button>
 
     <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
+
+        @if (!showNewFolderCreate)
+        {
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" ExtraCSS="mt-1" />
+        }
+
         <Button Enabled="@(parsedFolderInfo != null)" class="mr-1" ButtonStyle="info"
                 OnPressed="@(() => showFolderInfo = !showFolderInfo)">
             @if (!showFolderInfo)
@@ -118,6 +125,47 @@ else
                 </ul>
             }
         }
+
+        @if (showNewFolderCreate)
+        {
+            <form class="mt-3">
+                <div class="form-row">
+                    <div class="form-group col-md-12">
+                        <label for="newFolderName">New Folder Name</label>
+                        <input type="text" class="form-control" id="newFolderName" @bind="newFolderName"
+                               @bind:event="oninput">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="newFolderReadAccess">Read Access</label>
+                        <select class="custom-select" id="newFolderReadAccess" @bind="newFolderReadAccess">
+                            @foreach (var name in Enum.GetNames<FileAccess>())
+                            {
+                                <option value="@name">@name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="newFolderWriteAccess">Write Access</label>
+                        <select class="custom-select" id="newFolderWriteAccess" @bind="newFolderWriteAccess">
+                            @foreach (var name in Enum.GetNames<FileAccess>())
+                            {
+                                <option value="@name">@name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+                <Button class="my-1" Enabled="@(!processingNewForm && !string.IsNullOrEmpty(newFolderName))"
+                        OnPressed="@CreateNew" Spinner="@processingNewForm">
+                    Create
+                </Button>
+            </form>
+        }
+
     </AccessLimited>
 }
 
@@ -141,7 +189,12 @@ else
 
     private bool showFolderInfo;
 
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
     private bool showNewFolderCreate;
+    private bool processingNewForm;
+
     private string newFolderName;
     private FileAccess newFolderReadAccess;
     private FileAccess newFolderWriteAccess;
@@ -341,6 +394,67 @@ else
 
     private void ToggleNewFolderCreate()
     {
+        if (showNewFolderCreate)
+        {
+            showNewFolderCreate = false;
+        }
+        else
+        {
+            showNewFolderCreate = true;
+            createMessage = null;
 
+            // Reset form status
+            newFolderName = null;
+            newFolderReadAccess = FileAccess.OwnerOrAdmin;
+            newFolderWriteAccess = FileAccess.OwnerOrAdmin;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/Files/createFolder", new CreateFolderForm()
+            {
+                Name =  newFolderName,
+                ParentFolder = parsedFolderId,
+                ReadAccess = newFolderReadAccess,
+                WriteAccess = newFolderWriteAccess,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = content;
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewFolderCreate = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }

@@ -6,10 +6,13 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Authorization;
     using BlazorPagination;
     using Filters;
+    using Hangfire;
+    using Jobs;
     using Microsoft.AspNetCore.Http;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
@@ -25,11 +28,14 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<StorageFilesController> logger;
         private readonly NotificationsEnabledDb database;
+        private readonly IBackgroundJobClient jobClient;
 
-        public StorageFilesController(ILogger<StorageFilesController> logger, NotificationsEnabledDb database)
+        public StorageFilesController(ILogger<StorageFilesController> logger, NotificationsEnabledDb database,
+            IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.database = database;
+            this.jobClient = jobClient;
         }
 
         [HttpGet("itemFromPath")]
@@ -150,6 +156,7 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<IActionResult> CreateFolder([Required] [FromBody] CreateFolderForm request)
         {
             // Purely numeric names (that are short) or starting with '@' are disallowed
+            // TODO: would be nice to do this validation also on the client side form
             if (request.Name.StartsWith('@') || (request.Name.Length <= 5 && int.TryParse(request.Name, out int _)))
                 return BadRequest("You specified a disallowed folder name");
 
@@ -202,13 +209,17 @@ namespace ThriveDevCenter.Server.Controllers
                 Ftype = FileType.Folder,
                 ReadAccess = request.ReadAccess,
                 WriteAccess = request.WriteAccess,
-                AllowParentless = parentFolder == null,
-                Parent = parentFolder
+                AllowParentless = parentId == null,
+                ParentId = parentId,
+                OwnerId = user.Id,
             };
 
             await database.StorageItems.AddAsync(newFolder);
 
             await database.SaveChangesAsync();
+
+            // Need to queue a job to calculate the folder size
+            jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(newFolder.Id, CancellationToken.None));
 
             return Ok($"New folder with id {newFolder.Id} created");
         }

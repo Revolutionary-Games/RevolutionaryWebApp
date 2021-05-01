@@ -2,7 +2,7 @@
 
 @if (!string.IsNullOrEmpty(Message))
 {
-    <div class="alert @Type.AlertClass()" role="alert">
+    <div class="alert @Type.AlertClass() @ExtraCSS" role="alert">
         @Message
 
         @if (HasCallback)
@@ -21,6 +21,9 @@
 
     [Parameter]
     public SiteNoticeType Type { get; set; } = SiteNoticeType.Danger;
+
+    [Parameter]
+    public string ExtraCSS { get; set; }
 
     /// <summary>
     ///   Adds support for closing this. The button is automatically added if this is not null
