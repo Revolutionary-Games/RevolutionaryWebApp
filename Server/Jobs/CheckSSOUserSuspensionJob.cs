@@ -36,7 +36,7 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            if (await SSOSuspendHandler.CheckUser(user, database, communityAPI, devForumAPI, cancellationToken))
+            if (await SSOSuspendHandler.CheckUser(user, database, communityAPI, devForumAPI, logger, cancellationToken))
                 await database.SaveChangesAsync(cancellationToken);
         }
     }

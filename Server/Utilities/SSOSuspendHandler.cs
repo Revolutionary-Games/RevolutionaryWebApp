@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Utilities
     using System.Threading;
     using System.Threading.Tasks;
     using Controllers;
+    using Microsoft.Extensions.Logging;
     using Models;
     using Services;
 
@@ -14,7 +15,7 @@ namespace ThriveDevCenter.Server.Utilities
         ///   Checks (and applies) suspension for an use using SSO
         /// </summary>
         public static async Task<bool> CheckUser(User user, ApplicationDbContext database,
-            CommunityForumAPI communityAPI, DevForumAPI devForumAPI,
+            CommunityForumAPI communityAPI, DevForumAPI devForumAPI, ILogger logger,
             CancellationToken cancellationToken)
         {
             if (user.Local)
@@ -48,6 +49,13 @@ namespace ThriveDevCenter.Server.Utilities
                 }
                 case LoginController.SsoTypeCommunityForum:
                 {
+                    if (!communityAPI.Configured)
+                    {
+                        logger.LogWarning(
+                            "Can't check SSO user from community forum because API for that is unconfigured");
+                        return false;
+                    }
+
                     var discourseUser = await communityAPI.FindUserByEmail(user.Email, cancellationToken);
 
                     if (discourseUser != null)
@@ -84,9 +92,16 @@ namespace ThriveDevCenter.Server.Utilities
 
                 case LoginController.SsoTypeDevForum:
                 {
+                    if (!devForumAPI.Configured)
+                    {
+                        logger.LogWarning(
+                            "Can't check SSO user from dev forum because API for that is unconfigured");
+                        return false;
+                    }
+
                     var discourseUser = await devForumAPI.FindUserByEmail(user.Email, cancellationToken);
 
-                    if(discourseUser != null)
+                    if (discourseUser != null)
                         shouldBeSuspended = false;
 
                     break;
@@ -111,8 +126,8 @@ namespace ThriveDevCenter.Server.Utilities
                 }, cancellationToken);
 
                 user.Suspended = false;
-
-            } else if (user.Suspended != true)
+            }
+            else if (user.Suspended != true)
             {
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
