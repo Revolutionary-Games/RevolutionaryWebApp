@@ -15,6 +15,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
+    using Shared.Forms;
     using Shared.Models;
     using Utilities;
 
@@ -31,7 +32,7 @@ namespace ThriveDevCenter.Server.Controllers
             this.database = database;
         }
 
-        [HttpGet("ItemFromPath")]
+        [HttpGet("itemFromPath")]
         public async Task<ActionResult<PathParseResult>> ParsePath([MaxLength(500)] string path)
         {
             var user = HttpContext.AuthenticatedUser();
@@ -142,6 +143,74 @@ namespace ThriveDevCenter.Server.Controllers
             var objects = await query.ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetInfo());
+        }
+
+        [HttpPost("createFolder")]
+        [AuthorizeRoleFilter]
+        public async Task<IActionResult> CreateFolder([Required] [FromBody] CreateFolderForm request)
+        {
+            // Purely numeric names (that are short) or starting with '@' are disallowed
+            if (request.Name.StartsWith('@') || (request.Name.Length <= 5 && int.TryParse(request.Name, out int _)))
+                return BadRequest("You specified a disallowed folder name");
+
+            var user = HttpContext.AuthenticatedUser();
+
+            // Check write access
+            StorageItem parentFolder = null;
+
+            if (request.ParentFolder != null)
+            {
+                parentFolder = await database.StorageItems.AsQueryable()
+                    .FirstOrDefaultAsync(i => i.Ftype == FileType.Folder && i.Id == request.ParentFolder.Value);
+
+                if (parentFolder == null)
+                    return NotFound("Parent folder doesn't exist");
+            }
+
+            // Write access
+            if (parentFolder == null)
+            {
+                // Only admin can write to root folder
+                if (!user.HasAccessLevel(UserAccessLevel.Admin))
+                    return Forbid("Only admins can write to root folder");
+            }
+            else
+            {
+                if (!parentFolder.IsWritableBy(user))
+                    return Forbid("You don't have write access to the parent folder");
+            }
+
+            // Check for duplicate name
+            var parentId = parentFolder?.Id;
+
+            if (await database.StorageItems.AsQueryable()
+                .FirstOrDefaultAsync(i => i.ParentId == parentId && i.Name == request.Name) != null)
+            {
+                return BadRequest("Item with that name already exists in the parent folder");
+            }
+
+            // Folder is fine to be created
+            await database.LogEntries.AddAsync(new LogEntry()
+            {
+                Message = $"New folder \"{request.Name}\" created with owner",
+                TargetUserId = user.Id
+            });
+
+            var newFolder = new StorageItem()
+            {
+                Name = request.Name,
+                Ftype = FileType.Folder,
+                ReadAccess = request.ReadAccess,
+                WriteAccess = request.WriteAccess,
+                AllowParentless = parentFolder == null,
+                Parent = parentFolder
+            };
+
+            await database.StorageItems.AddAsync(newFolder);
+
+            await database.SaveChangesAsync();
+
+            return Ok($"New folder with id {newFolder.Id} created");
         }
 
         [NonAction]
