@@ -47,12 +47,6 @@ namespace ThriveDevCenter.Server.Jobs
 
                 foreach (var actualPatron in await api.GetPatrons(settings, cancellationToken))
                 {
-                    if (actualPatron.User.Attributes.FullName == null)
-                    {
-                        var stuff = JsonSerializer.Serialize(actualPatron.User);
-                        logger.LogInformation("Processing patron: {Stuff}", stuff);
-                    }
-
                     await PatreonGroupHandler.HandlePatreonPledgeObject(actualPatron.Pledge, actualPatron.User,
                         actualPatron.Reward.Id, database, jobClient);
 
