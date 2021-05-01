@@ -79,11 +79,45 @@ else
     </PaginatedTable>
 
     @*These are always shown to avoid brief flashes while navigating *@
-    <Button Enabled="@false" class="mr-1" ButtonStyle="primary">Upload</Button>
+    <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="primary">Upload</Button>
 
     <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
-        <Button Enabled="@false" class="mr-1" ButtonStyle="info">Show Folder Info</Button>
-        <Button Enabled="@false" class="mr-1" ButtonStyle="success">New Folder</Button>
+        <Button Enabled="@(parsedFolderInfo != null)" class="mr-1" ButtonStyle="info"
+                OnPressed="@(() => showFolderInfo = !showFolderInfo)">
+            @if (!showFolderInfo)
+            {
+                <span>Show Folder Info</span>
+            }
+            else
+            {
+                <span>Hide Folder Info</span>
+            }
+        </Button>
+        <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="success" OnPressed="@ToggleNewFolderCreate">
+            New Folder
+        </Button>
+
+        @if (showFolderInfo)
+        {
+            @if (parsedFolderInfo == null)
+            {
+                <p class="mt-3">Folder info doesn't exist</p>
+            }
+            else
+            {
+                <h5 class="mt-3">Info About Folder ID: @parsedFolderInfo.Id</h5>
+                <ul>
+                    <li><strong>Name</strong>: @parsedFolderInfo.Name</li>
+                    <li><strong>Readable by</strong>: @parsedFolderInfo.ReadAccess.ToUserReadableString()</li>
+                    <li><strong>Writable by</strong>: @parsedFolderInfo.WriteAccess.ToUserReadableString()</li>
+                    <li><strong>Special</strong>: @parsedFolderInfo.Special</li>
+                    <li><strong>Parent</strong>: @(parsedFolderInfo.ParentId?.ToString() ?? "root")</li>
+                    <li><strong>Size</strong>: @parsedFolderInfo.Size</li>
+                    <li><strong>Owned by</strong>: @(parsedFolderInfo.OwnerId?.ToString() ?? "system")</li>
+                    <li><strong>Allow Parentless</strong>: @parsedFolderInfo.AllowParentless</li>
+                </ul>
+            }
+        }
     </AccessLimited>
 }
 
@@ -102,6 +136,15 @@ else
 
     private StorageItemDTO parsedFolderInfo;
     private StorageItemDTO shownFile;
+
+    private bool folderIsWritable;
+
+    private bool showFolderInfo;
+
+    private bool showNewFolderCreate;
+    private string newFolderName;
+    private FileAccess newFolderReadAccess;
+    private FileAccess newFolderWriteAccess;
 
     [Parameter]
     public string ProjectRepoURL { get; set; }
@@ -163,7 +206,7 @@ else
         if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
             groups.Add(NotificationGroups.FolderContentsUpdatedDeveloperPrefix + folderId);
         if (currentAccessLevel.HasAccess(UserAccessLevel.Admin) || (parsedFolderInfo?.OwnerId != null &&
-            currentUserInfo?.Info.Id == parsedFolderInfo.OwnerId))
+            currentUserInfo?.Info?.Id == parsedFolderInfo.OwnerId))
         {
             groups.Add(NotificationGroups.FolderContentsUpdatedOwnerPrefix + folderId);
         }
@@ -207,6 +250,8 @@ else
     {
         folderPathParsed = false;
         parsedFolderInfo = null;
+        folderIsWritable = false;
+        showNewFolderCreate = false;
         shownFile = null;
         VisibleFetchInProgress = true;
         Error = null;
@@ -262,6 +307,7 @@ else
                 VisibleFetchInProgress = true;
 
                 await notificationHandler.NotifyWantedGroupsChanged();
+                await DetectWriteAccessToFolder();
                 await FetchData();
             }
             else
@@ -269,5 +315,32 @@ else
                 Error = "Failed to parse response JSON";
             }
         }
+    }
+
+    private async Task DetectWriteAccessToFolder()
+    {
+        bool newWritable;
+
+        if (parsedFolderId == null)
+        {
+            // Only admins can write to the root folder
+            newWritable = currentUserInfo.AccessLevel.HasAccess(UserAccessLevel.Admin);
+        }
+        else
+        {
+            newWritable = parsedFolderInfo.WriteAccess.IsAccessibleTo(currentUserInfo.AccessLevel,
+                currentUserInfo.Info?.Id, parsedFolderInfo.OwnerId);
+        }
+
+        if (newWritable != folderIsWritable)
+        {
+            folderIsWritable = newWritable;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ToggleNewFolderCreate()
+    {
+
     }
 }
