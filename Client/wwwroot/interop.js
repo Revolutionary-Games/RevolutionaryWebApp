@@ -97,7 +97,7 @@ function putFormFile(fileName, url) {
             }
         }).catch(error => {
             let extra = "";
-            if(error.response){
+            if (error.response) {
                 extra = " server responded with (" + error.response.status + ")";
             }
 
