@@ -31,3 +31,16 @@ function getStaticHomePageNotice() {
 
     return element.value;
 }
+
+function registerFileDropArea(element) {
+    // Looks like there's no way to reliably check this from C# so this check is here
+    if(!element)
+        return;
+
+    element.addEventListener("drop", dropAreaReceivedDrop, false);
+}
+
+function dropAreaReceivedDrop(event) {
+    event.preventDefault();
+    console.log("Got event:", event);
+}

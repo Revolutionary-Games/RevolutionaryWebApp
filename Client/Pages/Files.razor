@@ -30,57 +30,127 @@
 }
 else
 {
-    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                    OnPageChanged="async (e) => await ChangePage(e)"
-                    OnSortChanged="async (column) => await ChangeSort(column)"
-                    GetSortClass="@SortClass"
-                    ShowContentSpinner="@VisibleFetchInProgress"
-                    Columns="@columns"
-                    ShowNoContent="@NoItemsFound"
-                    UseNonFixedColumns="@true">
-        @if (Data != null)
+    <div class="block-container" @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave">
+        @if(showUploadOverlay || uploadInProgress)
         {
-            @foreach (var item in Data.Results)
-            {
-                <tr @key="item.Id">
-                    @if (item.Ftype == FileType.Folder)
-                    {
-                        <td>
-                            <span class="oi oi-folder pl-1" aria-hidden="true"></span>
-                            <span class="sr-only">Folder</span>
-                        </td>
-                    }
-                    else
-                    {
-                        <td></td>
-                    }
+            <div @ref="dropArea" class="block-overlay"
+                 @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave" @ondrop="OnDrop"
+                 @ondragover="HandleDragEnter"
+                 @ondragover:preventDefault="@true"
+                 @ondrop:preventDefault="@true">
 
-                    <th scope="row">
-                        <NavLink href="@FolderLink(item.Name, shownFile != null)">@item.Name</NavLink>
-                    </th>
+                @if (!folderIsWritable)
+                {
+                    <div class="alert alert-danger drop-area" role="alert">
+                        You don't have write access to this folder
+                    </div>
+                }
 
+                @foreach (var error in uploadErrors)
+                {
+                    <p class="drop-area">Upload error: @error</p>
+                }
 
-                    @if (!item.Size.HasValue)
-                    {
-                        <td>?</td>
-                    }
-                    else if (item.Ftype == FileType.Folder)
-                    {
-                        <td>@("item".PrintCount(item.Size.Value))</td>
-                    }
-                    else
-                    {
-                        <td>@item.Size.Value.BytesToMiB()</td>
-                    }
+                @if (uploadErrors.Count > 0)
+                {
+                    <Button class="mb-1" Enabled="@(!uploadInProgress)" ButtonStyle="secondary"
+                            OnPressed="@ClearUploadErrors">
+                        Clear Errors
+                    </Button>
+                }
 
-                    <td>@item.ReadAccess.ToUserReadableString()</td>
-                </tr>
-            }
+                @if (uploadInProgress)
+                {
+                    <div class="spinner-border text-primary mb-3 drop-area" role="status">
+                        <span class="sr-only">Uploading...</span>
+                    </div>
+                }
+
+                <p class="drop-area">Drop files here to upload.</p>
+
+                <br class="mt-2 drop-area" />
+
+                <form>
+                    <div class="form-row">
+                        <label for="filesToUploadSelection" class="drop-area pt-1 pr-1">
+                            Or select files to upload:
+                        </label>
+                        <InputFile id="filesToUploadSelection"
+                                   accept="*"
+                                   OnChange="OnInputFilesChanged"
+                                   @ondragenter="HandleDragEnter"
+                                   multiple />
+                    </div>
+
+                    <br class="drop-area" />
+                    <div class="form-row justify-content-center">
+                        <Button class="my-1 mr-1" Enabled="@(!uploadInProgress && filesToBeUploaded.Count > 0)"
+                                OnPressed="@StartFileSelectorUploads" Spinner="@uploadInProgress">
+                            Upload
+                        </Button>
+                        <Button class="my-1" Enabled="@(!uploadInProgress)" ButtonStyle="secondary"
+                                OnPressed="@CloseUploaderFormIfCanBeClosed">
+                            Cancel
+                        </Button>
+                    </div>
+                </form>
+            </div>
         }
-    </PaginatedTable>
+
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound"
+                        UseNonFixedColumns="@true">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        @if (item.Ftype == FileType.Folder)
+                        {
+                            <td>
+                                <span class="oi oi-folder pl-1" aria-hidden="true"></span>
+                                <span class="sr-only">Folder</span>
+                            </td>
+                        }
+                        else
+                        {
+                            <td></td>
+                        }
+
+                        <th scope="row">
+                            <NavLink href="@FolderLink(item.Name, shownFile != null)">@item.Name</NavLink>
+                        </th>
+
+
+                        @if (!item.Size.HasValue)
+                        {
+                            <td>?</td>
+                        }
+                        else if (item.Ftype == FileType.Folder)
+                        {
+                            <td>@("item".PrintCount(item.Size.Value))</td>
+                        }
+                        else
+                        {
+                            <td>@item.Size.Value.BytesToMiB()</td>
+                        }
+
+                        <td>@item.ReadAccess.ToUserReadableString()</td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    </div>
 
     @*These are always shown to avoid brief flashes while navigating *@
-    <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="primary">Upload</Button>
+    <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="primary" OnPressed="@OpenUploaderForm">
+        Upload
+    </Button>
 
     <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
 
@@ -178,6 +248,9 @@ else
         new TableColumn("Access", false),
     };
 
+    private readonly List<string> uploadErrors = new List<string>();
+    private readonly List<string> filesToBeUploaded = new List<string>();
+
     private bool folderPathParsed;
 
     private long? parsedFolderId;
@@ -198,6 +271,11 @@ else
     private string newFolderName;
     private FileAccess newFolderReadAccess;
     private FileAccess newFolderWriteAccess;
+
+    private bool showUploadOverlay;
+    private bool uploadInProgress;
+
+    private ElementReference dropArea;
 
     [Parameter]
     public string ProjectRepoURL { get; set; }
@@ -269,6 +347,14 @@ else
     {
         await base.DisposeAsync();
         await notificationHandler.Unregister(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!dropArea.Equals(default(ElementReference)))
+        {
+            await js.InvokeVoidAsync("registerFileDropArea", dropArea);
+        }
     }
 
     protected override Dictionary<string, string> CreatePageRequestParams()
@@ -456,5 +542,64 @@ else
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleDragEnter()
+    {
+        showUploadOverlay = true;
+        // The wait here is to workaround the problem of child elements receiving the drag enter before the
+        // parent receives drag leave (from the event bubbling up from the child)
+        // TODO: find a better solution
+        await Task.Delay(1);
+        showUploadOverlay = true;
+    }
+
+    private void HandleDragLeave()
+    {
+        showUploadOverlay = false;
+    }
+
+    private async Task OnDrop()
+    {
+        // Make sure the JS event listener gets in first
+        await Task.Delay(1);
+
+        Console.WriteLine("got drop for C#");
+        /*foreach (var item in args.DataTransfer.Items)
+        {
+            Console.WriteLine(item.Type);
+        }
+
+        showUploadOverlay = true;
+        BeginUploads();*/
+    }
+
+    private void OnInputFilesChanged()
+    {
+    }
+
+    private void StartFileSelectorUploads()
+    {
+        BeginUploads();
+    }
+
+    private void OpenUploaderForm()
+    {
+        showUploadOverlay = true;
+    }
+
+    private void CloseUploaderFormIfCanBeClosed()
+    {
+        showUploadOverlay = false;
+    }
+
+    private void ClearUploadErrors()
+    {
+        uploadErrors.Clear();
+    }
+
+    private void BeginUploads()
+    {
+        uploadInProgress = true;
     }
 }
