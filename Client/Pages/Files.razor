@@ -677,19 +677,74 @@ else
         await InvokeAsync(StateHasChanged);
 
         // First get the upload URL from the server
+        try
+        {
+            var url = await GetFileUploadUrl(toUpload, parsedFolderInfo);
 
-        // Then begin the file upload
-        await UploadFile(toUpload, "https://s3.eu-central-1.wasabisys.com/thrive-dev-test/@upload/stuff2");
+            // Then begin the file upload
+            await UploadFile(toUpload, url);
+        } catch (Exception e)
+        {
+            uploadErrors.Add($"Exception while uploading \"{toUpload.Name}\": {e.Message}");
+        }
 
         // And start the next upload if we still have files to upload
         await BeginNextUpload();
     }
 
-    private async Task UploadFile(IBrowserFile file, string url)
+    private async Task<UploadFileResponse> GetFileUploadUrl(IBrowserFile file, StorageItemDTO parentFolder)
     {
-        var error = await js.InvokeAsync<string>("putFormFile", file.Name, url);
+        var result = await http.PostAsJsonAsync("api/v1/Files/startUpload",
+            new UploadFileRequestForm()
+            {
+                Name = file.Name,
+                Size = Convert.ToInt32(file.Size),
 
-        if(!string.IsNullOrEmpty(error))
+                // TODO: could maybe pass the last modified here to detect uploading the same file again
+
+                MimeType = string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,
+                ParentFolder = parentFolder?.Id,
+
+                // TODO: allow configuring these
+                ReadAccess =  parentFolder?.ReadAccess ?? FileAccess.Developer,
+                WriteAccess = parentFolder?.WriteAccess ?? FileAccess.OwnerOrAdmin,
+            });
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            throw new Exception($"Failed to get the upload URL from the server: {content}, {result.StatusCode}");
+        }
+
+        return JsonSerializer.Deserialize<UploadFileResponse>(content,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+    }
+
+    private async Task UploadFile(IBrowserFile file, UploadFileResponse info)
+    {
+        var error = await js.InvokeAsync<string>("putFormFile", file.Name, info.UploadURL);
+
+        if (!string.IsNullOrEmpty(error))
+        {
             uploadErrors.Add(error);
+        }
+        else
+        {
+            // Upload is a success, report it
+            await ReportFileUploadComplete(info);
+        }
+    }
+
+    private async Task ReportFileUploadComplete(UploadFileResponse info)
+    {
+        var result = await http.PostAsJsonAsync("api/v1/Files/finishUpload", info);
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            throw new Exception($"Failed to report finished upload: {content}, {result.StatusCode}");
+        }
     }
 }
