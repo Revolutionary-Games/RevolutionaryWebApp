@@ -11,6 +11,7 @@
 @using ThriveDevCenter.Client.Services
 @using System.Threading
 @using System.Net
+@using System.Net.Http.Headers
 @using System.Text.Json
 @using ThriveDevCenter.Shared.Forms
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
@@ -31,7 +32,7 @@
 else
 {
     <div class="block-container" @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave">
-        @if(showUploadOverlay || uploadInProgress)
+        @if(ShouldShowUploaderOverlay)
         {
             <div @ref="dropArea" class="block-overlay"
                  @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave" @ondrop="OnDrop"
@@ -57,6 +58,11 @@ else
                             OnPressed="@ClearUploadErrors">
                         Clear Errors
                     </Button>
+                }
+
+                @if (!string.IsNullOrEmpty(uploadStatus))
+                {
+                    <p>@uploadStatus</p>
                 }
 
                 @if (uploadInProgress)
@@ -249,7 +255,12 @@ else
     };
 
     private readonly List<string> uploadErrors = new List<string>();
-    private readonly List<string> filesToBeUploaded = new List<string>();
+    private readonly List<IBrowserFile> filesToBeUploaded = new();
+
+    /// <summary>
+    ///   Separate HttpClient used for file uploads as we don't want our CSRF etc. default handling to apply
+    /// </summary>
+    private readonly Lazy<HttpClient> fileUploadClient = new();
 
     private bool folderPathParsed;
 
@@ -274,6 +285,7 @@ else
 
     private bool showUploadOverlay;
     private bool uploadInProgress;
+    private string uploadStatus;
 
     private ElementReference dropArea;
 
@@ -282,6 +294,8 @@ else
 
     [Parameter]
     public long ProjectId { get; set; }
+
+    private bool ShouldShowUploaderOverlay => showUploadOverlay || uploadInProgress || uploadErrors.Count > 0;
 
     public Files()
     {
@@ -351,9 +365,12 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!dropArea.Equals(default(ElementReference)))
+        // This comparison for some reason sometimes passes when the element is null...
+        // So there's a separate null check in the JS code
+        if (!EqualityComparer<ElementReference>.Default.Equals(dropArea,
+            default))
         {
-            await js.InvokeVoidAsync("registerFileDropArea", dropArea);
+            await js.InvokeVoidAsync("registerFileDropArea", dropArea, "filesToUploadSelection");
         }
     }
 
@@ -550,6 +567,7 @@ else
         // The wait here is to workaround the problem of child elements receiving the drag enter before the
         // parent receives drag leave (from the event bubbling up from the child)
         // TODO: find a better solution
+        // see: https://stackoverflow.com/questions/7110353/html5-dragleave-fired-when-hovering-a-child-element
         await Task.Delay(1);
         showUploadOverlay = true;
     }
@@ -564,23 +582,44 @@ else
         // Make sure the JS event listener gets in first
         await Task.Delay(1);
 
-        Console.WriteLine("got drop for C#");
-        /*foreach (var item in args.DataTransfer.Items)
-        {
-            Console.WriteLine(item.Type);
-        }
+        // The above delay should have given enough time for OnInputFilesChanged to have ran
+        Console.WriteLine("Auto-starting uploads as we got a drop event");
 
         showUploadOverlay = true;
-        BeginUploads();*/
+        await BeginNextUpload();
     }
 
-    private void OnInputFilesChanged()
+    private void OnInputFilesChanged(InputFileChangeEventArgs args)
     {
+        if (args.FileCount < 1)
+        {
+            filesToBeUploaded.Clear();
+            return;
+        }
+
+        try
+        {
+            if (args.FileCount > 1)
+            {
+                foreach (var file in args.GetMultipleFiles(100))
+                {
+                    filesToBeUploaded.Add(file);
+                }
+            }
+            else
+            {
+                filesToBeUploaded.Add(args.File);
+            }
+        }
+        catch (Exception e)
+        {
+            uploadErrors.Add($"Error processing InputFile change: {e}");
+        }
     }
 
-    private void StartFileSelectorUploads()
+    private Task StartFileSelectorUploads()
     {
-        BeginUploads();
+        return BeginNextUpload();
     }
 
     private void OpenUploaderForm()
@@ -598,8 +637,66 @@ else
         uploadErrors.Clear();
     }
 
-    private void BeginUploads()
+    /// <summary>
+    ///   Starts uploading the next file we should upload. Or stops if we have no more files to upload
+    /// </summary>
+    private async Task BeginNextUpload()
     {
+        if (filesToBeUploaded.Count > 100)
+        {
+            uploadErrors.Add("Too many files to upload at once. Maximum is 100");
+            return;
+        }
+
+        if (filesToBeUploaded.Count < 1)
+        {
+            uploadInProgress = false;
+            uploadStatus = null;
+            showUploadOverlay = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var toUpload = filesToBeUploaded.First();
+        filesToBeUploaded.Remove(toUpload);
+        uploadStatus = $"Uploading: \"{toUpload.Name}\" with size of {toUpload.Size.BytesToMiB()}";
         uploadInProgress = true;
+        await InvokeAsync(StateHasChanged);
+
+        // First get the upload URL from the server
+
+        // Then begin the file upload
+        await UploadFile(toUpload, "http://localhost:5000/api/stuff");
+
+        // And start the next upload if we still have files to upload
+        await BeginNextUpload();
+    }
+
+    private async Task UploadFile(IBrowserFile file, string url)
+    {
+        HttpResponseMessage result;
+
+        try
+        {
+            var content = new StreamContent(file.OpenReadStream(AppInfo.MaxGeneralFileStoreSize));
+
+            // Ensure right content type for the upload
+            content.Headers.ContentType = MediaTypeHeaderValue.Parse(
+                string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType);
+
+            result = await fileUploadClient.Value.PutAsync(url, content);
+        }
+        catch (Exception e)
+        {
+            uploadErrors.Add($"{file.Name}: upload start failed: {e.Message}");
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var responseContent = await result.Content.ReadAsStringAsync();
+            uploadErrors.Add($"{file.Name}: server responded with: {responseContent}, {result.StatusCode}");
+        }
     }
 }

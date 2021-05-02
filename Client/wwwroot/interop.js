@@ -32,15 +32,28 @@ function getStaticHomePageNotice() {
     return element.value;
 }
 
-function registerFileDropArea(element) {
+// Helper for getting dropped files into C# by going through an InputFile
+// This workaround is needed until this feature is done: https://github.com/dotnet/aspnetcore/issues/18754
+function registerFileDropArea(dropElement, inputElementId) {
     // Looks like there's no way to reliably check this from C# so this check is here
-    if(!element)
+    if (!dropElement)
         return;
 
-    element.addEventListener("drop", dropAreaReceivedDrop, false);
-}
+    // Skip duplicate listeners
+    if (dropElement.dataset.dropListen === inputElementId)
+        return;
 
-function dropAreaReceivedDrop(event) {
-    event.preventDefault();
-    console.log("Got event:", event);
+    dropElement.addEventListener("drop", (event) => {
+        event.preventDefault();
+
+        const inputElement = document.getElementById(inputElementId);
+        inputElement.files = event.dataTransfer.files;
+
+        // Need to trigger an event to make the C# code notice this
+        const changeEvent = new Event('change');
+        inputElement.dispatchEvent(changeEvent);
+
+    }, false);
+
+    dropElement.dataset.dropListen = inputElementId;
 }

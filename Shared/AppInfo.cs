@@ -54,6 +54,11 @@ namespace ThriveDevCenter.Shared
         public const long MaxDevBuildUploadSize = 50 * MEBIBYTE;
 
         /// <summary>
+        ///   Maximum size of a file uploaded to the general file storage by a client
+        /// </summary>
+        public const long MaxGeneralFileStoreSize = 1024 * MEBIBYTE;
+
+        /// <summary>
         ///   Sessions (and cookies) expire after 30 days of inactivity
         /// </summary>
         public const int SessionExpirySeconds = 60 * 60 * 24 * 30;
