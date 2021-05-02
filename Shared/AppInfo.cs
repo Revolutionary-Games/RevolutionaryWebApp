@@ -92,7 +92,7 @@ namespace ThriveDevCenter.Shared
         public static readonly TimeSpan LauncherLinkCodeExpireTime = TimeSpan.FromMinutes(15);
 
         public const int Major = 1;
-        public const int Minor = 7;
+        public const int Minor = 8;
 
         public const int DefaultMaxLauncherLinks = 5;
 

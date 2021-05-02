@@ -78,7 +78,6 @@ function putFormFile(fileName, url) {
 
     delete fileObjects[fileName];
 
-    console.log(file);
     return new Promise((resolve, reject) => {
         fetch(url, {
             method: 'PUT',
