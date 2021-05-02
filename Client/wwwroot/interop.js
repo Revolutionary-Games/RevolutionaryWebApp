@@ -1,6 +1,9 @@
 // Interop methods for ThriveDevCenter
 "use strict";
 
+// Hack to pass around proper File objects with the logic in C#
+const fileObjects = {};
+
 function addToHistory(uri) {
     // Skip if not supported
     if (!history) {
@@ -56,4 +59,50 @@ function registerFileDropArea(dropElement, inputElementId) {
     }, false);
 
     dropElement.dataset.dropListen = inputElementId;
+}
+
+// Hack needed for putFormFile to work
+function storeFileInputFilesForLaterUse(inputElementId) {
+    const inputElement = document.getElementById(inputElementId);
+
+    for (const file of inputElement.files)
+        fileObjects[file.name] = file;
+}
+
+// C# can't properly stream file bodies, so this helper is used to put form files
+function putFormFile(fileName, url) {
+    const file = fileObjects[fileName];
+
+    if (!file)
+        return "Form file object not found";
+
+    delete fileObjects[fileName];
+
+    console.log(file);
+    return new Promise((resolve, reject) => {
+        fetch(url, {
+            method: 'PUT',
+            headers: {
+                "Content-Type": file.type ?? "application/octet-stream"
+            },
+            body: file
+        }).then(response => {
+            if (!response.ok) {
+                response.text().then(text => {
+                    resolve("Invalid response from server (" + response.status + "): " + text);
+                }).catch(error => {
+                    resolve("Invalid response from server (" + response.status + "): (failed to read body)");
+                })
+            } else {
+                resolve();
+            }
+        }).catch(error => {
+            let extra = "";
+            if(error.response){
+                extra = " server responded with (" + error.response.status + ")";
+            }
+
+            resolve("Fetch error: " + error + extra);
+        });
+    })
 }

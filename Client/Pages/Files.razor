@@ -257,11 +257,6 @@ else
     private readonly List<string> uploadErrors = new List<string>();
     private readonly List<IBrowserFile> filesToBeUploaded = new();
 
-    /// <summary>
-    ///   Separate HttpClient used for file uploads as we don't want our CSRF etc. default handling to apply
-    /// </summary>
-    private readonly Lazy<HttpClient> fileUploadClient = new();
-
     private bool folderPathParsed;
 
     private long? parsedFolderId;
@@ -589,7 +584,7 @@ else
         await BeginNextUpload();
     }
 
-    private void OnInputFilesChanged(InputFileChangeEventArgs args)
+    private async Task OnInputFilesChanged(InputFileChangeEventArgs args)
     {
         if (args.FileCount < 1)
         {
@@ -610,6 +605,8 @@ else
             {
                 filesToBeUploaded.Add(args.File);
             }
+
+            await js.InvokeVoidAsync("storeFileInputFilesForLaterUse", "filesToUploadSelection");
         }
         catch (Exception e)
         {
@@ -648,7 +645,25 @@ else
             return;
         }
 
-        if (filesToBeUploaded.Count < 1)
+        IBrowserFile toUpload = null;
+
+        while (filesToBeUploaded.Count > 0)
+        {
+            toUpload = filesToBeUploaded.First();
+            filesToBeUploaded.Remove(toUpload);
+
+            if (toUpload.Size > AppInfo.MaxGeneralFileStoreSize)
+            {
+                uploadErrors.Add($"File \"{toUpload.Name}\" is too large. Max size is: "+
+                    $"{AppInfo.MaxGeneralFileStoreSize.BytesToMiB()}");
+                toUpload = null;
+                continue;
+            }
+
+            break;
+        }
+
+        if (toUpload == null)
         {
             uploadInProgress = false;
             uploadStatus = null;
@@ -657,8 +672,6 @@ else
             return;
         }
 
-        var toUpload = filesToBeUploaded.First();
-        filesToBeUploaded.Remove(toUpload);
         uploadStatus = $"Uploading: \"{toUpload.Name}\" with size of {toUpload.Size.BytesToMiB()}";
         uploadInProgress = true;
         await InvokeAsync(StateHasChanged);
@@ -666,7 +679,7 @@ else
         // First get the upload URL from the server
 
         // Then begin the file upload
-        await UploadFile(toUpload, "http://localhost:5000/api/stuff");
+        await UploadFile(toUpload, "https://s3.eu-central-1.wasabisys.com/thrive-dev-test/@upload/stuff2");
 
         // And start the next upload if we still have files to upload
         await BeginNextUpload();
@@ -674,29 +687,9 @@ else
 
     private async Task UploadFile(IBrowserFile file, string url)
     {
-        HttpResponseMessage result;
+        var error = await js.InvokeAsync<string>("putFormFile", file.Name, url);
 
-        try
-        {
-            var content = new StreamContent(file.OpenReadStream(AppInfo.MaxGeneralFileStoreSize));
-
-            // Ensure right content type for the upload
-            content.Headers.ContentType = MediaTypeHeaderValue.Parse(
-                string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType);
-
-            result = await fileUploadClient.Value.PutAsync(url, content);
-        }
-        catch (Exception e)
-        {
-            uploadErrors.Add($"{file.Name}: upload start failed: {e.Message}");
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-
-        if (!result.IsSuccessStatusCode)
-        {
-            var responseContent = await result.Content.ReadAsStringAsync();
-            uploadErrors.Add($"{file.Name}: server responded with: {responseContent}, {result.StatusCode}");
-        }
+        if(!string.IsNullOrEmpty(error))
+            uploadErrors.Add(error);
     }
 }
