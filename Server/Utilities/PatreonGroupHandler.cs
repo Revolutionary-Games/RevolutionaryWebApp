@@ -38,17 +38,21 @@ namespace ThriveDevCenter.Server.Utilities
 
             var patron = await database.Patrons.AsQueryable().FirstOrDefaultAsync(p => p.Email == email);
 
-            var username = user.Attributes.FullName;
+            var username = user.Attributes.Vanity;
 
-            if (string.IsNullOrEmpty(user.Attributes.Vanity))
+            if (string.IsNullOrWhiteSpace(username))
+                username = user.Attributes.FullName;
+
+            if (string.IsNullOrWhiteSpace(username))
             {
-                username = user.Attributes.Vanity;
+                // TODO: to resolve already used name conflicts the Id could be appended here
+                username = user.Attributes.FirstName;
             }
 
-            if (string.IsNullOrEmpty(username))
+            if (string.IsNullOrWhiteSpace(username))
             {
-                // Fallback to using the email if everything failed...
-                username = email;
+                // Fallback to using the id if everything failed...
+                username = $"Patron #{user.Id}";
             }
 
             if (patron == null)
