@@ -91,7 +91,7 @@ namespace ThriveDevCenter.Server.Models
             // notifications and that leaks some information
             yield return new Tuple<SerializedNotification, string>(
                 new CIProjectUpdated() { Item = GetDTO() },
-                NotificationGroups.CIProjectItemUpdatedPrefix + Id);
+                NotificationGroups.CIProjectUpdatedPrefix + Id);
         }
     }
 }

@@ -144,10 +144,10 @@ else
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.LFSListUpdated);
+        groups.Add(NotificationGroups.CIProjectListUpdated);
 
         if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
-            groups.Add(NotificationGroups.PrivateLFSUpdated);
+            groups.Add(NotificationGroups.PrivateCIProjectUpdated);
     }
 
     public override async ValueTask DisposeAsync()

@@ -163,10 +163,12 @@ namespace ThriveDevCenter.Server.Hubs
                 case NotificationGroups.AccessKeyListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
+                case NotificationGroups.PrivateCIProjectUpdated:
                     return RequireAccessLevel(UserAccessLevel.Developer, user);
                 case NotificationGroups.DevBuildsListUpdated:
                     return RequireAccessLevel(UserAccessLevel.User, user);
                 case NotificationGroups.LFSListUpdated:
+                case NotificationGroups.CIProjectListUpdated:
                     return RequireAccessLevel(UserAccessLevel.NotLoggedIn, user);
             }
 
@@ -193,9 +195,29 @@ namespace ThriveDevCenter.Server.Hubs
                 return item.Id == user?.Id;
             }
 
+            // TODO: refactor this with the same code that's after this
             if (groupName.StartsWith(NotificationGroups.LFSItemUpdatedPrefix))
             {
                 if (!GetTargetModelFromGroup(groupName, database.LfsProjects, out LfsProject item))
+                    return false;
+
+                if (RequireAccessLevel(UserAccessLevel.Admin, user))
+                    return true;
+
+                // Only admins see deleted items
+                if (item.Deleted)
+                    return false;
+
+                // Everyone sees public projects
+                if (item.Public)
+                    return true;
+
+                return RequireAccessLevel(UserAccessLevel.Developer, user);
+            }
+            
+            if (groupName.StartsWith(NotificationGroups.CIProjectUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.CiProjects, out CiProject item))
                     return false;
 
                 if (RequireAccessLevel(UserAccessLevel.Admin, user))
