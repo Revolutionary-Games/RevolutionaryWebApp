@@ -13,7 +13,7 @@
 @implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.CIProjectInfo>
 
-<h3>Git LFS Projects</h3>
+<h3>CI Projects</h3>
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -97,8 +97,8 @@ else
         </form>
     }
 
-    <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/LFSProject?deleted=true"
-                           RestoreEndpoint="api/v1/LFSProject/{0}/restore" />
+    <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/CIProject?deleted=true"
+                           RestoreEndpoint="api/v1/CIProject/{0}/restore" />
 
 </AccessLimited>
 
