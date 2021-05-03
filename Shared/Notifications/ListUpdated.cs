@@ -57,4 +57,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class FolderContentsUpdated : ListUpdated<StorageItemInfo>
     {
     }
+
+    public class CIProjectListUpdated : ListUpdated<CIProjectInfo>
+    {
+    }
 }

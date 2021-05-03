@@ -32,6 +32,10 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<AdminAction> AdminActions { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
         public DbSet<GithubWebhook> GithubWebhooks { get; set; }
+        public DbSet<CiProject> CiProjects { get; set; }
+        public DbSet<CiBuild> CiBuilds { get; set; }
+        public DbSet<CiJob> CiJobs { get; set; }
+        public DbSet<CiJobArtifact> CiJobArtifacts { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -67,7 +71,7 @@ namespace ThriveDevCenter.Server.Models
 
             foreach (var entry in changedEntities)
             {
-                if(entry.State != EntityState.Added && entry.State != EntityState.Modified)
+                if (entry.State != EntityState.Added && entry.State != EntityState.Modified)
                     continue;
 
                 if (entry.Entity is IContainsHashedLookUps containsHashedLookUps)
@@ -174,10 +178,7 @@ namespace ThriveDevCenter.Server.Models
                     .WithMany(p => p.LfsObjects).OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<LfsProject>(entity =>
-            {
-                entity.Property(e => e.Deleted).HasDefaultValue(false);
-            });
+            modelBuilder.Entity<LfsProject>(entity => { entity.Property(e => e.Deleted).HasDefaultValue(false); });
 
             modelBuilder.Entity<PatreonSettings>(entity => { });
 
@@ -283,6 +284,34 @@ namespace ThriveDevCenter.Server.Models
                     .OnDelete(DeleteBehavior.SetNull);
                 entity.HasOne(d => d.PerformedBy).WithMany(p => p.PerformedAdminActions)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<CiProject>(entity =>
+            {
+                entity.HasMany(p => p.CiBuilds).WithOne(d => d.CiProject)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CiBuild>(entity =>
+            {
+                entity.HasKey(nameof(CiBuild.CiProjectId), nameof(CiBuild.CiBuildId));
+
+                entity.HasMany(p => p.CiJobs).WithOne(d => d.Build)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CiJob>(entity =>
+            {
+                entity.HasKey(nameof(CiJob.CiProjectId), nameof(CiJob.CiBuildId), nameof(CiJob.CiJobId));
+
+                entity.HasMany(p => p.CiJobArtifacts).WithOne(d => d.Job)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CiJobArtifact>(entity =>
+            {
+                entity.HasKey(nameof(CiJobArtifact.CiProjectId), nameof(CiJobArtifact.CiBuildId),
+                    nameof(CiJobArtifact.CiJobId), nameof(CiJobArtifact.CiJobArtifactId));
             });
         }
     }
