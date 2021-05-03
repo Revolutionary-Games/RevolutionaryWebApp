@@ -21,7 +21,7 @@ namespace ThriveDevCenter.Server.Controllers
 
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class LFSProjectController : Controller
+    public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject, LFSProjectInfo, LFSProjectDTO>
     {
         private readonly ILogger<LFSProjectController> logger;
         private readonly NotificationsEnabledDb database;
@@ -33,54 +33,8 @@ namespace ThriveDevCenter.Server.Controllers
             this.database = database;
         }
 
-        [HttpGet]
-        public async Task<PagedResult<LFSProjectInfo>> Get([Required] string sortColumn,
-            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-            [Required] [Range(1, 50)] int pageSize, bool deleted = false)
-        {
-            // Only admins can view deleted items
-            if (deleted &&
-                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
-            {
-                throw new HttpResponseException()
-                    { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
-            }
-
-            IQueryable<LfsProject> query;
-
-            try
-            {
-                query = database.LfsProjects.AsQueryable().Where(p => p.Deleted == deleted)
-                    .OrderBy(sortColumn, sortDirection);
-            }
-            catch (ArgumentException e)
-            {
-                logger.LogWarning("Invalid requested order: {@E}", e);
-                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
-            }
-
-            var objects = await query.ToPagedResultAsync(page, pageSize);
-
-            return objects.ConvertResult(i => i.GetInfo());
-        }
-
-        [HttpGet("{id:long}")]
-        public async Task<ActionResult<LFSProjectDTO>> GetSingle([Required] long id)
-        {
-            var item = await FindAndCheckAccess(id);
-
-            if (item == null)
-                return NotFound();
-
-            // Only admins can view deleted items
-            if (item.Deleted &&
-                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
-            {
-                return NotFound();
-            }
-
-            return item.GetDTO();
-        }
+        protected override ILogger Logger => logger;
+        protected override DbSet<LfsProject> Entities => database.LfsProjects;
 
         [HttpGet("{id:long}/files")]
         public async Task<ActionResult<PagedResult<ProjectGitFileDTO>>> GetProjectFiles([Required] long id,
@@ -187,63 +141,25 @@ namespace ThriveDevCenter.Server.Controllers
             return Created($"/lfs/{project.Id}", project.GetDTO());
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        [HttpDelete("{id:long}")]
-        public async Task<ActionResult> DeleteProject([Required] long id)
+        protected override bool CheckExtraAccess(LfsProject project)
         {
-            var item = await FindAndCheckAccess(id);
-
-            if (item == null)
-                return NotFound();
-
-            if (item.Deleted)
-                return BadRequest("Resource is already deleted");
-
-            item.Deleted = true;
-            item.BumpUpdatedAt();
-            await database.SaveChangesAsync();
-
-            return Ok();
-        }
-
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        [HttpPost("{id:long}/restore")]
-        public async Task<ActionResult> RestoreProject([Required] long id)
-        {
-            var item = await FindAndCheckAccess(id);
-
-            if (item == null)
-                return NotFound();
-
-            if (!item.Deleted)
-                return BadRequest("Resource is not deleted");
-
-            item.Deleted = false;
-            item.BumpUpdatedAt();
-            await database.SaveChangesAsync();
-
-            return Ok();
-        }
-
-        [NonAction]
-        private async Task<LfsProject> FindAndCheckAccess(long id)
-        {
-            var project = await database.LfsProjects.FindAsync(id);
-
-            if (project == null)
-                return null;
-
             // Only developers can see private projects
             if (!project.Public)
             {
                 if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
                     AuthenticationScopeRestriction.None))
                 {
-                    return null;
+                    return false;
                 }
             }
 
-            return project;
+            return true;
+        }
+
+        protected override Task SaveResourceChanges(LfsProject resource)
+        {
+            resource.BumpUpdatedAt();
+            return database.SaveChangesAsync();
         }
     }
 }
