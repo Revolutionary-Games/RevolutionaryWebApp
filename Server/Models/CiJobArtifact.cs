@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Models
 {
+    using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
 
     public class CiJobArtifact
@@ -11,6 +12,9 @@ namespace ThriveDevCenter.Server.Models
         public long CiJobId { get; set; }
 
         public long CiJobArtifactId { get; set; }
+
+        [Required]
+        public string Name { get; set; }
 
         public long StorageItemId { get; set; }
 

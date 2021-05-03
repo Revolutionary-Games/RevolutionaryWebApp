@@ -312,6 +312,8 @@ namespace ThriveDevCenter.Server.Models
             {
                 entity.HasKey(nameof(CiJobArtifact.CiProjectId), nameof(CiJobArtifact.CiBuildId),
                     nameof(CiJobArtifact.CiJobId), nameof(CiJobArtifact.CiJobArtifactId));
+                entity.HasOne(d => d.StorageItem).WithMany(p => p.CiJobArtifacts)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

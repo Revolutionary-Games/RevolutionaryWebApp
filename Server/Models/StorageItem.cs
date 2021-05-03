@@ -49,6 +49,7 @@ namespace ThriveDevCenter.Server.Models
         // Things that can reference this
         public ICollection<DehydratedObject> DehydratedObjects { get; set; } = new HashSet<DehydratedObject>();
         public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
+        public ICollection<CiJobArtifact> CiJobArtifacts { get; set; } = new HashSet<CiJobArtifact>();
 
         public static Task<StorageItem> GetDevBuildsFolder(ApplicationDbContext database)
         {
