@@ -75,6 +75,15 @@ namespace ThriveDevCenter.Shared
         public const int LongerTableRefreshIntervalCutoff = 4;
         public const int LongestTableRefreshIntervalCutoff = 11;
 
+        public const long SingleResourceTableRowId = 1;
+
+        public const int Major = 1;
+        public const int Minor = 8;
+
+        public const int DefaultMaxLauncherLinks = 5;
+
+        public const int MinimumRedeemableCodeLength = 8;
+
         /// <summary>
         ///   The interval in seconds that a session use is updated to the database
         /// </summary>
@@ -90,13 +99,5 @@ namespace ThriveDevCenter.Shared
         public static readonly TimeSpan RemoteStorageDownloadExpireTime = TimeSpan.FromMinutes(15);
 
         public static readonly TimeSpan LauncherLinkCodeExpireTime = TimeSpan.FromMinutes(15);
-
-        public const int Major = 1;
-        public const int Minor = 8;
-
-        public const int DefaultMaxLauncherLinks = 5;
-
-        public const int MinimumRedeemableCodeLength = 8;
-
     }
 }

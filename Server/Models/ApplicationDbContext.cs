@@ -31,6 +31,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<RedeemableCode> RedeemableCodes { get; set; }
         public DbSet<AdminAction> AdminActions { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
+        public DbSet<GithubWebhook> GithubWebhooks { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save

@@ -1,0 +1,14 @@
+@page "/admin/github"
+@inject NavigationManager navManager
+<h3>Github Configuration</h3>
+
+<h4>Webhooks</h4>
+
+<p>Github webhook URL is: <a href="@GithubWebhookURL">@GithubWebhookURL</a></p>
+
+<GithubWebhookControls />
+
+@code {
+
+    private string GithubWebhookURL => new Uri(new Uri(navManager.Uri), "/api/v1/webhook/github").ToString();
+}
