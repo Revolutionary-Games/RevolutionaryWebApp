@@ -5,13 +5,12 @@ namespace ThriveDevCenter.Server.Controllers
     using System;
     using System.Buffers;
     using System.ComponentModel.DataAnnotations;
-    using System.IO;
-    using System.IO.Pipelines;
     using System.Security.Cryptography;
     using System.Text;
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Authorization;
     using Filters;
     using Hangfire;
     using Jobs;
@@ -56,7 +55,7 @@ namespace ThriveDevCenter.Server.Controllers
             var settings = await database.PatreonSettings.AsQueryable()
                 .FirstOrDefaultAsync(s => s.WebhookId == webhookId && s.Active == true);
 
-            var verifiedPayload = await CheckSignature(HttpContext.Request.BodyReader, settings);
+            var verifiedPayload = await CheckSignature(settings);
             logger.LogTrace("Got patreon payload: {VerifiedPayload}", verifiedPayload);
 
             PatreonAPIObjectResponse data;
@@ -197,7 +196,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<string> CheckSignature(PipeReader payload, PatreonSettings settings)
+        private async Task<string> CheckSignature(PatreonSettings settings)
         {
             if (!HttpContext.Request.Headers.TryGetValue("X-Patreon-Signature", out StringValues header) ||
                 header.Count != 1)
@@ -230,7 +229,7 @@ namespace ThriveDevCenter.Server.Controllers
             var neededSignature = Convert.ToHexString(new HMACMD5(Encoding.UTF8.GetBytes(settings.WebhookSecret))
                 .ComputeHash(rawPayload)).ToLowerInvariant();
 
-            if (neededSignature != actualSignature)
+            if (!SecurityHelpers.SlowEquals(neededSignature, actualSignature))
             {
                 logger.LogWarning("Patreon webhook signature didn't match expected value");
                 throw new HttpResponseException()
