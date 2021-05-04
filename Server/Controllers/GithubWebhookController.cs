@@ -87,9 +87,15 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     matched = true;
 
+                    // Detect next id
+                    // TODO: is there a better way to get this?
+                    var buildId = await database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == project.Id)
+                        .MaxAsync(b => b.CiBuildId) + 1;
+
                     var build = new CiBuild()
                     {
                         CiProjectId = project.Id,
+                        CiBuildId = buildId,
                         CommitHash = data.After,
                         RemoteRef = data.Ref
 

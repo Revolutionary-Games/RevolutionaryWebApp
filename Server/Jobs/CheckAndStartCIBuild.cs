@@ -61,6 +61,9 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 CiProjectId = ciProjectId,
                 CiBuildId = ciBuildId,
+
+                // TODO: assign sequential ids when multiple jobs are added
+                CiJobId = 1,
                 JobName = "test"
             };
 
