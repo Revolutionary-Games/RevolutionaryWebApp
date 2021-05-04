@@ -330,8 +330,9 @@ namespace ThriveDevCenter.Server
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
-            // TODO: remove this job once this has also been ran in production for a while
-            BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
+            // This is kept here if in the future more hashed fields are needed to be added so this might be needed
+            // in the future as well to update info in the db
+            // BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
         }
 
         private static void AddJobHelper<T>(string schedule) where T : class, IJob
