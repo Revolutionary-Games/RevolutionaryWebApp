@@ -39,6 +39,15 @@ dotnet watch run
 Then the development site should be available at http://localhost:5000
 now.
 
+## Running
+
+The server computer needs to the following packages
+aspnetcore-runtime-5.0 (at the time of writing), nginx, and git
+installed. Or you can alternatively have a different proxy
+server than nginx. Additionally of course the database and redis can be ran on
+the same server.
+
+TODO: add the example systemd and nginx files
 
 ### Getting an admin account
 
