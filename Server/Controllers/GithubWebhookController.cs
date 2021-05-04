@@ -10,6 +10,7 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Security.Cryptography;
     using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Threading;
     using System.Threading.Tasks;
     using Authorization;
@@ -72,16 +73,20 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            if (!string.IsNullOrEmpty(data.Ref))
+            if (!string.IsNullOrEmpty(data.Ref) && data.RefType != "branch" && !string.IsNullOrEmpty(data.After))
             {
-                // This is a push
+                // This is a push (commit)
                 logger.LogInformation("Received a push event for ref: {Ref}", data.Ref);
+
+                bool matched = false;
 
                 // Detect if this triggers any builds
                 foreach (var project in await database.CiProjects.AsQueryable().Where(p =>
                     p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
                     p.RepositoryFullName == data.Repository.FullName).ToListAsync())
                 {
+                    matched = true;
+
                     var build = new CiBuild()
                     {
                         CiProjectId = project.Id,
@@ -97,6 +102,12 @@ namespace ThriveDevCenter.Server.Controllers
                     jobClient.Enqueue<CheckAndStartCIBuild>(x =>
                         x.Execute(build.CiProjectId, build.CiBuildId, CancellationToken.None));
                 }
+
+                if (!matched)
+                    logger.LogWarning("Push event didn't match any repos: {Fullname}", data.Repository.FullName);
+            } else if (!string.IsNullOrEmpty(data.Ref))
+            {
+                // This is a branch push (or maybe a tag?)
             }
 
             // TODO: should this always be updated. Github might send us quite a few events if we subscribe to them all
@@ -152,6 +163,7 @@ namespace ThriveDevCenter.Server.Controllers
         public string Action { get; set; }
 
         [Required]
+        [JsonPropertyName("hook_id")]
         public long HookId { get; set; }
 
         public long Number { get; set; }
@@ -159,6 +171,9 @@ namespace ThriveDevCenter.Server.Controllers
         public bool Merged { get; set; }
 
         public string Ref { get; set; }
+
+        [JsonPropertyName("ref_type")]
+        public string RefType { get; set; }
 
         /// <summary>
         ///   Commit before Ref
@@ -228,10 +243,12 @@ namespace ThriveDevCenter.Server.Controllers
         public string Name { get; set; }
 
         [Required]
+        [JsonPropertyName("full_name")]
         public string FullName { get; set; }
 
         public bool Private { get; set; }
 
+        [JsonPropertyName("html_url")]
         public string HtmlUrl { get; set; }
 
         /// <summary>
@@ -242,9 +259,11 @@ namespace ThriveDevCenter.Server.Controllers
         public bool Fork { get; set; }
 
         [Required]
+        [JsonPropertyName("clone_url")]
         public string CloneUrl { get; set; }
 
         [Required]
+        [JsonPropertyName("default_branch")]
         public string DefaultBranch { get; set; }
     }
 
@@ -263,6 +282,7 @@ namespace ThriveDevCenter.Server.Controllers
         [Required]
         public long Id { get; set; }
 
+        [JsonPropertyName("html_url")]
         public string HtmlUrl { get; set; }
 
         /// <summary>
