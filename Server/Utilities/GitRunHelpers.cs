@@ -26,6 +26,7 @@ namespace ThriveDevCenter.Server.Utilities
             else
             {
                 // Just update remote
+                startInfo.WorkingDirectory = folder;
                 startInfo.ArgumentList.Add("remote");
                 startInfo.ArgumentList.Add("set-url");
                 startInfo.ArgumentList.Add("origin");
