@@ -36,6 +36,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<CiBuild> CiBuilds { get; set; }
         public DbSet<CiJob> CiJobs { get; set; }
         public DbSet<CiJobArtifact> CiJobArtifacts { get; set; }
+        public DbSet<ControlledServer> ControlledServers { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -314,6 +315,11 @@ namespace ThriveDevCenter.Server.Models
                     nameof(CiJobArtifact.CiJobId), nameof(CiJobArtifact.CiJobArtifactId));
                 entity.HasOne(d => d.StorageItem).WithMany(p => p.CiJobArtifacts)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ControlledServer>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
             });
         }
     }
