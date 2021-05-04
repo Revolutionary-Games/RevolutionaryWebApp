@@ -4,14 +4,20 @@ namespace ThriveDevCenter.Server.Controllers
 {
     using System;
     using System.Buffers;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
     using System.Text.Json;
+    using System.Threading;
     using System.Threading.Tasks;
     using Authorization;
     using Filters;
+    using Hangfire;
+    using Jobs;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using Models;
@@ -24,11 +30,14 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<GithubWebhookController> logger;
         private readonly ApplicationDbContext database;
+        private readonly IBackgroundJobClient jobClient;
 
-        public GithubWebhookController(ILogger<GithubWebhookController> logger, ApplicationDbContext database)
+        public GithubWebhookController(ILogger<GithubWebhookController> logger, ApplicationDbContext database,
+            IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.database = database;
+            this.jobClient = jobClient;
         }
 
         [HttpPost]
@@ -63,7 +72,32 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            // Didn't find anything to process here
+            if (!string.IsNullOrEmpty(data.Ref))
+            {
+                // This is a push
+                logger.LogInformation("Received a push event for ref: {Ref}", data.Ref);
+
+                // Detect if this triggers any builds
+                foreach (var project in await database.CiProjects.AsQueryable().Where(p =>
+                    p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
+                    p.RepositoryFullName == data.Repository.FullName).ToListAsync())
+                {
+                    var build = new CiBuild()
+                    {
+                        CiProjectId = project.Id,
+                        CommitHash = data.After,
+                        RemoteRef = data.Ref
+
+                        // TODO: include info about the other commits (and the before commit)
+                    };
+
+                    await database.CiBuilds.AddAsync(build);
+                    await database.SaveChangesAsync();
+
+                    jobClient.Enqueue<CheckAndStartCIBuild>(x =>
+                        x.Execute(build.CiProjectId, build.CiBuildId, CancellationToken.None));
+                }
+            }
 
             // TODO: should this always be updated. Github might send us quite a few events if we subscribe to them all
             hook.LastUsed = DateTime.UtcNow;
@@ -124,8 +158,24 @@ namespace ThriveDevCenter.Server.Controllers
 
         public bool Merged { get; set; }
 
+        public string Ref { get; set; }
+
+        /// <summary>
+        ///   Commit before Ref
+        /// </summary>
+        public string Before { get; set; }
+
+        /// <summary>
+        ///   Commit on Ref after a push
+        /// </summary>
+        public string After { get; set; }
+
+        public List<GithubCommit> Commits { get; set; }
+
+        public GithubPusher Pusher { get; set; }
+
         [Required]
-        public GithubHookContent Hook { get; set; }
+        public GithubHookInfo Hook { get; set; }
 
         public GithubRepository Repository { get; set; }
 
@@ -135,7 +185,33 @@ namespace ThriveDevCenter.Server.Controllers
         public GithubUserInfo Sender { get; set; }
     }
 
-    public class GithubHookContent
+    public class GithubCommit
+    {
+        /// <summary>
+        ///   Commit hash
+        /// </summary>
+        public string Id { get; set; }
+
+        public string Timestamp { get; set; }
+
+        public string Message { get; set; }
+
+        public CommitAuthor Author { get; set; }
+    }
+
+    public class CommitAuthor
+    {
+        public string Name { get; set; }
+        public string Email { get; set; }
+    }
+
+    public class GithubPusher
+    {
+        public string Name { get; set; }
+        public string Email { get; set; }
+    }
+
+    public class GithubHookInfo
     {
         [Required]
         public string Type { get; set; }
@@ -189,6 +265,9 @@ namespace ThriveDevCenter.Server.Controllers
 
         public string HtmlUrl { get; set; }
 
+        /// <summary>
+        ///   Valid values seem to be "User" and "Organization"
+        /// </summary>
         public string Type { get; set; } = "User";
     }
 }
