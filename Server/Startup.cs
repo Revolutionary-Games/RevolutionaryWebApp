@@ -166,6 +166,7 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<StaticHomePageNotice>();
             services.AddSingleton<LfsDownloadUrls>();
             services.AddSingleton<GeneralRemoteDownloadUrls>();
+            services.AddSingleton<ILocalTempFileLocks, LocalTempFileLocks>();
 
             services.AddScoped<IPatreonAPI, PatreonAPI>();
             services.AddScoped<LfsRemoteStorage>();
@@ -325,6 +326,7 @@ namespace ThriveDevCenter.Server
             AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
             AddJobHelper<CheckAllSSOUsersJob>(configurationSection["CheckAllSSOUsers"]);
             AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
+            AddJobHelper<RefreshLFSProjectFileTreesJob>(configurationSection["RefreshLFSFileTrees"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
