@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Jobs
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
@@ -62,7 +63,7 @@ namespace ThriveDevCenter.Server.Jobs
                     // We can now perform the provisioning
                     server.PublicAddress = EC2Controller.InstanceIP(status);
                     server.RunningSince = DateTime.UtcNow;
-                    PerformProvisioningCommands(server);
+                    await PerformProvisioningCommands(server);
                     break;
                 }
                 else
@@ -71,6 +72,7 @@ namespace ThriveDevCenter.Server.Jobs
                         server.InstanceId);
                     server.StatusLastChecked = DateTime.UtcNow;
                     server.BumpUpdatedAt();
+                    await database.SaveChangesAsync(cancellationToken);
                 }
             }
 
@@ -79,16 +81,24 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 logger.LogTrace("Server {Id} not yet fully provisioned", id);
                 jobClient.Schedule<ProvisionControlledServerJob>(x => Execute(id, CancellationToken.None),
-                    TimeSpan.FromSeconds(5));
+                    TimeSpan.FromSeconds(10));
             }
         }
 
         // TODO: make this async
-        private void PerformProvisioningCommands(ControlledServer server)
+        private async Task PerformProvisioningCommands(ControlledServer server)
         {
             logger.LogInformation("Beginning SSH connect to provision to {PublicAddress}", server.PublicAddress);
 
-            sshAccess.ConnectTo(server.PublicAddress.ToString());
+            try
+            {
+                sshAccess.ConnectTo(server.PublicAddress.ToString());
+            }
+            catch (SocketException)
+            {
+                logger.LogWarning("Connection failed (socket error), server is probably not up yet");
+                return;
+            }
 
             logger.LogInformation("Connected, running provisioning command...");
 
@@ -105,7 +115,9 @@ namespace ThriveDevCenter.Server.Jobs
             server.Status = ServerStatus.Running;
             server.LastMaintenance = DateTime.UtcNow;
             server.StatusLastChecked = DateTime.UtcNow;
+            server.ReservationType = ServerReservationType.None;
             server.BumpUpdatedAt();
+            await database.SaveChangesAsync();
             logger.LogInformation("Completed provisioning for server {Id}", server.Id);
         }
     }
