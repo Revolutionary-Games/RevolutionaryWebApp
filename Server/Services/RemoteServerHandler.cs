@@ -41,6 +41,8 @@ namespace ThriveDevCenter.Server.Services
                     EntityFrameworkQueryableExtensions.ToListAsync(database.ControlledServers));
         }
 
+        public bool NewServersAdded { get; private set; }
+
         public Task<List<ControlledServer>> GetServers()
         {
             return servers.Value;
@@ -86,6 +88,7 @@ namespace ThriveDevCenter.Server.Services
 
                         if (actualStatus == ServerStatus.Running)
                         {
+                            match.PublicAddress = EC2Controller.InstanceIP(status);
                             match.RunningSince = now;
                         }
                         else if (match.RunningSince != null)
@@ -167,7 +170,7 @@ namespace ThriveDevCenter.Server.Services
 
                         // This shouldn't create multiple at once, but the API returns a list
                         var awsServers = await ec2Controller.LaunchNewInstance();
-
+                        NewServersAdded = true;
                         bool first = true;
 
                         foreach (var awsServer in awsServers)
@@ -210,6 +213,7 @@ namespace ThriveDevCenter.Server.Services
 
                 // This shouldn't create multiple at once, but the API returns a list
                 var awsServers = await ec2Controller.LaunchNewInstance();
+                NewServersAdded = true;
 
                 foreach (var awsServer in awsServers)
                 {

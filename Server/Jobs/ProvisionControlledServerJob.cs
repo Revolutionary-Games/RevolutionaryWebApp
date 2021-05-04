@@ -54,13 +54,14 @@ namespace ThriveDevCenter.Server.Jobs
                 if (ourStatus == ServerStatus.Running)
                 {
                     // We can now perform the provisioning
+                    server.PublicAddress = EC2Controller.InstanceIP(status);
                     server.RunningSince = DateTime.UtcNow;
                     await PerformProvisioningCommands(server);
                     break;
                 }
                 else
                 {
-                    logger.LogInformation("Waiting server {Id} (instance: {InstanceId}) to boot up", id,
+                    logger.LogInformation("Waiting for server {Id} (instance: {InstanceId}) to boot up", id,
                         server.InstanceId);
                 }
             }
@@ -71,7 +72,7 @@ namespace ThriveDevCenter.Server.Jobs
             // If not provisioned yet, need to requeue this job
             if (!server.ProvisionedFully)
             {
-                logger.LogInformation("Server {Id} not yet fully provisioned", id);
+                logger.LogTrace("Server {Id} not yet fully provisioned", id);
                 jobClient.Schedule<ProvisionControlledServerJob>(x => Execute(id, CancellationToken.None),
                     TimeSpan.FromSeconds(5));
             }

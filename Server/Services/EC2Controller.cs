@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Services
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Amazon;
     using Amazon.EC2;
     using Amazon.EC2.Model;
     using Amazon.Runtime;
@@ -54,31 +55,36 @@ namespace ThriveDevCenter.Server.Services
 
             ec2Client = new AmazonEC2Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), new AmazonEC2Config()
             {
+                RegionEndpoint = RegionEndpoint.GetBySystemName(region),
                 AuthenticationRegion = region
             });
+
+            Configured = true;
         }
 
         public bool Configured { get; private set; }
 
         public static ServerStatus InstanceStateToStatus(Instance instance)
         {
-            if ((instance.State.Code & 32) != 0)
-                return ServerStatus.Stopping;
-
-            if ((instance.State.Code & 48) != 0)
-                return ServerStatus.Terminated;
-
-            if ((instance.State.Code & 64) != 0)
-                return ServerStatus.Stopping;
-
-            if ((instance.State.Code & 80) != 0)
-                return ServerStatus.Stopped;
-
-            if ((instance.State.Code & 16) != 0)
+            if (instance.State.Name == InstanceStateName.Running)
                 return ServerStatus.Running;
+            if (instance.State.Name == InstanceStateName.Pending)
+                return ServerStatus.WaitingForStartup;
+            if (instance.State.Name == InstanceStateName.Stopped)
+                return ServerStatus.Stopped;
+            if (instance.State.Name == InstanceStateName.Stopping)
+                return ServerStatus.Stopping;
+            if (instance.State.Name == InstanceStateName.Terminated)
+                return ServerStatus.Terminated;
+            if (instance.State.Name == InstanceStateName.ShuttingDown)
+                return ServerStatus.Stopping;
 
-            // Pending status if no other flag is set
-            return ServerStatus.WaitingForStartup;
+            throw new Exception("Unknown EC2 server status: " + instance.State.Name.Value);
+        }
+
+        public static IPAddress InstanceIP(Instance instance)
+        {
+            return IPAddress.Parse(instance.PublicIpAddress);
         }
 
         public async Task<List<string>> LaunchNewInstance()
@@ -93,6 +99,8 @@ namespace ThriveDevCenter.Server.Services
                 SubnetId = subnet,
                 SecurityGroupIds = new List<string>() { securityGroup },
                 EbsOptimized = true,
+                MinCount = 1,
+                MaxCount = 1,
                 HibernationOptions = new HibernationOptionsRequest()
                 {
                     Configured = true
@@ -107,7 +115,8 @@ namespace ThriveDevCenter.Server.Services
                             SnapshotId = rootFileSystemSnap,
                             DeleteOnTermination = true,
                             VolumeSize = defaultVolumeSize,
-                            VolumeType = VolumeType.Gp2
+                            VolumeType = VolumeType.Gp2,
+                            Encrypted = true
                         }
                     }
                 }
