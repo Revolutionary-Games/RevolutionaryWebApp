@@ -21,8 +21,9 @@ namespace ThriveDevCenter.Server.Jobs
         public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId,
             CancellationToken cancellationToken)
         {
-            var job = await database.CiJobs.FindAsync(ciProjectId, ciBuildId, ciJobId, cancellationToken);
-            var server = await database.ControlledServers.FindAsync(serverId, cancellationToken);
+            var job = await database.CiJobs.FindAsync(new object[] { ciProjectId, ciBuildId, ciJobId },
+                cancellationToken);
+            var server = await database.ControlledServers.FindAsync(new object[] { serverId }, cancellationToken);
 
             if (server == null)
                 throw new ArgumentException("Could not find server to run build on");
@@ -38,6 +39,8 @@ namespace ThriveDevCenter.Server.Jobs
 
             logger.LogInformation("Pretending that CI job {CIProjectId}-{CIBuildId}-{CIJobId} has run correctly",
                 ciProjectId, ciBuildId, ciJobId);
+
+            job.State = CIJobState.Finished;
 
             ReleaseServerReservation(server);
 

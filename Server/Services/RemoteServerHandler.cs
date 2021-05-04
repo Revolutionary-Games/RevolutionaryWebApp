@@ -84,6 +84,7 @@ namespace ThriveDevCenter.Server.Services
                     {
                         logger.LogInformation("Server {Id} is now in status: {ActualStatus}", match.Id, actualStatus);
                         match.Status = actualStatus;
+                        match.ReservationType = ServerReservationType.None;
                         match.BumpUpdatedAt();
 
                         if (actualStatus == ServerStatus.Running)
@@ -129,6 +130,7 @@ namespace ThriveDevCenter.Server.Services
                                 x.Execute(job.CiProjectId, job.CiBuildId, job.CiJobId, server.Id,
                                     CancellationToken.None));
                             found = true;
+                            break;
                         }
                     }
 
@@ -139,6 +141,9 @@ namespace ThriveDevCenter.Server.Services
                     }
                 }
             }
+
+            if (missingServer <= 0)
+                return !jobsNotRunning;
 
             // Starting and provisioning servers reduce the count of missing servers
             missingServer -= potentialServers.Count(s =>
@@ -234,7 +239,7 @@ namespace ThriveDevCenter.Server.Services
                 }
             }
 
-            return jobsNotRunning;
+            return !jobsNotRunning;
         }
 
         public async Task ShutdownIdleServers()
