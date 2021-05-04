@@ -62,7 +62,7 @@ namespace ThriveDevCenter.Server.Services
             Configured = true;
         }
 
-        public bool Configured { get; private set; }
+        public bool Configured { get; }
 
         public static ServerStatus InstanceStateToStatus(Instance instance)
         {

@@ -12,18 +12,24 @@ namespace ThriveDevCenter.Server.Jobs
 
     public class ProvisionControlledServerJob
     {
+        // TODO: put this somewhere more sensible
+        private const string ProvisioningCommand = "sudo dnf install -y podman ruby";
+
         private readonly ILogger<ProvisionControlledServerJob> logger;
         private readonly NotificationsEnabledDb database;
         private readonly EC2Controller ec2Controller;
         private readonly IBackgroundJobClient jobClient;
+        private readonly ControlledServerSSHAccess sshAccess;
 
         public ProvisionControlledServerJob(ILogger<ProvisionControlledServerJob> logger,
-            NotificationsEnabledDb database, EC2Controller ec2Controller, IBackgroundJobClient jobClient)
+            NotificationsEnabledDb database, EC2Controller ec2Controller, IBackgroundJobClient jobClient,
+            ControlledServerSSHAccess sshAccess)
         {
             this.logger = logger;
             this.database = database;
             this.ec2Controller = ec2Controller;
             this.jobClient = jobClient;
+            this.sshAccess = sshAccess;
         }
 
         public async Task Execute(long id, CancellationToken cancellationToken)
@@ -56,18 +62,17 @@ namespace ThriveDevCenter.Server.Jobs
                     // We can now perform the provisioning
                     server.PublicAddress = EC2Controller.InstanceIP(status);
                     server.RunningSince = DateTime.UtcNow;
-                    await PerformProvisioningCommands(server);
+                    PerformProvisioningCommands(server);
                     break;
                 }
                 else
                 {
                     logger.LogInformation("Waiting for server {Id} (instance: {InstanceId}) to boot up", id,
                         server.InstanceId);
+                    server.StatusLastChecked = DateTime.UtcNow;
+                    server.BumpUpdatedAt();
                 }
             }
-
-            server.StatusLastChecked = DateTime.UtcNow;
-            server.BumpUpdatedAt();
 
             // If not provisioned yet, need to requeue this job
             if (!server.ProvisionedFully)
@@ -78,14 +83,29 @@ namespace ThriveDevCenter.Server.Jobs
             }
         }
 
-        private async Task PerformProvisioningCommands(ControlledServer server)
+        // TODO: make this async
+        private void PerformProvisioningCommands(ControlledServer server)
         {
-            throw new Exception("TODO: connect with SSH to run stuff");
+            logger.LogInformation("Beginning SSH connect to provision to {PublicAddress}", server.PublicAddress);
+
+            sshAccess.ConnectTo(server.PublicAddress.ToString());
+
+            logger.LogInformation("Connected, running provisioning command...");
+
+            var result = sshAccess.RunCommand(ProvisioningCommand);
+
+            if (!result.Success)
+            {
+                logger.LogWarning("Failed provision result ({ExitCode}: {Result}", result.ExitCode, result.Result);
+                throw new Exception($"Provisioning commands failed ({result.ExitCode}): {result.Error}");
+            }
 
             // Now fully provisioned
             server.ProvisionedFully = true;
             server.Status = ServerStatus.Running;
             server.LastMaintenance = DateTime.UtcNow;
+            server.StatusLastChecked = DateTime.UtcNow;
+            server.BumpUpdatedAt();
             logger.LogInformation("Completed provisioning for server {Id}", server.Id);
         }
     }
