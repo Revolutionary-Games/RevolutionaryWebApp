@@ -45,10 +45,10 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 // Some job could not start running, try again in 5 seconds
                 logger.LogInformation(
-                    "One or more jobs could not start executing immediately, trying again in 5 seconds");
+                    "One or more jobs could not start executing immediately, trying again in 10 seconds");
                 queuedRecheck = true;
                 jobClient.Schedule<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None),
-                    TimeSpan.FromSeconds(5));
+                    TimeSpan.FromSeconds(10));
             }
 
             // Skip this if we should cancel
