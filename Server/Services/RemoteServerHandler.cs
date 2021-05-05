@@ -171,6 +171,10 @@ namespace ThriveDevCenter.Server.Services
                         foundAServer = true;
 
                         await ec2Controller.ResumeInstance(server.InstanceId);
+
+                        server.Status = ServerStatus.WaitingForStartup;
+                        server.StatusLastChecked = DateTime.UtcNow;
+                        await database.SaveChangesAsync();
                     }
                     else if (server.Status == ServerStatus.Terminated)
                     {
