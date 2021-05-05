@@ -174,6 +174,8 @@ namespace ThriveDevCenter.Server.Services
 
                         server.Status = ServerStatus.WaitingForStartup;
                         server.StatusLastChecked = DateTime.UtcNow;
+                        server.BumpUpdatedAt();
+
                         await database.SaveChangesAsync();
                     }
                     else if (server.Status == ServerStatus.Terminated)
@@ -204,6 +206,7 @@ namespace ThriveDevCenter.Server.Services
                             server.Status = ServerStatus.Provisioning;
                             server.LastMaintenance = DateTime.UtcNow;
                             server.StatusLastChecked = DateTime.UtcNow;
+                            server.BumpUpdatedAt();
 
                             await database.SaveChangesAsync();
 
