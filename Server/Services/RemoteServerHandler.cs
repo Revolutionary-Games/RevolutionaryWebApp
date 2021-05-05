@@ -97,6 +97,7 @@ namespace ThriveDevCenter.Server.Services
                         else if (match.RunningSince != null)
                         {
                             match.TotalRuntime += (now - match.RunningSince.Value).TotalSeconds;
+                            match.RunningSince = null;
                         }
                     }
                 }
