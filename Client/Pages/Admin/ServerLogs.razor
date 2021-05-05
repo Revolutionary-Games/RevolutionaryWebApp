@@ -1,9 +1,9 @@
 @page "/admin/serverLog"
-@inject HttpClient Http
-@inject NavigationManager NavManager
-@inject IJSRuntime JS
-@inject ComponentUrlHelper UrlHelper
-@inject NotificationHandler NotificationHandler
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -13,36 +13,38 @@
 @implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LogEntryDTO>
 
-<h3>Server Logs</h3>
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <h3>Server Logs</h3>
 
-@if (!string.IsNullOrEmpty(Error))
-{
-    <div class="alert alert-danger" role="alert">
-        @Error
-    </div>
-}
-else
-{
-    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                    OnPageChanged="async (e) => await ChangePage(e)"
-                    OnSortChanged="async (column) => await ChangeSort(column)"
-                    GetSortClass="@SortClass"
-                    ShowContentSpinner="@VisibleFetchInProgress"
-                    Columns="@columns"
-                    ShowNoContent="@NoItemsFound">
-        @if (Data != null)
-        {
-            @foreach (var item in Data.Results)
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound">
+            @if (Data != null)
             {
-                <tr @key="item.Id">
-                    <td>@item.Message</td>
-                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
-                    <td>@item.TargetUserId</td>
-                </tr>
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        <td>@item.Message</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.TargetUserId</td>
+                    </tr>
+                }
             }
-        }
-    </PaginatedTable>
-}
+        </PaginatedTable>
+    }
+</AccessLimited>
 
 @code {
     private readonly List<TableColumn> columns = new()
@@ -59,13 +61,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await NotificationHandler.Register(this);
+        await notificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        this.SetParametersFromQueryString(NavManager);
+        this.SetParametersFromQueryString(navManager);
 
         return base.SetParametersAsync(parameters);
     }
@@ -84,17 +86,17 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await NotificationHandler.Unregister(this);
+        await notificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<LogEntryDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<LogEntryDTO>>(
+        return http.GetFromJsonAsync<PagedResult<LogEntryDTO>>(
             QueryHelpers.AddQueryString("api/v1/Logs/logs", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
-        await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 }

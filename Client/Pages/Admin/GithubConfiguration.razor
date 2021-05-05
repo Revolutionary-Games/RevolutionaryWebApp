@@ -1,12 +1,16 @@
 @page "/admin/github"
+@using ThriveDevCenter.Shared.Models
 @inject NavigationManager navManager
-<h3>Github Configuration</h3>
 
-<h4>Webhooks</h4>
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <h3>Github Configuration</h3>
 
-<p>Github webhook URL is: <a href="@GithubWebhookURL">@GithubWebhookURL</a></p>
+    <h4>Webhooks</h4>
 
-<GithubWebhookControls />
+    <p>Github webhook URL is: <a href="@GithubWebhookURL">@GithubWebhookURL</a></p>
+
+    <GithubWebhookControls />
+</AccessLimited>
 
 @code {
 
