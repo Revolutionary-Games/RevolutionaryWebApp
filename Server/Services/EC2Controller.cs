@@ -147,7 +147,7 @@ namespace ThriveDevCenter.Server.Services
 
             var response = await ec2Client.StartInstancesAsync(new StartInstancesRequest()
             {
-                InstanceIds = new List<string>()
+                InstanceIds = new List<string>() { instanceId }
             });
 
             CheckStatusCode(response.HttpStatusCode);

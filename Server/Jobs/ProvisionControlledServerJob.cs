@@ -90,7 +90,7 @@ namespace ThriveDevCenter.Server.Jobs
         // TODO: make this async
         private async Task PerformProvisioningCommands(ControlledServer server)
         {
-            logger.LogInformation("Beginning SSH connect to provision to {PublicAddress}", server.PublicAddress);
+            logger.LogInformation("Beginning SSH connect to provision server at: {PublicAddress}", server.PublicAddress);
 
             try
             {
