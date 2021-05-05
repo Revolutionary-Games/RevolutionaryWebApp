@@ -3,8 +3,10 @@ namespace ThriveDevCenter.Server.Models
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Text.Json.Serialization;
     using Microsoft.EntityFrameworkCore;
     using Shared;
+    using Shared.Converters;
     using Shared.Models;
     using Shared.Notifications;
     using Utilities;
@@ -19,11 +21,13 @@ namespace ThriveDevCenter.Server.Models
 
         [AllowSortingBy]
         public ServerReservationType ReservationType { get; set; } = ServerReservationType.None;
+
         public long? ReservedFor { get; set; }
 
         /// <summary>
         ///   When running has the address to connect to the server
         /// </summary>
+        [JsonConverter(typeof(IPAddressConverter))]
         public IPAddress PublicAddress { get; set; }
 
         [AllowSortingBy]
