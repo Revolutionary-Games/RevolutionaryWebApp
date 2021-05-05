@@ -55,6 +55,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             server.ReservationType = ServerReservationType.None;
             server.ReservedFor = null;
+            server.BumpUpdatedAt();
         }
     }
 }

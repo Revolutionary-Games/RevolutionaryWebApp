@@ -23,6 +23,7 @@ namespace ThriveDevCenter.Server.Services
 
         private readonly int shutdownIdleDelay;
         private readonly int maximumRunningServers;
+        private readonly bool useHibernate;
         private readonly TimeSpan terminateStoppedServerDelay = TimeSpan.FromDays(7);
         private readonly TimeSpan serverMaintenanceInterval = TimeSpan.FromDays(90);
 
@@ -35,6 +36,7 @@ namespace ThriveDevCenter.Server.Services
             this.jobClient = jobClient;
             shutdownIdleDelay = Convert.ToInt32(configuration["CI:ServerIdleTimeBeforeStop"]);
             maximumRunningServers = Convert.ToInt32(configuration["CI:MaximumConcurrentServers"]);
+            useHibernate = Convert.ToBoolean(configuration["CI:UseHibernate"]);
 
             servers =
                 new Lazy<Task<List<ControlledServer>>>(() =>
@@ -149,6 +151,9 @@ namespace ThriveDevCenter.Server.Services
             missingServer -= potentialServers.Count(s =>
                 s.Status == ServerStatus.Provisioning || s.Status == ServerStatus.WaitingForStartup);
 
+            // TODO: implement a server sweetspot, under which new servers can start as fast as wanted, but above
+            // only a single server is allowed to be provisioning or starting at once
+
             // Start some existing servers
             while (missingServer > 0)
             {
@@ -211,8 +216,7 @@ namespace ThriveDevCenter.Server.Services
             }
 
             // If still not enough, create new servers if allowed
-            int startedNewServers = 0;
-            while (missingServer > 0 && potentialServers.Count + startedNewServers < maximumRunningServers)
+            while (missingServer > 0 && potentialServers.Count < maximumRunningServers)
             {
                 logger.LogInformation("Creating a new server to meet demand");
 
@@ -227,7 +231,6 @@ namespace ThriveDevCenter.Server.Services
                         InstanceId = awsServer
                     };
 
-                    ++startedNewServers;
                     --missingServer;
 
                     await database.ControlledServers.AddAsync(server);
@@ -237,6 +240,9 @@ namespace ThriveDevCenter.Server.Services
 
                     jobClient.Enqueue<ProvisionControlledServerJob>(x => x.Execute(server.Id, CancellationToken.None));
                 }
+
+                // Only allow creating one new server per invocation
+                break;
             }
 
             return !jobsNotRunning;
@@ -255,10 +261,12 @@ namespace ThriveDevCenter.Server.Services
                     var idleTime = now - server.UpdatedAt;
                     if (idleTime > TimeSpan.FromSeconds(shutdownIdleDelay))
                     {
-                        logger.LogInformation("Hibernating server {Id} because it's been idle for: {IdleTime}",
+                        var action = useHibernate ? "Hibernating" : "Stopping";
+
+                        logger.LogInformation("{Action} server {Id} because it's been idle for: {IdleTime}", action,
                             server.Id, idleTime);
 
-                        await ec2Controller.StopInstance(server.InstanceId);
+                        await ec2Controller.StopInstance(server.InstanceId, useHibernate);
 
                         server.Status = ServerStatus.Stopping;
                         server.BumpUpdatedAt();

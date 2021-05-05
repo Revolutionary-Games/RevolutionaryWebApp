@@ -23,6 +23,8 @@ namespace ThriveDevCenter.Server.Services
         private readonly string rootFileSystemSnap;
         private readonly string rootFileSystemPath;
         private readonly int defaultVolumeSize;
+        private readonly bool encryptVolumes;
+        private readonly bool allowHibernate;
 
         private readonly AmazonEC2Client ec2Client;
 
@@ -40,6 +42,8 @@ namespace ThriveDevCenter.Server.Services
             rootFileSystemSnap = configuration["CI:RootFileSystemSnap"];
             rootFileSystemPath = configuration["CI:RootFileSystemPath"];
             defaultVolumeSize = Convert.ToInt32(configuration["CI:DefaultVolumeSizeGiB"]);
+            encryptVolumes = Convert.ToBoolean(configuration["CI:EncryptVolumes"]);
+            allowHibernate = Convert.ToBoolean(configuration["CI:UseHibernate"]);
 
             // TODO: should *all* the variables be checked here
             if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(accessKeyId) ||
@@ -48,6 +52,9 @@ namespace ThriveDevCenter.Server.Services
                 Configured = false;
                 return;
             }
+
+            if (allowHibernate && !encryptVolumes)
+                throw new ArgumentException("Encryption must be enabled if hibernate is enabled");
 
             // A quick sanity check on the volume sizes
             if (defaultVolumeSize < 5 || defaultVolumeSize > 1000)
@@ -103,7 +110,7 @@ namespace ThriveDevCenter.Server.Services
                 MaxCount = 1,
                 HibernationOptions = new HibernationOptionsRequest()
                 {
-                    Configured = true
+                    Configured = allowHibernate
                 },
                 BlockDeviceMappings = new List<BlockDeviceMapping>()
                 {
@@ -116,7 +123,7 @@ namespace ThriveDevCenter.Server.Services
                             DeleteOnTermination = true,
                             VolumeSize = defaultVolumeSize,
                             VolumeType = VolumeType.Gp2,
-                            Encrypted = true
+                            Encrypted = encryptVolumes
                         }
                     }
                 }
@@ -177,14 +184,14 @@ namespace ThriveDevCenter.Server.Services
                 throw new Exception("EC2 server failed to be terminated");
         }
 
-        public async Task StopInstance(string instanceId)
+        public async Task StopInstance(string instanceId, bool hibernate)
         {
             ThrowIfNotConfigured();
 
             var response = await ec2Client.StopInstancesAsync(new StopInstancesRequest()
             {
                 InstanceIds = new List<string>() { instanceId },
-                Hibernate = true
+                Hibernate = hibernate
             });
 
             CheckStatusCode(response.HttpStatusCode);

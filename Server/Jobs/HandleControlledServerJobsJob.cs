@@ -43,7 +43,6 @@ namespace ThriveDevCenter.Server.Jobs
             // Cancellation tokens are not used from here on out to avoid not saving changes
             if (!await serverHandler.HandleCIJobs(ciJobsNeedingActions))
             {
-                // Some job could not start running, try again in 5 seconds
                 logger.LogInformation(
                     "One or more jobs could not start executing immediately, trying again in 10 seconds");
                 queuedRecheck = true;
