@@ -330,6 +330,8 @@ namespace ThriveDevCenter.Server
             AddJobHelper<CheckAllSSOUsersJob>(configurationSection["CheckAllSSOUsers"]);
             AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
             AddJobHelper<RefreshLFSProjectFileTreesJob>(configurationSection["RefreshLFSFileTrees"]);
+            AddJobHelper<DetectStuckServersJob>(configurationSection["DetectStuckServers"]);
+            AddJobHelper<DetectLeftOnServersJob>(configurationSection["DetectLeftOnServers"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
