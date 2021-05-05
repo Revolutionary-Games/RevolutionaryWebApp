@@ -34,7 +34,10 @@ namespace ThriveDevCenter.Server.Services
         {
             client?.Dispose();
 
-            var connectionInfo = new ConnectionInfo(address, username, keyAuth);
+            var connectionInfo = new ConnectionInfo(address, username, keyAuth)
+            {
+                Timeout = TimeSpan.FromSeconds(10)
+            };
 
             client = new SshClient(connectionInfo);
 

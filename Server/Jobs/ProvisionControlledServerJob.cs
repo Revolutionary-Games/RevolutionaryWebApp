@@ -8,13 +8,15 @@ namespace ThriveDevCenter.Server.Jobs
     using Hangfire;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Renci.SshNet.Common;
     using Services;
     using Shared.Models;
 
     public class ProvisionControlledServerJob
     {
         // TODO: put this somewhere more sensible
-        private const string ProvisioningCommand = "sudo dnf install -y podman ruby";
+        private const string ProvisioningCommand =
+            "sudo dnf install -y podman ruby curl && sudo gem install httparty os colorize";
 
         private readonly ILogger<ProvisionControlledServerJob> logger;
         private readonly NotificationsEnabledDb database;
@@ -96,12 +98,18 @@ namespace ThriveDevCenter.Server.Jobs
             }
             catch (SocketException)
             {
-                logger.LogWarning("Connection failed (socket error), server is probably not up yet");
+                logger.LogWarning("Connection failed (socket exception), server is probably not up yet");
+                return;
+            }
+            catch (SshOperationTimeoutException)
+            {
+                logger.LogWarning("Connection failed (ssh timed out), server is probably not up yet");
                 return;
             }
 
             logger.LogInformation("Connected, running provisioning command...");
 
+            var start = DateTime.UtcNow;
             var result = sshAccess.RunCommand(ProvisioningCommand);
 
             if (!result.Success)
@@ -118,7 +126,9 @@ namespace ThriveDevCenter.Server.Jobs
             server.ReservationType = ServerReservationType.None;
             server.BumpUpdatedAt();
             await database.SaveChangesAsync();
-            logger.LogInformation("Completed provisioning for server {Id}", server.Id);
+
+            var elapsed = DateTime.UtcNow - start;
+            logger.LogInformation("Completed provisioning for server {Id}, elapsed: {Elapsed}", server.Id, elapsed);
         }
     }
 }
