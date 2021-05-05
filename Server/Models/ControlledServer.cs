@@ -1,14 +1,23 @@
 namespace ThriveDevCenter.Server.Models
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
+    using Microsoft.EntityFrameworkCore;
+    using Shared;
     using Shared.Models;
+    using Shared.Notifications;
+    using Utilities;
 
-    public class ControlledServer : UpdateableModel
+    public class ControlledServer : UpdateableModel, IUpdateNotifications
     {
+        [AllowSortingBy]
         public ServerStatus Status { get; set; } = ServerStatus.Provisioning;
-        public DateTime StatusLastChecked { get; set; }= DateTime.UtcNow;
 
+        [AllowSortingBy]
+        public DateTime StatusLastChecked { get; set; } = DateTime.UtcNow;
+
+        [AllowSortingBy]
         public ServerReservationType ReservationType { get; set; } = ServerReservationType.None;
         public long? ReservedFor { get; set; }
 
@@ -17,8 +26,10 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         public IPAddress PublicAddress { get; set; }
 
+        [AllowSortingBy]
         public DateTime? RunningSince { get; set; }
 
+        [AllowSortingBy]
         public double TotalRuntime { get; set; } = 0.0;
 
         // TODO: hook these two up so that a maintenance job can recreate outdated servers
@@ -36,8 +47,39 @@ namespace ThriveDevCenter.Server.Models
         /// <summary>
         ///   If true no new jobs are allowed to start
         /// </summary>
+        [AllowSortingBy]
         public bool WantsMaintenance { get; set; }
 
+        [AllowSortingBy]
         public DateTime LastMaintenance { get; set; } = DateTime.UtcNow;
+
+        public ControlledServerDTO GetDTO()
+        {
+            return new()
+            {
+                Id = Id,
+                Status = Status,
+                StatusLastChecked = StatusLastChecked,
+                ReservationType = ReservationType,
+                PublicAddress = PublicAddress,
+                RunningSince = RunningSince,
+                TotalRuntime = TotalRuntime,
+                ProvisionedFully = ProvisionedFully,
+                InstanceId = InstanceId,
+                WantsMaintenance = WantsMaintenance,
+                LastMaintenance = LastMaintenance,
+                CreatedAt = CreatedAt,
+                UpdatedAt = UpdatedAt
+            };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            yield return new Tuple<SerializedNotification, string>(new ControlledServersUpdated()
+            {
+                Type = entityState.ToChangeType(),
+                Item = GetDTO()
+            }, NotificationGroups.ControlledServerListUpdated);
+        }
     }
 }

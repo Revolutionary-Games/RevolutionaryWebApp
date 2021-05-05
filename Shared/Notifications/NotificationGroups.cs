@@ -30,6 +30,8 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string FolderContentsUpdatedDeveloperPrefix = "DeveloperFolder_";
         public const string FolderContentsUpdatedOwnerPrefix = "OwnerFolder_";
 
+        public const string ControlledServerListUpdated = "CServers";
+
         public const string UserLauncherLinksUpdatedPrefix = "UserLaunchers_";
     }
 }

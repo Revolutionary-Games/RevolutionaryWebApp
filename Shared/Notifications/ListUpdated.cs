@@ -61,4 +61,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CIProjectListUpdated : ListUpdated<CIProjectInfo>
     {
     }
+
+    public class ControlledServersUpdated : ListUpdated<ControlledServerDTO>
+    {
+    }
 }

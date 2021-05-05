@@ -161,6 +161,7 @@ namespace ThriveDevCenter.Server.Hubs
                 case NotificationGroups.UserListUpdated:
                 case NotificationGroups.PatronListUpdated:
                 case NotificationGroups.AccessKeyListUpdated:
+                case NotificationGroups.ControlledServerListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
                 case NotificationGroups.PrivateCIProjectUpdated:
@@ -214,7 +215,7 @@ namespace ThriveDevCenter.Server.Hubs
 
                 return RequireAccessLevel(UserAccessLevel.Developer, user);
             }
-            
+
             if (groupName.StartsWith(NotificationGroups.CIProjectUpdatedPrefix))
             {
                 if (!GetTargetModelFromGroup(groupName, database.CiProjects, out CiProject item))

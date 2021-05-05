@@ -1,5 +1,97 @@
-<h3>ControlledServers</h3>
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ControlledServersUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ControlledServerDTO>
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound"
+                        UseNonFixedColumns="@true">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    @* TODO: implement an arrow button to toggle showing full details of a server *@
+                    <tr @key="item.Id">
+                        <td>@item.Id</td>
+                        <td>@item.Status</td>
+                        <td>@item.PublicAddress</td>
+                        <td>@item.StatusLastChecked.ToLocalTime().ToString("t")</td>
+                        <td>@item.ReservationType</td>
+                        <td>@(TimeSpan.FromSeconds(item.TotalRuntime))</td>
+                        <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.WantsMaintenance</td>
+                        <td>@* TODO: buttons to force stop or terminate *@</td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    }
+</AccessLimited>
 
 @code {
-    
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Status", true),
+        new TableColumn("Address", false),
+        new TableColumn("Status Checked", true, "StatusLastChecked"),
+        new TableColumn("Reserved For", true, "ReservationType"),
+        new TableColumn("Total Runtime", true, "TotalRuntime"),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Wants Maintenance", true, "WantsMaintenance"),
+        new TableColumn("Actions", false)
+    };
+
+    public ControlledServers() : base(new SortHelper("Id", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(ControlledServersUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.ControlledServerListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<ControlledServerDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<ControlledServerDTO>>(
+            QueryHelpers.AddQueryString("api/v1/ControlledServers", requestParams));
+    }
 }
