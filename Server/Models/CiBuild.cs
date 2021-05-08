@@ -31,8 +31,9 @@ namespace ThriveDevCenter.Server.Models
         /// <summary>
         ///   When this build was started / created
         /// </summary>
-        [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? FinishedAt { get; set; }
 
         public BuildStatus Status { get; set; } = BuildStatus.Running;
 
@@ -56,17 +57,19 @@ namespace ThriveDevCenter.Server.Models
 
         public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
         {
+            var dto = GetDTO();
+
             yield return new Tuple<SerializedNotification, string>(new CIProjectBuildsListUpdated()
             {
                 Type = entityState.ToChangeType(),
-                Item = GetDTO()
+                Item = dto
             }, NotificationGroups.CIProjectBuildsUpdatedPrefix + CiProjectId);
 
             var notificationsId = CiProjectId + "_" + CiBuildId;
 
             yield return new Tuple<SerializedNotification, string>(new CIBuildUpdated()
             {
-                Item = GetDTO()
+                Item = dto
             }, NotificationGroups.CIProjectsBuildUpdatedPrefix + notificationsId);
         }
     }

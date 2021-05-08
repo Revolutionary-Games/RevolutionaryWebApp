@@ -238,7 +238,8 @@ namespace ThriveDevCenter.Server.Hubs
                 return RequireAccessLevel(UserAccessLevel.Developer, user);
             }
 
-            if (groupName.StartsWith(NotificationGroups.CIProjectsBuildUpdatedPrefix))
+            if (groupName.StartsWith(NotificationGroups.CIProjectsBuildUpdatedPrefix) ||
+                groupName.StartsWith(NotificationGroups.CIProjectBuildJobsUpdatedPrefix))
             {
                 if (!GetCompositeIDPartFromGroup(groupName, out long[] ids) || ids.Length != 2)
                     return false;
@@ -251,6 +252,24 @@ namespace ThriveDevCenter.Server.Hubs
 
                 // Everyone sees public projects' builds
                 if (item.CiProject.Public)
+                    return true;
+
+                return RequireAccessLevel(UserAccessLevel.Developer, user);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.CIProjectsBuildsJobUpdatedPrefix))
+            {
+                if (!GetCompositeIDPartFromGroup(groupName, out long[] ids) || ids.Length != 3)
+                    return false;
+
+                var item = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+                    .FirstOrDefaultAsync(b => b.CiProjectId == ids[0] && b.CiBuildId == ids[1] && b.CiJobId == ids[2]);
+
+                if (item == null)
+                    return false;
+
+                // Everyone sees public projects' builds' jobs
+                if (item.Build.CiProject.Public)
                     return true;
 
                 return RequireAccessLevel(UserAccessLevel.Developer, user);

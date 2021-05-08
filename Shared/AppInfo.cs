@@ -13,6 +13,8 @@ namespace ThriveDevCenter.Shared
 
         public const string SessionCookieName = "ThriveDevSession";
 
+        public const string SecondPrecisionDurationFormat = @"hh\:mm\:ss";
+
         public const string GitLfsContentType = "application/vnd.git-lfs+json";
 
         public const string CSRFNeededName = "CSRFRequired";

@@ -308,6 +308,8 @@ namespace ThriveDevCenter.Server.Models
             {
                 entity.HasKey(nameof(CiJob.CiProjectId), nameof(CiJob.CiBuildId), nameof(CiJob.CiJobId));
 
+                entity.Property(e => e.Succeeded).HasDefaultValue(false);
+
                 entity.HasMany(p => p.CiJobArtifacts).WithOne(d => d.Job)
                     .OnDelete(DeleteBehavior.Restrict);
             });

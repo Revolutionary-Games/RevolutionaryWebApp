@@ -130,7 +130,49 @@ namespace ThriveDevCenter.Server.Controllers
                 .FirstOrDefaultAsync(b => b.CiProjectId == projectId && b.CiBuildId == buildId);
 
             if (item == null || !CheckExtraAccess(item.CiProject))
-                return NotFound("CI Project does not exist or you don't have access to it");
+                return NotFound("CI Build does not exist or you don't have access to it");
+
+            return item.GetDTO();
+        }
+
+        [HttpGet("{projectId:long}/builds/{buildId:long}/jobs")]
+        public async Task<ActionResult<PagedResult<CIJobDTO>>> GetJobs([Required] long projectId,
+            [Required] long buildId, [Required] string sortColumn, [Required] SortDirection sortDirection,
+            [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 50)] int pageSize)
+        {
+            var build = await database.CiBuilds.Include(b => b.CiProject)
+                .FirstOrDefaultAsync(b => b.CiProjectId == projectId && b.CiBuildId == buildId);
+
+            if (build == null || !CheckExtraAccess(build.CiProject))
+                return NotFound("CI Build does not exist or you don't have access to it");
+
+            IQueryable<CiJob> query;
+
+            try
+            {
+                query = database.CiJobs.AsQueryable().Where(j => j.CiProjectId == projectId && j.CiBuildId == buildId)
+                    .OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                Logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        [HttpGet("{projectId:long}/builds/{buildId:long}/jobs/{jobId:long}")]
+        public async Task<ActionResult<CIJobDTO>> GetJob([Required] long projectId,
+            [Required] long buildId, [Required] long jobId)
+        {
+            var item = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+                .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
+
+            if (item == null || !CheckExtraAccess(item.Build.CiProject))
+                return NotFound("CI Job does not exist or you don't have access to it");
 
             return item.GetDTO();
         }

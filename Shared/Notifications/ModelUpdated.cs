@@ -36,4 +36,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CIBuildUpdated : ModelUpdated<CIBuildDTO>
     {
     }
+
+    public class CIJobUpdated : ModelUpdated<CIJobDTO>
+    {
+    }
 }
