@@ -2,16 +2,20 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
-    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Authorization;
+    using BlazorPagination;
+    using Filters;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Shared;
     using Shared.Models;
+    using Utilities;
 
     [ApiController]
     [Route("api/v1/[controller]")]
@@ -90,6 +94,40 @@ namespace ThriveDevCenter.Server.Controllers
             return Created($"/ci/{project.Id}", project.GetDTO());
         }
 
+        [HttpGet("{projectId:long}/builds")]
+        public async Task<PagedResult<CIBuildDTO>> GetBuilds([Required] long projectId, [Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+            [Required] [Range(1, 100)] int pageSize)
+        {
+            var project = await FindAndCheckAccess(projectId);
+
+            if (project == null)
+            {
+                throw new HttpResponseException()
+                {
+                    Value = "CI Project does not exist or you don't have access to it",
+                };
+            }
+
+            IQueryable<CiBuild> query;
+
+            try
+            {
+                query = database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == projectId)
+                    .OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                Logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        [NonAction]
         protected override bool CheckExtraAccess(CiProject project)
         {
             // Only developers can see private projects
@@ -105,6 +143,7 @@ namespace ThriveDevCenter.Server.Controllers
             return true;
         }
 
+        [NonAction]
         protected override Task SaveResourceChanges(CiProject resource)
         {
             resource.BumpUpdatedAt();

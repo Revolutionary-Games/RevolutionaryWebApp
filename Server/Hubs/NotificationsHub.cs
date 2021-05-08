@@ -216,7 +216,8 @@ namespace ThriveDevCenter.Server.Hubs
                 return RequireAccessLevel(UserAccessLevel.Developer, user);
             }
 
-            if (groupName.StartsWith(NotificationGroups.CIProjectUpdatedPrefix))
+            if (groupName.StartsWith(NotificationGroups.CIProjectUpdatedPrefix) ||
+                groupName.StartsWith(NotificationGroups.CIProjectBuildsUpdatedPrefix))
             {
                 if (!GetTargetModelFromGroup(groupName, database.CiProjects, out CiProject item))
                     return false;
@@ -225,6 +226,8 @@ namespace ThriveDevCenter.Server.Hubs
                     return true;
 
                 // Only admins see deleted items
+                // This doesn't really apply to deleted projects, but for code simplicity admin access is allowed to
+                // builds list even when the project is deleted
                 if (item.Deleted)
                     return false;
 

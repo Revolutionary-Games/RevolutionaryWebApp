@@ -1,12 +1,19 @@
 namespace ThriveDevCenter.Server.Models
 {
+    using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using Microsoft.EntityFrameworkCore;
+    using Shared;
+    using Shared.Models;
+    using Shared.Notifications;
+    using Utilities;
 
-    public class CiBuild
+    public class CiBuild : IUpdateNotifications
     {
         public long CiProjectId { get; set; }
 
+        [AllowSortingBy]
         public long CiBuildId { get; set; }
 
         /// <summary>
@@ -21,8 +28,40 @@ namespace ThriveDevCenter.Server.Models
         [Required]
         public string RemoteRef { get; set; }
 
+        /// <summary>
+        ///   When this build was started / created
+        /// </summary>
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public BuildStatus Status { get; set; } = BuildStatus.Running;
+
         public CiProject CiProject { get; set; }
 
         public ICollection<CiJob> CiJobs { get; set; } = new HashSet<CiJob>();
+
+        public CIBuildDTO GetDTO()
+        {
+            return new()
+            {
+                CiProjectId = CiProjectId,
+                CiBuildId =CiBuildId,
+                CommitHash = CommitHash,
+                RemoteRef = RemoteRef,
+                CreatedAt = CreatedAt,
+                Status = Status,
+            };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            yield return new Tuple<SerializedNotification, string>(new CIProjectBuildsListUpdated()
+            {
+                Type = entityState.ToChangeType(),
+                Item = GetDTO()
+            }, NotificationGroups.CIProjectBuildsUpdatedPrefix + CiProjectId);
+
+            // TODO: notification for this item directly
+        }
     }
 }
