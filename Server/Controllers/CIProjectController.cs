@@ -95,19 +95,14 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("{projectId:long}/builds")]
-        public async Task<PagedResult<CIBuildDTO>> GetBuilds([Required] long projectId, [Required] string sortColumn,
-            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-            [Required] [Range(1, 100)] int pageSize)
+        public async Task<ActionResult<PagedResult<CIBuildDTO>>> GetBuilds([Required] long projectId,
+            [Required] string sortColumn, [Required] SortDirection sortDirection,
+            [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
         {
             var project = await FindAndCheckAccess(projectId);
 
             if (project == null)
-            {
-                throw new HttpResponseException()
-                {
-                    Value = "CI Project does not exist or you don't have access to it",
-                };
-            }
+                return NotFound("CI Project does not exist or you don't have access to it");
 
             IQueryable<CiBuild> query;
 
@@ -125,6 +120,19 @@ namespace ThriveDevCenter.Server.Controllers
             var objects = await query.ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        [HttpGet("{projectId:long}/builds/{buildId:long}")]
+        public async Task<ActionResult<CIBuildDTO>> GetBuild([Required] long projectId,
+            [Required] long buildId)
+        {
+            var item = await database.CiBuilds.Include(b => b.CiProject)
+                .FirstOrDefaultAsync(b => b.CiProjectId == projectId && b.CiBuildId == buildId);
+
+            if (item == null || !CheckExtraAccess(item.CiProject))
+                return NotFound("CI Project does not exist or you don't have access to it");
+
+            return item.GetDTO();
         }
 
         [NonAction]

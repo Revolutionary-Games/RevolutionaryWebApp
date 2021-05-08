@@ -1,0 +1,63 @@
+@page "/ci/{ProjectId:long}/build/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CIBuildDTO, CIBuildUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <h3>CI Build #@Data.CiBuildId for @Data.ProjectName</h3>
+        <ul>
+            <li><strong>Commit</strong>: @Data.CommitHash</li>
+            <li><strong>Ref</strong>: @Data.RemoteRef</li>
+            <li><strong>Status</strong>: @Data.Status</li>
+            <li><strong>Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+        </ul>
+
+        <AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
+            @* TODO: implement these buttons *@
+            <Button Enabled="@false" ButtonStyle="secondary">Rerun Failed</Button>
+            <Button Enabled="@false" ButtonStyle="secondary">Rerun All</Button>
+            <br />
+        </AccessLimited>
+
+        <br />
+
+        <h4>Jobs</h4>
+
+        @*<CIJobsList ProjectId="@Data.CiProjectId" BuildId="@Data.Id"/>*@
+    }
+</SingleResourceDisplayer>
+
+@code {
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    protected override Task<CIBuildDTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<CIBuildDTO>($"api/v1/CIProject/{ProjectId}/builds/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        if (Data != null)
+            groups.Add(NotificationGroups.CIProjectsBuildUpdatedPrefix + Data.NotificationsId);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
+}

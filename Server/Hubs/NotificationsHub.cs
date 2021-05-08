@@ -123,15 +123,15 @@ namespace ThriveDevCenter.Server.Hubs
             }
         }
 
-        public Task JoinGroup(string groupName)
+        public async Task JoinGroup(string groupName)
         {
-            if (!IsUserAllowedInGroup(groupName, Context.Items["User"] as User))
+            if (!await IsUserAllowedInGroup(groupName, Context.Items["User"] as User))
             {
                 logger.LogWarning("Client failed to join group: {GroupName}", groupName);
                 throw new HubException("You don't have access to the specified group");
             }
 
-            return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
         public Task LeaveGroup(string groupName)
@@ -153,7 +153,7 @@ namespace ThriveDevCenter.Server.Hubs
                 user?.GetInfo(accessLevel));
         }
 
-        private bool IsUserAllowedInGroup(string groupName, User user)
+        private async Task<bool> IsUserAllowedInGroup(string groupName, User user)
         {
             // First check explicitly named groups
             switch (groupName)
@@ -233,6 +233,24 @@ namespace ThriveDevCenter.Server.Hubs
 
                 // Everyone sees public projects
                 if (item.Public)
+                    return true;
+
+                return RequireAccessLevel(UserAccessLevel.Developer, user);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.CIProjectsBuildUpdatedPrefix))
+            {
+                if (!GetCompositeIDPartFromGroup(groupName, out long[] ids) || ids.Length != 2)
+                    return false;
+
+                var item = await database.CiBuilds.Include(b => b.CiProject)
+                    .FirstOrDefaultAsync(b => b.CiProjectId == ids[0] && b.CiBuildId == ids[1]);
+
+                if (item == null)
+                    return false;
+
+                // Everyone sees public projects' builds
+                if (item.CiProject.Public)
                     return true;
 
                 return RequireAccessLevel(UserAccessLevel.Developer, user);
@@ -340,6 +358,21 @@ namespace ThriveDevCenter.Server.Hubs
             return item != null;
         }
 
+        private static bool GetTargetModelFromGroupCompositeId<T>(string groupName, DbSet<T> existingItems, out T item)
+            where T : class
+        {
+            if (!GetCompositeIDPartFromGroup(groupName, out long[] ids))
+            {
+                item = null;
+                return false;
+            }
+
+            // This lookup probably can timing attack leak the IDs of objects
+            item = existingItems.Find(ids);
+
+            return item != null;
+        }
+
         private static bool GetTargetFolderFromGroup(string groupName, DbSet<StorageItem> existingItems,
             out StorageItem item)
         {
@@ -385,6 +418,20 @@ namespace ThriveDevCenter.Server.Hubs
             }
 
             return true;
+        }
+
+        private static bool GetCompositeIDPartFromGroup(string groupName, out long[] id)
+        {
+            try
+            {
+                id = groupName.Split('_').Skip(1).Select(long.Parse).ToArray();
+                return true;
+            }
+            catch (Exception)
+            {
+                id = null;
+                return false;
+            }
         }
 
         private static bool RequireAccessLevel(UserAccessLevel level, User user)

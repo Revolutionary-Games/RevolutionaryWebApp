@@ -50,6 +50,7 @@ namespace ThriveDevCenter.Server.Models
                 RemoteRef = RemoteRef,
                 CreatedAt = CreatedAt,
                 Status = Status,
+                ProjectName = CiProject?.Name ?? CiProjectId.ToString()
             };
         }
 
@@ -61,7 +62,12 @@ namespace ThriveDevCenter.Server.Models
                 Item = GetDTO()
             }, NotificationGroups.CIProjectBuildsUpdatedPrefix + CiProjectId);
 
-            // TODO: notification for this item directly
+            var notificationsId = CiProjectId + "_" + CiBuildId;
+
+            yield return new Tuple<SerializedNotification, string>(new CIBuildUpdated()
+            {
+                Item = GetDTO()
+            }, NotificationGroups.CIProjectsBuildUpdatedPrefix + notificationsId);
         }
     }
 }
