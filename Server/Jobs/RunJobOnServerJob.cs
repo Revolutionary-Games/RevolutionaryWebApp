@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared.Models;
@@ -21,8 +22,11 @@ namespace ThriveDevCenter.Server.Jobs
         public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId,
             CancellationToken cancellationToken)
         {
-            var job = await database.CiJobs.FindAsync(new object[] { ciProjectId, ciBuildId, ciJobId },
-                cancellationToken);
+            // Includes are needed here to provide fully populated data for update notifications
+            var job = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+                .FirstOrDefaultAsync(
+                    j => j.CiProjectId == ciProjectId && j.CiBuildId == ciBuildId && j.CiJobId == ciJobId,
+                    cancellationToken);
             var server = await database.ControlledServers.FindAsync(new object[] { serverId }, cancellationToken);
 
             if (server == null)
@@ -41,6 +45,8 @@ namespace ThriveDevCenter.Server.Jobs
                 ciProjectId, ciBuildId, ciJobId);
 
             job.State = CIJobState.Finished;
+            job.FinishedAt = DateTime.UtcNow;
+            job.Succeeded = true;
 
             ReleaseServerReservation(server);
 
@@ -48,7 +54,7 @@ namespace ThriveDevCenter.Server.Jobs
             // ReSharper disable once MethodSupportsCancellation
             await database.SaveChangesAsync();
 
-            // TODO: queue a job to check the ciBuild overall status (if needed)
+            // TODO: queue a job to check the ciBuild overall status
         }
 
         private void ReleaseServerReservation(ControlledServer server)

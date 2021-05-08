@@ -30,10 +30,15 @@ namespace ThriveDevCenter.Server.Controllers
     public class GithubWebhookController : Controller
     {
         private readonly ILogger<GithubWebhookController> logger;
-        private readonly ApplicationDbContext database;
+
+        /// <summary>
+        ///   Needs to be notifications enabled to update the builds list on a CI project's page
+        /// </summary>
+        private readonly NotificationsEnabledDb database;
+
         private readonly IBackgroundJobClient jobClient;
 
-        public GithubWebhookController(ILogger<GithubWebhookController> logger, ApplicationDbContext database,
+        public GithubWebhookController(ILogger<GithubWebhookController> logger, NotificationsEnabledDb database,
             IBackgroundJobClient jobClient)
         {
             this.logger = logger;
