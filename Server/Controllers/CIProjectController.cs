@@ -101,7 +101,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var project = await FindAndCheckAccess(projectId);
 
-            if (project == null)
+            if (project == null || project.Deleted)
                 return NotFound("CI Project does not exist or you don't have access to it");
 
             IQueryable<CiBuild> query;
@@ -129,7 +129,7 @@ namespace ThriveDevCenter.Server.Controllers
             var item = await database.CiBuilds.Include(b => b.CiProject)
                 .FirstOrDefaultAsync(b => b.CiProjectId == projectId && b.CiBuildId == buildId);
 
-            if (item == null || !CheckExtraAccess(item.CiProject))
+            if (item == null || !CheckExtraAccess(item.CiProject) || item.CiProject.Deleted)
                 return NotFound("CI Build does not exist or you don't have access to it");
 
             return item.GetDTO();
@@ -143,7 +143,7 @@ namespace ThriveDevCenter.Server.Controllers
             var build = await database.CiBuilds.Include(b => b.CiProject)
                 .FirstOrDefaultAsync(b => b.CiProjectId == projectId && b.CiBuildId == buildId);
 
-            if (build == null || !CheckExtraAccess(build.CiProject))
+            if (build == null || !CheckExtraAccess(build.CiProject) || build.CiProject.Deleted)
                 return NotFound("CI Build does not exist or you don't have access to it");
 
             IQueryable<CiJob> query;
@@ -171,7 +171,7 @@ namespace ThriveDevCenter.Server.Controllers
             var item = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
                 .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
 
-            if (item == null || !CheckExtraAccess(item.Build.CiProject))
+            if (item == null || !CheckExtraAccess(item.Build.CiProject) || item.Build.CiProject.Deleted)
                 return NotFound("CI Job does not exist or you don't have access to it");
 
             return item.GetDTO();
