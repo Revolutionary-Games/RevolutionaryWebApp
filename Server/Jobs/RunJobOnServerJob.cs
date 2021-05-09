@@ -3,20 +3,27 @@ namespace ThriveDevCenter.Server.Jobs
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Hangfire;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Services;
     using Shared.Models;
 
     public class RunJobOnServerJob
     {
         private readonly ILogger<RunJobOnServerJob> logger;
         private readonly NotificationsEnabledDb database;
+        private readonly IBackgroundJobClient jobClient;
+        private readonly GithubCommitStatusReporter statusReporter;
 
-        public RunJobOnServerJob(ILogger<RunJobOnServerJob> logger, NotificationsEnabledDb database)
+        public RunJobOnServerJob(ILogger<RunJobOnServerJob> logger, NotificationsEnabledDb database,
+            IBackgroundJobClient jobClient, GithubCommitStatusReporter statusReporter)
         {
             this.logger = logger;
             this.database = database;
+            this.jobClient = jobClient;
+            this.statusReporter = statusReporter;
         }
 
         public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId,
@@ -54,7 +61,24 @@ namespace ThriveDevCenter.Server.Jobs
             // ReSharper disable once MethodSupportsCancellation
             await database.SaveChangesAsync();
 
-            // TODO: queue a job to check the ciBuild overall status
+            // Send status to github
+            var status = GithubAPI.CommitStatus.Success;
+            string statusDescription = "Checks succeeded";
+
+            if (!job.Succeeded)
+            {
+                status = GithubAPI.CommitStatus.Failure;
+                statusDescription = "Some checks failed";
+            }
+
+            if (!await statusReporter.SetCommitStatus(job.Build.CiProject.RepositoryFullName, job.Build.CommitHash,
+                status, statusReporter.CreateStatusUrlForJob(job), statusDescription,
+                job.JobName))
+            {
+                logger.LogError("Failed to set commit status for build's job: {JobName}", job.JobName);
+            }
+
+            jobClient.Enqueue<CheckOverallBuildStatusJob>(x => x.Execute(ciProjectId, ciBuildId, CancellationToken.None));
         }
 
         private void ReleaseServerReservation(ControlledServer server)

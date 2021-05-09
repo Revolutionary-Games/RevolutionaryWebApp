@@ -15,14 +15,17 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly NotificationsEnabledDb database;
         private readonly IBackgroundJobClient jobClient;
         private readonly ILocalTempFileLocks localTempFileLocks;
+        private readonly GithubCommitStatusReporter statusReporter;
 
         public CheckAndStartCIBuild(ILogger<CheckAndStartCIBuild> logger, NotificationsEnabledDb database,
-            IBackgroundJobClient jobClient, ILocalTempFileLocks localTempFileLocks)
+            IBackgroundJobClient jobClient, ILocalTempFileLocks localTempFileLocks,
+            GithubCommitStatusReporter statusReporter)
         {
             this.logger = logger;
             this.database = database;
             this.jobClient = jobClient;
             this.localTempFileLocks = localTempFileLocks;
+            this.statusReporter = statusReporter;
         }
 
         public async Task Execute(long ciProjectId, long ciBuildId, CancellationToken cancellationToken)
@@ -69,6 +72,14 @@ namespace ThriveDevCenter.Server.Jobs
 
             await database.CiJobs.AddAsync(job, cancellationToken);
             await database.SaveChangesAsync(cancellationToken);
+
+            // Send status to github
+            if (!await statusReporter.SetCommitStatus(build.CiProject.RepositoryFullName, build.CommitHash,
+                GithubAPI.CommitStatus.Pending, statusReporter.CreateStatusUrlForJob(job), "CI checks starting",
+                job.JobName))
+            {
+                logger.LogError("Failed to set commit status for build's job: {JobName}", job.JobName);
+            }
 
             // Queue remote executor check task which will allocate a server to run the job on
             jobClient.Enqueue<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None));

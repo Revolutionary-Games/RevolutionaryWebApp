@@ -5,5 +5,6 @@ namespace ThriveDevCenter.Shared.Models
         Running,
         Succeeded,
         Failed,
+        GoingToFail,
     }
 }

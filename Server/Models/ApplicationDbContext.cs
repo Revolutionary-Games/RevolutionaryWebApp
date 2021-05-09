@@ -297,6 +297,8 @@ namespace ThriveDevCenter.Server.Models
             {
                 entity.HasKey(nameof(CiBuild.CiProjectId), nameof(CiBuild.CiBuildId));
 
+                entity.UseXminAsConcurrencyToken();
+
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
                 entity.Property(e => e.Status).HasDefaultValue(BuildStatus.Running);
 

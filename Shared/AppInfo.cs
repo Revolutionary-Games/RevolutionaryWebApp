@@ -16,6 +16,7 @@ namespace ThriveDevCenter.Shared
         public const string SecondPrecisionDurationFormat = @"hh\:mm\:ss";
 
         public const string GitLfsContentType = "application/vnd.git-lfs+json";
+        public const string GithubApiContentType = "application/vnd.github.v3+json";
 
         public const string CSRFNeededName = "CSRFRequired";
         public const string CSRFStatusName = "CSRF";
