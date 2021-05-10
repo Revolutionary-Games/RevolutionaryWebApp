@@ -27,6 +27,10 @@ namespace ThriveDevCenter.Server.Services
         [JsonConverter(typeof(ActualEnumStringConverter))]
         public enum CommitStatus
         {
+            /// <summary>
+            ///   Seems like github doesn't recommend ever using this value? But this is said to be a potential value
+            ///   so this is included here
+            /// </summary>
             [EnumMember(Value = "error")]
             Error,
 
@@ -72,7 +76,7 @@ namespace ThriveDevCenter.Server.Services
             if (!CheckIsConfigured())
                 return false;
 
-            string context = $"ThriveDevCenter:{contextSuffix}";
+            string context = $"DevCenter:{contextSuffix}";
 
             var response = await client.PostAsJsonAsync(
                 $"https://api.github.com/repos/{qualifiedRepoName}/statuses/{sha}",
