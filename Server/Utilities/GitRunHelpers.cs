@@ -99,6 +99,11 @@ namespace ThriveDevCenter.Server.Utilities
         /// <param name="folder">The fit folder to operate in</param>
         /// <param name="refToCheckout">Ref from Github that should be checked out locally</param>
         /// <param name="cancellationToken">Cancel the operation early</param>
+        /// <remarks>
+        ///   <para>
+        ///     If this is updated "ci_executor.rb" needs also know how to checkout the new things
+        ///   </para>
+        /// </remarks>
         public static async Task SmartlyCheckoutRef(string folder, string refToCheckout,
             CancellationToken cancellationToken)
         {

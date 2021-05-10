@@ -68,7 +68,7 @@ namespace ThriveDevCenter.Server.Jobs
                 // Clean out non-ignored files
                 await GitRunHelpers.Clean(tempPath, cancellationToken);
 
-                // Read build configuration
+                // Read the build configuration
                 var text = await File.ReadAllTextAsync(Path.Join(tempPath, AppInfo.CIConfigurationFile), Encoding.UTF8,
                     cancellationToken);
 
@@ -86,7 +86,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             if (configuration == null)
             {
-                await CreateFailedJob(build, "Failed to read repository", cancellationToken);
+                await CreateFailedJob(build, "Failed to read repository or build configuration", cancellationToken);
                 return;
             }
 

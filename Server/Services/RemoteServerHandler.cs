@@ -131,6 +131,7 @@ namespace ThriveDevCenter.Server.Services
                             // Can run this job here
                             jobClient.Enqueue<RunJobOnServerJob>(x =>
                                 x.Execute(job.CiProjectId, job.CiBuildId, job.CiJobId, server.Id,
+                                    RunJobOnServerJob.DefaultJobConnectRetries,
                                     CancellationToken.None));
                             found = true;
                             break;
