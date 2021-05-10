@@ -18,6 +18,8 @@ namespace ThriveDevCenter.Shared
         public const string GitLfsContentType = "application/vnd.git-lfs+json";
         public const string GithubApiContentType = "application/vnd.github.v3+json";
 
+        public const string CIConfigurationFile = "CIConfiguration.yml";
+
         public const string CSRFNeededName = "CSRFRequired";
         public const string CSRFStatusName = "CSRF";
         public const string CurrentUserMiddlewareKey = "AuthenticatedUser";

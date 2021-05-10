@@ -1,5 +1,10 @@
 namespace ThriveDevCenter.Server.Jobs
 {
+    using System;
+    using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
+    using System.IO;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
@@ -7,7 +12,11 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
+    using Shared;
+    using Shared.Models;
     using Utilities;
+    using YamlDotNet.Serialization;
+    using YamlDotNet.Serialization.NamingConventions;
 
     public class CheckAndStartCIBuild
     {
@@ -44,45 +53,127 @@ namespace ThriveDevCenter.Server.Jobs
 
             await semaphore.WaitAsync(cancellationToken);
 
+            var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .Build();
+
+            CiBuildConfiguration configuration;
+
             try
             {
                 await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, cancellationToken);
 
-                // TODO: force checkout the build ref and clean non-tracked files and changes to get the build file tree
+                // Checkout the ref
+                await GitRunHelpers.Checkout(tempPath, build.RemoteRef, cancellationToken, true);
 
-                // TODO: implement reading the build configuration file
+                // Clean out non-ignored files
+                await GitRunHelpers.Clean(tempPath, cancellationToken);
+
+                // Read build configuration
+                var text = await File.ReadAllTextAsync(Path.Join(tempPath, AppInfo.CIConfigurationFile), Encoding.UTF8,
+                    cancellationToken);
+
+                configuration = deserializer.Deserialize<CiBuildConfiguration>(text);
+            }
+            catch (Exception e)
+            {
+                configuration = null;
+                logger.LogError("Error when trying to read repository for starting jobs: {@E}", e);
             }
             finally
             {
                 semaphore.Release();
             }
 
-            // Then queue the jobs we found
-            // TODO: for now, for testing purposes just create one testing job
-
-            var job = new CiJob()
+            if (configuration == null)
             {
-                CiProjectId = ciProjectId,
-                CiBuildId = ciBuildId,
+                await CreateFailedJob(build, "Failed to read repository", cancellationToken);
+                return;
+            }
 
-                // TODO: assign sequential ids when multiple jobs are added
+            // Check that configuration is valid
+            var errors = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(configuration, new ValidationContext(configuration), errors))
+            {
+                logger.LogError("Build configuration object didn't pass validations, see following errors:");
+
+                foreach (var error in errors)
+                    logger.LogError("Failure: {Error}", error);
+
+                // TODO: pass validation errors to the build output
+                await CreateFailedJob(build, "Invalid configuration yaml", cancellationToken);
+                return;
+            }
+
+            // TODO: do something with the version number here...
+
+            // Then queue the jobs we found in the configuration
+            var jobs = new List<CiJob>();
+            long jobId = 0;
+
+            foreach (var jobEntry in configuration.Jobs)
+            {
+                if (string.IsNullOrWhiteSpace(jobEntry.Key) || jobEntry.Key.Length > 80)
+                {
+                    await CreateFailedJob(build, "Invalid job name in configuration", cancellationToken);
+                    return;
+                }
+
+                var job = new CiJob()
+                {
+                    CiProjectId = ciProjectId,
+                    CiBuildId = ciBuildId,
+                    CiJobId = ++jobId,
+                    JobName = jobEntry.Key,
+                };
+
+                await database.CiJobs.AddAsync(job, cancellationToken);
+                jobs.Add(job);
+            }
+
+            await database.SaveChangesAsync(cancellationToken);
+
+            // Send statuses to github
+            foreach (var job in jobs)
+            {
+                if (!await statusReporter.SetCommitStatus(build.CiProject.RepositoryFullName, build.CommitHash,
+                    GithubAPI.CommitStatus.Pending, statusReporter.CreateStatusUrlForJob(job), "CI checks starting",
+                    job.JobName))
+                {
+                    logger.LogError("Failed to set commit status for a build's job: {JobName}", job.JobName);
+                }
+            }
+
+            // Queue remote executor check task which will allocate a server to run the job(s) on
+            jobClient.Enqueue<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None));
+        }
+
+        private async Task CreateFailedJob(CiBuild build, string failure, CancellationToken cancellationToken)
+        {
+            var job = new CiJob
+            {
+                CiProjectId = build.CiProjectId,
+                CiBuildId = build.CiBuildId,
                 CiJobId = 1,
-                JobName = "test"
+                JobName = "configuration_error",
+                FinishedAt = DateTime.UtcNow,
+                Succeeded = false,
+                State = CIJobState.Finished,
+
+                // TODO: add failure as a build output
             };
 
             await database.CiJobs.AddAsync(job, cancellationToken);
             await database.SaveChangesAsync(cancellationToken);
 
-            // Send status to github
             if (!await statusReporter.SetCommitStatus(build.CiProject.RepositoryFullName, build.CommitHash,
-                GithubAPI.CommitStatus.Pending, statusReporter.CreateStatusUrlForJob(job), "CI checks starting",
+                GithubAPI.CommitStatus.Failure, statusReporter.CreateStatusUrlForJob(job), failure,
                 job.JobName))
             {
-                logger.LogError("Failed to set commit status for build's job: {JobName}", job.JobName);
+                logger.LogError("Failed to report serious failed commit status", job.JobName);
             }
 
-            // Queue remote executor check task which will allocate a server to run the job on
-            jobClient.Enqueue<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None));
+            jobClient.Enqueue<CheckOverallBuildStatusJob>(x =>
+                x.Execute(build.CiProjectId, build.CiBuildId, CancellationToken.None));
         }
     }
 }

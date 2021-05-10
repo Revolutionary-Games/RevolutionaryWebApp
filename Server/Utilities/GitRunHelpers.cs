@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Utilities
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
+    using Hangfire.Common;
 
     public static class GitRunHelpers
     {
@@ -38,6 +39,51 @@ namespace ThriveDevCenter.Server.Utilities
             {
                 throw new Exception(
                     $"Failed to make sure repo is cloned, process exited with error: {result.FullOutput}");
+            }
+        }
+
+        public static async Task Checkout(string folder, string whatToCheckout, CancellationToken cancellationToken,
+            bool force = false)
+        {
+            if (!Directory.Exists(folder))
+                throw new ArgumentException($"Specified folder: \"{folder}\" doesn't exist");
+
+            var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true };
+            SetLFSSmudgeSkip(startInfo);
+            startInfo.WorkingDirectory = folder;
+
+            startInfo.ArgumentList.Add("checkout");
+            startInfo.ArgumentList.Add(whatToCheckout);
+
+            if (force)
+                startInfo.ArgumentList.Add("--force");
+
+            var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
+            if (result.ExitCode != 0)
+            {
+                throw new Exception(
+                    $"Failed to make checkout in repo, process exited with error: {result.FullOutput}");
+            }
+        }
+
+        public static async Task Clean(string folder, CancellationToken cancellationToken)
+        {
+            if (!Directory.Exists(folder))
+                throw new ArgumentException($"Specified folder: \"{folder}\" doesn't exist");
+
+            var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true };
+            SetLFSSmudgeSkip(startInfo);
+            startInfo.WorkingDirectory = folder;
+
+            startInfo.ArgumentList.Add("clean");
+            startInfo.ArgumentList.Add("-f");
+            startInfo.ArgumentList.Add("-d");
+
+            var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
+            if (result.ExitCode != 0)
+            {
+                throw new Exception(
+                    $"Failed to make checkout in repo, process exited with error: {result.FullOutput}");
             }
         }
 
