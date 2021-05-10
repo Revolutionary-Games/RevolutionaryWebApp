@@ -5,10 +5,12 @@ namespace ThriveDevCenter.Server.Utilities
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
-    using Hangfire.Common;
 
     public static class GitRunHelpers
     {
+        private const string PullRequestRefSuffix = "/head";
+        private const string NormalRefPrefix = "refs/heads/";
+
         public static async Task EnsureRepoIsCloned(string repoURL, string folder, CancellationToken cancellationToken)
         {
             var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true };
@@ -45,13 +47,7 @@ namespace ThriveDevCenter.Server.Utilities
         public static async Task Checkout(string folder, string whatToCheckout, CancellationToken cancellationToken,
             bool force = false)
         {
-            if (!Directory.Exists(folder))
-                throw new ArgumentException($"Specified folder: \"{folder}\" doesn't exist");
-
-            var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true };
-            SetLFSSmudgeSkip(startInfo);
-            startInfo.WorkingDirectory = folder;
-
+            var startInfo = PrepareToRunGit(folder);
             startInfo.ArgumentList.Add("checkout");
             startInfo.ArgumentList.Add(whatToCheckout);
 
@@ -62,8 +58,85 @@ namespace ThriveDevCenter.Server.Utilities
             if (result.ExitCode != 0)
             {
                 throw new Exception(
-                    $"Failed to make checkout in repo, process exited with error: {result.FullOutput}");
+                    $"Failed to checkout in repo, process exited with error: {result.FullOutput}");
             }
+        }
+
+        public static async Task Fetch(string folder, bool all, CancellationToken cancellationToken)
+        {
+            var startInfo = PrepareToRunGit(folder);
+            startInfo.ArgumentList.Add("fetch");
+
+            if (all)
+                startInfo.ArgumentList.Add("--all");
+
+            var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
+            if (result.ExitCode != 0)
+            {
+                throw new Exception(
+                    $"Failed to fetch in repo, process exited with error: {result.FullOutput}");
+            }
+        }
+
+        public static async Task Fetch(string folder, string thing, string remote, CancellationToken cancellationToken)
+        {
+            var startInfo = PrepareToRunGit(folder);
+            startInfo.ArgumentList.Add("fetch");
+            startInfo.ArgumentList.Add(remote);
+            startInfo.ArgumentList.Add(thing);
+
+            var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
+            if (result.ExitCode != 0)
+            {
+                throw new Exception(
+                    $"Failed to fetch (thing) in repo, process exited with error: {result.FullOutput}");
+            }
+        }
+
+        /// <summary>
+        ///   Handles the differences between checking a github PR or just a remote ref branch
+        /// </summary>
+        /// <param name="folder">The fit folder to operate in</param>
+        /// <param name="refToCheckout">Ref from Github that should be checked out locally</param>
+        /// <param name="cancellationToken">Cancel the operation early</param>
+        public static async Task SmartlyCheckoutRef(string folder, string refToCheckout,
+            CancellationToken cancellationToken)
+        {
+            const string remote = "origin";
+
+            string localHeadsRef = $"refs/remotes/{remote}/";
+
+            if (IsPullRequestRef(refToCheckout))
+            {
+                string localBranch;
+
+                if (refToCheckout.EndsWith(PullRequestRefSuffix))
+                {
+                    localBranch = refToCheckout.Substring(0, refToCheckout.Length - PullRequestRefSuffix.Length);
+                    localHeadsRef += localBranch;
+                }
+                else
+                {
+                    throw new Exception($"Unrecognized PR ref: {refToCheckout}");
+                }
+
+                await Fetch(folder, $"{refToCheckout}:{localBranch}", remote, cancellationToken);
+            }
+            else
+            {
+                if (refToCheckout.StartsWith(NormalRefPrefix))
+                {
+                    localHeadsRef += refToCheckout.Substring(NormalRefPrefix.Length);
+                }
+                else
+                {
+                    throw new Exception($"Unrecognized normal ref: {refToCheckout}");
+                }
+
+                await Fetch(folder, refToCheckout, remote, cancellationToken);
+            }
+
+            await Checkout(folder, localHeadsRef, cancellationToken, true);
         }
 
         public static async Task Clean(string folder, CancellationToken cancellationToken)
@@ -83,8 +156,27 @@ namespace ThriveDevCenter.Server.Utilities
             if (result.ExitCode != 0)
             {
                 throw new Exception(
-                    $"Failed to make checkout in repo, process exited with error: {result.FullOutput}");
+                    $"Failed to clean repo, process exited with error: {result.FullOutput}");
             }
+        }
+
+        public static bool IsPullRequestRef(string remoteRef)
+        {
+            if (remoteRef.StartsWith("pull/"))
+                return true;
+
+            return false;
+        }
+
+        private static ProcessStartInfo PrepareToRunGit(string folder)
+        {
+            if (!Directory.Exists(folder))
+                throw new ArgumentException($"Specified folder: \"{folder}\" doesn't exist");
+
+            var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true };
+            SetLFSSmudgeSkip(startInfo);
+            startInfo.WorkingDirectory = folder;
+            return startInfo;
         }
 
         private static void SetLFSSmudgeSkip(ProcessStartInfo startInfo)

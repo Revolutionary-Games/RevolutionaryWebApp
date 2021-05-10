@@ -63,7 +63,7 @@ namespace ThriveDevCenter.Server.Jobs
                 await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, cancellationToken);
 
                 // Checkout the ref
-                await GitRunHelpers.Checkout(tempPath, build.RemoteRef, cancellationToken, true);
+                await GitRunHelpers.SmartlyCheckoutRef(tempPath, build.RemoteRef, cancellationToken);
 
                 // Clean out non-ignored files
                 await GitRunHelpers.Clean(tempPath, cancellationToken);
