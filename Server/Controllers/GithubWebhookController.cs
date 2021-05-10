@@ -24,6 +24,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Models;
     using Shared;
     using Shared.Models;
+    using Utilities;
 
     [ApiController]
     [Route("api/v1/webhook/github")]
@@ -142,11 +143,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var actualSignature = header[0];
 
-            var readBody = await Request.BodyReader.ReadAsync();
-
-            // This line is needed to suppress "System.InvalidOperationException: Reading is already in progress."
-            Request.BodyReader.AdvanceTo(readBody.Buffer.Start, readBody.Buffer.End);
-
+            var readBody = await Request.ReadBodyAsync();
             var rawPayload = readBody.Buffer.ToArray();
 
             var neededSignature = "sha256=" + Convert.ToHexString(new HMACSHA256(Encoding.UTF8.GetBytes(hook.Secret))

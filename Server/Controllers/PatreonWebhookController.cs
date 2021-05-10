@@ -219,11 +219,7 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var readBody = await Request.BodyReader.ReadAsync();
-
-            // This line is needed to suppress "System.InvalidOperationException: Reading is already in progress."
-            Request.BodyReader.AdvanceTo(readBody.Buffer.Start, readBody.Buffer.End);
-
+            var readBody = await Request.ReadBodyAsync();
             var rawPayload = readBody.Buffer.ToArray();
 
             var neededSignature = Convert.ToHexString(new HMACMD5(Encoding.UTF8.GetBytes(settings.WebhookSecret))
