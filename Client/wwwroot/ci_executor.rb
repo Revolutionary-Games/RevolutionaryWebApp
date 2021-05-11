@@ -80,7 +80,7 @@ $stderr.reopen $stdout
 puts 'testing websockets...'
 
 EM.run {
-  ws = Faye::WebSocket::Client.new(connect_url, ping: 55)
+  ws = Faye::WebSocket::Client.new(connect_url, [], { ping: 55 })
 
   def send_json(obj)
     as_str = json.dumps(obj)
@@ -92,12 +92,14 @@ EM.run {
   end
 
   ws.on :open do |_event|
-    puts 'Connected with websocket, sending initial section'
+    puts 'Connected with websocket, sending initial section...'
 
     send_json({ Type: 'SectionStart', SectionName: 'Test section' })
     send_json({ Type: 'BuildOutput', Output: 'TODO: build output here' })
     send_json({ Type: 'SectionEnd', WasSuccessful: true })
     send_json({ Type: 'FinalStatus', WasSuccessful: true })
+
+    puts 'Initial section sent'
   end
 
   ws.on :message do |event|
@@ -106,8 +108,9 @@ EM.run {
     puts event.data
   end
 
-  ws.on :close do |_event|
-    puts 'Remote side closed websocket'
+  ws.on :close do |event|
+    puts "Remote side closed websocket, code: #{event.code}, reason: #{event.reason}"
+    puts "Client status: #{ws.status}, headers: #{ws.headers}"
     ws = nil
   end
 
