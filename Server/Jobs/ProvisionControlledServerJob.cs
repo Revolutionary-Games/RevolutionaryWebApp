@@ -16,8 +16,10 @@ namespace ThriveDevCenter.Server.Jobs
     {
         // TODO: put this somewhere more sensible
         private const string ProvisioningCommand =
-            "sudo dnf install -y podman ruby curl git git-lfs && sudo gem install httparty colorize faye-websocket " +
-            "&& git lfs install";
+            "sudo dnf install -y podman ruby curl git git-lfs ruby-devel gcc gcc-c++ make openssl-devel " +
+            "redhat-rpm-config && " +
+            "sudo gem install httparty colorize faye-websocket && " +
+            "git lfs install";
 
         private readonly ILogger<ProvisionControlledServerJob> logger;
         private readonly NotificationsEnabledDb database;
