@@ -34,6 +34,8 @@ namespace ThriveDevCenter.Server.Models
 
         public ICollection<CiJobArtifact> CiJobArtifacts { get; set; } = new HashSet<CiJobArtifact>();
 
+        public ICollection<CiJobOutputSection> CiJobOutputSections { get; set; } = new HashSet<CiJobOutputSection>();
+
         public CIJobDTO GetDTO()
         {
             return new()

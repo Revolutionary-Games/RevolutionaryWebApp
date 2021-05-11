@@ -257,7 +257,9 @@ namespace ThriveDevCenter.Server.Hubs
                 return RequireAccessLevel(UserAccessLevel.Developer, user);
             }
 
-            if (groupName.StartsWith(NotificationGroups.CIProjectsBuildsJobUpdatedPrefix))
+            if (groupName.StartsWith(NotificationGroups.CIProjectsBuildsJobUpdatedPrefix) ||
+                groupName.StartsWith(NotificationGroups.CIProjectBuildJobSectionsUpdatedPrefix) ||
+                groupName.StartsWith(NotificationGroups.CIProjectsBuildsJobRealtimeOutputPrefix))
             {
                 if (!GetCompositeIDPartFromGroup(groupName, out long[] ids) || ids.Length != 3)
                     return false;
@@ -268,7 +270,7 @@ namespace ThriveDevCenter.Server.Hubs
                 if (item == null)
                     return false;
 
-                // Everyone sees public projects' builds' jobs
+                // Everyone sees public projects' builds' jobs (and output sections)
                 if (item.Build.CiProject.Public)
                     return true;
 

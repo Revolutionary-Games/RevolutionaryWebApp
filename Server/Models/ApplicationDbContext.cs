@@ -36,6 +36,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<CiBuild> CiBuilds { get; set; }
         public DbSet<CiJob> CiJobs { get; set; }
         public DbSet<CiJobArtifact> CiJobArtifacts { get; set; }
+        public DbSet<CiJobOutputSection> CiJobOutputSections { get; set; }
         public DbSet<ControlledServer> ControlledServers { get; set; }
 
         /// <summary>
@@ -311,9 +312,12 @@ namespace ThriveDevCenter.Server.Models
                 entity.HasKey(nameof(CiJob.CiProjectId), nameof(CiJob.CiBuildId), nameof(CiJob.CiJobId));
 
                 entity.Property(e => e.Succeeded).HasDefaultValue(false);
+                entity.Property(e => e.RunningOnServerId).HasDefaultValue(-1);
 
                 entity.HasMany(p => p.CiJobArtifacts).WithOne(d => d.Job)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(p => p.CiJobOutputSections).WithOne(d => d.Job)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<CiJobArtifact>(entity =>
@@ -324,10 +328,13 @@ namespace ThriveDevCenter.Server.Models
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            modelBuilder.Entity<ControlledServer>(entity =>
+            modelBuilder.Entity<CiJobOutputSection>(entity =>
             {
-                entity.UseXminAsConcurrencyToken();
+                entity.HasKey(nameof(CiJobOutputSection.CiProjectId), nameof(CiJobOutputSection.CiBuildId),
+                    nameof(CiJobOutputSection.CiJobId), nameof(CiJobOutputSection.CiJobOutputSectionId));
             });
+
+            modelBuilder.Entity<ControlledServer>(entity => { entity.UseXminAsConcurrencyToken(); });
         }
     }
 }

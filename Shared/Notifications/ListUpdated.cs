@@ -73,4 +73,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CIProjectBuildJobsListUpdated : ListUpdated<CIJobDTO>
     {
     }
+
+    public class CIProjectBuildJobOutputSectionsListUpdated : ListUpdated<CIJobOutputSectionInfo>
+    {
+    }
 }
