@@ -16,7 +16,8 @@ namespace ThriveDevCenter.Server.Jobs
     {
         // TODO: put this somewhere more sensible
         private const string ProvisioningCommand =
-            "sudo dnf install -y podman ruby curl git git-lfs && sudo gem install httparty colorize && git lfs install";
+            "sudo dnf install -y podman ruby curl git git-lfs && sudo gem install httparty colorize faye-websocket " +
+            "&& git lfs install";
 
         private readonly ILogger<ProvisionControlledServerJob> logger;
         private readonly NotificationsEnabledDb database;
@@ -90,7 +91,8 @@ namespace ThriveDevCenter.Server.Jobs
         // TODO: make this async
         private async Task PerformProvisioningCommands(ControlledServer server)
         {
-            logger.LogInformation("Beginning SSH connect to provision server at: {PublicAddress}", server.PublicAddress);
+            logger.LogInformation("Beginning SSH connect to provision server at: {PublicAddress}",
+                server.PublicAddress);
 
             // TODO: there should probably be a maximum number of times this is attempted
             try

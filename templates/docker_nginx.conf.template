@@ -63,7 +63,7 @@ http {
 
         set $backend "http://thrivedevcenter_web:5000";
 
-        location /notifications {
+        location ~* ^/(notifications|ciBuildConnection) {
             limit_req zone=devcenterproxy burst=10 delay=5;
             limit_req_status 429;
             limit_conn devcenterwebsocket 15;

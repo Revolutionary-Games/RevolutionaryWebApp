@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server
     using System.Threading.Tasks;
     using AspNetCoreRateLimit;
     using Authorization;
+    using Controllers;
     using Filters;
     using Hangfire;
     using Hangfire.PostgreSql;
@@ -236,6 +237,11 @@ namespace ThriveDevCenter.Server
 
             app.UseIpRateLimiting();
 
+            app.UseWebSockets(new WebSocketOptions()
+            {
+                KeepAliveInterval = TimeSpan.FromSeconds(60)
+            });
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -294,6 +300,18 @@ namespace ThriveDevCenter.Server
             });
 
             SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));
+
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path == "/ciBuildConnection")
+                {
+                    await BuildWebSocketHandler.HandleHttpConnection(context, app.ApplicationServices);
+                }
+                else
+                {
+                    await next();
+                }
+            });
 
             app.UseRouting();
 
