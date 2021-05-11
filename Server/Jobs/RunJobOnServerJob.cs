@@ -80,19 +80,26 @@ namespace ThriveDevCenter.Server.Jobs
             // TODO: is there a possibility that this is not secure? Someone would need to do HTTPS MItM attack...
 
             // TODO: using async would be nice for the run commands when supported
-            var output1 = sshAccess
-                .RunCommand($"curl -L {GetUrlToDownloadCIExecutor()} -o ~/executor.rb && chmod +x ~/executor.rb")
-                .Result;
+            var result1 = sshAccess
+                .RunCommand($"curl -L {GetUrlToDownloadCIExecutor()} -o ~/executor.rb && chmod +x ~/executor.rb");
+
+            if (!result1.Success)
+            {
+                throw new Exception($"Failed to run executor download step: {result1.Result}, error: {result1.Error}");
+            }
 
             // and then run it with environment variables for this build
 
-            // TODO: build image name, DL urls, keys env variables
+            // TODO: build image name, DL urls, keys, and other env variables
             var env = $"export CI_REF={EscapeForBash(job.Build.RemoteRef)};";
 
             // TODO: implement the log and final status getting through a different endpoint, for now pretend that things succeeded
-            var output2 = sshAccess.RunCommand($"{env} ~/executor.rb {GetConnectToUrl(job)}").Result;
+            var result2 = sshAccess.RunCommand($"{env} ~/executor.rb {GetConnectToUrl(job)}");
 
-            Logger.LogInformation("Command results: {Output1}\n{Output2}", output1, output2);
+            if (!result2.Success)
+            {
+                throw new Exception($"Failed to start running CI executor: {result2.Result}, error: {result2.Error}");
+            }
 
             // Don't want to cancel saving once the job is already running
             // ReSharper disable once MethodSupportsCancellation
@@ -103,6 +110,9 @@ namespace ThriveDevCenter.Server.Jobs
 
             JobClient.Schedule<CancelCIBuildIfStuckJob>(
                 x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, cancellationToken), TimeSpan.FromMinutes(61));
+
+            Logger.LogInformation(
+                "CI job startup succeeded, now it's up for the executor to contact us with updates");
         }
 
         private static string EscapeForBash(string commandPart)

@@ -44,11 +44,13 @@ namespace ThriveDevCenter.Server.Jobs
             job.State = CIJobState.Finished;
             job.FinishedAt = DateTime.UtcNow;
             job.BuildOutputConnectKey = null;
-            job.RunningOnServerId = -1;
 
             // Release the server reservation and send notifications about the job
             var server =
                 await Database.ControlledServers.FindAsync(new object[] { job.RunningOnServerId }, cancellationToken);
+
+
+            job.RunningOnServerId = -1;
 
             if (server == null)
                 throw new ArgumentException("Could not find server to release now that a build is complete");
