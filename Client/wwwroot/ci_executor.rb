@@ -5,6 +5,10 @@
 
 require 'English'
 
+require 'faye/websocket'
+require 'eventmachine'
+require 'json'
+
 REMOTE = 'origin'
 PULL_REQUEST_REF_SUFFIX = '/head'
 NORMAL_REF_PREFIX = 'refs/heads/'
@@ -52,9 +56,75 @@ end
 
 puts 'CI executor script starting'
 
-connect_url = ARGV[1]
+connect_url = ARGV[0].sub('https://', 'wss://').sub('http://', 'ws://')
+
+fail_with_error 'Build status report URL is empty' if connect_url.nil? || connect_url == ''
 
 # TODO: delete to not leak this after things work
 puts "build output connect URL: #{connect_url}"
 
-puts 'TODO: implement doing more stuff here'
+puts 'Daemonizing rest of job running'
+
+raise 'Fork failed' if (pid = fork) == -1
+
+exit unless pid.nil?
+
+Process.setsid
+
+$stdin.reopen '/dev/null'
+$stdout.reopen 'build_script_output.txt', 'w'
+$stderr.reopen $stdout
+
+# Now run the rest of the job
+
+puts 'testing websockets...'
+
+EM.run {
+  ws = Faye::WebSocket::Client.new(connect_url, ping: 55)
+
+  def send_json(obj)
+    as_str = json.dumps(obj)
+    # Size first
+    ws.send([as_str.length].pack('<l').bytes)
+
+    # Then the data
+    ws.send(as_str)
+  end
+
+  ws.on :open do |_event|
+    puts 'Connected with websocket, sending initial section'
+
+    send_json({ Type: 'SectionStart', SectionName: 'Test section' })
+    send_json({ Type: 'BuildOutput', Output: 'TODO: build output here' })
+    send_json({ Type: 'SectionEnd', WasSuccessful: true })
+    send_json({ Type: 'FinalStatus', WasSuccessful: true })
+  end
+
+  ws.on :message do |event|
+    puts 'Received websocket message from the server'
+    # TODO: implement parsing it
+    puts event.data
+  end
+
+  ws.on :close do |_event|
+    puts 'Remote side closed websocket'
+    ws = nil
+  end
+
+  puts 'TODO: implement doing more stuff here'
+
+  EventMachine.add_timer(10) {
+    puts 'Stopping event machine'
+    EventMachine.stop_event_loop
+
+    begin
+      ws&.close
+    rescue StandardError => e
+      puts "Failed to close websocket: #{e}"
+    end
+  }
+}
+
+
+
+puts 'Exiting CI executor script'
