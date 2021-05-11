@@ -74,11 +74,12 @@ namespace ThriveDevCenter.Server.Controllers
                 var database = serviceProvider.GetRequiredService<NotificationsEnabledDb>();
 
                 var job = await database.CiJobs.AsQueryable()
-                    .WhereHashed(nameof(CiJob.BuildOutputConnectKey), keyRaw[0])
+                    .WhereHashed(nameof(CiJob.BuildOutputConnectKey), key.ToString())
                     .AsAsyncEnumerable().FirstOrDefaultAsync(b => b.BuildOutputConnectKey == key);
 
                 if (job == null || job.State == CIJobState.Finished)
                 {
+                    logger.LogWarning("Invalid job was tried to have output connected to it");
                     context.Response.ContentType = "plain/text";
                     context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
                     await context.Response.Body.WriteAsync(

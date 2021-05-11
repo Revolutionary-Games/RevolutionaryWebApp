@@ -11,7 +11,7 @@ namespace ThriveDevCenter.Server.Models
     using Utilities;
 
     [Index(nameof(HashedBuildOutputConnectKey), IsUnique = true)]
-    public class CiJob : IUpdateNotifications
+    public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     {
         public long CiProjectId { get; set; }
 

@@ -12,6 +12,7 @@ require 'json'
 REMOTE = 'origin'
 PULL_REQUEST_REF_SUFFIX = '/head'
 NORMAL_REF_PREFIX = 'refs/heads/'
+DAEMONIZE = true
 
 def fail_with_error(error)
   puts error
@@ -54,50 +55,54 @@ def pull_request_ref?(remote_ref)
   remote_ref.start_with? 'pull/'
 end
 
+def send_json(socket, obj)
+  as_str = JSON.dump(obj)
+  # Size first
+  socket.send([as_str.length].pack('<l').bytes)
+
+  # Then the data
+  socket.send(as_str)
+end
+
+#
+# End of function, start of main code
+#
+
 puts 'CI executor script starting'
 
 connect_url = ARGV[0].sub('https://', 'wss://').sub('http://', 'ws://')
 
 fail_with_error 'Build status report URL is empty' if connect_url.nil? || connect_url == ''
 
-# TODO: delete to not leak this after things work
-puts "build output connect URL: #{connect_url}"
+# TODO: check repo refs first as we can report that easily here
 
-puts 'Daemonizing rest of job running'
+if DAEMONIZE
+  puts 'Daemonizing rest of job running'
 
-raise 'Fork failed' if (pid = fork) == -1
+  raise 'Fork failed' if (pid = fork) == -1
 
-exit unless pid.nil?
+  exit unless pid.nil?
 
-Process.setsid
+  Process.setsid
 
-$stdin.reopen '/dev/null'
-$stdout.reopen 'build_script_output.txt', 'w'
-$stderr.reopen $stdout
+  $stdin.reopen '/dev/null'
+  $stdout.reopen 'build_script_output.txt', 'w'
+  $stderr.reopen $stdout
+end
 
-# Now run the rest of the job
-
-puts 'testing websockets...'
-
+# Start websocket connection for sending output and then run the build after setup with podman
 EM.run {
   ws = Faye::WebSocket::Client.new(connect_url, [], { ping: 55 })
-
-  def send_json(obj)
-    as_str = json.dumps(obj)
-    # Size first
-    ws.send([as_str.length].pack('<l').bytes)
-
-    # Then the data
-    ws.send(as_str)
-  end
 
   ws.on :open do |_event|
     puts 'Connected with websocket, sending initial section...'
 
-    send_json({ Type: 'SectionStart', SectionName: 'Test section' })
-    send_json({ Type: 'BuildOutput', Output: 'TODO: build output here' })
-    send_json({ Type: 'SectionEnd', WasSuccessful: true })
-    send_json({ Type: 'FinalStatus', WasSuccessful: true })
+    send_json(ws, { Type: 'SectionStart', SectionName: 'Test section' })
+    send_json(ws, { Type: 'BuildOutput', Output: 'TODO: build output here' })
+
+    # TODO: remove these sends:
+    send_json(ws, { Type: 'SectionEnd', WasSuccessful: true })
+    send_json(ws, { Type: 'FinalStatus', WasSuccessful: true })
 
     puts 'Initial section sent'
   end
@@ -116,6 +121,10 @@ EM.run {
 
   puts 'TODO: implement doing more stuff here'
 
+  # TODO: setup cache folders
+  # TODO: checkout the right ref
+  # TODO: run build command and wait for it
+
   EventMachine.add_timer(10) {
     puts 'Stopping event machine'
     EventMachine.stop_event_loop
@@ -127,7 +136,5 @@ EM.run {
     end
   }
 }
-
-
 
 puts 'Exiting CI executor script'
