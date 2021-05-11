@@ -10,6 +10,7 @@ namespace ThriveDevCenter.Server.Models
     using Shared.Notifications;
     using Utilities;
 
+    [Index(nameof(HashedBuildOutputConnectKey), IsUnique = true)]
     public class CiJob : IUpdateNotifications
     {
         public long CiProjectId { get; set; }
@@ -28,6 +29,19 @@ namespace ThriveDevCenter.Server.Models
         [Required]
         [AllowSortingBy]
         public string JobName { get; set; }
+
+        /// <summary>
+        ///   Used to allow the build server to connect back to us to communicate build logs and status
+        /// </summary>
+        [HashedLookUp]
+        public Guid? BuildOutputConnectKey { get; set; } = Guid.NewGuid();
+
+        public string HashedBuildOutputConnectKey { get; set; }
+
+        /// <summary>
+        ///   Used to detect which server to release after this job is complete
+        /// </summary>
+        public long RunningOnServerId { get; set; } = -1;
 
         [ForeignKey("CiProjectId,CiBuildId")]
         public CiBuild Build { get; set; }
@@ -63,7 +77,7 @@ namespace ThriveDevCenter.Server.Models
                 Item = dto
             }, NotificationGroups.CIProjectBuildJobsUpdatedPrefix + buildNotificationsId);
 
-            var notificationsId =  buildNotificationsId + "_" + CiJobId;
+            var notificationsId = buildNotificationsId + "_" + CiJobId;
 
             yield return new Tuple<SerializedNotification, string>(new CIJobUpdated()
             {

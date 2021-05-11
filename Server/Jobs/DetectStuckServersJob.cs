@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Jobs
 
                 logger.LogInformation("Successfully terminated: {InstanceId}", server.InstanceId);
 
-                // Not done as the state to terminated is very important to save
+                // Not cancellable done as the state to terminated is very important to save
                 // ReSharper disable once MethodSupportsCancellation
                 await database.SaveChangesAsync();
             }
