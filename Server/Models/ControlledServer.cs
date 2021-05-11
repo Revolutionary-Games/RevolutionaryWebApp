@@ -57,6 +57,18 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public DateTime LastMaintenance { get; set; } = DateTime.UtcNow;
 
+        public void SetProvisioningStatus(string instanceId)
+        {
+            var now = DateTime.UtcNow;
+
+            InstanceId = instanceId;
+            ProvisionedFully = false;
+            Status = ServerStatus.Provisioning;
+            LastMaintenance = now;
+            StatusLastChecked = now;
+            this.BumpUpdatedAt();
+        }
+
         public ControlledServerDTO GetDTO()
         {
             return new()

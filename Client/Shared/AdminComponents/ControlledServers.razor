@@ -19,6 +19,8 @@
     }
     else
     {
+        <StatusMessageShower Message="@message" Type="@messageType" />
+
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                         OnPageChanged="async (e) => await ChangePage(e)"
                         OnSortChanged="async (column) => await ChangeSort(column)"
@@ -41,7 +43,25 @@
                         <td>@(TimeSpan.FromSeconds(item.TotalRuntime))</td>
                         <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
                         <td>@item.WantsMaintenance</td>
-                        <td>@* TODO: buttons to force stop or terminate *@</td>
+                        <td>
+                            <Button Enabled="@CanStopOrStart(item)"
+                                    OnPressed="@(async () => await VerifyStartStop(item))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="@StartButtonStyle(item)"
+                                    class="btn-sm">
+                                @if (item.Status == ServerStatus.Stopped || item.Status == ServerStatus.Terminated)
+                                {
+                                    <span>Start</span>
+                                }
+                                else
+                                {
+                                    <span>Stop</span>
+                                }
+                            </Button>
+                            <Button Enabled="@CanTerminate(item)" OnPressed="@(async () => await VerifyTerminate(item))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
+                                Terminate
+                            </Button>
+                        </td>
                     </tr>
                 }
             }
@@ -62,6 +82,14 @@
         new TableColumn("Wants Maintenance", true, "WantsMaintenance"),
         new TableColumn("Actions", false)
     };
+
+    private readonly Dictionary<long, bool> processingItems = new();
+
+    private string message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
     public ControlledServers() : base(new SortHelper("Id", SortDirection.Ascending))
     {
@@ -93,5 +121,181 @@
     {
         return http.GetFromJsonAsync<PagedResult<ControlledServerDTO>>(
             QueryHelpers.AddQueryString("api/v1/ControlledServers", requestParams));
+    }
+
+    private bool CanTerminate(ControlledServerDTO server)
+    {
+        return server.Status != ServerStatus.Terminated;
+    }
+
+    private bool IsProcessing(long serverId)
+    {
+        return processingItems.GetValueOrDefault(serverId, false);
+    }
+
+    private async Task VerifyTerminate(ControlledServerDTO server)
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmTerminate.Name), $"Server {server.Id}");
+
+        var modal = Modal.Show<ConfirmTerminate>("Terminate this server?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await PerformTerminate(server.Id);
+    }
+
+    private async Task PerformTerminate(long serverId)
+    {
+        processingItems[serverId] = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/terminate",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingItems[serverId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[serverId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Server successfully commanded to terminate";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool CanStopOrStart(ControlledServerDTO server)
+    {
+        return server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated ||
+            server.Status == ServerStatus.Running;
+    }
+
+    private string StartButtonStyle(ControlledServerDTO server)
+    {
+        if (server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated)
+            return "secondary";
+
+        return "warning";
+    }
+
+    private async Task VerifyStartStop(ControlledServerDTO server)
+    {
+        if (server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated)
+        {
+            // These can just be started
+            await PerformStart(server.Id);
+            return;
+        }
+
+        // Confirm before stopping
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmStop.Name), $"Server {server.Id}");
+
+        var modal = Modal.Show<ConfirmStop>("Stop this server?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await PerformStop(server.Id);
+    }
+
+    private async Task PerformStart(long serverId)
+    {
+        processingItems[serverId] = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/start",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingItems[serverId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[serverId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Server successfully commanded to start";
+            messageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PerformStop(long serverId)
+    {
+        processingItems[serverId] = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/stop",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingItems[serverId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[serverId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Server successfully commanded to stop";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }
