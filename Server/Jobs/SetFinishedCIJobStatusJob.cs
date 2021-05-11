@@ -37,6 +37,12 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            if (job.RunningOnServerId == -1)
+            {
+                logger.LogError("CI job doesn't have RunningOnServerId set for SetFinishedCIJobStatus");
+                return;
+            }
+
             logger.LogInformation("CI job {CIProjectId}-{CIBuildId}-{CIJobId} is now finished with status: {Success}",
                 ciProjectId, ciBuildId, ciJobId, success);
 
@@ -48,7 +54,6 @@ namespace ThriveDevCenter.Server.Jobs
             // Release the server reservation and send notifications about the job
             var server =
                 await Database.ControlledServers.FindAsync(new object[] { job.RunningOnServerId }, cancellationToken);
-
 
             job.RunningOnServerId = -1;
 
