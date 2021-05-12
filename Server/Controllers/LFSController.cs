@@ -106,15 +106,15 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = new BasicJSONErrorResult("Storage is not configured",
-                        "LFS storage on the server side is not configured properly").ToString()
+                    Value = new GitLFSErrorResponse()
+                        { Message = "LFS storage on the server side is not configured properly" }.ToString()
                 };
             }
 
             if (request.Objects.Count < 1)
             {
-                return new ObjectResult(new BasicJSONErrorResult("No processable objects",
-                        "No objects found in the request to process")
+                return new ObjectResult(new GitLFSErrorResponse()
+                        { Message = "No objects found in the request to process" }
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status422UnprocessableEntity,
@@ -136,8 +136,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (objects.Count < 1)
             {
-                return new ObjectResult(new BasicJSONErrorResult("No processable objects",
-                        "No valid objects found in request to process")
+                return new ObjectResult(new GitLFSErrorResponse()
+                        { Message = "No valid objects found in request to process" }
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status422UnprocessableEntity,
@@ -182,8 +182,7 @@ namespace ThriveDevCenter.Server.Controllers
             catch (Exception e)
             {
                 logger.LogWarning("Failed to verify LFS upload token: {@E}", e);
-                return new ObjectResult(new BasicJSONErrorResult("Invalid token",
-                        "Invalid upload verify token provided")
+                return new ObjectResult(new GitLFSErrorResponse() { Message = "Invalid upload verify token provided" }
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
@@ -203,8 +202,8 @@ namespace ThriveDevCenter.Server.Controllers
             if (existingObject != null)
             {
                 logger.LogWarning("Duplicate LFS oid attempted to be verified: {Oid}", verifiedToken.Oid);
-                return new ObjectResult(new BasicJSONErrorResult("Duplicate object",
-                        "Object with the given OID has already been verified")
+                return new ObjectResult(new GitLFSErrorResponse()
+                        { Message = "Object with the given OID has already been verified" }
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
@@ -222,8 +221,11 @@ namespace ThriveDevCenter.Server.Controllers
                 if (actualSize != verifiedToken.Size)
                 {
                     logger.LogWarning("Detected partial upload to remote storage");
-                    return new ObjectResult(new BasicJSONErrorResult("Verification failed",
-                            "The object size in remote storage is different than it should be")
+                    return new ObjectResult(new GitLFSErrorResponse()
+                        {
+                            Message =
+                                "Verification failed: the object size in remote storage is different than it should be"
+                        }
                         .ToString())
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
@@ -234,8 +236,8 @@ namespace ThriveDevCenter.Server.Controllers
             catch (Exception e)
             {
                 logger.LogWarning("Failed to check object size in storage: {@E}", e);
-                return new ObjectResult(new BasicJSONErrorResult("Verification failed",
-                        "Failed to retrieve the object size")
+                return new ObjectResult(new GitLFSErrorResponse()
+                        { Message = "Verification failed: failed to retrieve the object size" }
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
@@ -260,8 +262,11 @@ namespace ThriveDevCenter.Server.Controllers
 
                     await remoteStorage.DeleteObject(finalStoragePath);
 
-                    return new ObjectResult(new BasicJSONErrorResult("Verification failed",
-                            "The file you uploaded doesn't match the oid you claimed it to be")
+                    return new ObjectResult(new GitLFSErrorResponse()
+                        {
+                            Message =
+                                "Verification failed: the file you uploaded doesn't match the oid you claimed it to be"
+                        }
                         .ToString())
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
@@ -272,8 +277,7 @@ namespace ThriveDevCenter.Server.Controllers
             catch (Exception e)
             {
                 logger.LogError("Upload verify storage operation failed: {@E}", e);
-                return new ObjectResult(new BasicJSONErrorResult("Internal storage operation failed",
-                        "Some remote storage operation failed while processing the file")
+                return new ObjectResult(new GitLFSErrorResponse() { Message = "Internal storage operation failed" }
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
@@ -304,8 +308,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost("{slug}/locks/verify")]
         public IActionResult Locks([Required] string slug)
         {
-            return new ObjectResult(new BasicJSONErrorResult("Unimplemented",
-                    "LFS locks API is unimplemented")
+            return new ObjectResult(new GitLFSErrorResponse() { Message = "LFS locks API is unimplemented" }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status501NotImplemented,
@@ -350,8 +353,7 @@ namespace ThriveDevCenter.Server.Controllers
         private ActionResult RequestAuthResult()
         {
             SetAuthenticateHeader();
-            return Unauthorized(new BasicJSONErrorResult("Authentication required",
-                    "For help see: https://wiki.revolutionarygamesstudio.com/wiki/Git_LFS")
+            return Unauthorized(new GitLFSErrorResponse() { Message = "Authentication required" }
                 .ToString());
         }
 
@@ -360,9 +362,8 @@ namespace ThriveDevCenter.Server.Controllers
         {
             SetAuthenticateHeader();
 
-            var result = new ObjectResult(new BasicJSONErrorResult("Invalid credentials",
-                    "Invalid credentials or you don't have write access or your account is suspended. " +
-                    "For help see: https://wiki.revolutionarygamesstudio.com/wiki/Git_LFS")
+            var result = new ObjectResult(new GitLFSErrorResponse()
+                    { Message = "Invalid credentials or you don't have write access or your account is suspended." }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status403Forbidden,
@@ -375,8 +376,7 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private ActionResult CreateErrorResult(string message)
         {
-            var result = new ObjectResult(new BasicJSONErrorResult("Bad request",
-                    message)
+            var result = new ObjectResult(new GitLFSErrorResponse() { Message = $"Bad request: {message}" }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status400BadRequest,
@@ -485,7 +485,7 @@ namespace ThriveDevCenter.Server.Controllers
                     throw new HttpResponseException()
                     {
                         Status = StatusCodes.Status500InternalServerError,
-                        Value = new BasicJSONErrorResult(error, error).ToString()
+                        Value = new GitLFSErrorResponse() { Message = error }.ToString()
                     };
                 }
 
