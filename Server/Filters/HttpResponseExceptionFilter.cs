@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Filters
 {
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
+    using Microsoft.AspNetCore.Mvc.Formatters;
 
     public class HttpResponseExceptionFilter : IActionFilter, IOrderedFilter
     {
@@ -14,10 +15,20 @@ namespace ThriveDevCenter.Server.Filters
             if (context.Exception is not HttpResponseException exception)
                 return;
 
-            context.Result = new ObjectResult(exception.Value)
+            var result = new ObjectResult(exception.Value)
             {
                 StatusCode = exception.Status,
             };
+
+            if (!string.IsNullOrEmpty(exception.ContentType))
+            {
+                result.ContentTypes = new MediaTypeCollection()
+                {
+                    exception.ContentType
+                };
+            }
+
+            context.Result = result;
 
             context.ExceptionHandled = true;
         }

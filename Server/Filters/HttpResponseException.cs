@@ -12,5 +12,7 @@ namespace ThriveDevCenter.Server.Filters
         public int Status { get; set; } = StatusCodes.Status400BadRequest;
 
         public object Value { get; set; }
+
+        public string ContentType { get; set; }
     }
 }

@@ -106,6 +106,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
+                    ContentType = AppInfo.GitLfsContentType,
                     Value = new GitLFSErrorResponse()
                         { Message = "LFS storage on the server side is not configured properly" }.ToString()
                 };
@@ -485,6 +486,7 @@ namespace ThriveDevCenter.Server.Controllers
                     throw new HttpResponseException()
                     {
                         Status = StatusCodes.Status500InternalServerError,
+                        ContentType = AppInfo.GitLfsContentType,
                         Value = new GitLFSErrorResponse() { Message = error }.ToString()
                     };
                 }
