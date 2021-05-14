@@ -140,6 +140,10 @@ namespace ThriveDevCenter.Server.Jobs
             job.RunningOnServerId = serverId;
             job.State = CIJobState.Running;
 
+            // This save is done here as the build status might get reported back to us before we finish with the ssh
+            // commands
+            await Database.SaveChangesAsync(cancellationToken);
+
             // First is to download the CI executor script
             // TODO: is there a possibility that this is not secure? Someone would need to do HTTPS MItM attack...
 
@@ -173,10 +177,6 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 throw new Exception($"Failed to start running CI executor: {result2.Result}, error: {result2.Error}");
             }
-
-            // Don't want to cancel saving once the job is already running
-            // ReSharper disable once MethodSupportsCancellation
-            await Database.SaveChangesAsync();
 
             JobClient.Schedule<CheckCIJobOutputHasConnectedJob>(
                 x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, cancellationToken), TimeSpan.FromMinutes(5));
