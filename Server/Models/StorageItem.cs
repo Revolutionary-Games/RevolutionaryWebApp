@@ -113,8 +113,14 @@ namespace ThriveDevCenter.Server.Models
 
         public bool IsWritableBy(User user)
         {
-            // Special files aren't writable by anyone
-            return WriteAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId) && !Special;
+            if (!WriteAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId))
+                return false;
+
+            // Special files aren't writable by anyone, but special folders are writable
+            if (Ftype == FileType.File)
+                return !Special;
+
+            return true;
         }
 
         public Task<StorageItemVersion> GetHighestVersion(ApplicationDbContext database)
