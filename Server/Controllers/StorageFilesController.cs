@@ -189,12 +189,12 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 // Only admin can write to root folder
                 if (!user.HasAccessLevel(UserAccessLevel.Admin))
-                    return Forbid("Only admins can write to root folder");
+                    return this.WorkingForbid("Only admins can write to root folder");
             }
             else
             {
                 if (!parentFolder.IsWritableBy(user))
-                    return Forbid("You don't have write access to the parent folder");
+                    return this.WorkingForbid("You don't have write access to the parent folder");
             }
 
             // Check for duplicate name
@@ -294,7 +294,7 @@ namespace ThriveDevCenter.Server.Controllers
                 if (parentFolder != null)
                 {
                     if (!parentFolder.IsReadableBy(user))
-                        return Forbid("You don't have read access to the folder");
+                        return this.WorkingForbid("You don't have read access to the folder");
                 }
 
                 // Disallow file uploads to a folder item
@@ -307,12 +307,12 @@ namespace ThriveDevCenter.Server.Controllers
                 if (parentFolder == null)
                 {
                     if (!user.HasAccessLevel(UserAccessLevel.Admin))
-                        return Forbid("Only admins can write to root folder");
+                        return this.WorkingForbid("Only admins can write to root folder");
                 }
                 else
                 {
                     if (!parentFolder.IsWritableBy(user))
-                        return Forbid("You don't have write access to the folder");
+                        return this.WorkingForbid("You don't have write access to the folder");
                 }
             }
 
