@@ -83,6 +83,18 @@ namespace ThriveDevCenter.Server.Models
             await database.CiJobOutputSections.AddAsync(section);
         }
 
+        /// <summary>
+        ///   Converts the Image to the name it should have in the DevCenter's storage
+        /// </summary>
+        /// <returns>The image name</returns>
+        public string GetImageFileName()
+        {
+            if (string.IsNullOrEmpty(Image))
+                return "missing";
+
+            return Image.Replace(":v", "_v") + ".tar.xz";
+        }
+
         public CIJobDTO GetDTO()
         {
             return new()

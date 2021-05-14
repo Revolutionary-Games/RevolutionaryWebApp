@@ -60,7 +60,8 @@ namespace ThriveDevCenter.Server.Jobs
             // TODO: check if ciJobId matches the reservation on the server?
 
             // Get the CI image for the job
-            var serverSideImagePath = Path.Join("CI/Images", (job.Image ?? "missing") + ".tar.xz");
+            var imageFileName = job.GetImageFileName();
+            var serverSideImagePath = Path.Join("CI/Images", imageFileName);
 
             StorageItem imageItem;
             try
@@ -132,6 +133,9 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            var imageDownloadUrl =
+                remoteDownloadUrls.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime);
+
             // Connection success, so now we can run the job starting on the server
             job.RunningOnServerId = serverId;
             job.State = CIJobState.Running;
@@ -148,23 +152,21 @@ namespace ThriveDevCenter.Server.Jobs
                 throw new Exception($"Failed to run executor download step: {result1.Result}, error: {result1.Error}");
             }
 
+            // TODO: check server remaining disk space here
+
             // and then run it with environment variables for this build
 
-            // TODO: build image name, DL urls, keys, and other env variables
-            var imageDownloadUrl =
-                remoteDownloadUrls.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime);
-
             var env = new StringBuilder(200);
-            env.Append("export CI_REF=");
+            env.Append("export CI_REF='");
             env.Append(EscapeForBash(job.Build.RemoteRef));
-            env.Append("; CI_IMAGE_DL_URL=");
+            env.Append("'; CI_IMAGE_DL_URL='");
             env.Append(EscapeForBash(imageDownloadUrl));
-            env.Append("; CI_IMAGE_NAME=");
+            env.Append("'; CI_IMAGE_NAME='");
             env.Append(EscapeForBash(job.Image));
-            env.Append("; CI_TAR_TYPE=.tar.xz");
-            env.Append(';');
+            env.Append("'; CI_IMAGE_FILENAME=");
+            env.Append(EscapeForBash(imageFileName));
+            env.Append("';");
 
-            // TODO: implement the log and final status getting through a different endpoint, for now pretend that things succeeded
             var result2 = sshAccess.RunCommand($"{env} ~/executor.rb {GetConnectToUrl(job)}");
 
             if (!result2.Success)
@@ -183,7 +185,7 @@ namespace ThriveDevCenter.Server.Jobs
                 x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, cancellationToken), TimeSpan.FromMinutes(61));
 
             Logger.LogInformation(
-                "CI job startup succeeded, now it's up for the executor to contact us with updates");
+                "CI job startup succeeded, now it's up to the executor to contact us with updates");
         }
 
         private static string EscapeForBash(string commandPart)
