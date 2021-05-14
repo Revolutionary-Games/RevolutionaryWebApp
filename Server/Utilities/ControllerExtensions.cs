@@ -13,8 +13,6 @@ namespace ThriveDevCenter.Server.Utilities
                 Status = StatusCodes.Status403Forbidden,
                 Value = message
             };
-
-            return controller.Forbid();
         }
     }
 }

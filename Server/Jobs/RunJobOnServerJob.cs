@@ -163,7 +163,7 @@ namespace ThriveDevCenter.Server.Jobs
             env.Append(EscapeForBash(imageDownloadUrl));
             env.Append("'; CI_IMAGE_NAME='");
             env.Append(EscapeForBash(job.Image));
-            env.Append("'; CI_IMAGE_FILENAME=");
+            env.Append("'; CI_IMAGE_FILENAME='");
             env.Append(EscapeForBash(imageFileName));
             env.Append("';");
 
