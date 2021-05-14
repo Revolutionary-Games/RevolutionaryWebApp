@@ -124,6 +124,7 @@ namespace ThriveDevCenter.Server.Jobs
                     CiBuildId = ciBuildId,
                     CiJobId = ++jobId,
                     JobName = jobEntry.Key,
+                    Image = jobEntry.Value.Image,
                 };
 
                 await database.CiJobs.AddAsync(job, cancellationToken);
@@ -149,6 +150,19 @@ namespace ThriveDevCenter.Server.Jobs
 
         private async Task CreateFailedJob(CiBuild build, string failure, CancellationToken cancellationToken)
         {
+            var outputSection = new CiJobOutputSection()
+            {
+                CiProjectId = build.CiProjectId,
+                CiBuildId = build.CiBuildId,
+                CiJobId = 1,
+                CiJobOutputSectionId = 1,
+                Name = "Invalid configuration",
+                Status = CIJobSectionStatus.Failed,
+                Output = failure
+            };
+
+            outputSection.CalculateOutputLength();
+
             var job = new CiJob
             {
                 CiProjectId = build.CiProjectId,
@@ -159,10 +173,14 @@ namespace ThriveDevCenter.Server.Jobs
                 Succeeded = false,
                 State = CIJobState.Finished,
 
-                // TODO: add failure as a build output
+                CiJobOutputSections = new List<CiJobOutputSection>()
+                {
+                    outputSection
+                }
             };
 
             await database.CiJobs.AddAsync(job, cancellationToken);
+            await database.CiJobOutputSections.AddAsync(outputSection, cancellationToken);
             await database.SaveChangesAsync(cancellationToken);
 
             if (!await statusReporter.SetCommitStatus(build.CiProject.RepositoryFullName, build.CommitHash,

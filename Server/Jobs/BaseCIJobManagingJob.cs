@@ -27,6 +27,7 @@ namespace ThriveDevCenter.Server.Jobs
         protected async Task OnJobEnded(ControlledServer server, CiJob job)
         {
             ReleaseServerReservation(server);
+            job.RunningOnServerId = -1;
 
             // After running the job, the changes saving should not be skipped
             await Database.SaveChangesAsync();

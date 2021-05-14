@@ -1,7 +1,9 @@
 namespace ThriveDevCenter.Server.Jobs
 {
     using System;
+    using System.IO;
     using System.Net.Sockets;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
@@ -11,8 +13,10 @@ namespace ThriveDevCenter.Server.Jobs
     using Models;
     using Renci.SshNet.Common;
     using Services;
+    using Shared;
     using Shared.Models;
     using Utilities;
+    using FileAccess = Shared.Models.FileAccess;
 
     public class RunJobOnServerJob : BaseCIJobManagingJob
     {
@@ -20,13 +24,17 @@ namespace ThriveDevCenter.Server.Jobs
 
         private readonly IConfiguration configuration;
         private readonly ControlledServerSSHAccess sshAccess;
+        private readonly GeneralRemoteDownloadUrls remoteDownloadUrls;
 
         public RunJobOnServerJob(ILogger<RunJobOnServerJob> logger, IConfiguration configuration,
             NotificationsEnabledDb database, ControlledServerSSHAccess sshAccess, IBackgroundJobClient jobClient,
-            GithubCommitStatusReporter statusReporter) : base(logger, database, jobClient, statusReporter)
+            GithubCommitStatusReporter statusReporter, GeneralRemoteDownloadUrls remoteDownloadUrls) : base(logger,
+            database,
+            jobClient, statusReporter)
         {
             this.configuration = configuration;
             this.sshAccess = sshAccess;
+            this.remoteDownloadUrls = remoteDownloadUrls;
         }
 
         public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId, int retries,
@@ -50,6 +58,58 @@ namespace ThriveDevCenter.Server.Jobs
             }
 
             // TODO: check if ciJobId matches the reservation on the server?
+
+            // Get the CI image for the job
+            var serverSideImagePath = Path.Join("CI/Images", (job.Image ?? "missing") + ".tar.xz");
+
+            StorageItem imageItem;
+            try
+            {
+                imageItem = await StorageItem.FindByPath(Database, serverSideImagePath);
+            }
+            catch (Exception e)
+            {
+                // ReSharper disable once ExceptionPassedAsTemplateArgumentProblem
+                Logger.LogError("Invalid image specified for CI job: {Image}, path parse exception: {@E}", job.Image,
+                    e);
+                job.SetFinishSuccess(false);
+                await job.CreateFailureSection(Database, "Invalid image specified for job (invalid path)");
+                await OnJobEnded(server, job);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(job.Image) || imageItem == null)
+            {
+                Logger.LogError("Invalid image specified for CI job: {Image}", job.Image);
+                job.SetFinishSuccess(false);
+                await job.CreateFailureSection(Database, "Invalid image specified for job (not found)");
+                await OnJobEnded(server, job);
+                return;
+            }
+
+            // The CI system uses the first valid image version. For future updates a different file name is needed
+            // For example bumping the ":v1" to a ":v2" suffix
+            var version = await imageItem.GetLowestUploadedVersion(Database);
+
+            if (version == null || version.StorageFile == null)
+            {
+                Logger.LogError("Image with no uploaded version specified for CI job: {Image}", job.Image);
+                job.SetFinishSuccess(false);
+                await job.CreateFailureSection(Database, "Invalid image specified for job (not uploaded version)");
+                await OnJobEnded(server, job);
+                return;
+            }
+
+            // Queue a job to lock writing to the CI image if it isn't write protected yet
+            if (imageItem.WriteAccess != FileAccess.Nobody)
+            {
+                Logger.LogInformation(
+                    "Storage item {Id} used as CI image is not write locked, queuing a job to lock it", imageItem.Id);
+
+                // To ensure the upload time is expired, this is upload time + 5 minutes
+                JobClient.Schedule<LockCIImageItemJob>(x => x.Execute(imageItem.Id, CancellationToken.None),
+                    AppInfo.RemoteStorageUploadExpireTime + TimeSpan.FromMinutes(5));
+            }
 
             Logger.LogInformation("Trying to start job {CIProjectId}-{CIBuildId}-{CIJobId} on reserved server",
                 ciProjectId, ciBuildId, ciJobId);
@@ -91,7 +151,18 @@ namespace ThriveDevCenter.Server.Jobs
             // and then run it with environment variables for this build
 
             // TODO: build image name, DL urls, keys, and other env variables
-            var env = $"export CI_REF={EscapeForBash(job.Build.RemoteRef)};";
+            var imageDownloadUrl =
+                remoteDownloadUrls.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime);
+
+            var env = new StringBuilder(200);
+            env.Append("export CI_REF=");
+            env.Append(EscapeForBash(job.Build.RemoteRef));
+            env.Append("; CI_IMAGE_DL_URL=");
+            env.Append(EscapeForBash(imageDownloadUrl));
+            env.Append("; CI_IMAGE_NAME=");
+            env.Append(EscapeForBash(job.Image));
+            env.Append("; CI_TAR_TYPE=.tar.xz");
+            env.Append(';');
 
             // TODO: implement the log and final status getting through a different endpoint, for now pretend that things succeeded
             var result2 = sshAccess.RunCommand($"{env} ~/executor.rb {GetConnectToUrl(job)}");

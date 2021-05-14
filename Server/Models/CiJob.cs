@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server.Models
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+    using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
@@ -31,6 +32,11 @@ namespace ThriveDevCenter.Server.Models
         public string JobName { get; set; }
 
         /// <summary>
+        ///   The podman image to use to run this job, should be in the form of "thing/image:v1"
+        /// </summary>
+        public string Image { get; set; }
+
+        /// <summary>
         ///   Used to allow the build server to connect back to us to communicate build logs and status
         /// </summary>
         [HashedLookUp]
@@ -49,6 +55,33 @@ namespace ThriveDevCenter.Server.Models
         public ICollection<CiJobArtifact> CiJobArtifacts { get; set; } = new HashSet<CiJobArtifact>();
 
         public ICollection<CiJobOutputSection> CiJobOutputSections { get; set; } = new HashSet<CiJobOutputSection>();
+
+        public void SetFinishSuccess(bool success)
+        {
+            Succeeded = success;
+            State = CIJobState.Finished;
+            FinishedAt = DateTime.UtcNow;
+            BuildOutputConnectKey = null;
+        }
+
+        public async Task CreateFailureSection(ApplicationDbContext database, string content,
+            string sectionTitle = "Invalid configuration", long sectionId = 1)
+        {
+            var section = new CiJobOutputSection()
+            {
+                CiProjectId = CiProjectId,
+                CiBuildId = CiBuildId,
+                CiJobId = CiJobId,
+                CiJobOutputSectionId = sectionId,
+                Name = sectionTitle,
+                Status = CIJobSectionStatus.Failed,
+                Output = content
+            };
+
+            section.CalculateOutputLength();
+
+            await database.CiJobOutputSections.AddAsync(section);
+        }
 
         public CIJobDTO GetDTO()
         {
