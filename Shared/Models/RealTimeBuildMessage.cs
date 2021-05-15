@@ -17,6 +17,11 @@ namespace ThriveDevCenter.Shared.Models
         public string SectionName { get; set; }
 
         public bool WasSuccessful { get; set; }
+
+        /// <summary>
+        ///   The section id (as we don't guarantee SectionName to be unique)
+        /// </summary>
+        public long SectionId { get; set; }
     }
 
     public enum BuildSectionMessageType

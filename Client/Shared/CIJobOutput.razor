@@ -55,12 +55,17 @@ else
     }
     else
     {
-        <p>This job has no output.</p>
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
     }
 }
 
 @code {
     private readonly Dictionary<long, bool> shownSections = new();
+
+    private readonly List<string> receivedRealtimeOutput = new ();
+    private long? receivingRealtimeOutputForSection;
 
     [Parameter]
     public long ProjectId { get; set; }
@@ -95,7 +100,54 @@ else
 
     public Task Handle(RealTimeBuildMessage notification, CancellationToken cancellationToken)
     {
-        Console.WriteLine("TODO: handle realtime build message: " + notification.Output);
+        if (notification.Type == BuildSectionMessageType.SectionStart &&
+            receivingRealtimeOutputForSection != notification.SectionId)
+        {
+            // Hide the section output was previously received for
+            if (receivingRealtimeOutputForSection != null)
+                shownSections[receivingRealtimeOutputForSection.Value] = false;
+
+            // Setup receiving the new section
+            receivedRealtimeOutput.Clear();
+            receivingRealtimeOutputForSection = notification.SectionId;
+            shownSections[receivingRealtimeOutputForSection.Value] = true;
+
+            // A new section object is not created here as we should very shortly (if not already) have received
+            // a creation notification about it and our Data list should be updated shortly
+
+            StateHasChanged();
+
+        } else if (notification.Type == BuildSectionMessageType.BuildOutput &&
+            !string.IsNullOrEmpty(notification.Output))
+        {
+            // TODO: limit how much data can be in memory here on the client
+            bool first = true;
+            foreach (var line in notification.Output.Split('\n'))
+            {
+                if(first)
+                {
+                    // First line might not be just after a line-break so append that to an existing line in
+                    // receivedRealtimeOutput
+                    if (receivedRealtimeOutput.Count < 1)
+                    {
+                        receivedRealtimeOutput.Add(line);
+                    }
+                    else
+                    {
+                        receivedRealtimeOutput[^1] += line;
+                    }
+
+                    first = false;
+                }
+                else
+                {
+                    receivedRealtimeOutput.Add(line);
+                }
+            }
+
+            StateHasChanged();
+        }
+
         return Task.CompletedTask;
     }
 

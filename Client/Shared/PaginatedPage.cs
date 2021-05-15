@@ -85,5 +85,30 @@ namespace ThriveDevCenter.Client.Shared
                 }
             }
         }
+
+        public override async Task HandleItemNotification(ListUpdated<T> notification)
+        {
+            switch (notification.Type)
+            {
+                case ListItemChangeType.ItemUpdated:
+                {
+                    await base.HandleItemNotification(notification);
+                    break;
+                }
+                case ListItemChangeType.ItemDeleted:
+                case ListItemChangeType.ItemAdded:
+                {
+                    // For these the only 100% working solution is to basically fetch the current page again
+                    // We could make a 99% working solution by comparing the current items on the client to determine
+                    // if the data is part of this page or not, before refreshing
+                    WantsToFetchDataAgain = true;
+
+                    Console.WriteLine(
+                        "Refreshing current paginated page due to item add or remove. Delay to avoid too " +
+                        $"many requests: {FetchTimerInterval}");
+                    break;
+                }
+            }
+        }
     }
 }

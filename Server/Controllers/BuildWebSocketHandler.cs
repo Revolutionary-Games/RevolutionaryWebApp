@@ -206,6 +206,14 @@ namespace ThriveDevCenter.Server.Controllers
                                 ErrorMessage = "Can't start a new section while one is in progress"
                             });
                         }
+                        else if (string.IsNullOrEmpty(message.SectionName) || message.SectionName.Length > 100)
+                        {
+                            logger.LogError("Received a build output section start with missing or too long name");
+                            await SendMessage(new Error()
+                            {
+                                ErrorMessage = "Can't start a new section with invalid name"
+                            });
+                        }
                         else
                         {
                             activeSection = new CiJobOutputSection()
@@ -225,6 +233,7 @@ namespace ThriveDevCenter.Server.Controllers
                             await database.CiJobOutputSections.AddAsync(activeSection);
                             await database.SaveChangesAsync();
 
+                            message.SectionId = activeSection.CiJobOutputSectionId;
                             await SendMessageToWebsiteClients(message);
                         }
 
@@ -257,6 +266,7 @@ namespace ThriveDevCenter.Server.Controllers
                                 await database.SaveChangesAsync();
                             }
 
+                            message.SectionId = activeSection.CiJobOutputSectionId;
                             await SendMessageToWebsiteClients(message);
                         }
 

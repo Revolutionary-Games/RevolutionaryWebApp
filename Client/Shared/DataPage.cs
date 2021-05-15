@@ -77,7 +77,7 @@ namespace ThriveDevCenter.Client.Shared
         /// <summary>
         ///   Computes the fetch timer interval based on how many times data has been fetched
         /// </summary>
-        private int FetchTimerInterval
+        protected int FetchTimerInterval
         {
             get
             {
@@ -123,7 +123,12 @@ namespace ThriveDevCenter.Client.Shared
             return Sort?.SortClass(currentColumn) ?? string.Empty;
         }
 
-        public async Task HandleItemNotification(ListUpdated<T> notification)
+        /// <summary>
+        ///   Handles an item update notification. Unlike the paginated page this class always has all the data loaded
+        ///   (if data is loaded) so this can more comprehensively handle the notifications
+        /// </summary>
+        /// <param name="notification">The update notification received from the server</param>
+        public virtual async Task HandleItemNotification(ListUpdated<T> notification)
         {
             switch (notification.Type)
             {
@@ -149,16 +154,25 @@ namespace ThriveDevCenter.Client.Shared
                     break;
                 }
                 case ListItemChangeType.ItemDeleted:
+                {
+                    if (Data == null)
+                    {
+                        Console.WriteLine("Got a list notification delete before data was loaded, ignoring for now");
+                        break;
+                    }
+
+                    await SingleItemDeleteReceived(notification.Item);
+                    break;
+                }
                 case ListItemChangeType.ItemAdded:
                 {
-                    // For these the only 100% working solution is to basically fetch the current page again
-                    // We could make a 99% working solution by comparing the current items on the client to determine
-                    // if the data is part of this page or not, before refreshing
-                    WantsToFetchDataAgain = true;
+                    if (Data == null)
+                    {
+                        Console.WriteLine("Got a list notification delete before data was loaded, ignoring for now");
+                        break;
+                    }
 
-                    Console.WriteLine(
-                        "Refreshing current paginated page due to item add or remove. Delay to avoid too " +
-                        $"many requests: {FetchTimerInterval}");
+                    await SingleItemAddReceived(notification.Item);
                     break;
                 }
             }
@@ -278,6 +292,16 @@ namespace ThriveDevCenter.Client.Shared
 
         protected abstract Task SingleItemUpdateReceived(T updatedItem);
 
+        protected virtual Task SingleItemDeleteReceived(T deletedItem)
+        {
+            return Task.CompletedTask;
+        }
+
+        protected virtual Task SingleItemAddReceived(T addedItem)
+        {
+            return Task.CompletedTask;
+        }
+
         private async void OnFetchTimer(object sender, ElapsedEventArgs elapsedEventArgs)
         {
             if (FetchInProgress)
@@ -315,6 +339,23 @@ namespace ThriveDevCenter.Client.Shared
                     break;
                 }
             }
+        }
+
+        protected override Task SingleItemDeleteReceived(T deletedItem)
+        {
+            bool deleted = Data.RemoveAll(i => i.Id == deletedItem.Id) > 0;
+
+            if (deleted)
+                return InvokeAsync(StateHasChanged);
+
+            return Task.CompletedTask;
+        }
+
+        protected override Task SingleItemAddReceived(T addedItem)
+        {
+            // TODO: apply sort on item add to place it in the right place
+            Data.Add(addedItem);
+            return InvokeAsync(StateHasChanged);
         }
     }
 }
