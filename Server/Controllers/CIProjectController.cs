@@ -218,6 +218,26 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.Select(o => o.GetInfo()).ToList();
         }
 
+        [HttpGet("{projectId:long}/builds/{buildId:long}/jobs/{jobId:long}/output/{sectionId:long}")]
+        public async Task<ActionResult<CIJobOutputSectionDTO>> GetJobOutputSection([Required] long projectId,
+            [Required] long buildId, [Required] long jobId, [Required] long sectionId)
+        {
+            var job = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+                .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
+
+            if (job == null || !CheckExtraAccess(job.Build.CiProject) || job.Build.CiProject.Deleted)
+                return NotFound("CI Job does not exist or you don't have access to it");
+
+            var section = await database.CiJobOutputSections.AsQueryable().FirstOrDefaultAsync(s =>
+                s.CiProjectId == projectId && s.CiBuildId == buildId && s.CiJobId == jobId && s.CiJobOutputSectionId ==
+                sectionId);
+
+            if (section == null)
+                return NotFound("No output section with specified id exists");
+
+            return section.GetDTO();
+        }
+
         [NonAction]
         protected override bool CheckExtraAccess(CiProject project)
         {

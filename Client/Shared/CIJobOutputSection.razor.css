@@ -1,0 +1,21 @@
+.output-area {
+    color: whitesmoke;
+    font-size: 1.1em;
+}
+
+.output-line {
+    background-color: black;
+    padding: 0;
+}
+
+.line-number {
+    user-select: none;
+    display: inline-block;
+    background-color: #6c757d;
+    height: 100%;
+    text-align: right;
+    min-width: 50px;
+    padding-left: 2px;
+    padding-right: 2px;
+    margin-right: 5px;
+}

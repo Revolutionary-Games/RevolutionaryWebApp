@@ -22,32 +22,37 @@
 else
 {
     @if (Data != null)
+    {
+        @foreach (var item in Data)
         {
-            @foreach (var item in Data)
-            {
-                <div @key="item.CiJobOutputSectionId" class="output @ClassForStatus(item.Status)"
-                     @onclick="() => ToggleSection(item)">
-                    @if (ShouldShowSection(item))
-                    {
-                        <span class="oi oi-chevron-top"></span>
-                    }
-                    else
-                    {
-                        <span class="oi oi-chevron-right"></span>
-                    }
-                    <span class="ml-2">@item.Name</span>
-                </div>
-                <div @key="@(item.CiJobOutputSectionId + "-output")"
-                     class="@(ShouldShowSection(item) ? "" : "collapse") output-content">
-                    <p>Section output goes here...</p>
-                </div>
-            }
+            <div @key="item.CiJobOutputSectionId" class="output @ClassForStatus(item.Status)"
+                 @onclick="() => ToggleSection(item)">
+                @if (ShouldShowSection(item))
+                {
+                    <span class="oi oi-chevron-top"></span>
+                }
+                else
+                {
+                    <span class="oi oi-chevron-right"></span>
+                }
+                <span class="ml-2">@item.Name</span>
+            </div>
+            <div @key="@(item.CiJobOutputSectionId + "-output")"
+                 class="@(ShouldShowSection(item) ? "" : "collapse") output-content"
+                 aria-expanded="@ShouldShowSection(item)">
+                @if (ShouldShowSection(item))
+                {
+                    <CIJobOutputSection ProjectId="@ProjectId" BuildId="@BuildId" JobId="@JobId"
+                                        Id="@item.CiJobOutputSectionId" />
+                }
+            </div>
         }
-        else
-        {
-            <p>This job has no output.</p>
-        }
-        }
+    }
+    else
+    {
+        <p>This job has no output.</p>
+    }
+}
 
 @code {
     private readonly Dictionary<long, bool> shownSections = new();
