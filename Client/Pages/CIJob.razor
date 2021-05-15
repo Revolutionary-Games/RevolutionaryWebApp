@@ -11,7 +11,20 @@
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
     @if (Data != null)
     {
-        <h3>CI Job @Data.JobName for Build #@Data.CiBuildId in @Data.ProjectName</h3>
+        <h3>
+            CI Job @Data.JobName for Build #@Data.CiBuildId in @Data.ProjectName
+            @if(Data.State == CIJobState.Finished)
+            {
+                @if (Data.Succeeded)
+                {
+                    <span class="badge badge-success ml-2">Success</span>
+                }
+                else
+                {
+                    <span class="badge badge-danger ml-2">Failed</span>
+                }
+            }
+        </h3>
         <ul>
             <li><strong>State</strong>: @Data.State</li>
             <li>
@@ -32,6 +45,8 @@
         <h4>Output</h4>
 
         <CIJobOutput ProjectId="@Data.CiProjectId" BuildId="@Data.CiBuildId" JobId="@Data.CiJobId" />
+
+        <br />
 
         <h4>Artifacts</h4>
     }
