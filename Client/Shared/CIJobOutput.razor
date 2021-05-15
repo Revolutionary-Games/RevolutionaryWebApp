@@ -1,0 +1,150 @@
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<RealTimeBuildMessage>
+@implements IAsyncDisposable
+@inherits ListDataPage<ThriveDevCenter.Shared.Models.CIJobOutputSectionInfo>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    @if (Data != null)
+        {
+            @foreach (var item in Data)
+            {
+                <div @key="item.CiJobOutputSectionId" class="output @ClassForStatus(item.Status)"
+                     @onclick="() => ToggleSection(item)">
+                    @item.Name
+                </div>
+                <div @key="@(item.CiJobOutputSectionId + "-output")"
+                     class="@(ShouldShowSection(item) ? "" : "collapsed") output-content">
+                    <p>Section output goes here...</p>
+                </div>
+            }
+        }
+        else
+        {
+            <p>This job has no output.</p>
+        }
+        }
+
+@code {
+    private readonly Dictionary<long, bool> shownSections = new();
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    [Parameter]
+    public long BuildId { get; set; }
+
+    [Parameter]
+    public long JobId { get; set; }
+
+    public CIJobOutput() : base(new SortHelper("CiJobOutputSectionId", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(CIProjectBuildJobOutputSectionsListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public Task Handle(RealTimeBuildMessage notification, CancellationToken cancellationToken)
+    {
+        Console.WriteLine("TODO: handle realtime build message: " + notification.Output);
+        return Task.CompletedTask;
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        var notificationId = ProjectId + "_" + BuildId + "_" + JobId;
+
+        groups.Add(NotificationGroups.CIProjectBuildJobSectionsUpdatedPrefix + notificationId);
+        groups.Add(NotificationGroups.CIProjectsBuildsJobRealtimeOutputPrefix + notificationId);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
+    }
+
+    protected override Task<List<CIJobOutputSectionInfo>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<List<CIJobOutputSectionInfo>>(
+            QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{JobId}/output",
+                requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private string ClassForStatus(CIJobSectionStatus status)
+    {
+        switch (status)
+        {
+            case CIJobSectionStatus.Running:
+                return "pending";
+            case CIJobSectionStatus.Succeeded:
+                return "success";
+            case CIJobSectionStatus.Failed:
+                return "failed";
+            default:
+                throw new ArgumentOutOfRangeException(nameof(status), status, null);
+        }
+    }
+
+    private void ToggleSection(CIJobOutputSectionInfo section)
+    {
+        if (!shownSections.TryGetValue(section.CiJobOutputSectionId, out bool previous))
+        {
+            // Go to showing by default
+            // TODO: could handle the failed sections being shown by default here
+            shownSections[section.CiJobOutputSectionId] = true;
+        }
+        else
+        {
+            shownSections[section.CiJobOutputSectionId] = !previous;
+        }
+    }
+
+    private bool ShouldShowSection(CIJobOutputSectionInfo section)
+    {
+        if (!shownSections.TryGetValue(section.CiJobOutputSectionId, out bool shown))
+        {
+            // Failed sections are shown by default
+            return section.Status == CIJobSectionStatus.Failed;
+        }
+
+        return shown;
+    }
+
+}

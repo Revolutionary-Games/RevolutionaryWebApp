@@ -2,9 +2,10 @@ namespace ThriveDevCenter.Shared.Models
 {
     using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
+    using Notifications;
     using Utilities;
 
-    public class RealTimeBuildMessage
+    public class RealTimeBuildMessage : SerializedNotification
     {
         [Required]
         [JsonConverter(typeof(ActualEnumStringConverter))]

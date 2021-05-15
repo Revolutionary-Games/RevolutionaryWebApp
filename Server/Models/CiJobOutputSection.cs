@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     using Microsoft.EntityFrameworkCore;
+    using Shared;
     using Shared.Models;
     using Shared.Notifications;
     using Utilities;
@@ -17,6 +18,7 @@ namespace ThriveDevCenter.Server.Models
 
         public long CiJobId { get; set; }
 
+        [AllowSortingBy]
         public long CiJobOutputSectionId { get; set; }
 
         [Required]

@@ -243,6 +243,8 @@ namespace ThriveDevCenter.Server.Controllers
                         }
                         else
                         {
+                            // TODO: add total output amount limit here (if exceeded, make the build fail)
+
                             // Append to current section
                             outputSectionText.Append(message.Output);
 

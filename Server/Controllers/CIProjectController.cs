@@ -177,6 +177,47 @@ namespace ThriveDevCenter.Server.Controllers
             return item.GetDTO();
         }
 
+        [HttpGet("{projectId:long}/builds/{buildId:long}/jobs/{jobId:long}/output")]
+        public async Task<ActionResult<List<CIJobOutputSectionInfo>>> GetJobOutputSections([Required] long projectId,
+            [Required] long buildId, [Required] long jobId, [Required] string sortColumn,
+            [Required] SortDirection sortDirection)
+        {
+            var job = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+                .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
+
+            if (job == null || !CheckExtraAccess(job.Build.CiProject) || job.Build.CiProject.Deleted)
+                return NotFound("CI Job does not exist or you don't have access to it");
+
+            IQueryable<CiJobOutputSection> query;
+
+            try
+            {
+                query = database.CiJobOutputSections.AsQueryable().Where(s =>
+                        s.CiProjectId == projectId && s.CiBuildId == buildId && s.CiJobId == jobId)
+                    .OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                Logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            // Exclude the output from fetch in DB which might be very large
+            var objects = await query.Select(s => new
+                CiJobOutputSection
+                {
+                    CiProjectId = s.CiProjectId,
+                    CiBuildId = s.CiBuildId,
+                    CiJobId = s.CiJobId,
+                    CiJobOutputSectionId = s.CiJobOutputSectionId,
+                    Name = s.Name,
+                    Status = s.Status,
+                    OutputLength = s.OutputLength,
+                }).ToListAsync();
+
+            return objects.Select(o => o.GetInfo()).ToList();
+        }
+
         [NonAction]
         protected override bool CheckExtraAccess(CiProject project)
         {

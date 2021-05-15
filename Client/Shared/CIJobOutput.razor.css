@@ -1,0 +1,26 @@
+.output {
+    border-radius: 3px;
+    border: 1px solid black;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 15px;
+    color: whitesmoke;
+    padding: 5px 2px 5px 2px;
+}
+
+.output-content {
+    margin-bottom: 2px;
+}
+
+.pending {
+    background-color: #929292;
+}
+
+.success {
+    background-color: cadetblue;
+}
+
+.failed {
+    background-color: darkred;
+}
