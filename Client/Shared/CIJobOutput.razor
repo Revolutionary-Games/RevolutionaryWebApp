@@ -23,6 +23,11 @@ else
 {
     @if (Data != null)
     {
+        if (Data.Count < 1)
+        {
+            <p>This job has no output sections.</p>
+        }
+
         @foreach (var item in Data)
         {
             <div @key="item.CiJobOutputSectionId" class="output @ClassForStatus(item.Status)"
