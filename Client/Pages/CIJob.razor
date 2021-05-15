@@ -34,7 +34,16 @@
             <li><strong>Started At</strong>: @(Data.CreatedAt?.ToLocalTime().ToString("G") ?? "unknown")</li>
         </ul>
 
+        <NavLink href="@($"/ci/{Data.CiProjectId}/build/{Data.CiBuildId}")" Match="NavLinkMatch.All">
+            Part of Build #@Data.CiBuildId
+        </NavLink>
+
+        <NavLink href="@($"/ci/{Data.CiProjectId}")" Match="NavLinkMatch.All">
+            for @Data.ProjectName
+        </NavLink>
+
         <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+            <br />
             @* TODO: implement these buttons *@
             <Button Enabled="@false" ButtonStyle="secondary">Cancel</Button>
             <br />

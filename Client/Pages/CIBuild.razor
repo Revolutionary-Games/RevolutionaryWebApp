@@ -11,7 +11,25 @@
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
     @if (Data != null)
     {
-        <h3>CI Build #@Data.CiBuildId for @Data.ProjectName</h3>
+        <h3>
+            CI Build #@Data.CiBuildId for @Data.ProjectName
+            @if (Data.Status == BuildStatus.Succeeded)
+            {
+                <span class="badge badge-success ml-2">Success</span>
+            }
+            else if (Data.Status == BuildStatus.Running)
+            {
+                <span class="badge badge-secondary ml-2">Running</span>
+            }
+            else if (Data.Status == BuildStatus.Failed)
+            {
+                <span class="badge badge-danger ml-2">Failed</span>
+            }
+            else if (Data.Status == BuildStatus.GoingToFail)
+            {
+                <span class="badge badge-warning ml-2">Failing</span>
+            }
+        </h3>
         <ul>
             <li><strong>Commit</strong>: @Data.CommitHash</li>
             <li><strong>Ref</strong>: @Data.RemoteRef</li>
@@ -19,7 +37,12 @@
             <li><strong>Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
         </ul>
 
+        <NavLink href="@($"/ci/{Data.CiProjectId}")" Match="NavLinkMatch.All">
+            This build is for @Data.ProjectName
+        </NavLink>
+
         <AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
+            <br />
             @* TODO: implement these buttons *@
             <Button Enabled="@false" ButtonStyle="secondary">Rerun Failed</Button>
             <Button Enabled="@false" ButtonStyle="secondary">Rerun All</Button>

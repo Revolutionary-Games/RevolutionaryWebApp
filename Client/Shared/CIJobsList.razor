@@ -36,8 +36,16 @@ else
                         @item.JobName
                     </NavLink></th>
                     <td>@item.State</td>
+
+                    @if (item.State == CIJobState.Finished)
+                    {
+                        <td class="@(!item.Succeeded ? "bg-danger" : "")">@item.Succeeded.ToString()</td>
+                    }
+                    else
+                    {
+                        <td>Running</td>
+                    }
                     @* TODO: implement realtime duration calculation *@
-                    <td>@(item.State == CIJobState.Finished ? item.Succeeded.ToString() : "running")</td>
                     <td>@ComputeDuration(item)</td>
                 </tr>
             }

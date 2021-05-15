@@ -27,10 +27,18 @@ else
             {
                 <div @key="item.CiJobOutputSectionId" class="output @ClassForStatus(item.Status)"
                      @onclick="() => ToggleSection(item)">
-                    @item.Name
+                    @if (ShouldShowSection(item))
+                    {
+                        <span class="oi oi-chevron-top"></span>
+                    }
+                    else
+                    {
+                        <span class="oi oi-chevron-right"></span>
+                    }
+                    <span class="ml-2">@item.Name</span>
                 </div>
                 <div @key="@(item.CiJobOutputSectionId + "-output")"
-                     class="@(ShouldShowSection(item) ? "" : "collapsed") output-content">
+                     class="@(ShouldShowSection(item) ? "" : "collapse") output-content">
                     <p>Section output goes here...</p>
                 </div>
             }
@@ -112,11 +120,11 @@ else
         switch (status)
         {
             case CIJobSectionStatus.Running:
-                return "pending";
+                return "pending bg-secondary";
             case CIJobSectionStatus.Succeeded:
-                return "success";
+                return "success bg-success";
             case CIJobSectionStatus.Failed:
-                return "failed";
+                return "failed bg-danger";
             default:
                 throw new ArgumentOutOfRangeException(nameof(status), status, null);
         }
@@ -124,16 +132,7 @@ else
 
     private void ToggleSection(CIJobOutputSectionInfo section)
     {
-        if (!shownSections.TryGetValue(section.CiJobOutputSectionId, out bool previous))
-        {
-            // Go to showing by default
-            // TODO: could handle the failed sections being shown by default here
-            shownSections[section.CiJobOutputSectionId] = true;
-        }
-        else
-        {
-            shownSections[section.CiJobOutputSectionId] = !previous;
-        }
+        shownSections[section.CiJobOutputSectionId] = !ShouldShowSection(section);
     }
 
     private bool ShouldShowSection(CIJobOutputSectionInfo section)

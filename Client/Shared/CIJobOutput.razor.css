@@ -6,21 +6,22 @@
     width: 100%;
     min-height: 15px;
     color: whitesmoke;
-    padding: 5px 2px 5px 2px;
+    font-size: 1.2em;
+    padding: 2px 5px 2px 5px;
+    margin-top: 2px;
 }
 
 .output-content {
-    margin-bottom: 2px;
+    margin-bottom: 3px;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .pending {
-    background-color: #929292;
 }
 
 .success {
-    background-color: cadetblue;
 }
 
 .failed {
-    background-color: darkred;
 }
