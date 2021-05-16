@@ -163,12 +163,16 @@ namespace ThriveDevCenter.Server.Jobs
             var env = new StringBuilder(200);
             env.Append("export CI_REF='");
             env.Append(EscapeForBash(job.Build.RemoteRef));
+            env.Append("'; CI_COMMIT_HASH='");
+            env.Append(EscapeForBash(job.Build.CommitHash));
             env.Append("'; CI_IMAGE_DL_URL='");
             env.Append(EscapeForBash(imageDownloadUrl));
             env.Append("'; CI_IMAGE_NAME='");
             env.Append(EscapeForBash(job.Image));
             env.Append("'; CI_IMAGE_FILENAME='");
             env.Append(EscapeForBash(imageFileName));
+            env.Append("'; CI_CACHE_OPTIONS='");
+            env.Append(EscapeForBash(job.CacheSettingsJson));
             env.Append("';");
 
             var result2 = sshAccess.RunCommand($"{env} ~/executor.rb {GetConnectToUrl(job)}");

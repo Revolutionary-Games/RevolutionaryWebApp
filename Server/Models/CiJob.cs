@@ -49,6 +49,12 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         public long RunningOnServerId { get; set; } = -1;
 
+        /// <summary>
+        ///   This contains json serialized for of the cache settings for this build. This is sent to the CI executor
+        ///   so that it can handle cache setup before cloning the repo.
+        /// </summary>
+        public string CacheSettingsJson { get; set; }
+
         [ForeignKey("CiProjectId,CiBuildId")]
         public CiBuild Build { get; set; }
 

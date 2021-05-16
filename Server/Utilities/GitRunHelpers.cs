@@ -144,6 +144,31 @@ namespace ThriveDevCenter.Server.Utilities
             await Checkout(folder, localHeadsRef, cancellationToken, true);
         }
 
+        public static async Task FetchRef(string folder, string refToFetch, CancellationToken cancellationToken)
+        {
+            const string remote = "origin";
+
+            if (IsPullRequestRef(refToFetch))
+            {
+                string localBranch;
+
+                if (refToFetch.EndsWith(PullRequestRefSuffix))
+                {
+                    localBranch = refToFetch.Substring(0, refToFetch.Length - PullRequestRefSuffix.Length);
+                }
+                else
+                {
+                    throw new Exception($"Unrecognized PR ref: {refToFetch}");
+                }
+
+                await Fetch(folder, $"{refToFetch}:{localBranch}", remote, cancellationToken);
+            }
+            else
+            {
+                await Fetch(folder, refToFetch, remote, cancellationToken);
+            }
+        }
+
         public static async Task Clean(string folder, CancellationToken cancellationToken)
         {
             if (!Directory.Exists(folder))

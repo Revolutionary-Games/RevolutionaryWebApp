@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Models
 {
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     ///   Build configuration read from a yaml file before starting build jobs
@@ -37,8 +38,10 @@ namespace ThriveDevCenter.Server.Models
         [Required]
         [MinLength(1)]
         [MaxLength(10)]
+        [JsonPropertyName("load_from")]
         public List<string> LoadFrom { get; set; }
 
+        [JsonPropertyName("write_to")]
         public string WriteTo { get; set; }
     }
 

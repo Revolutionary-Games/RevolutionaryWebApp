@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System.ComponentModel.DataAnnotations;
     using System.IO;
     using System.Text;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
@@ -62,8 +63,11 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, cancellationToken);
 
-                // Checkout the ref
-                await GitRunHelpers.SmartlyCheckoutRef(tempPath, build.RemoteRef, cancellationToken);
+                // Fetch the ref
+                await GitRunHelpers.FetchRef(tempPath, build.RemoteRef, cancellationToken);
+
+                // Then checkout the commit this build is actually for
+                await GitRunHelpers.Checkout(tempPath, build.CommitHash, cancellationToken, true);
 
                 // Clean out non-ignored files
                 await GitRunHelpers.Clean(tempPath, cancellationToken);
@@ -125,6 +129,7 @@ namespace ThriveDevCenter.Server.Jobs
                     CiJobId = ++jobId,
                     JobName = jobEntry.Key,
                     Image = jobEntry.Value.Image,
+                    CacheSettingsJson = JsonSerializer.Serialize(jobEntry.Value.Cache),
                 };
 
                 await database.CiJobs.AddAsync(job, cancellationToken);

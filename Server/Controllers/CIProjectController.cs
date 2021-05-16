@@ -24,8 +24,7 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly ILogger<CIProjectController> logger;
         private readonly NotificationsEnabledDb database;
 
-        public CIProjectController(ILogger<CIProjectController> logger,
-            NotificationsEnabledDb database)
+        public CIProjectController(ILogger<CIProjectController> logger, NotificationsEnabledDb database)
         {
             this.logger = logger;
             this.database = database;
