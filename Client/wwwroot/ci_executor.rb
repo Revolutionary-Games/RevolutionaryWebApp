@@ -112,7 +112,7 @@ def send_json(socket, obj)
 end
 
 def queue_send(obj)
-  puts "queue send: #{obj}"
+  # puts "queue send: #{obj}"
 
   @output_mutex.synchronize {
     handled = false
@@ -371,7 +371,6 @@ EM.run {
   defer_cache_setup
 
   EventMachine.add_periodic_timer(1) {
-    puts 'checking messages to send'
     # Send output once every second
     send_messages = nil
 
