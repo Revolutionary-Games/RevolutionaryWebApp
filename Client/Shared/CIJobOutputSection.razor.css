@@ -6,6 +6,8 @@
 .output-line {
     background-color: black;
     padding: 0;
+    font-family: monospace;
+    line-height: 1.08;
 }
 
 .line-number {
