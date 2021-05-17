@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.IO;
+    using System.Linq;
     using System.Text;
     using System.Text.Json;
     using System.Threading;
@@ -105,6 +106,24 @@ namespace ThriveDevCenter.Server.Jobs
 
                 // TODO: pass validation errors to the build output
                 await CreateFailedJob(build, "Invalid configuration yaml", cancellationToken);
+                return;
+            }
+
+            if (configuration.Jobs.Select(j => j.Value.Cache).Any(c =>
+                c.LoadFrom.Any(p => p.Contains("..") || p.StartsWith("/")) || c.WriteTo.Contains("..") ||
+                c.WriteTo.StartsWith("/")))
+            {
+                logger.LogError("Build configuration cache paths have \"..\" in them or starts with a slash");
+
+                await CreateFailedJob(build, "Invalid configuration yaml, forbidden cache path", cancellationToken);
+                return;
+            }
+
+            if (configuration.Jobs.Select(j => j.Value.Image).Any(i => i.Contains("..") || i.StartsWith("/")))
+            {
+                logger.LogError("Build configuration image names have \"..\" in them or starts with a slash");
+
+                await CreateFailedJob(build, "Invalid configuration yaml, forbidden image name", cancellationToken);
                 return;
             }
 
