@@ -50,7 +50,7 @@
                     OnPressed="@(() => RerunBuild(false))">
                 Rerun Failed
             </Button>
-            <Button Enabled="@CanRetry" ButtonStyle="warning" Spinner="@processing"
+            <Button Enabled="@CanRetryAll" ButtonStyle="warning" Spinner="@processing"
                     OnPressed="@(() => RerunBuild(true))">
                 Rerun All
             </Button>
@@ -75,7 +75,9 @@
     [Parameter]
     public long ProjectId { get; set; }
 
-    private bool CanRetry => !retriedBefore && Data != null && Data.Status != BuildStatus.Running &&
+    private bool CanRetry => !retriedBefore && Data != null && Data.Status == BuildStatus.Failed;
+
+    private bool CanRetryAll => !retriedBefore && Data != null && Data.Status != BuildStatus.Running &&
         Data.Status != BuildStatus.GoingToFail;
 
     protected override Task<CIBuildDTO> StartQuery()
