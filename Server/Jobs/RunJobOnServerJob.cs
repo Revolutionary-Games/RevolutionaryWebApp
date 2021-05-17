@@ -163,17 +163,17 @@ namespace ThriveDevCenter.Server.Jobs
             var env = new StringBuilder(200);
             env.Append("export CI_REF='");
             env.Append(EscapeForBash(job.Build.RemoteRef));
-            env.Append("'; CI_COMMIT_HASH='");
+            env.Append("'; export CI_COMMIT_HASH='");
             env.Append(EscapeForBash(job.Build.CommitHash));
-            env.Append("'; CI_ORIGIN='");
+            env.Append("'; export CI_ORIGIN='");
             env.Append(EscapeForBash(job.Build.CiProject.RepositoryCloneUrl));
-            env.Append("'; CI_IMAGE_DL_URL='");
+            env.Append("'; export CI_IMAGE_DL_URL='");
             env.Append(EscapeForBash(imageDownloadUrl));
-            env.Append("'; CI_IMAGE_NAME='");
+            env.Append("'; export CI_IMAGE_NAME='");
             env.Append(EscapeForBash(job.Image));
-            env.Append("'; CI_IMAGE_FILENAME='");
+            env.Append("'; export CI_IMAGE_FILENAME='");
             env.Append(EscapeForBash(imageFileName));
-            env.Append("'; CI_CACHE_OPTIONS='");
+            env.Append("'; export CI_CACHE_OPTIONS='");
             env.Append(EscapeForBash(job.CacheSettingsJson));
             env.Append("';");
 
@@ -198,8 +198,10 @@ namespace ThriveDevCenter.Server.Jobs
 
         private static string EscapeForBash(string commandPart)
         {
-            return commandPart.Replace(@"\", @"\\").Replace(@"""", @"\""")
-                .Replace(@"'", @"\'");
+            return commandPart.Replace(@"\", @"\\").Replace(@"'", @"\'");
+
+            // return commandPart.Replace(@"\", @"\\").Replace(@"""", @"\""")
+            //    .Replace(@"'", @"\'");
         }
 
         private async Task Requeue(CiJob job, int retries, ControlledServer server)
