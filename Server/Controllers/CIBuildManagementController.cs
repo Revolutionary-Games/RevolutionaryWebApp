@@ -125,6 +125,9 @@ namespace ThriveDevCenter.Server.Controllers
             var toRerun = build.CiJobs
                 .Where(j => j.State == CIJobState.Finished && (onlyFailed && !j.Succeeded || !onlyFailed)).ToList();
 
+            if (toRerun.Count < 1)
+                return BadRequest("Nothing needs to rerun");
+
             foreach (var jobToRerun in toRerun)
             {
                 var newJob = new CiJob()
