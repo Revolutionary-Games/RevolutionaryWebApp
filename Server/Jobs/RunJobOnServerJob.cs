@@ -165,6 +165,8 @@ namespace ThriveDevCenter.Server.Jobs
             env.Append(EscapeForBash(job.Build.RemoteRef));
             env.Append("'; CI_COMMIT_HASH='");
             env.Append(EscapeForBash(job.Build.CommitHash));
+            env.Append("'; CI_ORIGIN='");
+            env.Append(EscapeForBash(job.Build.CiProject.RepositoryCloneUrl));
             env.Append("'; CI_IMAGE_DL_URL='");
             env.Append(EscapeForBash(imageDownloadUrl));
             env.Append("'; CI_IMAGE_NAME='");
@@ -183,10 +185,12 @@ namespace ThriveDevCenter.Server.Jobs
             }
 
             JobClient.Schedule<CheckCIJobOutputHasConnectedJob>(
-                x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, cancellationToken), TimeSpan.FromMinutes(5));
+                x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, CancellationToken.None),
+                TimeSpan.FromMinutes(5));
 
             JobClient.Schedule<CancelCIBuildIfStuckJob>(
-                x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, cancellationToken), TimeSpan.FromMinutes(61));
+                x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, CancellationToken.None),
+                TimeSpan.FromMinutes(61));
 
             Logger.LogInformation(
                 "CI job startup succeeded, now it's up to the executor to contact us with updates");

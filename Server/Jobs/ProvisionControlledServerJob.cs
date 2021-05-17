@@ -19,7 +19,8 @@ namespace ThriveDevCenter.Server.Jobs
             "sudo dnf install -y podman ruby curl git git-lfs ruby-devel gcc gcc-c++ make openssl-devel " +
             "redhat-rpm-config && " +
             "sudo gem install httparty colorize faye-websocket && " +
-            "git lfs install";
+            "git lfs install &&" +
+            "sudo mkdir -p /executor_cache && sudo chown -R centos:centos /executor_cache";
 
         private readonly ILogger<ProvisionControlledServerJob> logger;
         private readonly NotificationsEnabledDb database;
