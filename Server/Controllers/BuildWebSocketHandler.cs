@@ -209,7 +209,9 @@ namespace ThriveDevCenter.Server.Controllers
                         // Start a new section
                         if (activeSection != null)
                         {
-                            logger.LogError("Received a build output section start while there's an active section");
+                            logger.LogError(
+                                "Received a build output section start ({Name}) while there's an active section ({SectionName})",
+                                activeSection.Name, message.SectionName);
                             await SendMessage(new Error()
                             {
                                 ErrorMessage = "Can't start a new section while one is in progress"
@@ -323,6 +325,8 @@ namespace ThriveDevCenter.Server.Controllers
                             AddPendingOutputToActiveSection();
                             activeSection = null;
                         }
+
+                        logger.LogInformation("Received final status: {WasSuccessful}", message.WasSuccessful);
 
                         // Queue a job to set build final status
                         BackgroundJob.Enqueue<SetFinishedCIJobStatusJob>(x => x.Execute(job.CiProjectId, job.CiBuildId,

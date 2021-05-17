@@ -52,6 +52,7 @@ def check_run(*cmd_and_args)
     out_thread = Thread.new do
       begin
         stdout.each do |line|
+          # TODO: detect section change commands
           queue_send({ Type: 'BuildOutput', Output: line })
         end
       rescue IOError => e
@@ -101,6 +102,8 @@ end
 
 def send_json(socket, obj)
   as_str = JSON.dump(obj)
+  # puts "Sending message: #{as_str}"
+
   # Size first
   socket.send([as_str.length].pack('<l').bytes)
 
@@ -116,8 +119,8 @@ def queue_send(obj)
 
     if obj['Type'] == 'BuildOutput'
       existing = @websocket_output_queue.last
-      if !existing.nil? && existing['Output'].length + obj['Output'].length <
-                           BATCH_SEND_OUTPUT_SIZE
+      if !existing.nil? && existing['Type'] == obj['Type'] &&
+         existing['Output'].length + obj['Output'].length < BATCH_SEND_OUTPUT_SIZE
         existing['Output'] += obj['Output']
         handled = true
       end
@@ -194,6 +197,7 @@ def mount_configuration
 end
 
 def on_failed_phase(message)
+  puts 'Queueing fail message'
   queue_send({ Type: 'BuildOutput', Output: "#{message}\n" })
   queue_send({ Type: 'SectionEnd', WasSuccessful: false })
   queue_send({ Type: 'FinalStatus', WasSuccessful: false })
@@ -266,7 +270,7 @@ def defer_image_setup
       queue_send({ Type: 'BuildOutput',
                    Output: "Using build environment image: #{ENV['CI_IMAGE_NAME']}\n" })
 
-      image_folder = File.basename(CI_IMAGE_FILE)
+      image_folder = File.dirname(CI_IMAGE_FILE)
 
       queue_send(
         { Type: 'BuildOutput',
@@ -301,15 +305,18 @@ end
 def defer_run_in_podman
   EventMachine.defer(
     proc {
+      queue_send({ Type: 'SectionStart', SectionName: 'Build start' })
       queue_send({ Type: 'BuildOutput',
                    Output: "Using build environment image: #{ENV['CI_IMAGE_NAME']}\n" })
 
       # TODO: build the build commands into a single string to be ran in bash
       build_command = "set -e && cd #{CURRENT_BUILD_ROOT_FOLDER} && " \
-                      "echo build command would go here\necho second line && true"
+                      'echo build command would go here && echo second line && true'
 
-      check_run 'podman', 'run', '--rm', '-e', "CI_REF=#{ENV['CI_REF']}", *mount_configuration,
-                ENV['CI_IMAGE_NAME'], build_command
+      # TODO: this shouldn't use check_run so that we can show a
+      # better error message than running "podman" failed
+      check_run 'podman', 'run', '--rm', '-e', "CI_REF=#{ENV['CI_REF']}",
+                *mount_configuration, ENV['CI_IMAGE_NAME'], '/bin/bash', '-c', build_command
 
       queue_send({ Type: 'BuildOutput', Output: "Build commands completed\n" })
       queue_send({ Type: 'SectionEnd', WasSuccessful: true })
@@ -336,12 +343,9 @@ EM.run {
   ws = Faye::WebSocket::Client.new(connect_url, [], { ping: 55 })
 
   ws.on :open do |_event|
-    puts 'Connected with websocket, sending initial section...'
+    puts 'Connected with websocket'
 
     @socket_mutex.synchronize {
-      send_json(ws, { Type: 'SectionStart', SectionName: 'Environment setup' })
-
-      puts 'Initial section opening sent'
       @socket_open = true
     }
   end
@@ -376,9 +380,9 @@ EM.run {
         return if @websocket_output_queue.empty?
 
         send_messages = @websocket_output_queue.dup
+        @websocket_output_queue.clear
       }
 
-      puts "messages to send: #{send_messages}"
       send_messages.each { |message|
         begin
           send_json(ws, message)
