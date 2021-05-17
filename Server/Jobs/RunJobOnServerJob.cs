@@ -122,13 +122,13 @@ namespace ThriveDevCenter.Server.Jobs
             }
             catch (SocketException)
             {
-                Logger.LogWarning("Connection failed (socket exception), server is probably not up yet");
+                Logger.LogInformation("Connection failed (socket exception), server is probably not up yet");
                 await Requeue(job, retries - 1, server);
                 return;
             }
             catch (SshOperationTimeoutException)
             {
-                Logger.LogWarning("Connection failed (ssh timed out), server is probably not up yet");
+                Logger.LogInformation("Connection failed (ssh timed out), server is probably not up yet");
                 await Requeue(job, retries - 1, server);
                 return;
             }

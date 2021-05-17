@@ -9,21 +9,20 @@ require 'fileutils'
 require 'faye/websocket'
 require 'eventmachine'
 require 'json'
+require 'open3'
 
 REMOTE = 'origin'
 PULL_REQUEST_REF_SUFFIX = '/head'
 NORMAL_REF_PREFIX = 'refs/heads/'
-IMAGE_CACHE_FOLDER = '~/images/'
+HOME_FOLDER = File.expand_path '~'
+IMAGE_CACHE_FOLDER = File.join HOME_FOLDER, 'images/'
+CI_IMAGE_FILE = File.join IMAGE_CACHE_FOLDER, ENV['CI_IMAGE_FILENAME']
+BATCH_SEND_OUTPUT_SIZE = 4096
 DAEMONIZE = true
 
 def fail_with_error(error)
   puts error
   exit 1
-end
-
-def check_run(*command)
-  system(*command)
-  fail_with_error "Running command failed: #{command}" if $CHILD_STATUS.exitstatus != 0
 end
 
 def detect_local_ref(remote_ref)
@@ -33,12 +32,12 @@ def detect_local_ref(remote_ref)
     if remote_ref.end_with? PULL_REQUEST_REF_SUFFIX
       local_branch = remote_ref[0..(remote_ref.length - 1 - PULL_REQUEST_REF_SUFFIX.length)]
     else
-      fail_with_error "Unrecognized PR ref: #{remote_ref}"
+      raise "Unrecognized PR ref: #{remote_ref}"
     end
   elsif remote_ref.start_with? NORMAL_REF_PREFIX
     local_branch = remote_ref[NORMAL_REF_PREFIX.length..-1]
   else
-    fail_with_error "Unrecognized normal ref: #{remote_ref}"
+    raise "Unrecognized normal ref: #{remote_ref}"
   end
 
   local_heads_ref += local_branch
@@ -46,17 +45,54 @@ def detect_local_ref(remote_ref)
   [local_heads_ref, local_branch]
 end
 
-def detect_and_setup_local_ref(remote_ref, commit)
+def check_run(*cmd_and_args)
+  Open3.popen3(*cmd_and_args) do |stdin, stdout, stderr, wait_thr|
+    stdin.close
+
+    out_thread = Thread.new do
+      begin
+        stdout.each do |line|
+          queue_send({ Type: 'BuildOutput', Output: line })
+        end
+      rescue IOError => e
+        puts "err_thread read failed: #{e}"
+      end
+    end
+
+    err_thread = Thread.new do
+      begin
+        stderr.each do |line|
+          queue_send({ Type: 'BuildOutput', # Output: "error: #{line}"
+                       Output: line                   })
+        end
+      rescue IOError => e
+        puts "err_thread read failed: #{e}"
+      end
+    end
+
+    exit_status = wait_thr.value
+    begin
+      out_thread.join
+      err_thread.join
+    rescue StandardError => e
+      puts "Failed to join the output listen threads for popen3: #{e}"
+    end
+
+    raise "Running command failed: #{cmd_and_args[0]}" if exit_status != 0
+  end
+end
+
+def detect_and_setup_local_ref(folder, remote_ref, commit)
   _local_heads_ref, local_branch = detect_local_ref remote_ref
 
   if pull_request_ref? remote_ref
-    check_run 'git', 'fetch', REMOTE, "#{remote_ref}:#{local_branch}"
+    check_run 'git', 'fetch', REMOTE, "#{remote_ref}:#{local_branch}", { chdir: folder }
   else
-    check_run 'git', 'fetch', REMOTE, remote_ref
+    check_run 'git', 'fetch', REMOTE, remote_ref, { chdir: folder }
   end
 
-  check_run 'git', 'checkout', commit, '--force'
-  check_run 'git', 'clean', '-f', '-d'
+  check_run 'git', 'checkout', commit, '--force', { chdir: folder }
+  check_run 'git', 'clean', '-f', '-d', { chdir: folder }
 end
 
 def pull_request_ref?(remote_ref)
@@ -73,9 +109,22 @@ def send_json(socket, obj)
 end
 
 def queue_send(obj)
+  puts "queue send: #{obj}"
+
   @output_mutex.synchronize {
-    # TODO: this should combine messages together if they are less
-    # than 4000 characters in length
+    handled = false
+
+    if obj['Type'] == 'BuildOutput'
+      existing = @websocket_output_queue.last
+      if !existing.nil? && existing['Output'].length + obj['Output'].length <
+                           BATCH_SEND_OUTPUT_SIZE
+        existing['Output'] += obj['Output']
+        handled = true
+      end
+    end
+
+    return if handled
+
     @websocket_output_queue.append obj
   }
 end
@@ -94,6 +143,7 @@ fail_with_error 'Build status report URL is empty' if connect_url.nil? || connec
 # an error here)
 detect_local_ref ENV['CI_REF']
 
+puts "Going to parse cache options: #{ENV['CI_CACHE_OPTIONS']}"
 @cache_config = JSON.parse ENV['CI_CACHE_OPTIONS']
 
 # True when this is directly from the repo, false if this is a fork
@@ -109,8 +159,6 @@ CURRENT_BUILD_ROOT_FOLDER = File.join JOB_CACHE_BASE_FOLDER, @cache_config['writ
 CACHE_COPY_FROM_FOLDERS = @cache_config['load_from'].map { |path|
   File.join JOB_CACHE_BASE_FOLDER, path
 }
-
-CI_IMAGE_FILE = File.join IMAGE_CACHE_FOLDER, ENV['CI_IMAGE_FILENAME']
 
 FileUtils.mkdir_p JOB_CACHE_BASE_FOLDER
 FileUtils.mkdir_p SHARED_CACHE_FOLDER
@@ -136,6 +184,7 @@ end
 @socket_open = false
 @output_mutex = Mutex.new
 @socket_mutex = Mutex.new
+@close_requested = false
 
 def mount_configuration
   folder = CURRENT_BUILD_ROOT_FOLDER
@@ -145,27 +194,33 @@ def mount_configuration
 end
 
 def on_failed_phase(message)
-  queue_send({ Type: 'BuildOutput', Output: message })
+  queue_send({ Type: 'BuildOutput', Output: "#{message}\n" })
   queue_send({ Type: 'SectionEnd', WasSuccessful: false })
   queue_send({ Type: 'FinalStatus', WasSuccessful: false })
-  EventMachine.stop_event_loop
+
+  puts 'Requesting close due to error'
+  @close_requested = true
 end
 
 def defer_cache_setup
   EventMachine.defer(
     proc {
       queue_send({ Type: 'SectionStart', SectionName: 'Environment setup' })
-      queue_send({ Type: 'BuildOutput', Output: 'Starting cache setup' })
+      queue_send({ Type: 'BuildOutput', Output: "Starting cache setup\n" })
 
       unless File.exist? CURRENT_BUILD_ROOT_FOLDER
-        queue_send({ Type: 'BuildOutput',
-                     Output: "Cache folder doesn't exist yet (#{CURRENT_BUILD_ROOT_FOLDER})" })
+        queue_send(
+          {
+            Type: 'BuildOutput',
+            Output: "Cache folder doesn't exist yet (#{CURRENT_BUILD_ROOT_FOLDER})\n"
+          }
+        )
 
         CACHE_COPY_FROM_FOLDERS.each { |cache|
           next unless File.exist? cache
 
           check_run 'cp', '-a', cache, CURRENT_BUILD_ROOT_FOLDER
-          queue_send({ Type: 'BuildOutput', Output: "Found existing cache: #{cache}" })
+          queue_send({ Type: 'BuildOutput', Output: "Found existing cache: #{cache}\n" })
           break
         }
 
@@ -182,19 +237,21 @@ def defer_repo_clone
   EventMachine.defer(
     proc {
       queue_send({ Type: 'BuildOutput', Output: "Checking out needed ref: #{ENV['CI_REF']} " \
-                                        "and commit: #{ENV['CI_COMMIT_HASH']}" })
+                                        "and commit: #{ENV['CI_COMMIT_HASH']}\n" })
 
       unless File.exist? CURRENT_BUILD_ROOT_FOLDER
         check_run 'git', 'clone', ENV['CI_ORIGIN'], CURRENT_BUILD_ROOT_FOLDER
       end
 
-      check_run 'git', 'remote', 'set-url', REMOTE, ENV['CI_ORIGIN']
+      check_run 'git', 'remote', 'set-url', REMOTE, ENV['CI_ORIGIN'],
+                { chdir: CURRENT_BUILD_ROOT_FOLDER }
 
-      detect_and_setup_local_ref ENV['CI_REF'], ENV['CI_COMMIT_HASH']
+      detect_and_setup_local_ref CURRENT_BUILD_ROOT_FOLDER, ENV['CI_REF'],
+                                 ENV['CI_COMMIT_HASH']
 
       # TODO: implement symlinked shared cache parts
 
-      queue_send({ Type: 'BuildOutput', Output: 'Repository checked out' })
+      queue_send({ Type: 'BuildOutput', Output: "Repository checked out\n" })
     }, proc { |_result|
       defer_image_setup
     }, proc { |error|
@@ -207,18 +264,31 @@ def defer_image_setup
   EventMachine.defer(
     proc {
       queue_send({ Type: 'BuildOutput',
-                   Output: "Using build environment image: #{ENV['CI_IMAGE_NAME']}" })
+                   Output: "Using build environment image: #{ENV['CI_IMAGE_NAME']}\n" })
+
+      image_folder = File.basename(CI_IMAGE_FILE)
+
+      queue_send(
+        { Type: 'BuildOutput',
+          Output: "Storing images in #{image_folder}\n" }
+      )
 
       unless File.exist? CI_IMAGE_FILE
-        queue_send({ Type: 'BuildOutput',
-                     Output: "Build environment image doesn't exist locally, downloading..." })
+        # Create the cache folder
 
-        check_run 'curl', '-L', ENV['CI_IMAGE_DL_URL'], '--output', CI_IMAGE_FILE
+        FileUtils.mkdir_p image_folder
+
+        queue_send(
+          { Type: 'BuildOutput',
+            Output: "Build environment image doesn't exist locally, downloading...\n" }
+        )
+
+        check_run 'curl', '-LsS', ENV['CI_IMAGE_DL_URL'], '--output', CI_IMAGE_FILE
       end
 
       check_run 'podman', 'load', '-i', CI_IMAGE_FILE
 
-      queue_send({ Type: 'BuildOutput', Output: 'Build environment image loaded' })
+      queue_send({ Type: 'BuildOutput', Output: "Build environment image loaded\n" })
       queue_send({ Type: 'SectionEnd', WasSuccessful: true })
     }, proc { |_result|
       defer_run_in_podman
@@ -232,7 +302,7 @@ def defer_run_in_podman
   EventMachine.defer(
     proc {
       queue_send({ Type: 'BuildOutput',
-                   Output: "Using build environment image: #{ENV['CI_IMAGE_NAME']}" })
+                   Output: "Using build environment image: #{ENV['CI_IMAGE_NAME']}\n" })
 
       # TODO: build the build commands into a single string to be ran in bash
       build_command = "set -e && cd #{CURRENT_BUILD_ROOT_FOLDER} && " \
@@ -241,7 +311,7 @@ def defer_run_in_podman
       check_run 'podman', 'run', '--rm', '-e', "CI_REF=#{ENV['CI_REF']}", *mount_configuration,
                 ENV['CI_IMAGE_NAME'], build_command
 
-      queue_send({ Type: 'BuildOutput', Output: 'Build commands completed' })
+      queue_send({ Type: 'BuildOutput', Output: "Build commands completed\n" })
       queue_send({ Type: 'SectionEnd', WasSuccessful: true })
     }, proc { |_result|
       defer_end
@@ -257,12 +327,8 @@ def defer_end
   # send final status
   queue_send({ Type: 'FinalStatus', WasSuccessful: true })
 
-  # TODO: come up with a better design here (maybe the stop callback could send
-  # pending messages)
-  EventMachine.add_timer(5) {
-    # For now just wait a bit before stopping eventmachine to send the last logs
-    EventMachine.stop_event_loop
-  }
+  puts 'Requesting close due to reaching end of the build'
+  @close_requested = true
 end
 
 # Start websocket connection for sending output and then run the build after setup with podman
@@ -287,30 +353,35 @@ EM.run {
   end
 
   ws.on :close do |event|
-    puts "Remote side closed websocket, code: #{event.code}, reason: #{event.reason}"
+    puts "Websocket closed, code: #{event.code}, reason: #{event.reason}"
     puts "Client status: #{ws.status}, headers: #{ws.headers}"
     @socket_mutex.synchronize {
       ws = nil
       @socket_open = false
     }
+
+    puts 'Signaling stop_event_loop as our socket is closed'
+    EventMachine.stop_event_loop
   end
 
   defer_cache_setup
 
   EventMachine.add_periodic_timer(1) {
+    puts 'checking messages to send'
     # Send output once every second
     send_messages = nil
-    @output_mutex.synchronize {
-      return if @websocket_output_queue.empty?
-
-      send_messages = @websocket_output_queue.dup
-    }
-
-    return if send_messages.nil? || send_messages.empty?
 
     @socket_mutex.synchronize {
+      @output_mutex.synchronize {
+        return if @websocket_output_queue.empty?
+
+        send_messages = @websocket_output_queue.dup
+      }
+
+      puts "messages to send: #{send_messages}"
       send_messages.each { |message|
         begin
+          send_json(ws, message)
         rescue StandardError => e
           puts "Error sending output (#{message}): #{e}"
         end
@@ -318,14 +389,61 @@ EM.run {
     }
   }
 
-  EventMachine.add_shutdown_hook {
-    puts 'Performing eventmachine shutdown'
+  # This is a defer block to keep eventmachine running
+  EventMachine.defer(
+    proc {
+      loop do
+        # Check stop
+        sleep 0.5
+        next unless @close_requested
 
-    @socket_mutex.synchronize {
-      begin
-        ws&.close
-      rescue StandardError => e
-        puts "Failed to close websocket: #{e}"
+        puts 'Shutdown requested...'
+        not_yet = false
+        @output_mutex.synchronize {
+          unless @websocket_output_queue.empty?
+            puts 'We still have messages to send'
+            not_yet = true
+          end
+        }
+
+        next if not_yet
+
+        puts 'Proceeding to shutdown'
+
+        puts 'Closing our socket to stop us...'
+        @socket_mutex.synchronize {
+          begin
+            ws&.close
+          rescue StandardError => e
+            puts "Failed to close websocket: #{e}"
+            EventMachine.stop_event_loop
+            return
+          end
+        }
+
+        # Wait while the socket closes
+        puts 'Waiting until the socket is closed'
+
+        loop do
+          sleep 0.5
+          @socket_mutex.synchronize {
+            break if ws.nil?
+          }
+        end
+
+        puts 'Socket closed, ending this defer block'
+
+        return
+      end
+    }
+  )
+
+  EventMachine.add_shutdown_hook {
+    puts 'eventmachine shutting down'
+
+    @output_mutex.synchronize {
+      unless @websocket_output_queue.empty?
+        puts 'Some messages could not be sent before socket close'
       end
     }
   }

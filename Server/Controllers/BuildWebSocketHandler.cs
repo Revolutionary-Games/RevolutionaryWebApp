@@ -116,8 +116,17 @@ namespace ThriveDevCenter.Server.Controllers
 
             while (!socket.CloseStatus.HasValue)
             {
-                var sizeReadResult = await
-                    socket.ReceiveAsync(new ArraySegment<byte>(messageSizeBuffer), CancellationToken.None);
+                WebSocketReceiveResult sizeReadResult;
+                try
+                {
+                    sizeReadResult = await
+                        socket.ReceiveAsync(new ArraySegment<byte>(messageSizeBuffer), CancellationToken.None);
+                }
+                catch (WebSocketException e)
+                {
+                    logger.LogWarning("Other side closed websocket (while trying to read size): {@E}", e);
+                    break;
+                }
 
                 if (sizeReadResult.CloseStatus.HasValue)
                     break;
