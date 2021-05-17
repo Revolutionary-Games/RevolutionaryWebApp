@@ -98,12 +98,13 @@ namespace ThriveDevCenter.Server.Controllers
                 TargetUserId = user.Id,
             });
 
+            build.Status = BuildStatus.Running;
+            build.FinishedAt = null;
+
             // If there are no jobs, then the repo scan / result failed, so we might as well reset this and rerun
             // the repo scan
             if (build.CiJobs.Count < 1)
             {
-                build.Status = BuildStatus.Running;
-                build.FinishedAt = null;
                 await database.SaveChangesAsync();
 
                 jobClient.Enqueue<CheckAndStartCIBuild>(x => x.Execute(projectId, buildId, CancellationToken.None));

@@ -5,6 +5,7 @@
 @inherits SingleResourcePage<CIBuildDTO, CIBuildUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @implements IAsyncDisposable
 
@@ -43,9 +44,16 @@
 
         <AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
             <br />
-            @* TODO: implement these buttons *@
-            <Button Enabled="@false" ButtonStyle="secondary">Rerun Failed</Button>
-            <Button Enabled="@false" ButtonStyle="secondary">Rerun All</Button>
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+            <Button Enabled="@CanRetry" ButtonStyle="secondary" Spinner="@processing"
+                    OnPressed="@(() => RerunBuild(false))">
+                Rerun Failed
+            </Button>
+            <Button Enabled="@CanRetry" ButtonStyle="warning" Spinner="@processing"
+                    OnPressed="@(() => RerunBuild(true))">
+                Rerun All
+            </Button>
             <br />
         </AccessLimited>
 
@@ -58,9 +66,17 @@
 </SingleResourceDisplayer>
 
 @code {
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool retriedBefore;
 
     [Parameter]
     public long ProjectId { get; set; }
+
+    private bool CanRetry => !retriedBefore && Data != null && Data.Status != BuildStatus.Running &&
+        Data.Status != BuildStatus.GoingToFail;
 
     protected override Task<CIBuildDTO> StartQuery()
     {
@@ -83,4 +99,43 @@
         return notificationHandler.Register(this);
     }
 
+    private async void RerunBuild(bool all)
+    {
+        retriedBefore = true;
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync($"api/v1/CIBuildManagement/{ProjectId}/{Id}/rerun?onlyFailed={!all}",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Rebuild starting";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 }

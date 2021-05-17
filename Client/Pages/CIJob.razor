@@ -5,6 +5,7 @@
 @inherits SingleResourcePage<CIJobDTO, CIJobUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @implements IAsyncDisposable
 
@@ -42,10 +43,14 @@
             for @Data.ProjectName
         </NavLink>
 
-        <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
             <br />
-            @* TODO: implement these buttons *@
-            <Button Enabled="@false" ButtonStyle="secondary">Cancel</Button>
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+            <Button Enabled="@(Data.State != CIJobState.Finished)" ButtonStyle="secondary" Spinner="@processing"
+                    OnPressed="@CancelJob">
+                Cancel
+            </Button>
             <br />
         </AccessLimited>
 
@@ -62,6 +67,9 @@
 </SingleResourceDisplayer>
 
 @code {
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
     public long ProjectId { get; set; }
@@ -90,4 +98,42 @@
         return notificationHandler.Register(this);
     }
 
+    private async void CancelJob()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync($"api/v1/CIBuildManagement/{ProjectId}/{BuildId}/jobs/{Id}/cancel",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Build canceled";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 }
