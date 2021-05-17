@@ -1,12 +1,13 @@
 namespace ThriveDevCenter.Server.Services
 {
     using System;
-    using System.Linq;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Hubs;
     using Microsoft.AspNetCore.SignalR;
     using Microsoft.EntityFrameworkCore;
     using Models;
+    using Shared.Notifications;
 
     /// <summary>
     ///   Helper for sending model update notifications
@@ -20,7 +21,8 @@ namespace ThriveDevCenter.Server.Services
             this.notifications = notifications;
         }
 
-        public Task OnChangesDetected(EntityState newState, IUpdateNotifications value, bool previousSoftDeleted)
+        public IEnumerable<Tuple<SerializedNotification, string>> OnChangesDetected(EntityState newState,
+            IUpdateNotifications value, bool previousSoftDeleted)
         {
             switch (newState)
             {
@@ -42,13 +44,27 @@ namespace ThriveDevCenter.Server.Services
                 }
             }
 
-            return Task.WhenAll(value.GetNotifications(newState).Select(tuple =>
-                notifications.Clients.Group(tuple.Item2).ReceiveNotification(tuple.Item1)));
+            return value.GetNotifications(newState);
+        }
+
+        public Task SendNotifications(IEnumerable<Tuple<SerializedNotification, string>> toSend)
+        {
+            var tasks = new List<Task> { Capacity = 10 };
+
+            foreach (var tuple in toSend)
+            {
+                tasks.Add(notifications.Clients.Group(tuple.Item2).ReceiveNotification(tuple.Item1));
+            }
+
+            return Task.WhenAll(tasks);
         }
     }
 
     public interface IModelUpdateNotificationSender
     {
-        public Task OnChangesDetected(EntityState newState, IUpdateNotifications value, bool previousSoftDeleted);
+        public IEnumerable<Tuple<SerializedNotification, string>> OnChangesDetected(EntityState newState,
+            IUpdateNotifications value, bool previousSoftDeleted);
+
+        public Task SendNotifications(IEnumerable<Tuple<SerializedNotification, string>> notifications);
     }
 }

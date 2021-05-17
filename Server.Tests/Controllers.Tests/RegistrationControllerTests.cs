@@ -129,8 +129,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             notificationsMock
                 .Setup(notifications => notifications.OnChangesDetected(EntityState.Added,
-                    It.IsAny<User>(), false))
-                .Returns(Task.CompletedTask).Verifiable();
+                    It.IsAny<User>(), false)).Verifiable();
 
             await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 

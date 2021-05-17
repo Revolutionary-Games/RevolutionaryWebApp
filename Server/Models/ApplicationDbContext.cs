@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Models
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -8,6 +9,7 @@ namespace ThriveDevCenter.Server.Models
     using Services;
     using Shared;
     using Shared.Models;
+    using Shared.Notifications;
     using Utilities;
 
     public class ApplicationDbContext : DbContext
@@ -46,25 +48,28 @@ namespace ThriveDevCenter.Server.Models
 
         public override int SaveChanges()
         {
-            RunPreSaveChecks().Wait();
+            var notificationsToSend =  RunPreSaveChecks();
 
-            return base.SaveChanges();
-        }
+            var result = base.SaveChanges();
 
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
-        {
-            // This runs the important checks synchronously before waiting for just notifications, so we can start the
-            // db write before this completes fully
-            var checkTask = RunPreSaveChecks();
-
-            var result = await base.SaveChangesAsync(cancellationToken);
-
-            await checkTask;
+            SendUpdateNotifications(notificationsToSend).Wait();
 
             return result;
         }
 
-        public Task RunPreSaveChecks()
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        {
+            // Run pre-save validations and build notifications before saving
+            var notificationsToSend = RunPreSaveChecks();
+
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            await SendUpdateNotifications(notificationsToSend);
+
+            return result;
+        }
+
+        public List<Tuple<SerializedNotification, string>> RunPreSaveChecks()
         {
             var changedEntities = ChangeTracker
                 .Entries()
@@ -92,27 +97,27 @@ namespace ThriveDevCenter.Server.Models
 
             var notifications = AutoSendNotifications;
 
-            if (notifications != null)
+            if (notifications == null)
+                return null;
+
+            // Build notifications
+            var notificationsToSend = new List<Tuple<SerializedNotification, string>>();
+
+            foreach (var entry in changedEntities)
             {
-                var tasks = new List<Task> { Capacity = changedEntities.Count };
-
-                foreach (var entry in changedEntities)
+                if (entry.Entity is IUpdateNotifications notifiable)
                 {
-                    if (entry.Entity is IUpdateNotifications notifiable)
-                    {
-                        bool previousSoftDeleted = false;
+                    bool previousSoftDeleted = false;
 
-                        if (notifiable.UsesSoftDelete)
-                            previousSoftDeleted = (bool)entry.OriginalValues[AppInfo.SoftDeleteAttribute];
+                    if (notifiable.UsesSoftDelete)
+                        previousSoftDeleted = (bool)entry.OriginalValues[AppInfo.SoftDeleteAttribute];
 
-                        tasks.Add(notifications.OnChangesDetected(entry.State, notifiable, previousSoftDeleted));
-                    }
+                    notificationsToSend.AddRange(notifications.OnChangesDetected(entry.State, notifiable,
+                        previousSoftDeleted));
                 }
-
-                return Task.WhenAll(tasks);
             }
 
-            return Task.CompletedTask;
+            return notificationsToSend;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -335,6 +340,16 @@ namespace ThriveDevCenter.Server.Models
             });
 
             modelBuilder.Entity<ControlledServer>(entity => { entity.UseXminAsConcurrencyToken(); });
+        }
+
+        private Task SendUpdateNotifications(List<Tuple<SerializedNotification, string>> messages)
+        {
+            var notifications = AutoSendNotifications;
+
+            if (notifications == null || messages == null || messages.Count < 1)
+                return Task.CompletedTask;
+
+            return notifications.SendNotifications(messages);
         }
     }
 }
