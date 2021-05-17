@@ -40,6 +40,7 @@ namespace ThriveDevCenter.Server.Controllers
             [Required] long buildId, [Required] long jobId)
         {
             var job = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+                .Include(j => j.CiJobOutputSections)
                 .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
 
             if (job == null || job.Build.CiProject.Deleted)
@@ -48,11 +49,15 @@ namespace ThriveDevCenter.Server.Controllers
             if (job.State == CIJobState.Finished)
                 return BadRequest("Can't cancel a finished job");
 
-            var cancelSectionId = await database.CiJobOutputSections.AsQueryable()
-                .Where(s => s.CiProjectId == projectId && s.CiBuildId == buildId && s.CiJobId == jobId)
-                .MaxAsync(s => (long?)s.CiJobOutputSectionId) ?? 0 + 1;
+            long cancelSectionId = 0;
 
-            await job.CreateFailureSection(database, "Job canceled by a user", "Canceled", cancelSectionId);
+            foreach (var section in job.CiJobOutputSections)
+            {
+                if (section.CiJobOutputSectionId > cancelSectionId)
+                    cancelSectionId = section.CiJobOutputSectionId;
+            }
+
+            await job.CreateFailureSection(database, "Job canceled by a user", "Canceled", ++cancelSectionId);
 
             var user = HttpContext.AuthenticatedUser();
 
@@ -100,6 +105,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             build.Status = BuildStatus.Running;
             build.FinishedAt = null;
+
+            // TODO: add a rerun counter to the build model
 
             // If there are no jobs, then the repo scan / result failed, so we might as well reset this and rerun
             // the repo scan
