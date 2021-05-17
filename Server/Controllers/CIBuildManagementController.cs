@@ -50,7 +50,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var cancelSectionId = await database.CiJobOutputSections.AsQueryable()
                 .Where(s => s.CiProjectId == projectId && s.CiBuildId == buildId && s.CiJobId == jobId)
-                .MaxAsync(s => s.CiJobOutputSectionId) + 1;
+                .MaxAsync(s => (long?)s.CiJobOutputSectionId) ?? 0 + 1;
 
             await job.CreateFailureSection(database, "Job canceled by a user", "Canceled", cancelSectionId);
 
