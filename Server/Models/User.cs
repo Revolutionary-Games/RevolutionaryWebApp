@@ -76,6 +76,9 @@ namespace ThriveDevCenter.Server.Models
         [NotMapped]
         public string Name { get => UserName; set => UserName = value; }
 
+        [NotMapped]
+        public string NameOrEmail => Name ?? Email;
+
         /// <summary>
         ///   Builds verified by this user
         /// </summary>
@@ -180,6 +183,7 @@ namespace ThriveDevCenter.Server.Models
             yield return new Tuple<SerializedNotification, string>(new UserListUpdated()
             {
                 Type = entityState.ToChangeType(),
+
                 // TODO: create a separate UserInfo type to use for the list here
                 Item = GetInfo(RecordAccessLevel.Admin)
             }, NotificationGroups.UserListUpdated);

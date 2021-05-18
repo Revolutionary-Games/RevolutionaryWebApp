@@ -53,12 +53,14 @@
 
                 @if(!Data.BuildOfTheDay)
                 {
-                    <Button Enabled="@CanMakeBOTD" ButtonStyle="primary" class="mb-2" Spinner="@processing">
+                    <Button Enabled="@CanMakeBOTD" ButtonStyle="primary" class="mb-2" Spinner="@processing"
+                            OnPressed="@MakeBOTD">
                         Make Build of the Day
                     </Button>
                 } else if (currentUserInfo.IsAdmin)
                 {
-                    <Button Enabled="@(!processing)" ButtonStyle="warning" class="mb-2" Spinner="@processing">
+                    <Button Enabled="@(!processing)" ButtonStyle="warning" class="mb-2" Spinner="@processing"
+                            OnPressed="@RemoveBOTDStatus">
                         Remove BOTD Status (from ALL builds)
                     </Button>
                 }
@@ -112,5 +114,81 @@
     private void HideStatusMessage()
     {
         statusMessage = null;
+    }
+
+    private async Task MakeBOTD()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/DevBuilds/botd", Id);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "BOTD status set";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveBOTDStatus()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync("api/v1/DevBuilds/botd");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "All BOTD builds cleared";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }

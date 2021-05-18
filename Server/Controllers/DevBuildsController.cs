@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Services;
     using Shared;
     using Shared.Forms;
     using Shared.Models;
@@ -24,11 +25,14 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<DevBuildsController> logger;
         private readonly NotificationsEnabledDb database;
+        private readonly DiscordNotifications discordNotifications;
 
-        public DevBuildsController(ILogger<DevBuildsController> logger, NotificationsEnabledDb database)
+        public DevBuildsController(ILogger<DevBuildsController> logger, NotificationsEnabledDb database,
+            DiscordNotifications discordNotifications)
         {
             this.logger = logger;
             this.database = database;
+            this.discordNotifications = discordNotifications;
         }
 
         [HttpGet]
@@ -221,7 +225,8 @@ namespace ThriveDevCenter.Server.Controllers
 
         [HttpPut("{id:long}")]
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
-        public async Task<IActionResult> UpdateDevBuild([Required] long id, [FromBody] [Required] DevBuildUpdateForm request)
+        public async Task<IActionResult> UpdateDevBuild([Required] long id,
+            [FromBody] [Required] DevBuildUpdateForm request)
         {
             var build = await database.DevBuilds.FindAsync(id);
 
@@ -254,12 +259,99 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
+        [HttpPost("botd")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        public async Task<IActionResult> SetBuildOfTheDay([FromBody] [Required] long buildId)
+        {
+            var build = await database.DevBuilds.FindAsync(buildId);
+
+            if (build == null)
+                return NotFound();
+
+            if (build.BuildOfTheDay)
+                return BadRequest("Build is already BOTD");
+
+            if (build.Anonymous && !build.Verified)
+                return BadRequest("Can't make anonymous, non verified build the BOTD");
+
+            if (string.IsNullOrWhiteSpace(build.Description))
+                return BadRequest("BOTD build must have a description");
+
+            var user = HttpContext.AuthenticatedUser();
+            logger.LogInformation("Build {Id} will be set as the BOTD by {Email}", build.Id, user.Email);
+
+            // Unmark all BOTD of the day builds
+            await RemoveAllBOTDStatuses();
+
+            foreach (var sibling in await GetSiblingBuilds(build))
+            {
+                logger.LogInformation("Marking sibling devbuild {Id} as BOTD as well", sibling.Id);
+
+                if (sibling.Verified != build.Verified)
+                {
+                    logger.LogInformation("Setting sibling build verified status the same before BOTD status set");
+                    sibling.Verified = build.Verified;
+                    sibling.VerifiedById = build.VerifiedById;
+                }
+
+                sibling.BuildOfTheDay = true;
+
+                // Always copy description on setting BOTD status
+                sibling.Description = build.Description;
+            }
+
+            build.BuildOfTheDay = true;
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Build {build.Id} along with siblings is now the BOTD",
+                PerformedById = user.Id
+            });
+
+            await database.SaveChangesAsync();
+            logger.LogInformation("BOTD updated");
+
+            // TODO: limit this to a couple per hour?
+            await discordNotifications.NotifyAboutNewBOTD(build, user.NameOrEmail);
+
+            return Ok();
+        }
+
+        [HttpDelete("botd")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> RemoveBuildOfTheDay()
+        {
+            // Unmark all BOTD of the day builds
+            await RemoveAllBOTDStatuses();
+
+            var user = HttpContext.AuthenticatedUser();
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = "BOTD unset",
+                PerformedById = user.Id
+            });
+
+            await database.SaveChangesAsync();
+            logger.LogInformation("BOTDs cleared by {Email}", user.Email);
+
+            return Ok();
+        }
+
         [NonAction]
         private Task<List<DevBuild>> GetSiblingBuilds(DevBuild devBuild)
         {
             return database.DevBuilds.AsQueryable()
                 .Where(b => b.BuildHash == devBuild.BuildHash && b.Branch == devBuild.Branch && b.Id != devBuild.Id)
                 .ToListAsync();
+        }
+
+        private async Task RemoveAllBOTDStatuses()
+        {
+            foreach (var build in await database.DevBuilds.AsQueryable().Where(b => b.BuildOfTheDay).ToListAsync())
+            {
+                logger.LogInformation("Unmarking build {Id} being the BOTD", build.Id);
+                build.BuildOfTheDay = false;
+            }
         }
     }
 }
