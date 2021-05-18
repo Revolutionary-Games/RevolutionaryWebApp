@@ -178,6 +178,7 @@ namespace ThriveDevCenter.Server
             services.AddScoped<EC2Controller>();
             services.AddScoped<ControlledServerSSHAccess>();
             services.AddScoped<GithubCommitStatusReporter>();
+            services.AddScoped<DiscordNotifications>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();
