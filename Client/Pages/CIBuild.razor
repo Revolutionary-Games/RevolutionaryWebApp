@@ -113,7 +113,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync($"api/v1/CIBuildManagement/{ProjectId}/{Id}/rerun?onlyFailed={!all}",
+            result = await http.PostAsync($"api/v1/CIBuildManagement/{ProjectId}/{Id}/rerun?onlyFailed={!all}",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)

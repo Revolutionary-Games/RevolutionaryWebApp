@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ThriveDevCenter.Server.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Threading.Tasks;
@@ -113,6 +114,116 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             return build.GetDTO();
+        }
+
+        [HttpPost("{id:long}/verify")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        public async Task<IActionResult> VerifyBuild([Required] long id, bool siblingsAsWell = true)
+        {
+            var build = await database.DevBuilds.FindAsync(id);
+
+            if (build == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser();
+
+            bool didSomething = false;
+
+            if (siblingsAsWell)
+            {
+                foreach (var sibling in await GetSiblingBuilds(build))
+                {
+                    if (sibling.Verified)
+                        continue;
+
+                    logger.LogInformation("Marking sibling devbuild {Id} as verified as well", sibling.Id);
+                    sibling.Verified = true;
+                    sibling.VerifiedById = user.Id;
+
+                    didSomething = true;
+                }
+            }
+
+            if (!build.Verified)
+            {
+                logger.LogInformation("Marking devbuild {Id} as verified by {Email}", build.Id, user.Email);
+                build.Verified = true;
+                build.VerifiedById = user.Id;
+
+                didSomething = true;
+            }
+
+            if (!didSomething)
+                return Ok("Nothing needed to be marked as verified");
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Build {id} marked verified",
+                PerformedById = user.Id
+            });
+
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpDelete("{id:long}/verify")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        public async Task<IActionResult> UnVerifyBuild([Required] long id, bool siblingsAsWell = true)
+        {
+            var build = await database.DevBuilds.FindAsync(id);
+
+            if (build == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser();
+
+            bool didSomething = false;
+
+            if (siblingsAsWell)
+            {
+                foreach (var sibling in await GetSiblingBuilds(build))
+                {
+                    if (!sibling.Verified)
+                        continue;
+
+                    logger.LogInformation("Marking sibling devbuild {Id} as unverified as well", sibling.Id);
+                    sibling.Verified = false;
+                    sibling.VerifiedById = null;
+
+                    didSomething = true;
+                }
+            }
+
+            if (build.Verified)
+            {
+                logger.LogInformation("Marking devbuild {Id} unverified by user {Email}", build.Id, user.Email);
+                build.Verified = false;
+                build.VerifiedById = null;
+
+                didSomething = true;
+            }
+
+            if (!didSomething)
+                return Ok("Nothing needed to be unverified");
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Verification removed from build {id}",
+                PerformedById = user.Id
+            });
+
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [NonAction]
+        private Task<List<DevBuild>> GetSiblingBuilds(DevBuild devBuild)
+        {
+            return database.DevBuilds.AsQueryable()
+                .Where(b => b.BuildHash == devBuild.BuildHash && b.Branch == devBuild.Branch && b.Id != devBuild.Id)
+                .ToListAsync();
         }
     }
 }

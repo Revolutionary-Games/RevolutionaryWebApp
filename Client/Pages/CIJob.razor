@@ -109,7 +109,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync($"api/v1/CIBuildManagement/{ProjectId}/{BuildId}/jobs/{Id}/cancel",
+            result = await http.PostAsync($"api/v1/CIBuildManagement/{ProjectId}/{BuildId}/jobs/{Id}/cancel",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
