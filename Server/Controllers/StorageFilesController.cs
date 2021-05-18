@@ -234,6 +234,35 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok($"New folder with id {newFolder.Id} created");
         }
 
+        [HttpGet("{id:long}/versions")]
+        [AuthorizeRoleFilter]
+        public async Task<ActionResult<PagedResult<StorageItemVersionInfo>>> GetVersions([Required] long id,
+            [Required] string sortColumn, [Required] SortDirection sortDirection,
+            [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
+        {
+            StorageItem item = await FindAndCheckAccess(id);
+            if (item == null)
+                return NotFound();
+
+            IQueryable<StorageItemVersion> query;
+
+            try
+            {
+                query = database.StorageItemVersions.Include(v => v.StorageFile)
+                    .Where(v => v.StorageItemId == item.Id).OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            // And then return the contents of this folder to the requester
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetInfo());
+        }
+
         [NonAction]
         private bool CheckNewItemName(string name, out ActionResult badRequest)
         {
@@ -265,7 +294,6 @@ namespace ThriveDevCenter.Server.Controllers
                     Value = "Remote storage is not configured on the server"
                 };
             }
-
 
             // TODO: maybe in the future we'll want to allow anonymous uploads to certain folders
             var user = HttpContext.AuthenticatedUser();

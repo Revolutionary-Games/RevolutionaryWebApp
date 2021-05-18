@@ -81,4 +81,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CIProjectBuildJobOutputSectionsListUpdated : ListUpdated<CIJobOutputSectionInfo>
     {
     }
+
+    public class StorageItemVersionListUpdated : ListUpdated<StorageItemVersionInfo>
+    {
+    }
 }

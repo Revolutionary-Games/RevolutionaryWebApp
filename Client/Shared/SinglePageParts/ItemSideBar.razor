@@ -1,6 +1,11 @@
 @inject HttpClient http
 @inject NavigationManager navManager
+@inject IClipboard clipboard
 @using ThriveDevCenter.Shared.Models
+@using System.IO
+@using TextCopy
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Forms
 
 <div class="item-sidebar">
     <button type="button" class="close" data-dismiss="alert" aria-label="Close"
@@ -10,18 +15,148 @@
 
     <h2>@Item.Name</h2>
 
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
-    <a href="@GetDownloadURL()" target="_blank">Download</a>
+    <div class="preview-box">
+        @switch (Extension)
+        {
+            case ".jpg":
+            case ".jpeg":
+            case ".gif":
+            case ".webp":
+            case ".png":
+            {
+                <img src="@GetDownloadURL()" alt="@Item.Name" class="preview-image" />
+                break;
+            }
+            case ".mkv":
+            case ".webm":
+            case ".mp4":
+            {
+                <video src="@GetDownloadURL()" alt="@Item.Name" class="preview-video" controls></video>
+                break;
+            }
+            case ".json":
+            case ".md":
+            case ".txt":
+            {
+                @if (downloadingData)
+                {
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <pre>@downloadedTextContent</pre>
+                }
 
+                break;
+            }
+            default:
+            {
+                <span>No preview available for this file type (@Extension)</span>
+                break;
+            }
+        }
+    </div>
+
+    <div class="mx-2 my-1">
+        <a href="@GetDownloadURL()" target="_blank">Download</a>
+
+        <Button ButtonStyle="primary" class="btn-sm ml-1" OnPressed="@CopyLinkToClipboard">
+            @if (!linkCopied)
+            {
+                <span>Copy Download Link</span>
+            }
+            else
+            {
+                <span>Copied</span>
+            }
+        </Button>
+    </div>
+
+    <h3>Information</h3>
+
+    <div>Name: @Item.Name</div>
+    <div>Type: @Item.Ftype</div>
+    <div>ID: @Item.Id</div>
+    <div>Can be parentless: @Item.AllowParentless</div>
+    <div>Size: @(Item.Size != null ? Item.Size.Value.BytesToMiB() : "unknown")</div>
+    <div>Read: @Item.ReadAccess.ToUserReadableString() </div>
+    <div>Write: @Item.WriteAccess.ToUserReadableString() </div>
+
+    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
+        @* TODO: fetch username *@
+        <div>Owner: @Item.OwnerId </div>
+    </AccessLimited>
+
+    <div>Parent folder: @Item.ParentId</div>
+    <div>Special: @Item.Special</div>
+    <div>Created: @Item.CreatedAt.ToLocalTime().ToString("G")</div>
+    <div>Updated: @Item.UpdatedAt.ToLocalTime().ToString("G")</div>
+
+    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
+        <h3>Versions</h3>
+
+        <StorageItemVersions StorageItemId="@Item.Id" />
+    </AccessLimited>
 </div>
 
 @code {
+
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private string downloadCheckedFilename;
+    private bool downloadingData = true;
+
+    // TODO: implement markdown parsing etc
+    private string downloadedTextContent;
+
+    private bool linkCopied;
 
     [Parameter]
     public StorageItemDTO Item { get; set; }
 
     [Parameter]
     public bool PreventClose { get; set; }
+
+    private string Extension => Path.GetExtension(Item.Name);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (Item == null)
+            return;
+
+        if (downloadCheckedFilename != Item.Name)
+        {
+            downloadCheckedFilename = Item.Name;
+
+            switch (Extension)
+            {
+                case ".json":
+                case ".md":
+                case ".txt":
+                {
+                    if (Item.Size == null || Item.Size > AppInfo.MaxInBrowserPreviewTextFileSize)
+                    {
+                        downloadedTextContent = "File too large for preview";
+                        downloadingData = false;
+                    }
+                    else
+                    {
+                        await DownloadTextFile();
+                    }
+                    break;
+                }
+            }
+        }
+    }
 
     private void CloseSideBar()
     {
@@ -36,13 +171,54 @@
 
     private string GetDownloadURL(int version = -1)
     {
-        var urlParams = new Dictionary<string, string>();
+        return new Uri(new Uri(navManager.BaseUri), $"api/v1/download/{Item.Id}").ToString();
+    }
 
-        if (version != -1)
-            urlParams["version"] = version.ToString();
+    private async Task DownloadTextFile()
+    {
+        downloadingData = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
 
-        return QueryHelpers.AddQueryString(new Uri(new Uri(navManager.BaseUri),
-            $"api/v1/download/{Item.Id}").ToString(), urlParams);
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.GetAsync(GetDownloadURL());
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            downloadingData = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        downloadingData = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            downloadedTextContent = content;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CopyLinkToClipboard()
+    {
+        linkCopied = false;
+        await InvokeAsync(StateHasChanged);
+
+        await clipboard.SetTextAsync(GetDownloadURL());
+
+        linkCopied = true;
+        await InvokeAsync(StateHasChanged);
     }
 
 }

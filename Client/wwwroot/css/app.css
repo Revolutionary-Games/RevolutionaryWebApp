@@ -156,6 +156,7 @@ table.non-fixed {
     padding: 3px;
     border: 1px solid black;
     min-width: 100%;
+    max-width: 100%;
     background-color: rgba(220, 220, 220, 0.95);
     z-index: 5;
     border-top-left-radius: 5px;
