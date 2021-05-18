@@ -1,4 +1,4 @@
-@page "/admin/adminActionLog"
+@page "/admin/actionLog"
 @inject HttpClient http
 @inject NavigationManager navManager
 @inject IJSRuntime js
@@ -9,13 +9,13 @@
 @using System.Threading
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
-@implements ThriveDevCenter.Client.Services.INotificationHandler<AdminActionsUpdated>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ActionsUpdated>
 @implements IAsyncDisposable
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.AdminActionDTO>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ActionLogEntryDTO>
 
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
-    <h3>Admin Action Logs</h3>
+    <h3>User Action Logs</h3>
 
     @if (!string.IsNullOrEmpty(Error))
     {
@@ -40,7 +40,6 @@
                         <td>@item.Message</td>
                         <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
                         <td>@item.PerformedById</td>
-                        <td>@item.TargetUserId</td>
                     </tr>
                 }
             }
@@ -54,10 +53,9 @@
         new TableColumn("Message", false),
         new TableColumn("Time", true, "CreatedAt"),
         new TableColumn("Performed By", true, "PerformedById"),
-        new TableColumn("Target User", true, "TargetUserId")
     };
 
-    public AdminActionLogs() : base(new SortHelper("CreatedAt", SortDirection.Descending))
+    public NormalActionLogs() : base(new SortHelper("CreatedAt", SortDirection.Descending))
     {
         DefaultPageSize = 100;
     }
@@ -75,7 +73,7 @@
         return base.SetParametersAsync(parameters);
     }
 
-    public Task Handle(AdminActionsUpdated notification, CancellationToken cancellationToken)
+    public Task Handle(ActionsUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
     }
@@ -92,10 +90,10 @@
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<AdminActionDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<ActionLogEntryDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<AdminActionDTO>>(
-            QueryHelpers.AddQueryString("api/v1/Logs/adminActions", requestParams));
+        return http.GetFromJsonAsync<PagedResult<ActionLogEntryDTO>>(
+            QueryHelpers.AddQueryString("api/v1/Logs/actions", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)

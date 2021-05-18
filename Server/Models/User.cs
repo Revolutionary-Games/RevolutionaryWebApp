@@ -107,6 +107,11 @@ namespace ThriveDevCenter.Server.Models
         public ICollection<AdminAction> PerformedAdminActions { get; set; } = new HashSet<AdminAction>();
 
         /// <summary>
+        ///   Normal level actions performed by this user
+        /// </summary>
+        public ICollection<ActionLogEntry> PerformedActions { get; set; } = new HashSet<ActionLogEntry>();
+
+        /// <summary>
         ///   Active sessions of user
         /// </summary>
         public ICollection<Session> Sessions { get; set; } = new HashSet<Session>();

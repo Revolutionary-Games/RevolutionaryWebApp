@@ -33,6 +33,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<RedeemableCode> RedeemableCodes { get; set; }
         public DbSet<AdminAction> AdminActions { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
+        public DbSet<ActionLogEntry> ActionLogEntries { get; set; }
         public DbSet<GithubWebhook> GithubWebhooks { get; set; }
         public DbSet<CiProject> CiProjects { get; set; }
         public DbSet<CiBuild> CiBuilds { get; set; }
@@ -48,7 +49,7 @@ namespace ThriveDevCenter.Server.Models
 
         public override int SaveChanges()
         {
-            var notificationsToSend =  RunPreSaveChecks();
+            var notificationsToSend = RunPreSaveChecks();
 
             var result = base.SaveChanges();
 
@@ -290,6 +291,12 @@ namespace ThriveDevCenter.Server.Models
                 entity.HasOne(d => d.TargetUser).WithMany(p => p.TargetedByAdminActions)
                     .OnDelete(DeleteBehavior.SetNull);
                 entity.HasOne(d => d.PerformedBy).WithMany(p => p.PerformedAdminActions)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ActionLogEntry>(entity =>
+            {
+                entity.HasOne(d => d.PerformedBy).WithMany(p => p.PerformedActions)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
