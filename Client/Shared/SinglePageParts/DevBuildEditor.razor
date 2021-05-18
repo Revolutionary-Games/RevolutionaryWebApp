@@ -1,0 +1,140 @@
+@inject HttpClient http
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Forms
+
+@if (showForm)
+{
+    <form>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="newDescription">Description</label>
+                <textarea class="form-control" id="newDescription" @bind="description"
+                       @bind:event="oninput" placeholder="Build description"
+                       cols="@(AppInfo.MaxDevBuildDescriptionNiceLineLength + 1)">
+                </textarea>
+            </div>
+        </div>
+
+        @foreach (var error in GetErrors())
+        {
+            <div>@error</div>
+        }
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+        <Button class="my-1 mr-1" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing" ButtonStyle="primary">
+            Save
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@Cancel">
+            Cancel
+        </Button>
+    </form>
+}
+else
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+
+    <Button Enabled="@CanEdit" ButtonStyle="secondary" OnPressed="@ShowForm">Edit</Button>
+}
+
+@code {
+
+    private string description;
+
+    private bool showForm;
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public DevBuildDTO Data { get; set; }
+
+    private bool CanEdit => Data is {BuildOfTheDay: false };
+
+    private bool CanSave => GetErrors().Count < 1;
+
+    private void ShowForm()
+    {
+        description = Data.Description;
+        showForm = true;
+    }
+
+    private void Cancel()
+    {
+        showForm = false;
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private List<string> GetErrors()
+    {
+        var result = new List<string>();
+
+        if (!string.IsNullOrEmpty(description))
+        {
+            if (description.Length > AppInfo.MaxDevBuildDescriptionLength)
+                result.Add("Overall length of description is too long");
+
+            if (description.Length < AppInfo.MinimumDevBuildDescriptionLength)
+                result.Add("Description is too short");
+
+            foreach (var line in description.Split("\n"))
+            {
+                if (line.Length > AppInfo.MaxDevBuildDescriptionNiceLineLength)
+                {
+                    result.Add($"Line \"{line}\" is too long ({line.Length} > " +
+                        $"{AppInfo.MaxDevBuildDescriptionNiceLineLength})");
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private async Task Save()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PutAsJsonAsync($"api/v1/DevBuilds/{Data.Id}", new DevBuildUpdateForm()
+            {
+                Description = string.IsNullOrEmpty(description) ? null : description,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Changes saved";
+            statusMessageType = SiteNoticeType.Primary;
+            showForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

@@ -2,6 +2,7 @@
 @inject HttpClient http
 @inject NotificationHandler notificationHandler
 @inject NavigationManager navigationManager
+@inject CurrentUserInfo currentUserInfo
 @inherits SingleResourcePage<DevBuildDTO, DevBuildUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -42,14 +43,29 @@
             <pre>@Data.Description</pre>
 
             <AccessLimited RequiredAccess="UserAccessLevel.Developer">
-                <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"
-                                     OnClosed="@HideStatusMessage" />
 
-                <Button Enabled="@false" ButtonStyle="secondary">Edit</Button>
+                <DevBuildEditor Data="@Data" />
 
                 <h4 class="mt-3">Actions</h4>
 
-                <Button Enabled="@false" ButtonStyle="primary" class="mb-2">Make Build of the Day</Button>
+                <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"
+                                     OnClosed="@HideStatusMessage" />
+
+                @if(!Data.BuildOfTheDay)
+                {
+                    <Button Enabled="@CanMakeBOTD" ButtonStyle="primary" class="mb-2" Spinner="@processing">
+                        Make Build of the Day
+                    </Button>
+                } else if (currentUserInfo.IsAdmin)
+                {
+                    <Button Enabled="@(!processing)" ButtonStyle="warning" class="mb-2" Spinner="@processing">
+                        Remove BOTD Status (from ALL builds)
+                    </Button>
+                }
+                else
+                {
+                    <p>Already BOTD</p>
+                }
 
                 <br />
 
@@ -66,11 +82,12 @@
 </AccessLimited>
 
 @code {
-    private bool processingSave;
+    private bool processing;
     private string statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-    private bool CanEdit => Data is {BuildOfTheDay: false };
+    private bool CanMakeBOTD => !processing && Data is {BuildOfTheDay: false } &&
+        !string.IsNullOrEmpty(Data.Description) && (Data.Verified || !Data.Anonymous);
 
     protected override Task<DevBuildDTO> StartQuery()
     {

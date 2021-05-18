@@ -40,6 +40,10 @@ namespace ThriveDevCenter.Shared
         public const int MaxPageSizeForBuildSearch = 100;
         public const int MaxDehydratedDownloadBatch = 100;
 
+        public const int MaxDevBuildDescriptionLength = 4000;
+        public const int MinimumDevBuildDescriptionLength = 20;
+        public const int MaxDevBuildDescriptionNiceLineLength = 70;
+
         public const int KIBIBYTE = 1024;
         public const int MEBIBYTE = KIBIBYTE * KIBIBYTE;
 

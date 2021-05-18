@@ -14,6 +14,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
+    using Shared.Forms;
     using Shared.Models;
     using Utilities;
 
@@ -212,6 +213,41 @@ namespace ThriveDevCenter.Server.Controllers
                 Message = $"Verification removed from build {id}",
                 PerformedById = user.Id
             });
+
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpPut("{id:long}")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        public async Task<IActionResult> UpdateDevBuild([Required] long id, [FromBody] [Required] DevBuildUpdateForm request)
+        {
+            var build = await database.DevBuilds.FindAsync(id);
+
+            if (build == null)
+                return NotFound();
+
+            bool changes = false;
+
+            if (build.Description != request.Description)
+            {
+                build.Description = request.Description;
+                changes = true;
+            }
+
+            if (!changes)
+                return Ok("No modifications");
+
+            var user = HttpContext.AuthenticatedUser();
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Build {id} info modified",
+                PerformedById = user.Id
+            });
+
+            logger.LogInformation("DevBuild {Id} was modified by {Email}", build.Id, user.Email);
 
             await database.SaveChangesAsync();
 
