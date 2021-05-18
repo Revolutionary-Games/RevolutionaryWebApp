@@ -295,12 +295,16 @@ namespace ThriveDevCenter.Server.Controllers
                 }
 
                 sibling.BuildOfTheDay = true;
+                sibling.Important = true;
+                sibling.Keep = true;
 
                 // Always copy description on setting BOTD status
                 sibling.Description = build.Description;
             }
 
             build.BuildOfTheDay = true;
+            build.Important = true;
+            build.Keep = true;
 
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
