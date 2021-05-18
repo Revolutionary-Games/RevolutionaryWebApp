@@ -1,0 +1,48 @@
+@inject HttpClient http
+@inject NavigationManager navManager
+@using ThriveDevCenter.Shared.Models
+
+<div class="item-sidebar">
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close"
+            @onclick="CloseSideBar" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h2>@Item.Name</h2>
+
+
+    <a href="@GetDownloadURL()" target="_blank">Download</a>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public StorageItemDTO Item { get; set; }
+
+    [Parameter]
+    public bool PreventClose { get; set; }
+
+    private void CloseSideBar()
+    {
+        // Disallow changing the file path while uploading
+        if (PreventClose)
+            return;
+
+        // Navigate to the parent path, as that should close the file showing
+        var pathParts = navManager.Uri.Split('/');
+        navManager.NavigateTo(string.Join('/', pathParts.Take(pathParts.Length - 1)));
+    }
+
+    private string GetDownloadURL(int version = -1)
+    {
+        var urlParams = new Dictionary<string, string>();
+
+        if (version != -1)
+            urlParams["version"] = version.ToString();
+
+        return QueryHelpers.AddQueryString(new Uri(new Uri(navManager.BaseUri),
+            $"api/v1/download/{Item.Id}").ToString(), urlParams);
+    }
+
+}

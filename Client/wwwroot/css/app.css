@@ -147,22 +147,36 @@ table.non-fixed {
     background-color: lightseagreen;
 }
 
-/* TODO: fix this up for mobile */
 .item-sidebar {
-    top: 25px;
-    bottom: 15px;
+    top: 0;
+    bottom: 0;
     right: 0;
     position: absolute;
     box-sizing: border-box;
     padding: 3px;
     border: 1px solid black;
-    min-width: 300px;
-    width: 35%;
-    background-color: rgba(220, 220, 220, 0.85);
+    min-width: 100%;
+    background-color: rgba(220, 220, 220, 0.95);
     z-index: 5;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
     overflow-y: auto;
+}
+
+@media (min-width: 641px) {
+    .item-sidebar {
+        top: 3.5rem;
+        bottom: 5px;
+        width: 45%;
+        min-width: 300px;
+        background-color: rgba(220, 220, 220, 0.85);
+    }
+}
+
+@media (min-width: 950px) {
+    .item-sidebar {
+        width: 35%;
+    }
 }
 
 .item-sidebar H2 {

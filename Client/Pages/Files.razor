@@ -31,6 +31,11 @@
 }
 else
 {
+    @if (shownFile != null)
+    {
+        <ItemSideBar Item="@shownFile" PreventClose="@ShouldShowUploaderOverlay" />
+    }
+
     <div class="block-container" @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave">
         @if(ShouldShowUploaderOverlay)
         {
@@ -556,6 +561,8 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
+
+
     private async Task HandleDragEnter()
     {
         showUploadOverlay = true;
@@ -747,4 +754,5 @@ else
             throw new Exception($"Failed to report finished upload: {content}, {result.StatusCode}");
         }
     }
+
 }
