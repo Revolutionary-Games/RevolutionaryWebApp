@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Server.Common\ThriveDevCenter.Server.Common.csproj" />
     <ProjectReference Include="..\Shared\ThriveDevCenter.Shared.csproj" />
   </ItemGroup>
 

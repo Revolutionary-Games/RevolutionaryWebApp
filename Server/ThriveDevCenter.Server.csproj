@@ -41,6 +41,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Client\ThriveDevCenter.Client.csproj" />
+    <ProjectReference Include="..\Server.Common\ThriveDevCenter.Server.Common.csproj" />
+    <ProjectReference Include="..\Server.Shared\ThriveDevCenter.Server.Shared.csproj" />
     <ProjectReference Include="..\Shared\ThriveDevCenter.Shared.csproj" />
   </ItemGroup>
 

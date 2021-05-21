@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Utilities
+namespace ThriveDevCenter.Server.Common.Utilities
 {
     using System;
     using System.Diagnostics;

@@ -9,6 +9,8 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Common.Models;
+    using Common.Utilities;
     using Hangfire;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
@@ -16,7 +18,6 @@ namespace ThriveDevCenter.Server.Jobs
     using Services;
     using Shared;
     using Shared.Models;
-    using Utilities;
     using YamlDotNet.Serialization;
     using YamlDotNet.Serialization.NamingConventions;
 

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Server.Common.Models
 {
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
