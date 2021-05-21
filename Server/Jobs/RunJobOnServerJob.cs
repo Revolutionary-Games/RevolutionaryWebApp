@@ -181,6 +181,8 @@ namespace ThriveDevCenter.Server.Jobs
             env.Append(EscapeForBash(imageFileName));
             env.Append("'; export CI_CACHE_OPTIONS='");
             env.Append(EscapeForBash(job.CacheSettingsJson));
+            env.Append("'; export CI_JOB_NAME='");
+            env.Append(EscapeForBash(job.JobName));
             env.Append("';");
 
             var result2 = sshAccess.RunCommand($"{env} ~/executor.rb {GetConnectToUrl(job)}");
