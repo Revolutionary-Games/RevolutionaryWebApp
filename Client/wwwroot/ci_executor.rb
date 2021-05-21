@@ -17,6 +17,15 @@ NORMAL_REF_PREFIX = 'refs/heads/'
 HOME_FOLDER = File.expand_path '~'
 IMAGE_CACHE_FOLDER = File.join HOME_FOLDER, 'images/'
 CI_IMAGE_FILE = File.join IMAGE_CACHE_FOLDER, ENV['CI_IMAGE_FILENAME']
+LOCAL_BRANCH = ENV['CI_BRANCH']
+
+# True when this is directly from the repo, false if this is a fork
+BUILD_IS_SAFE = ENV['CI_TRUSTED'].downcase == 'true'
+
+CACHE_BASE_FOLDER = BUILD_IS_SAFE ? '/executor_cache/safe' : '/executor_cache/unsafe'
+SHARED_CACHE_FOLDER = File.join CACHE_BASE_FOLDER, 'shared'
+JOB_CACHE_BASE_FOLDER = File.join CACHE_BASE_FOLDER, 'named'
+
 BATCH_SEND_OUTPUT_SIZE = 4096
 DAEMONIZE = true
 
@@ -25,69 +34,80 @@ def fail_with_error(error)
   exit 1
 end
 
-def detect_local_ref(remote_ref)
-  local_heads_ref = "refs/remotes/#{REMOTE}/"
-
-  if pull_request_ref? remote_ref
-    if remote_ref.end_with? PULL_REQUEST_REF_SUFFIX
-      local_branch = remote_ref[0..(remote_ref.length - 1 - PULL_REQUEST_REF_SUFFIX.length)]
-    else
-      raise "Unrecognized PR ref: #{remote_ref}"
-    end
-  elsif remote_ref.start_with? NORMAL_REF_PREFIX
-    local_branch = remote_ref[NORMAL_REF_PREFIX.length..-1]
-  else
-    raise "Unrecognized normal ref: #{remote_ref}"
-  end
-
-  local_heads_ref += local_branch
-
-  [local_heads_ref, local_branch]
-end
-
 def check_run(*cmd_and_args)
-  Open3.popen3(*cmd_and_args) do |stdin, stdout, stderr, wait_thr|
+  Open3.popen2e(*cmd_and_args) do |stdin, stdout_and_stderr, wait_thr|
     stdin.close
 
     out_thread = Thread.new do
       begin
-        stdout.each do |line|
-          # TODO: detect section change commands
+        stdout_and_stderr.each do |line|
           queue_send({ Type: 'BuildOutput', Output: line })
         end
       rescue IOError => e
-        puts "err_thread read failed: #{e}"
-      end
-    end
-
-    err_thread = Thread.new do
-      begin
-        stderr.each do |line|
-          queue_send({ Type: 'BuildOutput', # Output: "error: #{line}"
-                       Output: line                   })
-        end
-      rescue IOError => e
-        puts "err_thread read failed: #{e}"
+        puts "out thread read failed: #{e}"
       end
     end
 
     exit_status = wait_thr.value
     begin
       out_thread.join
-      err_thread.join
     rescue StandardError => e
-      puts "Failed to join the output listen threads for popen3: #{e}"
+      puts "Failed to join the output listen threads for popen: #{e}"
     end
 
     raise "Running command failed: #{cmd_and_args[0]}" if exit_status != 0
   end
 end
 
-def detect_and_setup_local_ref(folder, remote_ref, commit)
-  _local_heads_ref, local_branch = detect_local_ref remote_ref
+# Run with stdin content for a command, also parses section starts, ends, and statuses
+def run_with_input(input, *cmd_and_args)
+  Open3.popen2e(*cmd_and_args) do |stdin, stdout_and_stderr, wait_thr|
+    in_thread = Thread.new do
+      begin
+        input.each_line { |line|
+          stdin.write line
+        }
+      rescue IOError => e
+        puts "stdin thread write failed: #{e}"
+      end
 
+      begin
+        stdin.close
+      rescue StandardError
+        puts 'Failed to close stdin for command'
+      end
+    end
+
+    out_thread = Thread.new do
+      begin
+        stdout_and_stderr.each do |line|
+          # TODO: detect section change commands
+
+          # @last_section_closed = false
+
+          queue_send({ Type: 'BuildOutput', Output: line })
+        end
+      rescue IOError => e
+        puts "out thread read failed: #{e}"
+      end
+    end
+
+    exit_status = wait_thr.value
+    begin
+      in_thread.kill
+      in_thread.join
+      out_thread.join
+    rescue StandardError => e
+      puts "Failed to kill and join the stream threads for popen: #{e}"
+    end
+
+    exit_status.exitstatus
+  end
+end
+
+def detect_and_setup_local_ref(folder, remote_ref, commit)
   if pull_request_ref? remote_ref
-    check_run 'git', 'fetch', REMOTE, "#{remote_ref}:#{local_branch}", { chdir: folder }
+    check_run 'git', 'fetch', REMOTE, "#{remote_ref}:#{LOCAL_BRANCH}", { chdir: folder }
   else
     check_run 'git', 'fetch', REMOTE, remote_ref, { chdir: folder }
   end
@@ -142,24 +162,11 @@ connect_url = ARGV[0].sub('https://', 'wss://').sub('http://', 'ws://')
 
 fail_with_error 'Build status report URL is empty' if connect_url.nil? || connect_url == ''
 
-# For now just check that this runs correctly without error (as we can more easily report
-# an error here)
-detect_local_ref ENV['CI_REF']
-
 puts "Going to parse cache options: #{ENV['CI_CACHE_OPTIONS']}"
-@cache_config = JSON.parse ENV['CI_CACHE_OPTIONS']
+CACHE_CONFIG = JSON.parse ENV['CI_CACHE_OPTIONS']
 
-# True when this is directly from the repo, false if this is a fork
-# TODO: implement detecting this
-@build_is_safe = true
-
-CACHE_BASE_FOLDER = @build_is_safe ? '/executor_cache/safe' : '/executor_cache/unsafe'
-
-SHARED_CACHE_FOLDER = File.join CACHE_BASE_FOLDER, 'shared'
-JOB_CACHE_BASE_FOLDER = File.join CACHE_BASE_FOLDER, 'named'
-
-CURRENT_BUILD_ROOT_FOLDER = File.join JOB_CACHE_BASE_FOLDER, @cache_config['write_to']
-CACHE_COPY_FROM_FOLDERS = @cache_config['load_from'].map { |path|
+CURRENT_BUILD_ROOT_FOLDER = File.join JOB_CACHE_BASE_FOLDER, CACHE_CONFIG['write_to']
+CACHE_COPY_FROM_FOLDERS = CACHE_CONFIG['load_from'].map { |path|
   File.join JOB_CACHE_BASE_FOLDER, path
 }
 
@@ -313,13 +320,21 @@ def defer_run_in_podman
       build_command = "set -e && cd #{CURRENT_BUILD_ROOT_FOLDER} && " \
                       'echo build command would go here && echo second line && true'
 
-      # TODO: this shouldn't use check_run so that we can show a
       # better error message than running "podman" failed
-      check_run 'podman', 'run', '--rm', '-e', "CI_REF=#{ENV['CI_REF']}",
-                *mount_configuration, ENV['CI_IMAGE_NAME'], '/bin/bash', '-c', build_command
+      @last_section_closed = false
+      result = run_with_input build_command, 'podman', 'run', '--rm', '-i', '-e',
+                              "CI_REF=#{ENV['CI_REF']}", *mount_configuration,
+                              ENV['CI_IMAGE_NAME'], '/bin/bash'
 
-      queue_send({ Type: 'BuildOutput', Output: "Build commands completed\n" })
-      queue_send({ Type: 'SectionEnd', WasSuccessful: true })
+      if result.zero?
+        unless @last_section_closed
+          queue_send({ Type: 'BuildOutput', Output: "Build commands completed\n" })
+        end
+      else
+        queue_send({ Type: 'BuildOutput', Output: "Build commands failed\n" })
+      end
+
+      queue_send({ Type: 'SectionEnd', WasSuccessful: result.zero? })
     }, proc { |_result|
       defer_end
     }, proc { |error|
