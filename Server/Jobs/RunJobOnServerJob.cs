@@ -160,11 +160,17 @@ namespace ThriveDevCenter.Server.Jobs
 
             // and then run it with environment variables for this build
 
-            var env = new StringBuilder(200);
+            var env = new StringBuilder(250);
             env.Append("export CI_REF='");
             env.Append(EscapeForBash(job.Build.RemoteRef));
             env.Append("'; export CI_COMMIT_HASH='");
             env.Append(EscapeForBash(job.Build.CommitHash));
+            env.Append("'; export CI_EARLIER_COMMIT='");
+            env.Append(EscapeForBash(job.Build.PreviousCommit));
+            env.Append("'; export CI_BRANCH='");
+            env.Append(EscapeForBash(job.Build.Branch));
+            env.Append("'; export CI_TRUSTED='");
+            env.Append(job.Build.IsSafe);
             env.Append("'; export CI_ORIGIN='");
             env.Append(EscapeForBash(job.Build.CiProject.RepositoryCloneUrl));
             env.Append("'; export CI_IMAGE_DL_URL='");
@@ -198,6 +204,9 @@ namespace ThriveDevCenter.Server.Jobs
 
         private static string EscapeForBash(string commandPart)
         {
+            if (string.IsNullOrEmpty(commandPart))
+                return string.Empty;
+
             return commandPart.Replace(@"\", @"\\").Replace(@"'", @"\'");
 
             // return commandPart.Replace(@"\", @"\\").Replace(@"""", @"\""")

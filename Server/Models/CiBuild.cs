@@ -29,6 +29,17 @@ namespace ThriveDevCenter.Server.Models
         public string RemoteRef { get; set; }
 
         /// <summary>
+        ///   The branch detected from RemoteRef
+        /// </summary>
+        public string Branch { get; set; }
+
+        /// <summary>
+        ///   When true the RemoteRef is from the current repository (and not a fork). This determines what build
+        ///   secrets, and caches are used for a build (PRs from forks are given less permissions for security reasons)
+        /// </summary>
+        public bool IsSafe { get; set; }
+
+        /// <summary>
         ///   When this build was started / created
         /// </summary>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -40,6 +51,18 @@ namespace ThriveDevCenter.Server.Models
         public CiProject CiProject { get; set; }
 
         public ICollection<CiJob> CiJobs { get; set; } = new HashSet<CiJob>();
+        public string PreviousCommit { get; set; }
+
+        /// <summary>
+        ///   The commit message of the
+        /// </summary>
+        public string CommitMessage { get; set; }
+
+        /// <summary>
+        ///   Json serialized list of GithubCommits that github reported as being part of the push
+        ///   that created this build
+        /// </summary>
+        public string Commits { get; set; }
 
         public CIBuildDTO GetDTO()
         {

@@ -103,9 +103,12 @@ namespace ThriveDevCenter.Server.Controllers
                         CiProjectId = project.Id,
                         CiBuildId = buildId,
                         CommitHash = data.After,
-                        RemoteRef = data.Ref
-
-                        // TODO: include info about the other commits (and the before commit)
+                        RemoteRef = data.Ref,
+                        Branch = GitRunHelpers.ParseRefBranch(data.Ref),
+                        IsSafe = !GitRunHelpers.IsPullRequestRef(data.Ref),
+                        PreviousCommit = data.Before,
+                        CommitMessage = data.HeadCommit?.Message ?? data.Commits.FirstOrDefault()?.Message,
+                        Commits = JsonSerializer.Serialize(data.Commits),
                     };
 
                     await database.CiBuilds.AddAsync(build);
@@ -195,6 +198,9 @@ namespace ThriveDevCenter.Server.Controllers
 
         public List<GithubCommit> Commits { get; set; }
 
+        [JsonPropertyName("head_commit")]
+        public GithubCommit HeadCommit { get; set; }
+
         public GithubPusher Pusher { get; set; }
 
         [Required]
@@ -215,17 +221,28 @@ namespace ThriveDevCenter.Server.Controllers
         /// </summary>
         public string Id { get; set; }
 
+        [JsonPropertyName("tree_id")]
+        public string TreeId { get; set; }
+
         public string Timestamp { get; set; }
 
         public string Message { get; set; }
 
         public CommitAuthor Author { get; set; }
+
+        public CommitAuthor Committer { get; set; }
+
+        // The file change overview this commit has
+        public List<string> Added { get; set; }
+        public List<string> Removed { get; set; }
+        public List<string> Modified { get; set; }
     }
 
     public class CommitAuthor
     {
         public string Name { get; set; }
         public string Email { get; set; }
+        public string Username { get; set; }
     }
 
     public class GithubPusher

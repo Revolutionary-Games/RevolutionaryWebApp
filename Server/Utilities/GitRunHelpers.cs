@@ -108,60 +108,28 @@ namespace ThriveDevCenter.Server.Utilities
             CancellationToken cancellationToken)
         {
             const string remote = "origin";
-
-            string localHeadsRef = $"refs/remotes/{remote}/";
+            var parsed = ParseRemoteRef(refToCheckout, remote);
 
             if (IsPullRequestRef(refToCheckout))
             {
-                string localBranch;
-
-                if (refToCheckout.EndsWith(PullRequestRefSuffix))
-                {
-                    localBranch = refToCheckout.Substring(0, refToCheckout.Length - PullRequestRefSuffix.Length);
-                    localHeadsRef += localBranch;
-                }
-                else
-                {
-                    throw new Exception($"Unrecognized PR ref: {refToCheckout}");
-                }
-
-                await Fetch(folder, $"{refToCheckout}:{localBranch}", remote, cancellationToken);
+                await Fetch(folder, $"{refToCheckout}:{parsed.localBranch}", remote, cancellationToken);
             }
             else
             {
-                if (refToCheckout.StartsWith(NormalRefPrefix))
-                {
-                    localHeadsRef += refToCheckout.Substring(NormalRefPrefix.Length);
-                }
-                else
-                {
-                    throw new Exception($"Unrecognized normal ref: {refToCheckout}");
-                }
-
                 await Fetch(folder, refToCheckout, remote, cancellationToken);
             }
 
-            await Checkout(folder, localHeadsRef, cancellationToken, true);
+            await Checkout(folder, parsed.localRef, cancellationToken, true);
         }
 
         public static async Task FetchRef(string folder, string refToFetch, CancellationToken cancellationToken)
         {
             const string remote = "origin";
+            var parsed = ParseRemoteRef(refToFetch, remote);
 
             if (IsPullRequestRef(refToFetch))
             {
-                string localBranch;
-
-                if (refToFetch.EndsWith(PullRequestRefSuffix))
-                {
-                    localBranch = refToFetch.Substring(0, refToFetch.Length - PullRequestRefSuffix.Length);
-                }
-                else
-                {
-                    throw new Exception($"Unrecognized PR ref: {refToFetch}");
-                }
-
-                await Fetch(folder, $"{refToFetch}:{localBranch}", remote, cancellationToken);
+                await Fetch(folder, $"{refToFetch}:{parsed.localBranch}", remote, cancellationToken);
             }
             else
             {
@@ -196,6 +164,39 @@ namespace ThriveDevCenter.Server.Utilities
                 return true;
 
             return false;
+        }
+
+        public static (string localBranch, string localRef) ParseRemoteRef(string remoteRef, string remote = "origin")
+        {
+            string localHeadsRef = $"refs/remotes/{remote}/";
+
+            if (IsPullRequestRef(remoteRef))
+            {
+                if (remoteRef.EndsWith(PullRequestRefSuffix))
+                {
+                    var localBranch = remoteRef.Substring(0, remoteRef.Length - PullRequestRefSuffix.Length);
+                    localHeadsRef += localBranch;
+                    return (localBranch, localHeadsRef);
+                }
+
+                throw new Exception($"Unrecognized PR ref: {remoteRef}");
+            }
+            else
+            {
+                if (remoteRef.StartsWith(NormalRefPrefix))
+                {
+                    var localBranch = remoteRef.Substring(NormalRefPrefix.Length);
+                    localHeadsRef += localBranch;
+                    return (localBranch, localHeadsRef);
+                }
+
+                throw new Exception($"Unrecognized normal ref: {remoteRef}");
+            }
+        }
+
+        public static string ParseRefBranch(string remoteRef)
+        {
+            return ParseRemoteRef(remoteRef).localBranch;
         }
 
         private static ProcessStartInfo PrepareToRunGit(string folder)
