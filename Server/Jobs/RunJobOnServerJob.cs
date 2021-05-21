@@ -148,8 +148,10 @@ namespace ThriveDevCenter.Server.Jobs
             // TODO: is there a possibility that this is not secure? Someone would need to do HTTPS MItM attack...
 
             // TODO: using async would be nice for the run commands when supported
+
+            // TODO: implement only re-downloading the CIExecutor if the hash has changed
             var result1 = sshAccess
-                .RunCommand($"curl -L {GetUrlToDownloadCIExecutor()} -o ~/executor.rb && chmod +x ~/executor.rb");
+                .RunCommand($"curl -L {GetUrlToDownloadCIExecutor()} -o ~/CIExecutor && chmod +x ~/CIExecutor");
 
             if (!result1.Success)
             {
@@ -185,7 +187,7 @@ namespace ThriveDevCenter.Server.Jobs
             env.Append(EscapeForBash(job.JobName));
             env.Append("';");
 
-            var result2 = sshAccess.RunCommand($"{env} ~/executor.rb {GetConnectToUrl(job)}");
+            var result2 = sshAccess.RunCommand($"{env} ~/CIExecutor {GetConnectToUrl(job)}");
 
             if (!result2.Success)
             {
@@ -238,7 +240,7 @@ namespace ThriveDevCenter.Server.Jobs
 
         private string GetUrlToDownloadCIExecutor()
         {
-            return new Uri(configuration.GetBaseUrl(), "/ci_executor.rb").ToString();
+            return new Uri(configuration.GetBaseUrl(), "/CIExecutor").ToString();
         }
 
         private string GetConnectToUrl(CiJob job)

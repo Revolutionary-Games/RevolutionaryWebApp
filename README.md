@@ -66,6 +66,12 @@ echo -n VALUEHERE | openssl dgst -binary -sha256 | openssl base64
 
 Then you can redeem the code on your user profile after logging in to become an admin.
 
+### CI executor
+
+Note that when running locally (and not with the deploy script) the
+CIExecutor executable is not automatically moved to the webroot,
+meaning that running CI jobs on controlled servers is not possible
+without a little bit of manual work.
 
 ## Testing
 
