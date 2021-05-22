@@ -5,9 +5,9 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Net;
     using System.Net.WebSockets;
     using System.Text;
-    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Common.Utilities;
     using Hangfire;
     using Hubs;
     using Jobs;
@@ -18,22 +18,19 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using Models;
-    using Shared;
     using Shared.Models;
     using Shared.Notifications;
     using Utilities;
 
     public class BuildWebSocketHandler
     {
-        private const int MaxSingleMessageLength = AppInfo.MEBIBYTE * 20;
-
         /// <summary>
         ///   Not every log message is written to the DB to save on performance
         /// </summary>
         private static readonly TimeSpan OutputSaveInterval = TimeSpan.FromSeconds(15);
 
         private readonly ILogger<BuildWebSocketHandler> logger;
-        private readonly WebSocket socket;
+        private readonly RealTimeBuildMessageSocket socket;
         private readonly NotificationsEnabledDb database;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
         private readonly CiJob job;
@@ -50,7 +47,7 @@ namespace ThriveDevCenter.Server.Controllers
             NotificationsEnabledDb database, IHubContext<NotificationsHub, INotifications> notifications, CiJob job)
         {
             this.logger = logger;
-            this.socket = socket;
+            this.socket = new RealTimeBuildMessageSocket(socket);
             this.database = database;
             this.notifications = notifications;
             this.job = job;
@@ -110,69 +107,36 @@ namespace ThriveDevCenter.Server.Controllers
 
         private async Task Run()
         {
-            var messageSizeBuffer = new byte [4];
-
-            byte[] messageBuffer = null;
-
             while (!socket.CloseStatus.HasValue)
             {
-                WebSocketReceiveResult sizeReadResult;
+                RealTimeBuildMessage message;
                 try
                 {
-                    sizeReadResult = await
-                        socket.ReceiveAsync(new ArraySegment<byte>(messageSizeBuffer), CancellationToken.None);
+                    var readResult = await socket.Read();
+
+                    if (readResult.closed)
+                        break;
+
+                    message = readResult.message;
                 }
-                catch (WebSocketException e)
+                catch (WebSocketBuildMessageTooLongException e)
                 {
-                    logger.LogWarning("Other side closed websocket (while trying to read size): {@E}", e);
-                    break;
-                }
-
-                if (sizeReadResult.CloseStatus.HasValue)
-                    break;
-
-                if (!BitConverter.IsLittleEndian)
-                    Array.Reverse(messageSizeBuffer);
-
-                var messageSize = BitConverter.ToInt32(messageSizeBuffer);
-
-                if (messageSize > MaxSingleMessageLength)
-                {
-                    logger.LogError("Received too long realTimeBuildMessage length: {MessageSize}", messageSize);
-                    await SendMessage(new Error()
+                    logger.LogError("Received too long realTimeBuildMessage: {@E}", e);
+                    await SendMessage(new RealTimeBuildMessage()
                     {
+                        Type = BuildSectionMessageType.Error,
                         ErrorMessage =
                             "Too long realTimeBuildMessage, can't receive, stopping realTimeBuildMessage processing"
                     });
 
                     break;
                 }
-
-                if (messageSize <= 0)
-                    continue;
-
-                // Read the realTimeBuildMessage
-                // First allocate big enough buffer
-                if (messageBuffer == null || messageBuffer.Length < messageSize)
+                catch (WebSocketBuildMessageLengthMisMatchException e)
                 {
-                    messageBuffer = new byte[Math.Min((int)(messageSize * 1.5f), MaxSingleMessageLength)];
-                }
-
-                // TODO: can be actually receive a partial amount of the data here? so should we loop until
-                // messageSize has been received?
-                var readResult =
-                    await socket.ReceiveAsync(new ArraySegment<byte>(messageBuffer), CancellationToken.None);
-
-                if (readResult.CloseStatus.HasValue)
-                    break;
-
-                if (readResult.Count != messageSize)
-                {
-                    logger.LogError(
-                        "Read realTimeBuildMessage length doesn't match reported length: {MessageSize} actual: {Count}",
-                        messageSize, readResult.Count);
-                    await SendMessage(new Error()
+                    logger.LogError("Read realTimeBuildMessage length doesn't match reported length: {@E}", e);
+                    await SendMessage(new RealTimeBuildMessage()
                     {
+                        Type = BuildSectionMessageType.Error,
                         ErrorMessage =
                             "RealTimeBuildMessage read and reported size mismatch, stopping " +
                             "realTimeBuildMessage processing"
@@ -180,25 +144,25 @@ namespace ThriveDevCenter.Server.Controllers
 
                     break;
                 }
-
-                RealTimeBuildMessage message;
-                try
-                {
-                    message = JsonSerializer.Deserialize<RealTimeBuildMessage>(Encoding.UTF8.GetString(
-                        messageBuffer, 0, readResult.Count));
-
-                    if (message == null)
-                        throw new NullReferenceException("parsed realTimeBuildMessage is null");
-                }
-                catch (Exception e)
+                catch (InvalidWebSocketBuildMessageFormatException e)
                 {
                     logger.LogError("Failed to parse a received realTimeBuildMessage: {@E}", e);
-                    await SendMessage(new Error()
+                    await SendMessage(new RealTimeBuildMessage()
                     {
+                        Type = BuildSectionMessageType.Error,
                         ErrorMessage = "Can't process realTimeBuildMessage, invalid format or content"
                     });
+
                     continue;
                 }
+                catch (WebSocketProtocolException e)
+                {
+                    logger.LogWarning("Error reading build message from websocket: {@E}", e);
+                    break;
+                }
+
+                if (message == null)
+                    continue;
 
                 var now = DateTime.UtcNow;
 
@@ -212,16 +176,18 @@ namespace ThriveDevCenter.Server.Controllers
                             logger.LogError(
                                 "Received a build output section start ({Name}) while there's an active section ({SectionName})",
                                 activeSection.Name, message.SectionName);
-                            await SendMessage(new Error()
+                            await SendMessage(new RealTimeBuildMessage()
                             {
+                                Type = BuildSectionMessageType.Error,
                                 ErrorMessage = "Can't start a new section while one is in progress"
                             });
                         }
                         else if (string.IsNullOrEmpty(message.SectionName) || message.SectionName.Length > 100)
                         {
                             logger.LogError("Received a build output section start with missing or too long name");
-                            await SendMessage(new Error()
+                            await SendMessage(new RealTimeBuildMessage()
                             {
+                                Type = BuildSectionMessageType.Error,
                                 ErrorMessage = "Can't start a new section with invalid name"
                             });
                         }
@@ -256,8 +222,9 @@ namespace ThriveDevCenter.Server.Controllers
                         if (activeSection == null)
                         {
                             logger.LogError("Received a build output message but there is no active section");
-                            await SendMessage(new Error()
+                            await SendMessage(new RealTimeBuildMessage()
                             {
+                                Type = BuildSectionMessageType.Error,
                                 ErrorMessage = "No active output section"
                             });
                         }
@@ -289,8 +256,9 @@ namespace ThriveDevCenter.Server.Controllers
                         if (activeSection == null)
                         {
                             logger.LogError("Received a build section end but there is no active section");
-                            await SendMessage(new Error()
+                            await SendMessage(new RealTimeBuildMessage()
                             {
+                                Type = BuildSectionMessageType.Error,
                                 ErrorMessage = "No active output section"
                             });
                         }
@@ -362,22 +330,9 @@ namespace ThriveDevCenter.Server.Controllers
             outputSectionText.Clear();
         }
 
-        private async Task SendMessage(object message)
+        private async Task SendMessage(RealTimeBuildMessage message)
         {
-            var buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
-
-            var lengthBuffer = BitConverter.GetBytes(Convert.ToInt32(buffer.Length));
-
-            if (!BitConverter.IsLittleEndian)
-                Array.Reverse(lengthBuffer);
-
-            await socket.SendAsync(lengthBuffer, WebSocketMessageType.Binary, false, CancellationToken.None);
-            await socket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
-        }
-
-        private class Error
-        {
-            public string ErrorMessage { get; set; }
+            await socket.Write(message);
         }
     }
 }

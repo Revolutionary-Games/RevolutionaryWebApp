@@ -11,6 +11,8 @@ namespace ThriveDevCenter.Shared.Models
         [JsonConverter(typeof(ActualEnumStringConverter))]
         public BuildSectionMessageType Type { get; set; }
 
+        public string ErrorMessage { get; set; }
+
         public string Output { get; set; }
 
         [MaxLength(100)]
@@ -30,5 +32,6 @@ namespace ThriveDevCenter.Shared.Models
         BuildOutput,
         SectionEnd,
         FinalStatus,
+        Error,
     }
 }

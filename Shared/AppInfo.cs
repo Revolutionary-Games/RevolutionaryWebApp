@@ -68,6 +68,7 @@ namespace ThriveDevCenter.Shared
         public const long MaxGeneralFileStoreSize = 1024 * MEBIBYTE;
 
         public const int MaxInBrowserPreviewTextFileSize = MEBIBYTE * 20;
+        public const int MaxSingleBuildOutputMessageLength = MEBIBYTE * 20;
 
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days of inactivity

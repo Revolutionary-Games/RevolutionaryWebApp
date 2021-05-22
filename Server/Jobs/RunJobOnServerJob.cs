@@ -187,7 +187,8 @@ namespace ThriveDevCenter.Server.Jobs
             env.Append(EscapeForBash(job.JobName));
             env.Append("';");
 
-            var result2 = sshAccess.RunCommand($"{env} ~/CIExecutor {GetConnectToUrl(job)}");
+            var result2 =
+                sshAccess.RunCommand($"{env} nohup ~/CIExecutor {GetConnectToUrl(job)} > build_script_output.txt &");
 
             if (!result2.Success)
             {
