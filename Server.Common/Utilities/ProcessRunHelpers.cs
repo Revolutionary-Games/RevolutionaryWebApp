@@ -11,7 +11,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
         public static Task<ProcessResult> RunProcessAsync(ProcessStartInfo startInfo,
             CancellationToken cancellationToken, bool captureOutput = true)
         {
-            if(captureOutput)
+            if (captureOutput)
             {
                 startInfo.RedirectStandardOutput = true;
                 startInfo.RedirectStandardError = true;
@@ -35,24 +35,26 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
             // TODO: should probably add some timer based cancellation check
 
-            if(captureOutput)
+            if (captureOutput)
             {
                 process.OutputDataReceived += (sender, args) =>
                 {
-                    if(cancellationToken.IsCancellationRequested)
+                    if (cancellationToken.IsCancellationRequested)
                     {
                         taskCompletionSource.SetCanceled(cancellationToken);
                         process.Kill();
                     }
+
                     result.StdOut.Append(args.Data ?? "");
                 };
                 process.ErrorDataReceived += (sender, args) =>
                 {
-                    if(cancellationToken.IsCancellationRequested)
+                    if (cancellationToken.IsCancellationRequested)
                     {
                         taskCompletionSource.SetCanceled(cancellationToken);
                         process.Kill();
                     }
+
                     result.StdOut.Append(args.Data ?? "");
                 };
             }
@@ -60,13 +62,38 @@ namespace ThriveDevCenter.Server.Common.Utilities
             if (!process.Start())
                 throw new InvalidOperationException($"Could not start process: {process}");
 
-            if(captureOutput)
+            if (captureOutput)
             {
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                StartProcessOutputRead(process);
             }
 
             return taskCompletionSource.Task;
+        }
+
+        public static void StartProcessOutputRead(Process process)
+        {
+            // For some reason it seems that this sometimes fails with "System.InvalidOperationException:
+            // StandardOut has not been redirected or the process hasn't started yet." So this is retried a
+            // few times
+            bool success = false;
+            for (int i = 0; i < 3; ++i)
+            {
+                try
+                {
+                    process.BeginOutputReadLine();
+                    success = true;
+                    break;
+                }
+                catch (InvalidOperationException)
+                {
+                    Thread.Yield();
+                }
+            }
+
+            if (!success)
+                throw new InvalidOperationException("Failed to BeginOutputReadLine even after a few retries");
+
+            process.BeginErrorReadLine();
         }
 
         public class ProcessResult
@@ -77,6 +104,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
             public StringBuilder ErrorOut { get; set; } = new();
 
             public string Output => StdOut.ToString();
+
             public string FullOutput
             {
                 get

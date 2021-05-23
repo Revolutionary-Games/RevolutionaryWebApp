@@ -479,8 +479,7 @@ namespace CIExecutor
             if (!process.Start())
                 throw new InvalidOperationException($"Could not start process: {process}");
 
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            ProcessRunHelpers.StartProcessOutputRead(process);
 
             return taskCompletionSource.Task;
         }
@@ -586,8 +585,7 @@ namespace CIExecutor
             if (!process.Start())
                 throw new InvalidOperationException($"Could not start process: {process}");
 
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            ProcessRunHelpers.StartProcessOutputRead(process);
 
             foreach (var line in inputLines)
             {
