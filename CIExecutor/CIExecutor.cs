@@ -54,6 +54,7 @@ namespace CIExecutor
 
         public CIExecutor(string websocketUrl)
         {
+            Console.WriteLine("Parsing variables from env");
             this.websocketUrl = websocketUrl.Replace("https://", "wss://").Replace("http://", "ws://");
 
             var home = Environment.GetEnvironmentVariable("HOME") ?? "/home/centos";
@@ -86,6 +87,8 @@ namespace CIExecutor
 
                 if (value == false)
                     throw new ArgumentException("Can't set failure to false");
+
+                Console.WriteLine("Setting Failure to true");
 
                 failure = true;
                 QueueSendMessage(new RealTimeBuildMessage()
@@ -137,7 +140,10 @@ namespace CIExecutor
 
             // Start socket related tasks
             var processMessagesTask = Task.Run(ProcessBuildMessages);
-            var readMessagesTask = Task.Run(ReadSocketMessages);
+            var cancelRead = new CancellationTokenSource();
+
+            // ReSharper disable once MethodSupportsCancellation
+            var readMessagesTask = Task.Run(() => ReadSocketMessages(cancelRead.Token));
 
             if (!Failure)
                 await SetupImages();
@@ -148,10 +154,44 @@ namespace CIExecutor
             if (!Failure)
                 await RunPostBuild();
 
+            Console.WriteLine("Reached shutdown");
             running = false;
-            await processMessagesTask;
-            await readMessagesTask;
-            await websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+
+            Console.WriteLine("Waiting for message sending");
+            try
+            {
+                await processMessagesTask;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Got an exception when waiting for message send task: {0}", e);
+            }
+
+            cancelRead.Cancel();
+
+            Console.WriteLine("Waiting for incoming messages");
+            try
+            {
+                await readMessagesTask;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Got an exception when waiting for message read task: {0}", e);
+            }
+
+            Console.WriteLine("Closing socket");
+
+            try
+            {
+                await websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+                websocket.Dispose();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to close socket: {0}", e);
+            }
+
+            Console.WriteLine("CI executor finished");
         }
 
         private void QueueSendMessage(RealTimeBuildMessage message)
@@ -202,7 +242,7 @@ namespace CIExecutor
                     sleep = false;
 
                     foreach (var message in queuedBuildMessages)
-                        tasks.Add(protocolSocket.Write(message));
+                        tasks.Add(protocolSocket.Write(message, CancellationToken.None));
 
                     queuedBuildMessages.Clear();
                 }
@@ -212,18 +252,26 @@ namespace CIExecutor
             }
         }
 
-        private async Task ReadSocketMessages()
+        private async Task ReadSocketMessages(CancellationToken cancellationToken)
         {
             while (running)
             {
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+
                 (RealTimeBuildMessage message, bool closed) received;
                 try
                 {
-                    received = await protocolSocket.Read();
+                    received = await protocolSocket.Read(cancellationToken);
                 }
                 catch (WebSocketProtocolException e)
                 {
                     Console.WriteLine("Socket read exception: {0}", e);
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    Console.WriteLine("Socket read canceled");
                     break;
                 }
 
@@ -243,6 +291,7 @@ namespace CIExecutor
 
         private async Task SetupCaches()
         {
+            Console.WriteLine("Starting cache setup");
             QueueSendBasicMessage("Starting cache setup");
 
             try
@@ -282,6 +331,8 @@ namespace CIExecutor
 
         private async Task SetupRepo()
         {
+            Console.WriteLine("Starting repo setup");
+
             try
             {
                 var ciCommit = Environment.GetEnvironmentVariable("CI_COMMIT_HASH");
@@ -357,6 +408,7 @@ namespace CIExecutor
 
         private async Task SetupImages()
         {
+            Console.WriteLine("Starting image setup");
             QueueSendBasicMessage($"Using build environment image: {ciImageName}");
 
             try
@@ -395,6 +447,7 @@ namespace CIExecutor
 
         private async Task RunBuild()
         {
+            Console.WriteLine("Starting build");
             try
             {
                 QueueSendMessage(new RealTimeBuildMessage()
@@ -429,7 +482,9 @@ namespace CIExecutor
                 runArguments.Add(ciImageName);
                 runArguments.Add("/bin/bash");
 
+                Console.WriteLine("Running podman build");
                 var result = await RunWithInputAndOutput(command, podmanPath, runArguments);
+                Console.WriteLine("Process finished: {0}", result);
 
                 buildCommandsFailed = !result;
 
@@ -453,13 +508,16 @@ namespace CIExecutor
 
         private Task RunPostBuild()
         {
+            Console.WriteLine("Starting post-build");
+
             // TODO: build artifacts
 
             // Send final status
+            Console.WriteLine("Sending final status: {0}", !buildCommandsFailed);
             QueueSendMessage(new RealTimeBuildMessage()
             {
                 Type = BuildSectionMessageType.FinalStatus,
-                WasSuccessful = !buildCommandsFailed,
+                WasSuccessful = !Failure && !buildCommandsFailed,
             });
 
             return Task.CompletedTask;
@@ -476,6 +534,7 @@ namespace CIExecutor
 
         private void EndSectionWithFailure(string error)
         {
+            Console.WriteLine("Failing current section with error: {0}", error);
             QueueSendBasicMessage(error);
 
             QueueSendMessage(new RealTimeBuildMessage()
@@ -533,7 +592,7 @@ namespace CIExecutor
         {
             if (!configuration.Jobs.TryGetValue(jobName, out CiJobConfiguration config))
             {
-                QueueSendBasicMessage($"Config file is missing current job: #{jobName}");
+                QueueSendBasicMessage($"Config file is missing current job: {jobName}");
                 return null;
             }
 
@@ -543,7 +602,7 @@ namespace CIExecutor
                 "echo 'Starting running build in container'",
                 $"cd '{folder}' || {{ echo \"Couldn't switch to build folder\"; exit 1; }}",
                 "echo 'Starting build commands'",
-                $"echo '#{OutputSpecialCommandMarker} SectionEnd 0'",
+                $"echo '{OutputSpecialCommandMarker} SectionEnd 0'",
             };
 
             // Build commands
@@ -556,7 +615,7 @@ namespace CIExecutor
                     step.Run.Command.Substring(0, Math.Min(70, step.Run.Command.Length)) :
                     step.Run.Name;
 
-                command.Add($"echo '#{OutputSpecialCommandMarker} SectionStart #{name}'");
+                command.Add($"echo '{OutputSpecialCommandMarker} SectionStart {name}'");
 
                 // Step is ran in subshell
                 command.Add("(");
@@ -568,8 +627,10 @@ namespace CIExecutor
                 }
 
                 command.Add(")");
-                command.Add($"echo \"#{OutputSpecialCommandMarker} SectionEnd $?\"");
+                command.Add($"echo \"{OutputSpecialCommandMarker} SectionEnd $?\"");
             }
+
+            command.Add("exit 0");
 
             return command;
         }
@@ -594,13 +655,24 @@ namespace CIExecutor
 
             process.Exited += (sender, args) =>
             {
-                if (process.ExitCode != 0)
+                int code;
+                try
+                {
+                    code = process.ExitCode;
+                }
+                catch (InvalidOperationException e)
+                {
+                    Console.WriteLine("Failed to read process result code: {0}", e);
+                    code = 1;
+                }
+
+                if (code != 0)
                 {
                     Console.WriteLine("Failed to run: {0}", executable);
                 }
 
                 process.Dispose();
-                taskCompletionSource.SetResult(process.ExitCode == 0);
+                taskCompletionSource.SetResult(code == 0);
             };
 
             process.OutputDataReceived += (sender, args) =>
@@ -608,7 +680,7 @@ namespace CIExecutor
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.BuildOutput,
-                    Output = args.Data ?? "",
+                    Output = (args.Data ?? "") + "\n",
                 });
             };
             process.ErrorDataReceived += (sender, args) =>
@@ -616,7 +688,7 @@ namespace CIExecutor
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.BuildOutput,
-                    Output = args.Data ?? "",
+                    Output = (args.Data ?? "") + "\n",
                 });
             };
 
@@ -652,13 +724,24 @@ namespace CIExecutor
 
             process.Exited += (sender, args) =>
             {
-                if (process.ExitCode != 0)
+                int code;
+                try
+                {
+                    code = process.ExitCode;
+                }
+                catch (InvalidOperationException e)
+                {
+                    Console.WriteLine("Failed to read process result code: {0}", e);
+                    code = 1;
+                }
+
+                if (code != 0)
                 {
                     Console.WriteLine("Failed to run (with input): {0}", executable);
                 }
 
                 process.Dispose();
-                taskCompletionSource.SetResult(process.ExitCode == 0);
+                taskCompletionSource.SetResult(code == 0);
             };
 
             process.OutputDataReceived += (sender, args) =>
@@ -713,7 +796,7 @@ namespace CIExecutor
                     QueueSendMessage(new RealTimeBuildMessage()
                     {
                         Type = BuildSectionMessageType.BuildOutput,
-                        Output = args.Data ?? "",
+                        Output = (args.Data ?? "") + "\n",
                     });
                 }
             };
@@ -722,7 +805,7 @@ namespace CIExecutor
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.BuildOutput,
-                    Output = args.Data ?? "",
+                    Output = (args.Data ?? "") + "\n",
                 });
             };
 

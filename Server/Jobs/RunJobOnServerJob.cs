@@ -151,7 +151,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             // TODO: implement only re-downloading the CIExecutor if the hash has changed
             var result1 = sshAccess
-                .RunCommand($"curl -L {GetUrlToDownloadCIExecutor()} -o ~/CIExecutor && " +
+                .RunCommand($"rm ~/CIExecutor && curl -L {GetUrlToDownloadCIExecutor()} -o ~/CIExecutor && " +
                     $"curl -L {GetUrlToDownloadCIExecutorResource()} -o ~/libMonoPosixHelper.so && " +
                     "chmod +x ~/CIExecutor");
 

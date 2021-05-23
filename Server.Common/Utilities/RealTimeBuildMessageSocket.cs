@@ -28,13 +28,13 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
         public WebSocketCloseStatus? CloseStatus => socket.CloseStatus;
 
-        public async Task<(RealTimeBuildMessage message, bool closed)> Read()
+        public async Task<(RealTimeBuildMessage message, bool closed)> Read(CancellationToken cancellationToken)
         {
             WebSocketReceiveResult sizeReadResult;
             try
             {
                 sizeReadResult = await
-                    socket.ReceiveAsync(new ArraySegment<byte>(messageSizeBuffer), CancellationToken.None);
+                    socket.ReceiveAsync(new ArraySegment<byte>(messageSizeBuffer), cancellationToken);
             }
             catch (WebSocketException e)
             {
@@ -71,7 +71,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
             WebSocketReceiveResult readResult;
             try
             {
-                readResult = await socket.ReceiveAsync(new ArraySegment<byte>(messageBuffer), CancellationToken.None);
+                readResult = await socket.ReceiveAsync(new ArraySegment<byte>(messageBuffer), cancellationToken);
             }
             catch (WebSocketException e)
             {
@@ -104,7 +104,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
             }
         }
 
-        public async Task Write(RealTimeBuildMessage message)
+        public async Task Write(RealTimeBuildMessage message, CancellationToken cancellationToken)
         {
             var buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
 
@@ -113,8 +113,8 @@ namespace ThriveDevCenter.Server.Common.Utilities
             if (!BitConverter.IsLittleEndian)
                 Array.Reverse(lengthBuffer);
 
-            await socket.SendAsync(lengthBuffer, WebSocketMessageType.Binary, false, CancellationToken.None);
-            await socket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
+            await socket.SendAsync(lengthBuffer, WebSocketMessageType.Binary, false, cancellationToken);
+            await socket.SendAsync(buffer, WebSocketMessageType.Text, true, cancellationToken);
         }
     }
 

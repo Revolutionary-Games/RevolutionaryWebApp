@@ -112,7 +112,7 @@ namespace ThriveDevCenter.Server.Controllers
                 RealTimeBuildMessage message;
                 try
                 {
-                    var readResult = await socket.Read();
+                    var readResult = await socket.Read(CancellationToken.None);
 
                     if (readResult.closed)
                         break;
@@ -294,8 +294,6 @@ namespace ThriveDevCenter.Server.Controllers
                             activeSection = null;
                         }
 
-                        logger.LogInformation("Received final status: {WasSuccessful}", message.WasSuccessful);
-
                         // Queue a job to set build final status
                         BackgroundJob.Enqueue<SetFinishedCIJobStatusJob>(x => x.Execute(job.CiProjectId, job.CiBuildId,
                             job.CiJobId, message.WasSuccessful, CancellationToken.None));
@@ -332,7 +330,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         private async Task SendMessage(RealTimeBuildMessage message)
         {
-            await socket.Write(message);
+            await socket.Write(message, CancellationToken.None);
         }
     }
 }
