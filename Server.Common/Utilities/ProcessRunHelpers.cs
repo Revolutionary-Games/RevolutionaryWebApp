@@ -72,11 +72,13 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
         public static void StartProcessOutputRead(Process process)
         {
+            const int retries = 3;
+
             // For some reason it seems that this sometimes fails with "System.InvalidOperationException:
             // StandardOut has not been redirected or the process hasn't started yet." So this is retried a
             // few times
             bool success = false;
-            for (int i = 0; i < 3; ++i)
+            for (int i = 0; i < retries; ++i)
             {
                 try
                 {
@@ -86,14 +88,30 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 }
                 catch (InvalidOperationException)
                 {
-                    Thread.Yield();
+                    Thread.Sleep(1);
                 }
             }
 
             if (!success)
                 throw new InvalidOperationException("Failed to BeginOutputReadLine even after a few retries");
 
-            process.BeginErrorReadLine();
+            success = false;
+            for (int i = 0; i < retries; ++i)
+            {
+                try
+                {
+                    process.BeginErrorReadLine();
+                    success = true;
+                    break;
+                }
+                catch (InvalidOperationException)
+                {
+                    Thread.Sleep(1);
+                }
+            }
+
+            if (!success)
+                throw new InvalidOperationException("Failed to BeginErrorReadLine even after a few retries");
         }
 
         public class ProcessResult
