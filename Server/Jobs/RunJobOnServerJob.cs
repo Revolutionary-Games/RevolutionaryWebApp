@@ -151,7 +151,9 @@ namespace ThriveDevCenter.Server.Jobs
 
             // TODO: implement only re-downloading the CIExecutor if the hash has changed
             var result1 = sshAccess
-                .RunCommand($"curl -L {GetUrlToDownloadCIExecutor()} -o ~/CIExecutor && chmod +x ~/CIExecutor");
+                .RunCommand($"curl -L {GetUrlToDownloadCIExecutor()} -o ~/CIExecutor && " +
+                    $"curl -L {GetUrlToDownloadCIExecutorResource()} -o ~/libMonoPosixHelper.so && " +
+                    "chmod +x ~/CIExecutor");
 
             if (!result1.Success)
             {
@@ -188,7 +190,8 @@ namespace ThriveDevCenter.Server.Jobs
             env.Append("';");
 
             var result2 =
-                sshAccess.RunCommand($"{env} nohup ~/CIExecutor {GetConnectToUrl(job)} > build_script_output.txt &");
+                sshAccess.RunCommand($"{env} nohup ~/CIExecutor {GetConnectToUrl(job)} > " +
+                    "build_script_output.txt 2>&1 &");
 
             if (!result2.Success)
             {
@@ -242,6 +245,11 @@ namespace ThriveDevCenter.Server.Jobs
         private string GetUrlToDownloadCIExecutor()
         {
             return new Uri(configuration.GetBaseUrl(), "/CIExecutor").ToString();
+        }
+
+        private string GetUrlToDownloadCIExecutorResource()
+        {
+            return new Uri(configuration.GetBaseUrl(), "/libMonoPosixHelper.so").ToString();
         }
 
         private string GetConnectToUrl(CiJob job)

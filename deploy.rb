@@ -19,6 +19,8 @@ require_relative 'fix_boot_json_hashes'
 CLIENT_BUILT_WEBROOT = 'Client/bin/Release/net5.0/publish/wwwroot/'
 SERVER_BUILT_BASE = 'Server/bin/Release/net5.0/publish/'
 CI_EXECUTOR_BUILT_FILE = 'CIExecutor/bin/Release/net5.0/linux-x64/publish/CIExecutor'
+CI_EXECUTOR_EXTRA_RESOURCES = ['CIExecutor/bin/Release/net5.0/linux-x64/' \
+                              'libMonoPosixHelper.so'].freeze
 
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$PROGRAM_NAME} [options]"
@@ -136,6 +138,12 @@ end
 # Copy the CI executor to the webroot to be able to serve it
 FileUtils.cp CI_EXECUTOR_BUILT_FILE, CLIENT_BUILT_WEBROOT
 regenerate_compressed_files File.join(CLIENT_BUILT_WEBROOT, 'CIExecutor')
+
+# And it also needs extra files...
+CI_EXECUTOR_EXTRA_RESOURCES.each { |resource|
+  FileUtils.cp resource, CLIENT_BUILT_WEBROOT
+  regenerate_compressed_files File.join(CLIENT_BUILT_WEBROOT, File.basename(resource))
+}
 
 system('rsync', '-hr', CLIENT_BUILT_WEBROOT, "root@#{target_host}:#{TARGET_HOST_WWW_ROOT}",
        '--delete')
