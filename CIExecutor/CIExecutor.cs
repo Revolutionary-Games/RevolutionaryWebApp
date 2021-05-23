@@ -16,6 +16,8 @@ namespace CIExecutor
     using ThriveDevCenter.Shared.Models;
     using YamlDotNet.Serialization;
     using YamlDotNet.Serialization.NamingConventions;
+    using Mono.Unix;
+    using ThriveDevCenter.Shared.Converters;
 
     public class CIExecutor
     {
@@ -26,12 +28,14 @@ namespace CIExecutor
 
         private readonly string imageCacheFolder;
         private readonly string ciImageFile;
+        private readonly string ciImageName;
         private readonly string localBranch;
         private readonly string ciJobName;
         private readonly bool isSafe;
         private readonly string cacheBaseFolder;
         private readonly string sharedCacheFolder;
         private readonly string jobCacheBaseFolder;
+        private readonly string ciRef;
 
         private readonly string podmanPath;
 
@@ -44,6 +48,7 @@ namespace CIExecutor
 
         private bool running;
         private bool failure;
+        private bool buildCommandsFailed;
 
         private bool lastSectionClosed = true;
 
@@ -55,8 +60,10 @@ namespace CIExecutor
 
             imageCacheFolder = Path.Join(home, "images");
             ciImageFile = Path.Join(imageCacheFolder, Environment.GetEnvironmentVariable("CI_IMAGE_FILENAME"));
+            ciImageName = Environment.GetEnvironmentVariable("CI_IMAGE_NAME");
             localBranch = Environment.GetEnvironmentVariable("CI_BRANCH");
             ciJobName = Environment.GetEnvironmentVariable("CI_JOB_NAME");
+            ciRef = Environment.GetEnvironmentVariable("CI_REF");
 
             isSafe = Convert.ToBoolean(Environment.GetEnvironmentVariable("CI_TRUSTED"));
 
@@ -129,8 +136,8 @@ namespace CIExecutor
             protocolSocket = new RealTimeBuildMessageSocket(websocket);
 
             // Start socket related tasks
-            var processMessagesTask = ProcessBuildMessages();
-            var readMessagesTask = ReadSocketMessages();
+            var processMessagesTask = Task.Run(ProcessBuildMessages);
+            var readMessagesTask = Task.Run(ReadSocketMessages);
 
             if (!Failure)
                 await SetupImages();
@@ -277,7 +284,6 @@ namespace CIExecutor
         {
             try
             {
-                var ciRef = Environment.GetEnvironmentVariable("CI_REF");
                 var ciCommit = Environment.GetEnvironmentVariable("CI_COMMIT_HASH");
                 var ciOrigin = Environment.GetEnvironmentVariable("CI_ORIGIN");
 
@@ -297,7 +303,47 @@ namespace CIExecutor
 
                 QueueSendBasicMessage("Cleaned non-ignored extra files");
 
-                // TODO: implement handling of symlinked cache paths
+                // Handling of shared cache paths with symlinks
+                if (cacheConfig.Shared != null)
+                {
+                    QueueSendBasicMessage("Handling shared caches");
+
+                    foreach (var tuple in cacheConfig.Shared)
+                    {
+                        var source = tuple.Key;
+                        var destination = tuple.Value;
+
+                        var fullSource = Path.Join(currentBuildRootFolder, source);
+                        var fullDestination = Path.Join(sharedCacheFolder, destination);
+
+                        // TODO: is a separate handling needed for when the fullSource is a single file and
+                        // not a directory?
+
+                        if (Directory.Exists(fullSource) && !Directory.Exists(fullDestination) &&
+                            !new UnixSymbolicLinkInfo(fullSource).IsSymbolicLink)
+                        {
+                            QueueSendBasicMessage($"Using existing folder to create shared cache {destination}");
+                            Directory.Move(fullSource, fullDestination);
+                        }
+
+                        if (!Directory.Exists(fullDestination))
+                        {
+                            QueueSendBasicMessage($"Creating new shared cache {destination}");
+                            Directory.CreateDirectory(fullDestination);
+                        }
+
+                        if (Directory.Exists(fullSource))
+                        {
+                            QueueSendBasicMessage($"Deleting existing directory to link to shared cache {destination}");
+                            Directory.Delete(fullSource, true);
+                        }
+
+                        QueueSendBasicMessage($"Using shared cache {destination}");
+                        new UnixSymbolicLinkInfo(fullSource).CreateSymbolicLinkTo(fullDestination);
+                    }
+
+                    QueueSendBasicMessage("Shared caches setup");
+                }
 
                 QueueSendBasicMessage("Repository checked out");
             }
@@ -311,14 +357,112 @@ namespace CIExecutor
 
         private async Task SetupImages()
         {
+            QueueSendBasicMessage($"Using build environment image: {ciImageName}");
+
+            try
+            {
+                var imageFolder = PathParser.GetParentPath(ciImageFile);
+
+                QueueSendBasicMessage($"Storing images in {imageFolder}");
+
+                if (!File.Exists(ciImageFile))
+                {
+                    Directory.CreateDirectory(imageFolder);
+
+                    QueueSendBasicMessage("Build environment image doesn't exist locally, downloading...");
+
+                    await RunWithOutputStreaming("curl", new List<string>
+                    {
+                        "-LsS", Environment.GetEnvironmentVariable("CI_IMAGE_DL_URL"), "--output", ciImageFile
+                    });
+                }
+
+                await RunWithOutputStreaming(podmanPath, new List<string> { "load", "-i", ciImageFile });
+
+                QueueSendBasicMessage("Build environment image loaded");
+
+                QueueSendMessage(new RealTimeBuildMessage()
+                {
+                    Type = BuildSectionMessageType.SectionEnd,
+                    WasSuccessful = true,
+                });
+            }
+            catch (Exception e)
+            {
+                EndSectionWithFailure($"Error handling build image: {e}");
+            }
         }
 
         private async Task RunBuild()
         {
+            try
+            {
+                QueueSendMessage(new RealTimeBuildMessage()
+                {
+                    Type = BuildSectionMessageType.SectionStart,
+                    SectionName = "Build start",
+                });
+
+                QueueSendBasicMessage($"Using build environment image: {ciImageName}");
+
+                var buildConfig = await LoadCIBuildConfiguration(currentBuildRootFolder);
+
+                if (buildConfig == null)
+                    return;
+
+                var command = BuildCommandsFromBuildConfig(buildConfig, ciJobName, currentBuildRootFolder);
+
+                if (command == null || command.Count < 1)
+                    throw new Exception("Failed to parse CI configuration to build list of build commands");
+
+                QueueSendBasicMessage("Build commands created, starting running them");
+
+                lastSectionClosed = false;
+
+                var runArguments = new List<string>
+                {
+                    "run", "--rm", "-i", "-e", $"CI_REF={ciRef}"
+                };
+
+                AddMountConfiguration(runArguments);
+
+                runArguments.Add(ciImageName);
+                runArguments.Add("/bin/bash");
+
+                var result = await RunWithInputAndOutput(command, podmanPath, runArguments);
+
+                buildCommandsFailed = !result;
+
+                if (!lastSectionClosed)
+                {
+                    // TODO: probably would be nice to print this message anyway even if the last section is closed...
+                    QueueSendBasicMessage(result ? "Build commands succeeded" : "Build commands failed");
+
+                    QueueSendMessage(new RealTimeBuildMessage()
+                    {
+                        Type = BuildSectionMessageType.SectionEnd,
+                        WasSuccessful = result,
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                EndSectionWithFailure($"Error running build commands: {e}");
+            }
         }
 
-        private async Task RunPostBuild()
+        private Task RunPostBuild()
         {
+            // TODO: build artifacts
+
+            // Send final status
+            QueueSendMessage(new RealTimeBuildMessage()
+            {
+                Type = BuildSectionMessageType.FinalStatus,
+                WasSuccessful = !buildCommandsFailed,
+            });
+
+            return Task.CompletedTask;
         }
 
         private void QueueSendBasicMessage(string message)

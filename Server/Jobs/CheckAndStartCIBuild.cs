@@ -112,7 +112,8 @@ namespace ThriveDevCenter.Server.Jobs
 
             if (configuration.Jobs.Select(j => j.Value.Cache).Any(c =>
                 c.LoadFrom.Any(p => p.Contains("..") || p.StartsWith("/")) || c.WriteTo.Contains("..") ||
-                c.WriteTo.StartsWith("/")))
+                c.WriteTo.Contains("/") ||
+                c.Shared.Any(s => s.Key.Contains("..") || s.Value.Contains("..") || s.Value.Contains("/"))))
             {
                 logger.LogError("Build configuration cache paths have \"..\" in them or starts with a slash");
 

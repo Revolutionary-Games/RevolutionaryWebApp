@@ -43,6 +43,11 @@ namespace ThriveDevCenter.Server.Common.Models
 
         [JsonPropertyName("write_to")]
         public string WriteTo { get; set; }
+
+        [MinLength(1)]
+        [MaxLength(10)]
+        [JsonPropertyName("shared")]
+        public Dictionary<string, string> Shared { get; set; }
     }
 
     public class CiJobBuildStep
