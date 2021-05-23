@@ -5,6 +5,7 @@
 @using System.IO
 @using TextCopy
 @using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Converters
 @using ThriveDevCenter.Shared.Forms
 
 <div class="item-sidebar">
@@ -165,8 +166,7 @@
             return;
 
         // Navigate to the parent path, as that should close the file showing
-        var pathParts = navManager.Uri.Split('/');
-        navManager.NavigateTo(string.Join('/', pathParts.Take(pathParts.Length - 1)));
+        navManager.NavigateTo(PathParser.GetParentPath(navManager.Uri));
     }
 
     private string GetDownloadURL(int version = -1)
