@@ -9,13 +9,19 @@
             @* TODO: implement scrolling to last line if the last line is visible or scroll is at the top (?) *@
 
             @{
-                int lineCounter = 0;
+                var lineSource = RealtimeOutput ?? Data;
             }
 
-            @foreach (var line in RealtimeOutput ?? Data)
+            @for (int i = 0; i < lineSource.Count; ++i)
             {
+                @* Skip last line if it is empty to not show a trailing line in the output *@
+                var line = lineSource[i];
+
+                if (i > 0 && i + 1 >= lineSource.Count && string.IsNullOrWhiteSpace(line))
+                    continue;
+
                 <div class="output-line">
-                    <span class="line-number">@(++lineCounter)</span><span>@line</span>
+                    <span class="line-number">@(i + 1)</span><span>@line</span>
                 </div>
             }
         </div>
