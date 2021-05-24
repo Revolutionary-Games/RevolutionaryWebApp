@@ -357,8 +357,6 @@ namespace CIExecutor
                 // Handling of shared cache paths with symlinks
                 if (cacheConfig.Shared != null)
                 {
-                    QueueSendBasicMessage("Handling shared caches");
-
                     foreach (var tuple in cacheConfig.Shared)
                     {
                         var source = tuple.Key;
@@ -370,8 +368,10 @@ namespace CIExecutor
                         // TODO: is a separate handling needed for when the fullSource is a single file and
                         // not a directory?
 
-                        if (Directory.Exists(fullSource) && !Directory.Exists(fullDestination) &&
-                            !new UnixSymbolicLinkInfo(fullSource).IsSymbolicLink)
+                        var isAlreadySymlink = Directory.Exists(fullSource) &&
+                            new UnixSymbolicLinkInfo(fullSource).IsSymbolicLink;
+
+                        if (Directory.Exists(fullSource) && !Directory.Exists(fullDestination) && !isAlreadySymlink)
                         {
                             QueueSendBasicMessage($"Using existing folder to create shared cache {destination}");
                             Directory.Move(fullSource, fullDestination);
@@ -383,6 +383,9 @@ namespace CIExecutor
                             Directory.CreateDirectory(fullDestination);
                         }
 
+                        if (isAlreadySymlink)
+                            continue;
+
                         if (Directory.Exists(fullSource))
                         {
                             QueueSendBasicMessage($"Deleting existing directory to link to shared cache {destination}");
@@ -392,8 +395,6 @@ namespace CIExecutor
                         QueueSendBasicMessage($"Using shared cache {destination}");
                         new UnixSymbolicLinkInfo(fullSource).CreateSymbolicLinkTo(fullDestination);
                     }
-
-                    QueueSendBasicMessage("Shared caches setup");
                 }
 
                 QueueSendBasicMessage("Repository checked out");
@@ -402,8 +403,6 @@ namespace CIExecutor
             {
                 EndSectionWithFailure($"Error cloning / checking out: {e}");
             }
-
-            QueueSendBasicMessage("Cache setup finished");
         }
 
         private async Task SetupImages()
@@ -467,8 +466,6 @@ namespace CIExecutor
 
                 if (command == null || command.Count < 1)
                     throw new Exception("Failed to parse CI configuration to build list of build commands");
-
-                QueueSendBasicMessage("Build commands created, starting running them");
 
                 lastSectionClosed = false;
 
