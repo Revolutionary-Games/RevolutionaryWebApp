@@ -85,43 +85,51 @@ namespace ThriveDevCenter.Server.Controllers
                 // This is a push (commit)
                 logger.LogInformation("Received a push event for ref: {Ref}", data.Ref);
 
-                bool matched = false;
-
-                // Detect if this triggers any builds
-                foreach (var project in await database.CiProjects.AsQueryable().Where(p =>
-                    p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
-                    p.RepositoryFullName == data.Repository.FullName).ToListAsync())
+                if (data.Deleted || data.After == "0000000000000000000000000000000000000000")
                 {
-                    matched = true;
-
-                    // Detect next id
-                    // TODO: is there a better way to get this?
-                    var buildId = await database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == project.Id)
-                        .MaxAsync(b => b.CiBuildId) + 1;
-
-                    var build = new CiBuild()
-                    {
-                        CiProjectId = project.Id,
-                        CiBuildId = buildId,
-                        CommitHash = data.After,
-                        RemoteRef = data.Ref,
-                        Branch = GitRunHelpers.ParseRefBranch(data.Ref),
-                        IsSafe = !GitRunHelpers.IsPullRequestRef(data.Ref),
-                        PreviousCommit = data.Before,
-                        CommitMessage = data.HeadCommit?.Message ?? data.Commits.FirstOrDefault()?.Message,
-                        Commits = JsonSerializer.Serialize(data.Commits),
-                    };
-
-                    await database.CiBuilds.AddAsync(build);
-                    await database.SaveChangesAsync();
-
-                    jobClient.Enqueue<CheckAndStartCIBuild>(x =>
-                        x.Execute(build.CiProjectId, build.CiBuildId, CancellationToken.None));
+                    logger.LogInformation("Push was about a deleted thing");
                 }
+                else
+                {
+                    bool matched = false;
 
-                if (!matched)
-                    logger.LogWarning("Push event didn't match any repos: {Fullname}", data.Repository.FullName);
-            } else if (!string.IsNullOrEmpty(data.Ref))
+                    // Detect if this triggers any builds
+                    foreach (var project in await database.CiProjects.AsQueryable().Where(p =>
+                        p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
+                        p.RepositoryFullName == data.Repository.FullName).ToListAsync())
+                    {
+                        matched = true;
+
+                        // Detect next id
+                        // TODO: is there a better way to get this?
+                        var buildId = await database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == project.Id)
+                            .MaxAsync(b => b.CiBuildId);
+
+                        var build = new CiBuild()
+                        {
+                            CiProjectId = project.Id,
+                            CiBuildId = buildId,
+                            CommitHash = data.After,
+                            RemoteRef = data.Ref,
+                            Branch = GitRunHelpers.ParseRefBranch(data.Ref),
+                            IsSafe = !GitRunHelpers.IsPullRequestRef(data.Ref),
+                            PreviousCommit = data.Before,
+                            CommitMessage = data.HeadCommit?.Message ?? data.Commits.FirstOrDefault()?.Message,
+                            Commits = JsonSerializer.Serialize(data.Commits),
+                        };
+
+                        await database.CiBuilds.AddAsync(build);
+                        await database.SaveChangesAsync();
+
+                        jobClient.Enqueue<CheckAndStartCIBuild>(x =>
+                            x.Execute(build.CiProjectId, build.CiBuildId, CancellationToken.None));
+                    }
+
+                    if (!matched)
+                        logger.LogWarning("Push event didn't match any repos: {Fullname}", data.Repository.FullName);
+                }
+            }
+            else if (!string.IsNullOrEmpty(data.Ref))
             {
                 // This is a branch push (or maybe a tag?)
             }
@@ -213,6 +221,8 @@ namespace ThriveDevCenter.Server.Controllers
 
         [Required]
         public GithubUserInfo Sender { get; set; }
+
+        public bool Deleted { get; set; }
     }
 
     public class GithubCommit
