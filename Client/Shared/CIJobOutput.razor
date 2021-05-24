@@ -9,7 +9,7 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>
-@implements ThriveDevCenter.Client.Services.INotificationHandler<RealTimeBuildMessage>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<BuildMessageNotification>
 @implements IAsyncDisposable
 @inherits ListDataPage<ThriveDevCenter.Shared.Models.CIJobOutputSectionInfo>
 
@@ -48,7 +48,8 @@ else
                 @if (ShouldShowSection(item))
                 {
                     <CIJobOutputSection ProjectId="@ProjectId" BuildId="@BuildId" JobId="@JobId"
-                                        Id="@item.CiJobOutputSectionId" />
+                                        Id="@item.CiJobOutputSectionId"
+                                        RealtimeOutput="@GetOutput(item.CiJobOutputSectionId)" />
                 }
             </div>
         }
@@ -98,8 +99,10 @@ else
         return HandleItemNotification(notification);
     }
 
-    public Task Handle(RealTimeBuildMessage notification, CancellationToken cancellationToken)
+    public Task Handle(BuildMessageNotification notificationWrapper, CancellationToken cancellationToken)
     {
+        var notification = notificationWrapper.Message;
+
         if (notification.Type == BuildSectionMessageType.SectionStart &&
             receivingRealtimeOutputForSection != notification.SectionId)
         {
@@ -206,6 +209,14 @@ else
         }
 
         return shown;
+    }
+
+    private List<string> GetOutput(long sectionId)
+    {
+        if (receivingRealtimeOutputForSection != sectionId)
+            return null;
+
+        return receivedRealtimeOutput;
     }
 
 }
