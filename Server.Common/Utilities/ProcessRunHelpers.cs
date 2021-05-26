@@ -88,7 +88,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 }
                 catch (InvalidOperationException)
                 {
-                    Thread.Sleep(1);
+                    Thread.Sleep(10);
                 }
             }
 
@@ -106,7 +106,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 }
                 catch (InvalidOperationException)
                 {
-                    Thread.Sleep(1);
+                    Thread.Sleep(10);
                 }
             }
 
