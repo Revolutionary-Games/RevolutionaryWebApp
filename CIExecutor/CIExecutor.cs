@@ -386,6 +386,9 @@ namespace CIExecutor
                             Directory.Delete(fullSource, true);
                         }
 
+                        // Make sure the folder we are going to create the symbolic link in exists
+                        Directory.CreateDirectory(PathParser.GetParentPath(fullSource));
+
                         QueueSendBasicMessage($"Using shared cache {destination}");
                         new UnixSymbolicLinkInfo(fullSource).CreateSymbolicLinkTo(fullDestination);
                     }
