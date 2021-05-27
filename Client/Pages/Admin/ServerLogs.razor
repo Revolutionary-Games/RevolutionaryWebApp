@@ -30,7 +30,8 @@
                         GetSortClass="@SortClass"
                         ShowContentSpinner="@VisibleFetchInProgress"
                         Columns="@columns"
-                        ShowNoContent="@NoItemsFound">
+                        ShowNoContent="@NoItemsFound"
+                        UseNonFixedColumns="@true">
             @if (Data != null)
             {
                 @foreach (var item in Data.Results)
