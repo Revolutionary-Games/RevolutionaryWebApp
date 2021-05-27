@@ -166,6 +166,11 @@ namespace ThriveDevCenter.Server.Common.Utilities
             return false;
         }
 
+        public static string GenerateRefForPullRequest(long id)
+        {
+            return $"pull/{id}/head";
+        }
+
         public static (string localBranch, string localRef) ParseRemoteRef(string remoteRef, string remote = "origin")
         {
             string localHeadsRef = $"refs/remotes/{remote}/";

@@ -80,6 +80,18 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
+            if (!HttpContext.Request.Headers.TryGetValue("X-GitHub-Event", out StringValues typeHeader) ||
+                typeHeader.Count != 1)
+            {
+                throw new HttpResponseException()
+                {
+                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-GitHub-Event header").ToString()
+                };
+            }
+
+            var type = typeHeader[0];
+
+            // TODO: check type on these first two event detections as well
             if (!string.IsNullOrEmpty(data.Ref) && data.RefType != "branch" && !string.IsNullOrEmpty(data.After))
             {
                 // This is a push (commit)
@@ -103,7 +115,7 @@ namespace ThriveDevCenter.Server.Controllers
                         // Detect next id
                         // TODO: is there a better way to get this?
                         var buildId = await database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == project.Id)
-                            .MaxAsync(b => b.CiBuildId);
+                            .MaxAsync(b => b.CiBuildId) + 1;
 
                         var build = new CiBuild()
                         {
@@ -132,6 +144,75 @@ namespace ThriveDevCenter.Server.Controllers
             else if (!string.IsNullOrEmpty(data.Ref))
             {
                 // This is a branch push (or maybe a tag?)
+            }
+            else if (type == "pull_request")
+            {
+                bool matched = false;
+
+                // Detect if this PR is for any of our repos
+                foreach (var project in await database.CiProjects.AsQueryable().Where(p =>
+                    p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
+                    p.RepositoryFullName == data.Repository.FullName).ToListAsync())
+                {
+                    matched = true;
+
+                    if (data.Deleted || data.PullRequest.State == "closed")
+                    {
+                        logger.LogInformation("A pull request was closed");
+                    }
+                    else
+                    {
+                        // TODO: CLA checks for PRs
+                        // Queue a CLA check
+
+                        // Only non-primary repo PRs have CI jobs ran on them as main repo commits trigger
+                        // the push event
+                        if (data.PullRequest.Head.Repo.Id != data.Repository.Id)
+                        {
+                            logger.LogInformation("Received pull request event from a fork: {FullName}",
+                                data.PullRequest.Head.Repo.FullName);
+
+                            var headRef = GitRunHelpers.GenerateRefForPullRequest(data.PullRequest.Number);
+
+                            // Detect next id
+                            // TODO: is there a better way to get this?
+                            var buildId = await database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == project.Id)
+                                .MaxAsync(b => b.CiBuildId) + 1;
+
+                            var build = new CiBuild()
+                            {
+                                CiProjectId = project.Id,
+                                CiBuildId = buildId,
+                                CommitHash = data.PullRequest.Head.Sha,
+                                RemoteRef = headRef,
+                                Branch = GitRunHelpers.ParseRefBranch(headRef),
+                                IsSafe = false,
+                                PreviousCommit = data.PullRequest.Base.Sha,
+                                CommitMessage = $"Pull request #{data.PullRequest.Number}",
+
+                                // TODO: commits would need to be retrieved from data.PullRequest.CommitsUrl
+                                Commits = null,
+                            };
+
+                            await database.CiBuilds.AddAsync(build);
+                            await database.SaveChangesAsync();
+
+                            jobClient.Enqueue<CheckAndStartCIBuild>(x =>
+                                x.Execute(build.CiProjectId, build.CiBuildId, CancellationToken.None));
+                        }
+
+                        // TODO: could run some special actions on PR open
+                        if (data.Action == "opened")
+                        {
+                        }
+                    }
+                }
+
+                if (!matched)
+                {
+                    logger.LogWarning("Pull request event didn't match any repos: {Fullname}",
+                        data.Repository.FullName);
+                }
             }
 
             // TODO: should this always be updated. Github might send us quite a few events if we subscribe to them all
@@ -222,6 +303,9 @@ namespace ThriveDevCenter.Server.Controllers
         [Required]
         public GithubUserInfo Sender { get; set; }
 
+        [JsonPropertyName("pull_request")]
+        public GithubPullRequest PullRequest { get; set; }
+
         public bool Deleted { get; set; }
     }
 
@@ -249,6 +333,50 @@ namespace ThriveDevCenter.Server.Controllers
         public List<string> Modified { get; set; }
     }
 
+    public class GithubPullRequest
+    {
+        public string Url { get; set; }
+        public long Id { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        [Required]
+        public long Number { get; set; }
+
+        [Required]
+        public string State { get; set; }
+
+        public bool Locked { get; set; }
+        public bool Merged { get; set; }
+        public string Title { get; set; }
+
+        [Required]
+        public GithubUserInfo User { get; set; }
+
+        public string Body { get; set; }
+
+        public bool Draft { get; set; }
+
+        [JsonPropertyName("commits_url")]
+        public string CommitsUrl { get; set; }
+
+        [JsonPropertyName("comments_url")]
+        public string CommentsUrl { get; set; }
+
+        [JsonPropertyName("statuses_url")]
+        public string StatusesUrl { get; set; }
+
+        [Required]
+        public GithubRepoRef Head { get; set; }
+
+        [Required]
+        public GithubRepoRef Base { get; set; }
+
+        [JsonPropertyName("author_association")]
+        public string AuthorAssociation { get; set; }
+    }
+
     public class CommitAuthor
     {
         public string Name { get; set; }
@@ -273,6 +401,7 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class GithubRepository
     {
+        [Required]
         public long Id { get; set; }
 
         [Required]
@@ -283,6 +412,8 @@ namespace ThriveDevCenter.Server.Controllers
         public string FullName { get; set; }
 
         public bool Private { get; set; }
+
+        public GithubUserInfo Owner { get; set; }
 
         [JsonPropertyName("html_url")]
         public string HtmlUrl { get; set; }
@@ -325,5 +456,21 @@ namespace ThriveDevCenter.Server.Controllers
         ///   Valid values seem to be "User" and "Organization"
         /// </summary>
         public string Type { get; set; } = "User";
+    }
+
+    public class GithubRepoRef
+    {
+        [Required]
+        public string Label { get; set; }
+
+        [Required]
+        public string Ref { get; set; }
+
+        [Required]
+        public string Sha { get; set; }
+
+        public GithubUserInfo User { get; set; }
+
+        public GithubRepository Repo { get; set; }
     }
 }
