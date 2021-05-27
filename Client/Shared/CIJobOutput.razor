@@ -1,5 +1,4 @@
 @inject HttpClient http
-@inject NavigationManager navManager
 @inject IJSRuntime js
 @inject ComponentUrlHelper urlHelper
 @inject NotificationHandler notificationHandler
@@ -85,13 +84,6 @@ else
     {
         await notificationHandler.Register((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
         await base.OnInitializedAsync();
-    }
-
-    public override Task SetParametersAsync(ParameterView parameters)
-    {
-        this.SetParametersFromQueryString(navManager);
-
-        return base.SetParametersAsync(parameters);
     }
 
     public Task Handle(CIProjectBuildJobOutputSectionsListUpdated notification, CancellationToken cancellationToken)

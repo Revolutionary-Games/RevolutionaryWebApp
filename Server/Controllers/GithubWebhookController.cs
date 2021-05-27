@@ -113,14 +113,14 @@ namespace ThriveDevCenter.Server.Controllers
                         matched = true;
 
                         // Detect next id
-                        // TODO: is there a better way to get this?
-                        var buildId = await database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == project.Id)
-                            .MaxAsync(b => b.CiBuildId) + 1;
+                        var previousBuildId = await database.CiBuilds.AsQueryable()
+                            .Where(b => b.CiProjectId == project.Id)
+                            .MaxAsync(b => (long?)b.CiBuildId) ?? 0;
 
                         var build = new CiBuild()
                         {
                             CiProjectId = project.Id,
-                            CiBuildId = buildId,
+                            CiBuildId = ++previousBuildId,
                             CommitHash = data.After,
                             RemoteRef = data.Ref,
                             Branch = GitRunHelpers.ParseRefBranch(data.Ref),
@@ -175,14 +175,14 @@ namespace ThriveDevCenter.Server.Controllers
                             var headRef = GitRunHelpers.GenerateRefForPullRequest(data.PullRequest.Number);
 
                             // Detect next id
-                            // TODO: is there a better way to get this?
-                            var buildId = await database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == project.Id)
-                                .MaxAsync(b => b.CiBuildId) + 1;
+                            var previousBuildId = await database.CiBuilds.AsQueryable()
+                                .Where(b => b.CiProjectId == project.Id)
+                                .MaxAsync(b => (long?)b.CiBuildId) ?? 0;
 
                             var build = new CiBuild()
                             {
                                 CiProjectId = project.Id,
-                                CiBuildId = buildId,
+                                CiBuildId = ++previousBuildId,
                                 CommitHash = data.PullRequest.Head.Sha,
                                 RemoteRef = headRef,
                                 Branch = GitRunHelpers.ParseRefBranch(headRef),
