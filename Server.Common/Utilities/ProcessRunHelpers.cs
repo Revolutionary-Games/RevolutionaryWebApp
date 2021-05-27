@@ -9,7 +9,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
     public static class ProcessRunHelpers
     {
         public static Task<ProcessResult> RunProcessAsync(ProcessStartInfo startInfo,
-            CancellationToken cancellationToken, bool captureOutput = true)
+            CancellationToken cancellationToken, bool captureOutput = true, int startRetries = 3)
         {
             if (captureOutput)
             {
@@ -17,6 +17,74 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 startInfo.RedirectStandardError = true;
             }
 
+            try
+            {
+                return StartProcessInternal(startInfo, cancellationToken, captureOutput).Task;
+            }
+            catch (InvalidOperationException)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (startRetries > 0)
+                {
+                    return RunProcessAsync(startInfo, cancellationToken, captureOutput, startRetries - 1);
+                }
+
+                throw;
+            }
+        }
+
+        public static void StartProcessOutputRead(Process process, CancellationToken cancellationToken)
+        {
+            const int retries = 3;
+
+            // For some reason it seems that this sometimes fails with "System.InvalidOperationException:
+            // StandardOut has not been redirected or the process hasn't started yet." So this is retried a
+            // few times
+            bool success = false;
+            for (int i = 0; i < retries; ++i)
+            {
+                try
+                {
+                    process.BeginOutputReadLine();
+                    success = true;
+                    break;
+                }
+                catch (InvalidOperationException)
+                {
+                    if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(10 * (i + 1))))
+                        cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
+
+            if (!success)
+                throw new InvalidOperationException("Failed to BeginOutputReadLine even after a few retries");
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            success = false;
+            for (int i = 0; i < retries; ++i)
+            {
+                try
+                {
+                    process.BeginErrorReadLine();
+                    success = true;
+                    break;
+                }
+                catch (InvalidOperationException)
+                {
+                    if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(10 * (i + 1))))
+                        cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
+
+            if (!success)
+                throw new InvalidOperationException("Failed to BeginErrorReadLine even after a few retries");
+        }
+
+        private static TaskCompletionSource<ProcessResult> StartProcessInternal(ProcessStartInfo startInfo,
+            CancellationToken cancellationToken, bool captureOutput)
+        {
             var result = new ProcessResult();
             var taskCompletionSource = new TaskCompletionSource<ProcessResult>();
 
@@ -64,54 +132,10 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
             if (captureOutput)
             {
-                StartProcessOutputRead(process);
+                StartProcessOutputRead(process, cancellationToken);
             }
 
-            return taskCompletionSource.Task;
-        }
-
-        public static void StartProcessOutputRead(Process process)
-        {
-            const int retries = 3;
-
-            // For some reason it seems that this sometimes fails with "System.InvalidOperationException:
-            // StandardOut has not been redirected or the process hasn't started yet." So this is retried a
-            // few times
-            bool success = false;
-            for (int i = 0; i < retries; ++i)
-            {
-                try
-                {
-                    process.BeginOutputReadLine();
-                    success = true;
-                    break;
-                }
-                catch (InvalidOperationException)
-                {
-                    Thread.Sleep(10);
-                }
-            }
-
-            if (!success)
-                throw new InvalidOperationException("Failed to BeginOutputReadLine even after a few retries");
-
-            success = false;
-            for (int i = 0; i < retries; ++i)
-            {
-                try
-                {
-                    process.BeginErrorReadLine();
-                    success = true;
-                    break;
-                }
-                catch (InvalidOperationException)
-                {
-                    Thread.Sleep(10);
-                }
-            }
-
-            if (!success)
-                throw new InvalidOperationException("Failed to BeginErrorReadLine even after a few retries");
+            return taskCompletionSource;
         }
 
         public class ProcessResult

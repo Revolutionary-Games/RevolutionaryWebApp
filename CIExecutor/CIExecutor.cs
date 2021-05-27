@@ -464,14 +464,33 @@ namespace CIExecutor
                 if (command == null || command.Count < 1)
                     throw new Exception("Failed to parse CI configuration to build list of build commands");
 
+                List<CiSecretExecutorData> secrets;
+                try
+                {
+                    secrets = JsonSerializer.Deserialize<List<CiSecretExecutorData>>(
+                        Environment.GetEnvironmentVariable("CI_SECRETS") ??
+                        throw new Exception("environment variable for secrets not set"));
+
+                    if (secrets == null)
+                        throw new Exception("parsed secrets list is empty");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed to load build secrets: {0}", e);
+                    throw new Exception("Failed to read build secrets");
+                }
+
                 lastSectionClosed = false;
 
                 var runArguments = new List<string>
                 {
-                    "run", "--rm", "-i", "-e", $"CI_REF={ciRef}"
+                    "run", "--rm", "-i", "-e", $"CI_REF={ciRef}", "-e", $"CI_BRANCH={localBranch}"
                 };
 
                 AddMountConfiguration(runArguments);
+
+                // We pass only the specific environment variables to the container
+                AddSecretsConfiguration(secrets, runArguments);
 
                 runArguments.Add(ciImageName);
                 runArguments.Add("/bin/bash");
@@ -552,6 +571,18 @@ namespace CIExecutor
                 $"type=bind,source={currentBuildRootFolder},destination={currentBuildRootFolder},relabel=shared");
             arguments.Add("--mount");
             arguments.Add($"type=bind,source={sharedCacheFolder},destination={sharedCacheFolder},relabel=shared");
+        }
+
+        private static void AddSecretsConfiguration(List<CiSecretExecutorData> secrets, List<string> arguments)
+        {
+            foreach (var secret in secrets)
+            {
+                arguments.Add("-e");
+
+                // Quoting cannot be used with podman (and also not with docker) so we can't do that here, hopefully
+                // this is safe enough like this
+                arguments.Add($"{secret.SecretName}={secret.SecretContent}");
+            }
         }
 
         private async Task<CiBuildConfiguration> LoadCIBuildConfiguration(string folder)
@@ -689,7 +720,7 @@ namespace CIExecutor
             if (!process.Start())
                 throw new InvalidOperationException($"Could not start process: {process}");
 
-            ProcessRunHelpers.StartProcessOutputRead(process);
+            ProcessRunHelpers.StartProcessOutputRead(process, CancellationToken.None);
 
             return taskCompletionSource.Task;
         }
@@ -806,7 +837,7 @@ namespace CIExecutor
             if (!process.Start())
                 throw new InvalidOperationException($"Could not start process: {process}");
 
-            ProcessRunHelpers.StartProcessOutputRead(process);
+            ProcessRunHelpers.StartProcessOutputRead(process, CancellationToken.None);
 
             foreach (var line in inputLines)
             {

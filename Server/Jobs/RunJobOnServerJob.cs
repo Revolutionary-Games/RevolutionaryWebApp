@@ -2,10 +2,13 @@ namespace ThriveDevCenter.Server.Jobs
 {
     using System;
     using System.IO;
+    using System.Linq;
     using System.Net.Sockets;
     using System.Text;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Common.Utilities;
     using Hangfire;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
@@ -15,6 +18,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Services;
     using Shared;
     using Shared.Models;
+    using Shared.Models.Enums;
     using Utilities;
     using FileAccess = Shared.Models.FileAccess;
 
@@ -140,6 +144,12 @@ namespace ThriveDevCenter.Server.Jobs
             job.RunningOnServerId = serverId;
             job.State = CIJobState.Running;
 
+            CISecretType jobSpecificSecretType = job.Build.IsSafe ? CISecretType.SafeOnly : CISecretType.UnsafeOnly;
+
+            var secrets = await Database.CiSecrets.AsQueryable()
+                .Where(s => s.CiProjectId == job.CiProjectId && (s.UsedForBuildTypes == jobSpecificSecretType ||
+                    s.UsedForBuildTypes == CISecretType.All)).ToListAsync(cancellationToken);
+
             // This save is done here as the build status might get reported back to us before we finish with the ssh
             // commands
             await Database.SaveChangesAsync(cancellationToken);
@@ -164,29 +174,37 @@ namespace ThriveDevCenter.Server.Jobs
 
             // and then run it with environment variables for this build
 
+            // Remove all type secrets if there is one with the same name that is build specific
+            var cleanedSecrets = secrets
+                .Where(s => s.UsedForBuildTypes != CISecretType.All || !secrets.Any(s2 =>
+                    s2.SecretName == s.SecretName && s2.UsedForBuildTypes != s.UsedForBuildTypes))
+                .Select(s => s.ToExecutorData());
+
             var env = new StringBuilder(250);
             env.Append("export CI_REF='");
-            env.Append(EscapeForBash(job.Build.RemoteRef));
+            env.Append(BashEscape.EscapeForBash(job.Build.RemoteRef));
             env.Append("'; export CI_COMMIT_HASH='");
-            env.Append(EscapeForBash(job.Build.CommitHash));
+            env.Append(BashEscape.EscapeForBash(job.Build.CommitHash));
             env.Append("'; export CI_EARLIER_COMMIT='");
-            env.Append(EscapeForBash(job.Build.PreviousCommit));
+            env.Append(BashEscape.EscapeForBash(job.Build.PreviousCommit));
             env.Append("'; export CI_BRANCH='");
-            env.Append(EscapeForBash(job.Build.Branch));
+            env.Append(BashEscape.EscapeForBash(job.Build.Branch));
             env.Append("'; export CI_TRUSTED='");
             env.Append(job.Build.IsSafe);
             env.Append("'; export CI_ORIGIN='");
-            env.Append(EscapeForBash(job.Build.CiProject.RepositoryCloneUrl));
+            env.Append(BashEscape.EscapeForBash(job.Build.CiProject.RepositoryCloneUrl));
             env.Append("'; export CI_IMAGE_DL_URL='");
-            env.Append(EscapeForBash(imageDownloadUrl));
+            env.Append(BashEscape.EscapeForBash(imageDownloadUrl));
             env.Append("'; export CI_IMAGE_NAME='");
-            env.Append(EscapeForBash(job.Image));
+            env.Append(BashEscape.EscapeForBash(job.Image));
             env.Append("'; export CI_IMAGE_FILENAME='");
-            env.Append(EscapeForBash(imageFileName));
+            env.Append(BashEscape.EscapeForBash(imageFileName));
             env.Append("'; export CI_CACHE_OPTIONS='");
-            env.Append(EscapeForBash(job.CacheSettingsJson));
+            env.Append(BashEscape.EscapeForBash(job.CacheSettingsJson));
+            env.Append("'; export CI_SECRETS='");
+            env.Append(BashEscape.EscapeForBash(JsonSerializer.Serialize(cleanedSecrets)));
             env.Append("'; export CI_JOB_NAME='");
-            env.Append(EscapeForBash(job.JobName));
+            env.Append(BashEscape.EscapeForBash(job.JobName));
             env.Append("';");
 
             var result2 =
@@ -208,17 +226,6 @@ namespace ThriveDevCenter.Server.Jobs
 
             Logger.LogInformation(
                 "CI job startup succeeded, now it's up to the executor to contact us with updates");
-        }
-
-        private static string EscapeForBash(string commandPart)
-        {
-            if (string.IsNullOrEmpty(commandPart))
-                return string.Empty;
-
-            return commandPart.Replace(@"\", @"\\").Replace(@"'", @"\'");
-
-            // return commandPart.Replace(@"\", @"\\").Replace(@"""", @"\""")
-            //    .Replace(@"'", @"\'");
         }
 
         private async Task Requeue(CiJob job, int retries, ControlledServer server)

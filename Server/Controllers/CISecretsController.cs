@@ -66,9 +66,11 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             if (await database.CiSecrets.AsQueryable()
-                .FirstOrDefaultAsync(s => s.CiProjectId == project.Id && s.SecretName == request.SecretName) != null)
+                .FirstOrDefaultAsync(s =>
+                    s.CiProjectId == project.Id && s.SecretName == request.SecretName &&
+                    s.UsedForBuildTypes == request.UsedForBuildTypes) != null)
             {
-                return BadRequest("A secret with the given name already exists");
+                return BadRequest("A secret with the given name and type already exists");
             }
 
             var previousSecretId = await database.CiSecrets.AsQueryable().Where(s => s.CiProjectId == project.Id)

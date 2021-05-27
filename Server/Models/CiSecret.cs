@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using Common.Models;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
@@ -10,7 +11,7 @@ namespace ThriveDevCenter.Server.Models
     using Shared.Notifications;
     using Utilities;
 
-    [Index(new[] { nameof(CiProjectId), nameof(SecretName) }, IsUnique = true)]
+    [Index(new[] { nameof(CiProjectId), nameof(SecretName), nameof(UsedForBuildTypes) }, IsUnique = true)]
     public class CiSecret : IUpdateNotifications
     {
         public long CiProjectId { get; set; }
@@ -41,6 +42,15 @@ namespace ThriveDevCenter.Server.Models
                 UsedForBuildTypes = UsedForBuildTypes,
                 SecretName = SecretName,
                 CreatedAt = CreatedAt,
+            };
+        }
+
+        public CiSecretExecutorData ToExecutorData()
+        {
+            return new()
+            {
+                SecretName = SecretName,
+                SecretContent = SecretContent
             };
         }
 

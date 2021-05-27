@@ -90,7 +90,7 @@ namespace ThriveDevCenter.Shared
         public const long SingleResourceTableRowId = 1;
 
         public const int Major = 1;
-        public const int Minor = 8;
+        public const int Minor = 9;
 
         public const int DefaultMaxLauncherLinks = 5;
 
