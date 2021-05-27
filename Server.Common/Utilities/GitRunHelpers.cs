@@ -78,12 +78,16 @@ namespace ThriveDevCenter.Server.Common.Utilities
             }
         }
 
-        public static async Task Fetch(string folder, string thing, string remote, CancellationToken cancellationToken)
+        public static async Task Fetch(string folder, string thing, string remote, CancellationToken cancellationToken,
+            bool force = true)
         {
             var startInfo = PrepareToRunGit(folder);
             startInfo.ArgumentList.Add("fetch");
             startInfo.ArgumentList.Add(remote);
             startInfo.ArgumentList.Add(thing);
+
+            if (force)
+                startInfo.ArgumentList.Add("--force");
 
             var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
             if (result.ExitCode != 0)
