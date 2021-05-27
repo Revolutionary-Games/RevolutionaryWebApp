@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ThriveDevCenter.Server.Models;
@@ -10,9 +11,10 @@ using ThriveDevCenter.Server.Models;
 namespace ThriveDevCenter.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class WebApiContextModelSnapshot : ModelSnapshot
+    [Migration("20210527153316_AddCiSecret")]
+    partial class AddCiSecret
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -477,10 +479,6 @@ namespace ThriveDevCenter.Server.Migrations
 
                     b.HasKey("CiProjectId", "CiSecretId")
                         .HasName("pk_ci_secrets");
-
-                    b.HasIndex("CiProjectId", "SecretName")
-                        .IsUnique()
-                        .HasDatabaseName("ix_ci_secrets_ci_project_id_secret_name");
 
                     b.ToTable("ci_secrets");
                 });

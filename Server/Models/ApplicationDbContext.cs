@@ -36,6 +36,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<ActionLogEntry> ActionLogEntries { get; set; }
         public DbSet<GithubWebhook> GithubWebhooks { get; set; }
         public DbSet<CiProject> CiProjects { get; set; }
+        public DbSet<CiSecret> CiSecrets { get; set; }
         public DbSet<CiBuild> CiBuilds { get; set; }
         public DbSet<CiJob> CiJobs { get; set; }
         public DbSet<CiJobArtifact> CiJobArtifacts { get; set; }
@@ -304,6 +305,14 @@ namespace ThriveDevCenter.Server.Models
             {
                 entity.HasMany(p => p.CiBuilds).WithOne(d => d.CiProject)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(p => p.CiSecrets).WithOne(d => d.CiProject)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CiSecret>(entity =>
+            {
+                entity.HasKey(nameof(CiSecret.CiProjectId), nameof(CiSecret.CiSecretId));
             });
 
             modelBuilder.Entity<CiBuild>(entity =>

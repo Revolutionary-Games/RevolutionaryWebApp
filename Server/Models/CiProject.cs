@@ -38,6 +38,8 @@ namespace ThriveDevCenter.Server.Models
 
         public ICollection<CiBuild> CiBuilds { get; set; } = new HashSet<CiBuild>();
 
+        public ICollection<CiSecret> CiSecrets { get; set; } = new HashSet<CiSecret>();
+
         [NotMapped]
         public bool UsesSoftDelete => true;
 

@@ -22,6 +22,8 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string CIProjectBuildsUpdatedPrefix = "CIProjectBuilds_";
         public const string CIProjectsBuildUpdatedPrefix = "CIProjectBuild_";
 
+        public const string CIProjectSecretsUpdatedPrefix = "CIProjectSecrets_";
+
         public const string CIProjectBuildJobsUpdatedPrefix = "CIProjectBuildJobs_";
         public const string CIProjectsBuildsJobUpdatedPrefix = "CIProjectBuildJob_";
 

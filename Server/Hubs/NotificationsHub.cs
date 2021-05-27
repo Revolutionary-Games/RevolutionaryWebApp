@@ -277,6 +277,15 @@ namespace ThriveDevCenter.Server.Hubs
                 return RequireAccessLevel(UserAccessLevel.Developer, user);
             }
 
+            if (groupName.StartsWith(NotificationGroups.CIProjectSecretsUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.CiProjects, out CiProject item))
+                    return false;
+
+                // Only admins see secrets
+                return RequireAccessLevel(UserAccessLevel.Admin, user);
+            }
+
             if (groupName.StartsWith(NotificationGroups.UserLauncherLinksUpdatedPrefix))
             {
                 if (!GetTargetModelFromGroup(groupName, database.Users, out User item))
