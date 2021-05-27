@@ -542,7 +542,7 @@ namespace CIExecutor
 
         private string HandleCacheTemplates(string cachePath)
         {
-            return cachePath.Replace("{Branch}", localBranch);
+            return cachePath.Replace("{Branch}", localBranch).Replace("/", "-");
         }
 
         private void AddMountConfiguration(List<string> arguments)
