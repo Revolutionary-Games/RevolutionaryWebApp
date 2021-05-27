@@ -68,7 +68,7 @@ namespace CIExecutor
 
             isSafe = Convert.ToBoolean(Environment.GetEnvironmentVariable("CI_TRUSTED"));
 
-            cacheBaseFolder = isSafe ? "/executor_cache/safe" : "executor_cache/unsafe";
+            cacheBaseFolder = isSafe ? "/executor_cache/safe" : "/executor_cache/unsafe";
             sharedCacheFolder = Path.Join(cacheBaseFolder, "shared");
             jobCacheBaseFolder = Path.Join(cacheBaseFolder, "named");
 
