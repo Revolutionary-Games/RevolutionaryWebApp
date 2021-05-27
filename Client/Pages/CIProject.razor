@@ -30,6 +30,27 @@
             </ul>
         </AccessLimited>
 
+        <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+
+            <Button OnPressed="@ToggleSecrets" class="mr-1 mb-2" ButtonStyle="secondary">
+                @if (showSecretsSection)
+                {
+                    <span>Hide Secrets</span>
+                }
+                else
+                {
+                    <span>Show Secrets</span>
+                }
+            </Button>
+
+            @if (showSecretsSection)
+            {
+                <CIProjectSecrets ProjectId="@Id" />
+            }
+
+            <br />
+        </AccessLimited>
+
         <AdminResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Name" Id="@Data.Id"
                                     DeleteURLBase="api/v1/CIProject"
                                     DeletePromptTitle="Delete this CI Project?" />
@@ -42,6 +63,8 @@
 </SingleResourceDisplayer>
 
 @code {
+    private bool showSecretsSection;
+
     protected override Task<CIProjectDTO> StartQuery()
     {
         return http.GetFromJsonAsync<CIProjectDTO>($"api/v1/CIProject/{Id}");
@@ -60,5 +83,10 @@
     protected override Task OnFirstDataReceived()
     {
         return notificationHandler.Register(this);
+    }
+
+    private void ToggleSecrets()
+    {
+        showSecretsSection = !showSecretsSection;
     }
 }
