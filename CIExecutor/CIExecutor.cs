@@ -37,8 +37,6 @@ namespace CIExecutor
         private readonly string jobCacheBaseFolder;
         private readonly string ciRef;
 
-        private readonly string podmanPath;
-
         private readonly List<RealTimeBuildMessage> queuedBuildMessages = new();
 
         private RealTimeBuildMessageSocket protocolSocket;
@@ -71,10 +69,6 @@ namespace CIExecutor
             cacheBaseFolder = isSafe ? "/executor_cache/safe" : "/executor_cache/unsafe";
             sharedCacheFolder = Path.Join(cacheBaseFolder, "shared");
             jobCacheBaseFolder = Path.Join(cacheBaseFolder, "named");
-
-            // podmanPath = ExecutableFinder.Which("podman");
-            // Let's see if this works without the full path
-            podmanPath = "podman";
         }
 
         private bool Failure
@@ -428,7 +422,7 @@ namespace CIExecutor
                     });
                 }
 
-                await RunWithOutputStreaming(podmanPath, new List<string> { "load", "-i", ciImageFile });
+                await RunWithOutputStreaming("podman", new List<string> { "load", "-i", ciImageFile });
 
                 QueueSendBasicMessage("Build environment image loaded");
 
@@ -480,7 +474,7 @@ namespace CIExecutor
                 runArguments.Add("/bin/bash");
 
                 Console.WriteLine("Running podman build");
-                var result = await RunWithInputAndOutput(command, podmanPath, runArguments);
+                var result = await RunWithInputAndOutput(command, "podman", runArguments);
                 Console.WriteLine("Process finished: {0}", result);
 
                 buildCommandsFailed = !result;
