@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly string notificationGroup;
         private readonly StringBuilder outputSectionText = new();
 
-        private int sectionNumberCounter;
+        private long sectionNumberCounter;
         private CiJobOutputSection activeSection;
 
         private DateTime lastSaved = DateTime.UtcNow;
@@ -107,6 +107,30 @@ namespace ThriveDevCenter.Server.Controllers
 
         private async Task Run()
         {
+            // Detect existing sections (if this is a reconnection)
+            sectionNumberCounter = await database.CiJobOutputSections.AsQueryable()
+                .Where(s => s.CiProjectId == job.CiProjectId && s.CiBuildId == job.CiBuildId &&
+                    s.CiJobId == job.CiJobId).MaxAsync(s => (long?)s.CiJobOutputSectionId) ?? 0;
+
+            if (sectionNumberCounter > 0)
+            {
+                logger.LogInformation(
+                    "Re-starting section numbering at (this is maybe a reconnect): {SectionNumberCounter}",
+                    sectionNumberCounter);
+
+                // Fetch the open section if there is one
+                activeSection = await database.CiJobOutputSections.AsQueryable()
+                    .FirstOrDefaultAsync(s => s.CiProjectId == job.CiProjectId && s.CiBuildId == job.CiBuildId &&
+                        s.CiJobId == job.CiJobId && s.Status == CIJobSectionStatus.Running);
+
+                if (activeSection != null)
+                {
+                    logger.LogInformation("Continuing filling from section: {Name}", activeSection.Name);
+                }
+            }
+
+            bool error = false;
+
             while (!socket.CloseStatus.HasValue)
             {
                 RealTimeBuildMessage message;
@@ -129,6 +153,7 @@ namespace ThriveDevCenter.Server.Controllers
                             "Too long realTimeBuildMessage, can't receive, stopping realTimeBuildMessage processing"
                     });
 
+                    error = true;
                     break;
                 }
                 catch (WebSocketBuildMessageLengthMisMatchException e)
@@ -142,6 +167,7 @@ namespace ThriveDevCenter.Server.Controllers
                             "realTimeBuildMessage processing"
                     });
 
+                    error = true;
                     break;
                 }
                 catch (InvalidWebSocketBuildMessageFormatException e)
@@ -291,6 +317,10 @@ namespace ThriveDevCenter.Server.Controllers
                                 CIJobSectionStatus.Failed;
 
                             AddPendingOutputToActiveSection();
+                            lastSaved = now;
+
+                            await database.SaveChangesAsync();
+
                             activeSection = null;
                         }
 
@@ -302,6 +332,51 @@ namespace ThriveDevCenter.Server.Controllers
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+            }
+
+            if (error)
+            {
+                // Add error message to build output
+                if (activeSection != null)
+                {
+                    outputSectionText.Append("Critical error in processing websocket connection, " +
+                        "no further output will be received\n");
+                }
+                else
+                {
+                    logger.LogWarning("Can't add error about build failing to read websocket data to job output");
+                }
+            }
+
+            // Write remaining output
+            if (outputSectionText.Length > 0)
+            {
+                if (activeSection != null)
+                {
+                    AddPendingOutputToActiveSection();
+                }
+                else
+                {
+                    logger.LogError("Can't add pending output, no active section: {ToString}",
+                        outputSectionText.ToString());
+                }
+            }
+
+            // And any pending sections
+            if (activeSection != null)
+            {
+                outputSectionText.Append("Last section was not closed, marking it as failed\n");
+                AddPendingOutputToActiveSection();
+
+                activeSection.Status = CIJobSectionStatus.Failed;
+                await database.SaveChangesAsync();
+                activeSection = null;
+            }
+
+            if (error)
+            {
+                BackgroundJob.Schedule<SetFinishedCIJobStatusJob>(x => x.Execute(job.CiProjectId, job.CiBuildId,
+                    job.CiJobId, false, CancellationToken.None), TimeSpan.FromSeconds(10));
             }
         }
 
