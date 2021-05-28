@@ -129,6 +129,14 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            if (configuration.Jobs.SelectMany(j => j.Value.Artifacts.Paths).Any(p => p.Length < 3 || p.Length > 250))
+            {
+                logger.LogError("Build has a too long / short artifact path");
+
+                await CreateFailedJob(build, "Invalid configuration yaml, invalid artifact path(s)", cancellationToken);
+                return;
+            }
+
             // TODO: do something with the version number here...
 
             // Then queue the jobs we found in the configuration

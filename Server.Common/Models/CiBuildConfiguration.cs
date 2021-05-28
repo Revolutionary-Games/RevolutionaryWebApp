@@ -31,6 +31,8 @@ namespace ThriveDevCenter.Server.Common.Models
         [MinLength(1)]
         [MaxLength(50)]
         public List<CiJobBuildStep> Steps { get; set; }
+
+        public CiArtifactsConfiguration Artifacts { get; set; } = new();
     }
 
     public class CiJobCacheConfiguration
@@ -64,5 +66,20 @@ namespace ThriveDevCenter.Server.Common.Models
         [Required]
         [StringLength(4000, MinimumLength = 1)]
         public string Command { get; set; }
+
+        public CiJobStepRunCondition When { get; set; } = CiJobStepRunCondition.Success;
+    }
+
+    public enum CiJobStepRunCondition
+    {
+        Success,
+        Failure,
+        Always
+    }
+
+    public class CiArtifactsConfiguration
+    {
+        [MaxLength(25)]
+        public List<string> Paths { get; set; } = new();
     }
 }
