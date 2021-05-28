@@ -28,7 +28,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             new List<KeyValuePair<string, string>>()
             {
                 new("CI:ServerIdleTimeBeforeStop", "60"),
-                new("CI:MaximumConcurrentServers", "5"),
+                new("CI:MaximumConcurrentServers", "3"),
                 new("CI:UseHibernate", "false"),
             }).Build();
 
@@ -335,6 +335,72 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
 
             Assert.Equal(ServerStatus.Stopped, server1.Status);
             Assert.Equal(ServerStatus.Running, server2.Status);
+
+            ec2Mock.Verify();
+        }
+
+        [Fact]
+        public async Task ServerControl_TotalServerLimitIsRespectedWhenCreating()
+        {
+            var ec2Mock = new Mock<IEC2Controller>();
+            ec2Mock.Setup(ec2 => ec2.LaunchNewInstance()).Throws<InvalidOperationException>();
+
+            var jobClientMock = new Mock<IBackgroundJobClient>();
+
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+            await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase("ControlledServersNewInstancesFull")
+                .Options, notificationsMock.Object);
+
+            CIProjectTestDatabaseData.Seed(database);
+            var job = await AddTestJob(database);
+
+            var server1 = new ControlledServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+                InstanceId = "id-1111",
+                ReservationType = ServerReservationType.CIJob,
+                ReservedFor = 123,
+            };
+
+            await database.ControlledServers.AddAsync(server1);
+
+            var server2 = new ControlledServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+                InstanceId = "id-2222",
+                ReservationType = ServerReservationType.CIJob,
+                ReservedFor = 123,
+            };
+
+            await database.ControlledServers.AddAsync(server2);
+
+            var server3 = new ControlledServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+                InstanceId = "id-3333",
+                ReservationType = ServerReservationType.CIJob,
+                ReservedFor = 123,
+            };
+
+            await database.ControlledServers.AddAsync(server3);
+            await database.SaveChangesAsync();
+
+            var handler =
+                new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+
+            Assert.False(await handler.HandleCIJobs(new List<CiJob>() { job }));
+
+            Assert.False(handler.NewServersAdded);
+
+            Assert.Equal(3, await database.ControlledServers.CountAsync());
+            Assert.Equal(123, server1.ReservedFor);
+            Assert.Equal(123, server2.ReservedFor);
+            Assert.Equal(123, server3.ReservedFor);
 
             ec2Mock.Verify();
         }
