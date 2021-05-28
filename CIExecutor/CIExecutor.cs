@@ -197,11 +197,15 @@ namespace CIExecutor
         {
             if (message.Type == BuildSectionMessageType.SectionStart)
             {
-                Console.WriteLine("Section start: {0}", message.SectionName);
+                Console.WriteLine("- Section start: {0}", message.SectionName);
+            }
+            else if (message.Type == BuildSectionMessageType.SectionEnd)
+            {
+                Console.WriteLine("- Section end, status: {0}", message.WasSuccessful);
             }
             else if (message.Type == BuildSectionMessageType.BuildOutput)
             {
-                Console.Write("{0}", message.Output);
+                Console.Write("- {0}", message.Output);
             }
 
             lock (queuedBuildMessages)
@@ -226,7 +230,7 @@ namespace CIExecutor
 
         private async Task ProcessBuildMessages()
         {
-            var tasks = new List<Task>();
+            var toSend = new List<RealTimeBuildMessage>();
 
             bool sleep = false;
 
@@ -249,14 +253,14 @@ namespace CIExecutor
 
                     sleep = false;
 
-                    foreach (var message in queuedBuildMessages)
-                        tasks.Add(protocolSocket.Write(message, CancellationToken.None));
-
+                    toSend.AddRange(queuedBuildMessages);
                     queuedBuildMessages.Clear();
                 }
 
-                await Task.WhenAll(tasks);
-                tasks.Clear();
+                foreach (var message in toSend)
+                    await protocolSocket.Write(message, CancellationToken.None);
+
+                toSend.Clear();
             }
         }
 
