@@ -206,18 +206,7 @@ namespace ThriveDevCenter.Server.Controllers
                     case BuildSectionMessageType.SectionStart:
                     {
                         // Start a new section
-                        if (activeSection != null)
-                        {
-                            logger.LogError(
-                                "Received a build output section start ({Name}) while there's an active section ({SectionName})",
-                                activeSection.Name, message.SectionName);
-                            await SendMessage(new RealTimeBuildMessage()
-                            {
-                                Type = BuildSectionMessageType.Error,
-                                ErrorMessage = "Can't start a new section while one is in progress"
-                            });
-                        }
-                        else if (string.IsNullOrEmpty(message.SectionName) || message.SectionName.Length > 100)
+                        if (string.IsNullOrEmpty(message.SectionName) || message.SectionName.Length > 100)
                         {
                             logger.LogError("Received a build output section start with missing or too long name");
                             await SendMessage(new RealTimeBuildMessage()
@@ -232,6 +221,26 @@ namespace ThriveDevCenter.Server.Controllers
 
                             try
                             {
+                                if (activeSection != null)
+                                {
+                                    logger.LogError(
+                                        "Received a build output section start ({Name}) " +
+                                        "while there's an active section ({SectionName})",
+                                        activeSection.Name, message.SectionName);
+                                    await SendMessage(new RealTimeBuildMessage()
+                                    {
+                                        Type = BuildSectionMessageType.Error,
+                                        ErrorMessage = "Can't start a new section while one is in progress"
+                                    });
+
+                                    // I guess we assume success here...
+                                    activeSection.Status = CIJobSectionStatus.Succeeded;
+
+                                    outputSectionText.Append(
+                                        "This section was not properly closed before the next section");
+                                    AddPendingOutputToActiveSection();
+                                }
+
                                 activeSection = new CiJobOutputSection()
                                 {
                                     CiProjectId = job.CiProjectId,
@@ -275,7 +284,7 @@ namespace ThriveDevCenter.Server.Controllers
                         {
                             // TODO: add total output amount limit here (if exceeded, make the build fail)
                             // Append to current section
-                            
+
                             await outputLock.WaitAsync();
 
                             try
