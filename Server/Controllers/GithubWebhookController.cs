@@ -31,6 +31,8 @@ namespace ThriveDevCenter.Server.Controllers
     [Route("api/v1/webhook/github")]
     public class GithubWebhookController : Controller
     {
+        private const string NoCommitHash = "0000000000000000000000000000000000000000";
+
         private readonly ILogger<GithubWebhookController> logger;
 
         /// <summary>
@@ -97,12 +99,19 @@ namespace ThriveDevCenter.Server.Controllers
                 // This is a push (commit)
                 logger.LogInformation("Received a push event for ref: {Ref}", data.Ref);
 
-                if (data.Deleted || data.After == "0000000000000000000000000000000000000000")
+                if (data.Deleted || data.After == NoCommitHash)
                 {
                     logger.LogInformation("Push was about a deleted thing");
                 }
                 else
                 {
+                    if (data.Before == NoCommitHash)
+                    {
+                        logger.LogInformation(
+                            "Received a push (probably a new branch) with no before set, setting to the after commit");
+                        data.Before = data.After;
+                    }
+
                     bool matched = false;
 
                     // Detect if this triggers any builds
@@ -160,8 +169,11 @@ namespace ThriveDevCenter.Server.Controllers
                     {
                         logger.LogInformation("A pull request was closed");
                     }
-                    else
+                    else if (data.Action == "synchronize" || data.Action == "opened")
                     {
+                        // PR content was changed so we should rebuild (we don't react to other actions to avoid
+                        // duplicate builds)
+
                         // TODO: CLA checks for PRs
                         // Queue a CLA check
 
