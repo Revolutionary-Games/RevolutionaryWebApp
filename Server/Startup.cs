@@ -306,7 +306,9 @@ namespace ThriveDevCenter.Server
             {
                 if (context.Request.Path == "/ciBuildConnection")
                 {
-                    await BuildWebSocketHandler.HandleHttpConnection(context, app.ApplicationServices);
+                    // New scope is probably needed here to not share the global ApplicationServices scope
+                    await BuildWebSocketHandler.HandleHttpConnection(context,
+                        app.ApplicationServices.CreateScope().ServiceProvider);
                 }
                 else
                 {
