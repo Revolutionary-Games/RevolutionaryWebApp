@@ -65,7 +65,7 @@ namespace ThriveDevCenter.Shared
         /// <summary>
         ///   Maximum size of a file uploaded to the general file storage by a client
         /// </summary>
-        public const long MaxGeneralFileStoreSize = 1024 * MEBIBYTE;
+        public const long MaxGeneralFileStoreSize = 4024L * MEBIBYTE;
 
         public const int MaxInBrowserPreviewTextFileSize = MEBIBYTE * 20;
         public const int MaxSingleBuildOutputMessageLength = MEBIBYTE * 20;
