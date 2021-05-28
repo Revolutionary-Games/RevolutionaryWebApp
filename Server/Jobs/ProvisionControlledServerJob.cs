@@ -17,7 +17,7 @@ namespace ThriveDevCenter.Server.Jobs
         // TODO: put this somewhere more sensible
         private const string ProvisioningCommand =
             "sudo dnf install -y podman curl git git-lfs dotnet-runtime-5.0 && " +
-            "git lfs install &&" +
+            "git lfs install && " +
             "sudo mkdir -p /executor_cache && sudo chown -R centos:centos /executor_cache";
 
         private readonly ILogger<ProvisionControlledServerJob> logger;

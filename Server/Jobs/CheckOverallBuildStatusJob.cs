@@ -38,15 +38,16 @@ namespace ThriveDevCenter.Server.Jobs
                     return;
             }
 
-            var shouldBeStatus = BuildStatus.Succeeded;
+            BuildStatus shouldBeStatus;
             int failedBuilds = 0;
+
+            bool running = false;
 
             foreach (var job in build.CiJobs)
             {
                 if (job.State != CIJobState.Finished)
                 {
-                    if (shouldBeStatus == BuildStatus.Succeeded)
-                        shouldBeStatus = BuildStatus.Running;
+                    running = true;
                 }
                 else if (!job.Succeeded)
                 {
@@ -54,13 +55,17 @@ namespace ThriveDevCenter.Server.Jobs
                 }
             }
 
-            if (failedBuilds >= build.CiJobs.Count)
+            if (failedBuilds > 0)
             {
-                shouldBeStatus = BuildStatus.Failed;
+                shouldBeStatus = running ? BuildStatus.GoingToFail : BuildStatus.Failed;
             }
-            else if (failedBuilds > 0)
+            else if (running)
             {
-                shouldBeStatus = BuildStatus.GoingToFail;
+                shouldBeStatus = BuildStatus.Running;
+            }
+            else
+            {
+                shouldBeStatus = BuildStatus.Succeeded;
             }
 
             if (build.Status == shouldBeStatus)

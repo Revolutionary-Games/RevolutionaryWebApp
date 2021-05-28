@@ -40,6 +40,10 @@ namespace ThriveDevCenter.Server.Jobs
             if (job.RunningOnServerId == -1)
             {
                 logger.LogError("CI job doesn't have RunningOnServerId set for SetFinishedCIJobStatus");
+
+                // Just for safety make sure that the job doesn't get stuck in going to fail status
+                JobClient.Enqueue<CheckOverallBuildStatusJob>(x =>
+                    x.Execute(job.CiProjectId, job.CiBuildId, CancellationToken.None));
                 return;
             }
 
