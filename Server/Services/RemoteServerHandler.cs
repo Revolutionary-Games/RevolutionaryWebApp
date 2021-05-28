@@ -110,8 +110,6 @@ namespace ThriveDevCenter.Server.Services
 
             var potentialServers = await GetServers();
 
-            bool jobsNotRunning = false;
-
             foreach (var job in ciJobsNeedingActions)
             {
                 if (job.State == CIJobState.Starting || job.State == CIJobState.WaitingForServer)
@@ -128,6 +126,8 @@ namespace ThriveDevCenter.Server.Services
                             server.ReservedFor = job.CiJobId;
                             server.BumpUpdatedAt();
 
+                            await database.SaveChangesAsync();
+
                             // Can run this job here
                             jobClient.Enqueue<RunJobOnServerJob>(x =>
                                 x.Execute(job.CiProjectId, job.CiBuildId, job.CiJobId, server.Id,
@@ -139,27 +139,44 @@ namespace ThriveDevCenter.Server.Services
                     }
 
                     if (!found)
-                    {
                         ++missingServer;
-                        jobsNotRunning = true;
-                    }
                 }
             }
 
-            if (missingServer <= 0)
-                return !jobsNotRunning;
+            // Exit if all jobs have a server to run on
+            if (missingServer < 1)
+                return true;
+
+            var provisioning = potentialServers.Count(s => s.Status == ServerStatus.Provisioning);
+            var starting = potentialServers.Count(s => s.Status == ServerStatus.WaitingForStartup);
+            var stopping = potentialServers.Count(s => s.Status == ServerStatus.Stopping);
+            var running = potentialServers.Count(s => s.Status == ServerStatus.Running);
+
+            logger.LogInformation(
+                "Not enough server to run jobs, missing: {MissingServer} currently starting: {Starting} " +
+                "provisioning: {Provisioning} stopping: {Stopping}", missingServer, starting, provisioning, stopping);
 
             // Starting and provisioning servers reduce the count of missing servers
-            missingServer -= potentialServers.Count(s =>
-                s.Status == ServerStatus.Provisioning || s.Status == ServerStatus.WaitingForStartup);
+            missingServer -= provisioning;
+            missingServer -= starting;
+
+            if (missingServer < 1)
+                return false;
+
+            // Don't start new servers if we are above the configured limit
+            if (provisioning + starting + stopping + running >= maximumRunningServers)
+            {
+                logger.LogInformation("Maximum number of concurrent servers is reached, can't start more");
+                return false;
+            }
 
             // TODO: implement a server sweetspot, under which new servers can start as fast as wanted, but above
             // only a single server is allowed to be provisioning or starting at once
 
-            // Start some existing servers
+            // Start some existing server
             while (missingServer > 0)
             {
-                bool foundAServer = false;
+                bool foundServer = false;
 
                 foreach (var server in potentialServers)
                 {
@@ -170,7 +187,6 @@ namespace ThriveDevCenter.Server.Services
                     {
                         logger.LogInformation("Starting a stopped server to meet demand");
                         --missingServer;
-                        foundAServer = true;
 
                         await ec2Controller.ResumeInstance(server.InstanceId);
 
@@ -179,12 +195,15 @@ namespace ThriveDevCenter.Server.Services
                         server.BumpUpdatedAt();
 
                         await database.SaveChangesAsync();
+
+                        foundServer = true;
+                        break;
                     }
-                    else if (server.Status == ServerStatus.Terminated)
+
+                    if (server.Status == ServerStatus.Terminated)
                     {
                         logger.LogInformation("Re-provisioning a terminated server to meet demand");
                         --missingServer;
-                        foundAServer = true;
 
                         // This shouldn't create multiple at once, but the API returns a list
                         var awsServers = await ec2Controller.LaunchNewInstance();
@@ -212,15 +231,17 @@ namespace ThriveDevCenter.Server.Services
                             jobClient.Enqueue<ProvisionControlledServerJob>(x =>
                                 x.Execute(server.Id, CancellationToken.None));
                         }
+
+                        return false;
                     }
                 }
 
-                if (!foundAServer)
+                if (!foundServer)
                     break;
             }
 
             // If still not enough, create new servers if allowed
-            while (missingServer > 0 && potentialServers.Count < maximumRunningServers)
+            if (potentialServers.Count < maximumRunningServers)
             {
                 logger.LogInformation("Creating a new server to meet demand");
 
@@ -244,12 +265,9 @@ namespace ThriveDevCenter.Server.Services
 
                     jobClient.Enqueue<ProvisionControlledServerJob>(x => x.Execute(server.Id, CancellationToken.None));
                 }
-
-                // Only allow creating one new server per invocation
-                break;
             }
 
-            return !jobsNotRunning;
+            return false;
         }
 
         public async Task ShutdownIdleServers()
