@@ -15,10 +15,10 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly ILogger<CancelCIBuildIfStuckJob> logger;
         private readonly NotificationsEnabledDb database;
         private readonly IBackgroundJobClient jobClient;
-        private readonly EC2Controller ec2Controller;
+        private readonly IEC2Controller ec2Controller;
 
         public CancelCIBuildIfStuckJob(ILogger<CancelCIBuildIfStuckJob> logger,
-            NotificationsEnabledDb database, IBackgroundJobClient jobClient, EC2Controller ec2Controller)
+            NotificationsEnabledDb database, IBackgroundJobClient jobClient, IEC2Controller ec2Controller)
         {
             this.logger = logger;
             this.database = database;

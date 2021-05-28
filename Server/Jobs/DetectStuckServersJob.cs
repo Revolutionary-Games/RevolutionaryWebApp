@@ -17,10 +17,10 @@ namespace ThriveDevCenter.Server.Jobs
     {
         private readonly ILogger<DetectStuckServersJob> logger;
         private readonly NotificationsEnabledDb database;
-        private readonly EC2Controller ec2Controller;
+        private readonly IEC2Controller ec2Controller;
 
         public DetectStuckServersJob(ILogger<DetectStuckServersJob> logger, NotificationsEnabledDb database,
-            EC2Controller ec2Controller)
+            IEC2Controller ec2Controller)
         {
             this.logger = logger;
             this.database = database;

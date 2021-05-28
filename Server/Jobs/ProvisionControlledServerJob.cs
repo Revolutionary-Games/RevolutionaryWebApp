@@ -22,12 +22,12 @@ namespace ThriveDevCenter.Server.Jobs
 
         private readonly ILogger<ProvisionControlledServerJob> logger;
         private readonly NotificationsEnabledDb database;
-        private readonly EC2Controller ec2Controller;
+        private readonly IEC2Controller ec2Controller;
         private readonly IBackgroundJobClient jobClient;
         private readonly ControlledServerSSHAccess sshAccess;
 
         public ProvisionControlledServerJob(ILogger<ProvisionControlledServerJob> logger,
-            NotificationsEnabledDb database, EC2Controller ec2Controller, IBackgroundJobClient jobClient,
+            NotificationsEnabledDb database, IEC2Controller ec2Controller, IBackgroundJobClient jobClient,
             ControlledServerSSHAccess sshAccess)
         {
             this.logger = logger;

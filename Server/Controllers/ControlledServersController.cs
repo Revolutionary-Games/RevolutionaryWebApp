@@ -28,11 +28,11 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<ControlledServersController> logger;
         private readonly NotificationsEnabledDb database;
-        private readonly EC2Controller ec2Controller;
+        private readonly IEC2Controller ec2Controller;
         private readonly IBackgroundJobClient jobClient;
 
         public ControlledServersController(ILogger<ControlledServersController> logger,
-            NotificationsEnabledDb database, EC2Controller ec2Controller, IBackgroundJobClient jobClient)
+            NotificationsEnabledDb database, IEC2Controller ec2Controller, IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.database = database;
