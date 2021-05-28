@@ -673,7 +673,19 @@ namespace CIExecutor
                     step.Run.Command.Substring(0, Math.Min(70, step.Run.Command.Length)) :
                     step.Run.Name;
 
-                command.Add("if [ $overallStatus -eq 0 ]; then");
+                if (step.Run.When == CiJobStepRunCondition.Always)
+                {
+                    command.Add("if [ 1 = 1 ]; then");
+                }
+                else if (step.Run.When == CiJobStepRunCondition.Failure)
+                {
+                    command.Add("if [ ! $overallStatus -eq 0 ]; then");
+                }
+                else
+                {
+                    // Run on previous being successful
+                    command.Add("if [ $overallStatus -eq 0 ]; then");
+                }
 
                 command.Add($"echo \"{OutputSpecialCommandMarker} SectionStart {BashEscape.EscapeForBash(name)}\"");
 
