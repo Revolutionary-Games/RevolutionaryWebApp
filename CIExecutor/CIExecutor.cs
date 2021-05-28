@@ -337,7 +337,7 @@ namespace CIExecutor
 
                 QueueSendBasicMessage($"Checking out the needed ref: {ciRef} and commit: {ciCommit}");
 
-                await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, currentBuildRootFolder, CancellationToken.None);
+                await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, currentBuildRootFolder, false, CancellationToken.None);
 
                 // Fetch the ref
                 QueueSendBasicMessage($"Fetching the ref: {ciRef}");
@@ -346,7 +346,7 @@ namespace CIExecutor
                 // Also fetch the default branch for comparing changes against it
                 await GitRunHelpers.Fetch(currentBuildRootFolder, defaultBranch, ciOrigin, CancellationToken.None);
 
-                await GitRunHelpers.Checkout(currentBuildRootFolder, ciCommit, CancellationToken.None, true);
+                await GitRunHelpers.Checkout(currentBuildRootFolder, ciCommit, false, CancellationToken.None, true);
                 QueueSendBasicMessage($"Checked out commit {ciCommit}");
 
                 // Clean out non-ignored files
@@ -469,6 +469,14 @@ namespace CIExecutor
 
                 if (command == null || command.Count < 1)
                     throw new Exception("Failed to parse CI configuration to build list of build commands");
+
+                Console.WriteLine("Build commands:");
+                foreach (var line in command)
+                {
+                    Console.WriteLine(line);
+                }
+
+                Console.WriteLine("end of commands");
 
                 List<CiSecretExecutorData> secrets;
                 try
@@ -637,6 +645,7 @@ namespace CIExecutor
                 $"cd '{folder}' || {{ echo \"Couldn't switch to build folder\"; exit 1; }}",
                 "echo 'Starting build commands'",
                 $"echo '{OutputSpecialCommandMarker} SectionEnd 0'",
+                "overallStatus=0",
             };
 
             // Build commands
@@ -651,6 +660,8 @@ namespace CIExecutor
 
                 command.Add($"echo '{OutputSpecialCommandMarker} SectionStart {name}'");
 
+                command.Add("if [ $overallStatus -eq 0 ]; then");
+
                 // Step is ran in subshell
                 command.Add("(");
                 command.Add("set -e");
@@ -661,7 +672,14 @@ namespace CIExecutor
                 }
 
                 command.Add(")");
-                command.Add($"echo \"{OutputSpecialCommandMarker} SectionEnd $?\"");
+
+                command.Add("lastStatus=$?");
+                command.Add("if [ ! $lastStatus -eq 0 ]; then");
+                command.Add("echo Running this section failed");
+                command.Add("overallStatus=1");
+                command.Add("fi");
+                command.Add($"echo \"{OutputSpecialCommandMarker} SectionEnd $lastStatus\"");
+                command.Add("fi");
             }
 
             command.Add("exit 0");

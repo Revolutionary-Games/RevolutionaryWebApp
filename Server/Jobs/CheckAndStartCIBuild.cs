@@ -63,13 +63,13 @@ namespace ThriveDevCenter.Server.Jobs
 
             try
             {
-                await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, cancellationToken);
+                await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, true, cancellationToken);
 
                 // Fetch the ref
                 await GitRunHelpers.FetchRef(tempPath, build.RemoteRef, cancellationToken);
 
                 // Then checkout the commit this build is actually for
-                await GitRunHelpers.Checkout(tempPath, build.CommitHash, cancellationToken, true);
+                await GitRunHelpers.Checkout(tempPath, build.CommitHash, true, cancellationToken, true);
 
                 // Clean out non-ignored files
                 await GitRunHelpers.Clean(tempPath, cancellationToken);

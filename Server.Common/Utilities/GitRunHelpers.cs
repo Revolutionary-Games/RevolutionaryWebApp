@@ -11,10 +11,13 @@ namespace ThriveDevCenter.Server.Common.Utilities
         private const string PullRequestRefSuffix = "/head";
         private const string NormalRefPrefix = "refs/heads/";
 
-        public static async Task EnsureRepoIsCloned(string repoURL, string folder, CancellationToken cancellationToken)
+        public static async Task EnsureRepoIsCloned(string repoURL, string folder, bool skipLFS,
+            CancellationToken cancellationToken)
         {
             var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true };
-            SetLFSSmudgeSkip(startInfo);
+
+            if (skipLFS)
+                SetLFSSmudgeSkip(startInfo);
 
             if (!Directory.Exists(folder))
             {
@@ -44,10 +47,11 @@ namespace ThriveDevCenter.Server.Common.Utilities
             }
         }
 
-        public static async Task Checkout(string folder, string whatToCheckout, CancellationToken cancellationToken,
+        public static async Task Checkout(string folder, string whatToCheckout, bool skipLFS,
+            CancellationToken cancellationToken,
             bool force = false)
         {
-            var startInfo = PrepareToRunGit(folder);
+            var startInfo = PrepareToRunGit(folder, skipLFS);
             startInfo.ArgumentList.Add("checkout");
             startInfo.ArgumentList.Add(whatToCheckout);
 
@@ -64,7 +68,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
         public static async Task Fetch(string folder, bool all, CancellationToken cancellationToken)
         {
-            var startInfo = PrepareToRunGit(folder);
+            var startInfo = PrepareToRunGit(folder, true);
             startInfo.ArgumentList.Add("fetch");
 
             if (all)
@@ -81,7 +85,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
         public static async Task Fetch(string folder, string thing, string remote, CancellationToken cancellationToken,
             bool force = true)
         {
-            var startInfo = PrepareToRunGit(folder);
+            var startInfo = PrepareToRunGit(folder, true);
             startInfo.ArgumentList.Add("fetch");
             startInfo.ArgumentList.Add(remote);
             startInfo.ArgumentList.Add(thing);
@@ -102,13 +106,14 @@ namespace ThriveDevCenter.Server.Common.Utilities
         /// </summary>
         /// <param name="folder">The fit folder to operate in</param>
         /// <param name="refToCheckout">Ref from Github that should be checked out locally</param>
+        /// <param name="skipLFS">If true LFS handling is skipped</param>
         /// <param name="cancellationToken">Cancel the operation early</param>
         /// <remarks>
         ///   <para>
         ///     If this is updated "ci_executor.rb" needs also know how to checkout the new things
         ///   </para>
         /// </remarks>
-        public static async Task SmartlyCheckoutRef(string folder, string refToCheckout,
+        public static async Task SmartlyCheckoutRef(string folder, string refToCheckout, bool skipLFS,
             CancellationToken cancellationToken)
         {
             const string remote = "origin";
@@ -123,7 +128,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 await Fetch(folder, refToCheckout, remote, cancellationToken);
             }
 
-            await Checkout(folder, parsed.localRef, cancellationToken, true);
+            await Checkout(folder, parsed.localRef, skipLFS, cancellationToken, true);
         }
 
         public static async Task FetchRef(string folder, string refToFetch, CancellationToken cancellationToken)
@@ -146,9 +151,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
             if (!Directory.Exists(folder))
                 throw new ArgumentException($"Specified folder: \"{folder}\" doesn't exist");
 
-            var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true };
-            SetLFSSmudgeSkip(startInfo);
-            startInfo.WorkingDirectory = folder;
+            var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true, WorkingDirectory = folder };
 
             startInfo.ArgumentList.Add("clean");
             startInfo.ArgumentList.Add("-f");
@@ -208,13 +211,16 @@ namespace ThriveDevCenter.Server.Common.Utilities
             return ParseRemoteRef(remoteRef).localBranch;
         }
 
-        private static ProcessStartInfo PrepareToRunGit(string folder)
+        private static ProcessStartInfo PrepareToRunGit(string folder, bool skipLFS)
         {
             if (!Directory.Exists(folder))
                 throw new ArgumentException($"Specified folder: \"{folder}\" doesn't exist");
 
             var startInfo = new ProcessStartInfo(FindGit()) { CreateNoWindow = true };
-            SetLFSSmudgeSkip(startInfo);
+
+            if (skipLFS)
+                SetLFSSmudgeSkip(startInfo);
+
             startInfo.WorkingDirectory = folder;
             return startInfo;
         }

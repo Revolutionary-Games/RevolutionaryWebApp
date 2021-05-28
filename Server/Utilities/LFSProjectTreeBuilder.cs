@@ -17,7 +17,7 @@ namespace ThriveDevCenter.Server.Utilities
 
             try
             {
-                await GitRunHelpers.EnsureRepoIsCloned(project.CloneUrl, tempPath, cancellationToken);
+                await GitRunHelpers.EnsureRepoIsCloned(project.CloneUrl, tempPath, true, cancellationToken);
 
                 // TODO: rest of the file tree building logic
             }
