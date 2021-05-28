@@ -36,6 +36,7 @@ namespace CIExecutor
         private readonly string sharedCacheFolder;
         private readonly string jobCacheBaseFolder;
         private readonly string ciRef;
+        private readonly string defaultBranch;
 
         private readonly List<RealTimeBuildMessage> queuedBuildMessages = new();
 
@@ -49,6 +50,7 @@ namespace CIExecutor
         private bool buildCommandsFailed;
 
         private bool lastSectionClosed = true;
+        private string ciCommit;
 
         public CIExecutor(string websocketUrl)
         {
@@ -63,6 +65,7 @@ namespace CIExecutor
             localBranch = Environment.GetEnvironmentVariable("CI_BRANCH");
             ciJobName = Environment.GetEnvironmentVariable("CI_JOB_NAME");
             ciRef = Environment.GetEnvironmentVariable("CI_REF");
+            defaultBranch = Environment.GetEnvironmentVariable("CI_DEFAULT_BRANCH");
 
             isSafe = Convert.ToBoolean(Environment.GetEnvironmentVariable("CI_TRUSTED"));
 
@@ -329,7 +332,7 @@ namespace CIExecutor
 
             try
             {
-                var ciCommit = Environment.GetEnvironmentVariable("CI_COMMIT_HASH");
+                ciCommit = Environment.GetEnvironmentVariable("CI_COMMIT_HASH");
                 var ciOrigin = Environment.GetEnvironmentVariable("CI_ORIGIN");
 
                 QueueSendBasicMessage($"Checking out the needed ref: {ciRef} and commit: {ciCommit}");
@@ -339,6 +342,9 @@ namespace CIExecutor
                 // Fetch the ref
                 QueueSendBasicMessage($"Fetching the ref: {ciRef}");
                 await GitRunHelpers.FetchRef(currentBuildRootFolder, ciRef, CancellationToken.None);
+
+                // Also fetch the default branch for comparing changes against it
+                await GitRunHelpers.Fetch(currentBuildRootFolder, defaultBranch, ciOrigin, CancellationToken.None);
 
                 await GitRunHelpers.Checkout(currentBuildRootFolder, ciCommit, CancellationToken.None, true);
                 QueueSendBasicMessage($"Checked out commit {ciCommit}");
@@ -484,7 +490,10 @@ namespace CIExecutor
 
                 var runArguments = new List<string>
                 {
-                    "run", "--rm", "-i", "-e", $"CI_REF={ciRef}", "-e", $"CI_BRANCH={localBranch}"
+                    "run", "--rm", "-i", "-e", $"CI_REF={ciRef}", "-e", $"CI_BRANCH={localBranch}",
+                    "-e", $"CI_COMMIT_HASH={ciCommit}",
+                    "-e", $"CI_EARLIER_COMMIT={Environment.GetEnvironmentVariable("CI_EARLIER_COMMIT")}",
+                    "-e", $"CI_DEFAULT_BRANCH={defaultBranch}",
                 };
 
                 AddMountConfiguration(runArguments);

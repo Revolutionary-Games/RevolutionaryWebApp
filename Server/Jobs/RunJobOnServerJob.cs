@@ -189,6 +189,8 @@ namespace ThriveDevCenter.Server.Jobs
             env.Append(BashEscape.EscapeForBash(job.Build.PreviousCommit));
             env.Append("'; export CI_BRANCH='");
             env.Append(BashEscape.EscapeForBash(job.Build.Branch));
+            env.Append("'; export CI_DEFAULT_BRANCH='");
+            env.Append(BashEscape.EscapeForBash(job.Build.CiProject.DefaultBranch));
             env.Append("'; export CI_TRUSTED='");
             env.Append(job.Build.IsSafe);
             env.Append("'; export CI_ORIGIN='");
