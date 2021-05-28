@@ -51,6 +51,7 @@ namespace ThriveDevCenter.Server.Models
         public CiProject CiProject { get; set; }
 
         public ICollection<CiJob> CiJobs { get; set; } = new HashSet<CiJob>();
+
         public string PreviousCommit { get; set; }
 
         /// <summary>

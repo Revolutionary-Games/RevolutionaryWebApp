@@ -175,7 +175,7 @@ namespace ThriveDevCenter.Server
             services.AddScoped<DevForumAPI>();
             services.AddScoped<CommunityForumAPI>();
             services.AddScoped<RemoteServerHandler>();
-            services.AddScoped<EC2Controller>();
+            services.AddScoped<IEC2Controller, EC2Controller>();
             services.AddScoped<ControlledServerSSHAccess>();
             services.AddScoped<GithubCommitStatusReporter>();
             services.AddScoped<DiscordNotifications>();

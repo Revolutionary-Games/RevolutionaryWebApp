@@ -17,7 +17,7 @@ namespace ThriveDevCenter.Server.Services
     {
         private readonly ILogger<RemoteServerHandler> logger;
         private readonly NotificationsEnabledDb database;
-        private readonly EC2Controller ec2Controller;
+        private readonly IEC2Controller ec2Controller;
         private readonly IBackgroundJobClient jobClient;
         private readonly Lazy<Task<List<ControlledServer>>> servers;
 
@@ -28,7 +28,7 @@ namespace ThriveDevCenter.Server.Services
         private readonly TimeSpan serverMaintenanceInterval = TimeSpan.FromDays(90);
 
         public RemoteServerHandler(ILogger<RemoteServerHandler> logger, IConfiguration configuration,
-            NotificationsEnabledDb database, EC2Controller ec2Controller, IBackgroundJobClient jobClient)
+            NotificationsEnabledDb database, IEC2Controller ec2Controller, IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.database = database;
@@ -40,7 +40,7 @@ namespace ThriveDevCenter.Server.Services
 
             servers =
                 new Lazy<Task<List<ControlledServer>>>(() =>
-                    EntityFrameworkQueryableExtensions.ToListAsync(database.ControlledServers));
+                    database.ControlledServers.AsQueryable().OrderBy(s => s.Id).ToListAsync());
         }
 
         public bool NewServersAdded { get; private set; }
@@ -185,8 +185,9 @@ namespace ThriveDevCenter.Server.Services
 
                     if (server.Status == ServerStatus.Stopped)
                     {
-                        logger.LogInformation("Starting a stopped server to meet demand");
                         --missingServer;
+                        logger.LogInformation(
+                            "Starting a stopped server to meet demand, still missing: {MissingServer}", missingServer);
 
                         await ec2Controller.ResumeInstance(server.InstanceId);
 
@@ -202,8 +203,10 @@ namespace ThriveDevCenter.Server.Services
 
                     if (server.Status == ServerStatus.Terminated)
                     {
-                        logger.LogInformation("Re-provisioning a terminated server to meet demand");
                         --missingServer;
+                        logger.LogInformation(
+                            "Re-provisioning a terminated server to meet demand, still missing: {MissingServer}",
+                            missingServer);
 
                         // This shouldn't create multiple at once, but the API returns a list
                         var awsServers = await ec2Controller.LaunchNewInstance();
@@ -241,7 +244,7 @@ namespace ThriveDevCenter.Server.Services
             }
 
             // If still not enough, create new servers if allowed
-            if (potentialServers.Count < maximumRunningServers)
+            if (missingServer > 0 && potentialServers.Count < maximumRunningServers)
             {
                 logger.LogInformation("Creating a new server to meet demand");
 

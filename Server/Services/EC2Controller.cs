@@ -13,7 +13,23 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.Extensions.Configuration;
     using Shared.Models;
 
-    public class EC2Controller
+    public interface IEC2Controller
+    {
+        bool Configured { get; }
+
+        Task<List<string>> LaunchNewInstance();
+
+        Task ResumeInstance(string instanceId);
+
+        Task<List<Instance>> GetInstanceStatuses(List<string> instanceIds,
+            CancellationToken cancellationToken);
+
+        Task TerminateInstance(string instanceId);
+
+        Task StopInstance(string instanceId, bool hibernate);
+    }
+
+    public class EC2Controller : IEC2Controller
     {
         private readonly string imageId;
         private readonly string serverKeyId;
