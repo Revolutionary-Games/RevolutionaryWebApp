@@ -27,7 +27,7 @@ namespace ThriveDevCenter.Server.Controllers
         /// <summary>
         ///   Not every log message is written to the DB to save on performance
         /// </summary>
-        private static readonly TimeSpan OutputSaveInterval = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan OutputSaveInterval = TimeSpan.FromSeconds(5);
 
         private readonly ILogger<BuildWebSocketHandler> logger;
         private readonly RealTimeBuildMessageSocket socket;
@@ -35,13 +35,18 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
         private readonly CiJob job;
 
+        /// <summary>
+        ///   Used to coordinate between the main socket reading task and the background writing task
+        /// </summary>
+        private readonly SemaphoreSlim outputLock = new SemaphoreSlim(1, 1);
+
+        private readonly CancellationTokenSource backgroundOutputCancel = new CancellationTokenSource();
+
         private readonly string notificationGroup;
         private readonly StringBuilder outputSectionText = new();
 
         private long sectionNumberCounter;
         private CiJobOutputSection activeSection;
-
-        private DateTime lastSaved = DateTime.UtcNow;
 
         private BuildWebSocketHandler(ILogger<BuildWebSocketHandler> logger, WebSocket socket,
             NotificationsEnabledDb database, IHubContext<NotificationsHub, INotifications> notifications, CiJob job)
@@ -128,6 +133,10 @@ namespace ThriveDevCenter.Server.Controllers
                     logger.LogInformation("Continuing filling from section: {Name}", activeSection.Name);
                 }
             }
+
+            // Start a task for writing the output
+            var outputTask = Task.Run(() => FlushOutputToDatabase(backgroundOutputCancel.Token),
+                backgroundOutputCancel.Token);
 
             bool error = false;
 
@@ -219,22 +228,30 @@ namespace ThriveDevCenter.Server.Controllers
                         }
                         else
                         {
-                            activeSection = new CiJobOutputSection()
+                            await outputLock.WaitAsync();
+
+                            try
                             {
-                                CiProjectId = job.CiProjectId,
-                                CiBuildId = job.CiBuildId,
-                                CiJobId = job.CiJobId,
-                                CiJobOutputSectionId = ++sectionNumberCounter,
-                                Name = message.SectionName,
-                                Output = message.Output ?? string.Empty
-                            };
+                                activeSection = new CiJobOutputSection()
+                                {
+                                    CiProjectId = job.CiProjectId,
+                                    CiBuildId = job.CiBuildId,
+                                    CiJobId = job.CiJobId,
+                                    CiJobOutputSectionId = ++sectionNumberCounter,
+                                    Name = message.SectionName,
+                                    Output = message.Output ?? string.Empty
+                                };
 
-                            outputSectionText.Clear();
-                            activeSection.CalculateOutputLength();
-                            lastSaved = now;
+                                outputSectionText.Clear();
+                                activeSection.CalculateOutputLength();
 
-                            await database.CiJobOutputSections.AddAsync(activeSection);
-                            await database.SaveChangesAsync();
+                                await database.CiJobOutputSections.AddAsync(activeSection);
+                                await database.SaveChangesAsync();
+                            }
+                            finally
+                            {
+                                outputLock.Release();
+                            }
 
                             message.SectionId = activeSection.CiJobOutputSectionId;
                             await SendMessageToWebsiteClients(message);
@@ -257,17 +274,17 @@ namespace ThriveDevCenter.Server.Controllers
                         else
                         {
                             // TODO: add total output amount limit here (if exceeded, make the build fail)
-
                             // Append to current section
-                            outputSectionText.Append(message.Output);
+                            
+                            await outputLock.WaitAsync();
 
-                            // Save if time to do so
-                            if (now - lastSaved > OutputSaveInterval)
+                            try
                             {
-                                lastSaved = now;
-                                AddPendingOutputToActiveSection();
-
-                                await database.SaveChangesAsync();
+                                outputSectionText.Append(message.Output);
+                            }
+                            finally
+                            {
+                                outputLock.Release();
                             }
 
                             message.SectionId = activeSection.CiJobOutputSectionId;
@@ -290,17 +307,25 @@ namespace ThriveDevCenter.Server.Controllers
                         }
                         else
                         {
-                            activeSection.Status = message.WasSuccessful ?
-                                CIJobSectionStatus.Succeeded :
-                                CIJobSectionStatus.Failed;
+                            await outputLock.WaitAsync();
 
-                            // Append last pending text
-                            AddPendingOutputToActiveSection();
-                            lastSaved = now;
+                            try
+                            {
+                                activeSection.Status = message.WasSuccessful ?
+                                    CIJobSectionStatus.Succeeded :
+                                    CIJobSectionStatus.Failed;
 
-                            await database.SaveChangesAsync();
+                                // Append last pending text
+                                AddPendingOutputToActiveSection();
 
-                            activeSection = null;
+                                await database.SaveChangesAsync();
+
+                                activeSection = null;
+                            }
+                            finally
+                            {
+                                outputLock.Release();
+                            }
                         }
 
                         break;
@@ -311,17 +336,25 @@ namespace ThriveDevCenter.Server.Controllers
                         {
                             logger.LogWarning("Last log section was not closed before final status");
 
-                            // Assume section has the same result as the overall result
-                            activeSection.Status = message.WasSuccessful ?
-                                CIJobSectionStatus.Succeeded :
-                                CIJobSectionStatus.Failed;
+                            await outputLock.WaitAsync();
 
-                            AddPendingOutputToActiveSection();
-                            lastSaved = now;
+                            try
+                            {
+                                // Assume section has the same result as the overall result
+                                activeSection.Status = message.WasSuccessful ?
+                                    CIJobSectionStatus.Succeeded :
+                                    CIJobSectionStatus.Failed;
 
-                            await database.SaveChangesAsync();
+                                AddPendingOutputToActiveSection();
 
-                            activeSection = null;
+                                await database.SaveChangesAsync();
+
+                                activeSection = null;
+                            }
+                            finally
+                            {
+                                outputLock.Release();
+                            }
                         }
 
                         // Queue a job to set build final status
@@ -332,6 +365,25 @@ namespace ThriveDevCenter.Server.Controllers
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+            }
+
+            backgroundOutputCancel.Cancel();
+
+            try
+            {
+                await outputTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e)
+            {
+                logger.LogError("Error in background output writer task: {@E}", e);
+            }
+
+            if (!await outputLock.WaitAsync(TimeSpan.FromSeconds(10)))
+            {
+                logger.LogError("Failed to acquire output semaphore after 10 seconds");
             }
 
             if (error)
@@ -377,6 +429,32 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 BackgroundJob.Schedule<SetFinishedCIJobStatusJob>(x => x.Execute(job.CiProjectId, job.CiBuildId,
                     job.CiJobId, false, CancellationToken.None), TimeSpan.FromSeconds(10));
+            }
+        }
+
+        private async Task FlushOutputToDatabase(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(OutputSaveInterval, cancellationToken);
+
+                await outputLock.WaitAsync(cancellationToken);
+
+                try
+                {
+                    if (activeSection == null || outputSectionText.Length < 1)
+                        continue;
+
+                    AddPendingOutputToActiveSection();
+
+                    // This shouldn't be skipped, we want the text in the database to not permanently lose it
+                    // ReSharper disable once MethodSupportsCancellation
+                    await database.SaveChangesAsync();
+                }
+                finally
+                {
+                    outputLock.Release();
+                }
             }
         }
 

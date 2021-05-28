@@ -21,7 +21,8 @@ namespace CIExecutor
 
     public class CIExecutor
     {
-        private const int TargetOutputSingleMessageSize = 4960;
+        private const int TargetOutputSingleMessageSize = 2500;
+        private const int QueueLargeThreshold = 5;
         private const string OutputSpecialCommandMarker = "#--@%-DevCenter-%@--";
 
         private readonly string websocketUrl;
@@ -31,7 +32,10 @@ namespace CIExecutor
         private readonly string ciImageName;
         private readonly string localBranch;
         private readonly string ciJobName;
+
+        // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private readonly bool isSafe;
+
         private readonly string cacheBaseFolder;
         private readonly string sharedCacheFolder;
         private readonly string jobCacheBaseFolder;
@@ -92,7 +96,7 @@ namespace CIExecutor
                 {
                     Type = BuildSectionMessageType.FinalStatus,
                     WasSuccessful = false,
-                });
+                }).Wait();
             }
         }
 
@@ -108,7 +112,7 @@ namespace CIExecutor
             websocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(60);
             var connectTask = websocket.ConnectAsync(new Uri(websocketUrl), CancellationToken.None);
 
-            QueueSendMessage(new RealTimeBuildMessage()
+            await QueueSendMessage(new RealTimeBuildMessage()
             {
                 Type = BuildSectionMessageType.SectionStart,
                 SectionName = "Environment setup",
@@ -124,7 +128,7 @@ namespace CIExecutor
             catch (Exception e)
             {
                 Console.WriteLine("Failed to load cache config: {0}", e);
-                EndSectionWithFailure("Failed to read cache configuration");
+                await EndSectionWithFailure("Failed to read cache configuration");
             }
 
             if (!Failure)
@@ -193,20 +197,9 @@ namespace CIExecutor
             Console.WriteLine("CI executor finished");
         }
 
-        private void QueueSendMessage(RealTimeBuildMessage message)
+        private async Task QueueSendMessage(RealTimeBuildMessage message)
         {
-            if (message.Type == BuildSectionMessageType.SectionStart)
-            {
-                Console.WriteLine("- Section start: {0}", message.SectionName);
-            }
-            else if (message.Type == BuildSectionMessageType.SectionEnd)
-            {
-                Console.WriteLine("- Section end, status: {0}", message.WasSuccessful);
-            }
-            else if (message.Type == BuildSectionMessageType.BuildOutput)
-            {
-                Console.Write("- {0}", message.Output);
-            }
+            bool queueLarge = false;
 
             lock (queuedBuildMessages)
             {
@@ -225,7 +218,14 @@ namespace CIExecutor
                 }
 
                 queuedBuildMessages.Add(message);
+
+                if (queuedBuildMessages.Count >= QueueLargeThreshold)
+                    queueLarge = true;
             }
+
+            // Try to sleep some time to give the message sender task some time to send stuff away
+            if (queueLarge)
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
         }
 
         private async Task ProcessBuildMessages()
@@ -304,7 +304,7 @@ namespace CIExecutor
         private async Task SetupCaches()
         {
             Console.WriteLine("Starting cache setup");
-            QueueSendBasicMessage("Starting cache setup");
+            await QueueSendBasicMessage("Starting cache setup");
 
             try
             {
@@ -319,7 +319,7 @@ namespace CIExecutor
 
                 if (!Directory.Exists(currentBuildRootFolder))
                 {
-                    QueueSendBasicMessage($"Cache folder doesn't exist yet ({currentBuildRootFolder})");
+                    await QueueSendBasicMessage($"Cache folder doesn't exist yet ({currentBuildRootFolder})");
 
                     foreach (var cachePath in cacheCopyFromFolders)
                     {
@@ -335,10 +335,10 @@ namespace CIExecutor
             }
             catch (Exception e)
             {
-                EndSectionWithFailure($"Error setting up caches: {e}");
+                await EndSectionWithFailure($"Error setting up caches: {e}");
             }
 
-            QueueSendBasicMessage("Cache setup finished");
+            await QueueSendBasicMessage("Cache setup finished");
         }
 
         private async Task SetupRepo()
@@ -350,24 +350,25 @@ namespace CIExecutor
                 ciCommit = Environment.GetEnvironmentVariable("CI_COMMIT_HASH");
                 var ciOrigin = Environment.GetEnvironmentVariable("CI_ORIGIN");
 
-                QueueSendBasicMessage($"Checking out the needed ref: {ciRef} and commit: {ciCommit}");
+                await QueueSendBasicMessage($"Checking out the needed ref: {ciRef} and commit: {ciCommit}");
 
-                await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, currentBuildRootFolder, false, CancellationToken.None);
+                await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, currentBuildRootFolder, false,
+                    CancellationToken.None);
 
                 // Fetch the ref
-                QueueSendBasicMessage($"Fetching the ref: {ciRef}");
+                await QueueSendBasicMessage($"Fetching the ref: {ciRef}");
                 await GitRunHelpers.FetchRef(currentBuildRootFolder, ciRef, CancellationToken.None);
 
                 // Also fetch the default branch for comparing changes against it
                 await GitRunHelpers.Fetch(currentBuildRootFolder, defaultBranch, ciOrigin, CancellationToken.None);
 
                 await GitRunHelpers.Checkout(currentBuildRootFolder, ciCommit, false, CancellationToken.None, true);
-                QueueSendBasicMessage($"Checked out commit {ciCommit}");
+                await QueueSendBasicMessage($"Checked out commit {ciCommit}");
 
                 // Clean out non-ignored files
                 await GitRunHelpers.Clean(currentBuildRootFolder, CancellationToken.None);
 
-                QueueSendBasicMessage("Cleaned non-ignored extra files");
+                await QueueSendBasicMessage("Cleaned non-ignored extra files");
 
                 // Handling of shared cache paths with symlinks
                 if (cacheConfig.Shared != null)
@@ -388,13 +389,13 @@ namespace CIExecutor
 
                         if (Directory.Exists(fullSource) && !Directory.Exists(fullDestination) && !isAlreadySymlink)
                         {
-                            QueueSendBasicMessage($"Using existing folder to create shared cache {destination}");
+                            await QueueSendBasicMessage($"Using existing folder to create shared cache {destination}");
                             Directory.Move(fullSource, fullDestination);
                         }
 
                         if (!Directory.Exists(fullDestination))
                         {
-                            QueueSendBasicMessage($"Creating new shared cache {destination}");
+                            await QueueSendBasicMessage($"Creating new shared cache {destination}");
                             Directory.CreateDirectory(fullDestination);
                         }
 
@@ -403,42 +404,43 @@ namespace CIExecutor
 
                         if (Directory.Exists(fullSource))
                         {
-                            QueueSendBasicMessage($"Deleting existing directory to link to shared cache {destination}");
+                            await QueueSendBasicMessage(
+                                $"Deleting existing directory to link to shared cache {destination}");
                             Directory.Delete(fullSource, true);
                         }
 
                         // Make sure the folder we are going to create the symbolic link in exists
                         Directory.CreateDirectory(PathParser.GetParentPath(fullSource));
 
-                        QueueSendBasicMessage($"Using shared cache {destination}");
+                        await QueueSendBasicMessage($"Using shared cache {destination}");
                         new UnixSymbolicLinkInfo(fullSource).CreateSymbolicLinkTo(fullDestination);
                     }
                 }
 
-                QueueSendBasicMessage("Repository checked out");
+                await QueueSendBasicMessage("Repository checked out");
             }
             catch (Exception e)
             {
-                EndSectionWithFailure($"Error cloning / checking out: {e}");
+                await EndSectionWithFailure($"Error cloning / checking out: {e}");
             }
         }
 
         private async Task SetupImages()
         {
             Console.WriteLine("Starting image setup");
-            QueueSendBasicMessage($"Using build environment image: {ciImageName}");
+            await QueueSendBasicMessage($"Using build environment image: {ciImageName}");
 
             try
             {
                 var imageFolder = PathParser.GetParentPath(ciImageFile);
 
-                QueueSendBasicMessage($"Storing images in {imageFolder}");
+                await QueueSendBasicMessage($"Storing images in {imageFolder}");
 
                 if (!File.Exists(ciImageFile))
                 {
                     Directory.CreateDirectory(imageFolder);
 
-                    QueueSendBasicMessage("Build environment image doesn't exist locally, downloading...");
+                    await QueueSendBasicMessage("Build environment image doesn't exist locally, downloading...");
 
                     await RunWithOutputStreaming("curl", new List<string>
                     {
@@ -448,9 +450,9 @@ namespace CIExecutor
 
                 await RunWithOutputStreaming("podman", new List<string> { "load", "-i", ciImageFile });
 
-                QueueSendBasicMessage("Build environment image loaded");
+                await QueueSendBasicMessage("Build environment image loaded");
 
-                QueueSendMessage(new RealTimeBuildMessage()
+                await QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.SectionEnd,
                     WasSuccessful = true,
@@ -458,7 +460,7 @@ namespace CIExecutor
             }
             catch (Exception e)
             {
-                EndSectionWithFailure($"Error handling build image: {e}");
+                await EndSectionWithFailure($"Error handling build image: {e}");
             }
         }
 
@@ -467,13 +469,13 @@ namespace CIExecutor
             Console.WriteLine("Starting build");
             try
             {
-                QueueSendMessage(new RealTimeBuildMessage()
+                await QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.SectionStart,
                     SectionName = "Build start",
                 });
 
-                QueueSendBasicMessage($"Using build environment image: {ciImageName}");
+                await QueueSendBasicMessage($"Using build environment image: {ciImageName}");
 
                 var buildConfig = await LoadCIBuildConfiguration(currentBuildRootFolder);
 
@@ -536,9 +538,9 @@ namespace CIExecutor
                 if (!lastSectionClosed)
                 {
                     // TODO: probably would be nice to print this message anyway even if the last section is closed...
-                    QueueSendBasicMessage(result ? "Build commands succeeded" : "Build commands failed");
+                    await QueueSendBasicMessage(result ? "Build commands succeeded" : "Build commands failed");
 
-                    QueueSendMessage(new RealTimeBuildMessage()
+                    await QueueSendMessage(new RealTimeBuildMessage()
                     {
                         Type = BuildSectionMessageType.SectionEnd,
                         WasSuccessful = result,
@@ -547,11 +549,11 @@ namespace CIExecutor
             }
             catch (Exception e)
             {
-                EndSectionWithFailure($"Error running build commands: {e}");
+                await EndSectionWithFailure($"Error running build commands: {e}");
             }
         }
 
-        private Task RunPostBuild()
+        private async Task RunPostBuild()
         {
             Console.WriteLine("Starting post-build");
 
@@ -559,30 +561,28 @@ namespace CIExecutor
 
             // Send final status
             Console.WriteLine("Sending final status: {0}", !buildCommandsFailed);
-            QueueSendMessage(new RealTimeBuildMessage()
+            await QueueSendMessage(new RealTimeBuildMessage()
             {
                 Type = BuildSectionMessageType.FinalStatus,
                 WasSuccessful = !Failure && !buildCommandsFailed,
             });
-
-            return Task.CompletedTask;
         }
 
-        private void QueueSendBasicMessage(string message)
+        private Task QueueSendBasicMessage(string message)
         {
-            QueueSendMessage(new RealTimeBuildMessage()
+            return QueueSendMessage(new RealTimeBuildMessage()
             {
                 Type = BuildSectionMessageType.BuildOutput,
                 Output = $"{message}\n"
             });
         }
 
-        private void EndSectionWithFailure(string error)
+        private async Task EndSectionWithFailure(string error)
         {
             Console.WriteLine("Failing current section with error: {0}", error);
-            QueueSendBasicMessage(error);
+            await QueueSendBasicMessage(error);
 
-            QueueSendMessage(new RealTimeBuildMessage()
+            await QueueSendMessage(new RealTimeBuildMessage()
             {
                 Type = BuildSectionMessageType.SectionEnd,
                 WasSuccessful = false,
@@ -639,7 +639,7 @@ namespace CIExecutor
             catch (Exception e)
             {
                 Console.WriteLine("Error reading build configuration file: {0}", e);
-                EndSectionWithFailure("Error reading or parsing build configuration file");
+                await EndSectionWithFailure("Error reading or parsing build configuration file");
                 return null;
             }
         }
@@ -760,7 +760,7 @@ namespace CIExecutor
                 {
                     Type = BuildSectionMessageType.BuildOutput,
                     Output = (args.Data ?? "") + "\n",
-                });
+                }).Wait();
             };
             process.ErrorDataReceived += (sender, args) =>
             {
@@ -768,7 +768,7 @@ namespace CIExecutor
                 {
                     Type = BuildSectionMessageType.BuildOutput,
                     Output = (args.Data ?? "") + "\n",
-                });
+                }).Wait();
             };
 
             if (!process.Start())
@@ -843,7 +843,7 @@ namespace CIExecutor
                             {
                                 Type = BuildSectionMessageType.SectionEnd,
                                 WasSuccessful = success,
-                            });
+                            }).Wait();
 
                             if (!success)
                                 Failure = true;
@@ -857,14 +857,14 @@ namespace CIExecutor
                             {
                                 Type = BuildSectionMessageType.SectionStart,
                                 SectionName = string.Join(' ', parts.Skip(2)),
-                            });
+                            }).Wait();
 
                             lastSectionClosed = false;
                             break;
                         }
                         default:
                         {
-                            EndSectionWithFailure("Unknown special command received from build process");
+                            EndSectionWithFailure("Unknown special command received from build process").Wait();
                             break;
                         }
                     }
@@ -876,7 +876,7 @@ namespace CIExecutor
                     {
                         Type = BuildSectionMessageType.BuildOutput,
                         Output = (args.Data ?? "") + "\n",
-                    });
+                    }).Wait();
                 }
             };
             process.ErrorDataReceived += (sender, args) =>
@@ -885,7 +885,7 @@ namespace CIExecutor
                 {
                     Type = BuildSectionMessageType.BuildOutput,
                     Output = (args.Data ?? "") + "\n",
-                });
+                }).Wait();
             };
 
             if (!process.Start())
