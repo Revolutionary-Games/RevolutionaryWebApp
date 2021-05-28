@@ -51,7 +51,7 @@ namespace ThriveDevCenter.Server.Jobs
             }
 
             // Skip this if we should cancel
-            if(!cancellationToken.IsCancellationRequested)
+            if (!cancellationToken.IsCancellationRequested)
                 await serverHandler.ShutdownIdleServers();
 
             // ReSharper disable once MethodSupportsCancellation
@@ -65,6 +65,9 @@ namespace ThriveDevCenter.Server.Jobs
                 jobClient.Schedule<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None),
                     TimeSpan.FromSeconds(60));
             }
+
+            // Sleep a tiny amount to ensure that duplicate instances of this job can't hammer a server really hard
+            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
         }
     }
 }
