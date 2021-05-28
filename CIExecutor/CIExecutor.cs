@@ -103,7 +103,9 @@ namespace CIExecutor
 
             Console.WriteLine("Starting websocket");
             var websocket = new ClientWebSocket();
-            websocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(55);
+
+            // This is now the same as on the server, hopefully causes less issues
+            websocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(60);
             var connectTask = websocket.ConnectAsync(new Uri(websocketUrl), CancellationToken.None);
 
             QueueSendMessage(new RealTimeBuildMessage()
@@ -193,6 +195,15 @@ namespace CIExecutor
 
         private void QueueSendMessage(RealTimeBuildMessage message)
         {
+            if (message.Type == BuildSectionMessageType.SectionStart)
+            {
+                Console.WriteLine("Section start: {0}", message.SectionName);
+            }
+            else if (message.Type == BuildSectionMessageType.BuildOutput)
+            {
+                Console.Write("{0}", message.Output);
+            }
+
             lock (queuedBuildMessages)
             {
                 // Merge messages
