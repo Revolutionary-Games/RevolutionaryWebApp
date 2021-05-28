@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Shared.Forms
 
         [Required]
         [Range(0, AppInfo.MaxGeneralFileStoreSize)]
-        public int Size { get; set; }
+        public long Size { get; set; }
 
         [Required]
         public string MimeType { get; set; }

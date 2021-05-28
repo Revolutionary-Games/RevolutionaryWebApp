@@ -705,7 +705,7 @@ else
             new UploadFileRequestForm()
             {
                 Name = file.Name,
-                Size = Convert.ToInt32(file.Size),
+                Size = file.Size,
 
                 // TODO: could maybe pass the last modified here to detect uploading the same file again
 

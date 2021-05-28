@@ -28,7 +28,7 @@ namespace ThriveDevCenter.Server.Models
         public bool Special { get; set; } = false;
 
         [AllowSortingBy]
-        public int? Size { get; set; }
+        public long? Size { get; set; }
 
         // TODO: change to required
         public FileAccess ReadAccess { get; set; } = FileAccess.Developer;

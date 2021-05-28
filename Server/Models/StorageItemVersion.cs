@@ -53,7 +53,7 @@ namespace ThriveDevCenter.Server.Models
         }
 
         public async Task<StorageFile> CreateStorageFile(ApplicationDbContext database, DateTime uploadExpiresAt,
-            int size)
+            long size)
         {
             var file = new StorageFile()
             {

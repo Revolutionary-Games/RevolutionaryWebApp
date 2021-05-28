@@ -6,6 +6,6 @@ namespace ThriveDevCenter.Shared.Models
         public bool Keep { get; set; }
         public bool Protected { get; set; }
         public bool Uploading { get; set; }
-        public int? Size { get; set; }
+        public long? Size { get; set; }
     }
 }
