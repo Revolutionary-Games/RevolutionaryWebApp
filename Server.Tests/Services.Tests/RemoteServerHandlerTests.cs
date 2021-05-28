@@ -405,6 +405,59 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             ec2Mock.Verify();
         }
 
+        [Fact]
+        public async Task ServerControl_ExtraProvisioningServersAreNotStarted()
+        {
+            var ec2Mock = new Mock<IEC2Controller>();
+            ec2Mock.Setup(ec2 => ec2.LaunchNewInstance()).Throws<InvalidOperationException>();
+
+            var jobClientMock = new Mock<IBackgroundJobClient>();
+
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+            await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase("ControlledServersProvisionExistingCount")
+                .Options, notificationsMock.Object);
+
+            CIProjectTestDatabaseData.Seed(database);
+            var job = await AddTestJob(database);
+
+            var server1 = new ControlledServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+                InstanceId = "id-1111",
+                ReservationType = ServerReservationType.CIJob,
+                ReservedFor = 123,
+            };
+
+            await database.ControlledServers.AddAsync(server1);
+
+            var server2 = new ControlledServer()
+            {
+                Status = ServerStatus.Provisioning,
+                ProvisionedFully = true,
+                InstanceId = "id-2222",
+            };
+
+            await database.ControlledServers.AddAsync(server2);
+            await database.SaveChangesAsync();
+
+            var handler =
+                new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+
+            Assert.False(await handler.HandleCIJobs(new List<CiJob>() { job }));
+
+            Assert.False(handler.NewServersAdded);
+
+            Assert.Equal(2, await database.ControlledServers.CountAsync());
+            Assert.Equal(123, server1.ReservedFor);
+            Assert.Null(server2.ReservedFor);
+            Assert.Equal(ServerStatus.Provisioning, server2.Status);
+
+            ec2Mock.Verify();
+        }
+
         private static async Task<CiJob> AddTestJob(NotificationsEnabledDb database)
         {
             var job = new CiJob()
