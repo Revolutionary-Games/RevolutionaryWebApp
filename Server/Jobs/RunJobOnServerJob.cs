@@ -181,33 +181,33 @@ namespace ThriveDevCenter.Server.Jobs
                 .Select(s => s.ToExecutorData());
 
             var env = new StringBuilder(250);
-            env.Append("export CI_REF='");
+            env.Append("export CI_REF=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.RemoteRef));
-            env.Append("'; export CI_COMMIT_HASH='");
+            env.Append("\"; export CI_COMMIT_HASH=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.CommitHash));
-            env.Append("'; export CI_EARLIER_COMMIT='");
+            env.Append("\"; export CI_EARLIER_COMMIT=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.PreviousCommit));
-            env.Append("'; export CI_BRANCH='");
+            env.Append("\"; export CI_BRANCH=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.Branch));
-            env.Append("'; export CI_DEFAULT_BRANCH='");
+            env.Append("\"; export CI_DEFAULT_BRANCH=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.CiProject.DefaultBranch));
-            env.Append("'; export CI_TRUSTED='");
+            env.Append("\"; export CI_TRUSTED=\"");
             env.Append(job.Build.IsSafe);
-            env.Append("'; export CI_ORIGIN='");
+            env.Append("\"; export CI_ORIGIN=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.CiProject.RepositoryCloneUrl));
-            env.Append("'; export CI_IMAGE_DL_URL='");
+            env.Append("\"; export CI_IMAGE_DL_URL=\"");
             env.Append(BashEscape.EscapeForBash(imageDownloadUrl));
-            env.Append("'; export CI_IMAGE_NAME='");
+            env.Append("\"; export CI_IMAGE_NAME=\"");
             env.Append(BashEscape.EscapeForBash(job.Image));
-            env.Append("'; export CI_IMAGE_FILENAME='");
+            env.Append("\"; export CI_IMAGE_FILENAME=\"");
             env.Append(BashEscape.EscapeForBash(imageFileName));
-            env.Append("'; export CI_CACHE_OPTIONS='");
+            env.Append("\"; export CI_CACHE_OPTIONS=\"");
             env.Append(BashEscape.EscapeForBash(job.CacheSettingsJson));
-            env.Append("'; export CI_SECRETS='");
+            env.Append("\"; export CI_SECRETS=\"");
             env.Append(BashEscape.EscapeForBash(JsonSerializer.Serialize(cleanedSecrets)));
-            env.Append("'; export CI_JOB_NAME='");
+            env.Append("\"; export CI_JOB_NAME=\"");
             env.Append(BashEscape.EscapeForBash(job.JobName));
-            env.Append("';");
+            env.Append("\";");
 
             var result2 =
                 sshAccess.RunCommand($"{env} nohup ~/CIExecutor {GetConnectToUrl(job)} > " +

@@ -2,15 +2,17 @@ namespace ThriveDevCenter.Server.Common.Utilities
 {
     public static class BashEscape
     {
-        public static string EscapeForBash(string commandPart)
+        public static string EscapeForBash(string commandPart, bool allowVariables = false)
         {
             if (string.IsNullOrEmpty(commandPart))
                 return string.Empty;
 
-            return commandPart.Replace(@"\", @"\\").Replace(@"'", @"\'");
+            var result = commandPart.Replace(@"\", @"\\").Replace(@"""", @"\""");
 
-            // return commandPart.Replace(@"\", @"\\").Replace(@"""", @"\""")
-            //    .Replace(@"'", @"\'");
+            if (!allowVariables)
+                result = result.Replace(@"$", @"\$");
+
+            return result;
         }
     }
 }

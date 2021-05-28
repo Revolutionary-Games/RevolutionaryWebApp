@@ -673,9 +673,9 @@ namespace CIExecutor
                     step.Run.Command.Substring(0, Math.Min(70, step.Run.Command.Length)) :
                     step.Run.Name;
 
-                command.Add($"echo '{OutputSpecialCommandMarker} SectionStart {name}'");
-
                 command.Add("if [ $overallStatus -eq 0 ]; then");
+
+                command.Add($"echo \"{OutputSpecialCommandMarker} SectionStart {BashEscape.EscapeForBash(name)}\"");
 
                 // Step is ran in subshell
                 command.Add("(");
@@ -890,6 +890,17 @@ namespace CIExecutor
                 }
 
                 await process.StandardInput.WriteLineAsync(line);
+            }
+
+            Console.WriteLine("All standard input lines written");
+
+            try
+            {
+                process.StandardInput.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to close input stream after writing input: {0}", e);
             }
 
             return await taskCompletionSource.Task;
