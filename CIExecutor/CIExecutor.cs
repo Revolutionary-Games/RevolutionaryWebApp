@@ -326,10 +326,13 @@ namespace CIExecutor
                         if (!Directory.Exists(cachePath))
                             continue;
 
-                        await RunWithOutputStreaming("cp", new List<string>
+                        if (!await RunWithOutputStreaming("cp", new List<string>
                         {
                             "-aT", cachePath, currentBuildRootFolder,
-                        });
+                        }))
+                        {
+                            throw new Exception("Failed to run cache copy command");
+                        }
                     }
                 }
             }
@@ -442,13 +445,39 @@ namespace CIExecutor
 
                     await QueueSendBasicMessage("Build environment image doesn't exist locally, downloading...");
 
-                    await RunWithOutputStreaming("curl", new List<string>
+                    if (!await RunWithOutputStreaming("curl", new List<string>
                     {
                         "-LsS", Environment.GetEnvironmentVariable("CI_IMAGE_DL_URL"), "--output", ciImageFile
-                    });
+                    }))
+                    {
+                        // Delete a partial download
+                        try
+                        {
+                            File.Delete(ciImageFile);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Failed to delete failed image download: {0}", e);
+                        }
+
+                        throw new Exception("Failed to download image file");
+                    }
                 }
 
-                await RunWithOutputStreaming("podman", new List<string> { "load", "-i", ciImageFile });
+                if (!await RunWithOutputStreaming("podman", new List<string> { "load", "-i", ciImageFile }))
+                {
+                    // Delete a bad download
+                    try
+                    {
+                        File.Delete(ciImageFile);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Failed to delete invalid image file: {0}", e);
+                    }
+
+                    throw new Exception("Failed to load the image file");
+                }
 
                 await QueueSendBasicMessage("Build environment image loaded");
 
