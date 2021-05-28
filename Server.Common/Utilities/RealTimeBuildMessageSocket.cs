@@ -55,9 +55,6 @@ namespace ThriveDevCenter.Server.Common.Utilities
                     $"Received too long realTimeBuildMessage length: {messageSize}");
             }
 
-            if (messageSize <= 0)
-                return (null, false);
-
             // Read the realTimeBuildMessage
             // First allocate big enough buffer
             if (messageBuffer == null || messageBuffer.Length < messageSize)
