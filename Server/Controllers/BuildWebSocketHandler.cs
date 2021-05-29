@@ -259,6 +259,7 @@ namespace ThriveDevCenter.Server.Controllers
                                 {
                                     activeSection.CiJobOutputSectionId = ++sectionNumberCounter;
 
+                                    // TODO: change this to trace once the exception catch below is solved
                                     logger.LogInformation(
                                         "Creating output section: {CiProjectId}-{CiBuildId}-{CiJobId}-" +
                                         "{CiJobOutputSectionId}", job.CiProjectId, job.CiBuildId, job.CiJobId,
@@ -294,6 +295,7 @@ namespace ThriveDevCenter.Server.Controllers
                         if (activeSection == null)
                         {
                             logger.LogError("Received a build output message but there is no active section");
+                            logger.LogInformation("Missed message for above error: {Output}", message.Output);
                             await SendMessage(new RealTimeBuildMessage()
                             {
                                 Type = BuildSectionMessageType.Error,
