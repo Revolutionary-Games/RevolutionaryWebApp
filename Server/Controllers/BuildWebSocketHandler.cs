@@ -125,8 +125,9 @@ namespace ThriveDevCenter.Server.Controllers
 
                 // Fetch the open section if there is one
                 activeSection = await database.CiJobOutputSections.AsQueryable()
-                    .FirstOrDefaultAsync(s => s.CiProjectId == job.CiProjectId && s.CiBuildId == job.CiBuildId &&
-                        s.CiJobId == job.CiJobId && s.Status == CIJobSectionStatus.Running);
+                    .Where(s => s.CiProjectId == job.CiProjectId && s.CiBuildId == job.CiBuildId &&
+                        s.CiJobId == job.CiJobId && s.Status == CIJobSectionStatus.Running)
+                    .OrderByDescending(s => s.CiJobOutputSectionId).FirstOrDefaultAsync();
 
                 if (activeSection != null)
                 {
@@ -246,7 +247,6 @@ namespace ThriveDevCenter.Server.Controllers
                                     CiProjectId = job.CiProjectId,
                                     CiBuildId = job.CiBuildId,
                                     CiJobId = job.CiJobId,
-                                    CiJobOutputSectionId = ++sectionNumberCounter,
                                     Name = message.SectionName,
                                     Output = message.Output ?? string.Empty
                                 };
@@ -254,8 +254,28 @@ namespace ThriveDevCenter.Server.Controllers
                                 outputSectionText.Clear();
                                 activeSection.CalculateOutputLength();
 
-                                await database.CiJobOutputSections.AddAsync(activeSection);
-                                await database.SaveChangesAsync();
+                                // TODO: find out why this sometimes causes duplicate IDs...
+                                for (int i = 0; i < 50; ++i)
+                                {
+                                    activeSection.CiJobOutputSectionId = ++sectionNumberCounter;
+
+                                    logger.LogInformation(
+                                        "Creating output section: {CiProjectId}-{CiBuildId}-{CiJobId}-" +
+                                        "{CiJobOutputSectionId}", job.CiProjectId, job.CiBuildId, job.CiJobId,
+                                        activeSection.CiJobOutputSectionId);
+
+                                    try
+                                    {
+                                        await database.CiJobOutputSections.AddAsync(activeSection);
+                                        await database.SaveChangesAsync();
+                                        break;
+                                    }
+                                    catch (DbUpdateException e)
+                                    {
+                                        logger.LogError("Somehow we created a duplicate section id, error saving: {@E}",
+                                            e);
+                                    }
+                                }
                             }
                             finally
                             {
