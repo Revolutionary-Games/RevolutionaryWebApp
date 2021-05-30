@@ -250,7 +250,18 @@ namespace ThriveDevCenter.Server.Services
                 logger.LogInformation("Creating a new server to meet demand");
 
                 // This shouldn't create multiple at once, but the API returns a list
-                var awsServers = await ec2Controller.LaunchNewInstance();
+                List<string> awsServers;
+
+                try
+                {
+                    awsServers = await ec2Controller.LaunchNewInstance();
+                }
+                catch (Exception e)
+                {
+                    logger.LogError("Failed to start new EC2 server instance: {@E}", e);
+                    return false;
+                }
+
                 NewServersAdded = true;
 
                 foreach (var awsServer in awsServers)
