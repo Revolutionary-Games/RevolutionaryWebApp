@@ -117,6 +117,7 @@ namespace CIExecutor
                 Type = BuildSectionMessageType.SectionStart,
                 SectionName = "Environment setup",
             });
+            lastSectionClosed = false;
 
             Console.WriteLine("Going to parse cache options");
             try
@@ -199,6 +200,14 @@ namespace CIExecutor
 
         private async Task QueueSendMessage(RealTimeBuildMessage message)
         {
+            if (lastSectionClosed && message.Type == BuildSectionMessageType.BuildOutput)
+            {
+                Console.WriteLine("Ignoring build message to be sent as there's no active section: {0}",
+                    message.Output);
+                Console.WriteLine(Environment.StackTrace);
+                return;
+            }
+
             bool queueLarge = false;
 
             lock (queuedBuildMessages)
@@ -486,6 +495,7 @@ namespace CIExecutor
                     Type = BuildSectionMessageType.SectionEnd,
                     WasSuccessful = true,
                 });
+                lastSectionClosed = true;
             }
             catch (Exception e)
             {
@@ -503,6 +513,7 @@ namespace CIExecutor
                     Type = BuildSectionMessageType.SectionStart,
                     SectionName = "Build start",
                 });
+                lastSectionClosed = false;
 
                 await QueueSendBasicMessage($"Using build environment image: {ciImageName}");
 
@@ -574,6 +585,7 @@ namespace CIExecutor
                         Type = BuildSectionMessageType.SectionEnd,
                         WasSuccessful = result,
                     });
+                    lastSectionClosed = true;
                 }
             }
             catch (Exception e)
@@ -616,6 +628,7 @@ namespace CIExecutor
                 Type = BuildSectionMessageType.SectionEnd,
                 WasSuccessful = false,
             });
+            lastSectionClosed = true;
 
             Failure = true;
         }
@@ -793,10 +806,13 @@ namespace CIExecutor
             };
             process.ErrorDataReceived += (sender, args) =>
             {
+                if (args.Data == null)
+                    return;
+
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.BuildOutput,
-                    Output = (args.Data ?? "") + "\n",
+                    Output = args.Data + "\n",
                 }).Wait();
             };
 
@@ -887,8 +903,8 @@ namespace CIExecutor
                                 Type = BuildSectionMessageType.SectionStart,
                                 SectionName = string.Join(' ', parts.Skip(2)),
                             }).Wait();
-
                             lastSectionClosed = false;
+
                             break;
                         }
                         default:
@@ -898,22 +914,25 @@ namespace CIExecutor
                         }
                     }
                 }
-                else
+                else if (args.Data != null)
                 {
                     // Normal output
                     QueueSendMessage(new RealTimeBuildMessage()
                     {
                         Type = BuildSectionMessageType.BuildOutput,
-                        Output = (args.Data ?? "") + "\n",
+                        Output = args.Data + "\n",
                     }).Wait();
                 }
             };
             process.ErrorDataReceived += (sender, args) =>
             {
+                if (args.Data == null)
+                    return;
+
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.BuildOutput,
-                    Output = (args.Data ?? "") + "\n",
+                    Output = args.Data + "\n",
                 }).Wait();
             };
 
