@@ -41,6 +41,13 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 logger.LogError("CI job doesn't have RunningOnServerId set for SetFinishedCIJobStatus");
 
+                if (job.State != CIJobState.Finished)
+                {
+                    logger.LogError("Forcing job state to be a failure");
+                    job.SetFinishSuccess(false);
+                    await Database.SaveChangesAsync(cancellationToken);
+                }
+
                 // Just for safety make sure that the job doesn't get stuck in going to fail status
                 JobClient.Enqueue<CheckOverallBuildStatusJob>(x =>
                     x.Execute(job.CiProjectId, job.CiBuildId, CancellationToken.None));

@@ -355,7 +355,13 @@ namespace ThriveDevCenter.Server.Models
                     nameof(CiJobOutputSection.CiJobId), nameof(CiJobOutputSection.CiJobOutputSectionId));
             });
 
-            modelBuilder.Entity<ControlledServer>(entity => { entity.UseXminAsConcurrencyToken(); });
+            modelBuilder.Entity<ControlledServer>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+
+                entity.Property(e => e.CleanUpQueued).HasDefaultValue(false);
+                entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
+            });
         }
 
         private Task SendUpdateNotifications(List<Tuple<SerializedNotification, string>> messages)

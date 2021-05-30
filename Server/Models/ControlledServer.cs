@@ -45,8 +45,13 @@ namespace ThriveDevCenter.Server.Models
 
         public string InstanceId { get; set; }
 
-        // TODO: implement detecting this and adjusting volume size if not enough
-        public long AvailableDiskSpace { get; set; }
+        /// <summary>
+        ///   This is percentage of the used disk space
+        /// </summary>
+        [AllowSortingBy]
+        public int UsedDiskSpace { get; set; }
+
+        public bool CleanUpQueued { get; set; }
 
         /// <summary>
         ///   If true no new jobs are allowed to start
@@ -77,6 +82,7 @@ namespace ThriveDevCenter.Server.Models
                 Status = Status,
                 StatusLastChecked = StatusLastChecked,
                 ReservationType = ReservationType,
+                ReservedFor = ReservedFor?.ToString() ?? "unset",
                 PublicAddress = PublicAddress,
                 RunningSince = RunningSince,
                 TotalRuntime = TotalRuntime,
@@ -84,6 +90,8 @@ namespace ThriveDevCenter.Server.Models
                 InstanceId = InstanceId,
                 WantsMaintenance = WantsMaintenance,
                 LastMaintenance = LastMaintenance,
+                UsedDiskSpace = UsedDiskSpace,
+                CleanUpQueued = CleanUpQueued,
                 CreatedAt = CreatedAt,
                 UpdatedAt = UpdatedAt
             };

@@ -15,6 +15,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Hangfire;
     using Jobs;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
@@ -239,6 +240,32 @@ namespace ThriveDevCenter.Server.Controllers
             return server.GetDTO();
         }
 
+        [HttpPost("{id:long}/queueCleanUp")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> QueueCleanUp(long id)
+        {
+            FailIfNotConfigured();
+
+            var server = await database.ControlledServers.FindAsync(id);
+
+            if (server == null)
+                return NotFound();
+
+            if (server.CleanUpQueued)
+                return Ok("Server already has clean up queued");
+
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"Server {id} is queued for clean up",
+                PerformedById = HttpContext.AuthenticatedUser().Id,
+            });
+
+            server.CleanUpQueued = true;
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
         [HttpPost("{id:long}/refreshStatus")]
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<ActionResult<ControlledServerDTO>> RefreshServerStatus(long id)
@@ -275,6 +302,7 @@ namespace ThriveDevCenter.Server.Controllers
                     logger.LogInformation("Server {Id} status is now {Status} after status re-check API request",
                         server.Id, server.Status);
 
+                    // TODO: this needs to do reservation status change performing if this is now stopped etc.
                     server.StatusLastChecked = DateTime.UtcNow;
                     server.BumpUpdatedAt();
 
@@ -287,6 +315,61 @@ namespace ThriveDevCenter.Server.Controllers
             return BadRequest("Could not query the server status");
         }
 
+        [HttpPost("refreshStatuses")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<ActionResult<ControlledServerDTO>> RefreshAllStatuses()
+        {
+            FailIfNotConfigured();
+
+            var servers = await database.ControlledServers.AsQueryable()
+                .Where(s => s.Status != ServerStatus.Terminated).ToListAsync();
+
+            if (servers.Count < 1)
+                return Ok("No servers exist");
+
+            logger.LogInformation("All server statuses refreshed by: {Email}", HttpContext.AuthenticatedUser().Email);
+
+            List<Instance> newStatuses;
+            try
+            {
+                newStatuses =
+                    await ec2Controller.GetInstanceStatuses(servers.Select(s => s.InstanceId).ToList(),
+                        CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                logger.LogInformation("Failed to fetch server statuses due to: {@E}", e);
+                return BadRequest("Could not get server statuses, probably some instance id is valid for some reason");
+            }
+
+            foreach (var status in newStatuses)
+            {
+                var targetServer = servers.FirstOrDefault(s => s.InstanceId == status.InstanceId);
+
+                if (targetServer == null)
+                {
+                    logger.LogError("Got status response for a server we didn't ask about: {InstanceId}",
+                        status.InstanceId);
+                    continue;
+                }
+
+                var newStatus = EC2Controller.InstanceStateToStatus(status);
+
+                if (newStatus == targetServer.Status)
+                    continue;
+
+                targetServer.Status = newStatus;
+                logger.LogInformation("Server {Id} status is now {Status} after status re-check API request",
+                    targetServer.Id, targetServer.Status);
+
+                targetServer.StatusLastChecked = DateTime.UtcNow;
+                targetServer.BumpUpdatedAt();
+            }
+
+            await database.SaveChangesAsync();
+            return Ok();
+        }
+
         [NonAction]
         private static void UpdateCommonServerStatuses(ControlledServer server)
         {
@@ -295,6 +378,7 @@ namespace ThriveDevCenter.Server.Controllers
             server.StatusLastChecked = now;
             server.BumpUpdatedAt();
             server.ReservationType = ServerReservationType.None;
+            server.CleanUpQueued = false;
 
             if (server.RunningSince != null)
                 server.TotalRuntime += (now - server.RunningSince.Value).TotalSeconds;

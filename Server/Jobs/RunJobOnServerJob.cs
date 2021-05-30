@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Net.Sockets;
     using System.Text;
     using System.Text.Json;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Common.Utilities;
@@ -30,6 +31,8 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly ControlledServerSSHAccess sshAccess;
         private readonly GeneralRemoteDownloadUrls remoteDownloadUrls;
 
+        private readonly int cleanThreshold;
+
         public RunJobOnServerJob(ILogger<RunJobOnServerJob> logger, IConfiguration configuration,
             NotificationsEnabledDb database, ControlledServerSSHAccess sshAccess, IBackgroundJobClient jobClient,
             GithubCommitStatusReporter statusReporter, GeneralRemoteDownloadUrls remoteDownloadUrls) : base(logger,
@@ -39,6 +42,7 @@ namespace ThriveDevCenter.Server.Jobs
             this.configuration = configuration;
             this.sshAccess = sshAccess;
             this.remoteDownloadUrls = remoteDownloadUrls;
+            cleanThreshold = Convert.ToInt32(configuration["ServerCleanUpDiskUsePercentage"]);
         }
 
         public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId, int retries,
@@ -166,20 +170,11 @@ namespace ThriveDevCenter.Server.Jobs
                 .Where(s => s.CiProjectId == job.CiProjectId && (s.UsedForBuildTypes == jobSpecificSecretType ||
                     s.UsedForBuildTypes == CISecretType.All)).ToListAsync(cancellationToken);
 
+            await PerformServerCleanUpIfNeeded(server);
+
             // This save is done here as the build status might get reported back to us before we finish with the ssh
             // commands
             await Database.SaveChangesAsync(cancellationToken);
-
-            // TODO: check server remaining disk space here
-            var diskSpaceResult = sshAccess.RunCommand("df");
-
-            if (!diskSpaceResult.Success)
-            {
-                throw new Exception(
-                    $"Failed to check server disk space: {diskSpaceResult.Result}, error: {diskSpaceResult.Error}");
-            }
-
-            Logger.LogInformation($"Remaining diskspace: {diskSpaceResult.Result}");
 
             // Then move on to the build starting, first thing is to download the CI executor script
             // TODO: is there a possibility that this is not secure? Someone would need to do HTTPS MItM attack...
@@ -253,6 +248,89 @@ namespace ThriveDevCenter.Server.Jobs
 
             Logger.LogInformation(
                 "CI job startup succeeded, now it's up to the executor to contact us with updates");
+        }
+
+        private async Task PerformServerCleanUpIfNeeded(ControlledServer server)
+        {
+            int? detectedUsedPercentage = null;
+
+            // Check server remaining disk space here
+            var diskSpaceResult = sshAccess.RunCommand("df");
+
+            if (!diskSpaceResult.Success)
+            {
+                throw new Exception(
+                    $"Failed to check server disk space: {diskSpaceResult.Result}, error: {diskSpaceResult.Error}");
+            }
+
+            foreach (var line in diskSpaceResult.Result.Split('\n'))
+            {
+                var match = Regex.Match(line, @"(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)%\s+(\S+)\s*");
+
+                if (!match.Success)
+                    continue;
+
+                var groups = match.Groups;
+
+                // Skip if doesn't start with /dev
+                if (!groups[1].Captures[0].Value.StartsWith("/dev/"))
+                    continue;
+
+                var percentage = Convert.ToInt32(groups[5].Captures[0].Value);
+
+                // Immediately return if we found the root file system
+                if (groups[6].Captures[0].Value == "/")
+                {
+                    detectedUsedPercentage = percentage;
+                    break;
+                }
+
+                detectedUsedPercentage = percentage;
+            }
+
+            if (detectedUsedPercentage == null)
+            {
+                Logger.LogWarning("Could not detect free disk space from: {Result}", diskSpaceResult.Result);
+                detectedUsedPercentage = -1;
+            }
+
+            server.UsedDiskSpace = detectedUsedPercentage.Value;
+
+            if (server.CleanUpQueued || server.UsedDiskSpace > cleanThreshold)
+            {
+                Logger.LogInformation(
+                    "Cleaning server {Id} because it's disk use is (or manual clean was requested): {UsedDiskSpace}%",
+                    server.Id, server.UsedDiskSpace);
+
+                await PerformServerCleanUp(server);
+                server.CleanUpQueued = false;
+            }
+
+            await Database.SaveChangesAsync();
+        }
+
+        private async Task PerformServerCleanUp(ControlledServer server)
+        {
+            var start = DateTime.UtcNow;
+
+            // This deletes everything (maybe sometimes it would be better to leave the downloaded images alone)
+            // "-f" is very important here to prevent this just getting locked up forever
+            var cleanupResult =
+                sshAccess.RunCommand("sudo rm -rf /executor_cache/* && rm -rf ~/images && podman system reset -f");
+
+            if (!cleanupResult.Success)
+            {
+                Logger.LogError("Failed to cleanup on server: {Result}, error: {Error}", cleanupResult.Result,
+                    cleanupResult.Error);
+
+                await Database.LogEntries.AddAsync(new LogEntry()
+                {
+                    Message = $"Failed to cleanup server {server.Id}"
+                });
+            }
+
+            var elapsed = DateTime.UtcNow - start;
+            Logger.LogInformation("Completed cleanup for server {Id}, elapsed: {Elapsed}", server.Id, elapsed);
         }
 
         private async Task Requeue(CiJob job, int retries, ControlledServer server)

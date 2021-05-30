@@ -39,8 +39,9 @@
                         <td>@item.Status</td>
                         <td>@item.PublicAddress</td>
                         <td>@item.StatusLastChecked.ToLocalTime().ToString("t")</td>
-                        <td>@item.ReservationType</td>
-                        <td>@(TimeSpan.FromSeconds(item.TotalRuntime))</td>
+                        <td>@item.ReservationType (@item.ReservedFor)</td>
+                        <td>@($"{item.UsedDiskSpace}%")</td>
+                        <td>@(TimeSpan.FromSeconds(Math.Round(item.TotalRuntime)))</td>
                         <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
                         <td>@item.WantsMaintenance</td>
                         <td>
@@ -61,12 +62,37 @@
                                     Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
                                 Terminate
                             </Button>
+                            <Button Enabled="@(!IsProcessing(item.Id))"
+                                    OnPressed="@(async () => await QueueCleanUp(item.Id))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm">
+                                Queue Clean
+                            </Button>
+                            <Button Enabled="@(!IsProcessing(item.Id))"
+                                    OnPressed="@(async () => await RefreshStatus(item.Id))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm">
+                                Refresh
+                            </Button>
                         </td>
                     </tr>
                 }
             }
         </PaginatedTable>
     }
+
+    <br />
+
+    <Button Enabled="@(!processingAllServers)" OnPressed="@(async () => await ReCheckAllServerStatuses())"
+            Spinner="@processingAllServers" ButtonStyle="secondary">
+        Refresh ALL Server Statuses
+    </Button>
+
+    <br />
+    <p>
+        Note that refreshing server statuses is not recommended if they aren't stuck, as the status refresh may
+        break the server status detection (as it doesn't use exactly same server state transition as elsewhere),
+        in case it wasn't stuck.
+    </p>
+
 </AccessLimited>
 
 @code {
@@ -77,6 +103,7 @@
         new TableColumn("Address", false),
         new TableColumn("Status Checked", true, "StatusLastChecked"),
         new TableColumn("Reserved For", true, "ReservationType"),
+        new TableColumn("Disk Usage", true, "UsedDiskSpace"),
         new TableColumn("Total Runtime", true, "TotalRuntime"),
         new TableColumn("Updated At", true, "UpdatedAt"),
         new TableColumn("Wants Maintenance", true, "WantsMaintenance"),
@@ -84,6 +111,8 @@
     };
 
     private readonly Dictionary<long, bool> processingItems = new();
+
+    private bool processingAllServers;
 
     private string message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
@@ -304,4 +333,119 @@
 
         await InvokeAsync(StateHasChanged);
     }
+
+    private async Task QueueCleanUp(long serverId)
+    {
+        processingItems[serverId] = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/queueCleanUp",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingItems[serverId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[serverId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Clean queued on server successfully. It will be cleaned next time a job runs on it";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshStatus(long serverId)
+    {
+        processingItems[serverId] = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/refreshStatus",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingItems[serverId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[serverId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Successfully refreshed server state from AWS API";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ReCheckAllServerStatuses()
+    {
+        processingAllServers = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/ControlledServers/refreshStatuses",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingAllServers = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingAllServers = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "All server statuses refreshed";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
 }
