@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
         {
         }
 
-        protected sealed override void Seed()
+        protected override void Seed()
         {
         }
     }

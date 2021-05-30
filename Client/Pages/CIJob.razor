@@ -1,0 +1,139 @@
+@page "/ci/{ProjectId:long}/build/{BuildId:long}/jobs/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CIJobDTO, CIJobUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <h3>
+            CI Job @Data.JobName for Build #@Data.CiBuildId in @Data.ProjectName
+            @if(Data.State == CIJobState.Finished)
+            {
+                @if (Data.Succeeded)
+                {
+                    <span class="badge badge-success ml-2">Success</span>
+                }
+                else
+                {
+                    <span class="badge badge-danger ml-2">Failed</span>
+                }
+            }
+        </h3>
+        <ul>
+            <li><strong>State</strong>: @Data.State</li>
+            <li>
+                <strong>Succeeded</strong>:
+                @(Data.State == CIJobState.Finished ? Data.Succeeded.ToString() : "pending")
+            </li>
+            <li><strong>Started At</strong>: @(Data.CreatedAt?.ToLocalTime().ToString("G") ?? "unknown")</li>
+        </ul>
+
+        <NavLink href="@($"/ci/{Data.CiProjectId}/build/{Data.CiBuildId}")" Match="NavLinkMatch.All">
+            Part of Build #@Data.CiBuildId
+        </NavLink>
+
+        <NavLink href="@($"/ci/{Data.CiProjectId}")" Match="NavLinkMatch.All">
+            for @Data.ProjectName
+        </NavLink>
+
+        <AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
+            <br />
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+            <Button Enabled="@(Data.State != CIJobState.Finished)" ButtonStyle="secondary" Spinner="@processing"
+                    OnPressed="@CancelJob">
+                Cancel
+            </Button>
+            <br />
+        </AccessLimited>
+
+        <br />
+
+        <h4>Output</h4>
+
+        <CIJobOutput ProjectId="@Data.CiProjectId" BuildId="@Data.CiBuildId" JobId="@Data.CiJobId" />
+
+        <br />
+
+        <h4>Artifacts</h4>
+    }
+</SingleResourceDisplayer>
+
+@code {
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    [Parameter]
+    public long BuildId { get; set; }
+
+    protected override Task<CIJobDTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<CIJobDTO>($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        if (Data != null)
+            groups.Add(NotificationGroups.CIProjectsBuildsJobUpdatedPrefix + Data.NotificationsId);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
+    private async void CancelJob()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/CIBuildManagement/{ProjectId}/{BuildId}/jobs/{Id}/cancel",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Build canceled";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

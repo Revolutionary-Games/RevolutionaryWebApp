@@ -17,6 +17,7 @@ namespace ThriveDevCenter.Server.Jobs
     public class CreateDefaultFoldersJob : IJob
     {
         private const string DevBuildFolderName = "DevBuild files";
+        private const string CIFolderName = "CI";
 
         private readonly ILogger<CreateDefaultFoldersJob> logger;
         private readonly ApplicationDbContext database;
@@ -58,6 +59,22 @@ namespace ThriveDevCenter.Server.Jobs
                 cancellationToken));
 
             itemsToRecompute.Add(await CreateDefaultFolder("Public", null, FileAccess.Public, FileAccess.Developer,
+                cancellationToken));
+
+            var ci = await CreateDefaultFolder(CIFolderName, null, FileAccess.Developer, FileAccess.Developer,
+                cancellationToken);
+
+            itemsToRecompute.Add(ci);
+
+            if (ci == null)
+            {
+                ci = await FindFolder(CIFolderName, null, cancellationToken);
+
+                if (ci == null)
+                    throw new NullReferenceException("ci folder failed to be retrieved");
+            }
+
+            itemsToRecompute.Add(await CreateDefaultFolder("Images", ci, FileAccess.Developer, FileAccess.Developer,
                 cancellationToken));
 
             await database.SaveChangesAsync(cancellationToken);

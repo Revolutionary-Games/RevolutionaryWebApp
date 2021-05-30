@@ -1,0 +1,104 @@
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<StorageItemVersionListUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.StorageItemVersionInfo>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="@true">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row"><a href="@GetDownloadURL(item.Version)" target="_blank">@item.Version</a></th>
+                    <td>@(item.Size != null ? item.Size.Value.BytesToMiB() : "unknown")</td>
+                    <td>@item.Keep</td>
+                    <td>@item.Protected</td>
+                    <td>@(!item.Uploading)</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                    <td>
+                        <Button Enabled="@false" ButtonStyle="danger" class="btn-sm">Delete</Button>
+                    </td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Version", true),
+        new TableColumn("Size", false),
+        new TableColumn("Keep", true),
+        new TableColumn("Protected", true),
+        new TableColumn("Uploaded", false),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Actions", false),
+    };
+
+    [Parameter]
+    public long StorageItemId { get; set; }
+
+    public StorageItemVersions() : base(new SortHelper("Version", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(StorageItemVersionListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // TODO: notifications for this
+        // groups.Add(NotificationGroups.LFSListUpdated + StorageItemId.ToString() );
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<StorageItemVersionInfo>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<StorageItemVersionInfo>>(
+            QueryHelpers.AddQueryString($"api/v1/Files/{StorageItemId}/versions", requestParams));
+    }
+
+    private string GetDownloadURL(int version)
+    {
+        var urlParams = new Dictionary<string, string> { ["version"] = version.ToString() };
+
+        return QueryHelpers.AddQueryString(new Uri(new Uri(navManager.BaseUri),
+            $"api/v1/download/{StorageItemId}").ToString(), urlParams);
+    }
+}

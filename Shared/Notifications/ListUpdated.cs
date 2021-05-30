@@ -46,6 +46,10 @@ namespace ThriveDevCenter.Shared.Notifications
     {
     }
 
+    public class ActionsUpdated : ListUpdated<ActionLogEntryDTO>
+    {
+    }
+
     public class LauncherLinkListUpdated : ListUpdated<LauncherLinkDTO>
     {
     }
@@ -55,6 +59,34 @@ namespace ThriveDevCenter.Shared.Notifications
     }
 
     public class FolderContentsUpdated : ListUpdated<StorageItemInfo>
+    {
+    }
+
+    public class CIProjectListUpdated : ListUpdated<CIProjectInfo>
+    {
+    }
+
+    public class ControlledServersUpdated : ListUpdated<ControlledServerDTO>
+    {
+    }
+
+    public class CIProjectBuildsListUpdated : ListUpdated<CIBuildDTO>
+    {
+    }
+
+    public class CIProjectSecretsUpdated : ListUpdated<CISecretDTO>
+    {
+    }
+
+    public class CIProjectBuildJobsListUpdated : ListUpdated<CIJobDTO>
+    {
+    }
+
+    public class CIProjectBuildJobOutputSectionsListUpdated : ListUpdated<CIJobOutputSectionInfo>
+    {
+    }
+
+    public class StorageItemVersionListUpdated : ListUpdated<StorageItemVersionInfo>
     {
     }
 }

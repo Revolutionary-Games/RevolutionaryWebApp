@@ -1,0 +1,122 @@
+@using ThriveDevCenter.Shared
+@using System.Text.Json
+@using ThriveDevCenter.Shared.Forms
+@using ThriveDevCenter.Shared.Models
+@inject HttpClient http
+
+@if (visible)
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+    <div>
+        Github webhook secret is:
+        @if (loading)
+        {
+            <span class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </span>
+        }
+        else
+        {
+            <span>@secret</span>
+        }
+    </div>
+    <Button OnPressed="@ToggleShow" class="mr-1">Hide</Button>
+    <Button OnPressed="@RecreateSecret" ButtonStyle="warning" Enabled="@(!processing)" Spinner="@processing">
+        Recreate
+    </Button>
+}
+else
+{
+    <Button OnPressed="@ToggleShow" ButtonStyle="primary">Show Secret</Button>
+}
+
+@code {
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool visible;
+    private bool loading;
+    private string secret;
+    private bool processing;
+
+    private async Task ToggleShow()
+    {
+        visible = !visible;
+
+        if (visible)
+            await FetchSecret();
+    }
+
+    private async Task FetchSecret()
+    {
+        loading = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // ReSharper disable once PossibleNullReferenceException
+            secret = (await http.GetFromJsonAsync<GithubWebhookDTO>("api/v1/GithubConfiguration/viewSecret")).Secret;
+        }
+        catch (Exception e)
+        {
+            statusMessage = $"Failed to retrieve the secret: {e.Message}";
+            secret = null;
+        }
+
+        loading = false;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RecreateSecret()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync("api/v1/GithubConfiguration/recreateSecret", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var content = await result.Content.ReadAsStringAsync();
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Secret recreated";
+            statusMessageType = SiteNoticeType.Info;
+
+            try
+            {
+    // ReSharper disable once PossibleNullReferenceException
+                secret = JsonSerializer.Deserialize<GithubWebhookDTO>(content,
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web)).Secret;
+            }
+            catch (Exception e)
+            {
+                statusMessage = $"Error parsing server response: {e}";
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

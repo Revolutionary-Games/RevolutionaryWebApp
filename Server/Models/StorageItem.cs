@@ -28,7 +28,7 @@ namespace ThriveDevCenter.Server.Models
         public bool Special { get; set; } = false;
 
         [AllowSortingBy]
-        public int? Size { get; set; }
+        public long? Size { get; set; }
 
         // TODO: change to required
         public FileAccess ReadAccess { get; set; } = FileAccess.Developer;
@@ -49,6 +49,7 @@ namespace ThriveDevCenter.Server.Models
         // Things that can reference this
         public ICollection<DehydratedObject> DehydratedObjects { get; set; } = new HashSet<DehydratedObject>();
         public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
+        public ICollection<CiJobArtifact> CiJobArtifacts { get; set; } = new HashSet<CiJobArtifact>();
 
         public static Task<StorageItem> GetDevBuildsFolder(ApplicationDbContext database)
         {
@@ -72,6 +73,39 @@ namespace ThriveDevCenter.Server.Models
                 .FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Dehydrated");
         }
 
+        public static async Task<StorageItem> FindByPath(ApplicationDbContext database, string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                // Root folder is represented by null
+                return null;
+            }
+
+            var pathParts = path.Split('/');
+
+            StorageItem currentItem = null;
+
+            foreach (var part in pathParts)
+            {
+                // Skip empty parts to support starting with a slash or having multiple in a row
+                if (string.IsNullOrEmpty(part))
+                    continue;
+
+                // If we have already found a file, then further path parts are invalid
+                if (currentItem?.Ftype == FileType.File)
+                    throw new ArgumentException("Detected further path components after a file was found");
+
+                var currentId = currentItem?.Id;
+                var nextItem =
+                    await database.StorageItems.AsQueryable()
+                        .FirstOrDefaultAsync(i => i.ParentId == currentId && i.Name == part);
+
+                currentItem = nextItem ?? throw new ArgumentException($"Path part \"{part}\" doesn't exist");
+            }
+
+            return currentItem;
+        }
+
         public bool IsReadableBy(User user)
         {
             return ReadAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId);
@@ -79,8 +113,14 @@ namespace ThriveDevCenter.Server.Models
 
         public bool IsWritableBy(User user)
         {
-            // Special files aren't writable by anyone
-            return WriteAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId) && !Special;
+            if (!WriteAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId))
+                return false;
+
+            // Special files aren't writable by anyone, but special folders are writable
+            if (Ftype == FileType.File)
+                return !Special;
+
+            return true;
         }
 
         public Task<StorageItemVersion> GetHighestVersion(ApplicationDbContext database)
@@ -94,6 +134,13 @@ namespace ThriveDevCenter.Server.Models
             return database.StorageItemVersions.AsQueryable().Include(v => v.StorageFile)
                 .Where(v => v.StorageItemId == Id && v.Uploading != true)
                 .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
+        }
+
+        public Task<StorageItemVersion> GetLowestUploadedVersion(ApplicationDbContext database)
+        {
+            return database.StorageItemVersions.AsQueryable().Include(v => v.StorageFile)
+                .Where(v => v.StorageItemId == Id && v.Uploading != true)
+                .OrderBy(v => v.Version).FirstOrDefaultAsync();
         }
 
         public async Task<int> GetNextVersionNumber(ApplicationDbContext database)
@@ -145,6 +192,38 @@ namespace ThriveDevCenter.Server.Models
             }
 
             return parentPath + Name;
+        }
+
+        /// <summary>
+        ///   Returns all the parent folders up to the root folder
+        ///   (but doesn't return null representing the root folder)
+        /// </summary>
+        /// <param name="database">Where to load parents from</param>
+        /// <returns>
+        ///   Enumerator that results in all the parent folders starting from the immediate parent and going up the tree
+        /// </returns>
+        public async Task<IEnumerable<StorageItem>> GetParentsRecursively(NotificationsEnabledDb database)
+        {
+            var result = new List<StorageItem>();
+
+            if (ParentId != null)
+            {
+                var parent = Parent;
+
+                if (parent == null)
+                {
+                    parent = await database.StorageItems.FindAsync(ParentId);
+
+                    if (parent == null)
+                        throw new NullReferenceException(
+                            "failed to get the StorageItem parent for parent folder returning");
+                }
+
+                result.Add(parent);
+                result.AddRange(await parent.GetParentsRecursively(database));
+            }
+
+            return result;
         }
 
         public StorageItemInfo GetInfo()

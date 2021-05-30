@@ -1,13 +1,11 @@
 namespace ThriveDevCenter.Server.Utilities
 {
     using System;
-    using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Security.Cryptography;
     using System.Text;
-    using Shared;
 
     /// <summary>
     ///   To avoid timing attacks when querying the database this class provides helpers for searching based on

@@ -1,0 +1,238 @@
+@inject HttpClient http
+@using ThriveDevCenter.Client.Pages
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using System.Data.SqlTypes
+
+@if(!showVerifyForm && !showUnVerifyForm)
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+}
+
+@if (!Data.Verified)
+{
+    @if (showVerifyForm)
+    {
+        <p>
+            Build verification is meant as an extra safety precaution against anonymously uploaded builds.
+            Non-anonymous builds are authenticated with a key that the build server has. This means that they are safe
+            as long as our repository isn't compromised, by for example a developer's account being hacked. Because
+            anonymous builds are not verified by a key, anyone else who knows the approach could upload their own
+            files. As such before the launcher downloads an anonymous build without complaint it needs to be verified.
+        </p>
+
+        <p>
+            Before marking this build as verified, please at least do the following: check that a pull request (PR)
+            exists on our Github with the latest commit hash matching, that PR doesn't touch any of the upload and
+            package scripts, the PR doesn't contains suspicious C# code in it (that might be a virus), and that the
+            build results in the CI output mention in the upload builds step that a build with the expected hash was
+            uploaded. These checks should ensure that the build doesn't have unexpected code in it.
+        </p>
+
+        <form>
+            <div class="form-row">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="siblingBuildsAsWell" @bind="siblings">
+                    <label class="form-check-label" for="siblingBuildsAsWell">
+                        Verify sibling builds (the same hash but different platforms)
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="buildVerifiedAccordingToInstructions"
+                           @bind="formChecked">
+                    <label class="form-check-label" for="buildVerifiedAccordingToInstructions">
+                        I have verified this build according to the instructions
+                    </label>
+                </div>
+            </div>
+
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+            <Button class="my-1 mr-1" Enabled="@formChecked" OnPressed="@VerifyThisBuild" Spinner="@processing"
+                    ButtonStyle="primary">
+                Verify It
+            </Button>
+            <Button ButtonStyle="secondary" OnPressed="@CancelVerify">
+                Cancel
+            </Button>
+        </form>
+    }
+    else
+    {
+        <Button Enabled="@CanVerify" ButtonStyle="primary" Spinner="@processing" OnPressed="@ShowVerifyForm">
+            Verify This Build
+        </Button>
+    }
+}
+else
+{
+    @if (showUnVerifyForm)
+    {
+        <p>
+            Builds should only be unverified if a mistake was made when verifying or turns out that the build
+            contained well hidden malicious code.
+        </p>
+
+        <form>
+            <div class="form-row">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="siblingBuildsAsWell" @bind="siblings">
+                    <label class="form-check-label" for="siblingBuildsAsWell">
+                        Un-verify sibling builds
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="buildUnVerificationWanted" @bind="formChecked">
+                    <label class="form-check-label" for="buildUnVerificationWanted">
+                        I want to un-verify this build
+                    </label>
+                </div>
+            </div>
+
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+            <Button class="my-1 mr-1" Enabled="@formChecked" OnPressed="@UnVerifyThisBuild" Spinner="@processing"
+                    ButtonStyle="warning">
+                Remove Verification
+            </Button>
+            <Button ButtonStyle="secondary" OnPressed="@CancelVerify">
+                Cancel
+            </Button>
+        </form>
+    }
+    else
+    {
+        <Button Enabled="@CanUnVerify" ButtonStyle="warning" Spinner="@processing" OnPressed="@ShowUnVerifyForm">
+            Un-verify This Build
+        </Button>
+    }
+}
+
+@code {
+    private bool siblings;
+    private bool formChecked;
+
+    private bool showVerifyForm;
+    private bool showUnVerifyForm;
+
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public DevBuildDTO Data { get; set; }
+
+    private bool CanVerify => !processing && Data is {Verified: false };
+    private bool CanUnVerify => !processing && Data is {Verified: true, BuildOfTheDay: false };
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private void ShowVerifyForm()
+    {
+        siblings = true;
+        formChecked = false;
+        statusMessage = null;
+        showVerifyForm = true;
+    }
+
+    private void CancelVerify()
+    {
+        showVerifyForm = false;
+        showUnVerifyForm = false;
+    }
+
+    private void ShowUnVerifyForm()
+    {
+        siblings = true;
+        formChecked = false;
+        statusMessage = null;
+        showUnVerifyForm = true;
+    }
+
+    private async void VerifyThisBuild()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/DevBuilds/{Data.Id}/verify?siblingsAsWell={siblings}",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Build is now verified";
+            statusMessageType = SiteNoticeType.Info;
+            showVerifyForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void UnVerifyThisBuild()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/DevBuilds/{Data.Id}/verify?siblingsAsWell={siblings}");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Build is now unverified";
+            statusMessageType = SiteNoticeType.Primary;
+            showUnVerifyForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

@@ -1,0 +1,18 @@
+@page "/admin/servers"
+@using ThriveDevCenter.Shared.Models
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<h3>Servers</h3>
+
+<h4>Controlled Servers</h4>
+
+These are automatically managed servers managed through AWS API.
+
+<br />
+
+<ControlledServers />
+</AccessLimited>
+
+@code {
+
+}

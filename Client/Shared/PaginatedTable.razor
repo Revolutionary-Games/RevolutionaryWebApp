@@ -1,45 +1,9 @@
 <div>
-    <div style="position: relative">
-        <table class="table sortable table-striped table-hover @ResponsiveType @ExtraCSS">
-            <thead class="thead-light">
-            <tr>
-                @foreach (var column in Columns)
-                {
-                    <th scope="col" class="@(column.IsSortable ? "sort" : "")"
-                        @onclick="@(async () => {if (column.IsSortable)
-                                      await OnSortChanged.InvokeAsync(column.SortName);})">
-                        @column.Name
-
-                        @if (column.IsSortable)
-                        {
-                            <span class="@GetSortClass.Invoke(column.SortName)"></span>
-                        }
-                    </th>
-                }
-            </tr>
-            </thead>
-            <tbody>
-            @ChildContent
-            </tbody>
-        </table>
-        <!-- Firefox gives a warning about this for no reason if placed within the table
-        https://bugzilla.mozilla.org/show_bug.cgi?id=1081683 so instead this is placed over the entire table -->
-        @if (ContentSpinner)
-        {
-            <div class="overlay">
-                <div class="d-flex justify-content-center align-items-center" style="height: 100%;">
-                    <div class="spinner-border text-light" role="status">
-                        <span class="sr-only">Loading...</span>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    @if (ShowNoContent)
-    {
-        <div>No items found</div>
-    }
+    <SortableTable ResponsiveType="@ResponsiveType" UseNonFixedColumns="@UseNonFixedColumns"
+                   ShowContentSpinner="@ContentSpinner" ShowNoContent="@ShowNoContent" Columns="@Columns"
+                   OnSortChanged="@OnSortChanged" GetSortClass="@GetSortClass">
+        @ChildContent
+    </SortableTable>
 
     @if (ShowPaginator)
     {
@@ -73,8 +37,6 @@
 
     private bool isSmall;
     private bool isLarge;
-
-    public delegate string CalculateSortClass(string column);
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
@@ -116,7 +78,7 @@
     public EventCallback<string> OnSortChanged { get; set; }
 
     [Parameter]
-    public CalculateSortClass GetSortClass { get; set; }
+    public SortableTable.CalculateSortClass GetSortClass { get; set; }
 
     private int PaginatorVisiblePages
     {
@@ -131,8 +93,6 @@
             return 5;
         }
     }
-
-    private string ExtraCSS => UseNonFixedColumns ? "non-fixed" : string.Empty;
 
     private bool ContentSpinner => ShowContentSpinner && ShowPaginator;
 }

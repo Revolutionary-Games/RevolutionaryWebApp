@@ -1,9 +1,9 @@
 namespace ThriveDevCenter.Client.Shared
 {
-    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Components;
     using ThriveDevCenter.Shared;
+    using ThriveDevCenter.Shared.Converters;
     using ThriveDevCenter.Shared.Models;
 
     public abstract class BaseFileBrowser<T> : PaginatedPage<T>
@@ -50,9 +50,7 @@ namespace ThriveDevCenter.Client.Shared
 
             if (skipLastPart && browserPath.Contains('/'))
             {
-                // TODO: there's probably a more elegant algorithm possible here
-                var pathParts = browserPath.Split('/');
-                browserPath = string.Join('/', pathParts.Take(pathParts.Length - 1));
+                browserPath = PathParser.GetParentPath(browserPath);
             }
 
             var slash = string.IsNullOrEmpty(browserPath) ? string.Empty : "/";

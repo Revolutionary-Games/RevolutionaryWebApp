@@ -28,4 +28,16 @@ namespace ThriveDevCenter.Shared.Notifications
     public class StorageItemUpdated : ModelUpdated<StorageItemDTO>
     {
     }
+
+    public class CIProjectUpdated : ModelUpdated<CIProjectDTO>
+    {
+    }
+
+    public class CIBuildUpdated : ModelUpdated<CIBuildDTO>
+    {
+    }
+
+    public class CIJobUpdated : ModelUpdated<CIJobDTO>
+    {
+    }
 }

@@ -1,0 +1,27 @@
+.output {
+    border-radius: 3px;
+    border: 1px solid black;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 15px;
+    color: whitesmoke;
+    font-size: 1.2em;
+    padding: 2px 5px 2px 5px;
+    margin-top: 2px;
+}
+
+.output-content {
+    margin-bottom: 3px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.pending {
+}
+
+.success {
+}
+
+.failed {
+}

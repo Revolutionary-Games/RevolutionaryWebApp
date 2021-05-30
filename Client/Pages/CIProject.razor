@@ -1,0 +1,92 @@
+@page "/ci/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CIProjectDTO, CIProjectUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <h3>CI Project @Data.Name</h3>
+
+        <AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
+            <ul>
+                <li><strong>Repository name</strong>: @Data.RepositoryFullName</li>
+                <li><strong>Type</strong>: @Data.ProjectType</li>
+                <li><strong>Public</strong>: @Data.Public</li>
+                <li><strong>Enabled</strong>: @Data.Enabled</li>
+                <li><strong>Clone URL</strong>: @Data.RepositoryCloneUrl</li>
+                <li><strong>Default Branch</strong>: @Data.DefaultBranch</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+                <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+                    <li><strong>Deleted</strong>: @Data.Deleted</li>
+                </AccessLimited>
+            </ul>
+        </AccessLimited>
+
+        <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+
+            <Button OnPressed="@ToggleSecrets" class="mr-1 mb-2" ButtonStyle="secondary">
+                @if (showSecretsSection)
+                {
+                    <span>Hide Secrets</span>
+                }
+                else
+                {
+                    <span>Show Secrets</span>
+                }
+            </Button>
+
+            @if (showSecretsSection)
+            {
+                <CIProjectSecrets ProjectId="@Id" />
+            }
+
+            <br />
+        </AccessLimited>
+
+        <AdminResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Name" Id="@Data.Id"
+                                    DeleteURLBase="api/v1/CIProject"
+                                    DeletePromptTitle="Delete this CI Project?" />
+
+        <h3>Builds</h3>
+
+        <CIBuildsList ProjectId="@Data.Id" />
+
+    }
+</SingleResourceDisplayer>
+
+@code {
+    private bool showSecretsSection;
+
+    protected override Task<CIProjectDTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<CIProjectDTO>($"api/v1/CIProject/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CIProjectUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
+    private void ToggleSecrets()
+    {
+        showSecretsSection = !showSecretsSection;
+    }
+}

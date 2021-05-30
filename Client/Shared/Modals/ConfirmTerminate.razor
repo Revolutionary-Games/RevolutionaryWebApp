@@ -1,0 +1,34 @@
+<BootstrapModal OnCancel="@Cancel">
+    <div class="modal-body">
+        <p>Are you sure you want to terminate "@Name"?</p>
+        <p>
+            Terminating a server requires it to be reprovisioned. <br />
+            Additionally if the server is currently running something it is <strong>strongly</strong> discouraged
+            to stop it, as that may cause various problems.
+        </p>
+    </div>
+    <div class="modal-footer">
+        <Button class="mr-1" ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+        <Button class="mr-1" ButtonStyle="danger" OnPressed="@Confirm">Terminate</Button>
+    </div>
+</BootstrapModal>
+
+@code {
+
+    [CascadingParameter]
+    BlazoredModalInstance ModalInstance { get; set; }
+
+    [Parameter]
+    public string Name { get; set; }
+
+    private void Confirm()
+    {
+        ModalInstance.CloseAsync(ModalResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        ModalInstance.CloseAsync(ModalResult.Cancel());
+    }
+
+}

@@ -1,0 +1,59 @@
+@inject HttpClient http
+@inherits SingleResourcePage<IList<string>>
+@using ThriveDevCenter.Shared.Models
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <div class="output-area">
+            @* TODO: implement scrolling to last line if the last line is visible or scroll is at the top (?) *@
+
+            @{
+                var lineSource = RealtimeOutput ?? Data;
+            }
+
+            @for (int i = 0; i < lineSource.Count; ++i)
+            {
+                @* Skip last line if it is empty to not show a trailing line in the output *@
+                var line = lineSource[i];
+
+                if (i > 0 && i + 1 >= lineSource.Count && string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                <div class="output-line">
+                    <span class="line-number">@(i + 1)</span><span>@line</span>
+                </div>
+            }
+        </div>
+    }
+</SingleResourceDisplayer>
+
+@code {
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    [Parameter]
+    public long BuildId { get; set; }
+
+    [Parameter]
+    public long JobId { get; set; }
+
+    /// <summary>
+    ///   If set, overrides the data from the server fetch
+    /// </summary>
+    [Parameter]
+    public List<string> RealtimeOutput { get; set; }
+
+    protected override async Task<IList<string>> StartQuery()
+    {
+        if (RealtimeOutput != null)
+            return new List<string>();
+
+        var data = await http.GetFromJsonAsync<CIJobOutputSectionDTO>(
+            $"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{JobId}/output/{Id}");
+
+        return data?.Output.Split('\n');
+    }
+
+}

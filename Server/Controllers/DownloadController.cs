@@ -14,6 +14,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Services;
     using Shared;
     using Shared.Models;
+    using Utilities;
 
     [ApiController]
     [Route("api/v1/download")]
@@ -32,7 +33,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("{id:long}")]
-        public async Task<IActionResult> DownloadStorageItem([Required] long id, int? version)
+        public async Task<ActionResult> DownloadStorageItem([Required] long id, int? version)
         {
             if (!remoteDownload.Configured)
             {
@@ -46,7 +47,7 @@ namespace ThriveDevCenter.Server.Controllers
             var (user, restriction) = HttpContext.AuthenticatedUserWithRestriction();
 
             if (user != null && restriction != AuthenticationScopeRestriction.None)
-                return Forbid("Your login authentication method restricts access to this endpoint");
+                return this.WorkingForbid("Your login authentication method restricts access to this endpoint");
 
             var item = await database.StorageItems.FindAsync(id);
 
@@ -68,7 +69,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     // Non-latest uploaded file, need access
                     if (user == null || !user.HasAccessLevel(UserAccessLevel.User))
-                        return Forbid("You need to login to access non-latest versions of files.");
+                        return this.WorkingForbid("You need to login to access non-latest versions of files.");
                 }
 
                 toDownload = wantedVersion;

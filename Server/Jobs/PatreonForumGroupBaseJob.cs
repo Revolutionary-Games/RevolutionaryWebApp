@@ -78,13 +78,12 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var username = correspondingForumUser.Username;
 
-            // TODO: change these to trace calls once this is confirmed working
-            logger.LogInformation("Handling ({Patron}) {Username}", patron.Username,
+            logger.LogTrace("Handling ({Patron}) {Username}", patron.Username,
                 username);
 
             var shouldBeGroup = PatreonGroupHandler.ShouldBeInGroupForPatron(patron, Settings);
 
-            logger.LogInformation("Target group {ShouldBeGroup}", shouldBeGroup);
+            logger.LogTrace("Target group {ShouldBeGroup}", shouldBeGroup);
 
             // Detect group adds and removes
             CheckSingleGroupAddRemove(username, DevBuildGroupMembers,

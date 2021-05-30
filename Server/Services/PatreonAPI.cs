@@ -295,6 +295,9 @@ namespace ThriveDevCenter.Server.Services
         [JsonPropertyName("full_name")]
         public string FullName { get; set; }
 
+        [JsonPropertyName("first_name")]
+        public string FirstName { get; set; }
+
         public string Vanity { get; set; }
 
         [JsonPropertyName("declined_since")]

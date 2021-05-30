@@ -33,7 +33,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             await HandlePatrons(cancellationToken);
 
-            logger.LogInformation("Checking extraneous group members");
+            logger.LogTrace("Checking extraneous group members");
 
             UsernamesToRemoveFromDevBuild.AddRange(DevBuildGroupMembers.GetUnmarkedMembers().AsEnumerable()
                 .Select(m => m.Username));
@@ -75,8 +75,7 @@ namespace ThriveDevCenter.Server.Jobs
 
                 if (forumUser == null)
                 {
-                    // TODO: change to trace
-                    logger.LogInformation("Patron ({Username}) is missing a forum account, can't apply groups",
+                    logger.LogTrace("Patron ({Username}) is missing a forum account, can't apply groups",
                         patron.Username);
                     patron.HasForumAccount = false;
                 }

@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Models
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -8,6 +9,7 @@ namespace ThriveDevCenter.Server.Models
     using Services;
     using Shared;
     using Shared.Models;
+    using Shared.Notifications;
     using Utilities;
 
     public class ApplicationDbContext : DbContext
@@ -31,6 +33,15 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<RedeemableCode> RedeemableCodes { get; set; }
         public DbSet<AdminAction> AdminActions { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
+        public DbSet<ActionLogEntry> ActionLogEntries { get; set; }
+        public DbSet<GithubWebhook> GithubWebhooks { get; set; }
+        public DbSet<CiProject> CiProjects { get; set; }
+        public DbSet<CiSecret> CiSecrets { get; set; }
+        public DbSet<CiBuild> CiBuilds { get; set; }
+        public DbSet<CiJob> CiJobs { get; set; }
+        public DbSet<CiJobArtifact> CiJobArtifacts { get; set; }
+        public DbSet<CiJobOutputSection> CiJobOutputSections { get; set; }
+        public DbSet<ControlledServer> ControlledServers { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -39,25 +50,28 @@ namespace ThriveDevCenter.Server.Models
 
         public override int SaveChanges()
         {
-            RunPreSaveChecks().Wait();
+            var notificationsToSend = RunPreSaveChecks();
 
-            return base.SaveChanges();
-        }
+            var result = base.SaveChanges();
 
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
-        {
-            // This runs the important checks synchronously before waiting for just notifications, so we can start the
-            // db write before this completes fully
-            var checkTask = RunPreSaveChecks();
-
-            var result = await base.SaveChangesAsync(cancellationToken);
-
-            await checkTask;
+            SendUpdateNotifications(notificationsToSend).Wait();
 
             return result;
         }
 
-        public Task RunPreSaveChecks()
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        {
+            // Run pre-save validations and build notifications before saving
+            var notificationsToSend = RunPreSaveChecks();
+
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            await SendUpdateNotifications(notificationsToSend);
+
+            return result;
+        }
+
+        public List<Tuple<SerializedNotification, string>> RunPreSaveChecks()
         {
             var changedEntities = ChangeTracker
                 .Entries()
@@ -66,7 +80,7 @@ namespace ThriveDevCenter.Server.Models
 
             foreach (var entry in changedEntities)
             {
-                if(entry.State != EntityState.Added && entry.State != EntityState.Modified)
+                if (entry.State != EntityState.Added && entry.State != EntityState.Modified)
                     continue;
 
                 if (entry.Entity is IContainsHashedLookUps containsHashedLookUps)
@@ -85,27 +99,27 @@ namespace ThriveDevCenter.Server.Models
 
             var notifications = AutoSendNotifications;
 
-            if (notifications != null)
+            if (notifications == null)
+                return null;
+
+            // Build notifications
+            var notificationsToSend = new List<Tuple<SerializedNotification, string>>();
+
+            foreach (var entry in changedEntities)
             {
-                var tasks = new List<Task> { Capacity = changedEntities.Count };
-
-                foreach (var entry in changedEntities)
+                if (entry.Entity is IUpdateNotifications notifiable)
                 {
-                    if (entry.Entity is IUpdateNotifications notifiable)
-                    {
-                        bool previousSoftDeleted = false;
+                    bool previousSoftDeleted = false;
 
-                        if (notifiable.UsesSoftDelete)
-                            previousSoftDeleted = (bool)entry.OriginalValues[AppInfo.SoftDeleteAttribute];
+                    if (notifiable.UsesSoftDelete)
+                        previousSoftDeleted = (bool)entry.OriginalValues[AppInfo.SoftDeleteAttribute];
 
-                        tasks.Add(notifications.OnChangesDetected(entry.State, notifiable, previousSoftDeleted));
-                    }
+                    notificationsToSend.AddRange(notifications.OnChangesDetected(entry.State, notifiable,
+                        previousSoftDeleted));
                 }
-
-                return Task.WhenAll(tasks);
             }
 
-            return Task.CompletedTask;
+            return notificationsToSend;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -128,7 +142,7 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<DehydratedObject>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("dehydrated_objects_hilo");
 
                 entity.HasOne(d => d.StorageItem)
                     .WithMany(p => p.DehydratedObjects).OnDelete(DeleteBehavior.Restrict);
@@ -167,16 +181,13 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<LfsObject>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("lfs_objects_hilo");
 
                 entity.HasOne(d => d.LfsProject)
                     .WithMany(p => p.LfsObjects).OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<LfsProject>(entity =>
-            {
-                entity.Property(e => e.Deleted).HasDefaultValue(false);
-            });
+            modelBuilder.Entity<LfsProject>(entity => { entity.Property(e => e.Deleted).HasDefaultValue(false); });
 
             modelBuilder.Entity<PatreonSettings>(entity => { });
 
@@ -184,7 +195,7 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<ProjectGitFile>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("project_git_files_hilo");
 
                 entity.HasOne(d => d.LfsProject)
                     .WithMany(p => p.ProjectGitFiles).OnDelete(DeleteBehavior.Cascade);
@@ -192,14 +203,14 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<StorageFile>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("storage_files_hilo");
 
                 entity.Property(e => e.AllowParentless).HasDefaultValue(false);
             });
 
             modelBuilder.Entity<StorageItem>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("storage_items_hilo");
 
                 entity.HasIndex(e => e.Name, "index_storage_items_on_name")
                     .IsUnique()
@@ -222,7 +233,7 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<StorageItemVersion>(entity =>
             {
-                entity.Property(e => e.Id).UseHiLo();
+                entity.Property(e => e.Id).UseHiLo("storage_item_versions_hilo");
 
                 entity.Property(e => e.Keep).HasDefaultValue(false);
 
@@ -283,6 +294,84 @@ namespace ThriveDevCenter.Server.Models
                 entity.HasOne(d => d.PerformedBy).WithMany(p => p.PerformedAdminActions)
                     .OnDelete(DeleteBehavior.SetNull);
             });
+
+            modelBuilder.Entity<ActionLogEntry>(entity =>
+            {
+                entity.HasOne(d => d.PerformedBy).WithMany(p => p.PerformedActions)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<CiProject>(entity =>
+            {
+                entity.HasMany(p => p.CiBuilds).WithOne(d => d.CiProject)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(p => p.CiSecrets).WithOne(d => d.CiProject)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CiSecret>(entity =>
+            {
+                entity.HasKey(nameof(CiSecret.CiProjectId), nameof(CiSecret.CiSecretId));
+            });
+
+            modelBuilder.Entity<CiBuild>(entity =>
+            {
+                entity.HasKey(nameof(CiBuild.CiProjectId), nameof(CiBuild.CiBuildId));
+
+                entity.UseXminAsConcurrencyToken();
+
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
+                entity.Property(e => e.Status).HasDefaultValue(BuildStatus.Running);
+
+                entity.HasMany(p => p.CiJobs).WithOne(d => d.Build)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CiJob>(entity =>
+            {
+                entity.HasKey(nameof(CiJob.CiProjectId), nameof(CiJob.CiBuildId), nameof(CiJob.CiJobId));
+
+                entity.Property(e => e.Succeeded).HasDefaultValue(false);
+                entity.Property(e => e.RunningOnServerId).HasDefaultValue(-1);
+
+                entity.HasMany(p => p.CiJobArtifacts).WithOne(d => d.Job)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(p => p.CiJobOutputSections).WithOne(d => d.Job)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CiJobArtifact>(entity =>
+            {
+                entity.HasKey(nameof(CiJobArtifact.CiProjectId), nameof(CiJobArtifact.CiBuildId),
+                    nameof(CiJobArtifact.CiJobId), nameof(CiJobArtifact.CiJobArtifactId));
+                entity.HasOne(d => d.StorageItem).WithMany(p => p.CiJobArtifacts)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CiJobOutputSection>(entity =>
+            {
+                entity.HasKey(nameof(CiJobOutputSection.CiProjectId), nameof(CiJobOutputSection.CiBuildId),
+                    nameof(CiJobOutputSection.CiJobId), nameof(CiJobOutputSection.CiJobOutputSectionId));
+            });
+
+            modelBuilder.Entity<ControlledServer>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+
+                entity.Property(e => e.CleanUpQueued).HasDefaultValue(false);
+                entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
+            });
+        }
+
+        private Task SendUpdateNotifications(List<Tuple<SerializedNotification, string>> messages)
+        {
+            var notifications = AutoSendNotifications;
+
+            if (notifications == null || messages == null || messages.Count < 1)
+                return Task.CompletedTask;
+
+            return notifications.SendNotifications(messages);
         }
     }
 }

@@ -103,8 +103,7 @@ namespace ThriveDevCenter.Server.Authorization
             }
 
             return context.Response.WriteAsync(
-                new BasicJSONErrorResult(error, "For help see: https://wiki.revolutionarygamesstudio.com/wiki/Git_LFS")
-                    .ToString());
+                new GitLFSErrorResponse() { Message = error }.ToString());
         }
     }
 }

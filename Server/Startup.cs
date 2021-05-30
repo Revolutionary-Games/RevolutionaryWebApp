@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server
     using System.Threading.Tasks;
     using AspNetCoreRateLimit;
     using Authorization;
+    using Controllers;
     using Filters;
     using Hangfire;
     using Hangfire.PostgreSql;
@@ -166,12 +167,18 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<StaticHomePageNotice>();
             services.AddSingleton<LfsDownloadUrls>();
             services.AddSingleton<GeneralRemoteDownloadUrls>();
+            services.AddSingleton<ILocalTempFileLocks, LocalTempFileLocks>();
 
             services.AddScoped<IPatreonAPI, PatreonAPI>();
             services.AddScoped<LfsRemoteStorage>();
             services.AddScoped<GeneralRemoteStorage>();
             services.AddScoped<DevForumAPI>();
             services.AddScoped<CommunityForumAPI>();
+            services.AddScoped<RemoteServerHandler>();
+            services.AddScoped<IEC2Controller, EC2Controller>();
+            services.AddScoped<ControlledServerSSHAccess>();
+            services.AddScoped<GithubCommitStatusReporter>();
+            services.AddScoped<DiscordNotifications>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();
@@ -230,6 +237,11 @@ namespace ThriveDevCenter.Server
             app.UseResponseCompression();
 
             app.UseIpRateLimiting();
+
+            app.UseWebSockets(new WebSocketOptions()
+            {
+                KeepAliveInterval = TimeSpan.FromSeconds(60)
+            });
 
             if (env.IsDevelopment())
             {
@@ -290,6 +302,20 @@ namespace ThriveDevCenter.Server
 
             SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));
 
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path == "/ciBuildConnection")
+                {
+                    // New scope is probably needed here to not share the global ApplicationServices scope
+                    await BuildWebSocketHandler.HandleHttpConnection(context,
+                        app.ApplicationServices.CreateScope().ServiceProvider);
+                }
+                else
+                {
+                    await next();
+                }
+            });
+
             app.UseRouting();
 
             app.UseEndpoints(endpoints =>
@@ -325,11 +351,15 @@ namespace ThriveDevCenter.Server
             AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
             AddJobHelper<CheckAllSSOUsersJob>(configurationSection["CheckAllSSOUsers"]);
             AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
+            AddJobHelper<RefreshLFSProjectFileTreesJob>(configurationSection["RefreshLFSFileTrees"]);
+            AddJobHelper<DetectStuckServersJob>(configurationSection["DetectStuckServers"]);
+            AddJobHelper<DetectLeftOnServersJob>(configurationSection["DetectLeftOnServers"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
-            // TODO: remove this job once this has also been ran in production for a while
-            BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
+            // This is kept here if in the future more hashed fields are needed to be added so this might be needed
+            // in the future as well to update info in the db
+            // BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
         }
 
         private static void AddJobHelper<T>(string schedule) where T : class, IJob

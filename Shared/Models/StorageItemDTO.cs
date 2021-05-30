@@ -5,7 +5,7 @@ namespace ThriveDevCenter.Shared.Models
         public string Name { get; set; }
         public FileType Ftype { get; set; }
         public bool Special { get; set; }
-        public int? Size { get; set; }
+        public long? Size { get; set; }
         public FileAccess ReadAccess { get; set; }
         public FileAccess WriteAccess { get; set; }
         public long? OwnerId { get; set; }
@@ -17,7 +17,7 @@ namespace ThriveDevCenter.Shared.Models
     {
         public string Name { get; set; }
         public FileType Ftype { get; set; }
-        public int? Size { get; set; }
+        public long? Size { get; set; }
         public FileAccess ReadAccess { get; set; }
     }
 }

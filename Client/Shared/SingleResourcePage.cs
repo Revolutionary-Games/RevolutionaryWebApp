@@ -14,17 +14,11 @@ namespace ThriveDevCenter.Client.Shared
     /// <summary>
     ///   Base class for blazor pages that show a single resource
     /// </summary>
-    public abstract class SingleResourcePage<T, TNotification> : SimpleResourceFetcher<T>,
+    public abstract class SingleResourcePage<T, TNotification> : SingleResourcePage<T>,
         INotificationHandler<TNotification>
         where T : class, IIdentifiable
         where TNotification : ModelUpdated<T>
     {
-        /// <summary>
-        ///   Id of the resource to show
-        /// </summary>
-        [Parameter]
-        public long Id { get; set; }
-
         public Task Handle(TNotification notification, CancellationToken cancellationToken)
         {
             // TODO: could buffer the update if we are currently fetching data
@@ -42,6 +36,19 @@ namespace ThriveDevCenter.Client.Shared
         }
 
         public abstract void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
+    }
+
+    /// <summary>
+    ///   Base class for blazor pages that show a single resource without update notifications
+    /// </summary>
+    public abstract class SingleResourcePage<T> : SimpleResourceFetcher<T>
+        where T : class
+    {
+        /// <summary>
+        ///   Id of the resource to show
+        /// </summary>
+        [Parameter]
+        public long Id { get; set; }
 
         protected override async Task FetchData()
         {

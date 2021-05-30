@@ -11,6 +11,7 @@ namespace ThriveDevCenter.Client
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.JSInterop;
     using Services;
+    using TextCopy;
     using ThriveDevCenter.Shared;
 
     public class Program
@@ -49,6 +50,7 @@ namespace ThriveDevCenter.Client
             builder.Services.AddSingleton<StaticHomePageNotice>();
 
             builder.Services.AddBlazoredModal();
+            builder.Services.InjectClipboard();
 
             var app = builder.Build();
 

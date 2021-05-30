@@ -494,9 +494,10 @@ namespace ThriveDevCenter.Server.Controllers
             file.BumpUpdatedAt();
             foreach (var version in file.StorageItemVersions)
             {
+                // TODO: is it right that all versions are bumped here?
                 version.BumpUpdatedAt();
 
-                // Update StorageItems if the version is the latest
+                // Update StorageItem if the version is the latest
                 if (version.Version >= await database.StorageItemVersions.AsQueryable()
                     .Where(s => s.StorageItemId == version.StorageItemId).MaxAsync(s => s.Version))
                 {

@@ -76,6 +76,9 @@ namespace ThriveDevCenter.Server.Models
         [NotMapped]
         public string Name { get => UserName; set => UserName = value; }
 
+        [NotMapped]
+        public string NameOrEmail => Name ?? Email;
+
         /// <summary>
         ///   Builds verified by this user
         /// </summary>
@@ -105,6 +108,11 @@ namespace ThriveDevCenter.Server.Models
         ///   Admin actions performed by this user
         /// </summary>
         public ICollection<AdminAction> PerformedAdminActions { get; set; } = new HashSet<AdminAction>();
+
+        /// <summary>
+        ///   Normal level actions performed by this user
+        /// </summary>
+        public ICollection<ActionLogEntry> PerformedActions { get; set; } = new HashSet<ActionLogEntry>();
 
         /// <summary>
         ///   Active sessions of user
@@ -175,6 +183,7 @@ namespace ThriveDevCenter.Server.Models
             yield return new Tuple<SerializedNotification, string>(new UserListUpdated()
             {
                 Type = entityState.ToChangeType(),
+
                 // TODO: create a separate UserInfo type to use for the list here
                 Item = GetInfo(RecordAccessLevel.Admin)
             }, NotificationGroups.UserListUpdated);

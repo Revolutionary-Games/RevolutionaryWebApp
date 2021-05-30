@@ -53,8 +53,8 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        [HttpGet("actions")]
-        public async Task<PagedResult<AdminActionDTO>> GetActions([Required] string sortColumn,
+        [HttpGet("adminActions")]
+        public async Task<PagedResult<AdminActionDTO>> GetAdminActions([Required] string sortColumn,
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
             [Required] [Range(1, 1000)] int pageSize)
         {
@@ -63,6 +63,29 @@ namespace ThriveDevCenter.Server.Controllers
             try
             {
                 query = database.AdminActions.AsQueryable().OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpGet("actions")]
+        public async Task<PagedResult<ActionLogEntryDTO>> GetActions([Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+            [Required] [Range(1, 1000)] int pageSize)
+        {
+            IQueryable<ActionLogEntry> query;
+
+            try
+            {
+                query = database.ActionLogEntries.AsQueryable().OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {

@@ -14,6 +14,27 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string UserUpdatedPrefix = "SUser_";
         public const string UserUpdatedPrefixAdminInfo = "SAUser_";
 
+        // CI related groups
+        public const string CIProjectListUpdated = "CIProjects";
+        public const string PrivateCIProjectUpdated = "CIProject_Developer";
+        public const string CIProjectUpdatedPrefix = "SCIProject_";
+
+        public const string CIProjectBuildsUpdatedPrefix = "CIProjectBuilds_";
+        public const string CIProjectsBuildUpdatedPrefix = "CIProjectBuild_";
+
+        public const string CIProjectSecretsUpdatedPrefix = "CIProjectSecrets_";
+
+        public const string CIProjectBuildJobsUpdatedPrefix = "CIProjectBuildJobs_";
+        public const string CIProjectsBuildsJobUpdatedPrefix = "CIProjectBuildJob_";
+
+        public const string CIProjectsBuildsJobRealtimeOutputPrefix = "CIProjectBuildJobRTOutput_";
+        public const string CIProjectBuildJobSectionsUpdatedPrefix = "CIProjectBuildJobSections_";
+
+        // Not used as the the sections list updated notification already contains all the data we want to send
+        // (the output doesn't make sense to re-send fully on each subsequent update)
+        // public const string CIProjectsBuildsJobsSectionUpdatedPrefix = "CIProjectBuildJobSection_";
+
+        // Other groups
         public const string PatronListUpdated = "Patrons";
         public const string AccessKeyListUpdated = "AccessKeys";
 
@@ -25,6 +46,8 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string FolderContentsUpdatedUserPrefix = "UserFolder_";
         public const string FolderContentsUpdatedDeveloperPrefix = "DeveloperFolder_";
         public const string FolderContentsUpdatedOwnerPrefix = "OwnerFolder_";
+
+        public const string ControlledServerListUpdated = "CServers";
 
         public const string UserLauncherLinksUpdatedPrefix = "UserLaunchers_";
     }

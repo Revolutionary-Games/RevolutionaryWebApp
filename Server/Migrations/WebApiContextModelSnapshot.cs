@@ -19,10 +19,25 @@ namespace ThriveDevCenter.Server.Migrations
                 .HasAnnotation("Npgsql:DatabaseTemplate", "template0")
                 .HasAnnotation("Relational:Collation", "en_GB.UTF-8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63)
-                .HasAnnotation("ProductVersion", "5.0.5")
+                .HasAnnotation("ProductVersion", "5.0.6")
                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
-            modelBuilder.HasSequence("EntityFrameworkHiLoSequence")
+            modelBuilder.HasSequence("dehydrated_objects_hilo")
+                .IncrementsBy(10);
+
+            modelBuilder.HasSequence("lfs_objects_hilo")
+                .IncrementsBy(10);
+
+            modelBuilder.HasSequence("project_git_files_hilo")
+                .IncrementsBy(10);
+
+            modelBuilder.HasSequence("storage_files_hilo")
+                .IncrementsBy(10);
+
+            modelBuilder.HasSequence("storage_item_versions_hilo")
+                .IncrementsBy(10);
+
+            modelBuilder.HasSequence("storage_items_hilo")
                 .IncrementsBy(10);
 
             modelBuilder.Entity("DehydratedObjectDevBuild", b =>
@@ -96,6 +111,36 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("access_keys");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.ActionLogEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<long?>("PerformedById")
+                        .HasColumnType("bigint")
+                        .HasColumnName("performed_by_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_action_log_entries");
+
+                    b.HasIndex("PerformedById")
+                        .HasDatabaseName("ix_action_log_entries_performed_by_id");
+
+                    b.ToTable("action_log_entries");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.AdminAction", b =>
                 {
                     b.Property<long>("Id")
@@ -133,13 +178,416 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("admin_actions");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiBuild", b =>
+                {
+                    b.Property<long>("CiProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_project_id");
+
+                    b.Property<long>("CiBuildId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_build_id");
+
+                    b.Property<string>("Branch")
+                        .HasColumnType("text")
+                        .HasColumnName("branch");
+
+                    b.Property<string>("CommitHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("commit_hash");
+
+                    b.Property<string>("CommitMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("commit_message");
+
+                    b.Property<string>("Commits")
+                        .HasColumnType("text")
+                        .HasColumnName("commits");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("timezone('utc', now())");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<bool>("IsSafe")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_safe");
+
+                    b.Property<string>("PreviousCommit")
+                        .HasColumnType("text")
+                        .HasColumnName("previous_commit");
+
+                    b.Property<string>("RemoteRef")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("remote_ref");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("status");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("CiProjectId", "CiBuildId")
+                        .HasName("pk_ci_builds");
+
+                    b.ToTable("ci_builds");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJob", b =>
+                {
+                    b.Property<long>("CiProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_project_id");
+
+                    b.Property<long>("CiBuildId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_build_id");
+
+                    b.Property<long>("CiJobId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_job_id");
+
+                    b.Property<Guid?>("BuildOutputConnectKey")
+                        .HasColumnType("uuid")
+                        .HasColumnName("build_output_connect_key");
+
+                    b.Property<string>("CacheSettingsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("cache_settings_json");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("HashedBuildOutputConnectKey")
+                        .HasColumnType("text")
+                        .HasColumnName("hashed_build_output_connect_key");
+
+                    b.Property<string>("Image")
+                        .HasColumnType("text")
+                        .HasColumnName("image");
+
+                    b.Property<string>("JobName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("job_name");
+
+                    b.Property<long>("RunningOnServerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(-1L)
+                        .HasColumnName("running_on_server_id");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer")
+                        .HasColumnName("state");
+
+                    b.Property<bool>("Succeeded")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("succeeded");
+
+                    b.HasKey("CiProjectId", "CiBuildId", "CiJobId")
+                        .HasName("pk_ci_jobs");
+
+                    b.HasIndex("HashedBuildOutputConnectKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ci_jobs_hashed_build_output_connect_key");
+
+                    b.ToTable("ci_jobs");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJobArtifact", b =>
+                {
+                    b.Property<long>("CiProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_project_id");
+
+                    b.Property<long>("CiBuildId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_build_id");
+
+                    b.Property<long>("CiJobId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_job_id");
+
+                    b.Property<long>("CiJobArtifactId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_job_artifact_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<long>("StorageItemId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("storage_item_id");
+
+                    b.HasKey("CiProjectId", "CiBuildId", "CiJobId", "CiJobArtifactId")
+                        .HasName("pk_ci_job_artifacts");
+
+                    b.HasIndex("StorageItemId")
+                        .HasDatabaseName("ix_ci_job_artifacts_storage_item_id");
+
+                    b.ToTable("ci_job_artifacts");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJobOutputSection", b =>
+                {
+                    b.Property<long>("CiProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_project_id");
+
+                    b.Property<long>("CiBuildId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_build_id");
+
+                    b.Property<long>("CiJobId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_job_id");
+
+                    b.Property<long>("CiJobOutputSectionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_job_output_section_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Output")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("output");
+
+                    b.Property<long>("OutputLength")
+                        .HasColumnType("bigint")
+                        .HasColumnName("output_length");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("CiProjectId", "CiBuildId", "CiJobId", "CiJobOutputSectionId")
+                        .HasName("pk_ci_job_output_sections");
+
+                    b.ToTable("ci_job_output_sections");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiProject", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DefaultBranch")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("default_branch");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("ProjectType")
+                        .HasColumnType("integer")
+                        .HasColumnName("project_type");
+
+                    b.Property<bool>("Public")
+                        .HasColumnType("boolean")
+                        .HasColumnName("public");
+
+                    b.Property<string>("RepositoryCloneUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("repository_clone_url");
+
+                    b.Property<string>("RepositoryFullName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("repository_full_name");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ci_projects");
+
+                    b.ToTable("ci_projects");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiSecret", b =>
+                {
+                    b.Property<long>("CiProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_project_id");
+
+                    b.Property<long>("CiSecretId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ci_secret_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("SecretContent")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("secret_content");
+
+                    b.Property<string>("SecretName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("secret_name");
+
+                    b.Property<int>("UsedForBuildTypes")
+                        .HasColumnType("integer")
+                        .HasColumnName("used_for_build_types");
+
+                    b.HasKey("CiProjectId", "CiSecretId")
+                        .HasName("pk_ci_secrets");
+
+                    b.HasIndex("CiProjectId", "SecretName", "UsedForBuildTypes")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ci_secrets_ci_project_id_secret_name_used_for_build_types");
+
+                    b.ToTable("ci_secrets");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.ControlledServer", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<string>("AWSInstanceType")
+                        .HasColumnType("text")
+                        .HasColumnName("aws_instance_type");
+
+                    b.Property<bool>("CleanUpQueued")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("clean_up_queued");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("CreatedVolumeSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_volume_size");
+
+                    b.Property<string>("CreatedWithImage")
+                        .HasColumnType("text")
+                        .HasColumnName("created_with_image");
+
+                    b.Property<string>("InstanceId")
+                        .HasColumnType("text")
+                        .HasColumnName("instance_id");
+
+                    b.Property<DateTime>("LastMaintenance")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("last_maintenance");
+
+                    b.Property<bool>("ProvisionedFully")
+                        .HasColumnType("boolean")
+                        .HasColumnName("provisioned_fully");
+
+                    b.Property<IPAddress>("PublicAddress")
+                        .HasColumnType("inet")
+                        .HasColumnName("public_address");
+
+                    b.Property<int>("ReservationType")
+                        .HasColumnType("integer")
+                        .HasColumnName("reservation_type");
+
+                    b.Property<long?>("ReservedFor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("reserved_for");
+
+                    b.Property<DateTime?>("RunningSince")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("running_since");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("StatusLastChecked")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("status_last_checked");
+
+                    b.Property<double>("TotalRuntime")
+                        .HasColumnType("double precision")
+                        .HasColumnName("total_runtime");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("UsedDiskSpace")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(-1)
+                        .HasColumnName("used_disk_space");
+
+                    b.Property<bool>("WantsMaintenance")
+                        .HasColumnType("boolean")
+                        .HasColumnName("wants_maintenance");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_controlled_servers");
+
+                    b.ToTable("controlled_servers");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.DehydratedObject", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id")
-                        .HasAnnotation("Npgsql:HiLoSequenceName", "EntityFrameworkHiLoSequence")
+                        .HasAnnotation("Npgsql:HiLoSequenceName", "dehydrated_objects_hilo")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.SequenceHiLo);
 
                     b.Property<DateTime>("CreatedAt")
@@ -295,6 +743,42 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("dev_builds");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.GithubWebhook", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("HashedSecret")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("hashed_secret");
+
+                    b.Property<DateTime?>("LastUsed")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("last_used");
+
+                    b.Property<string>("Secret")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("secret");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_github_webhooks");
+
+                    b.ToTable("github_webhooks");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.LauncherLink", b =>
                 {
                     b.Property<long>("Id")
@@ -358,7 +842,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id")
-                        .HasAnnotation("Npgsql:HiLoSequenceName", "EntityFrameworkHiLoSequence")
+                        .HasAnnotation("Npgsql:HiLoSequenceName", "lfs_objects_hilo")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.SequenceHiLo);
 
                     b.Property<DateTime>("CreatedAt")
@@ -656,7 +1140,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id")
-                        .HasAnnotation("Npgsql:HiLoSequenceName", "EntityFrameworkHiLoSequence")
+                        .HasAnnotation("Npgsql:HiLoSequenceName", "project_git_files_hilo")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.SequenceHiLo);
 
                     b.Property<DateTime>("CreatedAt")
@@ -807,7 +1291,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id")
-                        .HasAnnotation("Npgsql:HiLoSequenceName", "EntityFrameworkHiLoSequence")
+                        .HasAnnotation("Npgsql:HiLoSequenceName", "storage_files_hilo")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.SequenceHiLo);
 
                     b.Property<bool>("AllowParentless")
@@ -820,8 +1304,8 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<int?>("Size")
-                        .HasColumnType("integer")
+                    b.Property<long?>("Size")
+                        .HasColumnType("bigint")
                         .HasColumnName("size");
 
                     b.Property<string>("StoragePath")
@@ -860,7 +1344,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id")
-                        .HasAnnotation("Npgsql:HiLoSequenceName", "EntityFrameworkHiLoSequence")
+                        .HasAnnotation("Npgsql:HiLoSequenceName", "storage_items_hilo")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.SequenceHiLo);
 
                     b.Property<bool>("AllowParentless")
@@ -895,8 +1379,8 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasDefaultValue(2)
                         .HasColumnName("read_access");
 
-                    b.Property<int?>("Size")
-                        .HasColumnType("integer")
+                    b.Property<long?>("Size")
+                        .HasColumnType("bigint")
                         .HasColumnName("size");
 
                     b.Property<bool>("Special")
@@ -945,7 +1429,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id")
-                        .HasAnnotation("Npgsql:HiLoSequenceName", "EntityFrameworkHiLoSequence")
+                        .HasAnnotation("Npgsql:HiLoSequenceName", "storage_item_versions_hilo")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.SequenceHiLo);
 
                     b.Property<DateTime>("CreatedAt")
@@ -1183,6 +1667,17 @@ namespace ThriveDevCenter.Server.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.ActionLogEntry", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.User", "PerformedBy")
+                        .WithMany("PerformedActions")
+                        .HasForeignKey("PerformedById")
+                        .HasConstraintName("fk_action_log_entries_users_performed_by_id")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("PerformedBy");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.AdminAction", b =>
                 {
                     b.HasOne("ThriveDevCenter.Server.Models.User", "PerformedBy")
@@ -1200,6 +1695,75 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("PerformedBy");
 
                     b.Navigation("TargetUser");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiBuild", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.CiProject", "CiProject")
+                        .WithMany("CiBuilds")
+                        .HasForeignKey("CiProjectId")
+                        .HasConstraintName("fk_ci_builds_ci_projects_ci_project_id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CiProject");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJob", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.CiBuild", "Build")
+                        .WithMany("CiJobs")
+                        .HasForeignKey("CiProjectId", "CiBuildId")
+                        .HasConstraintName("fk_ci_jobs_ci_builds_ci_project_id_ci_build_id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Build");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJobArtifact", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.StorageItem", "StorageItem")
+                        .WithMany("CiJobArtifacts")
+                        .HasForeignKey("StorageItemId")
+                        .HasConstraintName("fk_ci_job_artifacts_storage_items_storage_item_id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ThriveDevCenter.Server.Models.CiJob", "Job")
+                        .WithMany("CiJobArtifacts")
+                        .HasForeignKey("CiProjectId", "CiBuildId", "CiJobId")
+                        .HasConstraintName("fk_ci_job_artifacts_ci_jobs_ci_project_id_ci_build_id_ci_job_id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+
+                    b.Navigation("StorageItem");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJobOutputSection", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.CiJob", "Job")
+                        .WithMany("CiJobOutputSections")
+                        .HasForeignKey("CiProjectId", "CiBuildId", "CiJobId")
+                        .HasConstraintName("fk_ci_job_output_sections_ci_jobs_ci_project_id_ci_build_id_ci")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiSecret", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.CiProject", "CiProject")
+                        .WithMany("CiSecrets")
+                        .HasForeignKey("CiProjectId")
+                        .HasConstraintName("fk_ci_secrets_ci_projects_ci_project_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CiProject");
                 });
 
             modelBuilder.Entity("ThriveDevCenter.Server.Models.DehydratedObject", b =>
@@ -1332,6 +1896,25 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("StorageItem");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiBuild", b =>
+                {
+                    b.Navigation("CiJobs");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJob", b =>
+                {
+                    b.Navigation("CiJobArtifacts");
+
+                    b.Navigation("CiJobOutputSections");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiProject", b =>
+                {
+                    b.Navigation("CiBuilds");
+
+                    b.Navigation("CiSecrets");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.LfsProject", b =>
                 {
                     b.Navigation("LfsObjects");
@@ -1348,6 +1931,8 @@ namespace ThriveDevCenter.Server.Migrations
                 {
                     b.Navigation("Children");
 
+                    b.Navigation("CiJobArtifacts");
+
                     b.Navigation("DehydratedObjects");
 
                     b.Navigation("DevBuilds");
@@ -1360,6 +1945,8 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("DevBuilds");
 
                     b.Navigation("LauncherLinks");
+
+                    b.Navigation("PerformedActions");
 
                     b.Navigation("PerformedAdminActions");
 

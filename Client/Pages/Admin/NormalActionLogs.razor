@@ -1,0 +1,104 @@
+@page "/admin/actionLog"
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ActionsUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ActionLogEntryDTO>
+
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <h3>User Action Logs</h3>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound"
+                        UseNonFixedColumns="@true">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        <td>@item.Message</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.PerformedById</td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    }
+</AccessLimited>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Message", false),
+        new TableColumn("Time", true, "CreatedAt"),
+        new TableColumn("Performed By", true, "PerformedById"),
+    };
+
+    public NormalActionLogs() : base(new SortHelper("CreatedAt", SortDirection.Descending))
+    {
+        DefaultPageSize = 100;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(ActionsUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // TODO: group for this
+        // groups.Add(NotificationGroups.LFSListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<ActionLogEntryDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<ActionLogEntryDTO>>(
+            QueryHelpers.AddQueryString("api/v1/Logs/actions", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+}

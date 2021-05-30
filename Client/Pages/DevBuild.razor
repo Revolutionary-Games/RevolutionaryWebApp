@@ -2,9 +2,11 @@
 @inject HttpClient http
 @inject NotificationHandler notificationHandler
 @inject NavigationManager navigationManager
+@inject CurrentUserInfo currentUserInfo
 @inherits SingleResourcePage<DevBuildDTO, DevBuildUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @implements IAsyncDisposable
 
@@ -41,18 +43,39 @@
             <pre>@Data.Description</pre>
 
             <AccessLimited RequiredAccess="UserAccessLevel.Developer">
-                <Button Enabled="@false" ButtonStyle="secondary">Edit</Button>
+
+                <DevBuildEditor Data="@Data" />
 
                 <h4 class="mt-3">Actions</h4>
 
-                <Button Enabled="@false" ButtonStyle="primary" class="mb-2">Make Build of the Day</Button>
+                <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"
+                                     OnClosed="@HideStatusMessage" />
+
+                @if(!Data.BuildOfTheDay)
+                {
+                    <Button Enabled="@CanMakeBOTD" ButtonStyle="primary" class="mb-2" Spinner="@processing"
+                            OnPressed="@MakeBOTD">
+                        Make Build of the Day
+                    </Button>
+                } else if (currentUserInfo.IsAdmin)
+                {
+                    <Button Enabled="@(!processing)" ButtonStyle="warning" class="mb-2" Spinner="@processing"
+                            OnPressed="@RemoveBOTDStatus">
+                        Remove BOTD Status (from ALL builds)
+                    </Button>
+                }
+                else
+                {
+                    <p>Already BOTD</p>
+                }
 
                 <br />
 
-                <Button Enabled="@false" ButtonStyle="primary">Verify This Build</Button>
+                <DevBuildVerifyControls Data="@Data" />
 
                 <hr />
 
+                @* TODO: implement the build delete button *@
                 <Button Enabled="@false" ButtonStyle="danger">Delete</Button>
 
             </AccessLimited>
@@ -61,6 +84,12 @@
 </AccessLimited>
 
 @code {
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool CanMakeBOTD => !processing && Data is {BuildOfTheDay: false } &&
+        !string.IsNullOrEmpty(Data.Description) && (Data.Verified || !Data.Anonymous);
 
     protected override Task<DevBuildDTO> StartQuery()
     {
@@ -82,4 +111,84 @@
         return notificationHandler.Register(this);
     }
 
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private async Task MakeBOTD()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/DevBuilds/botd", Id);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "BOTD status set";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveBOTDStatus()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync("api/v1/DevBuilds/botd");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "All BOTD builds cleared";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 }

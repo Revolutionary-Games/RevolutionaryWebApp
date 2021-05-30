@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+    using Interfaces;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
@@ -13,7 +14,8 @@ namespace ThriveDevCenter.Server.Models
 
     [Index(nameof(Name), IsUnique = true)]
     [Index(nameof(Slug), IsUnique = true)]
-    public class LfsProject : UpdateableModel, IUpdateNotifications
+    public class LfsProject : UpdateableModel, IUpdateNotifications, ISoftDeletable, IInfoCreator<LFSProjectInfo>,
+        IDTOCreator<LFSProjectDTO>
     {
         [AllowSortingBy]
         public string Name { get; set; }

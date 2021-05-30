@@ -5,13 +5,12 @@ namespace ThriveDevCenter.Server.Controllers
     using System;
     using System.Buffers;
     using System.ComponentModel.DataAnnotations;
-    using System.IO;
-    using System.IO.Pipelines;
     using System.Security.Cryptography;
     using System.Text;
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Authorization;
     using Filters;
     using Hangfire;
     using Jobs;
@@ -25,7 +24,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Utilities;
 
     [ApiController]
-    [Route("api/v1/patreon")]
+    [Route("api/v1/webhook/patreon")]
     public class PatreonWebhookController : Controller
     {
         private readonly ILogger<PatreonWebhookController> logger;
@@ -48,21 +47,23 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Get([Required] [MaxLength(200)] [Bind(Prefix = "webhook_id")] string webhookId)
+        public async Task<IActionResult> PostWebhook(
+            [Required] [MaxLength(200)] [Bind(Prefix = "webhook_id")] string webhookId)
         {
             var type = GetEventType();
 
             var settings = await database.PatreonSettings.AsQueryable()
                 .FirstOrDefaultAsync(s => s.WebhookId == webhookId && s.Active == true);
 
-            var verifiedPayload = await CheckSignature(HttpContext.Request.BodyReader, settings);
+            var verifiedPayload = await CheckSignature(settings);
             logger.LogTrace("Got patreon payload: {VerifiedPayload}", verifiedPayload);
 
             PatreonAPIObjectResponse data;
 
             try
             {
-                data = JsonSerializer.Deserialize<PatreonAPIObjectResponse>(verifiedPayload);
+                data = JsonSerializer.Deserialize<PatreonAPIObjectResponse>(verifiedPayload,
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web));
                 if (data == null)
                     throw new Exception("deserialized data is null");
             }
@@ -100,7 +101,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var email = userData.Attributes.Email;
 
-            if(string.IsNullOrEmpty(email))
+            if (string.IsNullOrEmpty(email))
             {
                 throw new HttpResponseException()
                 {
@@ -128,7 +129,8 @@ namespace ThriveDevCenter.Server.Controllers
                         logger.LogWarning("Couldn't find reward ID in patreon webhook: {@E}", e);
                     }
 
-                    await PatreonGroupHandler.HandlePatreonPledgeObject(pledge, userData, rewardId, database, jobClient);
+                    await PatreonGroupHandler.HandlePatreonPledgeObject(pledge, userData, rewardId, database,
+                        jobClient);
                     break;
                 }
                 case EventType.Delete:
@@ -194,7 +196,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<string> CheckSignature(PipeReader payload, PatreonSettings settings)
+        private async Task<string> CheckSignature(PatreonSettings settings)
         {
             if (!HttpContext.Request.Headers.TryGetValue("X-Patreon-Signature", out StringValues header) ||
                 header.Count != 1)
@@ -217,13 +219,15 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var rawPayload = (await payload.ReadAsync()).Buffer.ToArray();
+            var readBody = await Request.ReadBodyAsync();
+            var rawPayload = readBody.Buffer.ToArray();
 
             var neededSignature = Convert.ToHexString(new HMACMD5(Encoding.UTF8.GetBytes(settings.WebhookSecret))
                 .ComputeHash(rawPayload)).ToLowerInvariant();
 
-            if (neededSignature != actualSignature)
+            if (!SecurityHelpers.SlowEquals(neededSignature, actualSignature))
             {
+                logger.LogWarning("Patreon webhook signature didn't match expected value");
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status403Forbidden,

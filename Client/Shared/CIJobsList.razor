@@ -1,0 +1,130 @@
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<CIProjectBuildJobsListUpdated>
+@implements IAsyncDisposable
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.CIJobDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.CiJobId">
+                    <th scope="row"><NavLink href="@($"ci/{ProjectId}/build/{item.CiBuildId}/jobs/{item.CiJobId}")">
+                        @item.JobName
+                    </NavLink></th>
+                    <td>@item.State</td>
+
+                    @if (item.State == CIJobState.Finished)
+                    {
+                        <td class="@(!item.Succeeded ? "bg-danger" : "")">@item.Succeeded.ToString()</td>
+                    }
+                    else
+                    {
+                        <td>Running</td>
+                    }
+                    @* TODO: implement realtime duration calculation *@
+                    <td>@ComputeDuration(item)</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true, "JobName"),
+        new TableColumn("State", false),
+        new TableColumn("Success", false),
+        new TableColumn("Duration", false),
+    };
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    [Parameter]
+    public long BuildId { get; set; }
+
+    public CIJobsList() : base(new SortHelper("JobName", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(CIProjectBuildJobsListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CIProjectBuildJobsUpdatedPrefix + ProjectId + "_" + BuildId);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<CIJobDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<CIJobDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    protected string ComputeDuration(CIJobDTO item)
+    {
+        if (item.CreatedAt == null)
+            return "unknown";
+
+        // TODO: this class needs a timer that triggers StateHasChanged to update this
+        if (item.FinishedAt != null)
+        {
+            return (item.FinishedAt.Value - item.CreatedAt.Value).ToString(AppInfo.SecondPrecisionDurationFormat);
+        }
+        else
+        {
+            return (DateTime.UtcNow - item.CreatedAt.Value).ToString(AppInfo.SecondPrecisionDurationFormat);
+        }
+    }
+}

@@ -1,0 +1,143 @@
+@page "/ci/{ProjectId:long}/build/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CIBuildDTO, CIBuildUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <h3>
+            CI Build #@Data.CiBuildId for @Data.ProjectName
+            @if (Data.Status == BuildStatus.Succeeded)
+            {
+                <span class="badge badge-success ml-2">Success</span>
+            }
+            else if (Data.Status == BuildStatus.Running)
+            {
+                <span class="badge badge-secondary ml-2">Running</span>
+            }
+            else if (Data.Status == BuildStatus.Failed)
+            {
+                <span class="badge badge-danger ml-2">Failed</span>
+            }
+            else if (Data.Status == BuildStatus.GoingToFail)
+            {
+                <span class="badge badge-warning ml-2">Failing</span>
+            }
+        </h3>
+        <ul>
+            <li><strong>Commit</strong>: @Data.CommitHash</li>
+            <li><strong>Ref</strong>: @Data.RemoteRef</li>
+            <li><strong>Status</strong>: @Data.Status</li>
+            <li><strong>Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+        </ul>
+
+        <NavLink href="@($"/ci/{Data.CiProjectId}")" Match="NavLinkMatch.All">
+            This build is for @Data.ProjectName
+        </NavLink>
+
+        <AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
+            <br />
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+            <Button Enabled="@CanRetry" ButtonStyle="secondary" Spinner="@processing"
+                    OnPressed="@(() => RerunBuild(false))">
+                Rerun Failed
+            </Button>
+            <Button Enabled="@CanRetryAll" ButtonStyle="warning" Spinner="@processing"
+                    OnPressed="@(() => RerunBuild(true))">
+                Rerun All
+            </Button>
+            <br />
+        </AccessLimited>
+
+        <br />
+
+        <h4>Jobs</h4>
+
+        <CIJobsList ProjectId="@Data.CiProjectId" BuildId="@Data.CiBuildId" />
+    }
+</SingleResourceDisplayer>
+
+@code {
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool retriedBefore;
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    private bool CanRetry => !retriedBefore && Data != null && Data.Status == BuildStatus.Failed;
+
+    private bool CanRetryAll => !retriedBefore && Data != null && Data.Status != BuildStatus.Running &&
+        Data.Status != BuildStatus.GoingToFail;
+
+    protected override Task<CIBuildDTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<CIBuildDTO>($"api/v1/CIProject/{ProjectId}/builds/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        if (Data != null)
+            groups.Add(NotificationGroups.CIProjectsBuildUpdatedPrefix + Data.NotificationsId);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
+    private async void RerunBuild(bool all)
+    {
+        retriedBefore = true;
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/CIBuildManagement/{ProjectId}/{Id}/rerun?onlyFailed={!all}",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Rebuild starting";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

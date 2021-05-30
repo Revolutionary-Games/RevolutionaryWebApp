@@ -15,7 +15,7 @@ namespace ThriveDevCenter.Server.Models
         public string StoragePath { get; set; }
 
         // TODO: make non-nullable
-        public int? Size { get; set; }
+        public long? Size { get; set; }
 
         public bool AllowParentless { get; set; } = false;
 

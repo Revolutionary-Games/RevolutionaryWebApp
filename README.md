@@ -39,6 +39,15 @@ dotnet watch run
 Then the development site should be available at http://localhost:5000
 now.
 
+## Running
+
+The server computer needs to the following packages
+aspnetcore-runtime-5.0 (at the time of writing), nginx, and git
+installed. Or you can alternatively have a different proxy
+server than nginx. Additionally of course the database and redis can be ran on
+the same server.
+
+TODO: add the example systemd and nginx files
 
 ### Getting an admin account
 
@@ -57,6 +66,12 @@ echo -n VALUEHERE | openssl dgst -binary -sha256 | openssl base64
 
 Then you can redeem the code on your user profile after logging in to become an admin.
 
+### CI executor
+
+Note that when running locally (and not with the deploy script) the
+CIExecutor executable is not automatically moved to the webroot,
+meaning that running CI jobs on controlled servers is not possible
+without a little bit of manual work.
 
 ## Testing
 
@@ -142,6 +157,15 @@ Provide the password used in the previous step if prompted.
 
 And now follow the instructions in the "Getting an admin account"
 section.
+
+## Maintenance
+
+### Out of sync sequences
+
+HiLo sequences can be synced with actual data with a provided script:
+```sh
+psql -d thrivedevcenter < fix_hilo_sequences.sql
+```
 
 --
 
