@@ -82,11 +82,10 @@
     <br />
 
     <Button Enabled="@(!processingAllServers)" OnPressed="@(async () => await ReCheckAllServerStatuses())"
-            Spinner="@processingAllServers" ButtonStyle="secondary">
+            Spinner="@processingAllServers" ButtonStyle="secondary" class="mb-2">
         Refresh ALL Server Statuses
     </Button>
 
-    <br />
     <p>
         Note that refreshing server statuses is not recommended if they aren't stuck, as the status refresh may
         break the server status detection (as it doesn't use exactly same server state transition as elsewhere),
