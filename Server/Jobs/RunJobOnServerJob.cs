@@ -136,8 +136,8 @@ namespace ThriveDevCenter.Server.Jobs
                     AppInfo.RemoteStorageUploadExpireTime + TimeSpan.FromMinutes(5));
             }
 
-            Logger.LogInformation("Trying to start job {CIProjectId}-{CIBuildId}-{CIJobId} on reserved server",
-                ciProjectId, ciBuildId, ciJobId);
+            Logger.LogInformation("Trying to start job {CIProjectId}-{CIBuildId}-{CIJobId} on reserved server ({Id})",
+                ciProjectId, ciBuildId, ciJobId, server.Id);
 
             // Try to start running the job, this can fail if the server is not actually really up yet
             try
