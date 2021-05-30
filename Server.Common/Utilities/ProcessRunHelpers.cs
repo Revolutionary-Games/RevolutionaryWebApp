@@ -36,6 +36,9 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
         public static void StartProcessOutputRead(Process process, CancellationToken cancellationToken)
         {
+            if (process == null)
+                throw new ArgumentException("Process must not be null for starting output read");
+
             const int retries = 3;
 
             // For some reason it seems that this sometimes fails with "System.InvalidOperationException:
