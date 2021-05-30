@@ -170,7 +170,18 @@ namespace ThriveDevCenter.Server.Jobs
             // commands
             await Database.SaveChangesAsync(cancellationToken);
 
-            // First is to download the CI executor script
+            // TODO: check server remaining disk space here
+            var diskSpaceResult = sshAccess.RunCommand("df");
+
+            if (!diskSpaceResult.Success)
+            {
+                throw new Exception(
+                    $"Failed to check server disk space: {diskSpaceResult.Result}, error: {diskSpaceResult.Error}");
+            }
+
+            Logger.LogInformation($"Remaining diskspace: {diskSpaceResult.Result}");
+
+            // Then move on to the build starting, first thing is to download the CI executor script
             // TODO: is there a possibility that this is not secure? Someone would need to do HTTPS MItM attack...
 
             // TODO: using async would be nice for the run commands when supported
@@ -185,8 +196,6 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 throw new Exception($"Failed to run executor download step: {result1.Result}, error: {result1.Error}");
             }
-
-            // TODO: check server remaining disk space here
 
             // and then run it with environment variables for this build
 
