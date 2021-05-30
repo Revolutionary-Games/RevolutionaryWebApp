@@ -112,7 +112,7 @@ namespace ThriveDevCenter.Server.Services
 
             foreach (var job in ciJobsNeedingActions)
             {
-                if (job.State == CIJobState.Starting || job.State == CIJobState.WaitingForServer)
+                if (job.State == CIJobState.Starting)
                 {
                     // Need to find a server to run this job on
                     bool found = false;
@@ -124,6 +124,7 @@ namespace ThriveDevCenter.Server.Services
                         {
                             server.ReservationType = ServerReservationType.CIJob;
                             server.ReservedFor = job.CiJobId;
+                            job.State = CIJobState.WaitingForServer;
                             server.BumpUpdatedAt();
 
                             await database.SaveChangesAsync();

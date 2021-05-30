@@ -56,12 +56,28 @@ namespace ThriveDevCenter.Server.Jobs
 
             if (job == null)
             {
-                ReleaseServerReservation(server);
                 Logger.LogWarning("Skipping CI job as it doesn't exist");
+                ReleaseServerReservation(server);
                 return;
             }
 
-            // TODO: check if ciJobId matches the reservation on the server?
+            if (job.State != CIJobState.WaitingForServer)
+            {
+                Logger.LogWarning(
+                    "CI job is not in waiting for server status, refusing to start running it on server: {ServerId}",
+                    serverId);
+                ReleaseServerReservation(server);
+                return;
+            }
+
+            if (server.ReservedFor != job.CiJobId)
+            {
+                Logger.LogWarning(
+                    "CI job id doesn't match reservation on server, refusing to start it on server: {ServerId}",
+                    serverId);
+                ReleaseServerReservation(server);
+                return;
+            }
 
             // Get the CI image for the job
             var imageFileName = job.GetImageFileName();

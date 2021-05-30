@@ -182,6 +182,65 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             ec2Mock.Verify();
         }
 
+
+        [Fact]
+        public async Task ServerControl_JobIsNotStartedOnMultipleServers()
+        {
+            var ec2Mock = new Mock<IEC2Controller>();
+            ec2Mock.Setup(ec2 => ec2.ResumeInstance(It.IsAny<string>())).Throws<InvalidOperationException>();
+
+            var jobClientMock = new Mock<IBackgroundJobClient>();
+
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+            await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase("ControlledServersJobNotStartedOnMultiple")
+                .Options, notificationsMock.Object);
+
+            CIProjectTestDatabaseData.Seed(database);
+            var job = await AddTestJob(database);
+
+            var server1 = new ControlledServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+                InstanceId = "id-1111",
+            };
+
+            await database.ControlledServers.AddAsync(server1);
+
+            var server2 = new ControlledServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+                InstanceId = "id-2222",
+            };
+
+            await database.ControlledServers.AddAsync(server2);
+            await database.SaveChangesAsync();
+
+            var handler =
+                new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+
+            Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+
+            Assert.NotNull(server1.ReservedFor);
+            Assert.Null(server2.ReservedFor);
+
+            Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+
+            Assert.NotNull(server1.ReservedFor);
+            Assert.Null(server2.ReservedFor);
+            Assert.Equal(CIJobState.WaitingForServer, job.State);
+
+            Assert.Equal(ServerStatus.Running, server1.Status);
+            Assert.Equal(ServerStatus.Running, server2.Status);
+            Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+            Assert.Equal(ServerReservationType.None, server2.ReservationType);
+
+            ec2Mock.Verify();
+        }
+
         [Fact]
         public async Task ServerControl_StartingServerIsDetectedAsStarted()
         {

@@ -255,6 +255,9 @@ namespace ThriveDevCenter.Server.Controllers
                                 activeSection.CalculateOutputLength();
 
                                 // TODO: find out why this sometimes causes duplicate IDs...
+                                // This was likely caused by the RemoteServerHandler to queue the same job on multiple
+                                // servers, if the job startup job didn't run soon enough, now shouldn't be a problem
+                                // anymore
                                 for (int i = 0; i < 50; ++i)
                                 {
                                     activeSection.CiJobOutputSectionId = ++sectionNumberCounter;
