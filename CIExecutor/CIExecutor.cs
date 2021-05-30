@@ -22,7 +22,7 @@ namespace CIExecutor
     public class CIExecutor
     {
         private const int TargetOutputSingleMessageSize = 2500;
-        private const int QueueLargeThreshold = 5;
+        private const int QueueLargeThreshold = 3;
         private const string OutputSpecialCommandMarker = "#--@%-DevCenter-%@--";
 
         private readonly string websocketUrl;
@@ -208,7 +208,7 @@ namespace CIExecutor
                 return;
             }
 
-            bool queueLarge = false;
+            int waitTime;
 
             lock (queuedBuildMessages)
             {
@@ -228,13 +228,12 @@ namespace CIExecutor
 
                 queuedBuildMessages.Add(message);
 
-                if (queuedBuildMessages.Count >= QueueLargeThreshold)
-                    queueLarge = true;
+                waitTime = queuedBuildMessages.Count / QueueLargeThreshold;
             }
 
             // Try to sleep some time to give the message sender task some time to send stuff away
-            if (queueLarge)
-                await Task.Delay(TimeSpan.FromMilliseconds(1));
+            if (waitTime > 0)
+                await Task.Delay(TimeSpan.FromMilliseconds(3 * waitTime));
         }
 
         private async Task ProcessBuildMessages()
