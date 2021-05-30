@@ -554,7 +554,9 @@ namespace CIExecutor
 
                 var runArguments = new List<string>
                 {
-                    "run", "--rm", "-i", "-e", $"CI_REF={ciRef}", "-e", $"CI_BRANCH={localBranch}",
+                    // A little bit lower priority
+                    "-n", "4",
+                    "podman", "run", "--rm", "-i", "-e", $"CI_REF={ciRef}", "-e", $"CI_BRANCH={localBranch}",
                     "-e", $"CI_COMMIT_HASH={ciCommit}",
                     "-e", $"CI_EARLIER_COMMIT={Environment.GetEnvironmentVariable("CI_EARLIER_COMMIT")}",
                     "-e", $"CI_DEFAULT_BRANCH={defaultBranch}",
@@ -569,7 +571,7 @@ namespace CIExecutor
                 runArguments.Add("/bin/bash");
 
                 Console.WriteLine("Running podman build");
-                var result = await RunWithInputAndOutput(command, "podman", runArguments);
+                var result = await RunWithInputAndOutput(command, "nice", runArguments);
                 Console.WriteLine("Process finished: {0}", result);
 
                 buildCommandsFailed = !result;
