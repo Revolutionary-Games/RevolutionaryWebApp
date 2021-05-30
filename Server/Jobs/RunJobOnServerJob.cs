@@ -42,7 +42,7 @@ namespace ThriveDevCenter.Server.Jobs
             this.configuration = configuration;
             this.sshAccess = sshAccess;
             this.remoteDownloadUrls = remoteDownloadUrls;
-            cleanThreshold = Convert.ToInt32(configuration["ServerCleanUpDiskUsePercentage"]);
+            cleanThreshold = Convert.ToInt32(configuration["CI:ServerCleanUpDiskUsePercentage"]);
         }
 
         public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId, int retries,
@@ -298,9 +298,16 @@ namespace ThriveDevCenter.Server.Jobs
 
             if (server.CleanUpQueued || server.UsedDiskSpace > cleanThreshold)
             {
-                Logger.LogInformation(
-                    "Cleaning server {Id} because it's disk use is (or manual clean was requested): {UsedDiskSpace}%",
-                    server.Id, server.UsedDiskSpace);
+                if (server.CleanUpQueued)
+                {
+                    Logger.LogInformation("Cleaning server {Id} because clean up was manually requested", server.Id);
+                }
+                else
+                {
+                    Logger.LogInformation(
+                        "Cleaning server {Id} because it's disk use is: {UsedDiskSpace}% (> {CleanThreshold}%)",
+                        server.Id, server.UsedDiskSpace, cleanThreshold);
+                }
 
                 await PerformServerCleanUp(server);
                 server.CleanUpQueued = false;
