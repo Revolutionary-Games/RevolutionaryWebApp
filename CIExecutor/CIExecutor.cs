@@ -341,6 +341,8 @@ namespace CIExecutor
                         {
                             throw new Exception("Failed to run cache copy command");
                         }
+
+                        await QueueSendBasicMessage($"Initializing cache with copy from: {cachePath}");
                     }
                 }
             }
@@ -525,14 +527,6 @@ namespace CIExecutor
 
                 if (command == null || command.Count < 1)
                     throw new Exception("Failed to parse CI configuration to build list of build commands");
-
-                Console.WriteLine("Build commands:");
-                foreach (var line in command)
-                {
-                    Console.WriteLine(line);
-                }
-
-                Console.WriteLine("end of commands");
 
                 List<CiSecretExecutorData> secrets;
                 try
