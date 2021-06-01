@@ -11,7 +11,6 @@
 @using ThriveDevCenter.Client.Services
 @using System.Threading
 @using System.Net
-@using System.Net.Http.Headers
 @using System.Text.Json
 @using ThriveDevCenter.Shared.Forms
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
@@ -513,8 +512,18 @@ else
 
             // Reset form status
             newFolderName = null;
-            newFolderReadAccess = FileAccess.OwnerOrAdmin;
-            newFolderWriteAccess = FileAccess.OwnerOrAdmin;
+
+            // By default use the parent folder access (unless at the root folder)
+            if (parsedFolderInfo != null)
+            {
+                newFolderReadAccess = parsedFolderInfo.ReadAccess;
+                newFolderWriteAccess = parsedFolderInfo.WriteAccess;
+            }
+            else
+            {
+                newFolderReadAccess = FileAccess.OwnerOrAdmin;
+                newFolderWriteAccess = FileAccess.OwnerOrAdmin;
+            }
         }
 
         StateHasChanged();
