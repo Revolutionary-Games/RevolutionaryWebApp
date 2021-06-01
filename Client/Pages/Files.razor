@@ -11,7 +11,6 @@
 @using ThriveDevCenter.Client.Services
 @using System.Threading
 @using System.Net
-@using System.Net.Http.Headers
 @using System.Text.Json
 @using ThriveDevCenter.Shared.Forms
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
@@ -204,6 +203,12 @@ else
                     <li><strong>Owned by</strong>: @(parsedFolderInfo.OwnerId?.ToString() ?? "system")</li>
                     <li><strong>Allow Parentless</strong>: @parsedFolderInfo.AllowParentless</li>
                 </ul>
+
+                @if (!parsedFolderInfo.Special && parsedFolderInfo.WriteAccess.IsAccessibleTo(
+                    currentUserInfo.AccessLevel, currentUserInfo.Info.Id, parsedFolderInfo.OwnerId))
+                {
+                    <StorageItemFolderEditor Data="@parsedFolderInfo" />
+                }
             }
         }
 
@@ -286,6 +291,11 @@ else
     private bool showUploadOverlay;
     private bool uploadInProgress;
     private string uploadStatus;
+
+    /// <summary>
+    ///   If true uploading is in progress, and new uploads can't start
+    /// </summary>
+    private bool uploading;
 
     private ElementReference dropArea;
 
@@ -508,8 +518,18 @@ else
 
             // Reset form status
             newFolderName = null;
-            newFolderReadAccess = FileAccess.OwnerOrAdmin;
-            newFolderWriteAccess = FileAccess.OwnerOrAdmin;
+
+            // By default use the parent folder access (unless at the root folder)
+            if (parsedFolderInfo != null)
+            {
+                newFolderReadAccess = parsedFolderInfo.ReadAccess;
+                newFolderWriteAccess = parsedFolderInfo.WriteAccess;
+            }
+            else
+            {
+                newFolderReadAccess = FileAccess.OwnerOrAdmin;
+                newFolderWriteAccess = FileAccess.OwnerOrAdmin;
+            }
         }
 
         StateHasChanged();
@@ -588,7 +608,7 @@ else
         Console.WriteLine("Auto-starting uploads as we got a drop event");
 
         showUploadOverlay = true;
-        await BeginNextUpload();
+        await StartUploads();
     }
 
     private async Task OnInputFilesChanged(InputFileChangeEventArgs args)
@@ -623,7 +643,7 @@ else
 
     private Task StartFileSelectorUploads()
     {
-        return BeginNextUpload();
+        return StartUploads();
     }
 
     private void OpenUploaderForm()
@@ -641,8 +661,25 @@ else
         uploadErrors.Clear();
     }
 
+    private async Task StartUploads()
+    {
+        if (uploading)
+        {
+            Console.WriteLine("Not starting another upload as one is in progress already");
+            return;
+        }
+
+        uploading = true;
+
+        await BeginNextUpload();
+
+        Console.WriteLine("Uploads are now finished");
+        uploading = false;
+    }
+
     /// <summary>
-    ///   Starts uploading the next file we should upload. Or stops if we have no more files to upload
+    ///   Starts uploading the next file we should upload. Or stops if we have no more files to upload.
+    ///   Should not be called directly, call StartUploads instead
     /// </summary>
     private async Task BeginNextUpload()
     {

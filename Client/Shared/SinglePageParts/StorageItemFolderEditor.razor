@@ -1,0 +1,152 @@
+@inject HttpClient http
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Forms
+
+@if (showForm)
+{
+    <form>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="editedFolderName">Description</label>
+                <input type="text" class="form-control" id="editedFolderName" @bind="folderName"
+                       @bind:event="oninput" placeholder="Name">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="editedFolderReadAccess">Read Access</label>
+                <select class="custom-select" id="editedFolderReadAccess" @bind="readAccess">
+                    @foreach (var name in Enum.GetNames<FileAccess>())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="editedFolderWriteAccess">Write Access</label>
+                <select class="custom-select" id="editedFolderWriteAccess" @bind="writeAccess">
+                    @foreach (var name in Enum.GetNames<FileAccess>())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @foreach (var error in GetErrors())
+        {
+            <div>@error</div>
+        }
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+        <Button class="my-1 mr-1" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing" ButtonStyle="primary">
+            Save
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@Cancel">
+            Cancel
+        </Button>
+    </form>
+}
+else
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+
+    <Button ButtonStyle="secondary" OnPressed="@ShowForm">Edit</Button>
+}
+
+@code {
+
+    private string folderName;
+    private FileAccess readAccess;
+    private FileAccess writeAccess;
+
+    private bool showForm;
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public StorageItemDTO Data { get; set; }
+
+    private bool CanSave => GetErrors().Count < 1;
+
+    private void ShowForm()
+    {
+        folderName = Data.Name;
+        readAccess = Data.ReadAccess;
+        writeAccess = Data.WriteAccess;
+
+        statusMessage = null;
+        showForm = true;
+    }
+
+    private void Cancel()
+    {
+        showForm = false;
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private List<string> GetErrors()
+    {
+        var result = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(folderName))
+        {
+            result.Add("Name is required");
+        }
+
+        return result;
+    }
+
+    private async Task Save()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PutAsJsonAsync($"api/v1/Files/{Data.Id}/edit", new StorageItemDTO()
+            {
+                Name = folderName,
+                ReadAccess = readAccess,
+                WriteAccess = writeAccess
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Changes saved";
+            statusMessageType = SiteNoticeType.Primary;
+            showForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

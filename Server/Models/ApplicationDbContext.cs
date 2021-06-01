@@ -156,14 +156,6 @@ namespace ThriveDevCenter.Server.Models
                 // Seems like adding custom validation on a property requires this to mark it as nullable
                 entity.Property(e => e.Description).IsRequired(false);
 
-                entity.Property(e => e.BuildOfTheDay).HasDefaultValue(false);
-                entity.Property(e => e.Downloads).HasDefaultValue(0);
-                entity.Property(e => e.Important).HasDefaultValue(false);
-                entity.Property(e => e.Keep).HasDefaultValue(false);
-                entity.Property(e => e.PrFetched).HasDefaultValue(false);
-                entity.Property(e => e.Score).HasDefaultValue(0);
-                entity.Property(e => e.Verified).HasDefaultValue(false);
-
                 entity.HasOne(d => d.StorageItem)
                     .WithMany(p => p.DevBuilds).OnDelete(DeleteBehavior.Restrict);
 
@@ -173,8 +165,6 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<LauncherLink>(entity =>
             {
-                entity.Property(e => e.TotalApiCalls).HasDefaultValue(0);
-
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.LauncherLinks).OnDelete(DeleteBehavior.Cascade);
             });
@@ -187,7 +177,7 @@ namespace ThriveDevCenter.Server.Models
                     .WithMany(p => p.LfsObjects).OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<LfsProject>(entity => { entity.Property(e => e.Deleted).HasDefaultValue(false); });
+            modelBuilder.Entity<LfsProject>(entity => {  });
 
             modelBuilder.Entity<PatreonSettings>(entity => { });
 
@@ -204,8 +194,6 @@ namespace ThriveDevCenter.Server.Models
             modelBuilder.Entity<StorageFile>(entity =>
             {
                 entity.Property(e => e.Id).UseHiLo("storage_files_hilo");
-
-                entity.Property(e => e.AllowParentless).HasDefaultValue(false);
             });
 
             modelBuilder.Entity<StorageItem>(entity =>
@@ -215,13 +203,6 @@ namespace ThriveDevCenter.Server.Models
                 entity.HasIndex(e => e.Name, "index_storage_items_on_name")
                     .IsUnique()
                     .HasFilter("(parent_id IS NULL)");
-
-                entity.Property(e => e.AllowParentless).HasDefaultValue(false);
-
-                entity.Property(e => e.ReadAccess).HasDefaultValue(FileAccess.Developer);
-                entity.Property(e => e.WriteAccess).HasDefaultValue(FileAccess.Developer);
-
-                entity.Property(e => e.Special).HasDefaultValue(false);
 
                 entity.HasOne(d => d.Owner)
                     .WithMany(p => p.StorageItems).OnDelete(DeleteBehavior.SetNull);
@@ -234,12 +215,6 @@ namespace ThriveDevCenter.Server.Models
             modelBuilder.Entity<StorageItemVersion>(entity =>
             {
                 entity.Property(e => e.Id).UseHiLo("storage_item_versions_hilo");
-
-                entity.Property(e => e.Keep).HasDefaultValue(false);
-
-                entity.Property(e => e.Protected).HasDefaultValue(false);
-
-                entity.Property(e => e.Version).HasDefaultValue(1);
 
                 entity.HasOne(d => d.StorageFile)
                     .WithMany(p => p.StorageItemVersions).OnDelete(DeleteBehavior.Cascade);
@@ -263,10 +238,6 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.Suspended).HasDefaultValue(false);
 
                 entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
-
-                entity.Property(e => e.TotalLauncherLinks).HasDefaultValue(0);
-
-                entity.Property(e => e.SessionVersion).HasDefaultValue(1);
             });
 
             modelBuilder.Entity<Session>(entity =>
@@ -322,7 +293,6 @@ namespace ThriveDevCenter.Server.Models
                 entity.UseXminAsConcurrencyToken();
 
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
-                entity.Property(e => e.Status).HasDefaultValue(BuildStatus.Running);
 
                 entity.HasMany(p => p.CiJobs).WithOne(d => d.Build)
                     .OnDelete(DeleteBehavior.Restrict);
@@ -331,9 +301,6 @@ namespace ThriveDevCenter.Server.Models
             modelBuilder.Entity<CiJob>(entity =>
             {
                 entity.HasKey(nameof(CiJob.CiProjectId), nameof(CiJob.CiBuildId), nameof(CiJob.CiJobId));
-
-                entity.Property(e => e.Succeeded).HasDefaultValue(false);
-                entity.Property(e => e.RunningOnServerId).HasDefaultValue(-1);
 
                 entity.HasMany(p => p.CiJobArtifacts).WithOne(d => d.Job)
                     .OnDelete(DeleteBehavior.Restrict);
@@ -359,7 +326,6 @@ namespace ThriveDevCenter.Server.Models
             {
                 entity.UseXminAsConcurrencyToken();
 
-                entity.Property(e => e.CleanUpQueued).HasDefaultValue(false);
                 entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
             });
         }
