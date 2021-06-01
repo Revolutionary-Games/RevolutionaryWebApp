@@ -152,7 +152,7 @@ namespace ThriveDevCenter.Server.Controllers
             // (this is to make things consistent with the notifications hub)
             var reader = HttpContext.AuthenticatedUser();
 
-            if (item == null || item.OwnerId == null || item.OwnerId != reader.Id)
+            if (item == null || item.OwnerId == null || item.OwnerId != reader?.Id)
             {
                 query = query.Where(i => i.IsReadableBy(reader));
             }
