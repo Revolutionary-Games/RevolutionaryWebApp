@@ -30,7 +30,6 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public long? Size { get; set; }
 
-        // TODO: change to required
         public FileAccess ReadAccess { get; set; } = FileAccess.Developer;
 
         public FileAccess WriteAccess { get; set; } = FileAccess.Developer;

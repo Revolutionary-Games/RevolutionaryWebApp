@@ -228,6 +228,10 @@ namespace ThriveDevCenter.Server.Controllers
 
             await database.SaveChangesAsync();
 
+            logger.LogInformation("New folder \"{Name}\" with read: {ReadAccess} and write access: " +
+                "{WriteAccess}, created by: {Email}", newFolder.Name,
+                newFolder.ReadAccess.ToUserReadableString(), newFolder.WriteAccess.ToUserReadableString(), user.Email);
+
             // Need to queue a job to calculate the folder size
             jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(newFolder.Id, CancellationToken.None));
 
