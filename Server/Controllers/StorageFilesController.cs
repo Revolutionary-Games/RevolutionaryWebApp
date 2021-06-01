@@ -287,7 +287,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (item.WriteAccess == FileAccess.Nobody)
                 return BadRequest("This item is not writable");
 
-            if (item.OwnerId != user.Id && user.HasAccessLevel(UserAccessLevel.Admin))
+            if (item.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
                 return BadRequest("Only item owners and admins can edit them");
 
             if (newData.ReadAccess == FileAccess.Nobody || newData.WriteAccess == FileAccess.Nobody)
