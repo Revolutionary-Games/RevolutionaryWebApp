@@ -203,6 +203,12 @@ else
                     <li><strong>Owned by</strong>: @(parsedFolderInfo.OwnerId?.ToString() ?? "system")</li>
                     <li><strong>Allow Parentless</strong>: @parsedFolderInfo.AllowParentless</li>
                 </ul>
+
+                @if (!parsedFolderInfo.Special && parsedFolderInfo.WriteAccess.IsAccessibleTo(
+                    currentUserInfo.AccessLevel, currentUserInfo.Info.Id, parsedFolderInfo.OwnerId))
+                {
+                    <StorageItemFolderEditor Data="@parsedFolderInfo" />
+                }
             }
         }
 

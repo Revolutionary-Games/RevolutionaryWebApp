@@ -170,6 +170,9 @@ namespace ThriveDevCenter.Server.Controllers
             if (!CheckNewItemName(request.Name, out var badRequest))
                 return badRequest;
 
+            if (request.ReadAccess == FileAccess.Nobody || request.WriteAccess == FileAccess.Nobody)
+                return BadRequest("Only system can create system readable/writable folders");
+
             var user = HttpContext.AuthenticatedUser();
 
             // Check write access
@@ -265,6 +268,48 @@ namespace ThriveDevCenter.Server.Controllers
             var objects = await query.ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetInfo());
+        }
+
+        [HttpPut("{id:long}/edit")]
+        [AuthorizeRoleFilter]
+        public async Task<IActionResult> EditItem([Required] long id,
+            [Required] [FromBody] StorageItemDTO newData)
+        {
+            StorageItem item = await FindAndCheckAccess(id);
+            if (item == null)
+                return NotFound();
+
+            if (item.Special)
+                return BadRequest("Special items can't be edited");
+
+            var user = HttpContext.AuthenticatedUser();
+
+            if (item.WriteAccess == FileAccess.Nobody)
+                return BadRequest("This item is not writable");
+
+            if (item.OwnerId != user.Id && user.HasAccessLevel(UserAccessLevel.Admin))
+                return BadRequest("Only item owners and admins can edit them");
+
+            if (newData.ReadAccess == FileAccess.Nobody || newData.WriteAccess == FileAccess.Nobody)
+                return BadRequest("Only system can set system readable/writable status");
+
+            if (!CheckNewItemName(newData.Name, out var badRequest))
+                return badRequest;
+
+            item.Name = newData.Name;
+            item.ReadAccess = newData.ReadAccess;
+            item.WriteAccess = newData.WriteAccess;
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message =
+                    $"StorageItem {item.Id} edited, new name: \"{item.Name}\", accesses: {item.ReadAccess}, " +
+                    $"{item.WriteAccess}",
+                PerformedById = user.Id
+            });
+
+            await database.SaveChangesAsync();
+            return Ok();
         }
 
         [NonAction]
