@@ -354,6 +354,8 @@ namespace ThriveDevCenter.Server
             AddJobHelper<RefreshLFSProjectFileTreesJob>(configurationSection["RefreshLFSFileTrees"]);
             AddJobHelper<DetectStuckServersJob>(configurationSection["DetectStuckServers"]);
             AddJobHelper<DetectLeftOnServersJob>(configurationSection["DetectLeftOnServers"]);
+            AddJobHelper<TerminateLongStoppedServersJob>(configurationSection["TerminateLongStoppedServers"]);
+            AddJobHelper<ScheduleServerMaintenanceJob>(configurationSection["ScheduleServerMaintenance"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

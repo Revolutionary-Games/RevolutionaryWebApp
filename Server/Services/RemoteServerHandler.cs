@@ -24,8 +24,6 @@ namespace ThriveDevCenter.Server.Services
         private readonly int shutdownIdleDelay;
         private readonly int maximumRunningServers;
         private readonly bool useHibernate;
-        private readonly TimeSpan terminateStoppedServerDelay = TimeSpan.FromDays(7);
-        private readonly TimeSpan serverMaintenanceInterval = TimeSpan.FromDays(90);
 
         public RemoteServerHandler(ILogger<RemoteServerHandler> logger, IConfiguration configuration,
             NotificationsEnabledDb database, IEC2Controller ec2Controller, IBackgroundJobClient jobClient)

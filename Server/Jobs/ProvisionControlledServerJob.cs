@@ -126,6 +126,7 @@ namespace ThriveDevCenter.Server.Jobs
             server.ProvisionedFully = true;
             server.Status = ServerStatus.Running;
             server.LastMaintenance = DateTime.UtcNow;
+            server.WantsMaintenance = false;
             server.StatusLastChecked = DateTime.UtcNow;
             server.ReservationType = ServerReservationType.None;
             server.BumpUpdatedAt();
