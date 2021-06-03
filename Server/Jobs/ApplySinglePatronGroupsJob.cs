@@ -36,6 +36,12 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            if (!await LoadSettingsOrSkip(logger, cancellationToken))
+            {
+                logger.LogWarning("Skipping Single patron groups apply because patreon settings are missing");
+                return;
+            }
+
             logger.LogInformation("Applying forum groups for single patron ({Username})", forumUser.Username);
 
             // See the TODO comment below as to why this is not needed currently
