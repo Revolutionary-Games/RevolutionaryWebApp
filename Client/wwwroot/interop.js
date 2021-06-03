@@ -41,7 +41,7 @@ function scrollToElement(id) {
     if (element instanceof HTMLElement) {
         element.scrollIntoView({
             behavior: "smooth",
-            block: "end",
+            block: "center",
             inline: "nearest"
         });
     }
