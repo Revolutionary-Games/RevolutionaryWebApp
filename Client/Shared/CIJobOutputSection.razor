@@ -2,6 +2,8 @@
 @inject IJSRuntime js
 @inherits SingleResourcePage<IList<string>>
 @using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Converters
+@using ThriveDevCenter.Shared.Models.Enums
 
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
     @if (Data != null)
@@ -33,7 +35,12 @@
                 }
 
                 <div class="output-line" id="@id">
-                    <span class="line-number">@(i + 1)</span><span>@line</span>
+                    @* TODO: should these generations be cached, is this too expensive? *@
+                    <span class="line-number">@(i + 1)</span>
+                    @foreach (var part in TerminalEscapeHandling.HandleTerminalEscapes(line))
+                    {
+                        <span style="@($"color: {part.Colour.ColourToCSSHexValue()}")">@part.Text</span>
+                    }
                 </div>
             }
         </div>
