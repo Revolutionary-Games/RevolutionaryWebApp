@@ -1,4 +1,5 @@
 @inject HttpClient http
+@inject IJSRuntime js
 @inherits SingleResourcePage<IList<string>>
 @using ThriveDevCenter.Shared.Models
 
@@ -6,21 +7,32 @@
     @if (Data != null)
     {
         <div class="output-area">
-            @* TODO: implement scrolling to last line if the last line is visible or scroll is at the top (?) *@
-
             @{
                 var lineSource = RealtimeOutput ?? Data;
             }
 
             @for (int i = 0; i < lineSource.Count; ++i)
             {
-                @* Skip last line if it is empty to not show a trailing line in the output *@
+                // Skip last line if it is empty to not show a trailing line in the output
                 var line = lineSource[i];
 
-                if (i > 0 && i + 1 >= lineSource.Count && string.IsNullOrWhiteSpace(line))
+                bool last = i + 1 >= lineSource.Count;
+
+                if (i > 0 && last && string.IsNullOrWhiteSpace(line))
                     continue;
 
-                <div class="output-line">
+                // Detect if this is last visible line
+                string id = null;
+
+                if (i + 2 >= lineSource.Count)
+                {
+                    if (last || string.IsNullOrWhiteSpace(lineSource[i + 1]))
+                    {
+                        id = LastElementId;
+                    }
+                }
+
+                <div class="output-line" id="@id">
                     <span class="line-number">@(i + 1)</span><span>@line</span>
                 </div>
             }
@@ -44,6 +56,17 @@
     /// </summary>
     [Parameter]
     public List<string> RealtimeOutput { get; set; }
+
+    private string LastElementId => $"output-section-{Id}-last";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        // Scroll to last existing output line
+        // TODO: only scroll when scroll is at the end already
+        await js.InvokeVoidAsync("scrollToElement", LastElementId);
+    }
 
     protected override async Task<IList<string>> StartQuery()
     {

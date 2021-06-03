@@ -35,6 +35,18 @@ function getStaticHomePageNotice() {
     return element.value;
 }
 
+function scrollToElement(id) {
+    const element = document.getElementById(id);
+
+    if (element instanceof HTMLElement) {
+        element.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+            inline: "nearest"
+        });
+    }
+}
+
 // Helper for getting dropped files into C# by going through an InputFile
 // This workaround is needed until this feature is done: https://github.com/dotnet/aspnetcore/issues/18754
 function registerFileDropArea(dropElement, inputElementId) {
