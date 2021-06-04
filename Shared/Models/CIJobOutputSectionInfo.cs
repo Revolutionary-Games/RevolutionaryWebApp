@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Shared.Models
 {
+    using System;
     using System.Text.Json.Serialization;
 
     public class CIJobOutputSectionInfo : IIdentifiable
@@ -11,6 +12,9 @@ namespace ThriveDevCenter.Shared.Models
         public string Name { get; set; }
         public CIJobSectionStatus Status { get; set; }
         public long OutputLength { get; set; }
+
+        public DateTime StartedAt { get; set; }
+        public DateTime? FinishedAt { get; set; }
 
         /// <summary>
         ///   Used for notifications to detect which model was updated, that's why this shouldn't be super bad that

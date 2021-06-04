@@ -45,8 +45,15 @@ else
                     {
                         <td>Running</td>
                     }
-                    @* TODO: implement realtime duration calculation *@
-                    <td>@ComputeDuration(item)</td>
+
+                    @if (item.CreatedAt != null)
+                    {
+                        <td><DurationDisplayer Start="@item.CreatedAt.Value" End="@item.FinishedAt" /></td>
+                    }
+                    else
+                    {
+                        <td><span>Unknown</span></td>
+                    }
                 </tr>
             }
         }

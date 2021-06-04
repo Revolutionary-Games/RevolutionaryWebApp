@@ -236,6 +236,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                                     // I guess we assume success here...
                                     activeSection.Status = CIJobSectionStatus.Succeeded;
+                                    activeSection.FinishedAt = DateTime.UtcNow;
 
                                     outputSectionText.Append(
                                         "This section was not properly closed before the next section");
@@ -348,6 +349,7 @@ namespace ThriveDevCenter.Server.Controllers
                                 activeSection.Status = message.WasSuccessful ?
                                     CIJobSectionStatus.Succeeded :
                                     CIJobSectionStatus.Failed;
+                                activeSection.FinishedAt = DateTime.UtcNow;
 
                                 // Append last pending text
                                 AddPendingOutputToActiveSection();
@@ -378,6 +380,7 @@ namespace ThriveDevCenter.Server.Controllers
                                 activeSection.Status = message.WasSuccessful ?
                                     CIJobSectionStatus.Succeeded :
                                     CIJobSectionStatus.Failed;
+                                activeSection.FinishedAt = DateTime.UtcNow;
 
                                 AddPendingOutputToActiveSection();
 
@@ -455,6 +458,7 @@ namespace ThriveDevCenter.Server.Controllers
                 AddPendingOutputToActiveSection();
 
                 activeSection.Status = CIJobSectionStatus.Failed;
+                activeSection.FinishedAt = DateTime.UtcNow;
                 await database.SaveChangesAsync();
                 activeSection = null;
             }

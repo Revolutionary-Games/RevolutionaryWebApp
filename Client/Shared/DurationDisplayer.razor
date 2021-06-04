@@ -1,0 +1,52 @@
+@using System.Timers
+@using ThriveDevCenter.Shared.Converters
+@implements IDisposable
+<span>@Duration</span>
+
+@code {
+    private readonly Timer secondTimer;
+
+    [Parameter]
+    public DateTime Start { get; set; }
+
+    [Parameter]
+    public DateTime? End { get; set; }
+
+    private string Duration
+    {
+        get
+        {
+            if (End != null)
+                return (End.Value - Start).ToShortForm();
+
+            return (DateTime.UtcNow - Start).ToShortForm();
+        }
+    }
+
+    public DurationDisplayer()
+    {
+        secondTimer = new Timer(1)
+        {
+            Enabled = false,
+        };
+        secondTimer.Elapsed += TimeToReRender;
+    }
+
+    public void Dispose()
+    {
+        secondTimer?.Dispose();
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Enable re-render timer if the end time is not known, as then we should update ourself every second
+        secondTimer.Enabled = End == null;
+    }
+
+    private async void TimeToReRender(object sender, ElapsedEventArgs elapsedEventArgs)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+}
