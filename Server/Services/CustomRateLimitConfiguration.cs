@@ -6,19 +6,18 @@ namespace ThriveDevCenter.Server.Services
 
     public class CustomRateLimitConfiguration : RateLimitConfiguration
     {
-        public CustomRateLimitConfiguration(IHttpContextAccessor httpContextAccessor,
-            IOptions<IpRateLimitOptions> ipOptions, IOptions<ClientRateLimitOptions> clientOptions) : base(
-            httpContextAccessor, ipOptions, clientOptions)
+        public CustomRateLimitConfiguration(IOptions<IpRateLimitOptions> ipOptions,
+            IOptions<ClientRateLimitOptions> clientOptions) : base(ipOptions, clientOptions)
         {
         }
 
-        protected override void RegisterResolvers()
+        public override void RegisterResolvers()
         {
             base.RegisterResolvers();
 
             // TODO: check the request context to get the user id for per-user limiting?
 
-            IpResolvers.Add(new IpConnectionResolveContributor(HttpContextAccessor));
+            IpResolvers.Add(new IpConnectionResolveContributor());
         }
     }
 }

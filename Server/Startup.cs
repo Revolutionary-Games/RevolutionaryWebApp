@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server
     using System.Threading;
     using System.Threading.Tasks;
     using AspNetCoreRateLimit;
+    using AspNetCoreRateLimit.Redis;
     using Authorization;
     using Controllers;
     using Filters;
@@ -123,14 +124,11 @@ namespace ThriveDevCenter.Server
             if (!string.IsNullOrEmpty(SharedStateRedisConnectionString) &&
                 Convert.ToBoolean(Configuration["RateLimitStorageAllowRedis"]))
             {
-                // Due to https://github.com/stefanprodan/AspNetCoreRateLimit/issues/83 this is disabled by default
-                services.AddSingleton<IIpPolicyStore, DistributedCacheIpPolicyStore>();
-                services.AddSingleton<IRateLimitCounterStore, DistributedCacheRateLimitCounterStore>();
+                services.AddRedisRateLimiting();
             }
             else
             {
-                services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
-                services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+                services.AddInMemoryRateLimiting();
             }
 
             services.AddDbContext<ApplicationDbContext>(opts =>
