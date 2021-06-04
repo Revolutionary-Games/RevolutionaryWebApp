@@ -303,6 +303,8 @@ namespace ThriveDevCenter.Server.Models
                     .OnDelete(DeleteBehavior.Restrict);
                 entity.HasMany(p => p.CiJobOutputSections).WithOne(d => d.Job)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
             });
 
             modelBuilder.Entity<CiJobArtifact>(entity =>

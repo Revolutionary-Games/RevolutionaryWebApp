@@ -25,6 +25,7 @@ namespace ThriveDevCenter.Server.Models
 
         public bool Succeeded { get; set; } = false;
 
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? FinishedAt { get; set; }
 
         [Required]
@@ -108,7 +109,7 @@ namespace ThriveDevCenter.Server.Models
                 CiProjectId = CiProjectId,
                 CiBuildId = CiBuildId,
                 CiJobId = CiJobId,
-                CreatedAt = Build?.CreatedAt,
+                CreatedAt = CreatedAt,
                 FinishedAt = FinishedAt,
                 JobName = JobName,
                 State = State,
