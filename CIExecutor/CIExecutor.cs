@@ -24,6 +24,7 @@ namespace CIExecutor
         private const int TargetOutputSingleMessageSize = 2500;
         private const int QueueLargeThreshold = 3;
         private const string OutputSpecialCommandMarker = "#--@%-DevCenter-%@--";
+        private const string LineTruncateMessage = " THIS LINE WAS TRUNCATED BECAUSE IT IS TOO LONG";
 
         private readonly string websocketUrl;
 
@@ -32,6 +33,8 @@ namespace CIExecutor
         private readonly string ciImageName;
         private readonly string localBranch;
         private readonly string ciJobName;
+
+        private readonly bool printBuildCommands = false;
 
         // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private readonly bool isSafe;
@@ -528,6 +531,9 @@ namespace CIExecutor
                 if (command == null || command.Count < 1)
                     throw new Exception("Failed to parse CI configuration to build list of build commands");
 
+                if (printBuildCommands)
+                    PrintBuildCommands(command);
+
                 List<CiSecretExecutorData> secrets;
                 try
                 {
@@ -751,6 +757,28 @@ namespace CIExecutor
             return command;
         }
 
+        private void PrintBuildCommands(List<string> commands)
+        {
+            Console.WriteLine("Build commands:");
+            foreach (var command in commands)
+            {
+                Console.WriteLine(command);
+            }
+
+            Console.WriteLine("end of build commands");
+        }
+
+        private string ProcessBuildOutputLine(string line)
+        {
+            if (line.Length > AppInfo.MaxBuildOutputLineLength)
+            {
+                var truncated = line.Substring(0, AppInfo.MaxBuildOutputLineLength - LineTruncateMessage.Length);
+                return $"{truncated}{LineTruncateMessage}\n";
+            }
+
+            return line + "\n";
+        }
+
         private Task<bool> RunWithOutputStreaming(string executable, IEnumerable<string> arguments)
         {
             var startInfo = new ProcessStartInfo(executable)
@@ -796,7 +824,7 @@ namespace CIExecutor
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.BuildOutput,
-                    Output = (args.Data ?? "") + "\n",
+                    Output = ProcessBuildOutputLine(args.Data ?? string.Empty),
                 }).Wait();
             };
             process.ErrorDataReceived += (sender, args) =>
@@ -807,7 +835,7 @@ namespace CIExecutor
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.BuildOutput,
-                    Output = args.Data + "\n",
+                    Output = ProcessBuildOutputLine(args.Data),
                 }).Wait();
             };
 
@@ -915,7 +943,7 @@ namespace CIExecutor
                     QueueSendMessage(new RealTimeBuildMessage()
                     {
                         Type = BuildSectionMessageType.BuildOutput,
-                        Output = args.Data + "\n",
+                        Output = ProcessBuildOutputLine(args.Data),
                     }).Wait();
                 }
             };
@@ -927,7 +955,7 @@ namespace CIExecutor
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
                     Type = BuildSectionMessageType.BuildOutput,
-                    Output = args.Data + "\n",
+                    Output = ProcessBuildOutputLine(args.Data),
                 }).Wait();
             };
 
