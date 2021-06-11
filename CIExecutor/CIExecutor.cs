@@ -574,7 +574,8 @@ namespace CIExecutor
                 var result = await RunWithInputAndOutput(command, "nice", runArguments);
                 Console.WriteLine("Process finished: {0}", result);
 
-                buildCommandsFailed = !result;
+                if (!result)
+                    buildCommandsFailed = true;
 
                 if (!lastSectionClosed)
                 {
@@ -914,7 +915,7 @@ namespace CIExecutor
                             }).Wait();
 
                             if (!success)
-                                Failure = true;
+                                buildCommandsFailed = true;
 
                             lastSectionClosed = true;
                             break;
