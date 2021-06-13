@@ -212,6 +212,8 @@ namespace ThriveDevCenter.Server.Controllers
                     Name = s.Name,
                     Status = s.Status,
                     OutputLength = s.OutputLength,
+                    StartedAt = s.StartedAt,
+                    FinishedAt = s.FinishedAt,
                 }).ToListAsync();
 
             return objects.Select(o => o.GetInfo()).ToList();
