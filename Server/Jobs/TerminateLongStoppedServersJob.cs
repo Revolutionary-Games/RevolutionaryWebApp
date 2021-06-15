@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Server.Jobs
 
     public class TerminateLongStoppedServersJob : IJob
     {
-        private readonly TimeSpan terminateStoppedServerDelay = TimeSpan.FromDays(3);
+        private readonly TimeSpan terminateStoppedServerDelay = TimeSpan.FromDays(2);
 
         private readonly ILogger<TerminateLongStoppedServersJob> logger;
         private readonly ApplicationDbContext database;

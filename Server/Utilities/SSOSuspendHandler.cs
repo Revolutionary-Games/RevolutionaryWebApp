@@ -136,7 +136,7 @@ namespace ThriveDevCenter.Server.Utilities
                 }, cancellationToken);
 
                 user.Suspended = true;
-                user.SuspendedReason = $"Used login option is no longer valid #{reason}";
+                user.SuspendedReason = $"Used login option is no longer valid {reason}";
             }
 
             return true;

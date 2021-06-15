@@ -52,7 +52,7 @@ namespace ThriveDevCenter.Server.Utilities
             if (string.IsNullOrWhiteSpace(username))
             {
                 // Fallback to using the id if everything failed...
-                username = $"Patron #{user.Id}";
+                username = $"Patron {user.Id}";
             }
 
             if (patron == null)

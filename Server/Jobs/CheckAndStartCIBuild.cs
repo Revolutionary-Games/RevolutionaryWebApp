@@ -63,7 +63,8 @@ namespace ThriveDevCenter.Server.Jobs
 
             try
             {
-                await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, true, cancellationToken);
+                await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, true,
+                    cancellationToken);
 
                 // Fetch the ref
                 await GitRunHelpers.FetchRef(tempPath, build.RemoteRef, cancellationToken);
@@ -110,6 +111,7 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            // TODO: refactor these checks to be cleaner
             if (configuration.Jobs.Select(j => j.Value.Cache).Any(c =>
                 c.LoadFrom.Any(p => p.Contains("..") || p.StartsWith("/")) || c.WriteTo.Contains("..") ||
                 c.WriteTo.Contains("/") ||
@@ -129,9 +131,10 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            if (configuration.Jobs.SelectMany(j => j.Value.Artifacts.Paths).Any(p => p.Length < 3 || p.Length > 250))
+            if (configuration.Jobs.SelectMany(j => j.Value.Artifacts.Paths).Any(p =>
+                p.Length < 3 || p.Length > 250 || p.StartsWith("/") || p.Contains("..")))
             {
-                logger.LogError("Build has a too long / short artifact path");
+                logger.LogError("Build has a too long, short, or non-relative artifact path");
 
                 await CreateFailedJob(build, "Invalid configuration yaml, invalid artifact path(s)", cancellationToken);
                 return;

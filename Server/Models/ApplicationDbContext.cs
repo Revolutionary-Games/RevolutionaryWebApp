@@ -177,7 +177,7 @@ namespace ThriveDevCenter.Server.Models
                     .WithMany(p => p.LfsObjects).OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<LfsProject>(entity => {  });
+            modelBuilder.Entity<LfsProject>(entity => { });
 
             modelBuilder.Entity<PatreonSettings>(entity => { });
 
@@ -191,10 +191,7 @@ namespace ThriveDevCenter.Server.Models
                     .WithMany(p => p.ProjectGitFiles).OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<StorageFile>(entity =>
-            {
-                entity.Property(e => e.Id).UseHiLo("storage_files_hilo");
-            });
+            modelBuilder.Entity<StorageFile>(entity => { entity.Property(e => e.Id).UseHiLo("storage_files_hilo"); });
 
             modelBuilder.Entity<StorageItem>(entity =>
             {
@@ -306,6 +303,8 @@ namespace ThriveDevCenter.Server.Models
                     .OnDelete(DeleteBehavior.Restrict);
                 entity.HasMany(p => p.CiJobOutputSections).WithOne(d => d.Job)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
             });
 
             modelBuilder.Entity<CiJobArtifact>(entity =>
@@ -320,6 +319,8 @@ namespace ThriveDevCenter.Server.Models
             {
                 entity.HasKey(nameof(CiJobOutputSection.CiProjectId), nameof(CiJobOutputSection.CiBuildId),
                     nameof(CiJobOutputSection.CiJobId), nameof(CiJobOutputSection.CiJobOutputSectionId));
+
+                entity.Property(e => e.StartedAt).HasDefaultValueSql("timezone('utc', now())");
             });
 
             modelBuilder.Entity<ControlledServer>(entity =>

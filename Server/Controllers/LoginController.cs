@@ -622,7 +622,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 await database.Users.AddAsync(user);
             }
-            else if (user.Local == true)
+            else if (user.Local)
             {
                 return (Redirect(QueryHelpers.AddQueryString("/login", "error",
                     "Can't login to local account using SSO")), false);
@@ -656,10 +656,12 @@ namespace ThriveDevCenter.Server.Controllers
                 else if (user.SsoSource == SsoTypePatreon && ssoType == SsoTypeCommunityForum)
                 {
                     logger.LogInformation("Patron logged in using a community forum account");
+                    await ChangeSsoSourceForNormalUser(user, ssoType);
                 }
                 else if (user.SsoSource == SsoTypeCommunityForum && ssoType == SsoTypePatreon)
                 {
                     logger.LogInformation("Community forum user logged in using patreon");
+                    await ChangeSsoSourceForNormalUser(user, ssoType);
                 }
                 else
                 {
@@ -680,6 +682,25 @@ namespace ThriveDevCenter.Server.Controllers
 
             var result = await FinishSsoLoginToAccount(user, session);
             return (result, true);
+        }
+
+        [NonAction]
+        private async Task ChangeSsoSourceForNormalUser(User user, string ssoType)
+        {
+            if (user.Suspended != true || user.SuspendedManually == true || user.SsoSource == ssoType)
+                return;
+
+            // TODO: this should only unsuspend if the last login source is no longer valid
+            await database.LogEntries.AddAsync(new LogEntry()
+            {
+                Message = "Un-suspending automatically suspended user due to SSO source change",
+                TargetUserId = user.Id,
+            });
+
+            user.Suspended = false;
+            user.SsoSource = ssoType;
+
+            await database.SaveChangesAsync();
         }
 
         [NonAction]

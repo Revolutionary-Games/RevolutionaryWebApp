@@ -26,6 +26,9 @@ namespace ThriveDevCenter.Server.Models
 
         public CIJobSectionStatus Status { get; set; } = CIJobSectionStatus.Running;
 
+        public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? FinishedAt { get; set; }
+
         [Required]
         public string Output { get; set; } = string.Empty;
 
@@ -56,6 +59,8 @@ namespace ThriveDevCenter.Server.Models
                 Name = Name,
                 Status = Status,
                 OutputLength = OutputLength,
+                StartedAt = StartedAt,
+                FinishedAt = FinishedAt,
             };
         }
 
@@ -71,6 +76,8 @@ namespace ThriveDevCenter.Server.Models
                 Status = Status,
                 Output = Output,
                 OutputLength = OutputLength,
+                StartedAt = StartedAt,
+                FinishedAt = FinishedAt,
             };
         }
 
