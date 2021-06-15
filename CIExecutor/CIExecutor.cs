@@ -49,6 +49,7 @@ namespace CIExecutor
 
         private RealTimeBuildMessageSocket protocolSocket;
         private CiJobCacheConfiguration cacheConfig;
+        private CiJobConfiguration jobConfiguration;
 
         private string currentBuildRootFolder;
 
@@ -611,6 +612,39 @@ namespace CIExecutor
             });
         }
 
+        private async Task HandleBuildArtifacts()
+        {
+            if (jobConfiguration.Artifacts == null || jobConfiguration.Artifacts.Paths.Count < 1)
+                return;
+
+            await QueueSendMessage(new RealTimeBuildMessage()
+            {
+                Type = BuildSectionMessageType.SectionStart,
+                SectionName = "Build Artifacts",
+            });
+
+            await QueueSendBasicMessage("Uploading build artifacts...");
+
+            bool success = true;
+
+            foreach (var relativePath in jobConfiguration.Artifacts.Paths)
+            {
+                var fullPath = Path.Join(currentBuildRootFolder, relativePath);
+
+                if (!File.Exists(fullPath))
+                    continue;
+
+                await QueueSendBasicMessage($"Found build artifact: {relativePath}");
+            }
+
+            await QueueSendBasicMessage("Artifact handling finished");
+            await QueueSendMessage(new RealTimeBuildMessage()
+            {
+                Type = BuildSectionMessageType.SectionEnd,
+                WasSuccessful = success,
+            });
+        }
+
         private Task QueueSendBasicMessage(string message)
         {
             return QueueSendMessage(new RealTimeBuildMessage()
@@ -691,7 +725,8 @@ namespace CIExecutor
         private List<string> BuildCommandsFromBuildConfig(CiBuildConfiguration configuration, string jobName,
             string folder)
         {
-            if (!configuration.Jobs.TryGetValue(jobName, out CiJobConfiguration config))
+            configuration.Jobs.TryGetValue(jobName, out jobConfiguration);
+            if (jobConfiguration == null)
             {
                 QueueSendBasicMessage($"Config file is missing current job: {jobName}");
                 return null;
@@ -708,7 +743,7 @@ namespace CIExecutor
             };
 
             // Build commands
-            foreach (var step in config.Steps)
+            foreach (var step in jobConfiguration.Steps)
             {
                 if (step.Run == null)
                     continue;
