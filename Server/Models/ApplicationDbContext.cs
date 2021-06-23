@@ -176,11 +176,11 @@ namespace ThriveDevCenter.Server.Models
                     .WithMany(p => p.LfsObjects).OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<LfsProject>(entity => { });
+            // modelBuilder.Entity<LfsProject>(entity => { });
 
-            modelBuilder.Entity<PatreonSettings>(entity => { });
+            // modelBuilder.Entity<PatreonSettings>(entity => { });
 
-            modelBuilder.Entity<Patron>(entity => { });
+            // modelBuilder.Entity<Patron>(entity => { });
 
             modelBuilder.Entity<ProjectGitFile>(entity =>
             {

@@ -25,7 +25,7 @@ namespace ThriveDevCenter.Client
             if (!AppInfo.UsePrerendering)
                 builder.RootComponents.Add<App>("#app");
 
-            builder.Services.AddSingleton(sp => new CurrentUserInfo());
+            builder.Services.AddSingleton(_ => new CurrentUserInfo());
 
             builder.Services.AddSingleton<ICSRFTokenReader>(sp =>
                 new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>(), sp.GetRequiredService<CurrentUserInfo>()));

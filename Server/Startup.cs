@@ -99,14 +99,14 @@ namespace ThriveDevCenter.Server
             // Caching used for expensive API endpoints
             services.AddResponseCaching(options => { options.UseCaseSensitivePaths = true; });
 
-            services.AddControllersWithViews().AddJsonOptions(options =>
+            // For now custom serializers are not needed
+            /* services.AddControllersWithViews().AddJsonOptions(options =>
             {
-                // For now custom serializers are not needed
-                // options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
+                options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
 
                 // This doesn't seem to do anything... So manual deserialize on client needs case insensitive mode on
                 // options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            });
+            }); */
 
             services.AddRazorPages();
 

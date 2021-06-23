@@ -119,6 +119,8 @@ namespace ThriveDevCenter.Server.Services
 
         private class CommitStatusSetRequest
         {
+            // ReSharper disable UnusedAutoPropertyAccessor.Local
+
             [JsonPropertyName("state")]
             public CommitStatus State { get; set; }
 
@@ -130,6 +132,8 @@ namespace ThriveDevCenter.Server.Services
 
             [JsonPropertyName("context")]
             public string Context { get; set; }
+
+            // ReSharper restore UnusedAutoPropertyAccessor.Local
         }
     }
 }

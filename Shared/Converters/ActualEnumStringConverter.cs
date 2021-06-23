@@ -35,6 +35,8 @@ namespace ThriveDevCenter.Shared.Utilities
 
         public ActualEnumConverter(JsonSerializerOptions options)
         {
+            _ = options;
+
             var type = typeof(T);
             var enumValues = type.GetFields(BindingFlags.Public | BindingFlags.Static);
 

@@ -20,6 +20,7 @@ namespace ThriveDevCenter.Server.Utilities
 
         private class WrappedObj<TValue>
         {
+            // ReSharper disable once UnusedAutoPropertyAccessor.Local
             public TValue Value { get; }
 
             public WrappedObj(TValue value)

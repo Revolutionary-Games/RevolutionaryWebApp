@@ -1,16 +1,15 @@
 @page "/lfs"
-@inject HttpClient Http
-@inject NavigationManager NavManager
-@inject IJSRuntime JS
-@inject ComponentUrlHelper UrlHelper
-@inject NotificationHandler NotificationHandler
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LFSListUpdated>
-@implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LFSProjectInfo>
 
 <h3>Git LFS Projects</h3>
@@ -124,13 +123,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await NotificationHandler.Register(this);
+        await notificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        this.SetParametersFromQueryString(NavManager);
+        this.SetParametersFromQueryString(navManager);
 
         return base.SetParametersAsync(parameters);
     }
@@ -151,18 +150,18 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await NotificationHandler.Unregister(this);
+        await notificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<LFSProjectInfo>> StartQuery(Dictionary<string, string> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
+        return http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
             QueryHelpers.AddQueryString("api/v1/LFSProject", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
-        await UrlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
     private void ToggleCreateNew()
@@ -198,7 +197,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/LFSProject", new LFSProjectDTO()
+            result = await http.PostAsJsonAsync("api/v1/LFSProject", new LFSProjectDTO()
             {
                 Name =  newName,
                 Slug = newSlug,

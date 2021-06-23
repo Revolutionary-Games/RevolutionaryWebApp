@@ -1,4 +1,4 @@
-@inject NavigationManager Navigation
+@inject NavigationManager navigation
 
 @code {
 
@@ -7,7 +7,7 @@
 
     protected override void OnInitialized()
     {
-        Navigation.NavigateTo(Navigation.GetLinkToLogin(PermissionsProblem ?
+        navigation.NavigateTo(navigation.GetLinkToLogin(PermissionsProblem ?
             NavigationManagerExtensions.PermissionProblemErrorMessage :
             NavigationManagerExtensions.LoginRequiredErrorMessage));
     }

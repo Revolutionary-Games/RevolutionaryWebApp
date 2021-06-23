@@ -1,7 +1,7 @@
-@inject NavigationManager NavigationManager
+@inject NavigationManager navigationManager
 
 <h3>The resource you are trying to view does not exist or it is private</h3>
 
-<NavLink href="@NavigationManager.GetLinkToLogin(NavigationManagerExtensions.ResourcePrivateErrorMessage)">
+<NavLink href="@navigationManager.GetLinkToLogin(NavigationManagerExtensions.ResourcePrivateErrorMessage)">
     Logging in
 </NavLink> may make the requested resource available.

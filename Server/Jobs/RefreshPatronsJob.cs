@@ -64,6 +64,7 @@ namespace ThriveDevCenter.Server.Jobs
                         "(wasn't found from fresh data from Patreon)"
                 }, cancellationToken);
 
+                logger.LogInformation("Deleted unmarked Patron {Id}", toDelete.Id);
                 database.Patrons.Remove(toDelete);
             }
 

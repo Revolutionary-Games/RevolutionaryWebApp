@@ -26,7 +26,7 @@ namespace ThriveDevCenter.Client.Tests.Mocks
 
         public static MockedRequest RespondJson<T>(this MockedRequest request, T content)
         {
-            request.Respond(req =>
+            request.Respond(_ =>
             {
                 var response = new HttpResponseMessage(HttpStatusCode.OK)
                 {
@@ -47,7 +47,7 @@ namespace ThriveDevCenter.Client.Tests.Mocks
 
         public static MockedRequest RespondJson<T>(this MockedRequest request, Func<T> contentProvider)
         {
-            request.Respond(req =>
+            request.Respond(_ =>
             {
                 var response = new HttpResponseMessage(HttpStatusCode.OK)
                 {

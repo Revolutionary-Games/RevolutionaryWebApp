@@ -648,6 +648,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             public LFSObject(string oid, long size, ErrorInfo error)
             {
+                Oid = oid;
+                Size = size;
                 Error = error;
                 Authenticated = null;
             }

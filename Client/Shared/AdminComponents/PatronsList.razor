@@ -1,15 +1,14 @@
-@inject HttpClient Http
-@inject NavigationManager NavManager
-@inject IJSRuntime JS
-@inject ComponentUrlHelper UrlHelper
-@inject NotificationHandler NotificationHandler
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<PatronListUpdated>
-@implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.PatronDTO>
 <h3>Patrons</h3>
 
@@ -67,7 +66,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await NotificationHandler.Register(this);
+        await notificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -85,12 +84,12 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await NotificationHandler.Unregister(this);
+        await notificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<PatronDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<PatronDTO>>(
+        return http.GetFromJsonAsync<PagedResult<PatronDTO>>(
             QueryHelpers.AddQueryString("api/v1/Patrons", requestParams));
     }
 }

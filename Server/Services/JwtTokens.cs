@@ -93,7 +93,7 @@ namespace ThriveDevCenter.Server.Services
             validationParameters = new TokenValidationParameters()
             {
                 // The default seems to allow a bit expired tokens, so a more strict check is used
-                LifetimeValidator = (notBefore, expires, securityToken, parameters) =>
+                LifetimeValidator = (notBefore, expires, _, _) =>
                 {
                     var now = DateTime.UtcNow;
 

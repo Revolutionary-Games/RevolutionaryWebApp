@@ -1,7 +1,7 @@
 @{
     #pragma warning disable 108,114 // invalid warning for razor override
 }
-@inject CurrentUserInfo CurrentUserInfo
+@inject CurrentUserInfo currentUserInfo
 @implements IDisposable
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Client.Services
@@ -9,10 +9,10 @@
 @inherits UserInfoReactingComponent
 
 
-@if (CurrentUserInfo.InfoReady)
+@if (currentUserInfo.InfoReady)
 {
     // For now only show something when info is ready, to reduce having infinite number of spinners on one page
-    if (CurrentUserInfo.AccessLevel.HasAccess(RequiredAccess))
+    if (currentUserInfo.AccessLevel.HasAccess(RequiredAccess))
     {
         if (AuthorizedContent == null)
         {
@@ -25,11 +25,11 @@
     }
     else
     {
-        if ((AutoRedirectIfNotLoggedIn || RedirectOnInsufficientPermission) && !CurrentUserInfo.LoggedIn)
+        if ((AutoRedirectIfNotLoggedIn || RedirectOnInsufficientPermission) && !currentUserInfo.LoggedIn)
         {
             <RedirectToLogin />
         }
-        else if (RedirectOnInsufficientPermission && CurrentUserInfo.LoggedIn)
+        else if (RedirectOnInsufficientPermission && currentUserInfo.LoggedIn)
         {
             <RedirectToLogin PermissionsProblem="true" />
         }

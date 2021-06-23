@@ -7,7 +7,6 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<ControlledServersUpdated>
-@implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.ControlledServerDTO>
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">

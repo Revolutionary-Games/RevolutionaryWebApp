@@ -1,5 +1,5 @@
-@inject NavigationManager NavManager
-@inject ICSRFTokenReader Csrf
+@inject NavigationManager navManager
+@inject ICSRFTokenReader csrf
 @using System.Timers
 @using ThriveDevCenter.Client.Services
 @implements IDisposable
@@ -8,7 +8,7 @@
 {
     <div class="alert alert-danger" role="alert">
         This page's authorization has ended, interaction is no longer possible,
-        <a href="#" class="alert-link" @onclick="NavManager.ForceReload" @onclick:preventDefault="true">reload</a>.
+        <a href="#" class="alert-link" @onclick="navManager.ForceReload" @onclick:preventDefault="true">reload</a>.
     </div>
 }
 
@@ -18,7 +18,7 @@
     <div class="alert alert-warning" role="alert">
         This page's authorization will end soon. Please save your work and reload as soon as possible.
         @alert
-        <a href="#" class="alert-link" @onclick="NavManager.ForceReload" @onclick:preventDefault="true">reload now</a>.
+        <a href="#" class="alert-link" @onclick="navManager.ForceReload" @onclick:preventDefault="true">reload now</a>.
     </div>
 }
 
@@ -50,7 +50,7 @@
     private async void OnCheck(object sender, ElapsedEventArgs elapsedEventArgs)
     {
         bool changes = false;
-        bool newValid = Csrf.Valid;
+        bool newValid = csrf.Valid;
 
         if (newValid != valid)
         {
@@ -58,7 +58,7 @@
             changes = true;
         }
 
-        var remaining = Csrf.TimeRemaining;
+        var remaining = csrf.TimeRemaining;
 
         if (remaining < StartAlertingTimeRemaining)
         {

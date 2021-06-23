@@ -29,7 +29,7 @@ namespace ThriveDevCenter.Server.Utilities
 
             if (num > 0)
             {
-                result.PageCount = (int)Math.Ceiling((double)result.RowCount / (double)pageSize);
+                result.PageCount = (int)Math.Ceiling(result.RowCount / (double)pageSize);
 
                 page = Math.Min(result.PageCount, page);
 
@@ -82,7 +82,7 @@ namespace ThriveDevCenter.Server.Utilities
             var parameter = Expression.Parameter(typeof(T), "x");
             var selector = Expression.PropertyOrField(parameter, column);
 
-            LinqHelpers.CheckTargetColumn<T>(column, extraAllowedColumns, selector);
+            LinqHelpers.CheckTargetColumn(column, extraAllowedColumns, selector);
 
             var cast = Expression.Convert(selector, typeof(object));
 

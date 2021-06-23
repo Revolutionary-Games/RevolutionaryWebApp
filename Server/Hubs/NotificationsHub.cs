@@ -279,7 +279,7 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.CIProjectSecretsUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.CiProjects, out CiProject item))
+                if (!GetTargetModelFromGroup(groupName, database.CiProjects, out _))
                     return false;
 
                 // Only admins see secrets
@@ -301,7 +301,7 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.DevBuildUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.DevBuilds, out DevBuild item))
+                if (!GetTargetModelFromGroup(groupName, database.DevBuilds, out _))
                     return false;
 
                 return RequireAccessLevel(UserAccessLevel.User, user);

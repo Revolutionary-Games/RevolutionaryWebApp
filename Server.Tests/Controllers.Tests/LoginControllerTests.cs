@@ -9,7 +9,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         [Fact]
         public void LoginController_DiscourseGroupMembershipCheckWorks()
         {
-            StringValues groups = new StringValues(new string[]
+            StringValues groups = new StringValues(new[]
             {
                 "Supporter", "Developer", "VIP_supporter", "trust_level_0", "trust_level_2", "trust_level_3",
                 "trust_level_1"

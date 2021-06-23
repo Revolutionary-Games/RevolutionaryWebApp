@@ -74,6 +74,8 @@ namespace ThriveDevCenter.Server.Controllers
             await database.Users.AddAsync(user);
             await database.SaveChangesAsync();
 
+            logger.LogInformation("New user registered {Name} ({Email})", request.Name, request.Email);
+
             return Created($"/users/{user.Id}", user.GetInfo(RecordAccessLevel.Private));
         }
     }

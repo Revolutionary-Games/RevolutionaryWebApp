@@ -328,13 +328,13 @@ namespace ThriveDevCenter.Client.Services
                 }
             });
 
-            hubConnection.Reconnecting += error =>
+            hubConnection.Reconnecting += _ =>
             {
                 ConnectionLost = true;
                 return Task.CompletedTask;
             };
 
-            hubConnection.Reconnected += async newId =>
+            hubConnection.Reconnected += async _ =>
             {
                 // Disallow reconnect in this case if we already gave up
                 if (ConnectionPermanentlyLost)
@@ -351,7 +351,7 @@ namespace ThriveDevCenter.Client.Services
                 ConnectionLost = false;
             };
 
-            hubConnection.Closed += error =>
+            hubConnection.Closed += _ =>
             {
                 ConnectionLost = true;
                 ConnectionPermanentlyLost = true;
