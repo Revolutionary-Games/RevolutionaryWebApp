@@ -1,6 +1,5 @@
 namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 {
-    using System.Linq;
     using Microsoft.Extensions.Primitives;
     using Server.Utilities;
     using Xunit;

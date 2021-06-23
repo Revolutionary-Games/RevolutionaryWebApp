@@ -2,7 +2,6 @@ namespace ThriveDevCenter.Shared.Converters
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using Models.Enums;
 
     public class TerminalEscapeHandling

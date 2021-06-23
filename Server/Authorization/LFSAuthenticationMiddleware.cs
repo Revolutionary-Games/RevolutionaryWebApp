@@ -8,7 +8,6 @@ namespace ThriveDevCenter.Server.Authorization
     using Microsoft.Extensions.Primitives;
     using Models;
     using Shared;
-    using Shared.Models;
     using Utilities;
 
     public class LFSAuthenticationMiddleware : BaseAuthenticationHelper

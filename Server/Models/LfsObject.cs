@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace ThriveDevCenter.Server.Models
+﻿namespace ThriveDevCenter.Server.Models
 {
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;

@@ -4,15 +4,12 @@ namespace ThriveDevCenter.Server.Controllers
 {
     using System.Threading.Tasks;
     using Authorization;
-    using Hubs;
-    using Microsoft.AspNetCore.SignalR;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
     using Shared.Forms;
     using Shared.Models;
-    using Shared.Notifications;
 
     [ApiController]
     [Route("api/v1/[controller]")]

@@ -2,7 +2,6 @@ namespace ThriveDevCenter.Server.Jobs
 {
     using System;
     using System.Linq;
-    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;

@@ -1,11 +1,9 @@
 namespace ThriveDevCenter.Server.Models
 {
-    using System.Collections;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
-    using Shared.Models;
 
     // TODO: drop the update info from this table as unnecessary in a later migration
     [Index(nameof(Sha3), IsUnique = true)]

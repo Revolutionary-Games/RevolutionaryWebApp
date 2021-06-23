@@ -8,7 +8,6 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
     using Services;
     using Shared;
-    using Shared.Models;
     using Shared.Notifications;
     using Utilities;
 
