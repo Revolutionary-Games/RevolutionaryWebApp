@@ -44,7 +44,7 @@ namespace ThriveDevCenter.Server.Authorization
             string userPassword;
             try
             {
-                var base64EncodedBytes = System.Convert.FromBase64String(encoded);
+                var base64EncodedBytes = Convert.FromBase64String(encoded);
                 userPassword = System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
             }
             catch (Exception)

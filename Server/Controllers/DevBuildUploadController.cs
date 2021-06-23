@@ -53,7 +53,7 @@ namespace ThriveDevCenter.Server.Controllers
             this.database = database;
             this.jobClient = jobClient;
             this.remoteStorage = remoteStorage;
-            this.dataProtector = dataProtectionProvider.CreateProtector(DevBuildUploadProtectionPurposeString);
+            dataProtector = dataProtectionProvider.CreateProtector(DevBuildUploadProtectionPurposeString);
         }
 
         /// <summary>
