@@ -14,6 +14,9 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string UserUpdatedPrefix = "SUser_";
         public const string UserUpdatedPrefixAdminInfo = "SAUser_";
 
+        public const string CLAListUpdated = "CLAs";
+        public const string CLAUpdatedPrefix = "CLA_";
+
         // CI related groups
         public const string CIProjectListUpdated = "CIProjects";
         public const string PrivateCIProjectUpdated = "CIProject_Developer";

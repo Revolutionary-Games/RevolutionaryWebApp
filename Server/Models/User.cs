@@ -119,6 +119,11 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         public ICollection<Session> Sessions { get; set; } = new HashSet<Session>();
 
+        /// <summary>
+        ///   CLA signatures performed by this user
+        /// </summary>
+        public ICollection<ClaSignature> ClaSignatures { get; set; } = new HashSet<ClaSignature>();
+
         public bool HasAccessLevel(UserAccessLevel level)
         {
             return ComputeAccessLevel().HasAccess(level);

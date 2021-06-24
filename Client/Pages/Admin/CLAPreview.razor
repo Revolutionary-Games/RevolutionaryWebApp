@@ -1,0 +1,49 @@
+@page "/admin/cla/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CLADTO, CLAUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+        @if (Data != null)
+        {
+            <h3>CLA @Data.Id</h3>
+
+            <ul>
+                <li><strong>Active</strong>: @Data.Active</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+            </ul>
+
+            <h4>Agreement Text Preview</h4>
+            @* TODO: markdown rendering *@
+            <div>@Data.RawMarkdown</div>
+        }
+    </SingleResourceDisplayer>
+</AccessLimited>
+
+@code {
+    protected override Task<CLADTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<CLADTO>($"api/v1/CLA/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CLAUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+}

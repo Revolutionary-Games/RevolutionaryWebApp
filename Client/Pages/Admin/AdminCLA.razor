@@ -1,0 +1,23 @@
+@page "/admin/cla"
+@using ThriveDevCenter.Shared.Models
+
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <h3>CLA Configuration</h3>
+    <p>
+        This page allows configuring the CLA text that users need to sign. A new version should <strong>not</strong> be
+        created unless there is a very strong reason as all previously signed people need to sign the new version for
+        it to become effective.
+    </p>
+
+    <h4>CLA</h4>
+
+    <CLAList />
+
+    <h4 class="mt-3">Signatures</h4>
+
+</AccessLimited>
+
+@code {
+
+}

@@ -162,6 +162,7 @@ namespace ThriveDevCenter.Server.Hubs
                 case NotificationGroups.PatronListUpdated:
                 case NotificationGroups.AccessKeyListUpdated:
                 case NotificationGroups.ControlledServerListUpdated:
+                case NotificationGroups.CLAListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
                 case NotificationGroups.PrivateCIProjectUpdated:
@@ -363,6 +364,19 @@ namespace ThriveDevCenter.Server.Hubs
 
                 // Only owner can join this group
                 return user.Id == item.OwnerId;
+            }
+
+            if (groupName.StartsWith(NotificationGroups.CLAUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.Clas, out Cla item))
+                    return false;
+
+                // Everyone sees active CLA data
+                if (item.Active)
+                    return true;
+
+                // Only admins see other CLA data
+                return RequireAccessLevel(UserAccessLevel.Admin, user);
             }
 
             // Only admins see this

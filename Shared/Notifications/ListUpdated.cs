@@ -89,4 +89,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class StorageItemVersionListUpdated : ListUpdated<StorageItemVersionInfo>
     {
     }
+
+    public class CLAListUpdated : ListUpdated<CLAInfo>
+    {
+    }
 }

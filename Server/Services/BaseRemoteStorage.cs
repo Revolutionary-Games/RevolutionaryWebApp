@@ -62,6 +62,19 @@ namespace ThriveDevCenter.Server.Services
             });
         }
 
+        public string CreatePreSignedDownloadURL(string path, TimeSpan expiresIn)
+        {
+            ThrowIfNotConfigured();
+
+            return s3Client.GetPreSignedURL(new GetPreSignedUrlRequest()
+            {
+                BucketName = bucket,
+                Key = path,
+                Expires = DateTime.UtcNow + expiresIn,
+                Verb = HttpVerb.GET
+            });
+        }
+
         public string CreatePresignedPostURL(string path, string mimeType, TimeSpan expiresIn)
         {
             ThrowIfNotConfigured();

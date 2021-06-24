@@ -41,6 +41,10 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<CiJobArtifact> CiJobArtifacts { get; set; }
         public DbSet<CiJobOutputSection> CiJobOutputSections { get; set; }
         public DbSet<ControlledServer> ControlledServers { get; set; }
+        public DbSet<Cla> Clas { get; set; }
+        public DbSet<ClaSignature> ClaSignatures { get; set; }
+        public DbSet<PullRequest> PullRequests { get; set; }
+        public DbSet<PullRequestAutoComment> PullRequestAutoComments { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -327,6 +331,18 @@ namespace ThriveDevCenter.Server.Models
                 entity.UseXminAsConcurrencyToken();
 
                 entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
+            });
+
+            modelBuilder.Entity<Cla>(entity =>
+            {
+                entity.HasMany(p => p.Signatures).WithOne(d => d.Cla).
+                    OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ClaSignature>(entity =>
+            {
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.ClaSignatures).OnDelete(DeleteBehavior.SetNull);
             });
         }
 

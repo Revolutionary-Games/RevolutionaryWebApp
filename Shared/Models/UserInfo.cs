@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Shared.Models
 {
+    // TODO: this should be renamed to UserDTO as this is closer to that than the actual Info types
     public class UserInfo : ClientSideTimedModel
     {
         public string Name { get; set; }

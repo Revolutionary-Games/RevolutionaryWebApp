@@ -2,8 +2,10 @@ namespace ThriveDevCenter.Server.Jobs
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Hangfire;
     using Microsoft.Extensions.Logging;
 
+    [DisableConcurrentExecution(60)]
     public class CheckPullRequestCLAJob
     {
         private readonly ILogger<CheckPullRequestCLAJob> logger;
@@ -13,7 +15,8 @@ namespace ThriveDevCenter.Server.Jobs
             this.logger = logger;
         }
 
-        public Task Execute(string commit, string authorEmail, CancellationToken cancellationToken)
+        public Task Execute(string repository, string pullRequest, string commit, string githubUsername,
+            CancellationToken cancellationToken)
         {
             // TODO: implement this checking
             return Task.CompletedTask;
