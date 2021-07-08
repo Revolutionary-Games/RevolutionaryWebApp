@@ -20,8 +20,7 @@
             </ul>
 
             <h4>Agreement Text Preview</h4>
-            @* TODO: markdown rendering *@
-            <div>@Data.RawMarkdown</div>
+            <div><MarkdownRenderer Value="@Data.RawMarkdown" /></div>
         }
     </SingleResourceDisplayer>
 </AccessLimited>

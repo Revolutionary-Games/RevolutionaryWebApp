@@ -75,10 +75,36 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var cla = await database.Clas.AsQueryable().Where(c => c.Active).FirstOrDefaultAsync();
 
-            if (cla == null)
-                return NotFound();
+            return cla?.GetDTO();
+        }
 
-            return cla.GetDTO();
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpPost]
+        public async Task<IActionResult> CreateNew([Required] [FromBody] CLADTO request)
+        {
+            var newCla = new Cla()
+            {
+                Active = request.Active,
+                RawMarkdown = request.RawMarkdown,
+            };
+
+            // Other active CLAs need to become inactive if new one is added
+            if (newCla.Active)
+            {
+                foreach (var cla in await database.Clas.AsQueryable().Where(c => c.Active).ToListAsync())
+                {
+                    cla.Active = false;
+                    logger.LogInformation("CLA {Id} is being made inactive due to creating a new one", cla.Id);
+                }
+            }
+
+            await database.Clas.AddAsync(newCla);
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("New CLA {Id} with active: {Active} created by {Email}", newCla.Id,
+                newCla.Active, HttpContext.AuthenticatedUser().Email);
+
+            return Ok();
         }
     }
 }

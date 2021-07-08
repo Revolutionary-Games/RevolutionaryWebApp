@@ -31,7 +31,7 @@ namespace ThriveDevCenter.Server.Models
             {
                 Id = Id,
                 CreatedAt = CreatedAt,
-                Active = Active
+                Active = Active,
             };
         }
 
