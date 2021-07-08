@@ -10,9 +10,11 @@ namespace ThriveDevCenter.Client
     using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.JSInterop;
+    using Modulight.Modules.Hosting;
     using Services;
     using TextCopy;
     using ThriveDevCenter.Shared;
+    using StardustDL.RazorComponents.Markdown;
 
     public class Program
     {
@@ -24,6 +26,11 @@ namespace ThriveDevCenter.Client
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (!AppInfo.UsePrerendering)
                 builder.RootComponents.Add<App>("#app");
+
+            builder.Services.AddModules(moduleHostBuilder =>
+            {
+                moduleHostBuilder.UseRazorComponentClientModules().AddMarkdownModule();
+            });
 
             builder.Services.AddSingleton(_ => new CurrentUserInfo());
 
@@ -73,7 +80,7 @@ namespace ThriveDevCenter.Client
             await concreteReader.ReportInitialUserIdToLocalStorage(app.Services
                 .GetRequiredService<ILocalStorageService>());
 
-            await app.RunAsync();
+            await app.RunAsyncWithModules();
         }
     }
 }

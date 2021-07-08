@@ -25,8 +25,10 @@ namespace ThriveDevCenter.Server
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Modulight.Modules.Hosting;
     using Services;
     using StackExchange.Redis;
+    using StardustDL.RazorComponents.Markdown;
     using Utilities;
 
     public class Startup
@@ -82,6 +84,12 @@ namespace ThriveDevCenter.Server
 
             // Used for rate limit storage (when not using redis)
             services.AddMemoryCache();
+
+            services.AddModules(moduleHostBuilder =>
+            {
+                // moduleHostBuilder.AddMarkdownModule();
+                moduleHostBuilder.UseRazorComponentClientModules().AddMarkdownModule();
+            });
 
             // TODO: message pack protocol
             if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))

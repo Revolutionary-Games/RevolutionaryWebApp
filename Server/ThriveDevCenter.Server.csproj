@@ -34,6 +34,7 @@
     <PackageReference Include="SimpleBase" Version="3.1.0" />
     <PackageReference Include="SSH.NET" Version="2020.0.1" />
     <PackageReference Include="StackExchange.Redis" Version="2.2.4" />
+    <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.26" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.11.1" />
     <PackageReference Include="System.Interactive.Async" Version="5.0.0" />
     <PackageReference Include="System.Security.Principal" Version="4.3.0" />
