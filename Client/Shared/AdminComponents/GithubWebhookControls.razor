@@ -106,7 +106,7 @@ else
 
             try
             {
-    // ReSharper disable once PossibleNullReferenceException
+                // ReSharper disable once PossibleNullReferenceException
                 secret = JsonSerializer.Deserialize<GithubWebhookDTO>(content,
                     new JsonSerializerOptions(JsonSerializerDefaults.Web)).Secret;
             }

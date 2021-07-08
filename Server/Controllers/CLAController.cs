@@ -23,16 +23,13 @@ namespace ThriveDevCenter.Server.Controllers
     public class CLAController : Controller
     {
         private readonly ILogger<CLAController> logger;
-        private readonly ApplicationDbContext database;
-        private readonly IHubContext<NotificationsHub, INotifications> notifications;
+        private readonly NotificationsEnabledDb database;
 
         public CLAController(ILogger<CLAController> logger,
-            ApplicationDbContext database,
-            IHubContext<NotificationsHub, INotifications> notifications)
+            NotificationsEnabledDb database)
         {
             this.logger = logger;
             this.database = database;
-            this.notifications = notifications;
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
@@ -75,7 +72,10 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var cla = await database.Clas.AsQueryable().Where(c => c.Active).FirstOrDefaultAsync();
 
-            return cla?.GetDTO();
+            if (cla == null)
+                return NotFound();
+
+            return cla.GetDTO();
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
@@ -103,6 +103,56 @@ namespace ThriveDevCenter.Server.Controllers
 
             logger.LogInformation("New CLA {Id} with active: {Active} created by {Email}", newCla.Id,
                 newCla.Active, HttpContext.AuthenticatedUser().Email);
+
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpPost("{id}/activate")]
+        public async Task<IActionResult> Activate([Required] long id)
+        {
+            var cla = await database.Clas.FindAsync(id);
+
+            if (cla == null)
+                return NotFound();
+
+            if (cla.Active)
+                return BadRequest("Already active");
+
+            // Other active CLAs need to become inactive
+            foreach (var otherCla in await database.Clas.AsQueryable().Where(c => c.Active).ToListAsync())
+            {
+                otherCla.Active = false;
+                logger.LogInformation("CLA {Id} is being made inactive due to activating {Id2}", otherCla.Id,
+                    cla.Id);
+            }
+
+            cla.Active = true;
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("CLA {Id} activated by {Email}", cla.Id,
+                HttpContext.AuthenticatedUser().Email);
+
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpPost("{id}/deactivate")]
+        public async Task<IActionResult> Deactivate([Required] long id)
+        {
+            var cla = await database.Clas.FindAsync(id);
+
+            if (cla == null)
+                return NotFound();
+
+            if (!cla.Active)
+                return BadRequest("CLA is not active");
+
+            cla.Active = false;
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("CLA {Id} deactivated by {Email}", cla.Id,
+                HttpContext.AuthenticatedUser().Email);
 
             return Ok();
         }

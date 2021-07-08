@@ -1,4 +1,13 @@
 @page "/cla"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CLADTO, CLAUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Notifications
+@using System.Net
+@implements IAsyncDisposable
 <h3>Thrive CLA</h3>
 
 <p>
@@ -9,6 +18,64 @@
     <a href="https://wiki.revolutionarygamesstudio.com/wiki/Contributor_License_Agreement">wiki</a>.
 </p>
 
-@code {
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@dataFetched">
+    @if (Data != null)
+    {
+        <h3>Current CLA Agreement</h3>
 
+        <div><MarkdownRenderer Value="@Data.RawMarkdown" /></div>
+
+        <br />
+
+        @* TODO: once logic is added check that Data.Active is true as well *@
+        <Button Enabled="@false">Sign</Button>
+    }
+    else
+    {
+        <p>There is no currently active CLA available to sign.</p>
+    }
+</SingleResourceDisplayer>
+
+@code {
+    private bool dataFetched;
+
+    protected override async Task<CLADTO> StartQuery()
+    {
+        dataFetched = false;
+
+        try
+        {
+            var data =await http.GetFromJsonAsync<CLADTO>("api/v1/CLA/active");
+            dataFetched = true;
+            return data;
+        }
+        catch (HttpRequestException e)
+        {
+            if (e.StatusCode == HttpStatusCode.NotFound)
+            {
+                // No active CLA
+                dataFetched = true;
+                return null;
+            }
+
+            throw;
+        }
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        if(Data != null)
+            groups.Add(NotificationGroups.CLAUpdatedPrefix + Data.Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
 }
+
