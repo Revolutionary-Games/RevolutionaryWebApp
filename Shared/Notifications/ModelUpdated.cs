@@ -44,4 +44,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CLAUpdated : ModelUpdated<CLADTO>
     {
     }
+
+    public class MeetingUpdated : ModelUpdated<MeetingDTO>
+    {
+    }
 }

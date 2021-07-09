@@ -53,5 +53,12 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string ControlledServerListUpdated = "CServers";
 
         public const string UserLauncherLinksUpdatedPrefix = "UserLaunchers_";
+
+        public const string MeetingUpdatedPrefix = "SMeeting_";
+        public const string MeetingListUpdatedPublic = "Meeting";
+        public const string MeetingListUpdatedUser = "Meeting_User";
+        public const string MeetingListUpdatedDeveloper = "Meeting_Developer";
+        public const string MeetingListUpdatedAssociation = "Meeting_Association";
+        public const string MeetingListUpdatedBoardMember = "Meeting_Board";
     }
 }

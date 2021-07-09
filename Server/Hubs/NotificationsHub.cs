@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Server.Hubs
     using Services;
     using Shared;
     using Shared.Models;
+    using Shared.Models.Enums;
     using Shared.Notifications;
 
     public class NotificationsHub : Hub<INotifications>
@@ -338,6 +339,20 @@ namespace ThriveDevCenter.Server.Hubs
                     return false;
 
                 return CheckFolderContentsAccess(user, UserAccessLevel.Developer, item);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.MeetingUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.Meetings, out Meeting item))
+                    return false;
+
+                if (RequireAccessLevel(UserAccessLevel.Admin, user))
+                    return true;
+
+                if (user == null)
+                    return item.ReadAccess == AssociationResourceAccess.Public;
+
+                return user.ComputeAssociationAccessLevel() >= item.ReadAccess;
             }
 
             if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedOwnerPrefix))

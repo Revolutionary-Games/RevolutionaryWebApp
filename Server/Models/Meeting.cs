@@ -7,10 +7,11 @@ namespace ThriveDevCenter.Server.Models
     using Shared;
     using Shared.Models;
     using Shared.Models.Enums;
+    using Shared.Notifications;
 
     [Index(nameof(Name), IsUnique = true)]
     [Index(nameof(ReadAccess))]
-    public class Meeting : UpdateableModel
+    public class Meeting : UpdateableModel, IUpdateNotifications
     {
         [AllowSortingBy]
         [Required]
@@ -87,6 +88,20 @@ namespace ThriveDevCenter.Server.Models
                 ReadAccess = ReadAccess,
                 ReadOnly = ReadOnly,
             };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            // TODO: add all the groups here and listening for them
+            // var info = GetInfo();
+            /* yield return new Tuple<SerializedNotification, string>(new MeetingListUpdated()
+                    { Type = entityState.ToChangeType(), Item = info },
+                NotificationGroups.MeetingListUpdatedPublic); */
+
+            // TODO: different read accesses should probably send info to different groups
+            yield return new Tuple<SerializedNotification, string>(
+                new MeetingUpdated() { Item = GetDTO() },
+                NotificationGroups.MeetingUpdatedPrefix + Id);
         }
     }
 }
