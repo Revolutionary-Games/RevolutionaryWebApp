@@ -15,6 +15,11 @@
                 <AdminNavBar />
             }
 
+            @if (navigationManager.RelativeUrl().StartsWith("association"))
+            {
+                <AssociationNavBar />
+            }
+
             <AnotherTabSigninDetector />
             <CSRFExpiryAlerter />
             <SiteNotifications />

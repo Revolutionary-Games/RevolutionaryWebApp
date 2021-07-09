@@ -93,4 +93,9 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CLAListUpdated : ListUpdated<CLAInfo>
     {
     }
+
+    // TODO: not currently implemented fully
+    public class MeetingListUpdated : ListUpdated<MeetingInfo>
+    {
+    }
 }

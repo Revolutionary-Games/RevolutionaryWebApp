@@ -45,6 +45,11 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<ClaSignature> ClaSignatures { get; set; }
         public DbSet<PullRequest> PullRequests { get; set; }
         public DbSet<PullRequestAutoComment> PullRequestAutoComments { get; set; }
+        public DbSet<Meeting> Meetings { get; set; }
+        public DbSet<MeetingMember> MeetingMembers { get; set; }
+        public DbSet<MeetingPoll> MeetingPolls { get; set; }
+        public DbSet<MeetingPollVote> MeetingPollVotes { get; set; }
+        public DbSet<MeetingPollVotingRecord> MeetingPollVotingRecords { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -238,6 +243,10 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.Suspended).HasDefaultValue(false);
 
                 entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
+
+                entity.Property(e => e.AssociationMember).HasDefaultValue(false);
+                entity.Property(e => e.BoardMember).HasDefaultValue(false);
+                entity.Property(e => e.HasBeenBoardMember).HasDefaultValue(false);
             });
 
             modelBuilder.Entity<Session>(entity =>
@@ -335,14 +344,73 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<Cla>(entity =>
             {
-                entity.HasMany(p => p.Signatures).WithOne(d => d.Cla).
-                    OnDelete(DeleteBehavior.Restrict);
+                entity.UseXminAsConcurrencyToken();
+
+                entity.HasMany(p => p.Signatures).WithOne(d => d.Cla).OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<ClaSignature>(entity =>
             {
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.ClaSignatures).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<Meeting>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+
+                entity.HasOne(d => d.Owner)
+                    .WithMany(p => p.OwnerOfMeetings).OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(d => d.Secretary)
+                    .WithMany(p => p.SecretaryOfMeetings).OnDelete(DeleteBehavior.SetNull);
+                entity.HasMany(p => p.MeetingMembers)
+                    .WithOne(d => d.Meeting).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MeetingMember>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+
+                entity.HasKey(nameof(MeetingMember.MeetingId), nameof(MeetingMember.UserId));
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.MemberOfMeetings).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MeetingPoll>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+
+                entity.HasKey(nameof(MeetingPoll.MeetingId), nameof(MeetingPoll.PollId));
+
+                entity.HasOne(p => p.Meeting)
+                    .WithMany(d => d.MeetingPolls).OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(p => p.Votes)
+                    .WithOne(d => d.Poll).OnDelete(DeleteBehavior.Cascade)
+                    .HasForeignKey(nameof(MeetingPollVote.MeetingId), nameof(MeetingPollVote.PollId));
+                entity.HasMany(p => p.VotingRecords)
+                    .WithOne(d => d.Poll).OnDelete(DeleteBehavior.Cascade)
+                    .HasForeignKey(nameof(MeetingPollVotingRecord.MeetingId), nameof(MeetingPollVotingRecord.PollId));
+            });
+
+            modelBuilder.Entity<MeetingPollVote>(entity =>
+            {
+                entity.HasOne(d => d.Meeting)
+                    .WithMany(p => p.MeetingPollVotes).OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.Meeting)
+                    .WithMany(p => p.MeetingPollVotes).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MeetingPollVotingRecord>(entity =>
+            {
+                entity.HasKey(nameof(MeetingPollVotingRecord.MeetingId), nameof(MeetingPollVotingRecord.PollId),
+                    nameof(MeetingPollVotingRecord.UserId));
+
+                entity.HasOne(d => d.Meeting)
+                    .WithMany(p => p.MeetingPollVotingRecords).OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.VotedInPollsRecords).OnDelete(DeleteBehavior.Cascade);
             });
         }
 

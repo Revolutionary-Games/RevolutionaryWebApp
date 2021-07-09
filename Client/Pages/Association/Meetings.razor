@@ -1,0 +1,248 @@
+@page "/association/meetings"
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@implements ThriveDevCenter.Client.Services.INotificationHandler<MeetingListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.MeetingInfo>
+<h3>Meetings</h3>
+
+<p>This service allows organizing meeting voting, minutes, and accepting them for meetings of the association.</p>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row"><NavLink href="@($"association/meetings/{item.Id}")">@item.Name</NavLink></th>
+                    <td>@item.StartsAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.EndedAt?.ToLocalTime().ToString("G")</td>
+                    <td>@item.ReadAccess</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+    <hr />
+
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+    }
+
+    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+        New
+    </Button>
+
+    @if (showNewForm)
+    {
+        <form>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="newCIProjectName">Project Name</label>
+                    <input type="text" class="form-control" id="newCIProjectName" @bind="newName">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="newCIFullRepoName">Full Repository Name</label>
+                    <input type="text" class="form-control" id="newCIFullRepoName" @bind="newFullRepoName"
+                           placeholder="Owner/RepoName">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="newCIProjectPublic" @bind="newPublic">
+                    <label class="form-check-label" for="newCIProjectPublic">Visible to non-developers?</label>
+                </div>
+            </div>
+            <div class="form-row">
+                <label for="newCIProjectCloneURL">Clone URL</label>
+                <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label class="mr-1" for="newCIProjectType">Type</label>
+                    <select class="custom-select" id="newCIProjectType" @bind="newProjectType">
+                        @foreach (var name in Enum.GetNames<CIProjectType>())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="newCIProjectDefaultBranch">Default Branch Name</label>
+                    <input type="text" class="form-control" id="newCIProjectDefaultBranch" @bind="newDefaultBranch">
+                </div>
+            </div>
+
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+            <Button class="my-1" Enabled="@(!processingNewForm)" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                Create
+            </Button>
+        </form>
+    }
+
+</AccessLimited>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true),
+        new TableColumn("Starts At", true, "StartsAt"),
+        new TableColumn("Ended At", false),
+        new TableColumn("Visible To", false),
+    };
+
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newName;
+    private string newFullRepoName;
+    private bool newPublic;
+    private string newCloneURL;
+    private CIProjectType newProjectType;
+    private string newDefaultBranch;
+
+    public Meetings() : base(new SortHelper("StartsAt", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(MeetingListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // TODO: implement
+        // groups.Add(NotificationGroups.);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<MeetingInfo>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<MeetingInfo>>(
+            QueryHelpers.AddQueryString("api/v1/Meetings", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newName = null;
+            newFullRepoName = null;
+            newPublic = true;
+            newCloneURL = null;
+            newProjectType = CIProjectType.Github;
+            newDefaultBranch = "master";
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/Meetings", new CIProjectDTO()
+            {
+                Name = newName,
+                RepositoryFullName = newFullRepoName,
+                Public = newPublic,
+                RepositoryCloneUrl = newCloneURL,
+                ProjectType = newProjectType,
+                DefaultBranch = newDefaultBranch,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New CI project created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}
