@@ -7,7 +7,7 @@ namespace ThriveDevCenter.Server.Models
     using Shared.Models;
 
     /// <summary>
-    ///   A logged admin action
+    ///   A logged user peformed action
     /// </summary>
     [Index(nameof(PerformedById))]
     public class ActionLogEntry : BaseModel

@@ -1,0 +1,144 @@
+@inject HttpClient http
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Forms
+
+@if (showForm)
+{
+    <form>
+        <div class="form-row">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="isAssociationMember" @bind="isAssociationMember">
+                <label class="form-check-label" for="isAssociationMember">Association Member</label>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="isBoardMember" @bind="isBoardMember">
+                <label class="form-check-label" for="isBoardMember">Association Board Member</label>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="hasBeenBoardMember" @bind="hasBeenBoardMember">
+                <label class="form-check-label" for="hasBeenBoardMember">Has Been a Board Member</label>
+            </div>
+        </div>
+
+        @foreach (var error in GetErrors())
+        {
+            <div>@error</div>
+        }
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+        <Button class="my-1 mr-1" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing" ButtonStyle="primary">
+            Save
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@Cancel">
+            Cancel
+        </Button>
+    </form>
+}
+else
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+
+    <Button Enabled="@true" ButtonStyle="secondary" OnPressed="@ShowForm">Edit</Button>
+}
+
+@code {
+
+    private bool isAssociationMember;
+    private bool isBoardMember;
+    private bool hasBeenBoardMember;
+
+    private bool showForm;
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public UserInfo Data { get; set; }
+
+    private bool CanSave => GetErrors().Count < 1;
+
+    private void ShowForm()
+    {
+        isAssociationMember = Data.AssociationMember;
+        isBoardMember = Data.BoardMember;
+        hasBeenBoardMember = Data.HasBeenBoardMember;
+
+        statusMessage = null;
+        showForm = true;
+    }
+
+    private void Cancel()
+    {
+        showForm = false;
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private List<string> GetErrors()
+    {
+        var result = new List<string>();
+
+        if(isBoardMember && !isAssociationMember)
+            result.Add("Only members can be board members");
+
+        if(isBoardMember && !hasBeenBoardMember)
+            result.Add("If user is currently a board member, they must have also been a board member previously");
+
+        return result;
+    }
+
+    private async Task Save()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PutAsJsonAsync($"api/v1/UserManagement/{Data.Id}/association",
+                new AssociationStatusUpdateForm()
+            {
+                AssociationMember = isAssociationMember,
+                BoardMember = isBoardMember,
+                HasBeenBoardMember = hasBeenBoardMember,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Changes saved";
+            statusMessageType = SiteNoticeType.Primary;
+            showForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}
