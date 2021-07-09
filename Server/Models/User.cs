@@ -205,6 +205,9 @@ namespace ThriveDevCenter.Server.Models
                     info.SsoSource = SsoSource;
                     info.AccessLevel = ComputeAccessLevel();
                     info.SessionVersion = SessionVersion;
+                    info.AssociationMember = AssociationMember;
+                    info.BoardMember = BoardMember;
+                    info.HasBeenBoardMember = HasBeenBoardMember;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);

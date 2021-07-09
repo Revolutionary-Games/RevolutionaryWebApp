@@ -9,6 +9,8 @@
 @using ThriveDevCenter.Shared
 @using System.Threading
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models.Enums
 @implements ThriveDevCenter.Client.Services.INotificationHandler<MeetingListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.MeetingInfo>
 <h3>Meetings</h3>
@@ -61,45 +63,67 @@ else
     {
         <form>
             <div class="form-row">
-                <div class="form-group col-md-6">
-                    <label for="newCIProjectName">Project Name</label>
-                    <input type="text" class="form-control" id="newCIProjectName" @bind="newName">
+                <div class="form-group col-lg-6">
+                    <label for="newMeetingName">Meeting Name (Need to be unique)</label>
+                    <input type="text" class="form-control" id="newMeetingName" @bind="newName">
                 </div>
-                <div class="form-group col-md-6">
-                    <label for="newCIFullRepoName">Full Repository Name</label>
-                    <input type="text" class="form-control" id="newCIFullRepoName" @bind="newFullRepoName"
-                           placeholder="Owner/RepoName">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="newCIProjectPublic" @bind="newPublic">
-                    <label class="form-check-label" for="newCIProjectPublic">Visible to non-developers?</label>
+                <div class="form-group col-lg-6">
+                    <label for="newDescription">Meeting Description</label>
+                    <textarea rows="15" class="form-control" id="newDescription"
+                        @bind="newDescription" @bind:event="oninput">
+                    </textarea>
                 </div>
             </div>
             <div class="form-row">
-                <label for="newCIProjectCloneURL">Clone URL</label>
-                <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
-            </div>
-
-            <div class="form-row">
                 <div class="form-group col-md-6">
-                    <label class="mr-1" for="newCIProjectType">Type</label>
-                    <select class="custom-select" id="newCIProjectType" @bind="newProjectType">
-                        @foreach (var name in Enum.GetNames<CIProjectType>())
+                    <label class="mr-1" for="newMeetingReadAccess">Visible To</label>
+                    <select class="custom-select" id="newMeetingReadAccess" @bind="newMeetingReadAccess">
+                        @foreach (var name in Enum.GetNames<AssociationResourceAccess>())
                         {
                             <option value="@name">@name</option>
                         }
                     </select>
                 </div>
                 <div class="form-group col-md-6">
-                    <label for="newCIProjectDefaultBranch">Default Branch Name</label>
-                    <input type="text" class="form-control" id="newCIProjectDefaultBranch" @bind="newDefaultBranch">
+                    <label class="mr-1" for="newMeetingJoinAccess">Joinable By</label>
+                    <select class="custom-select" id="newMeetingJoinAccess" @bind="newMeetingJoinAccess">
+                        @foreach (var name in Enum.GetNames<AssociationResourceAccess>())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-6 col-xl-5">
+                    <label for="newMeetingStartDate">Starting Date</label>
+                    <input type="date" class="form-control" id="newMeetingStartDate" @bind="newStartDate">
+                </div>
+                <div class="form-group col-md-6 col-xl-5">
+                    <label for="newMeetingStartTime">Starting Time (local timezone)</label>
+                    <input type="time" class="form-control" id="newMeetingStartTime" @bind="newStartTime">
+                </div>
+                <div class="form-group col-md-12 col-xl-2">
+                    <label for="newJoinGracePeriod">Join Grace Period After Start (minutes)</label>
+                    <input type="number" min="0" max="120" step="1"
+                           class="form-control" id="newJoinGracePeriod" @bind="newJoinGraceMinutes">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <p>Starting time in UTC: @UTCStartTime.ToString("G")</p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-12">
+                    <label for="newExpectedDuration">Expected Duration in Minutes (Optional)</label>
+                    <input type="number" min="5" max="600" step="5"
+                           class="form-control" id="newExpectedDuration" @bind="newExpectedDuration">
                 </div>
             </div>
 
             <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-            <Button class="my-1" Enabled="@(!processingNewForm)" OnPressed="@CreateNew" Spinner="@processingNewForm">
+            <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
                 Create
             </Button>
         </form>
@@ -122,15 +146,22 @@ else
     private bool showNewForm;
     private bool processingNewForm;
     private string newName;
-    private string newFullRepoName;
-    private bool newPublic;
-    private string newCloneURL;
-    private CIProjectType newProjectType;
-    private string newDefaultBranch;
+    private string newDescription;
+    private DateTime newStartDate;
+    private DateTime newStartTime;
+    private int newJoinGraceMinutes;
+    private int? newExpectedDuration;
+    private AssociationResourceAccess newMeetingReadAccess;
+    private AssociationResourceAccess newMeetingJoinAccess;
 
     public Meetings() : base(new SortHelper("StartsAt", SortDirection.Descending))
     {
     }
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newName) &&
+        !string.IsNullOrEmpty(newDescription);
+
+    private DateTime UTCStartTime => (newStartDate.Date + newStartTime.TimeOfDay).ToUniversalTime();
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,11 +217,13 @@ else
 
             // Reset form status
             newName = null;
-            newFullRepoName = null;
-            newPublic = true;
-            newCloneURL = null;
-            newProjectType = CIProjectType.Github;
-            newDefaultBranch = "master";
+            newDescription = null;
+            newMeetingReadAccess = AssociationResourceAccess.Developers;
+            newMeetingJoinAccess = AssociationResourceAccess.AssociationMembers;
+            newJoinGraceMinutes = 15;
+            newExpectedDuration = null;
+            newStartDate = (DateTime.Now + TimeSpan.FromDays(1)).Date;
+            newStartTime = DateTime.Now;
         }
 
         StateHasChanged();
@@ -207,15 +240,16 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/Meetings", new CIProjectDTO()
+            result = await http.PostAsJsonAsync("api/v1/Meetings", new MeetingDTO()
             {
                 Name = newName,
-                RepositoryFullName = newFullRepoName,
-                Public = newPublic,
-                RepositoryCloneUrl = newCloneURL,
-                ProjectType = newProjectType,
-                DefaultBranch = newDefaultBranch,
-            });
+                Description = newDescription,
+                ReadAccess = newMeetingReadAccess,
+                JoinAccess = newMeetingJoinAccess,
+                JoinGracePeriod = TimeSpan.FromMinutes(newJoinGraceMinutes),
+                ExpectedDuration = newExpectedDuration != null ? TimeSpan.FromMinutes(newExpectedDuration.Value) : null,
+                StartsAt = UTCStartTime,
+            }, HttpClientHelpers.GetOptionsWithSerializers());
         }
         catch (HttpRequestException e)
         {
@@ -235,7 +269,7 @@ else
         }
         else
         {
-            createMessage = "New CI project created";
+            createMessage = "New meeting created (for now you need to refresh to see it...)";
             createMessageType = SiteNoticeType.Info;
 
             // Stop showing the form
