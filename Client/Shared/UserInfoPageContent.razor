@@ -83,19 +83,47 @@
 
 @if (User.AssociationMember)
 {
-    <p>You are a member of Revolutionary Games Studio ry!</p>
+    @if (LookingAtSelf)
+    {
+        <p>You are a member of Revolutionary Games Studio ry!</p>
+    }
+    else
+    {
+        <p>This user is a member of Revolutionary Games Studio ry!</p>
+    }
 
     @if (User.BoardMember)
     {
-        <p>You are currently a board member.</p>
+        @if (LookingAtSelf)
+        {
+            <p>You are currently a board member.</p>
+        }
+        else
+        {
+            <p>This user is currently a board member.</p>
+        }
     } else if (User.HasBeenBoardMember)
     {
-        <p>You have been a board member in the past and this affects your voting power.</p>
+        @if (LookingAtSelf)
+        {
+            <p>You have been a board member in the past and this affects your voting power.</p>
+        }
+        else
+        {
+            <p>This user has been a board member in the past.</p>
+        }
     }
 }
 else
 {
-    <p>You are not a member of the association.</p>
+    @if (LookingAtSelf)
+    {
+        <p>You are not a member of the association.</p>
+    }
+    else
+    {
+        <p>This user is not a member of the association.</p>
+    }
 }
 
 <p>If the information in this section is incorrect, please contact us.</p>
