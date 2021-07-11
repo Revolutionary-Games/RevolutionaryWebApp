@@ -14,6 +14,9 @@ namespace ThriveDevCenter.Shared.Models
         [MinLength(1)]
         public List<Tuple<int, double>> Results { get; set; } = new();
 
+        [Required]
+        public double TotalVotes { get; set; }
+
         /// <summary>
         ///   If the end result is a tie, then depending on the poll type a tiebreak is selected
         /// </summary>

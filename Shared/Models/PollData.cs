@@ -52,6 +52,16 @@ namespace ThriveDevCenter.Shared.Models
 
         public class PollChoice
         {
+            public PollChoice()
+            {
+            }
+
+            public PollChoice(int id, string name)
+            {
+                Id = id;
+                Name = name;
+            }
+
             [Required]
             [Range(1, 1000)]
             public int Id { get; set; }

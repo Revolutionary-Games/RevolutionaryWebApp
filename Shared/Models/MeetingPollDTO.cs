@@ -24,12 +24,18 @@ namespace ThriveDevCenter.Shared.Models
         public DateTime? AutoCloseAt { get; set; }
 
         [JsonIgnore]
-        public long Id => PollId << 48 & MeetingId;
+        public long Id => (PollId << 48) + MeetingId;
 
         [JsonIgnore]
         public PollData ParsedData
         {
-            get => JsonSerializer.Deserialize<PollData>(PollData);
+            get
+            {
+                if (PollData == null)
+                    return null;
+
+                return JsonSerializer.Deserialize<PollData>(PollData);
+            }
             set
             {
                 PollData = JsonSerializer.Serialize(value);
@@ -39,7 +45,13 @@ namespace ThriveDevCenter.Shared.Models
         [JsonIgnore]
         public PollResultData ParsedResults
         {
-            get => JsonSerializer.Deserialize<PollResultData>(PollResults);
+            get
+            {
+                if (PollResults == null)
+                    return null;
+
+                return JsonSerializer.Deserialize<PollResultData>(PollResults);
+            }
             set
             {
                 PollResults = JsonSerializer.Serialize(value);

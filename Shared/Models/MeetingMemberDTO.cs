@@ -11,6 +11,6 @@ namespace ThriveDevCenter.Shared.Models
         public bool CanReviewMinutes { get; set; }
 
         [JsonIgnore]
-        public long Id => UserId << 24 & MeetingId;
+        public long Id => (UserId << 24) + MeetingId;
     }
 }

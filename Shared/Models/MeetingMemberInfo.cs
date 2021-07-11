@@ -10,6 +10,6 @@ namespace ThriveDevCenter.Shared.Models
         public DateTime JoinedAt { get; set; }
 
         [JsonIgnore]
-        public long Id => UserId << 24 & MeetingId;
+        public long Id => (UserId << 24) + MeetingId;
     }
 }

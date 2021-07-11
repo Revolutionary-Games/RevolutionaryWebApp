@@ -6,16 +6,17 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
-    using System.Text.Json;
+    using System.Threading;
     using System.Threading.Tasks;
     using Authorization;
     using BlazorPagination;
     using Filters;
+    using Hangfire;
+    using Jobs;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
-    using Shared.Forms;
     using Shared.Models;
     using Shared.Models.Enums;
     using Utilities;
@@ -26,11 +27,14 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<MeetingsController> logger;
         private readonly NotificationsEnabledDb database;
+        private readonly IBackgroundJobClient jobClient;
 
-        public MeetingsController(ILogger<MeetingsController> logger, NotificationsEnabledDb database)
+        public MeetingsController(ILogger<MeetingsController> logger, NotificationsEnabledDb database,
+            IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.database = database;
+            this.jobClient = jobClient;
         }
 
         [HttpGet]
@@ -104,6 +108,7 @@ namespace ThriveDevCenter.Server.Controllers
                 UserId = user.Id,
             });
 
+            await database.SaveChangesAsync();
             logger.LogInformation("User {Email} joined meeting {Name} ({Id})", user.Email, meeting.Name,
                 meeting.Id);
 
@@ -212,6 +217,11 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Invalid vote JSON data");
             }
 
+            if (request.SelectedOptions.GroupBy(i => i).Any(g => g.Count() > 1))
+            {
+                return BadRequest("Can't vote multiple times for the same option");
+            }
+
             var access = GetCurrentUserAccess();
             var meeting = await GetMeetingWithReadAccess(id, access);
 
@@ -228,6 +238,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (poll == null)
                 return NotFound();
+
+            if (poll.ClosedAt != null)
+                return BadRequest("The poll is closed");
 
             // TODO: add configuration for polls that allow empty votes
             if (request.SelectedOptions.Count < 1)
@@ -301,6 +314,19 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Invalid poll JSON data");
             }
 
+            // Check poll choice ids
+            foreach (var pair in parsedData.Choices)
+            {
+                if (pair.Key != pair.Value.Id)
+                    return BadRequest("Mismatch in option ID and Dictionary key");
+            }
+
+            // Detect duplicate names
+            if (parsedData.Choices.GroupBy(p => p.Value.Name).Any(x => x.Count() > 1))
+            {
+                return BadRequest("Duplicate option name in poll");
+            }
+
             if (parsedData.WeightedChoices != null)
             {
                 // Weighted type poll
@@ -339,6 +365,8 @@ namespace ThriveDevCenter.Server.Controllers
                 ParsedData = parsedData,
             };
 
+            await database.MeetingPolls.AddAsync(poll);
+
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"Poll added to meeting ({meeting.Id}) with title: {poll.Title}",
@@ -351,7 +379,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (poll.AutoCloseAt != null)
             {
-                // TODO: queue job to close the poll
+                // Queue job to close the poll
+                jobClient.Schedule<CloseAutoClosePollJob>(
+                    x => x.Execute(meeting.Id, poll.PollId, CancellationToken.None), poll.AutoCloseAt.Value);
             }
 
             return Ok();
