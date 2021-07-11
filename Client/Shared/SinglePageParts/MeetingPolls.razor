@@ -28,26 +28,48 @@ else
             var closeTime = item.AutoCloseAt.HasValue ? item.AutoCloseAt.Value.ToLocalTime().ToString("G") :
                 string.Empty;
 
-            <div @key="item.PollId" class="mb-2">
-                <p>
-                    @item.Title @(item.AutoCloseAt.HasValue && item.ClosedAt == null ? $@"Closes at: {closeTime}" : "")
-                </p>
-                <p>@item.PollResults</p>
-                <p>Results computed at: @(item.PollResultsCreatedAt?.ToLocalTime().ToString("G"))</p>
+            <div @key="item.PollId" class="mb-3">
+                <h4>
+                    Poll: @item.Title @(item.AutoCloseAt.HasValue && item.ClosedAt == null ?
+                                          $@"Closes at: {closeTime}" : "")
+                </h4>
+
+                @if (!string.IsNullOrEmpty(item.PollResults))
+                {
+                    var choiceData = GetOrSetupPollData(item);
+
+                    @* TODO: cache this json parsing *@
+                    var resultData = item.ParsedResults;
+
+                    <div>
+                        Results:
+                        <ol>
+                            @foreach (var result in resultData.Results)
+                            {
+                                <li><strong>@choiceData.Item2.Choices[result.Item1].Name:</strong> @result.Item2</li>
+                            }
+                        </ol>
+                    </div>
+
+                    @if (resultData.TiebreakInFavourOf != null)
+                    {
+                        <div>
+                            Tiebreak has been decided in favour of:
+                            @choiceData.Item2.Choices[resultData.TiebreakInFavourOf.Value].Name
+                        </div>
+                    }
+
+                    <div>
+                        Total votes: @resultData.TotalVotes
+                    </div>
+
+                    <p>Results computed at: @(item.PollResultsCreatedAt?.ToLocalTime().ToString("G"))</p>
+                }
+
 
                 @if (item.ClosedAt == null)
                 {
-                    if (!pollChoices.TryGetValue(item.PollId, out Tuple<Dictionary<int, VoteData>, PollData> data))
-                    {
-                        data = new Tuple<Dictionary<int, VoteData>, PollData>(new Dictionary<int, VoteData>(),
-                            item.ParsedData);
-                        foreach (var choice in data.Item2.Choices)
-                        {
-                            data.Item1[choice.Key] = new VoteData();
-                        }
-
-                        pollChoices[item.PollId] = data;
-                    }
+                    var data = GetOrSetupPollData(item);
 
                     <p>Choices:</p>
 
@@ -80,11 +102,11 @@ else
                 }
                 else
                 {
-                    <p>Poll is already closed</p>
+                    <p>This poll closed at @item.ClosedAt.Value.ToLocalTime().ToString("G")</p>
                 }
 
                 <Button Enabled="@(false && item.ClosedAt == null)" ButtonStyle="warning">Close Now</Button>
-                <Button Enabled="@false" ButtonStyle="warning" class="ml-1">Recompute Results</Button>
+                <Button Enabled="@false" ButtonStyle="secondary" class="ml-1">Recompute Results</Button>
             </div>
         }
     }
@@ -368,6 +390,23 @@ else
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private Tuple<Dictionary<int, VoteData>, PollData> GetOrSetupPollData(MeetingPollDTO item)
+    {
+        if (!pollChoices.TryGetValue(item.PollId, out Tuple<Dictionary<int, VoteData>, PollData> data))
+        {
+            data = new Tuple<Dictionary<int, VoteData>, PollData>(new Dictionary<int, VoteData>(),
+                item.ParsedData);
+            foreach (var choice in data.Item2.Choices)
+            {
+                data.Item1[choice.Key] = new VoteData();
+            }
+
+            pollChoices[item.PollId] = data;
+        }
+
+        return data;
     }
 
     private class VoteData
