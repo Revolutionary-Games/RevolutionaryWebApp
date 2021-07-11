@@ -89,11 +89,20 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting.JoinAccess > access)
                 return this.WorkingForbid("You don't have permission to join this meeting");
 
+            if (meeting.EndedAt != null)
+                return BadRequest("This meeting has already ended");
+
             var user = HttpContext.AuthenticatedUser();
 
             // Fail if already joined
             if (await GetMeetingMember(meeting.Id, user.Id) != null)
                 return BadRequest("You have already joined this meeting");
+
+            // Don't allow if already started and grace period is over
+            if (DateTime.UtcNow > meeting.StartsAt + meeting.JoinGracePeriod)
+            {
+                return BadRequest("You are too late to join this meeting");
+            }
 
             // Allow join
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
