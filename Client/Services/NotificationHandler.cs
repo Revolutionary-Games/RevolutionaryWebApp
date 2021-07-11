@@ -12,8 +12,10 @@ namespace ThriveDevCenter.Client.Services
     using Microsoft.Extensions.Logging;
     using Shared;
     using ThriveDevCenter.Shared;
+    using ThriveDevCenter.Shared.Converters;
     using ThriveDevCenter.Shared.Models;
     using ThriveDevCenter.Shared.Notifications;
+    using Utilities;
 
     public class NotificationHandler : IAsyncDisposable
     {
@@ -260,7 +262,10 @@ namespace ThriveDevCenter.Client.Services
 
                         // options.Headers["X-CSRF-Token"] = csrfTokenReader.Token;
                     })
-                .AddJsonProtocol()
+                .AddJsonProtocol(configure =>
+                {
+                    configure.PayloadSerializerOptions = HttpClientHelpers.GetOptionsWithSerializers();
+                })
                 .WithAutomaticReconnect(new[]
                 {
                     TimeSpan.FromSeconds(0),
@@ -313,8 +318,9 @@ namespace ThriveDevCenter.Client.Services
 
                 try
                 {
+                    // TODO: unify this with HttpClientHelpers
                     var notification = JsonSerializer.Deserialize<SerializedNotification>(json,
-                        new JsonSerializerOptions() { Converters = { converter } });
+                        new JsonSerializerOptions() { Converters = { converter, new TimeSpanConverter() } });
 
                     await ForwardNotification(notification);
                 }
@@ -428,7 +434,8 @@ namespace ThriveDevCenter.Client.Services
             // We use a semaphore here to ensure only one thread applies groups at once
             if (!await groupJoinSemaphore.WaitAsync(TimeSpan.FromMinutes(1)))
             {
-                await Console.Error.WriteLineAsync("Failed to get group join semaphore after one minute, can't join groups");
+                await Console.Error.WriteLineAsync(
+                    "Failed to get group join semaphore after one minute, can't join groups");
                 return;
             }
 

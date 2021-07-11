@@ -110,6 +110,8 @@ namespace ThriveDevCenter.Server
 
             services.AddControllersWithViews().AddJsonOptions(options =>
             {
+                // Custom serializers for now also need to be configured in NotificationHelpers.ReceiveNotification
+                // As well as in the Client project
                 options.JsonSerializerOptions.Converters.Add(new TimeSpanConverter());
 
                 // This doesn't seem to do anything... So manual deserialize on client needs case insensitive mode on

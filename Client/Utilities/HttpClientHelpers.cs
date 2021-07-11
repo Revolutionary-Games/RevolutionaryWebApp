@@ -20,6 +20,8 @@ namespace ThriveDevCenter.Client.Utilities
         private static JsonSerializerOptions CreateOptions()
         {
             var result = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+            // TODO: this is also separately configured in NotificationHandler
             result.Converters.Add(new TimeSpanConverter());
             return result;
         }

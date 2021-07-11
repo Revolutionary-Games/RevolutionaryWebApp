@@ -12,6 +12,7 @@ namespace ThriveDevCenter.Server.Hubs
     using Models;
     using Services;
     using Shared;
+    using Shared.Converters;
     using Shared.Models;
     using Shared.Models.Enums;
     using Shared.Notifications;
@@ -530,8 +531,10 @@ namespace ThriveDevCenter.Server.Hubs
         /// </summary>
         public static Task ReceiveNotification(this INotifications receiver, SerializedNotification notification)
         {
+            // TODO: unify with the startup code
             var serialized =
-                JsonSerializer.Serialize(notification, new JsonSerializerOptions() { Converters = { Converter } });
+                JsonSerializer.Serialize(notification,
+                    new JsonSerializerOptions() { Converters = { Converter, new TimeSpanConverter() } });
 
             return receiver.ReceiveNotificationJSON(serialized);
         }
