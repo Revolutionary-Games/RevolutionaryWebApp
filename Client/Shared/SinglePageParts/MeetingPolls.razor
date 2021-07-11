@@ -94,7 +94,7 @@ else
                             </div>
                         }
 
-                        <Button Enabled="@true" ButtonStyle="primary" class="mb-1"
+                        <Button Enabled="@(!processing)" Spinner="@processing" ButtonStyle="primary" class="mb-1"
                                 OnPressed="@(() => SendVotes(item))">
                             Vote
                         </Button>
@@ -106,7 +106,11 @@ else
                 }
 
                 <Button Enabled="@(false && item.ClosedAt == null)" ButtonStyle="warning">Close Now</Button>
-                <Button Enabled="@false" ButtonStyle="secondary" class="ml-1">Recompute Results</Button>
+                <Button Enabled="@(item.ClosedAt != null && !IsRunningPollAction(item.PollId))"
+                        Spinner="@IsRunningPollAction(item.PollId)"
+                        ButtonStyle="secondary" class="ml-1" OnPressed="@(() => RecomputePollResults(item))">
+                    Recompute Results
+                </Button>
             </div>
         }
     }
@@ -191,6 +195,7 @@ else
 @code {
 
     private readonly Dictionary<long, Tuple<Dictionary<int, VoteData>, PollData>> pollChoices = new ();
+    private readonly Dictionary<long, bool> pollsWithActiveAction = new ();
     private bool processing;
 
     private string statusMessage;
@@ -370,7 +375,7 @@ else
         catch (HttpRequestException e)
         {
             createMessage = $"Network request failed: {e.Message}";
-            processingNewForm = false;
+            processing = false;
             await InvokeAsync(StateHasChanged);
             return;
         }
@@ -392,6 +397,46 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
+    private async void RecomputePollResults(MeetingPollDTO item)
+    {
+        pollsWithActiveAction[item.PollId] = true;
+        // TODO: use same message holder as sending votes when that gets its own message
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/recompute",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            pollsWithActiveAction[item.PollId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        pollsWithActiveAction[item.PollId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "Recompute queued";
+            createMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
     private Tuple<Dictionary<int, VoteData>, PollData> GetOrSetupPollData(MeetingPollDTO item)
     {
         if (!pollChoices.TryGetValue(item.PollId, out Tuple<Dictionary<int, VoteData>, PollData> data))
@@ -407,6 +452,14 @@ else
         }
 
         return data;
+    }
+
+    private bool IsRunningPollAction(long pollId)
+    {
+        if (!pollsWithActiveAction.TryGetValue(pollId, out bool running))
+            return false;
+
+        return running;
     }
 
     private class VoteData

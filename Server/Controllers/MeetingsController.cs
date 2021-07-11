@@ -352,6 +352,8 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Poll can't auto-close in less than a minute");
             }
 
+            // TODO: check that there isn't a poll with the same title already
+
             var previousPollId = await database.MeetingPolls.AsQueryable().Where(p => p.MeetingId == meeting.Id)
                 .MaxAsync(p => (long?)p.PollId) ?? 0;
 
@@ -383,6 +385,41 @@ namespace ThriveDevCenter.Server.Controllers
                 jobClient.Schedule<CloseAutoClosePollJob>(
                     x => x.Execute(meeting.Id, poll.PollId, CancellationToken.None), poll.AutoCloseAt.Value);
             }
+
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter]
+        [HttpPost("{id:long}/polls/{pollId:long}/recompute")]
+        public async Task<IActionResult> RefreshPollResults([Required] long id, [Required] long pollId)
+        {
+            var access = GetCurrentUserAccess();
+            var meeting = await GetMeetingWithReadAccess(id, access);
+
+            if (meeting == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser();
+
+            var poll = await database.MeetingPolls.FindAsync(id, pollId);
+
+            if (poll == null)
+                return NotFound();
+
+            if (poll.ClosedAt == null)
+                return BadRequest("The poll is not closed");
+
+            if (DateTime.UtcNow - poll.PollResultsCreatedAt < TimeSpan.FromSeconds(30))
+                return BadRequest("The poll has been (re)computed in the past 30 seconds");
+
+            if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+                return this.WorkingForbid("You don't have permission to recompute polls in this meeting");
+
+            jobClient.Enqueue<ComputePollResultsJob>(x => x.Execute(poll.MeetingId, poll.PollId,
+                CancellationToken.None));
+
+            logger.LogInformation("User {Email} has queued recompute for poll {Id} at {UtcNow}", user.Email,
+                poll.PollId, DateTime.UtcNow);
 
             return Ok();
         }
@@ -450,6 +487,57 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             logger.LogInformation("New meeting ({Id}) created by {Email}", meeting.Id, user.Email);
+
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter]
+        [HttpPost("{id:long}/end")]
+        public async Task<IActionResult> EndMeeting([Required] long id)
+        {
+            var access = GetCurrentUserAccess();
+            var meeting = await GetMeetingWithReadAccess(id, access);
+
+            if (meeting == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser();
+
+            if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+                return this.WorkingForbid("You don't have permission to end this meeting");
+
+            if (meeting.EndedAt != null)
+            {
+                return BadRequest("The meeting has already been ended");
+            }
+
+            // Need to close still open polls
+            var pollsToClose = await database.MeetingPolls.AsQueryable()
+                .Where(p => p.MeetingId == meeting.Id && p.ClosedAt == null)
+                .ToListAsync();
+
+            foreach (var poll in pollsToClose)
+            {
+                logger.LogInformation("Closing a poll due to meeting closing: {Id}-{PollId}", poll.MeetingId,
+                    poll.PollId);
+
+                poll.ClosedAt = DateTime.UtcNow;
+
+                // Queue a job to calculate the results
+                jobClient.Schedule<ComputePollResultsJob>(x => x.Execute(poll.MeetingId, poll.PollId,
+                    CancellationToken.None), TimeSpan.FromSeconds(15));
+            }
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Meeting ({meeting.Id}) ended by a user",
+                PerformedById = user.Id,
+            });
+
+            meeting.EndedAt = DateTime.UtcNow;
+
+            await database.SaveChangesAsync();
+            logger.LogInformation("Meeting {Id} has been ended by {Email}", meeting.Id, user.Email);
 
             return Ok();
         }
