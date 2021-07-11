@@ -60,5 +60,7 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string MeetingListUpdatedDeveloper = "Meeting_Developer";
         public const string MeetingListUpdatedAssociation = "Meeting_Association";
         public const string MeetingListUpdatedBoardMember = "Meeting_Board";
+
+        public const string MeetingPollListUpdatedPrefix = "MeetingPoll_";
     }
 }

@@ -2,7 +2,10 @@ namespace ThriveDevCenter.Server.Models
 {
     using System;
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
+    using System.Text.Json;
     using Microsoft.EntityFrameworkCore;
+    using Shared.Models;
 
     /// <summary>
     ///   Separately stored cast vote on a poll. This is stored separately to add anonymity
@@ -22,6 +25,12 @@ namespace ThriveDevCenter.Server.Models
         public float VotingPower { get; set; } = 1;
 
         /// <summary>
+        ///   If true (this is the president's vote) this is used to select which option (in non-election votes) is
+        ///   used as tiebreak winner
+        /// </summary>
+        public bool IsTiebreaker { get; set; }
+
+        /// <summary>
         ///   Vote data encoded as JSON
         /// </summary>
         [Required]
@@ -29,5 +38,15 @@ namespace ThriveDevCenter.Server.Models
 
         public Meeting Meeting { get; set; }
         public MeetingPoll Poll { get; set; }
+
+        [NotMapped]
+        public PollVoteData ParsedVoteContent
+        {
+            get => JsonSerializer.Deserialize<PollVoteData>(VoteContent);
+            set
+            {
+                VoteContent = JsonSerializer.Serialize(value);
+            }
+        }
     }
 }

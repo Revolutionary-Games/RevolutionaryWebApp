@@ -98,4 +98,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class MeetingListUpdated : ListUpdated<MeetingInfo>
     {
     }
+
+    public class MeetingPollListUpdated : ListUpdated<MeetingPollDTO>
+    {
+    }
 }

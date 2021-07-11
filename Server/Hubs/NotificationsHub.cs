@@ -341,7 +341,8 @@ namespace ThriveDevCenter.Server.Hubs
                 return CheckFolderContentsAccess(user, UserAccessLevel.Developer, item);
             }
 
-            if (groupName.StartsWith(NotificationGroups.MeetingUpdatedPrefix))
+            if (groupName.StartsWith(NotificationGroups.MeetingUpdatedPrefix) ||
+                groupName.StartsWith(NotificationGroups.MeetingPollListUpdatedPrefix))
             {
                 if (!GetTargetModelFromGroup(groupName, database.Meetings, out Meeting item))
                     return false;
