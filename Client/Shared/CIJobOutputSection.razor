@@ -72,7 +72,7 @@
 
         // Scroll to last existing output line
         // TODO: only scroll when scroll is at the end already
-        await js.InvokeVoidAsync("scrollToElement", LastElementId);
+        await js.InvokeVoidAsync("scrollToElement", LastElementId, false);
     }
 
     protected override async Task<IList<string>> StartQuery()

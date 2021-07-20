@@ -35,12 +35,12 @@ function getStaticHomePageNotice() {
     return element.value;
 }
 
-function scrollToElement(id) {
+function scrollToElement(id, smooth) {
     const element = document.getElementById(id);
 
     if (element instanceof HTMLElement) {
         element.scrollIntoView({
-            behavior: "smooth",
+            behavior: smooth ? "smooth" : "auto",
             block: "center",
             inline: "nearest"
         });
