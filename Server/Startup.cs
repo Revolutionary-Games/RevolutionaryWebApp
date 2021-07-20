@@ -187,6 +187,10 @@ namespace ThriveDevCenter.Server
             services.AddScoped<ControlledServerSSHAccess>();
             services.AddScoped<GithubCommitStatusReporter>();
             services.AddScoped<DiscordNotifications>();
+            services.AddScoped<IMailQueue, MailToQueueSender>();
+
+            // Prefer the queue sender to not make operations wait for emails to be sent
+            services.AddScoped<IMailSender, MailSender>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();

@@ -137,6 +137,9 @@ You should then stop the test server once the tests have been ran.
 
 See: https://github.com/dotnet/aspnetcore/issues/4892 for why this is needed
 
+### Local mail server
+
+You can use mailcatcher to work as a local test email server.
 
 ## Running with Docker
 

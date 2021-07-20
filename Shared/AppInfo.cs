@@ -44,6 +44,8 @@ namespace ThriveDevCenter.Shared
         public const int MinimumDevBuildDescriptionLength = 20;
         public const int MaxDevBuildDescriptionNiceLineLength = 70;
 
+        public const int MaxEmailLength = 250;
+
         public const int KIBIBYTE = 1024;
         public const int MEBIBYTE = KIBIBYTE * KIBIBYTE;
 

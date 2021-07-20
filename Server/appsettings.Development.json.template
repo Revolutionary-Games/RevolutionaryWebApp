@@ -11,6 +11,14 @@
   "ConnectionStrings": {
     "WebApiConnection": "User ID=thrivedevcenter;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;"
   },
+  "Email": {
+    "EmailAddress": "devcenter@localhost",
+    "Name": "ThriveDevCenter",
+    "Password": "",
+    "Host": "localhost",
+    "Port": 1025,
+    "RequireTls": false
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
