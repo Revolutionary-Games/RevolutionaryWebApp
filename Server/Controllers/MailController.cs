@@ -51,10 +51,10 @@ namespace ThriveDevCenter.Server.Controllers
                     Recipient = request.Recipient,
                     Subject = "Test Email from ThriveDevCenter",
                     PlainTextBody =
-                        "This is a test email from ThriveDevCenter.\n If you received then this things are working.",
+                        "This is a test email from ThriveDevCenter.\n If you received this, then things are working.",
                     HtmlBody =
                         "<p>This is a test email from ThriveDevCenter.</p>" +
-                        "<p>If you received then this things are working.</p>",
+                        "<p>If you received this, then things are working.</p>",
                 }, CancellationToken.None);
             }
             catch (Exception e)
