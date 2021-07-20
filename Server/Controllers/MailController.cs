@@ -51,7 +51,7 @@ namespace ThriveDevCenter.Server.Controllers
                     Recipient = request.Recipient,
                     Subject = "Test Email from ThriveDevCenter",
                     PlainTextBody =
-                        "This is a test email from ThriveDevCenter. If you received then this things are working.",
+                        "This is a test email from ThriveDevCenter.\n If you received then this things are working.",
                     HtmlBody =
                         "<p>This is a test email from ThriveDevCenter.</p>" +
                         "<p>If you received then this things are working.</p>",

@@ -12,7 +12,7 @@
     "WebApiConnection": "User ID=thrivedevcenter;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;"
   },
   "Email": {
-    "EmailAddress": "devcenter@localhost",
+    "FromAddress": "devcenter@localhost",
     "Name": "ThriveDevCenter",
     "Password": "",
     "Host": "localhost",

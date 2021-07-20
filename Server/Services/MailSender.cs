@@ -48,13 +48,18 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
+            var sender = MailboxAddress.Parse(fromAddress);
+            sender.Name = senderName;
+
             var builder = new BodyBuilder { HtmlBody = request.HtmlBody, TextBody = request.PlainTextBody };
             var email = new MimeMessage
             {
-                Sender = new MailboxAddress(senderName, fromAddress),
+                Sender = sender,
                 Subject = request.Subject,
                 Body = builder.ToMessageBody(),
             };
+
+            email.From.Add(sender);
 
             email.To.Add(MailboxAddress.Parse(request.Recipient));
 
