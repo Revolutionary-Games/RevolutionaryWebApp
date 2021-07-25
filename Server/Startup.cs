@@ -188,6 +188,7 @@ namespace ThriveDevCenter.Server
             services.AddScoped<GithubCommitStatusReporter>();
             services.AddScoped<DiscordNotifications>();
             services.AddScoped<IMailQueue, MailToQueueSender>();
+            services.AddScoped<CLASignatureStorage>();
 
             // Prefer the queue sender to not make operations wait for emails to be sent
             services.AddScoped<IMailSender, MailSender>();

@@ -7,6 +7,9 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Notifications
 @using System.Net
+@using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared
 @implements IAsyncDisposable
 <h3>Thrive CLA</h3>
 
@@ -27,8 +30,36 @@
 
         <br />
 
-        @* TODO: once logic is added check that Data.Active is true as well *@
-        <Button Enabled="@false">Sign</Button>
+        @if (!Data.Active)
+        {
+            <p>This CLA is not active.</p>
+        }
+        else
+        {
+            <p>
+                Your signature, name, email, username etc. information you provide when signing will not be made public.
+                Thrive developers will be able to check if a specific email address has signed, but they won't be
+                able to see a full list of people who have signed. Access to the full list of people who have signed
+                is restricted and will not be published.
+            </p>
+            <form>
+                <div class="form-row">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="beforeSignCheckbox" @bind="checkBoxChecked">
+                        <label class="form-check-label" for="beforeSignCheckbox">
+                            I agree to the agreement above and that in addition to the information I provide in the
+                            signing process cookies will be used to track the signing process and my IP address
+                            will be stored.
+                        </label>
+                    </div>
+                </div>
+
+                <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+                <Button class="my-1" Enabled="@CanStartSign" OnPressed="@StartSigning" Spinner="@processing">
+                    Start Signing
+                </Button>
+            </form>
+        }
     }
     else
     {
@@ -37,7 +68,15 @@
 </SingleResourceDisplayer>
 
 @code {
+    private string statusMessage;
+    private SiteNoticeType statusMessageType;
+
     private bool dataFetched;
+
+    private bool processing;
+    private bool checkBoxChecked;
+
+    private bool CanStartSign => checkBoxChecked && !processing;
 
     protected override async Task<CLADTO> StartQuery()
     {
@@ -45,7 +84,7 @@
 
         try
         {
-            var data =await http.GetFromJsonAsync<CLADTO>("api/v1/CLA/active");
+            var data = await http.GetFromJsonAsync<CLADTO>("api/v1/CLA/active");
             dataFetched = true;
             return data;
         }
@@ -76,6 +115,64 @@
     protected override Task OnFirstDataReceived()
     {
         return notificationHandler.Register(this);
+    }
+
+    private async Task StartSigning()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/CLA/startSigning?id={Data.Id}", new StringContent(String.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            try
+            {
+                var data = JsonSerializer.Deserialize<SigningStartResponse>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers());
+
+                if (data == null)
+                    throw new Exception("Failed to parse server response to JSON");
+
+                statusMessage = "CLA signing started, you should be redirected to the right page to"+
+                    " continue the process";
+                statusMessageType = SiteNoticeType.Info;
+
+                checkBoxChecked = false;
+
+                // Swap to the sign in progress page
+                navigationManager.NavigateTo(data.NextPath ?? throw new Exception("server didn't provide next path"),
+                    data.SessionStarted);
+            }
+            catch (Exception e)
+            {
+                statusMessage = $"Error when parsing / handling server response: {e}";
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }
 

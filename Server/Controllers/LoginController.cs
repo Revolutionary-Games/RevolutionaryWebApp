@@ -68,6 +68,34 @@ namespace ThriveDevCenter.Server.Controllers
         private bool PatreonConfigured => !string.IsNullOrEmpty(configuration["Login:Patreon:ClientId"]) &&
             !string.IsNullOrEmpty(configuration["Login:Patreon:ClientSecret"]);
 
+        /// <summary>
+        ///   Sets the session cookie for a session in a response
+        /// </summary>
+        /// <param name="session">Session to give the cookie for</param>
+        /// <param name="response">Response to put cookie in</param>
+        /// <param name="useSecureCookies">If true the cookie is marked to only be passed with HTTPS</param>
+        [NonAction]
+        public static void SetSessionCookie(Session session, HttpResponse response, bool useSecureCookies = true)
+        {
+            var options = new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddSeconds(AppInfo.ClientCookieExpirySeconds),
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+
+                // TODO: do we need to set the domain explicitly?
+                // options.Domain;
+
+                Secure = useSecureCookies,
+
+                // Sessions are used for logins, they are essential. This might need to be re-thought out if
+                // non-essential info is attached to sessions later
+                IsEssential = true
+            };
+
+            response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
+        }
+
         [HttpGet]
         public LoginOptions Get()
         {
@@ -243,39 +271,33 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
 
-            var session = new Session
-            {
-                User = user, SessionVersion = user.SessionVersion, LastUsedFrom = remoteAddress
-            };
+            // Re-use existing session if there is one
+            var session = await HttpContext.Request.Cookies.GetSession(database);
 
-            await database.Sessions.AddAsync(session);
+            if (session == null)
+            {
+                session = new Session();
+
+                await database.Sessions.AddAsync(session);
+            }
+            else
+            {
+                logger.LogInformation("Repurposing session ({Id}) for new login", session.Id);
+
+                session.SsoNonce = null;
+                session.LastUsed = DateTime.UtcNow;
+            }
+
+            session.User = user;
+            session.SessionVersion = user.SessionVersion;
+            session.LastUsedFrom = remoteAddress;
+
             await database.SaveChangesAsync();
 
             logger.LogInformation("Successful login for user {Email} from {RemoteAddress}, session: {Id}", user.Email,
                 remoteAddress, session.Id);
 
-            SetSessionCookie(session);
-        }
-
-        private void SetSessionCookie(Session session)
-        {
-            var options = new CookieOptions
-            {
-                Expires = DateTime.UtcNow.AddSeconds(AppInfo.ClientCookieExpirySeconds),
-                HttpOnly = true,
-                SameSite = SameSiteMode.Lax,
-
-                // TODO: do we need to set the domain explicitly?
-                // options.Domain;
-
-                Secure = useSecureCookies,
-
-                // Sessions are used for logins, they are essential. This might need to be re-thought out if
-                // non-essential info is attached to sessions later
-                IsEssential = true
-            };
-
-            Response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
+            SetSessionCookie(session, Response, useSecureCookies);
         }
 
         [NonAction]
@@ -309,19 +331,32 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
 
-            var session = new Session
-            {
-                LastUsedFrom = remoteAddress,
-                SsoNonce = NonceGenerator.GenerateNonce(SsoNonceLength),
-                StartedSsoLogin = ssoSource,
-                SsoStartTime = DateTime.UtcNow,
-                SsoReturnUrl = returnTo
-            };
+            // Re-use existing session if there is one
+            var session = await HttpContext.Request.Cookies.GetSession(database);
 
-            await database.Sessions.AddAsync(session);
+            if (session == null)
+            {
+                session = new Session();
+                await database.Sessions.AddAsync(session);
+            }
+            else
+            {
+                logger.LogInformation("Repurposing session ({Id} for SSO login", session.Id);
+
+                session.User = null;
+                session.SessionVersion = 1;
+                session.LastUsed = DateTime.UtcNow;
+            }
+
+            session.LastUsedFrom = remoteAddress;
+            session.SsoNonce = NonceGenerator.GenerateNonce(SsoNonceLength);
+            session.StartedSsoLogin = ssoSource;
+            session.SsoStartTime = DateTime.UtcNow;
+            session.SsoReturnUrl = returnTo;
+
             await database.SaveChangesAsync();
 
-            SetSessionCookie(session);
+            SetSessionCookie(session, Response, useSecureCookies);
 
             return session;
         }

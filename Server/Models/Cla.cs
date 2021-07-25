@@ -25,6 +25,9 @@ namespace ThriveDevCenter.Server.Models
 
         public ICollection<ClaSignature> Signatures { get; set; } = new HashSet<ClaSignature>();
 
+        public ICollection<InProgressClaSignature> InProgressSignatures { get; set; } =
+            new HashSet<InProgressClaSignature>();
+
         public CLAInfo GetInfo()
         {
             return new()

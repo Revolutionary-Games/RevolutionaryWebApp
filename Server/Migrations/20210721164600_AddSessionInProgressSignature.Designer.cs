@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ThriveDevCenter.Server.Models;
@@ -10,9 +11,10 @@ using ThriveDevCenter.Server.Models;
 namespace ThriveDevCenter.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class WebApiContextModelSnapshot : ModelSnapshot
+    [Migration("20210721164600_AddSessionInProgressSignature")]
+    partial class AddSessionInProgressSignature
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -886,10 +888,6 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnName("id")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
-                    b.Property<long>("ClaId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("cla_id");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
@@ -938,19 +936,12 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("signer_signature");
 
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("started_at");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
                         .HasName("pk_in_progress_cla_signatures");
-
-                    b.HasIndex("ClaId")
-                        .HasDatabaseName("ix_in_progress_cla_signatures_cla_id");
 
                     b.HasIndex("EmailVerificationCode")
                         .IsUnique()
@@ -1767,12 +1758,6 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("sso_start_time");
 
-                    b.Property<DateTime>("StartedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("started_at")
-                        .HasDefaultValueSql("timezone('utc', now())");
-
                     b.Property<string>("StartedSsoLogin")
                         .HasColumnType("text")
                         .HasColumnName("started_sso_login");
@@ -2327,21 +2312,12 @@ namespace ThriveDevCenter.Server.Migrations
 
             modelBuilder.Entity("ThriveDevCenter.Server.Models.InProgressClaSignature", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.Cla", "Cla")
-                        .WithMany("InProgressSignatures")
-                        .HasForeignKey("ClaId")
-                        .HasConstraintName("fk_in_progress_cla_signatures_clas_cla_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("ThriveDevCenter.Server.Models.Session", "Session")
                         .WithOne("InProgressClaSignature")
                         .HasForeignKey("ThriveDevCenter.Server.Models.InProgressClaSignature", "SessionId")
                         .HasConstraintName("fk_in_progress_cla_signatures_sessions_session_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Cla");
 
                     b.Navigation("Session");
                 });
@@ -2568,8 +2544,6 @@ namespace ThriveDevCenter.Server.Migrations
 
             modelBuilder.Entity("ThriveDevCenter.Server.Models.Cla", b =>
                 {
-                    b.Navigation("InProgressSignatures");
-
                     b.Navigation("Signatures");
                 });
 

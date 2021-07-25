@@ -21,7 +21,8 @@ namespace ThriveDevCenter.Server.Models
 
         public long? UserId { get; set; }
         public User User { get; set; }
-        // TODO: could move to a model where the Sessions are deleted when user is forced to logout
+
+        // TODO: should move to a model where the Sessions are deleted when user is forced to logout
         public long SessionVersion { get; set; } = 1;
 
         public string SsoNonce { get; set; }
@@ -40,7 +41,14 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public DateTime LastUsed { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        ///   Used also to clear old sessions to enforce total session duration TODO: implement that job
+        /// </summary>
+        public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+
         [JsonConverter(typeof(IPAddressConverter))]
         public IPAddress LastUsedFrom { get; set; }
+
+        public InProgressClaSignature InProgressClaSignature { get; set; }
     }
 }

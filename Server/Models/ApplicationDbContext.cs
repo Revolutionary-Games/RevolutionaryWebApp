@@ -50,6 +50,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<MeetingPoll> MeetingPolls { get; set; }
         public DbSet<MeetingPollVote> MeetingPollVotes { get; set; }
         public DbSet<MeetingPollVotingRecord> MeetingPollVotingRecords { get; set; }
+        public DbSet<InProgressClaSignature> InProgressClaSignatures { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -252,6 +253,8 @@ namespace ThriveDevCenter.Server.Models
             modelBuilder.Entity<Session>(entity =>
             {
                 entity.HasOne(d => d.User).WithMany(p => p.Sessions).OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.StartedAt).HasDefaultValueSql("timezone('utc', now())");
             });
 
             modelBuilder.Entity<RedeemableCode>(entity =>
@@ -411,6 +414,14 @@ namespace ThriveDevCenter.Server.Models
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.VotedInPollsRecords).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<InProgressClaSignature>(entity =>
+            {
+                entity.HasOne(d => d.Session)
+                    .WithOne(p => p.InProgressClaSignature).OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.Cla).WithMany(p => p.InProgressSignatures).OnDelete(DeleteBehavior.Cascade);
             });
         }
 

@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ThriveDevCenter.Server.Models;
@@ -10,9 +11,10 @@ using ThriveDevCenter.Server.Models;
 namespace ThriveDevCenter.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class WebApiContextModelSnapshot : ModelSnapshot
+    [Migration("20210721171151_AddClaReferenceToInProgressSignature")]
+    partial class AddClaReferenceToInProgressSignature
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -938,10 +940,6 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("signer_signature");
 
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("started_at");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("updated_at");
@@ -1766,12 +1764,6 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Property<DateTime?>("SsoStartTime")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("sso_start_time");
-
-                    b.Property<DateTime>("StartedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("started_at")
-                        .HasDefaultValueSql("timezone('utc', now())");
 
                     b.Property<string>("StartedSsoLogin")
                         .HasColumnType("text")

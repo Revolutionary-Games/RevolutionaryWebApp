@@ -154,5 +154,125 @@ namespace ThriveDevCenter.Server.Controllers
 
             return Ok();
         }
+
+        [HttpPost("startSigning")]
+        public async Task<ActionResult<SigningStartResponse>> StartSigning([Required] long id)
+        {
+            var cla = await database.Clas.FindAsync(id);
+
+            if (cla == null)
+                return NotFound();
+
+            if (!cla.Active)
+                return BadRequest("Can't sign non-active CLA");
+
+            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+
+            // There needs to be a session for the in-progress signature to be stored
+            var session = await HttpContext.Request.Cookies.GetSession(database);
+            bool createdNew = false;
+
+            if (session == null)
+            {
+                var signature = new InProgressClaSignature();
+
+                session = new Session
+                {
+                    LastUsedFrom = remoteAddress,
+                    InProgressClaSignature = signature,
+                };
+                createdNew = true;
+
+                signature.Session = session;
+
+                logger.LogInformation("Starting a new session for CLA signing");
+                await database.Sessions.AddAsync(session);
+                await database.InProgressClaSignatures.AddAsync(signature);
+            }
+            else
+            {
+                logger.LogInformation("Using an existing session for CLA signing");
+
+                session.LastUsed = DateTime.UtcNow;
+
+                // Don't delete any active signatures for the session as the user may have just gotten lost and pressed
+                // the sign button again
+
+                // But add a new one if missing
+                var signature = await database.InProgressClaSignatures.AsQueryable()
+                    .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+                if (signature == null || signature.ClaId != id)
+                {
+                    if (signature != null)
+                    {
+                        // Need to delete old in progress sign for wrong CLA version
+                        database.InProgressClaSignatures.Remove(signature);
+                    }
+
+                    signature = new InProgressClaSignature()
+                    {
+                        SessionId = session.Id,
+                        ClaId = id
+                    };
+
+                    await database.InProgressClaSignatures.AddAsync(signature);
+                }
+            }
+
+            session.LastUsedFrom = remoteAddress;
+
+            await database.SaveChangesAsync();
+
+            if (createdNew)
+                LoginController.SetSessionCookie(session, Response);
+
+            return new SigningStartResponse()
+            {
+                SessionStarted = createdNew,
+                NextPath = "/cla/sign",
+            };
+        }
+
+        [HttpGet("activeSigning")]
+        public async Task<ActionResult<InProgressClaSignatureDTO>> GetCurrentActiveSignature()
+        {
+            var session = await HttpContext.Request.Cookies.GetSession(database);
+
+            if (session == null)
+                return this.WorkingForbid("You don't have an active session");
+
+            var signature = await database.InProgressClaSignatures.AsQueryable()
+                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+
+            if (signature == null)
+                return NotFound();
+
+            return signature.GetDTO();
+        }
+
+        [HttpDelete("activeSigning")]
+        public async Task<IActionResult> CancelSigningProcess()
+        {
+            var session = await HttpContext.Request.Cookies.GetSession(database);
+
+            if (session == null)
+                return this.WorkingForbid("You don't have an active session");
+
+            var signature = await database.InProgressClaSignatures.AsQueryable()
+                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+
+            if (signature == null)
+                return NotFound();
+
+            // Remove the in-progress signature
+            database.InProgressClaSignatures.Remove(signature);
+
+            // TODO: should the user's session be ended if they aren't logged in? Would need a hard refresh
+            // in that case
+
+            await database.SaveChangesAsync();
+
+            return Ok();
+        }
     }
 }
