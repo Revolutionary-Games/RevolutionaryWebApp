@@ -174,7 +174,10 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (session == null)
             {
-                var signature = new InProgressClaSignature();
+                var signature = new InProgressClaSignature()
+                {
+                    ClaId = id,
+                };
 
                 session = new Session
                 {
