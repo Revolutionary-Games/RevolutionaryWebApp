@@ -1,6 +1,283 @@
 @page "/cla/sign"
+@inject HttpClient http
+@inject CurrentUserInfo currentUserInfo
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Forms
+@inherits SingleResourcePage<InProgressClaSignatureDTO>
+
 <h3>CLA Signing</h3>
 
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(!Loading)">
+    @if (Data != null)
+    {
+        @* TODO: could make this an updating timer showing the remaining time *@
+        <p>NOTE: you have @AppInfo.StartedSigningTimeout after starting to finish signing before timeout.</p>
+        <div class="mb-2">CLA signature step @step of 3</div>
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+        @switch (step)
+        {
+            case 1:
+            {
+                <h4>Email</h4>
+                <p>
+                    To authenticate that it is you who performs the signing, your email address needs to be verified
+                    with a verification email.
+                </p>
+
+                <form class="form-inline">
+                    <input type="text" class="form-control mb-3 flex-fill" id="emailToVerifyInput"
+                           placeholder="Email address..." @bind="Data.Email" @bind:event="oninput">
+
+                    <Button class="mb-3 ml-1" type="submit" ButtonStyle="primary" Enabled="@CanSendVerification"
+                            OnPressed="@SendEmailVerification" Spinner="@processingEmail">
+                        Send Verification Email
+                    </Button>
+                </form>
+
+                <h4>Github (optional)</h4>
+                <p>
+                    If you have contributed on Github in the past or plan to do so, you need to link your Github
+                    account to your signature here.
+                </p>
+
+                @if(!Data.GithubSkipped)
+                {
+
+                    <Button ButtonStyle="primary" class="mb-1 mr-1" Enabled="@(!processingGithub)"
+                            Spinner="@processingGithub" OnPressed="@BeginGithubVerification">
+                        Link
+                    </Button>
+                    <Button ButtonStyle="danger" class="mb-1" Enabled="@(!processingGithub)"
+                            OnPressed="@SetWontContributeOnGithub">
+                        No thanks, I won't contribute on Github
+                    </Button>
+                }
+                else
+                {
+                    <p>
+                        You have specified that you <strong>won't</strong> be contributing on Github. And have not
+                        contributed on Github in the past.
+                    </p>
+
+                    <Button ButtonStyle="primary" class="mb-1" OnPressed="@SetWillContributeOnGithub">
+                        I Will Contribute on Github
+                    </Button>
+                }
+                break;
+            }
+            case 2:
+            {
+                break;
+            }
+            case 3:
+            {
+                <p>Verify that the following information is correct (if it isn't go back and fix it):</p>
+                <ul>
+                    <li><strong>Your Email</strong>: @Data.Email</li>
+                    <li><strong>Your Github Account</strong>: @Data.GithubAccount</li>
+                    <li><strong>Your Name</strong>: @Data.SignerName</li>
+                    <li><strong>Your Thrive Developer Username</strong>: @Data.DeveloperUsername</li>
+                    <li><strong>Are You a Minor?</strong>: @Data.SignerIsMinor</li>
+                    <li><strong>Are You a Minor?</strong>: @Data.SignerIsMinor</li>
+
+                    @if (!string.IsNullOrEmpty(Data.GuardianName))
+                    {
+                        <li><strong>Your Guardian's Name</strong>: @Data.GuardianName</li>
+                    }
+
+                    @if (currentUserInfo.LoggedIn)
+                    {
+                        <li><strong>You Are Logged In As</strong>: @currentUserInfo.Username</li>
+                    }
+
+                    <li><strong>Signing Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+                </ul>
+
+                <p>TODO: Put the agreement text here again:</p>
+
+                <p>Then agree and confirm you sign this agreement by providing your signature below.</p>
+                break;
+            }
+            default:
+                throw new Exception("invalid step");
+        }
+
+        <br />
+        <hr />
+
+        @if (ShowCancel)
+        {
+            <Button ButtonStyle="danger" class="mr-1">Cancel</Button>
+        }
+
+        <Button ButtonStyle="warning" class="mr-1" Enabled="@PreviousEnabled">Back</Button>
+
+        @if (ShowNext)
+        {
+            <Button ButtonStyle="primary" class="mr-1" Enabled="@(CanGotoNext && !processingNext)"
+                    Spinner="@processingNext">
+                Next
+            </Button>
+        }
+        else
+        {
+            <Button ButtonStyle="primary" class="mr-1" Enabled="@CanSign">Sign</Button>
+        }
+
+    }
+    else
+    {
+        <p>
+            You don't have an in-progress signing. Please start one
+            <NavLink href="cla" Match="NavLinkMatch.All">here</NavLink>.
+        </p>
+    }
+</SingleResourceDisplayer>
+
 @code {
+
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    /// <summary>
+    ///   Once signing is finished interaction is locked to avoid problems
+    /// </summary>
+    private bool finished = false;
+
+    private int step = -1;
+
+    private bool processingGithub;
+    private bool processingEmail;
+
+    private bool processingNext;
+
+    private bool CanSendVerification => !processingEmail && Data != null && !string.IsNullOrWhiteSpace(Data.Email) &&
+        Data.Email.Contains("@") && !finished;
+
+    private bool ShowCancel => step == 1;
+    private bool ShowNext => step < 3;
+    private bool PreviousEnabled => step > 1;
+
+    private bool CanGotoNext
+    {
+        get
+        {
+            if (finished)
+                return false;
+
+            switch (step)
+            {
+                case 1:
+                    return DataIsValidForStep2(Data);
+                case 2:
+                    return DataIsValidForStep3(Data);
+                default:
+                    return false;
+            }
+        }
+    }
+    private bool CanSign => DataIsValidForStep3(Data) && !finished;
+
+    protected override async Task<InProgressClaSignatureDTO> StartQuery()
+    {
+        var data =  await http.GetFromJsonAsync<InProgressClaSignatureDTO>("api/v1/CLA/activeSigning");
+
+        step = 1;
+
+        if(data != null)
+        {
+            if (DataIsValidForStep2(data))
+            {
+                step = 2;
+
+                if (DataIsValidForStep3(data))
+                {
+                    step = 3;
+                }
+            }
+        }
+
+        return data;
+    }
+
+    private bool DataIsValidForStep2(InProgressClaSignatureDTO data)
+    {
+        if (data == null)
+            return false;
+
+        return data.EmailVerified && (!string.IsNullOrEmpty(data.GithubAccount) || data.GithubSkipped);
+    }
+
+    private bool DataIsValidForStep3(InProgressClaSignatureDTO data)
+    {
+        if (data == null)
+            return false;
+
+        return !string.IsNullOrEmpty(data.SignerName) && data.SignerIsMinor.HasValue;
+    }
+
+    private async void SendEmailVerification()
+    {
+        if (finished)
+            return;
+
+        processingEmail = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/EmailVerification/cla", new EmailVerificationRequestForm
+            {
+                Email = Data.Email
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingEmail = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingEmail = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Verification email sent, please check your email, including your spam folder if you " +
+                "don't receive an email within the next few minutes.";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void BeginGithubVerification()
+    {
+
+    }
+
+    private void SetWontContributeOnGithub()
+    {
+        Data.GithubSkipped = true;
+    }
+
+    private void SetWillContributeOnGithub()
+    {
+        Data.GithubSkipped = false;
+    }
 
 }

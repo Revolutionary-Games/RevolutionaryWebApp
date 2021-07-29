@@ -115,5 +115,7 @@ namespace ThriveDevCenter.Shared
         public static readonly TimeSpan RemoteStorageDownloadExpireTime = TimeSpan.FromMinutes(15);
 
         public static readonly TimeSpan LauncherLinkCodeExpireTime = TimeSpan.FromMinutes(15);
+
+        public static readonly TimeSpan StartedSigningTimeout = TimeSpan.FromHours(4);
     }
 }

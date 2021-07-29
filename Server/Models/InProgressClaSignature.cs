@@ -23,19 +23,19 @@ namespace ThriveDevCenter.Server.Models
 
         public string GithubAccount { get; set; }
 
+        public bool GithubSkipped { get; set; }
+
         public string DeveloperUsername { get; set; }
 
         public string SignerName { get; set; }
 
         public string SignerSignature { get; set; }
 
-        public bool SignerIsMinor { get; set; }
+        public bool? SignerIsMinor { get; set; }
 
         public string GuardianName { get; set; }
 
         public string GuardianSignature { get; set; }
-
-        public DateTime StartedAt { get; set; } = DateTime.UtcNow;
 
         public Session Session { get; set; }
 
@@ -51,6 +51,7 @@ namespace ThriveDevCenter.Server.Models
                 Email = Email,
                 EmailVerified = EmailVerified,
                 GithubAccount = GithubAccount,
+                GithubSkipped = GithubSkipped,
                 DeveloperUsername = DeveloperUsername,
                 SignerName = SignerName,
                 SignerSignature = SignerSignature,

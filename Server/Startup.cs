@@ -369,6 +369,7 @@ namespace ThriveDevCenter.Server
             AddJobHelper<DetectLeftOnServersJob>(configurationSection["DetectLeftOnServers"]);
             AddJobHelper<TerminateLongStoppedServersJob>(configurationSection["TerminateLongStoppedServers"]);
             AddJobHelper<ScheduleServerMaintenanceJob>(configurationSection["ScheduleServerMaintenance"]);
+            AddJobHelper<TimeoutInProgressClAsJob>(configurationSection["TimeoutInProgressCLAs"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
