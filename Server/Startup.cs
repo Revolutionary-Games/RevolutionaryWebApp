@@ -192,6 +192,7 @@ namespace ThriveDevCenter.Server
 
             // Prefer the queue sender to not make operations wait for emails to be sent
             services.AddScoped<IMailSender, MailSender>();
+            services.AddScoped<EmailTokens>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();

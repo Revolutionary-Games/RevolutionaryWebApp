@@ -17,7 +17,8 @@
     "Password": "",
     "Host": "localhost",
     "Port": 1025,
-    "RequireTls": false
+    "RequireTls": false,
+    "TokenSecret": "PUTANOTHERRANDOMHERE"
   },
   "Logging": {
     "LogLevel": {
