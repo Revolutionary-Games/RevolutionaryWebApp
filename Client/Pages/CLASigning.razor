@@ -32,11 +32,17 @@
                     <input type="text" class="form-control mb-3 flex-fill" id="emailToVerifyInput"
                            placeholder="Email address..." @bind="Data.Email" @bind:event="oninput">
 
-                    <Button class="mb-3 ml-1" type="submit" ButtonStyle="primary" Enabled="@CanSendVerification"
-                            OnPressed="@SendEmailVerification" Spinner="@processingEmail">
+                    <Button class="mb-3 ml-1" type="submit" ButtonStyle="@VerificationButtonStyle"
+                            Enabled="@CanSendVerification" OnPressed="@SendEmailVerification"
+                            Spinner="@processingEmail">
                         Send Verification Email
                     </Button>
                 </form>
+
+                @if (Data.EmailVerified)
+                {
+                    <p>Your email is verified.</p>
+                }
 
                 <h4>Github (optional)</h4>
                 <p>
@@ -158,6 +164,17 @@
     private bool CanSendVerification => !processingEmail && Data != null && !string.IsNullOrWhiteSpace(Data.Email) &&
         Data.Email.Contains("@") && !finished;
 
+    private string VerificationButtonStyle
+    {
+        get
+        {
+            if (Data == null || !Data.EmailVerified)
+                return "primary";
+
+            return "warning";
+        }
+    }
+
     private bool ShowCancel => step == 1;
     private bool ShowNext => step < 3;
     private bool PreviousEnabled => step > 1;
@@ -234,7 +251,8 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/EmailVerification/cla", new EmailVerificationRequestForm
+            result = await http.PostAsJsonAsync("api/v1/EmailVerification/start/cla",
+                new EmailVerificationRequestForm
             {
                 Email = Data.Email
             });

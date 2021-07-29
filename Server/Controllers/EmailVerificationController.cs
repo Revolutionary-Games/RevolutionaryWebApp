@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Models;
     using Services;
     using Shared.Forms;
+    using Shared.Models;
     using Utilities;
 
     [ApiController]
@@ -36,20 +37,75 @@ namespace ThriveDevCenter.Server.Controllers
             baseUrl = configuration.GetBaseUrl();
         }
 
-        [HttpPost("cla")]
-        public async Task<IActionResult> StartEmailVerifyForCLA(
+        [HttpPost]
+        public async Task<ActionResult<EmailVerifyResult>> StartEmailVerifyForCLA(
+            [Required] [FromBody] EmailVerificationFinishForm request)
+        {
+            var verifiedToken = emailTokens.ReadAndVerify(request.Token);
+
+            if (verifiedToken == null)
+            {
+                return this.WorkingForbid(
+                    "Invalid email token given. Please check you used the right link and " +
+                    "that it didn't expire yet");
+            }
+
+            const string sameBrowserAdvice =
+                "Make sure to use the link in the same browser where you started email verification from.";
+
+            string redirect = null;
+
+            switch (verifiedToken.Type)
+            {
+                case EmailVerificationType.CLA:
+                {
+                    var (inProgressSign, session, error) = await GetActiveSignature();
+
+                    if (error != null)
+                    {
+                        return this.WorkingForbid("You don't have an in-progress signature or session. " +
+                            sameBrowserAdvice);
+                    }
+
+                    if (!SecurityHelpers.SlowEquals(session.HashedId, verifiedToken.VerifiedResourceId))
+                    {
+                        return this.WorkingForbid("Current session doesn't match one the email token " +
+                            "was sent from. " + sameBrowserAdvice);
+                    }
+
+                    // Valid CLA verified email
+                    logger.LogInformation("Email verification of {Email} succeeded for CLA in session {Id}",
+                        verifiedToken.SentToEmail, session.Id);
+
+                    inProgressSign.EmailVerified = true;
+                    inProgressSign.Email = verifiedToken.SentToEmail;
+
+                    redirect = "/cla/sign";
+                    break;
+                }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            await database.SaveChangesAsync();
+
+            return new EmailVerifyResult()
+            {
+                RedirectTo = redirect,
+            };
+        }
+
+        [HttpPost("start/cla")]
+        public async Task<ActionResult> StartEmailVerifyForCLA(
             [Required] [FromBody] EmailVerificationRequestForm request)
         {
-            var session = await HttpContext.Request.Cookies.GetSession(database);
+            var (inProgressSign, session, error) = await GetActiveSignature();
 
-            if (session == null)
-                return this.WorkingForbid("You don't have an active session");
+            if (error != null)
+                return error;
 
-            var inProgressSign =
-                await database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
-
-            if (inProgressSign == null)
-                return this.WorkingForbid("You don't have an in-progress signature");
+            if (inProgressSign.EmailVerified && inProgressSign.Email == request.Email)
+                return BadRequest("That email has already been verified");
 
             var token = emailTokens.GenerateToken(new EmailTokenData()
             {
@@ -80,6 +136,23 @@ namespace ThriveDevCenter.Server.Controllers
             }, CancellationToken.None);
 
             return Ok();
+        }
+
+        [NonAction]
+        private async Task<(InProgressClaSignature, Session, ActionResult)> GetActiveSignature()
+        {
+            var session = await HttpContext.Request.Cookies.GetSession(database);
+
+            if (session == null)
+                return (null, null, this.WorkingForbid("You don't have an active session"));
+
+            var inProgressSign =
+                await database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
+
+            if (inProgressSign == null)
+                return (null, null, this.WorkingForbid("You don't have an in-progress signature"));
+
+            return (inProgressSign, session, null);
         }
     }
 }

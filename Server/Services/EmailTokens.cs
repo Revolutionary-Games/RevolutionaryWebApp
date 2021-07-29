@@ -33,7 +33,7 @@ namespace ThriveDevCenter.Server.Services
 
             var csrfSecret = Encoding.UTF8.GetBytes(secret);
 
-            validationParameters = TokenVerifier.CreateValidationParameters(csrfSecret);
+            validationParameters = TokenVerifier.CreateValidationParameters(csrfSecret, Issuer);
 
             signingCredentials = new SigningCredentials(new SymmetricSecurityKey(csrfSecret),
                 SecurityAlgorithms.HmacSha256Signature);
