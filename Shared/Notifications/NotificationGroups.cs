@@ -62,5 +62,11 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string MeetingListUpdatedBoardMember = "Meeting_Board";
 
         public const string MeetingPollListUpdatedPrefix = "MeetingPoll_";
+
+        /// <summary>
+        ///   The client doesn't know their session ID so this is used as-is on the client but with a suffix on the
+        ///   server side
+        /// </summary>
+        public const string InProgressCLASignatureUpdated = "InProgressCLA_";
     }
 }

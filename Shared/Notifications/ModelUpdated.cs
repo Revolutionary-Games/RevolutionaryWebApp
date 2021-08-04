@@ -48,4 +48,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class MeetingUpdated : ModelUpdated<MeetingDTO>
     {
     }
+
+    public class InProgressClaSignatureUpdated : ModelUpdated<InProgressClaSignatureDTO>
+    {
+    }
 }

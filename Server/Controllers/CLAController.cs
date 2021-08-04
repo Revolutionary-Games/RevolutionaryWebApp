@@ -277,5 +277,94 @@ namespace ThriveDevCenter.Server.Controllers
 
             return Ok();
         }
+
+        [HttpPost("activeSigning")]
+        public async Task<IActionResult> UpdateSigningProgress([FromBody] [Required] InProgressClaSignatureDTO request)
+        {
+            var session = await HttpContext.Request.Cookies.GetSession(database);
+
+            if (session == null)
+                return this.WorkingForbid("You don't have an active session");
+
+            var signature = await database.InProgressClaSignatures.AsQueryable()
+                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+
+            if (signature == null)
+                return NotFound();
+
+            // Update allowed fields from request to the data of the in-progress signature stored in the database
+            bool changes = false;
+
+            if (request.GithubSkipped != signature.GithubSkipped)
+            {
+                changes = true;
+                signature.GithubSkipped = request.GithubSkipped;
+
+                if (signature.GithubSkipped)
+                    signature.GithubAccount = null;
+            }
+
+            if (request.DeveloperUsername != signature.DeveloperUsername)
+            {
+                changes = true;
+                signature.DeveloperUsername = request.DeveloperUsername;
+
+                if (string.IsNullOrWhiteSpace(signature.DeveloperUsername))
+                    signature.DeveloperUsername = null;
+            }
+
+            if (request.GuardianName != signature.GuardianName)
+            {
+                changes = true;
+
+                signature.GuardianName = request.GuardianName;
+                if (string.IsNullOrWhiteSpace(signature.GuardianName))
+                    signature.GuardianName = null;
+            }
+
+            if (request.SignerName != signature.SignerName)
+            {
+                changes = true;
+
+                signature.SignerName = request.SignerName;
+            }
+
+            if (request.SignerIsMinor != signature.SignerIsMinor)
+            {
+                changes = true;
+
+                signature.SignerIsMinor = request.SignerIsMinor;
+
+                if (signature.SignerIsMinor != true)
+                    signature.GuardianName = null;
+            }
+
+            if (changes)
+                await database.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpPost("finishSigning")]
+        public async Task<IActionResult> CompleteSignature([FromBody] [Required] InProgressClaSignatureDTO request)
+        {
+            var session = await HttpContext.Request.Cookies.GetSession(database);
+
+            if (session == null)
+                return this.WorkingForbid("You don't have an active session");
+
+            var signature = await database.InProgressClaSignatures.AsQueryable()
+                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+
+            if (signature == null)
+                return NotFound();
+
+            // Request must now have signer and guardian (if minor) signature fields set (all other changes are
+            // ignored)
+
+            // Verify that signature status is fine before moving onto accepting it
+
+            return Problem("not implemented");
+        }
     }
 }

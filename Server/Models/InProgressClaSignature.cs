@@ -1,15 +1,17 @@
 namespace ThriveDevCenter.Server.Models
 {
     using System;
+    using System.Collections.Generic;
     using Microsoft.EntityFrameworkCore;
     using Shared.Models;
+    using Shared.Notifications;
 
     /// <summary>
     ///   Holds CLA signing data while the user is working on it. Associated with a session
     /// </summary>
     [Index(nameof(SessionId), IsUnique = true)]
     [Index(nameof(EmailVerificationCode), IsUnique = true)]
-    public class InProgressClaSignature : UpdateableModel
+    public class InProgressClaSignature : UpdateableModel, IUpdateNotifications
     {
         public Guid SessionId { get; set; }
 
@@ -59,6 +61,13 @@ namespace ThriveDevCenter.Server.Models
                 GuardianName = GuardianName,
                 GuardianSignature = GuardianSignature,
             };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            yield return new Tuple<SerializedNotification, string>(
+                new InProgressClaSignatureUpdated() { Item = GetDTO() },
+                NotificationGroups.InProgressCLASignatureUpdated + SessionId);
         }
     }
 }

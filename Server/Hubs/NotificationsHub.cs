@@ -73,10 +73,13 @@ namespace ThriveDevCenter.Server.Hubs
                     csrf = accessToken[0];
                 }
 
+                Session session;
                 try
                 {
-                    connectedUser =
-                        await http.Request.Cookies.GetUserFromSession(database, http.Connection.RemoteIpAddress);
+                    session = await http.Request.Cookies.GetSession(database);
+                    connectedUser = await
+                        UserFromCookiesHelper.GetUserFromSession(session, database, true,
+                            http.Connection.RemoteIpAddress);
                 }
                 catch (ArgumentException)
                 {
@@ -85,6 +88,8 @@ namespace ThriveDevCenter.Server.Hubs
 
                 if (!csrfVerifier.IsValidCSRFToken(csrf, connectedUser))
                     throw new HubException("invalid CSRF token");
+
+                Context.Items["Session"] = session;
 
                 bool invalidVersion = false;
 
@@ -127,7 +132,14 @@ namespace ThriveDevCenter.Server.Hubs
 
         public async Task JoinGroup(string groupName)
         {
-            if (!await IsUserAllowedInGroup(groupName, Context.Items["User"] as User))
+            var user = Context.Items["User"] as User;
+            var session = Context.Items["Session"] as Session;
+
+            // Special group joining has its own rules so it is done first
+            if (await HandleSpecialGroupJoin(groupName, user, session))
+                return;
+
+            if (!await IsUserAllowedInGroup(groupName, user))
             {
                 logger.LogWarning("Client failed to join group: {GroupName}", groupName);
                 throw new HubException("You don't have access to the specified group");
@@ -136,10 +148,13 @@ namespace ThriveDevCenter.Server.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        public Task LeaveGroup(string groupName)
+        public async Task LeaveGroup(string groupName)
         {
+            if (await HandleSpecialGroupLeave(groupName))
+                return;
+
             // TODO: does this need also group checking?
-            return Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         }
 
         public Task WhoAmI()
@@ -153,6 +168,54 @@ namespace ThriveDevCenter.Server.Hubs
 
             return Clients.Caller.ReceiveOwnUserInfo(
                 user?.GetInfo(accessLevel));
+        }
+
+        private async Task<bool> HandleSpecialGroupJoin(string groupName, User user, Session session)
+        {
+            // Special joins for only server-known groups
+            switch (groupName)
+            {
+                case NotificationGroups.InProgressCLASignatureUpdated:
+                {
+                    if (session != null)
+                    {
+                        await Groups.AddToGroupAsync(Context.ConnectionId,
+                            NotificationGroups.InProgressCLASignatureUpdated + session.Id);
+                        return true;
+                    }
+
+                    break;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///   Special handling for groups joined by HandleSpecialGroupJoin
+        /// </summary>
+        /// <param name="groupName">
+        ///   The group name the client provided (if handled this isn't the real group name)
+        /// </param>
+        /// <returns>True if the leave is handled and no further actions are required</returns>
+        private async Task<bool> HandleSpecialGroupLeave(string groupName)
+        {
+            switch (groupName)
+            {
+                case NotificationGroups.InProgressCLASignatureUpdated:
+                {
+                    if (Context.Items["Session"] is Session session)
+                    {
+                        await Groups.RemoveFromGroupAsync(Context.ConnectionId,
+                            NotificationGroups.InProgressCLASignatureUpdated + session.Id);
+                        return true;
+                    }
+
+                    break;
+                }
+            }
+
+            return false;
         }
 
         private async Task<bool> IsUserAllowedInGroup(string groupName, User user)
