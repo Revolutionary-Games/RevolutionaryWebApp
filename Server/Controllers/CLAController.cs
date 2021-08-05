@@ -108,11 +108,19 @@ namespace ThriveDevCenter.Server.Controllers
                 }
             }
 
+            var user = HttpContext.AuthenticatedUser();
+
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"New CLA with active status: {newCla.Active} created",
+                PerformedById = user.Id,
+            });
+
             await database.Clas.AddAsync(newCla);
             await database.SaveChangesAsync();
 
             logger.LogInformation("New CLA {Id} with active: {Active} created by {Email}", newCla.Id,
-                newCla.Active, HttpContext.AuthenticatedUser().Email);
+                newCla.Active, user.Email);
 
             return Ok();
         }
