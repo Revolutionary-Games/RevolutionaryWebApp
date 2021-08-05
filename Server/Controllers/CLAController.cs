@@ -340,7 +340,10 @@ namespace ThriveDevCenter.Server.Controllers
             }
 
             if (changes)
+            {
+                signature.BumpUpdatedAt();
                 await database.SaveChangesAsync();
+            }
 
             return Ok();
         }

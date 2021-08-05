@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Shared.Models
 
     public class InProgressClaSignatureDTO : ClientSideTimedModel
     {
+        public long ClaId { get; set; }
         public string Email { get; set; }
         public bool EmailVerified { get; set; }
         public string GithubAccount { get; set; }
@@ -17,6 +18,7 @@ namespace ThriveDevCenter.Shared.Models
 
         [StringLength(AppInfo.PersonsNameMaximumLength, MinimumLength = 1)]
         public string SignerSignature { get; set; }
+
         public bool? SignerIsMinor { get; set; }
 
         [StringLength(AppInfo.PersonsNameMaximumLength, MinimumLength = 1)]

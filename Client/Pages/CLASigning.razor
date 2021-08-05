@@ -1,5 +1,6 @@
 @page "/cla/sign"
 @inject HttpClient http
+@inject NavigationManager navManager
 @inject NotificationHandler notificationHandler
 @inject CurrentUserInfo currentUserInfo
 @using ThriveDevCenter.Shared.Models
@@ -7,6 +8,7 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Forms
 @using ThriveDevCenter.Shared.Notifications
+@using System.Net
 @inherits SingleResourcePage<InProgressClaSignatureDTO, ThriveDevCenter.Shared.Notifications.InProgressClaSignatureUpdated>
 @implements IAsyncDisposable
 
@@ -141,7 +143,9 @@
                     <li><strong>Signing Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
                 </ul>
 
-                <p>TODO: Put the agreement text here again:</p>
+                <p>Agreement you are about to sign:</p>
+
+                <CLATextShower Id="@Data.ClaId" />
 
                 <p>
                     Then agree and confirm you sign this agreement by providing your signature below. By typing in
@@ -179,7 +183,10 @@
 
         @if (ShowCancel)
         {
-            <Button ButtonStyle="danger" class="mr-1">Cancel</Button>
+            <Button ButtonStyle="danger" class="mr-1" OnPressed="@CancelSigning" Enabled="@(!processingCancel)"
+                    Spinner="@processingCancel">
+                Cancel
+            </Button>
         }
 
         <Button ButtonStyle="warning" class="mr-1" Enabled="@PreviousEnabled" OnPressed="@PreviousPressed">
@@ -226,6 +233,7 @@
     private bool processingGithub;
     private bool processingEmail;
 
+    private bool processingCancel;
     private bool processingNext;
 
     private bool CanSendVerification => !processingEmail && Data != null && !string.IsNullOrWhiteSpace(Data.Email) &&
@@ -419,13 +427,66 @@
         {
             var content = await result.Content.ReadAsStringAsync();
 
-            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+            if (result.StatusCode == HttpStatusCode.NotFound)
+            {
+                statusMessage =
+                    $"Error, signature not found (you may have taken too long and need to start again): {content}";
+            }
+            else
+            {
+                statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+            }
         }
         else
         {
             // The update notification from the server should have already moved us to the right page, but just to be
             // sure, we do a manual change here
             UpdateStepForReceivedData(Data);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void CancelSigning()
+    {
+        if (finished || step != 1)
+            return;
+
+        processingCancel = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync("api/v1/CLA/activeSigning");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingCancel = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingCancel = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Signing has been canceled. You will be redirected in 5 seconds";
+            statusMessageType = SiteNoticeType.Warning;
+            await InvokeAsync(StateHasChanged);
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            navManager.NavigateTo("/cla");
         }
 
         await InvokeAsync(StateHasChanged);
@@ -493,7 +554,15 @@
         {
             var content = await result.Content.ReadAsStringAsync();
 
-            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+            if (result.StatusCode == HttpStatusCode.NotFound)
+            {
+                statusMessage =
+                    $"Error, signature not found (you may have taken too long and need to start again): {content}";
+            }
+            else
+            {
+                statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+            }
         }
         else
         {

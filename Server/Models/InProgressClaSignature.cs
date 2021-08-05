@@ -50,6 +50,7 @@ namespace ThriveDevCenter.Server.Models
                 Id = Id,
                 CreatedAt = CreatedAt,
                 UpdatedAt = UpdatedAt,
+                ClaId = ClaId,
                 Email = Email,
                 EmailVerified = EmailVerified,
                 GithubAccount = GithubAccount,
