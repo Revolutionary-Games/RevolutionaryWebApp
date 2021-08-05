@@ -3,15 +3,20 @@ using Microsoft.AspNetCore.Mvc;
 namespace ThriveDevCenter.Server.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
+    using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Authorization;
     using BlazorPagination;
     using Filters;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Services;
     using Shared;
     using Shared.Models;
     using Utilities;
@@ -22,12 +27,19 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<CLAController> logger;
         private readonly NotificationsEnabledDb database;
+        private readonly CLASignatureStorage signatureStorage;
+        private readonly IMailQueue mailQueue;
+        private readonly string emailSignaturesTo;
 
-        public CLAController(ILogger<CLAController> logger,
-            NotificationsEnabledDb database)
+        public CLAController(ILogger<CLAController> logger, IConfiguration configuration,
+            NotificationsEnabledDb database, CLASignatureStorage signatureStorage, IMailQueue mailQueue)
         {
             this.logger = logger;
             this.database = database;
+            this.signatureStorage = signatureStorage;
+            this.mailQueue = mailQueue;
+
+            emailSignaturesTo = configuration["CLA:SignatureEmailBCC"];
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
@@ -362,12 +374,210 @@ namespace ThriveDevCenter.Server.Controllers
             if (signature == null)
                 return NotFound();
 
+            if (!signatureStorage.Configured)
+                return Problem("Remote storage for signed documents is not configured");
+
+            if (!mailQueue.Configured)
+                return Problem("Email on server is not configured");
+
             // Request must now have signer and guardian (if minor) signature fields set (all other changes are
             // ignored)
+            if (string.IsNullOrWhiteSpace(request.SignerSignature) || request.SignerSignature.Length < 3)
+                return BadRequest("Missing signature");
+
+            if (!signature.SignerIsMinor.HasValue)
+                return BadRequest("Is minor field is not filled in");
+
+            if (signature.SignerIsMinor == true && (string.IsNullOrWhiteSpace(request.GuardianSignature) ||
+                request.GuardianSignature.Length < 3))
+            {
+                return BadRequest("Missing guardian signature");
+            }
 
             // Verify that signature status is fine before moving onto accepting it
+            if (!signature.EmailVerified || string.IsNullOrWhiteSpace(signature.Email))
+                return BadRequest("Email is not verified");
 
-            return Problem("not implemented");
+            if (!signature.GithubSkipped && string.IsNullOrWhiteSpace(signature.GithubAccount))
+                return BadRequest("Bad Github account status in signature");
+
+            if (signature.GithubSkipped && signature.GithubAccount != null)
+                return BadRequest("Bad Github account status in signature");
+
+            if (signature.DeveloperUsername != null && string.IsNullOrWhiteSpace(signature.DeveloperUsername))
+                return BadRequest("Bad format username");
+
+            if (signature.SignerIsMinor == true && (string.IsNullOrWhiteSpace(signature.GuardianName) ||
+                request.GuardianName.Length < 3))
+            {
+                return BadRequest("Missing guardian name");
+            }
+
+            if (string.IsNullOrWhiteSpace(signature.SignerName) || request.SignerName.Length < 3)
+                return BadRequest("Missing signer name");
+
+            // Load the CLA data (it must still be active, otherwise signing is not valid)
+            var cla = await database.Clas.FindAsync(signature.ClaId);
+
+            if (cla is not { Active: true })
+                return BadRequest("CLA document you are trying to sign was not found or it is no longer active");
+
+            // Fail if there's already exactly this signature created
+            if (await database.ClaSignatures.AsQueryable()
+                .FirstOrDefaultAsync(s => s.ClaId == cla.Id && s.Email == signature.Email &&
+                    s.DeveloperUsername == signature.GithubAccount && s.ValidUntil == null) != null)
+            {
+                return BadRequest(
+                    "A CLA has already been signed with the details you provided. Signing it multiple " +
+                    "times is not required");
+            }
+
+            signature.SignerSignature = request.SignerSignature;
+            signature.GuardianSignature = request.GuardianSignature;
+
+            var user = HttpContext.AuthenticatedUser();
+
+            // Create the actual signature database entry
+            var finalSignature = new ClaSignature()
+            {
+                Email = signature.Email,
+                GithubAccount = signature.GithubAccount,
+                DeveloperUsername = signature.DeveloperUsername,
+                ClaId = cla.Id,
+                UserId = user?.Id,
+            };
+
+            var fileName = $"{signature.Email}-{finalSignature.CreatedAt:dd-HH:mm:ss}.md";
+
+            finalSignature.ClaSignatureStoragePath = $"signatures/cla/{finalSignature.CreatedAt:yyyy-MM}/{fileName}";
+
+            // Save changes here to ensure that the created storage path is unique
+            await database.ClaSignatures.AddAsync(finalSignature);
+            await database.SaveChangesAsync();
+
+            // Prepare the final text
+            var signedDocumentText = CreateSignedDocumentText(cla, signature, finalSignature, user);
+
+            logger.LogInformation(
+                "CLA ({Id1}) signature created with ID {Id2}, with email: {Email} from: {RemoteIpAddress}", cla.Id,
+                finalSignature.Id, finalSignature.Email, HttpContext.Connection.RemoteIpAddress);
+            await database.LogEntries.AddAsync(new LogEntry()
+            {
+                Message = $"New CLA signature for CLA ({cla.Id}) created",
+                TargetUserId = finalSignature.UserId
+            });
+
+            // Email the agreement to the person signing it
+            var emailTask = mailQueue.SendEmail(new MailRequest()
+            {
+                Recipient = finalSignature.Email,
+                Bcc = emailSignaturesTo,
+                Subject = "Your signed document from ThriveDevCenter",
+                PlainTextBody = "Here is the document you just signed on ThriveDevCenter (as an attachment)",
+                HtmlBody = "<p>Here is the document you just signed on ThriveDevCenter (as an attachment)</p>",
+                Attachments = new List<MailAttachment>()
+                {
+                    new()
+                    {
+                        Filename = fileName,
+                        Content = signedDocumentText,
+                        MimeType = AppInfo.MarkdownMimeType,
+                    }
+                },
+            }, CancellationToken.None);
+
+            // Upload the signature to remote storage
+            await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath, signedDocumentText,
+                AppInfo.MarkdownMimeType);
+
+            // Delete the in-progress signature
+            database.InProgressClaSignatures.Remove(signature);
+            await database.SaveChangesAsync();
+
+            await emailTask;
+
+            return Ok();
+        }
+
+        [NonAction]
+        private string CreateSignedDocumentText(Cla cla, InProgressClaSignature signature, ClaSignature finalSignature,
+            User user)
+        {
+            var signedBuilder = new StringBuilder(cla.RawMarkdown.Length * 2);
+            signedBuilder.Append(cla.RawMarkdown);
+            signedBuilder.Append("\n\n---\n\nThis document is digitally signed on ThriveDevCenter by:\n");
+
+            signedBuilder.Append(signature.SignerName);
+            signedBuilder.Append('\n');
+            signedBuilder.Append('\n');
+            signedBuilder.Append("Signature entered as: ");
+            signedBuilder.Append(signature.SignerSignature);
+            signedBuilder.Append('\n');
+            signedBuilder.Append('\n');
+
+            if (signature.SignerIsMinor == true)
+            {
+                signedBuilder.Append("Signer is a minor / doesn't have capacity to sign by themselves.\n");
+                signedBuilder.Append("Guardian: ");
+                signedBuilder.Append(signature.GuardianName);
+                signedBuilder.Append('\n');
+                signedBuilder.Append('\n');
+
+                signedBuilder.Append("Guardian's signature entered as: ");
+                signedBuilder.Append(signature.GuardianSignature);
+                signedBuilder.Append('\n');
+                signedBuilder.Append('\n');
+            }
+
+            signedBuilder.Append("Provided username on signing form: ");
+            signedBuilder.Append(finalSignature.DeveloperUsername);
+            signedBuilder.Append('\n');
+
+            signedBuilder.Append("\n---\n\n");
+
+            signedBuilder.Append("The following information is created or verified by the server:\n\n");
+
+            signedBuilder.Append("Email associated with this signature: ");
+            signedBuilder.Append(finalSignature.Email);
+            signedBuilder.Append('\n');
+            signedBuilder.Append('\n');
+
+            signedBuilder.Append("Github username associated with this signature: ");
+            signedBuilder.Append(finalSignature.GithubAccount);
+            signedBuilder.Append('\n');
+            signedBuilder.Append('\n');
+
+            signedBuilder.Append("This signature was created at ");
+            signedBuilder.Append(finalSignature.CreatedAt.ToString("O"));
+            signedBuilder.Append('\n');
+            signedBuilder.Append('\n');
+
+            signedBuilder.Append("Signing this document was started at ");
+            signedBuilder.Append(signature.CreatedAt.ToString("O"));
+            signedBuilder.Append('\n');
+            signedBuilder.Append('\n');
+
+            signedBuilder.Append("The following ID number has been given to this signature: **");
+            signedBuilder.Append(finalSignature.Id);
+            signedBuilder.Append("**\n");
+            signedBuilder.Append('\n');
+
+            if (user != null)
+            {
+                signedBuilder.Append("The following ThriveDevCenter account was used to perform this signature: ");
+                signedBuilder.Append(user.Email);
+                signedBuilder.Append(" (");
+                signedBuilder.Append(user.Id);
+                signedBuilder.Append(")\n");
+                signedBuilder.Append('\n');
+            }
+
+            signedBuilder.Append('\n');
+            signedBuilder.Append("Signature request received from IP address: ");
+            signedBuilder.Append(HttpContext.Connection.RemoteIpAddress);
+            signedBuilder.Append('\n');
+
+            return signedBuilder.ToString();
         }
     }
 }

@@ -10,7 +10,6 @@ namespace ThriveDevCenter.Server.Models
     ///   Holds CLA signing data while the user is working on it. Associated with a session
     /// </summary>
     [Index(nameof(SessionId), IsUnique = true)]
-    [Index(nameof(EmailVerificationCode), IsUnique = true)]
     public class InProgressClaSignature : UpdateableModel, IUpdateNotifications
     {
         public Guid SessionId { get; set; }
@@ -20,8 +19,6 @@ namespace ThriveDevCenter.Server.Models
         public string Email { get; set; }
 
         public bool EmailVerified { get; set; }
-
-        public Guid? EmailVerificationCode { get; set; }
 
         public string GithubAccount { get; set; }
 

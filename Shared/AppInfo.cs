@@ -33,6 +33,8 @@ namespace ThriveDevCenter.Shared
 
         public const string SoftDeleteAttribute = "Deleted";
 
+        public const string MarkdownMimeType = "text/markdown; charset=UTF-8";
+
         public const int APITokenByteCount = 34;
 
         public const int MaxDehydratedObjectsPerOffer = 100;

@@ -62,6 +62,19 @@ namespace ThriveDevCenter.Server.Services
             });
         }
 
+        public Task UploadFile(string path, string data, string contentType)
+        {
+            ThrowIfNotConfigured();
+
+            return s3Client.PutObjectAsync(new PutObjectRequest()
+            {
+                BucketName = bucket,
+                Key = path,
+                ContentBody = data,
+                ContentType = contentType,
+            });
+        }
+
         public string CreatePreSignedDownloadURL(string path, TimeSpan expiresIn)
         {
             ThrowIfNotConfigured();

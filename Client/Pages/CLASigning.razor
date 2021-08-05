@@ -226,7 +226,7 @@
     /// <summary>
     ///   Once signing is finished interaction is locked to avoid problems
     /// </summary>
-    private bool finished = false;
+    private bool finished;
 
     private int step = -1;
 
@@ -568,6 +568,7 @@
         {
             statusMessage = "You have successfully signed. You may close this page now.";
             statusMessageType = SiteNoticeType.Success;
+            finished = true;
         }
 
         await InvokeAsync(StateHasChanged);

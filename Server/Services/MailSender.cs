@@ -1,6 +1,8 @@
 namespace ThriveDevCenter.Server.Services
 {
     using System;
+    using System.Collections.Generic;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
@@ -52,12 +54,28 @@ namespace ThriveDevCenter.Server.Services
             sender.Name = senderName;
 
             var builder = new BodyBuilder { HtmlBody = request.HtmlBody, TextBody = request.PlainTextBody };
+
+            if (request.Attachments != null)
+            {
+                foreach (var attachment in request.Attachments)
+                {
+                    builder.Attachments.Add(attachment.Filename, Encoding.UTF8.GetBytes(attachment.Content),
+                        ContentType.Parse(attachment.MimeType));
+                }
+            }
+
             var email = new MimeMessage
             {
                 Sender = sender,
                 Subject = request.Subject,
                 Body = builder.ToMessageBody(),
             };
+
+            if (!string.IsNullOrEmpty(request.Bcc))
+                email.Bcc.Add(MailboxAddress.Parse(request.Bcc));
+
+            if (!string.IsNullOrEmpty(request.Cc))
+                email.Cc.Add(MailboxAddress.Parse(request.Cc));
 
             email.From.Add(sender);
 
@@ -137,8 +155,23 @@ namespace ThriveDevCenter.Server.Services
     {
         public string Recipient { get; set; }
         public string Cc { get; set; }
+        public string Bcc { get; set; }
         public string Subject { get; set; }
         public string HtmlBody { get; set; }
         public string PlainTextBody { get; set; }
+
+        public List<MailAttachment> Attachments { get; set; }
+    }
+
+    public class MailAttachment
+    {
+        public string Filename { get; set; }
+
+        /// <summary>
+        ///   Content of the attachment. Needs to be utf8 encoded for now
+        /// </summary>
+        public string Content { get; set; }
+
+        public string MimeType { get; set; } = "plain/text";
     }
 }

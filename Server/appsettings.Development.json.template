@@ -20,6 +20,9 @@
     "RequireTls": false,
     "TokenSecret": "PUTANOTHERRANDOMHERE"
   },
+  "CLA": {
+    "SignatureEmailBCC": "test@example.com"
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
