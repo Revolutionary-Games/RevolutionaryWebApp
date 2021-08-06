@@ -321,7 +321,11 @@ namespace ThriveDevCenter.Server.Controllers
                 signature.GithubSkipped = request.GithubSkipped;
 
                 if (signature.GithubSkipped)
+                {
                     signature.GithubAccount = null;
+                    signature.GithubEmail = null;
+                    signature.GithubUserId = null;
+                }
             }
 
             if (request.DeveloperUsername != signature.DeveloperUsername)
@@ -406,8 +410,11 @@ namespace ThriveDevCenter.Server.Controllers
             if (!signature.EmailVerified || string.IsNullOrWhiteSpace(signature.Email))
                 return BadRequest("Email is not verified");
 
-            if (!signature.GithubSkipped && string.IsNullOrWhiteSpace(signature.GithubAccount))
+            if (!signature.GithubSkipped && (string.IsNullOrWhiteSpace(signature.GithubAccount)
+                || string.IsNullOrEmpty(signature.GithubEmail) || !signature.GithubUserId.HasValue))
+            {
                 return BadRequest("Bad Github account status in signature");
+            }
 
             if (signature.GithubSkipped && signature.GithubAccount != null)
                 return BadRequest("Bad Github account status in signature");
@@ -450,6 +457,8 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 Email = signature.Email,
                 GithubAccount = signature.GithubAccount,
+                GithubEmail = signature.GithubEmail,
+                GithubUserId = signature.GithubUserId,
                 DeveloperUsername = signature.DeveloperUsername,
                 ClaId = cla.Id,
                 UserId = user?.Id,
@@ -552,8 +561,19 @@ namespace ThriveDevCenter.Server.Controllers
 
             signedBuilder.Append("Github username associated with this signature: ");
             signedBuilder.Append(finalSignature.GithubAccount);
+            signedBuilder.Append(" (Github id: ");
+            signedBuilder.Append(finalSignature.GithubUserId?.ToString() ?? "unknown");
+            signedBuilder.Append(")");
             signedBuilder.Append('\n');
             signedBuilder.Append('\n');
+
+            if (!string.IsNullOrEmpty(finalSignature.GithubEmail))
+            {
+                signedBuilder.Append("Email associated with the Github account: ");
+                signedBuilder.Append(finalSignature.GithubEmail);
+                signedBuilder.Append('\n');
+                signedBuilder.Append('\n');
+            }
 
             signedBuilder.Append("This signature was created at ");
             signedBuilder.Append(finalSignature.CreatedAt.ToString("O"));

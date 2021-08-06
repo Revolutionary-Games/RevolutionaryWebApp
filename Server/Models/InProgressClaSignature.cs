@@ -22,6 +22,10 @@ namespace ThriveDevCenter.Server.Models
 
         public string GithubAccount { get; set; }
 
+        public long? GithubUserId { get; set; }
+
+        public string GithubEmail { get; set; }
+
         public bool GithubSkipped { get; set; }
 
         public string DeveloperUsername { get; set; }
@@ -51,6 +55,8 @@ namespace ThriveDevCenter.Server.Models
                 Email = Email,
                 EmailVerified = EmailVerified,
                 GithubAccount = GithubAccount,
+                GithubUserId = GithubUserId,
+                GithubEmail = GithubEmail,
                 GithubSkipped = GithubSkipped,
                 DeveloperUsername = DeveloperUsername,
                 SignerName = SignerName,

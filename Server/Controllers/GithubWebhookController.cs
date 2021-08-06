@@ -23,6 +23,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using Models;
+    using Services;
     using Shared;
     using Shared.Models;
     using Utilities;
@@ -448,26 +449,6 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class GithubOrganization
     {
-    }
-
-    public class GithubUserInfo
-    {
-        /// <summary>
-        ///   This is the username
-        /// </summary>
-        [Required]
-        public string Login { get; set; }
-
-        [Required]
-        public long Id { get; set; }
-
-        [JsonPropertyName("html_url")]
-        public string HtmlUrl { get; set; }
-
-        /// <summary>
-        ///   Valid values seem to be "User" and "Organization"
-        /// </summary>
-        public string Type { get; set; } = "User";
     }
 
     public class GithubRepoRef

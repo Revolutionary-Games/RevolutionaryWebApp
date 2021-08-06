@@ -9,6 +9,8 @@
 @using ThriveDevCenter.Shared.Forms
 @using ThriveDevCenter.Shared.Notifications
 @using System.Net
+@using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
 @inherits SingleResourcePage<InProgressClaSignatureDTO, ThriveDevCenter.Shared.Notifications.InProgressClaSignatureUpdated>
 @implements IAsyncDisposable
 
@@ -57,6 +59,13 @@
 
                 @if(!Data.GithubSkipped)
                 {
+                    if (!string.IsNullOrEmpty(Data.GithubAccount))
+                    {
+                        <p>
+                            You have linked the following Github account: @Data.GithubAccount (@Data.GithubUserId)
+                            with email: @Data.GithubEmail
+                        </p>
+                    }
 
                     <Button ButtonStyle="primary" class="mb-1 mr-1" Enabled="@(!processingGithub)"
                             Spinner="@processingGithub" OnPressed="@BeginGithubVerification">
@@ -394,7 +403,58 @@
 
     private async void BeginGithubVerification()
     {
-        // TODO: finish github login
+        if (finished)
+            return;
+
+        processingGithub = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/OAuth/start/github/cla", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingGithub = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingGithub = false;
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            JSONWrappedRedirect data = null;
+            try
+            {
+                data = JsonSerializer.Deserialize<JSONWrappedRedirect>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers());
+                if (data == null)
+                    throw new JsonException("deserialized data is null");
+            }
+            catch (JsonException e)
+            {
+                statusMessage = $"Error, deserializing server response: {e}";
+            }
+
+            if (data != null)
+            {
+                navManager.NavigateTo(data.RedirectTo);
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void NextPressed()

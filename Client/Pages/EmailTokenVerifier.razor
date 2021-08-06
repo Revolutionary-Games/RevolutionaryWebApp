@@ -72,7 +72,8 @@
             EmailVerifyResult data = null;
             try
             {
-                data = JsonSerializer.Deserialize<EmailVerifyResult>(content, HttpClientHelpers.GetOptionsWithSerializers());
+                data = JsonSerializer.Deserialize<EmailVerifyResult>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers());
                 if (data == null)
                     throw new JsonException("deserialized data is null");
             }

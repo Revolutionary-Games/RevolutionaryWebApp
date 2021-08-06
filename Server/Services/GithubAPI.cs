@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Services
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Net.Http.Json;
@@ -70,6 +71,14 @@ namespace ThriveDevCenter.Server.Services
 
         public bool ThrowIfNotConfigured { get; set; }
 
+        public Task<GithubUserInfo> GetCurrentUserInfo()
+        {
+            if (!CheckIsConfigured())
+                return Task.FromResult<GithubUserInfo>(null);
+
+            return client.GetFromJsonAsync<GithubUserInfo>("https://api.github.com/user");
+        }
+
         public async Task<bool> SetCommitStatus(string qualifiedRepoName, string sha, CommitStatus state,
             string buildStatusUrl, string description, string contextSuffix)
         {
@@ -135,5 +144,35 @@ namespace ThriveDevCenter.Server.Services
 
             // ReSharper restore UnusedAutoPropertyAccessor.Local
         }
+    }
+
+    public class GithubUserInfo
+    {
+        /// <summary>
+        ///   This is the username
+        /// </summary>
+        [Required]
+        public string Login { get; set; }
+
+        [Required]
+        public long Id { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string NodeId { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        /// <summary>
+        ///   Valid values seem to be "User" and "Organization"
+        /// </summary>
+        public string Type { get; set; } = "User";
+
+        public string Name { get; set; }
+
+        public string Email { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
     }
 }

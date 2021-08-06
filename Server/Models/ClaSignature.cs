@@ -19,6 +19,10 @@ namespace ThriveDevCenter.Server.Models
 
         public string GithubAccount { get; set; }
 
+        public long? GithubUserId { get; set; }
+
+        public string GithubEmail { get; set; }
+
         public string DeveloperUsername { get; set; }
 
         [Required]

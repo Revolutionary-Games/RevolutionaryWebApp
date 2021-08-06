@@ -8,6 +8,8 @@ namespace ThriveDevCenter.Shared.Models
         public string Email { get; set; }
         public bool EmailVerified { get; set; }
         public string GithubAccount { get; set; }
+        public long? GithubUserId { get; set; }
+        public string GithubEmail { get; set; }
         public bool GithubSkipped { get; set; }
 
         [StringLength(AppInfo.PersonsNameMaximumLength, MinimumLength = 1)]

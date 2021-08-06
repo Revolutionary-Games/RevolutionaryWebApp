@@ -36,6 +36,7 @@ namespace ThriveDevCenter.Shared
         public const string MarkdownMimeType = "text/markdown; charset=UTF-8";
 
         public const int APITokenByteCount = 34;
+        public const int SsoNonceLength = 32;
 
         public const int MaxDehydratedObjectsPerOffer = 100;
         public const int MaxDehydratedObjectsInDevBuild = 5000;
