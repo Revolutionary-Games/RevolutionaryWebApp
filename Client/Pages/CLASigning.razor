@@ -65,12 +65,20 @@
                             You have linked the following Github account: @Data.GithubAccount (@Data.GithubUserId)
                             with email: @Data.GithubEmail
                         </p>
+
+                        <Button ButtonStyle="warning" class="mb-1 mr-1" Enabled="@(!processingGithub)"
+                                Spinner="@processingGithub" OnPressed="@BeginGithubVerification">
+                            Link Different Account
+                        </Button>
+                    }
+                    else
+                    {
+                        <Button ButtonStyle="primary" class="mb-1 mr-1" Enabled="@(!processingGithub)"
+                                Spinner="@processingGithub" OnPressed="@BeginGithubVerification">
+                            Link
+                        </Button>
                     }
 
-                    <Button ButtonStyle="primary" class="mb-1 mr-1" Enabled="@(!processingGithub)"
-                            Spinner="@processingGithub" OnPressed="@BeginGithubVerification">
-                        Link
-                    </Button>
                     <Button ButtonStyle="danger" class="mb-1" Enabled="@(!processingGithub)"
                             OnPressed="@SetWontContributeOnGithub">
                         No thanks, I won't contribute on Github

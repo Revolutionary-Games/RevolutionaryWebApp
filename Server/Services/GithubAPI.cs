@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Services
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Net.Http;
     using System.Net.Http.Headers;
@@ -77,6 +78,14 @@ namespace ThriveDevCenter.Server.Services
                 return Task.FromResult<GithubUserInfo>(null);
 
             return client.GetFromJsonAsync<GithubUserInfo>("https://api.github.com/user");
+        }
+
+        public Task<List<GithubEmail>> GetCurrentUserEmails()
+        {
+            if (!CheckIsConfigured())
+                return Task.FromResult(new List<GithubEmail>());
+
+            return client.GetFromJsonAsync<List<GithubEmail>>("https://api.github.com/user/emails");
         }
 
         public async Task<bool> SetCommitStatus(string qualifiedRepoName, string sha, CommitStatus state,
@@ -174,5 +183,17 @@ namespace ThriveDevCenter.Server.Services
 
         [JsonPropertyName("created_at")]
         public DateTime CreatedAt { get; set; }
+    }
+
+    public class GithubEmail
+    {
+        [Required]
+        public string Email { get; set; }
+
+        public bool Verified { get; set; }
+
+        public bool Primary { get; set; }
+
+        public string Visibility { get; set; } = "private";
     }
 }
