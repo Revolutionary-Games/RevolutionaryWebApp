@@ -43,8 +43,8 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            // Queue jobs to delete other than the first version
-            var lowestVersion = item.StorageItemVersions.Min(v => v.Version);
+            // Queue jobs to delete other than the first uploaded version
+            var lowestVersion = item.StorageItemVersions.Where(v => !v.Uploading).Min(v => v.Version);
 
             foreach (var version in item.StorageItemVersions)
             {
