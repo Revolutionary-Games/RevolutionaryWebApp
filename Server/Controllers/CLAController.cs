@@ -65,7 +65,6 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.ConvertResult(i => i.GetInfo());
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         [HttpGet("{id:long}")]
         public async Task<ActionResult<CLADTO>> GetSingle([Required] long id)
         {
@@ -73,6 +72,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (cla == null)
                 return NotFound();
+
+            if (!cla.Active && HttpContext.AuthenticatedUser()?.Admin != true)
+                return this.WorkingForbid("Only admins can view non-active CLAs");
 
             return cla.GetDTO();
         }
