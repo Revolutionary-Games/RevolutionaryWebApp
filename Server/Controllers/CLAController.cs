@@ -175,6 +175,29 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpGet("signatures")]
+        public async Task<PagedResult<CLASignatureDTO>> GetSignatures([Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+            [Required] [Range(1, 100)] int pageSize)
+        {
+            IQueryable<ClaSignature> query;
+
+            try
+            {
+                query = database.ClaSignatures.AsQueryable().OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO());
+        }
+
         [HttpPost("startSigning")]
         public async Task<ActionResult<SigningStartResponse>> StartSigning([Required] long id)
         {

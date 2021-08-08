@@ -3,6 +3,8 @@ namespace ThriveDevCenter.Server.Models
     using System;
     using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
+    using Shared;
+    using Shared.Models;
 
     [Index(nameof(ClaId), nameof(Email))]
     [Index(nameof(ClaId), nameof(GithubAccount))]
@@ -12,11 +14,14 @@ namespace ThriveDevCenter.Server.Models
     {
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        [AllowSortingBy]
         public DateTime? ValidUntil { get; set; }
 
         [Required]
+        [AllowSortingBy]
         public string Email { get; set; }
 
+        [AllowSortingBy]
         public string GithubAccount { get; set; }
 
         public long? GithubUserId { get; set; }
@@ -30,12 +35,30 @@ namespace ThriveDevCenter.Server.Models
 
         public string ClaInvalidationStoragePath { get; set; }
 
+        [AllowSortingBy]
         public long ClaId { get; set; }
 
+        [AllowSortingBy]
         public long? UserId { get; set; }
 
         public Cla Cla { get; set; }
 
         public User User { get; set; }
+
+        public CLASignatureDTO GetDTO()
+        {
+            return new()
+            {
+                Id = Id,
+                CreatedAt = CreatedAt,
+                ValidUntil = ValidUntil,
+                Email = Email,
+                GithubAccount = GithubAccount,
+                GithubUserId = GithubUserId,
+                DeveloperUsername = DeveloperUsername,
+                ClaId = ClaId,
+                UserId = UserId,
+            };
+        }
     }
 }

@@ -1,0 +1,83 @@
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.CLASignatureDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row">@item.Id</th>
+                    <td>@item.Email</td>
+                    <td>@item.GithubAccount</td>
+                    <td>@item.DeveloperUsername</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.ValidUntil</td>
+                    <td>@item.ClaId</td>
+                    <td>@item.UserId</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Email", true),
+        new TableColumn("GithubAccount", true),
+        new TableColumn("DeveloperUsername", false),
+        new TableColumn("CreatedAt", false),
+        new TableColumn("ValidUntil", true),
+        new TableColumn("ClaId", true),
+        new TableColumn("UserId", true),
+    };
+
+    public CLASignatures() : base(new SortHelper("Id", SortDirection.Descending))
+    {
+        DefaultPageSize = 50;
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    protected override Task<PagedResult<CLASignatureDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<CLASignatureDTO>>(
+            QueryHelpers.AddQueryString("api/v1/CLA/signatures", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+}
