@@ -1,0 +1,105 @@
+@using ThriveDevCenter.Shared
+@using System.Net
+@using ThriveDevCenter.Shared.Forms
+@using ThriveDevCenter.Shared.Models
+@inject HttpClient http
+<h3>Check if CLA signature Exists</h3>
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+<form class="form-inline">
+    <label class="mb-md-2 mr-1" for="signatureSearchEmail">Email to search:</label>
+    <input type="email" class="form-control mb-2 flex-fill" id="signatureSearchEmail"
+           placeholder="Email" @bind="email" @bind:event="oninput">
+
+    <label class="mb-md-2 ml-md-3 ml-1 mr-1" for="signatureSearchGithub">Github account:</label>
+    <input type="text" class="form-control mb-2 mr-2 flex-fill" id="signatureSearchGithub"
+           placeholder="Username" @bind="githubAccount" @bind:event="oninput">
+
+    <Button class="mb-2" type="submit" ButtonStyle="primary"
+            Enabled="@CanSearch" OnPressed="@PerformSearch" Spinner="@processing">
+        Send
+    </Button>
+</form>
+
+@if (data != null)
+{
+    if (data.Count < 1)
+    {
+        <p>Nothing found</p>
+    }
+    else
+    {
+        foreach (var entry in data)
+        {
+            <p>
+                Signature at @entry.CreatedAt.ToString("G") made by @entry.Email
+                @if(!string.IsNullOrEmpty(entry.GithubAccount))
+                {
+                    @if (string.IsNullOrEmpty(entry.Email))
+                    {
+                        <span>Github username: @entry.GithubAccount</span>
+                    }
+                    else
+                    {
+                        <span class="ml-1">Github: @entry.GithubAccount</span>
+                    }
+                }
+                @if (!string.IsNullOrEmpty(entry.DeveloperUsername))
+                {
+                    <span class="ml-1">(developer username: @entry.DeveloperUsername)</span>
+                }
+            </p>
+        }
+    }
+}
+
+@code {
+
+    /// <summary>
+    ///   Specifies which CLA the signatures are checked in
+    /// </summary>
+    [Parameter]
+    public long CLAId { get; set; }
+
+    private List<CLASignatureSearchResult> data;
+
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private string email;
+    private string githubAccount;
+
+    private bool CanSearch => (!string.IsNullOrWhiteSpace(email) || !string.IsNullOrEmpty(githubAccount)) && !processing;
+
+    private async void PerformSearch()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        var queryParameters = new Dictionary<string, string>();
+
+        if (!string.IsNullOrEmpty(email))
+            queryParameters["email"] = email;
+
+        if (!string.IsNullOrEmpty(githubAccount))
+            queryParameters["githubAccount"] = githubAccount;
+
+        try
+        {
+            data = await http.GetFromJsonAsync<List<CLASignatureSearchResult>>(
+                QueryHelpers.AddQueryString($"api/v1/CLA/{CLAId}/search", queryParameters));
+        }
+        catch (Exception e)
+        {
+            statusMessage = $"Search failed: {e.Message}";
+        }
+
+        processing = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

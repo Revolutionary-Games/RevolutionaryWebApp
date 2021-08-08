@@ -27,12 +27,12 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<CLAController> logger;
         private readonly NotificationsEnabledDb database;
-        private readonly CLASignatureStorage signatureStorage;
+        private readonly ICLASignatureStorage signatureStorage;
         private readonly IMailQueue mailQueue;
         private readonly string emailSignaturesTo;
 
         public CLAController(ILogger<CLAController> logger, IConfiguration configuration,
-            NotificationsEnabledDb database, CLASignatureStorage signatureStorage, IMailQueue mailQueue)
+            NotificationsEnabledDb database, ICLASignatureStorage signatureStorage, IMailQueue mailQueue)
         {
             this.logger = logger;
             this.database = database;
@@ -173,6 +173,52 @@ namespace ThriveDevCenter.Server.Controllers
                 HttpContext.AuthenticatedUser().Email);
 
             return Ok();
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        [HttpGet("{id:long}/search")]
+        public async Task<ActionResult<List<CLASignatureSearchResult>>> SearchSignatures([Required] long id,
+            string email, string githubAccount)
+        {
+            IQueryable<ClaSignature> query = database.ClaSignatures.AsQueryable().Where(s => s.ClaId == id);
+
+            bool allowEmailInResult = false;
+            bool allowGithubInResult = false;
+
+            if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(githubAccount))
+            {
+                // Both search criteria
+
+                if (email.Length >= AppInfo.PartialEmailMatchRevealAfterLenght)
+                    allowEmailInResult = true;
+
+                if (githubAccount.Length >= AppInfo.PartialGithubMatchRevealAfterLenght)
+                    allowGithubInResult = true;
+
+                query = query.Where(s => s.Email == email || s.GithubAccount == githubAccount);
+            }
+            else if (!string.IsNullOrEmpty(email))
+            {
+                allowEmailInResult = true;
+                query = query.Where(s => s.Email == email);
+            }
+            else if (!string.IsNullOrEmpty(githubAccount))
+            {
+                allowGithubInResult = true;
+                query = query.Where(s => s.GithubAccount == githubAccount);
+            }
+            else
+            {
+                return BadRequest("both search criteria can't be empty");
+            }
+
+            var data = await query.OrderBy(s => s.Id).Take(10).ToListAsync();
+
+            return data.Select(s => s.ToSearchResult(
+                    s.Email == email || (allowEmailInResult && s.Email.Contains(email!)),
+                    s.GithubAccount == githubAccount ||
+                    (allowGithubInResult && s.GithubAccount.Contains(githubAccount!))))
+                .ToList();
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]

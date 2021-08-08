@@ -44,7 +44,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
     {
         protected BaseSharedDatabaseFixtureWithNotifications(IModelUpdateNotificationSender notificationSender,
             string dbName) : base(new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(dbName)
+            .UseInMemoryDatabase(dbName).EnableSensitiveDataLogging()
             .Options, notificationSender))
         {
             NotificationsEnabledDatabase = (NotificationsEnabledDb)Database;

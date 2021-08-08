@@ -60,5 +60,16 @@ namespace ThriveDevCenter.Server.Models
                 UserId = UserId,
             };
         }
+
+        public CLASignatureSearchResult ToSearchResult(bool allowEmail, bool allowGithub)
+        {
+            return new()
+            {
+                CreatedAt = CreatedAt,
+                DeveloperUsername = DeveloperUsername,
+                Email = allowEmail ? Email : null,
+                GithubAccount = allowGithub ? GithubAccount : null,
+            };
+        }
     }
 }

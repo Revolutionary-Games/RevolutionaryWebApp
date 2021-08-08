@@ -17,7 +17,7 @@ namespace ThriveDevCenter.Server.Services
     using SHA3.Net;
     using Utilities;
 
-    public abstract class BaseRemoteStorage
+    public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         private readonly AmazonS3Client s3Client;
         private readonly string bucket;
@@ -264,5 +264,33 @@ namespace ThriveDevCenter.Server.Services
                     { Status = StatusCodes.Status500InternalServerError, Value = "Remote storage is not configured" };
             }
         }
+    }
+
+    public interface IBaseRemoteStorage
+    {
+        bool Configured { get; }
+        Task<bool> BucketExists();
+        string CreatePresignedUploadURL(string path, TimeSpan expiresIn);
+        Task UploadFile(string path, string data, string contentType);
+        string CreatePreSignedDownloadURL(string path, TimeSpan expiresIn);
+        string CreatePresignedPostURL(string path, string mimeType, TimeSpan expiresIn);
+        Task<long> GetObjectSize(string path);
+        Task MoveObject(string currentPath, string newPath);
+
+        /// <summary>
+        ///   Gets object content as a stream. Note the result needs to be disposed
+        /// </summary>
+        Task<Stream> GetObjectContent(string path);
+
+        Task DeleteObject(string path);
+        Task<string> ComputeSha256OfObject(string path);
+        Task<string> ComputeSha3OfObject(string path);
+        Task<string> ComputeSha3UnZippedObject(string path);
+
+        Task<StorageFile> HandleFinishedUploadToken(ApplicationDbContext database,
+            StorageUploadVerifyToken token);
+
+        void MarkFileAndVersionsAsUploaded(StorageFile file);
+        bool TokenMatchesFile(StorageUploadVerifyToken token, StorageFile file);
     }
 }

@@ -38,6 +38,9 @@ namespace ThriveDevCenter.Shared
         public const int APITokenByteCount = 34;
         public const int SsoNonceLength = 32;
 
+        public const int PartialEmailMatchRevealAfterLenght = 15;
+        public const int PartialGithubMatchRevealAfterLenght = 8;
+
         public const int MaxDehydratedObjectsPerOffer = 100;
         public const int MaxDehydratedObjectsInDevBuild = 5000;
         public const int MaxPageSizeForBuildSearch = 100;

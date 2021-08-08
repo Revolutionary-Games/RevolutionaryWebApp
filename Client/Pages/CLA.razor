@@ -72,6 +72,14 @@
     }
 </SingleResourceDisplayer>
 
+<AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
+    @if (Data != null)
+    {
+        <br class="mt-3" />
+        <CLASignatureChecker CLAId="@Data.Id" />
+    }
+</AccessLimited>
+
 @code {
     private string statusMessage;
     private SiteNoticeType statusMessageType;
