@@ -156,6 +156,12 @@
                     {
                         <li><strong>You Are Logged In As</strong>: @currentUserInfo.Username</li>
                     }
+                    else
+                    {
+                        <li>
+                            <strong>Not logged in to ThriveDevCenter.</strong> If you have an account please login now
+                        </li>
+                    }
 
                     <li><strong>Signing Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
                 </ul>

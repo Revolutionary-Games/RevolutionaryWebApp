@@ -50,5 +50,10 @@ namespace ThriveDevCenter.Server.Models
         public IPAddress LastUsedFrom { get; set; }
 
         public InProgressClaSignature InProgressClaSignature { get; set; }
+
+        public bool IsCloseToExpiry()
+        {
+            return DateTime.UtcNow - LastUsed > TimeSpan.FromSeconds(AppInfo.SessionExpirySeconds - 3600 * 8);
+        }
     }
 }

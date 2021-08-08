@@ -311,11 +311,22 @@ namespace ThriveDevCenter.Server.Controllers
                     { Value = "Invalid CSRF token. Please refresh and try logging in again" };
             }
 
-            // If there is an existing session, end it
             if (existingSession != null)
             {
-                Logger.LogInformation("Destroying an existing session before starting login");
-                await LogoutController.PerformSessionDestroy(existingSession, Database);
+                // If there is an existing session, end it (if it is close to expiring)
+                if (existingSession.IsCloseToExpiry())
+                {
+                    Logger.LogInformation(
+                        "Destroying an existing session for starting login as it is close to expiring {Id}",
+                        existingSession.Id);
+                    await LogoutController.PerformSessionDestroy(existingSession, Database);
+                }
+                else
+                {
+                    existingSession.User = null;
+                    existingSession.LastUsed = DateTime.UtcNow;
+                    Logger.LogInformation("Login starting for an existing session {Id}", existingSession.Id);
+                }
             }
         }
 
