@@ -49,12 +49,12 @@ else
     {
         new TableColumn("Id", true),
         new TableColumn("Email", true),
-        new TableColumn("GithubAccount", true),
-        new TableColumn("DeveloperUsername", false),
-        new TableColumn("CreatedAt", false),
-        new TableColumn("ValidUntil", true),
-        new TableColumn("ClaId", true),
-        new TableColumn("UserId", true),
+        new TableColumn("Github", true, "GithubAccount"),
+        new TableColumn("Username", false, "DeveloperUsername"),
+        new TableColumn("Created At", false),
+        new TableColumn("Canceled At", true, "ValidUntil"),
+        new TableColumn("Cla", true, "ClaId"),
+        new TableColumn("User", true, "UserId"),
     };
 
     public CLASignatures() : base(new SortHelper("Id", SortDirection.Descending))
