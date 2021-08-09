@@ -316,7 +316,7 @@ namespace ThriveDevCenter.Server.Controllers
             logger.LogInformation("BOTD updated");
 
             // TODO: limit this to a couple per hour?
-            await discordNotifications.NotifyAboutNewBOTD(build, user.NameOrEmail);
+            discordNotifications.NotifyAboutNewBOTD(build, user.NameOrEmail);
 
             return Ok();
         }
