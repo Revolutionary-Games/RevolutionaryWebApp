@@ -37,6 +37,12 @@
                 <video src="@GetDownloadURL()" alt="@Item.Name" class="preview-video" controls></video>
                 break;
             }
+            case ".flac":
+            case ".ogg":
+            {
+                <audio src="@GetDownloadURL()" alt="@Item.Name" class="preview-audio" controls></audio>
+                break;
+            }
             case ".json":
             case ".md":
             case ".txt":
