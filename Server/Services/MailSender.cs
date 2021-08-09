@@ -120,14 +120,11 @@ namespace ThriveDevCenter.Server.Services
     /// </summary>
     public class MailToQueueSender : MailSender, IMailQueue
     {
-        private readonly ILogger<MailToQueueSender> logger;
         private readonly IBackgroundJobClient jobClient;
 
         public MailToQueueSender(ILogger<MailToQueueSender> logger, IConfiguration configuration,
-            IBackgroundJobClient jobClient) : base(logger,
-            configuration)
+            IBackgroundJobClient jobClient) : base(logger, configuration)
         {
-            this.logger = logger;
             this.jobClient = jobClient;
         }
 

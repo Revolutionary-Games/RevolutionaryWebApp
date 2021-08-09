@@ -172,6 +172,8 @@ namespace ThriveDevCenter.Server.Hubs
 
         private async Task<bool> HandleSpecialGroupJoin(string groupName, User user, Session session)
         {
+            _ = user;
+
             // Special joins for only server-known groups
             switch (groupName)
             {
