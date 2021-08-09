@@ -2,7 +2,6 @@ namespace ThriveDevCenter.Server.Jobs
 {
     using System;
     using System.Linq;
-    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
@@ -65,6 +64,7 @@ namespace ThriveDevCenter.Server.Jobs
                         "(wasn't found from fresh data from Patreon)"
                 }, cancellationToken);
 
+                logger.LogInformation("Deleted unmarked Patron {Id}", toDelete.Id);
                 database.Patrons.Remove(toDelete);
             }
 

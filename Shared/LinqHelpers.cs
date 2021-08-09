@@ -21,7 +21,7 @@ namespace ThriveDevCenter.Shared
             var parameter = Expression.Parameter(typeof(T), "x");
             var selector = Expression.PropertyOrField(parameter, column);
 
-            CheckTargetColumn<T>(column, extraAllowedColumns, selector);
+            CheckTargetColumn(column, extraAllowedColumns, selector);
 
             var method = direction == SortDirection.Descending ? "OrderByDescending" : "OrderBy";
             expression = Expression.Call(typeof(Queryable), method,
@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Shared
             return source.Provider.CreateQuery<T>(expression);
         }
 
-        public static void CheckTargetColumn<T>(string column, IEnumerable<string> extraAllowedColumns,
+        public static void CheckTargetColumn(string column, IEnumerable<string> extraAllowedColumns,
             MemberExpression selector)
         {
             var attribute = selector.Member.GetCustomAttribute(typeof(AllowSortingByAttribute));

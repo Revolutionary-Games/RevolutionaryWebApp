@@ -1,0 +1,245 @@
+@page "/association/meetings/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inject CurrentUserInfo currentUserInfo
+@inherits SingleResourcePage<MeetingDTO, MeetingUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Net
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <h3>Meeting: @Data.Name</h3>
+
+        <ul>
+            <li><strong>Starts At</strong>: @Data.StartsAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Ended At</strong>: @(Data.EndedAt.HasValue ? Data.EndedAt.Value.ToLocalTime().ToString("G")
+                                               : "Not ended")</li>
+            <li><strong>Expected Duration</strong>: @Data.ExpectedDuration</li>
+            <li><strong>Joinable By</strong>: @Data.JoinAccess</li>
+            <li><strong>Visible To</strong>: @Data.ReadAccess</li>
+            <li><strong>Owner</strong>: @Data.OwnerId</li>
+            <li><strong>Join Grace Period After Start</strong>: @Data.JoinGracePeriod</li>
+            <li><strong>Read Only</strong>: @Data.ReadOnly</li>
+            <li><strong>Secretary</strong>: @Data.SecretaryId</li>
+        </ul>
+
+        <h3>Description</h3>
+
+        <p>@Data.Description</p>
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+        <AccessLimited RequiredAccess="UserAccessLevel.User" AutoRedirectIfNotLoggedIn="@false">
+            @if (!isMemberRetrieved)
+            {
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            }
+            else if(isMember)
+            {
+                <Button Enabled="@false" ButtonStyle="danger" class="mb-3" Spinner="@joiningOrLeavingMeeting">
+                    Leave
+                </Button>
+            }
+            else
+            {
+                @* TODO: can join checking here *@
+                <Button Enabled="@(!joiningOrLeavingMeeting)" class="mb-3" Spinner="@joiningOrLeavingMeeting"
+                        OnPressed="@JoinMeeting">
+                    Join
+                </Button>
+            }
+
+            <br />
+        </AccessLimited>
+
+        <h3>Polls</h3>
+
+        <MeetingPolls MeetingId="@Id" CanEdit="@(CanControl && !IsEnded)" />
+
+        <h3>Minutes</h3>
+        <p>@Data.Minutes</p>
+
+        <h3>Members</h3>
+
+        <h3>Actions</h3>
+
+        <Button Enabled="@(CanControl && !IsEnded && !processingAction)" ButtonStyle="warning" class="mb-3"
+                Spinner="@processingAction" OnPressed="@EndMeeting">
+            End Meeting
+        </Button>
+    }
+</SingleResourceDisplayer>
+
+@code {
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool isMemberRetrieved = false;
+    private bool retrievingMembershipInfo;
+    private bool isMember;
+
+    private bool joiningOrLeavingMeeting;
+    private bool processingAction;
+
+    private bool CanControl => Data != null && (Data.OwnerId == currentUserInfo.Info?.Id || currentUserInfo.IsAdmin);
+    private bool IsEnded => Data is {EndedAt: { } };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (currentUserInfo.LoggedIn && !isMemberRetrieved && !retrievingMembershipInfo)
+        {
+            await RetrieveMembershipInfo();
+        }
+    }
+
+    protected override Task<MeetingDTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<MeetingDTO>($"api/v1/Meetings/{Id}",
+            HttpClientHelpers.GetOptionsWithSerializers());
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.MeetingUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
+    private async Task RetrieveMembershipInfo()
+    {
+        retrievingMembershipInfo = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        MeetingMemberDTO result;
+
+        try
+        {
+            result = await http.GetFromJsonAsync<MeetingMemberDTO>(
+                $"api/v1/Meetings/{Id}/members/{currentUserInfo.Info.Id}");
+        }
+        catch (HttpRequestException e)
+        {
+            if (e.StatusCode == HttpStatusCode.NotFound)
+            {
+                isMember = false;
+            }
+            else
+            {
+                statusMessage = $"Network request failed: {e.Message}";
+                await InvokeAsync(StateHasChanged);
+            }
+
+            isMemberRetrieved = true;
+            retrievingMembershipInfo = false;
+            return;
+        }
+
+        retrievingMembershipInfo = false;
+        isMember = result != null;
+        isMemberRetrieved = true;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void JoinMeeting()
+    {
+        joiningOrLeavingMeeting = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/Meetings/{Id}/join", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            joiningOrLeavingMeeting = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        joiningOrLeavingMeeting = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+            isMember = false;
+        }
+        else
+        {
+            // Success
+            statusMessage = "Joined meeting";
+            statusMessageType = SiteNoticeType.Info;
+            isMember = true;
+            isMemberRetrieved = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void EndMeeting()
+    {
+        processingAction = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/Meetings/{Id}/end", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingAction = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingAction = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            // Success
+            statusMessage = "Meeting has been ended";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

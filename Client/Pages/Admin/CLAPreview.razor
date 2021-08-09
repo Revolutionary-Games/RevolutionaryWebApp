@@ -1,0 +1,145 @@
+@page "/admin/cla/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CLADTO, CLAUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+        @if (Data != null)
+        {
+            <h3>CLA @Data.Id</h3>
+
+            <ul>
+                <li><strong>Active</strong>: @Data.Active</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+            </ul>
+
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+            @if (Data.Active)
+            {
+                <Button ButtonStyle="warning" Spinner="@performingActivation" Enabled="@(!performingActivation)"
+                        class="mb-2" OnPressed="@Deactivate">
+                    Deactivate
+                </Button>
+            }
+            else
+            {
+                <Button Spinner="@performingActivation" Enabled="@(!performingActivation)"
+                        class="mb-2" OnPressed="@Activate">
+                    Activate (automatically deactivates other active ones)
+                </Button>
+            }
+
+            <h4>Agreement Text Preview</h4>
+            <div><MarkdownRenderer Value="@Data.RawMarkdown" /></div>
+        }
+    </SingleResourceDisplayer>
+</AccessLimited>
+
+@code {
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool performingActivation;
+
+    protected override Task<CLADTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<CLADTO>($"api/v1/CLA/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CLAUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
+    private async Task Deactivate()
+    {
+        performingActivation = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/CLA/{Id}/deactivate", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            performingActivation = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        performingActivation = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Active status changed";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Activate()
+    {
+        performingActivation = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/CLA/{Id}/activate", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            performingActivation = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        performingActivation = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Active status changed";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

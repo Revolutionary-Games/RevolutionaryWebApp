@@ -34,6 +34,12 @@ namespace ThriveDevCenter.Server.Authorization
         {
             var existingSession = await GetSession(sessionId, database);
 
+            return await GetUserFromSession(existingSession, database, updateLastUsed, clientAddress);
+        }
+
+        public static async Task<User> GetUserFromSession(Session existingSession, ApplicationDbContext database,
+            bool updateLastUsed = true, IPAddress clientAddress = null)
+        {
             // No user if the session was not found, or the session was invalidated
             if (existingSession?.User == null || existingSession.SessionVersion != existingSession.User.SessionVersion)
                 return null;

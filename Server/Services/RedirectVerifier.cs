@@ -32,7 +32,7 @@ namespace ThriveDevCenter.Server.Services
         /// <param name="url">The url to process</param>
         /// <param name="sanitized">The sanitized url (or null if can't sanitize)</param>
         /// <returns>True when sanitization was possible and the result is a safe redirect</returns>
-        public bool SanitizeRedirectUrl([NotNull]string url, out string sanitized)
+        public bool SanitizeRedirectUrl([NotNull] string url, out string sanitized)
         {
             // For now just require the base url part to match
             if (url.StartsWith(baseUrl))

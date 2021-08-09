@@ -1,0 +1,49 @@
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CLADTO, CLAUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        @if (ShowInfoLine)
+        {
+            <h3>Text for CLA id @Data.Id created at @Data.CreatedAt.ToLocalTime().ToString("G")</h3>
+        }
+
+        <div>
+            <MarkdownRenderer Value="@Data.RawMarkdown" />
+        </div>
+    }
+</SingleResourceDisplayer>
+
+@code {
+
+    [Parameter]
+    public bool ShowInfoLine { get; set; }
+
+    protected override Task<CLADTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<CLADTO>($"api/v1/CLA/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CLAUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+
+}

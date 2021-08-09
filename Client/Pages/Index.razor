@@ -1,6 +1,6 @@
 ﻿@page "/"
 @using ThriveDevCenter.Client.Services
-@inject StaticHomePageNotice StaticHomePageNotice
+@inject StaticHomePageNotice staticHomePageNotice
 
 <h1>ThriveDevCenter</h1>
 
@@ -18,7 +18,7 @@ Welcome to the new ThriveDevCenter.
     {
         await base.OnInitializedAsync();
 
-        notice = await StaticHomePageNotice.ReadNotice();
+        notice = await staticHomePageNotice.ReadNotice();
     }
 
 }

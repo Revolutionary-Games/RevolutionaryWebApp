@@ -12,7 +12,9 @@ namespace ThriveDevCenter.Server.Hubs
     using Models;
     using Services;
     using Shared;
+    using Shared.Converters;
     using Shared.Models;
+    using Shared.Models.Enums;
     using Shared.Notifications;
 
     public class NotificationsHub : Hub<INotifications>
@@ -71,10 +73,13 @@ namespace ThriveDevCenter.Server.Hubs
                     csrf = accessToken[0];
                 }
 
+                Session session;
                 try
                 {
-                    connectedUser =
-                        await http.Request.Cookies.GetUserFromSession(database, http.Connection.RemoteIpAddress);
+                    session = await http.Request.Cookies.GetSession(database);
+                    connectedUser = await
+                        UserFromCookiesHelper.GetUserFromSession(session, database, true,
+                            http.Connection.RemoteIpAddress);
                 }
                 catch (ArgumentException)
                 {
@@ -83,6 +88,8 @@ namespace ThriveDevCenter.Server.Hubs
 
                 if (!csrfVerifier.IsValidCSRFToken(csrf, connectedUser))
                     throw new HubException("invalid CSRF token");
+
+                Context.Items["Session"] = session;
 
                 bool invalidVersion = false;
 
@@ -125,7 +132,14 @@ namespace ThriveDevCenter.Server.Hubs
 
         public async Task JoinGroup(string groupName)
         {
-            if (!await IsUserAllowedInGroup(groupName, Context.Items["User"] as User))
+            var user = Context.Items["User"] as User;
+            var session = Context.Items["Session"] as Session;
+
+            // Special group joining has its own rules so it is done first
+            if (await HandleSpecialGroupJoin(groupName, user, session))
+                return;
+
+            if (!await IsUserAllowedInGroup(groupName, user))
             {
                 logger.LogWarning("Client failed to join group: {GroupName}", groupName);
                 throw new HubException("You don't have access to the specified group");
@@ -134,10 +148,13 @@ namespace ThriveDevCenter.Server.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        public Task LeaveGroup(string groupName)
+        public async Task LeaveGroup(string groupName)
         {
+            if (await HandleSpecialGroupLeave(groupName))
+                return;
+
             // TODO: does this need also group checking?
-            return Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         }
 
         public Task WhoAmI()
@@ -153,6 +170,54 @@ namespace ThriveDevCenter.Server.Hubs
                 user?.GetInfo(accessLevel));
         }
 
+        private async Task<bool> HandleSpecialGroupJoin(string groupName, User user, Session session)
+        {
+            // Special joins for only server-known groups
+            switch (groupName)
+            {
+                case NotificationGroups.InProgressCLASignatureUpdated:
+                {
+                    if (session != null)
+                    {
+                        await Groups.AddToGroupAsync(Context.ConnectionId,
+                            NotificationGroups.InProgressCLASignatureUpdated + session.Id);
+                        return true;
+                    }
+
+                    break;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///   Special handling for groups joined by HandleSpecialGroupJoin
+        /// </summary>
+        /// <param name="groupName">
+        ///   The group name the client provided (if handled this isn't the real group name)
+        /// </param>
+        /// <returns>True if the leave is handled and no further actions are required</returns>
+        private async Task<bool> HandleSpecialGroupLeave(string groupName)
+        {
+            switch (groupName)
+            {
+                case NotificationGroups.InProgressCLASignatureUpdated:
+                {
+                    if (Context.Items["Session"] is Session session)
+                    {
+                        await Groups.RemoveFromGroupAsync(Context.ConnectionId,
+                            NotificationGroups.InProgressCLASignatureUpdated + session.Id);
+                        return true;
+                    }
+
+                    break;
+                }
+            }
+
+            return false;
+        }
+
         private async Task<bool> IsUserAllowedInGroup(string groupName, User user)
         {
             // First check explicitly named groups
@@ -162,6 +227,7 @@ namespace ThriveDevCenter.Server.Hubs
                 case NotificationGroups.PatronListUpdated:
                 case NotificationGroups.AccessKeyListUpdated:
                 case NotificationGroups.ControlledServerListUpdated:
+                case NotificationGroups.CLAListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
                 case NotificationGroups.PrivateCIProjectUpdated:
@@ -279,7 +345,7 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.CIProjectSecretsUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.CiProjects, out CiProject item))
+                if (!GetTargetModelFromGroup(groupName, database.CiProjects, out _))
                     return false;
 
                 // Only admins see secrets
@@ -301,7 +367,7 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.DevBuildUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.DevBuilds, out DevBuild item))
+                if (!GetTargetModelFromGroup(groupName, database.DevBuilds, out _))
                     return false;
 
                 return RequireAccessLevel(UserAccessLevel.User, user);
@@ -339,6 +405,21 @@ namespace ThriveDevCenter.Server.Hubs
                 return CheckFolderContentsAccess(user, UserAccessLevel.Developer, item);
             }
 
+            if (groupName.StartsWith(NotificationGroups.MeetingUpdatedPrefix) ||
+                groupName.StartsWith(NotificationGroups.MeetingPollListUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.Meetings, out Meeting item))
+                    return false;
+
+                if (RequireAccessLevel(UserAccessLevel.Admin, user))
+                    return true;
+
+                if (user == null)
+                    return item.ReadAccess == AssociationResourceAccess.Public;
+
+                return user.ComputeAssociationAccessLevel() >= item.ReadAccess;
+            }
+
             if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedOwnerPrefix))
             {
                 // Anonymous users can't be the owners of any folders
@@ -363,6 +444,19 @@ namespace ThriveDevCenter.Server.Hubs
 
                 // Only owner can join this group
                 return user.Id == item.OwnerId;
+            }
+
+            if (groupName.StartsWith(NotificationGroups.CLAUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.Clas, out Cla item))
+                    return false;
+
+                // Everyone sees active CLA data
+                if (item.Active)
+                    return true;
+
+                // Only admins see other CLA data
+                return RequireAccessLevel(UserAccessLevel.Admin, user);
             }
 
             // Only admins see this
@@ -500,8 +594,10 @@ namespace ThriveDevCenter.Server.Hubs
         /// </summary>
         public static Task ReceiveNotification(this INotifications receiver, SerializedNotification notification)
         {
+            // TODO: unify with the startup code
             var serialized =
-                JsonSerializer.Serialize(notification, new JsonSerializerOptions() { Converters = { Converter } });
+                JsonSerializer.Serialize(notification,
+                    new JsonSerializerOptions() { Converters = { Converter, new TimeSpanConverter() } });
 
             return receiver.ReceiveNotificationJSON(serialized);
         }

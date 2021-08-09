@@ -79,6 +79,61 @@
 
 <p>TODO: implement session list</p>
 
+<h4>Association</h4>
+
+@if (User.AssociationMember)
+{
+    @if (LookingAtSelf)
+    {
+        <p>You are a member of Revolutionary Games Studio ry!</p>
+    }
+    else
+    {
+        <p>This user is a member of Revolutionary Games Studio ry!</p>
+    }
+
+    @if (User.BoardMember)
+    {
+        @if (LookingAtSelf)
+        {
+            <p>You are currently a board member.</p>
+        }
+        else
+        {
+            <p>This user is currently a board member.</p>
+        }
+    } else if (User.HasBeenBoardMember)
+    {
+        @if (LookingAtSelf)
+        {
+            <p>You have been a board member in the past and this affects your voting power.</p>
+        }
+        else
+        {
+            <p>This user has been a board member in the past.</p>
+        }
+    }
+}
+else
+{
+    @if (LookingAtSelf)
+    {
+        <p>You are not a member of the association.</p>
+    }
+    else
+    {
+        <p>This user is not a member of the association.</p>
+    }
+}
+
+<p>If the information in this section is incorrect, please contact us.</p>
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin">
+    <UserAssociationMemberShipEditor Data="@User" />
+    <br />
+    <br />
+</AccessLimited>
+
 <h4>Actions</h4>
 
 <StatusMessageShower Message="@actionResult" Type="@actionResultType" />

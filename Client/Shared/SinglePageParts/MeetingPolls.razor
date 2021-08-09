@@ -1,0 +1,470 @@
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Forms
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
+@implements ThriveDevCenter.Client.Services.INotificationHandler<MeetingPollListUpdated>
+@inherits ListDataPage<ThriveDevCenter.Shared.Models.MeetingPollDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+    @if (Data != null)
+    {
+        @foreach (var item in Data)
+        {
+            var closeTime = item.AutoCloseAt.HasValue ? item.AutoCloseAt.Value.ToLocalTime().ToString("G") :
+                string.Empty;
+
+            <div @key="item.PollId" class="mb-3">
+                <h4>
+                    Poll: @item.Title @(item.AutoCloseAt.HasValue && item.ClosedAt == null ?
+                                          $@"Closes at: {closeTime}" : "")
+                </h4>
+
+                @if (!string.IsNullOrEmpty(item.PollResults))
+                {
+                    var choiceData = GetOrSetupPollData(item);
+
+                    @* TODO: cache this json parsing *@
+                    var resultData = item.ParsedResults;
+
+                    <div>
+                        Results:
+                        <ol>
+                            @foreach (var result in resultData.Results)
+                            {
+                                <li><strong>@choiceData.Item2.Choices[result.Item1].Name:</strong> @result.Item2</li>
+                            }
+                        </ol>
+                    </div>
+
+                    @if (resultData.TiebreakInFavourOf != null)
+                    {
+                        <div>
+                            Tiebreak has been decided in favour of:
+                            @choiceData.Item2.Choices[resultData.TiebreakInFavourOf.Value].Name
+                        </div>
+                    }
+
+                    <div>
+                        Total votes: @resultData.TotalVotes
+                    </div>
+
+                    <p>Results computed at: @(item.PollResultsCreatedAt?.ToLocalTime().ToString("G"))</p>
+                }
+
+
+                @if (item.ClosedAt == null)
+                {
+                    var data = GetOrSetupPollData(item);
+
+                    <p>Choices:</p>
+
+                    <form>
+                        @* TODO: implement other poll types than weighted choices *@
+                        <div>
+                            Rank one or more choices, 1 being your most preferred, and highest number
+                            your least preferred.
+                        </div>
+
+                        @foreach (var choice in data.Item2.Choices)
+                        {
+                            var elementId = $"poll{item.PollId}Choice{choice.Key}";
+
+                            <div class="form-row">
+                                <div class="form-group col-12">
+                                    <label for="@elementId">@choice.Value.Name</label>
+                                    <input type="number" min="1" max="@data.Item2.Choices.Count" step="1"
+                                           class="form-control" id="@elementId"
+                                           @bind="data.Item1[choice.Key].ChoiceNumber">
+                                </div>
+                            </div>
+                        }
+
+                        <Button Enabled="@(!processing)" Spinner="@processing" ButtonStyle="primary" class="mb-1"
+                                OnPressed="@(() => SendVotes(item))">
+                            Vote
+                        </Button>
+                    </form>
+                }
+                else
+                {
+                    <p>This poll closed at @item.ClosedAt.Value.ToLocalTime().ToString("G")</p>
+                }
+
+                <Button Enabled="@(false && item.ClosedAt == null)" ButtonStyle="warning">Close Now</Button>
+                <Button Enabled="@(item.ClosedAt != null && !IsRunningPollAction(item.PollId))"
+                        Spinner="@IsRunningPollAction(item.PollId)"
+                        ButtonStyle="secondary" class="ml-1" OnPressed="@(() => RecomputePollResults(item))">
+                    Recompute Results
+                </Button>
+            </div>
+        }
+    }
+
+    <br />
+
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+    }
+
+    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew"
+            Enabled="@(!processingNewForm && CanEdit)">
+        New
+    </Button>
+
+    @if (showNewForm)
+    {
+        <form>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="newPollTitle">Title</label>
+                    <input type="text" class="form-control" id="newPollTitle" @bind="newPollDTOData.Title"
+                           @bind:event="oninput">
+                </div>
+                <div class="form-group col-md-6">
+                    <label class="mr-1" for="newTiebreakType">Tiebreak type</label>
+                    <select class="custom-select" id="newTiebreakType" @bind="newPollDTOData.TiebreakType">
+                        @foreach (var name in Enum.GetNames<VotingTiebreakType>())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-12">
+                    <label for="newAutoCloseInMinutes">Auto close in (minutes)</label>
+                    <input type="number" min="2" max="60" step="1"
+                           class="form-control" id="newAutoCloseInMinutes" @bind="newAutoCloseInMinutes">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>Choices:</div>
+            </div>
+
+            @foreach (var item in newPollData.Choices)
+            {
+                var elementId = $"newPollChoiceName{item.Key}";
+
+                <div class="form-row">
+                    <div class="form-group col-md-10">
+                        <input type="text" placeholder="Choice name..."
+                               class="form-control" id="@elementId" @bind="item.Value.Name">
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        <Button ButtonStyle="warning" class="form-control" OnPressed="@(() => RemoveChoice(item.Key))">
+                            Remove
+                        </Button>
+                    </div>
+                </div>
+            }
+
+            <div class="form-row">
+                <Button class="mb-2" Enabled="@(!processingNewForm)" OnPressed="@AddNewChoice">
+                    Add Choice
+                </Button>
+            </div>
+
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+            <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                Create
+            </Button>
+        </form>
+    }
+}
+
+<hr />
+
+@code {
+
+    private readonly Dictionary<long, Tuple<Dictionary<int, VoteData>, PollData>> pollChoices = new ();
+    private readonly Dictionary<long, bool> pollsWithActiveAction = new ();
+    private bool processing;
+
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private int? newAutoCloseInMinutes;
+    private MeetingPollDTO newPollDTOData;
+    private PollData newPollData;
+
+    [Parameter]
+    public long MeetingId { get; set; }
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    private bool CanCreateNew => !processingNewForm && newPollDTOData != null &&
+        !string.IsNullOrEmpty(newPollDTOData.Title) && newPollData.Choices.Count > 1;
+
+    public MeetingPolls() : base(new SortHelper("PollId", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(MeetingPollListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.MeetingPollListUpdatedPrefix + MeetingId);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<List<MeetingPollDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<List<MeetingPollDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/Meetings/{MeetingId}/polls", requestParams));
+    }
+
+    private void SetStatusMessage(string message, SiteNoticeType noticeType)
+    {
+        statusMessage = message;
+        statusMessageType = noticeType;
+        StateHasChanged();
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            newAutoCloseInMinutes = 3;
+            newPollDTOData = new MeetingPollDTO()
+            {
+                MeetingId = MeetingId,
+                TiebreakType = VotingTiebreakType.Random,
+            };
+
+            newPollData = new PollData()
+            {
+                Choices = new Dictionary<int, PollData.PollChoice>()
+                {
+                    {1, new PollData.PollChoice(1, "Choice 1")},
+                    {2, new PollData.PollChoice(2, "Choice 2")},
+                },
+                WeightedChoices = new PollData.WeightedChoicesList() { },
+            };
+        }
+
+        StateHasChanged();
+    }
+
+    private void AddNewChoice()
+    {
+        int maxId = newPollData.Choices.Values.Max(v => v.Id);
+
+        ++maxId;
+
+        newPollData.Choices.Add(maxId, new PollData.PollChoice(maxId, null));
+
+        StateHasChanged();
+    }
+
+    private void RemoveChoice(int choiceId)
+    {
+        newPollData.Choices.Remove(choiceId);
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        newPollDTOData.ParsedData = newPollData;
+
+        if (newAutoCloseInMinutes != null)
+            newPollDTOData.AutoCloseAt = DateTime.UtcNow + TimeSpan.FromMinutes(newAutoCloseInMinutes.Value);
+
+        try
+        {
+            result = await http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls", newPollDTOData);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New poll created";
+            createMessageType = SiteNoticeType.Info;
+
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SendVotes(MeetingPollDTO item)
+    {
+        processing = true;
+        // TODO: add own message holder here
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/vote",
+                new PollVoteData()
+            {
+                SelectedOptions = pollChoices[item.PollId].Item1.AsEnumerable()
+                    .Where(t => t.Value.ChoiceNumber != null)
+                    .OrderBy(t => t.Value.ChoiceNumber)
+                    .Select(t => t.Key).ToList(),
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "Votes sent";
+            createMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void RecomputePollResults(MeetingPollDTO item)
+    {
+        pollsWithActiveAction[item.PollId] = true;
+        // TODO: use same message holder as sending votes when that gets its own message
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/recompute",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            pollsWithActiveAction[item.PollId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        pollsWithActiveAction[item.PollId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "Recompute queued";
+            createMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Tuple<Dictionary<int, VoteData>, PollData> GetOrSetupPollData(MeetingPollDTO item)
+    {
+        if (!pollChoices.TryGetValue(item.PollId, out Tuple<Dictionary<int, VoteData>, PollData> data))
+        {
+            data = new Tuple<Dictionary<int, VoteData>, PollData>(new Dictionary<int, VoteData>(),
+                item.ParsedData);
+            foreach (var choice in data.Item2.Choices)
+            {
+                data.Item1[choice.Key] = new VoteData();
+            }
+
+            pollChoices[item.PollId] = data;
+        }
+
+        return data;
+    }
+
+    private bool IsRunningPollAction(long pollId)
+    {
+        if (!pollsWithActiveAction.TryGetValue(pollId, out bool running))
+            return false;
+
+        return running;
+    }
+
+    private class VoteData
+    {
+        public int? ChoiceNumber;
+    }
+
+}

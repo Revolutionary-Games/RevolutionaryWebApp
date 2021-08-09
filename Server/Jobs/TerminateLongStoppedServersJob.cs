@@ -65,6 +65,7 @@ namespace ThriveDevCenter.Server.Jobs
                 }
                 catch (Exception e)
                 {
+                    // ReSharper disable once ExceptionPassedAsTemplateArgumentProblem
                     logger.LogError("Failed to terminate server {Id}: {@E}", server.Id, e);
                     server.Status = ServerStatus.Stopped;
                     failures = true;

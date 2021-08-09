@@ -9,7 +9,6 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Logging;
     using Models;
-    using Shared;
     using Shared.Forms;
     using Shared.Models;
 

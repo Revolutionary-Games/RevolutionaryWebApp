@@ -1,0 +1,282 @@
+@page "/association/meetings"
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models.Enums
+@implements ThriveDevCenter.Client.Services.INotificationHandler<MeetingListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.MeetingInfo>
+<h3>Meetings</h3>
+
+<p>This service allows organizing meeting voting, minutes, and accepting them for meetings of the association.</p>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row"><NavLink href="@($"association/meetings/{item.Id}")">@item.Name</NavLink></th>
+                    <td>@item.StartsAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.EndedAt?.ToLocalTime().ToString("G")</td>
+                    <td>@item.ReadAccess</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+    <hr />
+
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+    }
+
+    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+        New
+    </Button>
+
+    @if (showNewForm)
+    {
+        <form>
+            <div class="form-row">
+                <div class="form-group col-lg-6">
+                    <label for="newMeetingName">Meeting Name (Need to be unique)</label>
+                    <input type="text" class="form-control" id="newMeetingName" @bind="newName">
+                </div>
+                <div class="form-group col-lg-6">
+                    <label for="newDescription">Meeting Description</label>
+                    <textarea rows="15" class="form-control" id="newDescription"
+                        @bind="newDescription" @bind:event="oninput">
+                    </textarea>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label class="mr-1" for="newMeetingReadAccess">Visible To</label>
+                    <select class="custom-select" id="newMeetingReadAccess" @bind="newMeetingReadAccess">
+                        @foreach (var name in Enum.GetNames<AssociationResourceAccess>())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label class="mr-1" for="newMeetingJoinAccess">Joinable By</label>
+                    <select class="custom-select" id="newMeetingJoinAccess" @bind="newMeetingJoinAccess">
+                        @foreach (var name in Enum.GetNames<AssociationResourceAccess>())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-6 col-xl-5">
+                    <label for="newMeetingStartDate">Starting Date</label>
+                    <input type="date" class="form-control" id="newMeetingStartDate" @bind="newStartDate">
+                </div>
+                <div class="form-group col-md-6 col-xl-5">
+                    <label for="newMeetingStartTime">Starting Time (local timezone)</label>
+                    <input type="time" class="form-control" id="newMeetingStartTime" @bind="newStartTime">
+                </div>
+                <div class="form-group col-md-12 col-xl-2">
+                    <label for="newJoinGracePeriod">Join Grace Period After Start (minutes)</label>
+                    <input type="number" min="0" max="120" step="1"
+                           class="form-control" id="newJoinGracePeriod" @bind="newJoinGraceMinutes">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <p>Starting time in UTC: @UTCStartTime.ToString("G")</p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-12">
+                    <label for="newExpectedDuration">Expected Duration in Minutes (Optional)</label>
+                    <input type="number" min="5" max="600" step="5"
+                           class="form-control" id="newExpectedDuration" @bind="newExpectedDuration">
+                </div>
+            </div>
+
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+            <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                Create
+            </Button>
+        </form>
+    }
+
+</AccessLimited>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true),
+        new TableColumn("Starts At", true, "StartsAt"),
+        new TableColumn("Ended At", false),
+        new TableColumn("Visible To", false),
+    };
+
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newName;
+    private string newDescription;
+    private DateTime newStartDate;
+    private DateTime newStartTime;
+    private int newJoinGraceMinutes;
+    private int? newExpectedDuration;
+    private AssociationResourceAccess newMeetingReadAccess;
+    private AssociationResourceAccess newMeetingJoinAccess;
+
+    public Meetings() : base(new SortHelper("StartsAt", SortDirection.Descending))
+    {
+    }
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newName) &&
+        !string.IsNullOrEmpty(newDescription);
+
+    private DateTime UTCStartTime => (newStartDate.Date + newStartTime.TimeOfDay).ToUniversalTime();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(MeetingListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        // TODO: implement
+        // groups.Add(NotificationGroups.);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<MeetingInfo>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<MeetingInfo>>(
+            QueryHelpers.AddQueryString("api/v1/Meetings", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newName = null;
+            newDescription = null;
+            newMeetingReadAccess = AssociationResourceAccess.Developers;
+            newMeetingJoinAccess = AssociationResourceAccess.AssociationMembers;
+            newJoinGraceMinutes = 15;
+            newExpectedDuration = null;
+            newStartDate = (DateTime.Now + TimeSpan.FromDays(1)).Date;
+            newStartTime = DateTime.Now;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/Meetings", new MeetingDTO()
+            {
+                Name = newName,
+                Description = newDescription,
+                ReadAccess = newMeetingReadAccess,
+                JoinAccess = newMeetingJoinAccess,
+                JoinGracePeriod = TimeSpan.FromMinutes(newJoinGraceMinutes),
+                ExpectedDuration = newExpectedDuration != null ? TimeSpan.FromMinutes(newExpectedDuration.Value) : null,
+                StartsAt = UTCStartTime,
+            }, HttpClientHelpers.GetOptionsWithSerializers());
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New meeting created (for now you need to refresh to see it...)";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

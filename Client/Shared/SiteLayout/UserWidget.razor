@@ -1,20 +1,20 @@
-@inject CurrentUserInfo UserInfo
+@inject CurrentUserInfo userInfo
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
 @implements IDisposable
-@inject ICSRFTokenReader CSRF
+@inject ICSRFTokenReader csrf
 
 <span class="auth">
-    @if (!UserInfo.InfoReady)
+    @if (!userInfo.InfoReady)
     {
         <div class="spinner-border spinner-border-sm text-secondary" role="status">
             <span class="sr-only">Loading...</span>
         </div>
     }
-    else if (UserInfo.LoggedIn)
+    else if (userInfo.LoggedIn)
     {
         <NavLink id="userWidgetLoggedIn" class="nav-link d-inline-block pr-0" href="me">
-            @UserInfo.Username
+            @userInfo.Username
         </NavLink>
     }
     else
@@ -27,11 +27,11 @@
     <span class="oi oi-person user-icon" aria-hidden="true"></span>
 </span>
 
-@if (UserInfo.InfoReady && UserInfo.LoggedIn)
+@if (userInfo.InfoReady && userInfo.LoggedIn)
 {
     <span class="auth">
         <form method="post" action="/Logout">
-            <input type="hidden" name="CSRF" value="@CSRF.Token" />
+            <input type="hidden" name="CSRF" value="@csrf.Token" />
             <button type="submit" class="btn btn-outline-secondary">
                 Logout
                 <span class="oi oi-account-logout" aria-hidden="true"></span>
@@ -44,13 +44,13 @@
 
     protected override Task OnInitializedAsync()
     {
-        UserInfo.OnUserInfoChanged += OnUserInfoUpdated;
+        userInfo.OnUserInfoChanged += OnUserInfoUpdated;
         return base.OnInitializedAsync();
     }
 
     public void Dispose()
     {
-        UserInfo.OnUserInfoChanged -= OnUserInfoUpdated;
+        userInfo.OnUserInfoChanged -= OnUserInfoUpdated;
     }
 
     private void OnUserInfoUpdated(object sender, UserInfo newInfo)

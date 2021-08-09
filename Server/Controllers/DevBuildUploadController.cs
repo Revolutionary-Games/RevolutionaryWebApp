@@ -6,7 +6,6 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
-    using System.Reflection.Metadata;
     using System.Text.Json.Serialization;
     using System.Threading;
     using System.Threading.Tasks;
@@ -54,7 +53,7 @@ namespace ThriveDevCenter.Server.Controllers
             this.database = database;
             this.jobClient = jobClient;
             this.remoteStorage = remoteStorage;
-            this.dataProtector = dataProtectionProvider.CreateProtector(DevBuildUploadProtectionPurposeString);
+            dataProtector = dataProtectionProvider.CreateProtector(DevBuildUploadProtectionPurposeString);
         }
 
         /// <summary>
@@ -108,7 +107,7 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<DevObjectOfferResult>> OfferObjects(
             [Required] [FromBody] ObjectOfferRequest request)
         {
-            var failResult = GetAccessStatus(out var anonymous);
+            var failResult = GetAccessStatus(out _);
             if (failResult != null)
                 return failResult;
 
@@ -170,7 +169,7 @@ namespace ThriveDevCenter.Server.Controllers
                     return Unauthorized("Can't upload over an existing build without an access key");
                 }
             }
-            else if(existing != null)
+            else if (existing != null)
             {
                 // Non-anonymous upload can overwrite an anonymous upload
                 if (existing.Anonymous)
@@ -338,6 +337,9 @@ namespace ThriveDevCenter.Server.Controllers
                 }
 
                 // Needs to be uploaded (wasn't uploaded already)
+
+                if (anonymous)
+                    logger.LogInformation("Anonymous upload of dehydrated object: {Sha3}", obj.Sha3);
 
                 if (dehydrated == null)
                 {

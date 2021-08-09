@@ -10,7 +10,6 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LogEntriesUpdated>
-@implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LogEntryDTO>
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">

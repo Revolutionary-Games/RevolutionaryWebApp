@@ -1,6 +1,8 @@
 namespace ThriveDevCenter.Server.Services
 {
     using System;
+    using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Net.Http.Json;
@@ -70,6 +72,22 @@ namespace ThriveDevCenter.Server.Services
 
         public bool ThrowIfNotConfigured { get; set; }
 
+        public Task<GithubUserInfo> GetCurrentUserInfo()
+        {
+            if (!CheckIsConfigured())
+                return Task.FromResult<GithubUserInfo>(null);
+
+            return client.GetFromJsonAsync<GithubUserInfo>("https://api.github.com/user");
+        }
+
+        public Task<List<GithubEmail>> GetCurrentUserEmails()
+        {
+            if (!CheckIsConfigured())
+                return Task.FromResult(new List<GithubEmail>());
+
+            return client.GetFromJsonAsync<List<GithubEmail>>("https://api.github.com/user/emails");
+        }
+
         public async Task<bool> SetCommitStatus(string qualifiedRepoName, string sha, CommitStatus state,
             string buildStatusUrl, string description, string contextSuffix)
         {
@@ -119,6 +137,8 @@ namespace ThriveDevCenter.Server.Services
 
         private class CommitStatusSetRequest
         {
+            // ReSharper disable UnusedAutoPropertyAccessor.Local
+
             [JsonPropertyName("state")]
             public CommitStatus State { get; set; }
 
@@ -130,6 +150,50 @@ namespace ThriveDevCenter.Server.Services
 
             [JsonPropertyName("context")]
             public string Context { get; set; }
+
+            // ReSharper restore UnusedAutoPropertyAccessor.Local
         }
+    }
+
+    public class GithubUserInfo
+    {
+        /// <summary>
+        ///   This is the username
+        /// </summary>
+        [Required]
+        public string Login { get; set; }
+
+        [Required]
+        public long Id { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string NodeId { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        /// <summary>
+        ///   Valid values seem to be "User" and "Organization"
+        /// </summary>
+        public string Type { get; set; } = "User";
+
+        public string Name { get; set; }
+
+        public string Email { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class GithubEmail
+    {
+        [Required]
+        public string Email { get; set; }
+
+        public bool Verified { get; set; }
+
+        public bool Primary { get; set; }
+
+        public string Visibility { get; set; } = "private";
     }
 }

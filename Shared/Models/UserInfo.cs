@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Shared.Models
 {
+    // TODO: this should be renamed to UserDTO as this is closer to that than the actual Info types
     public class UserInfo : ClientSideTimedModel
     {
         public string Name { get; set; }
@@ -25,7 +26,8 @@ namespace ThriveDevCenter.Shared.Models
         public bool SuspendedManually { get; set; }
 
         public int SessionVersion { get; set; }
-
-
+        public bool AssociationMember { get; set; }
+        public bool BoardMember { get; set; }
+        public bool HasBeenBoardMember { get; set; }
     }
 }

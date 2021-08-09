@@ -28,7 +28,9 @@ namespace ThriveDevCenter.Client.Shared
             if (Data.Id == notification.Item.Id)
             {
                 // Received an update for our data
-                Data = notification.Item;
+                if (OnUpdateNotificationReceived(notification.Item))
+                    Data = notification.Item;
+
                 return InvokeAsync(StateHasChanged);
             }
 
@@ -36,6 +38,16 @@ namespace ThriveDevCenter.Client.Shared
         }
 
         public abstract void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
+
+        /// <summary>
+        ///   Called when an update notification is received for the shown resource
+        /// </summary>
+        /// <param name="newData">The new data</param>
+        /// <returns>If this returns false the new item won't be used to override current data</returns>
+        protected virtual bool OnUpdateNotificationReceived(T newData)
+        {
+            return true;
+        }
     }
 
     /// <summary>

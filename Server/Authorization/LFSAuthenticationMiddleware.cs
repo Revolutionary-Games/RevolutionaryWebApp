@@ -8,7 +8,6 @@ namespace ThriveDevCenter.Server.Authorization
     using Microsoft.Extensions.Primitives;
     using Models;
     using Shared;
-    using Shared.Models;
     using Utilities;
 
     public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
@@ -45,7 +44,7 @@ namespace ThriveDevCenter.Server.Authorization
             string userPassword;
             try
             {
-                var base64EncodedBytes = System.Convert.FromBase64String(encoded);
+                var base64EncodedBytes = Convert.FromBase64String(encoded);
                 userPassword = System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
             }
             catch (Exception)

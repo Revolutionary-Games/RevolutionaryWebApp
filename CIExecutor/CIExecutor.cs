@@ -798,7 +798,7 @@ namespace CIExecutor
                 EnableRaisingEvents = true
             };
 
-            process.Exited += (sender, args) =>
+            process.Exited += (_, _) =>
             {
                 int code;
                 try
@@ -820,7 +820,7 @@ namespace CIExecutor
                 taskCompletionSource.SetResult(code == 0);
             };
 
-            process.OutputDataReceived += (sender, args) =>
+            process.OutputDataReceived += (_, args) =>
             {
                 QueueSendMessage(new RealTimeBuildMessage()
                 {
@@ -828,7 +828,7 @@ namespace CIExecutor
                     Output = ProcessBuildOutputLine(args.Data ?? string.Empty),
                 }).Wait();
             };
-            process.ErrorDataReceived += (sender, args) =>
+            process.ErrorDataReceived += (_, args) =>
             {
                 if (args.Data == null)
                     return;
@@ -870,7 +870,7 @@ namespace CIExecutor
                 EnableRaisingEvents = true
             };
 
-            process.Exited += (sender, args) =>
+            process.Exited += (_, _) =>
             {
                 int code;
                 try
@@ -892,7 +892,7 @@ namespace CIExecutor
                 taskCompletionSource.SetResult(code == 0);
             };
 
-            process.OutputDataReceived += (sender, args) =>
+            process.OutputDataReceived += (_, args) =>
             {
                 if (args.Data == null)
                     return;
@@ -948,7 +948,7 @@ namespace CIExecutor
                     }).Wait();
                 }
             };
-            process.ErrorDataReceived += (sender, args) =>
+            process.ErrorDataReceived += (_, args) =>
             {
                 if (args.Data == null)
                     return;

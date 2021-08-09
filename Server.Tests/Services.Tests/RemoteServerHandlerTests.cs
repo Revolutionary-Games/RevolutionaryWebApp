@@ -350,7 +350,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
                 .Options, notificationsMock.Object);
 
             CIProjectTestDatabaseData.Seed(database);
-            var job = await AddTestJob(database);
+            await AddTestJob(database);
 
             var server1 = new ControlledServer()
             {

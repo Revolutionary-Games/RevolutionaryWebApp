@@ -89,4 +89,17 @@ namespace ThriveDevCenter.Shared.Notifications
     public class StorageItemVersionListUpdated : ListUpdated<StorageItemVersionInfo>
     {
     }
+
+    public class CLAListUpdated : ListUpdated<CLAInfo>
+    {
+    }
+
+    // TODO: not currently implemented fully
+    public class MeetingListUpdated : ListUpdated<MeetingInfo>
+    {
+    }
+
+    public class MeetingPollListUpdated : ListUpdated<MeetingPollDTO>
+    {
+    }
 }

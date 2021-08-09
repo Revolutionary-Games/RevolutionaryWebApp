@@ -1,0 +1,196 @@
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<CLAListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.CLAInfo>
+<h5>CLAs</h5>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row"><NavLink href="@($"admin/cla/{item.Id}")">@item.Id</NavLink></th>
+                    <td>@item.Active</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+<br />
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <form>
+        <div class="form-row">
+            <div class="form-group col-xl-6">
+                <label for="newCLAText">CLA Text (markdown formatted)</label>
+                <textarea rows="50" columns="80" class="form-control" id="newCLAText"
+                    @bind="newText" @bind:event="oninput">
+                </textarea>
+            </div>
+            <div class="form-group col-xl-6">
+                <label for="newCIProjectName">Markdown Preview</label>
+                <div id="newCIProjectName"><MarkdownRenderer Value="@(newText ?? string.Empty)"
+                                                             RenderInterval="@TimeSpan.FromSeconds(1)" /></div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="newCLAActive" @bind="newActive">
+                <label class="form-check-label" for="newCLAActive">Create as active</label>
+            </div>
+        </div>
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <Button class="my-1" Enabled="@(!processingNewForm && !string.IsNullOrEmpty(newText))"
+                OnPressed="@CreateNew" Spinner="@processingNewForm">
+            Create
+        </Button>
+    </form>
+}
+
+@code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Active", true),
+        new TableColumn("Created At", false),
+    };
+
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newText;
+    private bool newActive;
+
+    public CLAList() : base(new SortHelper("Id", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(CLAListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CLAListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<CLAInfo>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<CLAInfo>>(
+            QueryHelpers.AddQueryString("api/v1/CLA", requestParams));
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newText = null;
+            newActive = true;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/CLA", new CLADTO()
+            {
+                RawMarkdown = newText,
+                Active = newActive,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New CLA created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

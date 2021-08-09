@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
+    using Shared.Models.Enums;
     using Shared.Notifications;
     using Utilities;
 
@@ -28,6 +29,10 @@ namespace ThriveDevCenter.Server.Models
 
         [AllowSortingBy]
         public bool? Admin { get; set; } = false;
+
+        public bool AssociationMember { get; set; }
+        public bool BoardMember { get; set; }
+        public bool HasBeenBoardMember { get; set; }
 
         [HashedLookUp]
         public string ApiToken { get; set; }
@@ -119,6 +124,20 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         public ICollection<Session> Sessions { get; set; } = new HashSet<Session>();
 
+        /// <summary>
+        ///   CLA signatures performed by this user
+        /// </summary>
+        public ICollection<ClaSignature> ClaSignatures { get; set; } = new HashSet<ClaSignature>();
+
+        public ICollection<Meeting> OwnerOfMeetings { get; set; } = new HashSet<Meeting>();
+
+        public ICollection<Meeting> SecretaryOfMeetings { get; set; } = new HashSet<Meeting>();
+
+        public ICollection<MeetingMember> MemberOfMeetings { get; set; } = new HashSet<MeetingMember>();
+
+        public ICollection<MeetingPollVotingRecord> VotedInPollsRecords { get; set; } =
+            new HashSet<MeetingPollVotingRecord>();
+
         public bool HasAccessLevel(UserAccessLevel level)
         {
             return ComputeAccessLevel().HasAccess(level);
@@ -136,6 +155,22 @@ namespace ThriveDevCenter.Server.Models
                 return UserAccessLevel.User;
 
             return UserAccessLevel.NotLoggedIn;
+        }
+
+        public AssociationResourceAccess ComputeAssociationAccessLevel()
+        {
+            if (!AssociationMember)
+            {
+                if (Developer == true)
+                    return AssociationResourceAccess.Developers;
+
+                return AssociationResourceAccess.Users;
+            }
+
+            if (BoardMember)
+                return AssociationResourceAccess.BoardMembers;
+
+            return AssociationResourceAccess.AssociationMembers;
         }
 
         public UserInfo GetInfo(RecordAccessLevel infoLevel)
@@ -170,6 +205,9 @@ namespace ThriveDevCenter.Server.Models
                     info.SsoSource = SsoSource;
                     info.AccessLevel = ComputeAccessLevel();
                     info.SessionVersion = SessionVersion;
+                    info.AssociationMember = AssociationMember;
+                    info.BoardMember = BoardMember;
+                    info.HasBeenBoardMember = HasBeenBoardMember;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);

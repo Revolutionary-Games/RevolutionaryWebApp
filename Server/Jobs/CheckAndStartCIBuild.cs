@@ -224,7 +224,7 @@ namespace ThriveDevCenter.Server.Jobs
                 GithubAPI.CommitStatus.Failure, statusReporter.CreateStatusUrlForJob(job), failure,
                 job.JobName))
             {
-                logger.LogError("Failed to report serious failed commit status", job.JobName);
+                logger.LogError("Failed to report serious failed commit status with context {JobName}", job.JobName);
             }
 
             jobClient.Enqueue<CheckOverallBuildStatusJob>(x =>

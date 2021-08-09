@@ -1,0 +1,51 @@
+@using System.Net
+@inject HttpClient http
+
+@if (loading)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+else
+{
+    <div>Email status: @status</div>
+}
+
+@code {
+    private bool loading = true;
+    private string status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.GetAsync("api/v1/Mail");
+        }
+        catch (HttpRequestException e)
+        {
+            status = $"Network request failed: {e.Message}";
+            loading = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        loading = false;
+
+        if (result.StatusCode != HttpStatusCode.OK)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            status = $"not configured properly (error: {content})";
+        }
+        else
+        {
+            status = "configured";
+        }
+    }
+
+}

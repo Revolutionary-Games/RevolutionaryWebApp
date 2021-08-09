@@ -2,8 +2,8 @@
 @using System.Net
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Forms
-@inject HttpClient Http
-@inject ICSRFTokenReader CSRF
+@inject HttpClient http
+@inject ICSRFTokenReader csrf
 
 @if (registrationEnabled)
 {
@@ -83,7 +83,7 @@ else
     {
         await base.OnInitializedAsync();
 
-        registrationEnabled = await Http.GetFromJsonAsync<bool>("api/v1/Registration");
+        registrationEnabled = await http.GetFromJsonAsync<bool>("api/v1/Registration");
     }
 
     private async void Submit()
@@ -95,13 +95,13 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/Registration", new RegistrationFormData()
+            result = await http.PostAsJsonAsync("api/v1/Registration", new RegistrationFormData()
             {
                 Email = email,
                 Name = name,
                 Password = password,
                 RegistrationCode = code,
-                CSRF = CSRF.Token
+                CSRF = csrf.Token
             });
         }
         catch (HttpRequestException e)

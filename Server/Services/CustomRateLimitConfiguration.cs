@@ -1,7 +1,6 @@
 namespace ThriveDevCenter.Server.Services
 {
     using AspNetCoreRateLimit;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Options;
 
     public class CustomRateLimitConfiguration : RateLimitConfiguration

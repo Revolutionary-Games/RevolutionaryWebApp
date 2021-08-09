@@ -90,10 +90,15 @@ namespace ThriveDevCenter.Server.Services
         {
             this.logger = logger;
 
-            validationParameters = new TokenValidationParameters()
+            validationParameters = CreateValidationParameters(CSRFSecret, Issuer);
+        }
+
+        public static TokenValidationParameters CreateValidationParameters(byte[] secret, string issuer)
+        {
+            return new()
             {
                 // The default seems to allow a bit expired tokens, so a more strict check is used
-                LifetimeValidator = (notBefore, expires, securityToken, parameters) =>
+                LifetimeValidator = (notBefore, expires, _, _) =>
                 {
                     var now = DateTime.UtcNow;
 
@@ -108,8 +113,8 @@ namespace ThriveDevCenter.Server.Services
                 },
                 ValidateIssuer = true,
                 ValidateAudience = false,
-                ValidIssuer = Issuer,
-                IssuerSigningKey = new SymmetricSecurityKey(CSRFSecret),
+                ValidIssuer = issuer,
+                IssuerSigningKey = new SymmetricSecurityKey(secret),
                 ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256Signature }
             };
         }

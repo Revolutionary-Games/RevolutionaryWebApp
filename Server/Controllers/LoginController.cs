@@ -25,19 +25,14 @@ namespace ThriveDevCenter.Server.Controllers
 
     [ApiController]
     [Route("LoginController")]
-    public class LoginController : Controller
+    public class LoginController : SSOLoginController
     {
         public const string SsoTypeDevForum = "devforum";
         public const string SsoTypeCommunityForum = "communityforum";
         public const string SsoTypePatreon = "patreon";
 
         private const string DiscourseSsoEndpoint = "/session/sso_provider";
-        private const int SsoNonceLength = 32;
 
-        private static readonly TimeSpan SsoTimeout = TimeSpan.FromMinutes(20);
-
-        private readonly ILogger<LoginController> logger;
-        private readonly ApplicationDbContext database;
         private readonly IConfiguration configuration;
         private readonly ITokenVerifier csrfVerifier;
         private readonly RedirectVerifier redirectVerifier;
@@ -48,10 +43,8 @@ namespace ThriveDevCenter.Server.Controllers
 
         public LoginController(ILogger<LoginController> logger, ApplicationDbContext database,
             IConfiguration configuration, ITokenVerifier csrfVerifier,
-            RedirectVerifier redirectVerifier, IPatreonAPI patreonAPI)
+            RedirectVerifier redirectVerifier, IPatreonAPI patreonAPI) : base(logger, database)
         {
-            this.logger = logger;
-            this.database = database;
             this.configuration = configuration;
             this.csrfVerifier = csrfVerifier;
             this.redirectVerifier = redirectVerifier;
@@ -67,6 +60,34 @@ namespace ThriveDevCenter.Server.Controllers
 
         private bool PatreonConfigured => !string.IsNullOrEmpty(configuration["Login:Patreon:ClientId"]) &&
             !string.IsNullOrEmpty(configuration["Login:Patreon:ClientSecret"]);
+
+        /// <summary>
+        ///   Sets the session cookie for a session in a response
+        /// </summary>
+        /// <param name="session">Session to give the cookie for</param>
+        /// <param name="response">Response to put cookie in</param>
+        /// <param name="useSecureCookies">If true the cookie is marked to only be passed with HTTPS</param>
+        [NonAction]
+        public static void SetSessionCookie(Session session, HttpResponse response, bool useSecureCookies = true)
+        {
+            var options = new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddSeconds(AppInfo.ClientCookieExpirySeconds),
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+
+                // TODO: do we need to set the domain explicitly?
+                // options.Domain;
+
+                Secure = useSecureCookies,
+
+                // Sessions are used for logins, they are essential. This might need to be re-thought out if
+                // non-essential info is attached to sessions later
+                IsEssential = true
+            };
+
+            response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
+        }
 
         [HttpGet]
         public LoginOptions Get()
@@ -218,7 +239,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             await PerformPreLoginChecks(login.CSRF);
 
-            var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
+            var user = await Database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
 
             if (user == null || string.IsNullOrEmpty(user.PasswordHash) ||
                 !Passwords.CheckPassword(user.PasswordHash, login.Password))
@@ -243,39 +264,33 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
 
-            var session = new Session
+            // Re-use existing session if there is one
+            var session = await HttpContext.Request.Cookies.GetSession(Database);
+
+            if (session == null)
             {
-                User = user, SessionVersion = user.SessionVersion, LastUsedFrom = remoteAddress
-            };
+                session = new Session();
 
-            await database.Sessions.AddAsync(session);
-            await database.SaveChangesAsync();
+                await Database.Sessions.AddAsync(session);
+            }
+            else
+            {
+                Logger.LogInformation("Repurposing session ({Id}) for new login", session.Id);
 
-            logger.LogInformation("Successful login for user {Email} from {RemoteAddress}, session: {Id}", user.Email,
+                session.SsoNonce = null;
+                session.LastUsed = DateTime.UtcNow;
+            }
+
+            session.User = user;
+            session.SessionVersion = user.SessionVersion;
+            session.LastUsedFrom = remoteAddress;
+
+            await Database.SaveChangesAsync();
+
+            Logger.LogInformation("Successful login for user {Email} from {RemoteAddress}, session: {Id}", user.Email,
                 remoteAddress, session.Id);
 
-            SetSessionCookie(session);
-        }
-
-        private void SetSessionCookie(Session session)
-        {
-            var options = new CookieOptions
-            {
-                Expires = DateTime.UtcNow.AddSeconds(AppInfo.ClientCookieExpirySeconds),
-                HttpOnly = true,
-                SameSite = SameSiteMode.Lax,
-
-                // TODO: do we need to set the domain explicitly?
-                // options.Domain;
-
-                Secure = useSecureCookies,
-
-                // Sessions are used for logins, they are essential. This might need to be re-thought out if
-                // non-essential info is attached to sessions later
-                IsEssential = true
-            };
-
-            Response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
+            SetSessionCookie(session, Response, useSecureCookies);
         }
 
         [NonAction]
@@ -287,7 +302,7 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private async Task PerformPreLoginChecks(string csrf)
         {
-            var existingSession = await HttpContext.Request.Cookies.GetSession(database);
+            var existingSession = await HttpContext.Request.Cookies.GetSession(Database);
 
             // TODO: verify that the client making the request had up to date token
             if (!csrfVerifier.IsValidCSRFToken(csrf, existingSession?.User))
@@ -296,32 +311,50 @@ namespace ThriveDevCenter.Server.Controllers
                     { Value = "Invalid CSRF token. Please refresh and try logging in again" };
             }
 
-            // If there is an existing session, end it
             if (existingSession != null)
             {
-                logger.LogInformation("Destroying an existing session before starting login");
-                await LogoutController.PerformSessionDestroy(existingSession, database);
+                // If there is an existing session, end it (if it is close to expiring)
+                if (existingSession.IsCloseToExpiry())
+                {
+                    Logger.LogInformation(
+                        "Destroying an existing session for starting login as it is close to expiring {Id}",
+                        existingSession.Id);
+                    await LogoutController.PerformSessionDestroy(existingSession, Database);
+                }
+                else
+                {
+                    existingSession.User = null;
+                    existingSession.LastUsed = DateTime.UtcNow;
+                    Logger.LogInformation("Login starting for an existing session {Id}", existingSession.Id);
+                }
             }
         }
 
         [NonAction]
         private async Task<Session> BeginSsoLogin(string ssoSource, string returnTo)
         {
-            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+            // Re-use existing session if there is one
+            var session = await HttpContext.Request.Cookies.GetSession(Database);
 
-            var session = new Session
+            if (session == null)
             {
-                LastUsedFrom = remoteAddress,
-                SsoNonce = NonceGenerator.GenerateNonce(SsoNonceLength),
-                StartedSsoLogin = ssoSource,
-                SsoStartTime = DateTime.UtcNow,
-                SsoReturnUrl = returnTo
-            };
+                session = new Session();
+                await Database.Sessions.AddAsync(session);
+            }
+            else
+            {
+                Logger.LogInformation("Repurposing session ({Id} for SSO login", session.Id);
 
-            await database.Sessions.AddAsync(session);
-            await database.SaveChangesAsync();
+                // Force invalidate the logged in as user here for the session
+                session.User = null;
+                session.SessionVersion = 1;
+            }
 
-            SetSessionCookie(session);
+            SetupSessionForSSO(ssoSource, returnTo, session);
+
+            await Database.SaveChangesAsync();
+
+            SetSessionCookie(session, Response, useSecureCookies);
 
             return session;
         }
@@ -361,62 +394,6 @@ namespace ThriveDevCenter.Server.Controllers
         private string PrepareDiscoursePayload(string nonce, string returnUrl)
         {
             return Convert.ToBase64String(Encoding.UTF8.GetBytes($"nonce={nonce}&return_sso_url={returnUrl}"));
-        }
-
-        private async Task<(Session session, IActionResult result)> FetchAndCheckSessionForSsoReturn(string nonce,
-            string ssoType)
-        {
-            var session = await HttpContext.Request.Cookies.GetSession(database);
-
-            if (session == null || session.StartedSsoLogin != ssoType)
-            {
-                return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
-                    "Your session was invalid. Please try again.")));
-            }
-
-            if (IsSsoTimedOut(session, out IActionResult timedOut))
-                return (session, timedOut);
-
-            var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
-
-            // Maybe this offers some extra security
-            if (!session.LastUsedFrom.Equals(remoteAddress))
-            {
-                return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
-                    "Your IP address changed during the login attempt.")));
-            }
-
-            if (session.SsoNonce != nonce || string.IsNullOrEmpty(session.SsoNonce))
-            {
-                return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
-                    "Invalid request nonce. Please try again.")));
-            }
-
-            // Clear nonce after checking to disallow duplicate requests (need to make sure to save in code
-            // calling this method)
-            session.SsoNonce = null;
-            return (session, null);
-        }
-
-        [NonAction]
-        private bool IsSsoTimedOut(Session session, out IActionResult result)
-        {
-            if (session.SsoStartTime == null || DateTime.UtcNow - session.SsoStartTime > SsoTimeout)
-            {
-                result = Redirect(QueryHelpers.AddQueryString("/login", "error",
-                    "The login attempt has expired. Please try again."));
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        [NonAction]
-        private IActionResult GetInvalidSsoParametersResult()
-        {
-            return Redirect(QueryHelpers.AddQueryString("/login", "error",
-                "Invalid SSO parameters received"));
         }
 
         [NonAction]
@@ -479,7 +456,7 @@ namespace ThriveDevCenter.Server.Controllers
                         DiscourseApiHelpers.CommunityDevBuildGroup.Equals(group) ||
                         DiscourseApiHelpers.CommunityVIPGroup.Equals(group)))
                     {
-                        logger.LogInformation(
+                        Logger.LogInformation(
                             "Not allowing login due to missing group membership for: {Email}, groups: {ParsedGroups}",
                             email,
                             parsedGroups);
@@ -504,7 +481,7 @@ namespace ThriveDevCenter.Server.Controllers
             finally
             {
                 if (requireSave)
-                    await database.SaveChangesAsync();
+                    await Database.SaveChangesAsync();
             }
         }
 
@@ -541,7 +518,7 @@ namespace ThriveDevCenter.Server.Controllers
                 if (email == null)
                     throw new NullReferenceException();
 
-                var patron = await database.Patrons.AsQueryable().Where(p => p.Email == email).FirstOrDefaultAsync();
+                var patron = await Database.Patrons.AsQueryable().Where(p => p.Email == email).FirstOrDefaultAsync();
 
                 if (patron == null)
                 {
@@ -555,7 +532,7 @@ namespace ThriveDevCenter.Server.Controllers
                         $"Your Patron status is currently suspended. Reason: {patron.SuspendedReason}"));
                 }
 
-                var patreonSettings = await database.PatreonSettings.AsQueryable().FirstOrDefaultAsync();
+                var patreonSettings = await Database.PatreonSettings.AsQueryable().FirstOrDefaultAsync();
 
                 if (patreonSettings == null)
                 {
@@ -569,7 +546,7 @@ namespace ThriveDevCenter.Server.Controllers
                         "Your current reward is not the DevBuilds or higher tier"));
                 }
 
-                logger.LogInformation("Patron ({Email}) logging in", email);
+                Logger.LogInformation("Patron ({Email}) logging in", email);
 
                 // TODO: alias handling
                 // email = patron.EmailAlias ?? patron.Email;
@@ -580,14 +557,14 @@ namespace ThriveDevCenter.Server.Controllers
             }
             catch (Exception e)
             {
-                logger.LogWarning("Exception when processing Patreon return: {@E}", e);
+                Logger.LogWarning("Exception when processing Patreon return: {@E}", e);
                 return Redirect(QueryHelpers.AddQueryString("/login", "error",
                     "Failed to retrieve account details from Patreon."));
             }
             finally
             {
                 if (requireSave)
-                    await database.SaveChangesAsync();
+                    await Database.SaveChangesAsync();
             }
         }
 
@@ -600,14 +577,14 @@ namespace ThriveDevCenter.Server.Controllers
             if (string.IsNullOrEmpty(email))
                 return (GetInvalidSsoParametersResult(), false);
 
-            logger.LogInformation("Logging in SSO login user with email: {Email}", email);
+            Logger.LogInformation("Logging in SSO login user with email: {Email}", email);
 
-            var user = await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == email);
+            var user = await Database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == email);
 
             if (user == null)
             {
                 // New account needed
-                logger.LogInformation("Creating new account for SSO login: {Email} developer: {DeveloperLogin}",
+                Logger.LogInformation("Creating new account for SSO login: {Email} developer: {DeveloperLogin}",
                     email, developerLogin);
 
                 user = new User()
@@ -620,7 +597,7 @@ namespace ThriveDevCenter.Server.Controllers
                     Admin = false
                 };
 
-                await database.Users.AddAsync(user);
+                await Database.Users.AddAsync(user);
             }
             else if (user.Local)
             {
@@ -629,7 +606,7 @@ namespace ThriveDevCenter.Server.Controllers
             }
             else if (user.SsoSource != ssoType)
             {
-                logger.LogInformation(
+                Logger.LogInformation(
                     "User logged in with different SSO source than before, new: {SsoType}, old: {SsoSource}", ssoType,
                     user.SsoSource);
 
@@ -643,7 +620,7 @@ namespace ThriveDevCenter.Server.Controllers
                 if (ssoType == SsoTypeDevForum)
                 {
                     // Conversion to a developer account
-                    await database.LogEntries.AddAsync(new LogEntry()
+                    await Database.LogEntries.AddAsync(new LogEntry()
                     {
                         Message = "User is now a developer due to different SSO login type",
                         TargetUser = user
@@ -655,12 +632,12 @@ namespace ThriveDevCenter.Server.Controllers
                 }
                 else if (user.SsoSource == SsoTypePatreon && ssoType == SsoTypeCommunityForum)
                 {
-                    logger.LogInformation("Patron logged in using a community forum account");
+                    Logger.LogInformation("Patron logged in using a community forum account");
                     await ChangeSsoSourceForNormalUser(user, ssoType);
                 }
                 else if (user.SsoSource == SsoTypeCommunityForum && ssoType == SsoTypePatreon)
                 {
-                    logger.LogInformation("Community forum user logged in using patreon");
+                    Logger.LogInformation("Community forum user logged in using patreon");
                     await ChangeSsoSourceForNormalUser(user, ssoType);
                 }
                 else
@@ -691,7 +668,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return;
 
             // TODO: this should only unsuspend if the last login source is no longer valid
-            await database.LogEntries.AddAsync(new LogEntry()
+            await Database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = "Un-suspending automatically suspended user due to SSO source change",
                 TargetUserId = user.Id,
@@ -700,7 +677,7 @@ namespace ThriveDevCenter.Server.Controllers
             user.Suspended = false;
             user.SsoSource = ssoType;
 
-            await database.SaveChangesAsync();
+            await Database.SaveChangesAsync();
         }
 
         [NonAction]
@@ -711,20 +688,18 @@ namespace ThriveDevCenter.Server.Controllers
 
             var sessionId = session.Id;
 
-            logger.LogInformation("SSO login succeeded to user id: {Id}, from: {RemoteAddress}, session: {SessionId}",
+            Logger.LogInformation("SSO login succeeded to user id: {Id}, from: {RemoteAddress}, session: {SessionId}",
                 user.Id, remoteAddress, sessionId);
 
             string returnUrl = session.SsoReturnUrl;
 
             session.User = user;
             session.LastUsed = DateTime.UtcNow;
-            session.StartedSsoLogin = null;
             session.SessionVersion = user.SessionVersion;
 
-            // Clear the return url to not leave it hanging around in the database
-            session.SsoReturnUrl = null;
+            ClearSSOParametersFromSession(session);
 
-            await database.SaveChangesAsync();
+            await Database.SaveChangesAsync();
 
             if (string.IsNullOrEmpty(returnUrl) ||
                 !redirectVerifier.SanitizeRedirectUrl(returnUrl, out string redirect))

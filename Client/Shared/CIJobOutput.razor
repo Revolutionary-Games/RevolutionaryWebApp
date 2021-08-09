@@ -9,7 +9,6 @@
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>
 @implements ThriveDevCenter.Client.Services.INotificationHandler<BuildMessageNotification>
-@implements IAsyncDisposable
 @inherits ListDataPage<ThriveDevCenter.Shared.Models.CIJobOutputSectionInfo>
 
 @if (!string.IsNullOrEmpty(Error))

@@ -1,0 +1,73 @@
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Forms
+@inject HttpClient http
+<h4>Send a Test Email</h4>
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+<form class="form-inline">
+    <label class="sr-only" for="testEmailRecipient">Address to send test mail to:</label>
+    <input type="text" class="form-control mb-2 flex-fill mr-1" id="testEmailRecipient"
+           placeholder="Recipient..." @bind="recipient" @bind:event="oninput">
+
+    <Button class="mb-2" type="submit" ButtonStyle="primary"
+            Enabled="@CanSend" OnPressed="@SendNotice" Spinner="@processing">
+        Send
+    </Button>
+</form>
+
+@code {
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private string recipient;
+
+    private bool CanSend => !string.IsNullOrWhiteSpace(recipient) && !processing;
+
+    private async void SendNotice()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/Mail/test", new EmailTestRequestForm
+            {
+                Recipient = recipient,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            // Success
+            statusMessage = $"Test email sent to {recipient}";
+            statusMessageType = SiteNoticeType.Info;
+
+            // Clear to not allow sending email again immediately
+            recipient = null;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

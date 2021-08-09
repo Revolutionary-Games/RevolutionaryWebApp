@@ -3,10 +3,9 @@
 @using ThriveDevCenter.Client.Services
 @using System.Threading
 @using ThriveDevCenter.Shared
-@inject NotificationHandler NotificationHandler
-@inject HttpClient Http
+@inject NotificationHandler notificationHandler
+@inject HttpClient http
 @implements ThriveDevCenter.Client.Services.INotificationHandler<ThriveDevCenter.Shared.Notifications.LfsObjectListUpdated>
-@implements IAsyncDisposable
 @inherits PaginatedPage<LfsObjectDTO>
 
 @if (!string.IsNullOrEmpty(Error))
@@ -71,7 +70,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await NotificationHandler.Register(this);
+        await notificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -88,12 +87,12 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await NotificationHandler.Unregister(this);
+        await notificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<LfsObjectDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<LfsObjectDTO>>(
+        return http.GetFromJsonAsync<PagedResult<LfsObjectDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LFSProject/{Id}/raw", requestParams));
     }
 

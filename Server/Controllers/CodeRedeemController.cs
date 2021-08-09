@@ -7,13 +7,10 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Linq;
     using System.Threading.Tasks;
     using Authorization;
-    using Hubs;
-    using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
     using Shared.Models;
-    using Shared.Notifications;
     using Utilities;
 
     [ApiController]

@@ -12,7 +12,6 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.AspNetCore.Http;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
-    using Models;
     using Models.Interfaces;
     using Shared;
     using Shared.Models;

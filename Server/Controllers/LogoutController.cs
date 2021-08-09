@@ -39,6 +39,8 @@ namespace ThriveDevCenter.Server.Controllers
             // Session version doesn't need to be enforced here as logging out a session should always be safe
             // (after the above checks)
 
+            // TODO: if an in-progress signature exists, should the session be just converted to a logged out one?
+
             database.Sessions.Remove(existingSession);
             await database.SaveChangesAsync();
 

@@ -112,7 +112,8 @@ namespace AutomatedUITests.Fixtures
                 {
                     // Make static asset and framework asset serving work
                     var applicationPath = typeof(TStartup).Assembly.Location;
-                    var applicationDirectory = Path.GetDirectoryName(applicationPath);
+
+                    // var applicationDirectory = Path.GetDirectoryName(applicationPath);
                     var name = Path.ChangeExtension(applicationPath, ".StaticWebAssets.xml");
 
                     var inMemoryConfiguration = new Dictionary<string, string>

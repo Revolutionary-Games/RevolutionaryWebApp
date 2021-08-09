@@ -14,6 +14,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Filters;
     using Models;
     using Shared;
+    using Shared.Forms;
     using Shared.Models;
     using Utilities;
 
@@ -22,12 +23,11 @@ namespace ThriveDevCenter.Server.Controllers
     public class UserManagementController : Controller
     {
         private readonly ILogger<UserManagementController> logger;
-        private readonly ApplicationDbContext database;
+        private readonly NotificationsEnabledDb database;
         private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
         public UserManagementController(ILogger<UserManagementController> logger,
-            ApplicationDbContext database,
-            IHubContext<NotificationsHub, INotifications> notifications)
+            NotificationsEnabledDb database, IHubContext<NotificationsHub, INotifications> notifications)
         {
             this.logger = logger;
             this.database = database;
@@ -75,6 +75,51 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             return user.GetInfo(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpPut("{id:long}/association")]
+        public async Task<IActionResult> UpdateUserAssociationStatus([Required] long id,
+            [Required] [FromBody] AssociationStatusUpdateForm request)
+        {
+            if (request.BoardMember && !request.AssociationMember)
+                return BadRequest("Can't be board member if not an association member");
+
+            if (request.BoardMember && !request.HasBeenBoardMember)
+                return BadRequest("If currently a board member must have been a board member");
+
+            var performingUser = HttpContext.AuthenticatedUser();
+
+            var user = await database.Users.FindAsync(id);
+
+            if (user == null)
+                return NotFound();
+
+            if (user.AssociationMember == request.AssociationMember && user.BoardMember == request.BoardMember &&
+                user.HasBeenBoardMember == request.HasBeenBoardMember)
+            {
+                return Ok("No changes required");
+            }
+
+            user.AssociationMember = request.AssociationMember;
+            user.BoardMember = request.BoardMember;
+            user.HasBeenBoardMember = request.HasBeenBoardMember;
+
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"User association status changed: {user.AssociationMember}, board: {user.BoardMember}, " +
+                    $"has been board member: {user.HasBeenBoardMember}",
+                TargetUserId = user.Id,
+                PerformedById = performingUser.Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("User {Email1} association status is now: {AssociationMember}, " +
+                "board member: {BoardMember}, has been board member: {HasBeenBoardMember}, performed by: {Email2}",
+                user.Email, user.AssociationMember, user.BoardMember, user.HasBeenBoardMember, performingUser.Email);
+
+            return Ok();
         }
 
         [NonAction]

@@ -9,7 +9,6 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<CIProjectBuildsListUpdated>
-@implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.CIBuildDTO>
 
 @if (!string.IsNullOrEmpty(Error))

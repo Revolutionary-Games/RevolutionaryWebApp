@@ -25,8 +25,11 @@ namespace ThriveDevCenter.Server
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Modulight.Modules.Hosting;
     using Services;
+    using Shared.Converters;
     using StackExchange.Redis;
+    using StardustDL.RazorComponents.Markdown;
     using Utilities;
 
     public class Startup
@@ -83,6 +86,12 @@ namespace ThriveDevCenter.Server
             // Used for rate limit storage (when not using redis)
             services.AddMemoryCache();
 
+            services.AddModules(moduleHostBuilder =>
+            {
+                // moduleHostBuilder.AddMarkdownModule();
+                moduleHostBuilder.UseRazorComponentClientModules().AddMarkdownModule();
+            });
+
             // TODO: message pack protocol
             if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))
             {
@@ -101,8 +110,9 @@ namespace ThriveDevCenter.Server
 
             services.AddControllersWithViews().AddJsonOptions(options =>
             {
-                // For now custom serializers are not needed
-                // options.JsonSerializerOptions.Converters.Add(new IPAddressConverter());
+                // Custom serializers for now also need to be configured in NotificationHelpers.ReceiveNotification
+                // As well as in the Client project
+                options.JsonSerializerOptions.Converters.Add(new TimeSpanConverter());
 
                 // This doesn't seem to do anything... So manual deserialize on client needs case insensitive mode on
                 // options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -177,6 +187,12 @@ namespace ThriveDevCenter.Server
             services.AddScoped<ControlledServerSSHAccess>();
             services.AddScoped<GithubCommitStatusReporter>();
             services.AddScoped<DiscordNotifications>();
+            services.AddScoped<IMailQueue, MailToQueueSender>();
+            services.AddScoped<ICLASignatureStorage, CLASignatureStorage>();
+
+            // Prefer the queue sender to not make operations wait for emails to be sent
+            services.AddScoped<IMailSender, MailSender>();
+            services.AddScoped<EmailTokens>();
 
             services.AddScoped<CSRFCheckerMiddleware>();
             services.AddScoped<LFSAuthenticationMiddleware>();
@@ -354,6 +370,7 @@ namespace ThriveDevCenter.Server
             AddJobHelper<DetectLeftOnServersJob>(configurationSection["DetectLeftOnServers"]);
             AddJobHelper<TerminateLongStoppedServersJob>(configurationSection["TerminateLongStoppedServers"]);
             AddJobHelper<ScheduleServerMaintenanceJob>(configurationSection["ScheduleServerMaintenance"]);
+            AddJobHelper<TimeoutInProgressClAsJob>(configurationSection["TimeoutInProgressCLAs"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

@@ -200,8 +200,6 @@ namespace ThriveDevCenter.Server.Controllers
                 if (message == null)
                     continue;
 
-                var now = DateTime.UtcNow;
-
                 switch (message.Type)
                 {
                     case BuildSectionMessageType.SectionStart:

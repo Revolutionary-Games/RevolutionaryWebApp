@@ -1,0 +1,113 @@
+@page "/verify/email"
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Forms
+@using ThriveDevCenter.Shared.Models
+@using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject ComponentUrlHelper urlHelper
+<h3>Email Verification</h3>
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+@if(processing)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+
+@code {
+    private bool processing = true;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [QueryStringParameterAttribute]
+    private string Token { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        this.SetParametersFromQueryString(navManager);
+
+        await VerifyToken();
+    }
+
+    private async Task VerifyToken()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/EmailVerification", new EmailVerificationFinishForm()
+            {
+                Token = Token,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            EmailVerifyResult data = null;
+            try
+            {
+                data = JsonSerializer.Deserialize<EmailVerifyResult>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers());
+                if (data == null)
+                    throw new JsonException("deserialized data is null");
+            }
+            catch (JsonException e)
+            {
+                statusMessage = $"Error, deserializing server response: {e}";
+            }
+
+            if (data != null)
+            {
+                var message = "Your email has been successfully verified";
+
+                if (!string.IsNullOrEmpty(data.RedirectTo))
+                {
+                    message += ". You will be redirected in 5 seconds.";
+                }
+
+                statusMessage = message;
+                statusMessageType = SiteNoticeType.Success;
+
+                if (!string.IsNullOrEmpty(data.RedirectTo))
+                {
+                    await InvokeAsync(StateHasChanged);
+                    await PerformRedirect(data.RedirectTo);
+                }
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PerformRedirect(string target)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        navManager.NavigateTo(target);
+    }
+}

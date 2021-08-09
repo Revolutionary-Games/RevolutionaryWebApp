@@ -33,7 +33,13 @@ namespace ThriveDevCenter.Shared
 
         public const string SoftDeleteAttribute = "Deleted";
 
+        public const string MarkdownMimeType = "text/markdown; charset=UTF-8";
+
         public const int APITokenByteCount = 34;
+        public const int SsoNonceLength = 32;
+
+        public const int PartialEmailMatchRevealAfterLenght = 15;
+        public const int PartialGithubMatchRevealAfterLenght = 8;
 
         public const int MaxDehydratedObjectsPerOffer = 100;
         public const int MaxDehydratedObjectsInDevBuild = 5000;
@@ -43,6 +49,9 @@ namespace ThriveDevCenter.Shared
         public const int MaxDevBuildDescriptionLength = 4000;
         public const int MinimumDevBuildDescriptionLength = 20;
         public const int MaxDevBuildDescriptionNiceLineLength = 70;
+
+        public const int MaxEmailLength = 250;
+        public const int PersonsNameMaximumLength = 500;
 
         public const int KIBIBYTE = 1024;
         public const int MEBIBYTE = KIBIBYTE * KIBIBYTE;
@@ -113,5 +122,7 @@ namespace ThriveDevCenter.Shared
         public static readonly TimeSpan RemoteStorageDownloadExpireTime = TimeSpan.FromMinutes(15);
 
         public static readonly TimeSpan LauncherLinkCodeExpireTime = TimeSpan.FromMinutes(15);
+
+        public static readonly TimeSpan StartedSigningTimeout = TimeSpan.FromHours(4);
     }
 }

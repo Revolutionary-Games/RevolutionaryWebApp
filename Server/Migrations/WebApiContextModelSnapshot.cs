@@ -495,6 +495,119 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("ci_secrets");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.Cla", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("RawMarkdown")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("raw_markdown");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_clas");
+
+                    b.HasIndex("Active")
+                        .HasDatabaseName("ix_clas_active");
+
+                    b.ToTable("clas");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.ClaSignature", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<long>("ClaId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("cla_id");
+
+                    b.Property<string>("ClaInvalidationStoragePath")
+                        .HasColumnType("text")
+                        .HasColumnName("cla_invalidation_storage_path");
+
+                    b.Property<string>("ClaSignatureStoragePath")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("cla_signature_storage_path");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeveloperUsername")
+                        .HasColumnType("text")
+                        .HasColumnName("developer_username");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("GithubAccount")
+                        .HasColumnType("text")
+                        .HasColumnName("github_account");
+
+                    b.Property<string>("GithubEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("github_email");
+
+                    b.Property<long?>("GithubUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("github_user_id");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime?>("ValidUntil")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cla_signatures");
+
+                    b.HasIndex("ClaInvalidationStoragePath")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cla_signatures_cla_invalidation_storage_path");
+
+                    b.HasIndex("ClaSignatureStoragePath")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cla_signatures_cla_signature_storage_path");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_cla_signatures_user_id");
+
+                    b.HasIndex("ClaId", "Email")
+                        .HasDatabaseName("ix_cla_signatures_cla_id_email");
+
+                    b.HasIndex("ClaId", "GithubAccount")
+                        .HasDatabaseName("ix_cla_signatures_cla_id_github_account");
+
+                    b.ToTable("cla_signatures");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.ControlledServer", b =>
                 {
                     b.Property<long>("Id")
@@ -773,6 +886,91 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("github_webhooks");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.InProgressClaSignature", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<long>("ClaId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("cla_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeveloperUsername")
+                        .HasColumnType("text")
+                        .HasColumnName("developer_username");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<bool>("EmailVerified")
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_verified");
+
+                    b.Property<string>("GithubAccount")
+                        .HasColumnType("text")
+                        .HasColumnName("github_account");
+
+                    b.Property<string>("GithubEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("github_email");
+
+                    b.Property<bool>("GithubSkipped")
+                        .HasColumnType("boolean")
+                        .HasColumnName("github_skipped");
+
+                    b.Property<long?>("GithubUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("github_user_id");
+
+                    b.Property<string>("GuardianName")
+                        .HasColumnType("text")
+                        .HasColumnName("guardian_name");
+
+                    b.Property<string>("GuardianSignature")
+                        .HasColumnType("text")
+                        .HasColumnName("guardian_signature");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<bool?>("SignerIsMinor")
+                        .HasColumnType("boolean")
+                        .HasColumnName("signer_is_minor");
+
+                    b.Property<string>("SignerName")
+                        .HasColumnType("text")
+                        .HasColumnName("signer_name");
+
+                    b.Property<string>("SignerSignature")
+                        .HasColumnType("text")
+                        .HasColumnName("signer_signature");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_in_progress_cla_signatures");
+
+                    b.HasIndex("ClaId")
+                        .HasDatabaseName("ix_in_progress_cla_signatures_cla_id");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_in_progress_cla_signatures_session_id");
+
+                    b.ToTable("in_progress_cla_signatures");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.LauncherLink", b =>
                 {
                     b.Property<long>("Id")
@@ -978,6 +1176,250 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("log_entries");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.Meeting", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<TimeSpan?>("ExpectedDuration")
+                        .HasColumnType("interval")
+                        .HasColumnName("expected_duration");
+
+                    b.Property<int>("JoinAccess")
+                        .HasColumnType("integer")
+                        .HasColumnName("join_access");
+
+                    b.Property<TimeSpan>("JoinGracePeriod")
+                        .HasColumnType("interval")
+                        .HasColumnName("join_grace_period");
+
+                    b.Property<string>("Minutes")
+                        .HasColumnType("text")
+                        .HasColumnName("minutes");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("OwnerId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_id");
+
+                    b.Property<int>("ReadAccess")
+                        .HasColumnType("integer")
+                        .HasColumnName("read_access");
+
+                    b.Property<bool>("ReadOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("read_only");
+
+                    b.Property<long?>("SecretaryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("secretary_id");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_meetings");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_meetings_name");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_meetings_owner_id");
+
+                    b.HasIndex("ReadAccess")
+                        .HasDatabaseName("ix_meetings_read_access");
+
+                    b.HasIndex("SecretaryId")
+                        .HasDatabaseName("ix_meetings_secretary_id");
+
+                    b.ToTable("meetings");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingMember", b =>
+                {
+                    b.Property<long>("MeetingId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("meeting_id");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<bool>("CanReviewMinutes")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_review_minutes");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("joined_at");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("MeetingId", "UserId")
+                        .HasName("pk_meeting_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_meeting_members_user_id");
+
+                    b.ToTable("meeting_members");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPoll", b =>
+                {
+                    b.Property<long>("MeetingId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("meeting_id");
+
+                    b.Property<long>("PollId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("poll_id");
+
+                    b.Property<DateTime?>("AutoCloseAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("auto_close_at");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("PollData")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("poll_data");
+
+                    b.Property<string>("PollResults")
+                        .HasColumnType("text")
+                        .HasColumnName("poll_results");
+
+                    b.Property<DateTime?>("PollResultsCreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("poll_results_created_at");
+
+                    b.Property<int>("TiebreakType")
+                        .HasColumnType("integer")
+                        .HasColumnName("tiebreak_type");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("MeetingId", "PollId")
+                        .HasName("pk_meeting_polls");
+
+                    b.HasIndex("MeetingId", "Title")
+                        .IsUnique()
+                        .HasDatabaseName("ix_meeting_polls_meeting_id_title");
+
+                    b.ToTable("meeting_polls");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPollVote", b =>
+                {
+                    b.Property<Guid>("VoteId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("vote_id");
+
+                    b.Property<bool>("IsTiebreaker")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_tiebreaker");
+
+                    b.Property<long>("MeetingId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("meeting_id");
+
+                    b.Property<long>("PollId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("poll_id");
+
+                    b.Property<string>("VoteContent")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("vote_content");
+
+                    b.Property<float>("VotingPower")
+                        .HasColumnType("real")
+                        .HasColumnName("voting_power");
+
+                    b.HasKey("VoteId")
+                        .HasName("pk_meeting_poll_votes");
+
+                    b.HasIndex("MeetingId", "PollId")
+                        .HasDatabaseName("ix_meeting_poll_votes_meeting_id_poll_id");
+
+                    b.ToTable("meeting_poll_votes");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPollVotingRecord", b =>
+                {
+                    b.Property<long>("MeetingId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("meeting_id");
+
+                    b.Property<long>("PollId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("poll_id");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("MeetingId", "PollId", "UserId")
+                        .HasName("pk_meeting_poll_voting_records");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_meeting_poll_voting_records_user_id");
+
+                    b.ToTable("meeting_poll_voting_records");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.PatreonSettings", b =>
                 {
                     b.Property<long>("Id")
@@ -1175,6 +1617,85 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("project_git_files");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.PullRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<int>("ClaStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("cla_status");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("PostedCommentsRaw")
+                        .HasColumnType("text")
+                        .HasColumnName("posted_comments_raw");
+
+                    b.Property<string>("PullRequestIdentification")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("pull_request_identification");
+
+                    b.Property<string>("Repository")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("repository");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pull_requests");
+
+                    b.HasIndex("Repository", "PullRequestIdentification")
+                        .IsUnique()
+                        .HasDatabaseName("ix_pull_requests_repository_pull_request_identification");
+
+                    b.ToTable("pull_requests");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.PullRequestAutoComment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("When")
+                        .HasColumnType("integer")
+                        .HasColumnName("when");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pull_request_auto_comments");
+
+                    b.ToTable("pull_request_auto_comments");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.RedeemableCode", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1253,6 +1774,12 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Property<DateTime?>("SsoStartTime")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("sso_start_time");
+
+                    b.Property<DateTime>("StartedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("started_at")
+                        .HasDefaultValueSql("timezone('utc', now())");
 
                     b.Property<string>("StartedSsoLogin")
                         .HasColumnType("text")
@@ -1477,6 +2004,18 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("api_token");
 
+                    b.Property<bool>("AssociationMember")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("association_member");
+
+                    b.Property<bool>("BoardMember")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("board_member");
+
                     b.Property<string>("ConcurrencyStamp")
                         .HasColumnType("text")
                         .HasColumnName("concurrency_stamp");
@@ -1497,6 +2036,12 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean")
                         .HasColumnName("email_confirmed");
+
+                    b.Property<bool>("HasBeenBoardMember")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("has_been_board_member");
 
                     b.Property<string>("HashedApiToken")
                         .HasColumnType("text")
@@ -1736,6 +2281,26 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("CiProject");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.ClaSignature", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.Cla", "Cla")
+                        .WithMany("Signatures")
+                        .HasForeignKey("ClaId")
+                        .HasConstraintName("fk_cla_signatures_clas_cla_id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ThriveDevCenter.Server.Models.User", "User")
+                        .WithMany("ClaSignatures")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("fk_cla_signatures_users_user_id")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Cla");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.DehydratedObject", b =>
                 {
                     b.HasOne("ThriveDevCenter.Server.Models.StorageItem", "StorageItem")
@@ -1766,6 +2331,27 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("StorageItem");
 
                     b.Navigation("VerifiedBy");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.InProgressClaSignature", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.Cla", "Cla")
+                        .WithMany("InProgressSignatures")
+                        .HasForeignKey("ClaId")
+                        .HasConstraintName("fk_in_progress_cla_signatures_clas_cla_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ThriveDevCenter.Server.Models.Session", "Session")
+                        .WithOne("InProgressClaSignature")
+                        .HasForeignKey("ThriveDevCenter.Server.Models.InProgressClaSignature", "SessionId")
+                        .HasConstraintName("fk_in_progress_cla_signatures_sessions_session_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cla");
+
+                    b.Navigation("Session");
                 });
 
             modelBuilder.Entity("ThriveDevCenter.Server.Models.LauncherLink", b =>
@@ -1801,6 +2387,109 @@ namespace ThriveDevCenter.Server.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("TargetUser");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.Meeting", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.User", "Owner")
+                        .WithMany("OwnerOfMeetings")
+                        .HasForeignKey("OwnerId")
+                        .HasConstraintName("fk_meetings_users_owner_id")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ThriveDevCenter.Server.Models.User", "Secretary")
+                        .WithMany("SecretaryOfMeetings")
+                        .HasForeignKey("SecretaryId")
+                        .HasConstraintName("fk_meetings_users_secretary_id")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Owner");
+
+                    b.Navigation("Secretary");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingMember", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.Meeting", "Meeting")
+                        .WithMany("MeetingMembers")
+                        .HasForeignKey("MeetingId")
+                        .HasConstraintName("fk_meeting_members_meetings_meeting_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ThriveDevCenter.Server.Models.User", "User")
+                        .WithMany("MemberOfMeetings")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("fk_meeting_members_users_user_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Meeting");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPoll", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.Meeting", "Meeting")
+                        .WithMany("MeetingPolls")
+                        .HasForeignKey("MeetingId")
+                        .HasConstraintName("fk_meeting_polls_meetings_meeting_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Meeting");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPollVote", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.Meeting", "Meeting")
+                        .WithMany("MeetingPollVotes")
+                        .HasForeignKey("MeetingId")
+                        .HasConstraintName("fk_meeting_poll_votes_meetings_meeting_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ThriveDevCenter.Server.Models.MeetingPoll", "Poll")
+                        .WithMany("Votes")
+                        .HasForeignKey("MeetingId", "PollId")
+                        .HasConstraintName("fk_meeting_poll_votes_meeting_polls_poll_meeting_id_poll_id1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Meeting");
+
+                    b.Navigation("Poll");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPollVotingRecord", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.Meeting", "Meeting")
+                        .WithMany("MeetingPollVotingRecords")
+                        .HasForeignKey("MeetingId")
+                        .HasConstraintName("fk_meeting_poll_voting_records_meetings_meeting_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ThriveDevCenter.Server.Models.User", "User")
+                        .WithMany("VotedInPollsRecords")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("fk_meeting_poll_voting_records_users_user_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ThriveDevCenter.Server.Models.MeetingPoll", "Poll")
+                        .WithMany("VotingRecords")
+                        .HasForeignKey("MeetingId", "PollId")
+                        .HasConstraintName("fk_meeting_poll_voting_records_meeting_polls_poll_meeting_id_p")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Meeting");
+
+                    b.Navigation("Poll");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ThriveDevCenter.Server.Models.ProjectGitFile", b =>
@@ -1885,11 +2574,41 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("CiSecrets");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.Cla", b =>
+                {
+                    b.Navigation("InProgressSignatures");
+
+                    b.Navigation("Signatures");
+                });
+
             modelBuilder.Entity("ThriveDevCenter.Server.Models.LfsProject", b =>
                 {
                     b.Navigation("LfsObjects");
 
                     b.Navigation("ProjectGitFiles");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.Meeting", b =>
+                {
+                    b.Navigation("MeetingMembers");
+
+                    b.Navigation("MeetingPolls");
+
+                    b.Navigation("MeetingPollVotes");
+
+                    b.Navigation("MeetingPollVotingRecords");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPoll", b =>
+                {
+                    b.Navigation("Votes");
+
+                    b.Navigation("VotingRecords");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.Session", b =>
+                {
+                    b.Navigation("InProgressClaSignature");
                 });
 
             modelBuilder.Entity("ThriveDevCenter.Server.Models.StorageFile", b =>
@@ -1912,13 +2631,21 @@ namespace ThriveDevCenter.Server.Migrations
 
             modelBuilder.Entity("ThriveDevCenter.Server.Models.User", b =>
                 {
+                    b.Navigation("ClaSignatures");
+
                     b.Navigation("DevBuilds");
 
                     b.Navigation("LauncherLinks");
 
+                    b.Navigation("MemberOfMeetings");
+
+                    b.Navigation("OwnerOfMeetings");
+
                     b.Navigation("PerformedActions");
 
                     b.Navigation("PerformedAdminActions");
+
+                    b.Navigation("SecretaryOfMeetings");
 
                     b.Navigation("Sessions");
 
@@ -1927,6 +2654,8 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("TargetedByAdminActions");
 
                     b.Navigation("TargetedInLogs");
+
+                    b.Navigation("VotedInPollsRecords");
                 });
 #pragma warning restore 612, 618
         }

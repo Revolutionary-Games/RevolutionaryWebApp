@@ -14,6 +14,9 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string UserUpdatedPrefix = "SUser_";
         public const string UserUpdatedPrefixAdminInfo = "SAUser_";
 
+        public const string CLAListUpdated = "CLAs";
+        public const string CLAUpdatedPrefix = "CLA_";
+
         // CI related groups
         public const string CIProjectListUpdated = "CIProjects";
         public const string PrivateCIProjectUpdated = "CIProject_Developer";
@@ -50,5 +53,20 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string ControlledServerListUpdated = "CServers";
 
         public const string UserLauncherLinksUpdatedPrefix = "UserLaunchers_";
+
+        public const string MeetingUpdatedPrefix = "SMeeting_";
+        public const string MeetingListUpdatedPublic = "Meeting";
+        public const string MeetingListUpdatedUser = "Meeting_User";
+        public const string MeetingListUpdatedDeveloper = "Meeting_Developer";
+        public const string MeetingListUpdatedAssociation = "Meeting_Association";
+        public const string MeetingListUpdatedBoardMember = "Meeting_Board";
+
+        public const string MeetingPollListUpdatedPrefix = "MeetingPoll_";
+
+        /// <summary>
+        ///   The client doesn't know their session ID so this is used as-is on the client but with a suffix on the
+        ///   server side
+        /// </summary>
+        public const string InProgressCLASignatureUpdated = "InProgressCLA_";
     }
 }

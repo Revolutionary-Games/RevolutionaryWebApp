@@ -4,15 +4,12 @@ namespace ThriveDevCenter.Server.Controllers
 {
     using System.Threading.Tasks;
     using Authorization;
-    using Hubs;
-    using Microsoft.AspNetCore.SignalR;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
     using Shared.Forms;
     using Shared.Models;
-    using Shared.Notifications;
 
     [ApiController]
     [Route("api/v1/[controller]")]
@@ -76,6 +73,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             await database.Users.AddAsync(user);
             await database.SaveChangesAsync();
+
+            logger.LogInformation("New user registered {Name} ({Email})", request.Name, request.Email);
 
             return Created($"/users/{user.Id}", user.GetInfo(RecordAccessLevel.Private));
         }

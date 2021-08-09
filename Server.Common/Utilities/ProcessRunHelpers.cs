@@ -97,7 +97,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 EnableRaisingEvents = true
             };
 
-            process.Exited += (sender, args) =>
+            process.Exited += (_, _) =>
             {
                 result.ExitCode = process.ExitCode;
                 process.Dispose();
@@ -108,7 +108,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
             if (captureOutput)
             {
-                process.OutputDataReceived += (sender, args) =>
+                process.OutputDataReceived += (_, args) =>
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
@@ -118,7 +118,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
                     result.StdOut.Append(args.Data ?? "");
                 };
-                process.ErrorDataReceived += (sender, args) =>
+                process.ErrorDataReceived += (_, args) =>
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
@@ -157,7 +157,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                     if (ErrorOut.Length < 1)
                         return StdOut.ToString();
 
-                    return StdOut.ToString() + "\n" + ErrorOut.ToString();
+                    return StdOut + "\n" + ErrorOut;
                 }
             }
         }

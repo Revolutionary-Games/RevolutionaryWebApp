@@ -7,7 +7,6 @@
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherLinkListUpdated>
-@implements IAsyncDisposable
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherLinkDTO>
 
 @if (!string.IsNullOrEmpty(Error))

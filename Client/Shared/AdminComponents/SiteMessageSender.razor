@@ -1,7 +1,7 @@
 @using ThriveDevCenter.Shared
 @using System.Net
 @using ThriveDevCenter.Shared.Forms
-@inject HttpClient Http
+@inject HttpClient http
 <h4>Send a site message</h4>
 
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
@@ -46,7 +46,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/SiteNotifications/ephemeralNotice", new SiteNoticeFormData()
+            result = await http.PostAsJsonAsync("api/v1/SiteNotifications/ephemeralNotice", new SiteNoticeFormData()
             {
                 Message = message,
                 Type = noticeType

@@ -124,6 +124,8 @@ namespace ThriveDevCenter.Server.Utilities
         private static string GetTargetPropertyName(string propertyName, HashedLookUpAttribute attribute)
         {
             // TODO: allow custom name for the target field
+            _ = attribute;
+
             return "Hashed" + propertyName;
         }
     }
