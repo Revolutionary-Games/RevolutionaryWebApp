@@ -56,15 +56,28 @@ namespace ThriveDevCenter.Client.Shared
     public abstract class SingleResourcePage<T> : SimpleResourceFetcher<T>
         where T : class
     {
+        private long? previouslyFetchedId;
+
         /// <summary>
         ///   Id of the resource to show
         /// </summary>
         [Parameter]
         public long Id { get; set; }
 
+        protected override Task OnParametersSetAsync()
+        {
+            base.OnParametersSet();
+
+            if (Id != previouslyFetchedId)
+                return FetchData();
+
+            return Task.CompletedTask;
+        }
+
         protected override async Task FetchData()
         {
             var query = StartQuery();
+            previouslyFetchedId = Id;
 
             try
             {
