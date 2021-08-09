@@ -121,6 +121,19 @@ namespace ThriveDevCenter.Server.Controllers
             return build.GetDTO();
         }
 
+        [HttpGet("{id:long}/siblings")]
+        [AuthorizeRoleFilter]
+        public async Task<ActionResult<List<long>>> GetBuildSiblingIds([Required] long id)
+        {
+            var build = await database.DevBuilds.FindAsync(id);
+
+            if (build == null)
+                return NotFound();
+
+            return await database.DevBuilds.AsQueryable().Where(b => b.BuildHash == build.BuildHash && b.Id != build.Id)
+                .Select(b => b.Id).ToListAsync();
+        }
+
         [HttpPost("{id:long}/verify")]
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
         public async Task<IActionResult> VerifyBuild([Required] long id, bool siblingsAsWell = true)

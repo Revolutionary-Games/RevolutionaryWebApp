@@ -42,6 +42,11 @@
             <h4>Description</h4>
             <pre>@Data.Description</pre>
 
+            <h4>Sibling Builds</h4>
+            <DevBuildSiblingList Id="@Id" />
+
+            <br />
+
             <AccessLimited RequiredAccess="UserAccessLevel.Developer">
 
                 <DevBuildEditor Data="@Data" />
