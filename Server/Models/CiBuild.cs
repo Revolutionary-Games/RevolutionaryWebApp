@@ -3,6 +3,9 @@ namespace ThriveDevCenter.Server.Models
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
+    using System.Text.Json;
+    using Controllers;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
@@ -55,7 +58,7 @@ namespace ThriveDevCenter.Server.Models
         public string PreviousCommit { get; set; }
 
         /// <summary>
-        ///   The commit message of the
+        ///   The commit message of the (latest) commit
         /// </summary>
         public string CommitMessage { get; set; }
 
@@ -64,6 +67,17 @@ namespace ThriveDevCenter.Server.Models
         ///   that created this build
         /// </summary>
         public string Commits { get; set; }
+
+
+        [NotMapped]
+        public List<GithubCommit> ParsedCommits
+        {
+            get => JsonSerializer.Deserialize<List<GithubCommit>>(Commits);
+            set
+            {
+                Commits = JsonSerializer.Serialize(value);
+            }
+        }
 
         public CIBuildDTO GetDTO()
         {
