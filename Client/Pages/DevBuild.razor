@@ -42,14 +42,16 @@
             <h4>Description</h4>
             <pre>@Data.Description</pre>
 
-            <h4>Sibling Builds</h4>
+            <AccessLimited RequiredAccess="UserAccessLevel.Developer">
+                <DevBuildEditor Data="@Data" />
+
+                <br />
+            </AccessLimited>
+
+            <h4 class="mt-2">Sibling Builds</h4>
             <DevBuildSiblingList Id="@Id" />
 
-            <br />
-
             <AccessLimited RequiredAccess="UserAccessLevel.Developer">
-
-                <DevBuildEditor Data="@Data" />
 
                 <h4 class="mt-3">Actions</h4>
 
