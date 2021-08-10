@@ -261,12 +261,12 @@ namespace ThriveDevCenter.Server.Controllers
                                 {
                                     activeSection.CiJobOutputSectionId = ++sectionNumberCounter;
 
-                                    // TODO: change this to trace once the exception catch below is solved
-                                    logger.LogInformation(
+                                    logger.LogTrace(
                                         "Creating output section: {CiProjectId}-{CiBuildId}-{CiJobId}-" +
                                         "{CiJobOutputSectionId}", job.CiProjectId, job.CiBuildId, job.CiJobId,
                                         activeSection.CiJobOutputSectionId);
 
+                                    // TODO: this catch should be safe to remove now
                                     try
                                     {
                                         await database.CiJobOutputSections.AddAsync(activeSection);
