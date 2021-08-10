@@ -212,7 +212,7 @@ namespace ThriveDevCenter.Server.Jobs
 
                 htmlBuilder.Append("<span>");
                 htmlBuilder.Append(job.JobName);
-                htmlBuilder.Append("</span>");
+                htmlBuilder.Append(" </span>");
 
                 if (job.Succeeded)
                 {
