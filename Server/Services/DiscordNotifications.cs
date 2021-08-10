@@ -36,6 +36,10 @@ namespace ThriveDevCenter.Server.Services
             message.Append(" build nro ");
             message.Append(build.CiBuildId);
 
+            message.Append(" (for: ");
+            message.Append(build.RemoteRef);
+            message.Append(')');
+
             switch (build.Status)
             {
                 case BuildStatus.Running:
