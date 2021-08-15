@@ -385,11 +385,14 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private void FailIfNotConfigured()
         {
-            throw new HttpResponseException()
+            if (!serverSSHAccess.Configured)
             {
-                Status = StatusCodes.Status500InternalServerError,
-                Value = "SSH access is not configured",
-            };
+                throw new HttpResponseException
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Value = "SSH access is not configured",
+                };
+            }
         }
     }
 }
