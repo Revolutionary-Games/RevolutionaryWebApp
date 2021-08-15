@@ -59,9 +59,26 @@ namespace ThriveDevCenter.Server.Jobs
 
             job.SetFinishSuccess(success);
 
+            if (!job.RunningOnServerIsExternal.HasValue)
+            {
+                logger.LogError("CI job {CIProjectId}-{CIBuildId}-{CIJobId} didn't have server external flag set",
+                    ciProjectId, ciBuildId, ciJobId);
+                job.RunningOnServerIsExternal = false;
+            }
+
             // Release the server reservation and send notifications about the job
-            var server =
-                await Database.ControlledServers.FindAsync(new object[] { job.RunningOnServerId }, cancellationToken);
+            BaseServer server;
+            if (job.RunningOnServerIsExternal.Value)
+            {
+                server =
+                    await Database.ExternalServers.FindAsync(new object[] { job.RunningOnServerId }, cancellationToken);
+            }
+            else
+            {
+                server =
+                    await Database.ControlledServers.FindAsync(new object[] { job.RunningOnServerId },
+                        cancellationToken);
+            }
 
             if (server == null)
                 throw new ArgumentException("Could not find server to release now that a build is complete");

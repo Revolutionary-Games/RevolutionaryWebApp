@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Services
 {
     using System;
     using Renci.SshNet;
+    using Renci.SshNet.Common;
 
     public class BaseSSHAccess : IDisposable, IBaseSSHAccess
     {
@@ -24,6 +25,26 @@ namespace ThriveDevCenter.Server.Services
                 Error = command.Error,
                 Result = result
             };
+        }
+
+        public void Reboot()
+        {
+            try
+            {
+                var result = RunCommand("sudo reboot");
+                if (!result.Success)
+                {
+                    throw new SshException(
+                        $"Reboot command failed: {result.Result}, error: {result.Error}, code: {result.ExitCode}");
+                }
+            }
+            catch (SshConnectionException e)
+            {
+                if (e.Message.Contains("established connection was aborted by the server"))
+                    return;
+
+                throw;
+            }
         }
 
         // TODO: add more async stuff in this class
@@ -55,6 +76,7 @@ namespace ThriveDevCenter.Server.Services
                 throw new Exception("SSH access to external / controlled server is not configured");
         }
 
+        // TODO: move out of this class
         public class CommandResult
         {
             public int ExitCode { get; set; }
@@ -70,5 +92,11 @@ namespace ThriveDevCenter.Server.Services
     {
         bool Configured { get; }
         BaseSSHAccess.CommandResult RunCommand(string commandStr);
+
+        /// <summary>
+        ///   Reboots the server. Must be connected first
+        /// </summary>
+        /// <exception cref="SshException">If the reboot command fails</exception>
+        public void Reboot();
     }
 }

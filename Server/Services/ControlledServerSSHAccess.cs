@@ -1,6 +1,5 @@
 namespace ThriveDevCenter.Server.Services
 {
-    using System;
     using Microsoft.Extensions.Configuration;
     using Renci.SshNet;
 

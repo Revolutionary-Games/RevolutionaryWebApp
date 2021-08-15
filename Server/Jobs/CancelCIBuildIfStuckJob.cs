@@ -16,17 +16,20 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly NotificationsEnabledDb database;
         private readonly IBackgroundJobClient jobClient;
         private readonly IEC2Controller ec2Controller;
+        private readonly IExternalServerSSHAccess externalServerSSHAccess;
 
         public CancelCIBuildIfStuckJob(ILogger<CancelCIBuildIfStuckJob> logger,
-            NotificationsEnabledDb database, IBackgroundJobClient jobClient, IEC2Controller ec2Controller)
+            NotificationsEnabledDb database, IBackgroundJobClient jobClient, IEC2Controller ec2Controller,
+            IExternalServerSSHAccess externalServerSSHAccess)
         {
             this.logger = logger;
             this.database = database;
             this.jobClient = jobClient;
             this.ec2Controller = ec2Controller;
+            this.externalServerSSHAccess = externalServerSSHAccess;
         }
 
-        public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId,
+        public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId, bool externalServer,
             CancellationToken cancellationToken)
         {
             var job = await database.CiJobs.FirstOrDefaultAsync(
@@ -46,29 +49,59 @@ namespace ThriveDevCenter.Server.Jobs
                 "Detected CI job {CIProjectId}-{CIBuildId}-{CIJobId} as stuck running (total build time limit reached)",
                 ciProjectId, ciBuildId, ciJobId);
 
-            var server =
-                await database.ControlledServers.FindAsync(new object[] { serverId }, cancellationToken);
-
-            if (server == null)
-                throw new ArgumentException("Could not find server to release for a stuck build");
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            await database.LogEntries.AddAsync(new LogEntry()
+            if (externalServer)
             {
-                Message =
-                    $"Server {server.Id} ({server.InstanceId}) timed out running CI job, stopping it, running " +
-                    $"since {server.UpdatedAt}"
-            }, cancellationToken);
+                var server =
+                    await database.ExternalServers.FindAsync(new object[] { serverId }, cancellationToken);
 
-            await ec2Controller.StopInstance(server.InstanceId, false);
-            server.Status = ServerStatus.Stopping;
+                if (server == null)
+                    throw new ArgumentException("Could not find server to release for a stuck build");
 
-            if (server.RunningSince != null)
-                server.TotalRuntime += (DateTime.UtcNow - server.RunningSince.Value).TotalSeconds;
-            server.RunningSince = null;
+                cancellationToken.ThrowIfCancellationRequested();
 
-            logger.LogInformation("Successfully signaled stop on: {InstanceId}", server.InstanceId);
+                externalServerSSHAccess.ConnectTo(server.PublicAddress.ToString(), server.SSHKeyFileName);
+                externalServerSSHAccess.Reboot();
+
+                await database.LogEntries.AddAsync(new LogEntry()
+                {
+                    Message = $"External server {server.Id} timed out running CI job, force rebooting it",
+                }, cancellationToken);
+
+                server.StatusLastChecked = DateTime.UtcNow;
+                server.ReservationType = ServerReservationType.None;
+                server.Status = ServerStatus.Stopping;
+                server.BumpUpdatedAt();
+
+                jobClient.Schedule<WaitForExternalServerStartUpJob>(x => x.Execute(server.Id, CancellationToken.None),
+                    TimeSpan.FromSeconds(20));
+                logger.LogInformation("Successfully commanded reboot on: {ServerId}", server.Id);
+            }
+            else
+            {
+                var server =
+                    await database.ControlledServers.FindAsync(new object[] { serverId }, cancellationToken);
+
+                if (server == null)
+                    throw new ArgumentException("Could not find server to release for a stuck build");
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                await database.LogEntries.AddAsync(new LogEntry()
+                {
+                    Message =
+                        $"Server {server.Id} ({server.InstanceId}) timed out running CI job, stopping it, running " +
+                        $"since {server.UpdatedAt}"
+                }, cancellationToken);
+
+                await ec2Controller.StopInstance(server.InstanceId, false);
+                server.Status = ServerStatus.Stopping;
+
+                if (server.RunningSince != null)
+                    server.TotalRuntime += (DateTime.UtcNow - server.RunningSince.Value).TotalSeconds;
+                server.RunningSince = null;
+
+                logger.LogInformation("Successfully signaled stop on: {InstanceId}", server.InstanceId);
+            }
 
             if (job.RunningOnServerId != serverId)
             {

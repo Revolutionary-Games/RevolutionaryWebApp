@@ -187,6 +187,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             // Connection success, so now we can run the job starting on the server
             job.RunningOnServerId = serverId;
+            job.RunningOnServerIsExternal = server.IsExternal;
             job.State = CIJobState.Running;
 
             CISecretType jobSpecificSecretType = job.Build.IsSafe ? CISecretType.SafeOnly : CISecretType.UnsafeOnly;
@@ -268,7 +269,7 @@ namespace ThriveDevCenter.Server.Jobs
                 TimeSpan.FromMinutes(5));
 
             JobClient.Schedule<CancelCIBuildIfStuckJob>(
-                x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, CancellationToken.None),
+                x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, server.IsExternal, CancellationToken.None),
                 TimeSpan.FromMinutes(61));
 
             Logger.LogInformation(

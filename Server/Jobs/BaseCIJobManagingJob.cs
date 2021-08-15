@@ -30,6 +30,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             ReleaseServerReservation(server);
             job.RunningOnServerId = -1;
+            job.RunningOnServerIsExternal = null;
 
             // After running the job, the changes saving should not be skipped
             await Database.SaveChangesAsync();
