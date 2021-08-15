@@ -79,9 +79,14 @@
 
     <br />
 
-    <Button Enabled="@(!processingAllServers)" OnPressed="@(async () => await ReCheckAllServerStatuses())"
-            Spinner="@processingAllServers" ButtonStyle="secondary" class="mb-2">
+    <Button Enabled="@(!processingAllServers)" OnPressed="@ReCheckAllServerStatuses"
+            Spinner="@processingAllServers" ButtonStyle="secondary" class="mb-2 mr-2">
         Refresh ALL Server Statuses
+    </Button>
+
+    <Button Enabled="@(!processingAllServers)" OnPressed="@RemoveTerminatedServers"
+            Spinner="@processingAllServers" ButtonStyle="warning" class="mb-2">
+        Remove Terminated
     </Button>
 
     <p>
@@ -439,6 +444,44 @@
         else
         {
             message = "All server statuses refreshed";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveTerminatedServers()
+    {
+        processingAllServers = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/ControlledServers/removeTerminated",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingAllServers = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingAllServers = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Terminated servers removed";
             messageType = SiteNoticeType.Primary;
         }
 

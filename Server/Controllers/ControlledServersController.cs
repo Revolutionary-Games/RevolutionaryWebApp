@@ -370,6 +370,30 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
+        [HttpPost("removeTerminated")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> RemoveTerminated()
+        {
+            var servers = await database.ControlledServers.AsQueryable()
+                .Where(s => s.Status == ServerStatus.Terminated).ToListAsync();
+
+            if (servers.Count < 1)
+                return Ok("No terminated servers exist");
+
+            var user = HttpContext.AuthenticatedUser();
+            logger.LogInformation("All terminated servers removed by: {Email}", user.Email);
+
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"Terminated servers removed",
+                PerformedById = user.Id,
+            });
+
+            database.ControlledServers.RemoveRange(servers);
+            await database.SaveChangesAsync();
+            return Ok();
+        }
+
         [NonAction]
         private static void UpdateCommonServerStatuses(ControlledServer server)
         {
