@@ -1,12 +1,15 @@
 @inject HttpClient http
+@inject NavigationManager navManager
 @inject NotificationHandler notificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
-@implements ThriveDevCenter.Client.Services.INotificationHandler<ControlledServersUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ControlledServerDTO>
+@using System.Net
+@using ThriveDevCenter.Client.Utilities
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ExternalServersUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ExternalServerDTO>
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
     @if (!string.IsNullOrEmpty(Error))
@@ -31,7 +34,11 @@
             {
                 @foreach (var item in Data.Results)
                 {
-                    @* TODO: implement an arrow button to toggle showing full details of a server *@
+                    if (clientSideResourceStatus.IsDeleted(item.Id))
+                        continue;
+
+                    @* TODO: implement an arrow button to toggle showing full details of a server, with editing
+                        possibility *@
                     <tr @key="item.Id">
                         <td>@item.Id</td>
                         <td>@item.Status</td>
@@ -39,26 +46,20 @@
                         <td>@item.StatusLastChecked.ToLocalTime().ToString("t")</td>
                         <td>@item.ReservationType (@item.ReservedFor)</td>
                         <td>@($"{item.UsedDiskSpace}%")</td>
-                        <td>@(TimeSpan.FromSeconds(Math.Round(item.TotalRuntime)))</td>
                         <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
                         <td>@item.WantsMaintenance</td>
                         <td>
-                            <Button Enabled="@CanStopOrStart(item)"
-                                    OnPressed="@(async () => await VerifyStartStop(item))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="@StartButtonStyle(item)"
+                            <Button Enabled="@CanReboot(item)"
+                                    OnPressed="@(async () => await VerifyReboot(item))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="danger"
                                     class="btn-sm">
-                                @if (item.Status == ServerStatus.Stopped || item.Status == ServerStatus.Terminated)
-                                {
-                                    <span>Start</span>
-                                }
-                                else
-                                {
-                                    <span>Stop</span>
-                                }
+                                Reboot
                             </Button>
-                            <Button Enabled="@CanTerminate(item)" OnPressed="@(async () => await VerifyTerminate(item))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
-                                Terminate
+                            <Button Enabled="@(!IsProcessing(item.Id))"
+                                    OnPressed="@(async () => await QueueMaintenance(item.Id))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm">
+                                Queue Maintenance
                             </Button>
                             <Button Enabled="@(!IsProcessing(item.Id))"
                                     OnPressed="@(async () => await QueueCleanUp(item.Id))"
@@ -70,6 +71,11 @@
                                     Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm">
                                 Refresh
                             </Button>
+                            <Button Enabled="@CanDelete(item)"
+                                    OnPressed="@(async () => await VerifyDeleteServer(item))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
+                                Refresh
+                            </Button>
                         </td>
                     </tr>
                 }
@@ -79,16 +85,37 @@
 
     <br />
 
-    <Button Enabled="@(!processingAllServers)" OnPressed="@(async () => await ReCheckAllServerStatuses())"
-            Spinner="@processingAllServers" ButtonStyle="secondary" class="mb-2">
-        Refresh ALL Server Statuses
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+    }
+
+    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+        New
     </Button>
 
-    <p>
-        Note that refreshing server statuses is not recommended if they aren't stuck, as the status refresh may
-        break the server status detection (as it doesn't use exactly same server state transition as elsewhere),
-        in case it wasn't stuck.
-    </p>
+    @if (showNewForm)
+    {
+        <form>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="newExternalServerIp">IP Address</label>
+                    <input type="text" class="form-control" id="newExternalServerIp" @bind="newIP"
+                           @bind:event="oninput">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="newExternalSSHKeyName">SSH Key Filename</label>
+                    <input type="text" class="form-control" id="newExternalSSHKeyName" @bind="newSSHKey"
+                           placeholder="key.pem" @bind:event="oninput">
+                </div>
+            </div>
+
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+            <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                Create
+            </Button>
+        </form>
+    }
 
 </AccessLimited>
 
@@ -101,23 +128,34 @@
         new TableColumn("Status Checked", true, "StatusLastChecked"),
         new TableColumn("Reserved For", true, "ReservationType"),
         new TableColumn("Disk Usage", true, "UsedDiskSpace"),
-        new TableColumn("Total Runtime", true, "TotalRuntime"),
         new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Created At", true, "CreatedAt"),
         new TableColumn("Wants Maintenance", true, "WantsMaintenance"),
         new TableColumn("Actions", false)
     };
 
     private readonly Dictionary<long, bool> processingItems = new();
 
-    private bool processingAllServers;
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> clientSideResourceStatus = new();
 
     private string message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
 
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newIP;
+    private string newSSHKey;
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newIP) && !string.IsNullOrEmpty(newSSHKey)
+        && IPAddress.TryParse(newIP, out IPAddress _);
+
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public ControlledServers() : base(new SortHelper("Id", SortDirection.Ascending))
+    public ExternalServers() : base(new SortHelper("Id", SortDirection.Ascending))
     {
     }
 
@@ -127,7 +165,7 @@
         await base.OnInitializedAsync();
     }
 
-    public Task Handle(ControlledServersUpdated notification, CancellationToken cancellationToken)
+    public Task Handle(ExternalServersUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
     }
@@ -143,18 +181,10 @@
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<ControlledServerDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<ExternalServerDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<ControlledServerDTO>>(
-            QueryHelpers.AddQueryString("api/v1/ControlledServers", requestParams));
-    }
-
-    private bool CanTerminate(ControlledServerDTO server)
-    {
-        if (IsProcessing(server.Id))
-            return false;
-
-        return server.Status != ServerStatus.Terminated;
+        return http.GetFromJsonAsync<PagedResult<ExternalServerDTO>>(
+            QueryHelpers.AddQueryString("api/v1/ExternalServers", requestParams));
     }
 
     private bool IsProcessing(long serverId)
@@ -162,22 +192,7 @@
         return processingItems.GetValueOrDefault(serverId, false);
     }
 
-    private async Task VerifyTerminate(ControlledServerDTO server)
-    {
-        var parameters = new ModalParameters();
-        parameters.Add(nameof(ConfirmTerminate.Name), $"Server {server.Id}");
-
-        var modal = Modal.Show<ConfirmTerminate>("Terminate this server?", parameters);
-
-        var result = await modal.Result;
-
-        if (result.Cancelled)
-            return;
-
-        await PerformTerminate(server.Id);
-    }
-
-    private async Task PerformTerminate(long serverId)
+    private async Task QueueMaintenance(long serverId)
     {
         processingItems[serverId] = true;
         message = null;
@@ -188,7 +203,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/terminate",
+            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/queueMaintenance",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -208,54 +223,77 @@
         }
         else
         {
-            message = "Server successfully commanded to terminate";
+            message = "Server successfully scheduled for maintenance";
             messageType = SiteNoticeType.Primary;
         }
 
         await InvokeAsync(StateHasChanged);
     }
 
-    private bool CanStopOrStart(ControlledServerDTO server)
+    private bool CanReboot(ExternalServerDTO server)
     {
         if (IsProcessing(server.Id))
             return false;
 
-        return server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated ||
-            server.Status == ServerStatus.Running;
+        return server.Status == ServerStatus.Running || server.Status == ServerStatus.Provisioning ||
+            server.Status == ServerStatus.Stopping;
     }
 
-    private string StartButtonStyle(ControlledServerDTO server)
+    private bool CanDelete(ExternalServerDTO server)
     {
-        if (server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated)
-            return "secondary";
+        if (IsProcessing(server.Id))
+            return false;
 
-        return "warning";
+        return server.Status == ServerStatus.Stopped;
     }
 
-    private async Task VerifyStartStop(ControlledServerDTO server)
+    private async Task VerifyReboot(ExternalServerDTO server)
     {
-        if (server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated)
-        {
-            // These can just be started
-            await PerformStart(server.Id);
-            return;
-        }
-
-        // Confirm before stopping
         var parameters = new ModalParameters();
-        parameters.Add(nameof(ConfirmStop.Name), $"Server {server.Id}");
+        parameters.Add(nameof(ConfirmReboot.Name), $"External Server {server.Id}");
 
-        var modal = Modal.Show<ConfirmStop>("Stop this server?", parameters);
+        var modal = Modal.Show<ConfirmReboot>("Restart this server?", parameters);
 
         var result = await modal.Result;
 
         if (result.Cancelled)
             return;
 
-        await PerformStop(server.Id);
+        await PerformReboot(server.Id);
     }
 
-    private async Task PerformStart(long serverId)
+    private async Task VerifyDeleteServer(ExternalServerDTO server)
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmDelete.Name), $"External Server {server.Id}");
+
+        var modal = Modal.Show<ConfirmDelete>("Delete server?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await DeleteServer(server.Id);
+    }
+
+    private async Task VerifyReProvision(ExternalServerDTO server)
+    {
+        // Confirm before stopping
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmReProvision.Name), $"External Server {server.Id}");
+
+        var modal = Modal.Show<ConfirmReProvision>("Re-provision this server?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await QueueReProvision(server.Id);
+    }
+
+    private async Task QueueReProvision(long serverId)
     {
         processingItems[serverId] = true;
         message = null;
@@ -266,7 +304,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/start",
+            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/reProvision",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -286,14 +324,14 @@
         }
         else
         {
-            message = "Server successfully commanded to start";
+            message = "Server successfully started re-provisioning";
             messageType = SiteNoticeType.Info;
         }
 
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task PerformStop(long serverId)
+    private async Task PerformReboot(long serverId)
     {
         processingItems[serverId] = true;
         message = null;
@@ -304,7 +342,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/stop",
+            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/reboot",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -324,7 +362,7 @@
         }
         else
         {
-            message = "Server successfully commanded to stop";
+            message = "Server successfully commanded to restart";
             messageType = SiteNoticeType.Primary;
         }
 
@@ -342,7 +380,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/queueCleanUp",
+            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/queueCleanUp",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -380,7 +418,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/refreshStatus",
+            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/refreshStatus",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -400,16 +438,16 @@
         }
         else
         {
-            message = "Successfully refreshed server state from AWS API";
+            message = "Successfully refreshed server state";
             messageType = SiteNoticeType.Primary;
         }
 
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ReCheckAllServerStatuses()
+    private async Task DeleteServer(long serverId)
     {
-        processingAllServers = true;
+        processingItems[serverId] = true;
         message = null;
         messageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -418,18 +456,17 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/refreshStatuses",
-                new StringContent(string.Empty));
+            result = await http.DeleteAsync($"api/v1/ExternalServers/{serverId}");
         }
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            processingAllServers = false;
+            processingItems[serverId] = false;
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processingAllServers = false;
+        processingItems[serverId] = false;
 
         if (!result.IsSuccessStatusCode)
         {
@@ -438,8 +475,73 @@
         }
         else
         {
-            message = "All server statuses refreshed";
-            messageType = SiteNoticeType.Primary;
+            message = "Server deleted";
+            messageType = SiteNoticeType.Warning;
+            clientSideResourceStatus.SetDeletedStatus(serverId);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newIP = null;
+            newSSHKey = null;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/ExternalServers", new ExternalServerDTO()
+            {
+                PublicAddress = IPAddress.Parse(newIP),
+                SSHKeyFileName = newSSHKey,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New server added";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
         }
 
         await InvokeAsync(StateHasChanged);

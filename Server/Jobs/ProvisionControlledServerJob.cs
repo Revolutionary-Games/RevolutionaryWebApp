@@ -15,10 +15,12 @@ namespace ThriveDevCenter.Server.Jobs
     public class ProvisionControlledServerJob
     {
         // TODO: put this somewhere more sensible
-        private const string ProvisioningCommand =
+        public const string GeneralProvisionCommandPart =
             "sudo dnf install -y podman curl git git-lfs dotnet-runtime-5.0 && " +
-            "git lfs install && " +
-            "sudo mkdir -p /executor_cache && sudo chown -R centos:centos /executor_cache";
+            "git lfs install && sudo mkdir -p /executor_cache";
+
+        private const string ProvisioningCommand = GeneralProvisionCommandPart +
+            " && sudo chown -R centos:centos /executor_cache";
 
         private readonly ILogger<ProvisionControlledServerJob> logger;
         private readonly NotificationsEnabledDb database;
