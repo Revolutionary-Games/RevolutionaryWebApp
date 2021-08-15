@@ -12,10 +12,10 @@ namespace ThriveDevCenter.Server.Jobs
     public class ProvisionExternalServerJob : BaseProvisionServerJob
     {
         private readonly IBackgroundJobClient jobClient;
-        private readonly ExternalServerSSHAccess sshAccess;
+        private readonly IExternalServerSSHAccess sshAccess;
 
         public ProvisionExternalServerJob(ILogger<ProvisionExternalServerJob> logger, NotificationsEnabledDb database,
-            IBackgroundJobClient jobClient, ExternalServerSSHAccess sshAccess) : base(logger, database)
+            IBackgroundJobClient jobClient, IExternalServerSSHAccess sshAccess) : base(logger, database)
         {
             this.jobClient = jobClient;
             this.sshAccess = sshAccess;
@@ -47,7 +47,7 @@ namespace ThriveDevCenter.Server.Jobs
             }
         }
 
-        protected override BaseSSHAccess ConnectWithSSH(BaseServer server)
+        protected override IBaseSSHAccess ConnectWithSSH(BaseServer server)
         {
             sshAccess.ConnectTo(server.PublicAddress.ToString(), ((ExternalServer)server).SSHKeyFileName);
             return sshAccess;

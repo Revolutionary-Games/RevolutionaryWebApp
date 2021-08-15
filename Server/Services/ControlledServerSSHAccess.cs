@@ -4,7 +4,7 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.Extensions.Configuration;
     using Renci.SshNet;
 
-    public class ControlledServerSSHAccess : BaseSSHAccess
+    public class ControlledServerSSHAccess : BaseSSHAccess, IControlledServerSSHAccess
     {
         private readonly PrivateKeyAuthenticationMethod keyAuth;
         private readonly string username;
@@ -29,5 +29,10 @@ namespace ThriveDevCenter.Server.Services
         {
             StartNewConnection(address, username, keyAuth);
         }
+    }
+
+    public interface IControlledServerSSHAccess : IBaseSSHAccess
+    {
+        void ConnectTo(string address);
     }
 }

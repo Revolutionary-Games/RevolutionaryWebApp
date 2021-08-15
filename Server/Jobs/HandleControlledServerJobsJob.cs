@@ -58,7 +58,7 @@ namespace ThriveDevCenter.Server.Jobs
             await database.SaveChangesAsync();
 
             // If we have active servers, queue a check in 1 minute
-            if (!queuedRecheck && (serverHandler.NewServersAdded || (await serverHandler.GetServers()).Any(s =>
+            if (!queuedRecheck && (serverHandler.NewServersAdded || (await serverHandler.GetControlledServers()).Any(s =>
                 s.Status == ServerStatus.Provisioning || s.Status == ServerStatus.Running ||
                 s.Status == ServerStatus.Stopping || s.Status == ServerStatus.WaitingForStartup)))
             {

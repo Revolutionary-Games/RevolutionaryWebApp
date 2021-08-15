@@ -10,13 +10,15 @@ namespace ThriveDevCenter.Server.Jobs
 
     public abstract class BaseCIJobManagingJob
     {
+        public const string DiskUsageCheckCommand = "df";
+
         protected readonly ILogger<BaseCIJobManagingJob> Logger;
         protected readonly NotificationsEnabledDb Database;
-        protected readonly GithubCommitStatusReporter StatusReporter;
+        protected readonly IGithubCommitStatusReporter StatusReporter;
         protected readonly IBackgroundJobClient JobClient;
 
         protected BaseCIJobManagingJob(ILogger<BaseCIJobManagingJob> logger, NotificationsEnabledDb database,
-            IBackgroundJobClient jobClient, GithubCommitStatusReporter statusReporter)
+            IBackgroundJobClient jobClient, IGithubCommitStatusReporter statusReporter)
         {
             Logger = logger;
             Database = database;
@@ -24,7 +26,7 @@ namespace ThriveDevCenter.Server.Jobs
             StatusReporter = statusReporter;
         }
 
-        protected async Task OnJobEnded(ControlledServer server, CiJob job)
+        protected async Task OnJobEnded(BaseServer server, CiJob job)
         {
             ReleaseServerReservation(server);
             job.RunningOnServerId = -1;
@@ -53,7 +55,7 @@ namespace ThriveDevCenter.Server.Jobs
                 x.Execute(job.CiProjectId, job.CiBuildId, CancellationToken.None));
         }
 
-        protected void ReleaseServerReservation(ControlledServer server)
+        protected void ReleaseServerReservation(BaseServer server)
         {
             Logger.LogInformation("Releasing reservation on server {Id}", server.Id);
             server.ReservationType = ServerReservationType.None;

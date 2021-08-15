@@ -5,7 +5,7 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.Extensions.Configuration;
     using Renci.SshNet;
 
-    public class ExternalServerSSHAccess : BaseSSHAccess
+    public class ExternalServerSSHAccess : BaseSSHAccess, IExternalServerSSHAccess
     {
         private readonly string username;
         private readonly string basePath;
@@ -55,5 +55,11 @@ namespace ThriveDevCenter.Server.Services
         {
             return Path.Join(basePath, name);
         }
+    }
+
+    public interface IExternalServerSSHAccess : IBaseSSHAccess
+    {
+        void ConnectTo(string address, string keyName);
+        bool IsValidKey(string name);
     }
 }

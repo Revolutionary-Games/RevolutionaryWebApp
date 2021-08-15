@@ -10,7 +10,7 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.AspNetCore.WebUtilities;
     using Shared.Models;
 
-    public abstract class BaseCDNDownload
+    public abstract class BaseCDNDownload : IBaseCDNDownload
     {
         private readonly string downloadKey;
 
@@ -94,5 +94,11 @@ namespace ThriveDevCenter.Server.Services
         {
             return base64String.Replace("\n", "").Replace("+", "-").Replace("/", "_").Replace("=", "");
         }
+    }
+
+    public interface IBaseCDNDownload
+    {
+        bool Configured { get; }
+        string GenerateSignedURL(string path, TimeSpan expiresIn);
     }
 }

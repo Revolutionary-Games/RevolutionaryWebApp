@@ -21,7 +21,7 @@ namespace ThriveDevCenter.Server.Services
     ///     All qualified repo name parameters assume the repo name in form "username/repoName"
     ///   </para>
     /// </remarks>
-    public class GithubAPI
+    public class GithubAPI : IGithubAPI
     {
         private readonly ILogger<GithubAPI> logger;
         private readonly HttpClient client;
@@ -153,6 +153,17 @@ namespace ThriveDevCenter.Server.Services
 
             // ReSharper restore UnusedAutoPropertyAccessor.Local
         }
+    }
+
+    public interface IGithubAPI
+    {
+        bool Configured { get; }
+        bool ThrowIfNotConfigured { get; set; }
+        Task<GithubUserInfo> GetCurrentUserInfo();
+        Task<List<GithubEmail>> GetCurrentUserEmails();
+
+        Task<bool> SetCommitStatus(string qualifiedRepoName, string sha, GithubAPI.CommitStatus state,
+            string buildStatusUrl, string description, string contextSuffix);
     }
 
     public class GithubUserInfo

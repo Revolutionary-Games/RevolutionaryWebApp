@@ -49,7 +49,7 @@ namespace ThriveDevCenter.Server.Jobs
                 server.PublicAddress);
 
             // TODO: there should probably be a maximum number of times this is attempted
-            BaseSSHAccess sshAccess;
+            IBaseSSHAccess sshAccess;
             try
             {
                 sshAccess = ConnectWithSSH(server);
@@ -90,6 +90,6 @@ namespace ThriveDevCenter.Server.Jobs
             Logger.LogInformation("Completed provisioning for server {Id}, elapsed: {Elapsed}", server.Id, elapsed);
         }
 
-        protected abstract BaseSSHAccess ConnectWithSSH(BaseServer server);
+        protected abstract IBaseSSHAccess ConnectWithSSH(BaseServer server);
     }
 }

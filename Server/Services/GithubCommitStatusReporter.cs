@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Server.Services
     using Models;
     using Utilities;
 
-    public class GithubCommitStatusReporter : GithubAPI
+    public class GithubCommitStatusReporter : GithubAPI, IGithubCommitStatusReporter
     {
         private readonly Uri baseUrl;
 
@@ -30,5 +30,10 @@ namespace ThriveDevCenter.Server.Services
 
             return new Uri(baseUrl, $"/ci/{job.CiProjectId}/build/{job.CiBuildId}/jobs/{job.CiJobId}").ToString();
         }
+    }
+
+    public interface IGithubCommitStatusReporter : IGithubAPI
+    {
+        string CreateStatusUrlForJob(CiJob job);
     }
 }

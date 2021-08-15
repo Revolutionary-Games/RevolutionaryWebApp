@@ -17,11 +17,11 @@ namespace ThriveDevCenter.Server.Jobs
         
         private readonly IEC2Controller ec2Controller;
         private readonly IBackgroundJobClient jobClient;
-        private readonly ControlledServerSSHAccess sshAccess;
+        private readonly IControlledServerSSHAccess sshAccess;
 
         public ProvisionControlledServerJob(ILogger<ProvisionControlledServerJob> logger,
             NotificationsEnabledDb database, IEC2Controller ec2Controller, IBackgroundJobClient jobClient,
-            ControlledServerSSHAccess sshAccess) : base(logger, database)
+            IControlledServerSSHAccess sshAccess) : base(logger, database)
         {
             this.ec2Controller = ec2Controller;
             this.jobClient = jobClient;
@@ -72,7 +72,7 @@ namespace ThriveDevCenter.Server.Jobs
             }
         }
 
-        protected override BaseSSHAccess ConnectWithSSH(BaseServer server)
+        protected override IBaseSSHAccess ConnectWithSSH(BaseServer server)
         {
             sshAccess.ConnectTo(server.PublicAddress.ToString());
             return sshAccess;

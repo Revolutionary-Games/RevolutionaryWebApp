@@ -3,7 +3,7 @@ namespace ThriveDevCenter.Server.Services
     using System;
     using Renci.SshNet;
 
-    public class BaseSSHAccess : IDisposable
+    public class BaseSSHAccess : IDisposable, IBaseSSHAccess
     {
         protected SshClient client { get; set; }
         public bool Configured { get; protected set; }
@@ -64,5 +64,11 @@ namespace ThriveDevCenter.Server.Services
             public string Error { get; set; }
             public string Result { get; set; }
         }
+    }
+
+    public interface IBaseSSHAccess
+    {
+        bool Configured { get; }
+        BaseSSHAccess.CommandResult RunCommand(string commandStr);
     }
 }

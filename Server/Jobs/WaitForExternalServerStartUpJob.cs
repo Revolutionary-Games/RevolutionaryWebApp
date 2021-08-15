@@ -16,10 +16,10 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly ILogger<WaitForExternalServerStartUpJob> logger;
         private readonly NotificationsEnabledDb database;
         private readonly IBackgroundJobClient jobClient;
-        private readonly ExternalServerSSHAccess sshAccess;
+        private readonly IExternalServerSSHAccess sshAccess;
 
         public WaitForExternalServerStartUpJob(ILogger<WaitForExternalServerStartUpJob> logger,
-            NotificationsEnabledDb database, IBackgroundJobClient jobClient, ExternalServerSSHAccess sshAccess)
+            NotificationsEnabledDb database, IBackgroundJobClient jobClient, IExternalServerSSHAccess sshAccess)
         {
             this.logger = logger;
             this.database = database;

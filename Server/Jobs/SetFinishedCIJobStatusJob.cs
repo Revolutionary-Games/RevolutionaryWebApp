@@ -16,7 +16,7 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly NotificationsEnabledDb database;
 
         public SetFinishedCIJobStatusJob(ILogger<SetFinishedCIJobStatusJob> logger, NotificationsEnabledDb database,
-            IBackgroundJobClient jobClient, GithubCommitStatusReporter statusReporter) : base(logger, database,
+            IBackgroundJobClient jobClient, IGithubCommitStatusReporter statusReporter) : base(logger, database,
             jobClient, statusReporter)
         {
             this.logger = logger;

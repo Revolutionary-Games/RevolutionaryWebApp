@@ -28,11 +28,11 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<ExternalServersController> logger;
         private readonly NotificationsEnabledDb database;
-        private readonly ExternalServerSSHAccess serverSSHAccess;
+        private readonly IExternalServerSSHAccess serverSSHAccess;
         private readonly IBackgroundJobClient jobClient;
 
         public ExternalServersController(ILogger<ExternalServersController> logger, NotificationsEnabledDb database,
-            ExternalServerSSHAccess serverSSHAccess, IBackgroundJobClient jobClient)
+            IExternalServerSSHAccess serverSSHAccess, IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.database = database;
