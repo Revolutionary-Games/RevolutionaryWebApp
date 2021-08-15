@@ -229,6 +229,7 @@ namespace ThriveDevCenter.Server.Hubs
                 case NotificationGroups.PatronListUpdated:
                 case NotificationGroups.AccessKeyListUpdated:
                 case NotificationGroups.ControlledServerListUpdated:
+                case NotificationGroups.ExternalServerListUpdated:
                 case NotificationGroups.CLAListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:

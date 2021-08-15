@@ -53,28 +53,45 @@
                             <Button Enabled="@CanReboot(item)"
                                     OnPressed="@(async () => await VerifyReboot(item))"
                                     Spinner="@IsProcessing(item.Id)" ButtonStyle="danger"
-                                    class="btn-sm">
+                                    class="btn-sm mb-1">
                                 Reboot
                             </Button>
                             <Button Enabled="@(!IsProcessing(item.Id))"
                                     OnPressed="@(async () => await QueueMaintenance(item.Id))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm">
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm mb-1">
                                 Queue Maintenance
                             </Button>
                             <Button Enabled="@(!IsProcessing(item.Id))"
                                     OnPressed="@(async () => await QueueCleanUp(item.Id))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm">
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm mb-1">
                                 Queue Clean
                             </Button>
+                            <br />
                             <Button Enabled="@(!IsProcessing(item.Id))"
                                     OnPressed="@(async () => await RefreshStatus(item.Id))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm">
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm mr-1">
                                 Refresh
                             </Button>
+                            @if (item.Status != ServerStatus.Stopped && item.Status != ServerStatus.Stopping)
+                            {
+                                <Button Enabled="@(!IsProcessing(item.Id))"
+                                        OnPressed="@(async () => await SetManualStatus(item.Id, true))"
+                                        Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm">
+                                    Set Offline
+                                </Button>
+                            }
+                            else
+                            {
+                                <Button Enabled="@(!IsProcessing(item.Id))"
+                                        OnPressed="@(async () => await SetManualStatus(item.Id, false))"
+                                        Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm">
+                                    Set Online
+                                </Button>
+                            }
                             <Button Enabled="@CanDelete(item)"
                                     OnPressed="@(async () => await VerifyDeleteServer(item))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
-                                Refresh
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm ml-1">
+                                Delete
                             </Button>
                         </td>
                     </tr>
@@ -172,7 +189,7 @@
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.ControlledServerListUpdated);
+        groups.Add(NotificationGroups.ExternalServerListUpdated);
     }
 
     public override async ValueTask DisposeAsync()
@@ -401,6 +418,44 @@
         else
         {
             message = "Clean queued on server successfully. It will be cleaned next time a job runs on it";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SetManualStatus(long serverId, bool offline)
+    {
+        processingItems[serverId] = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/offline?offline={offline}",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingItems[serverId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[serverId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Manually set server status changed";
             messageType = SiteNoticeType.Primary;
         }
 
