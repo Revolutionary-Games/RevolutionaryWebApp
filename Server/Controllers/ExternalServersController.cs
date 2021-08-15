@@ -239,12 +239,7 @@ namespace ThriveDevCenter.Server.Controllers
             try
             {
                 serverSSHAccess.ConnectTo(server.PublicAddress.ToString(), server.SSHKeyFileName);
-                var result = serverSSHAccess.RunCommand("sudo reboot");
-                if (!result.Success)
-                {
-                    throw new Exception(
-                        $"Reboot command failed: {result.Result}, error: {result.Error}, code: {result.ExitCode}");
-                }
+                serverSSHAccess.Reboot();
             }
             catch (Exception e)
             {
