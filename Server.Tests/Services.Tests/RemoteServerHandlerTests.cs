@@ -43,6 +43,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var ec2Mock = new Mock<IEC2Controller>();
             ec2Mock.Setup(ec2 => ec2.LaunchNewInstance())
                 .Returns(Task.FromResult(new List<string>() { NewInstanceId })).Verifiable();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -83,6 +84,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
 
             var ec2Mock = new Mock<IEC2Controller>();
             ec2Mock.Setup(ec2 => ec2.ResumeInstance(instanceId1)).Returns(Task.CompletedTask).Verifiable();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -133,6 +135,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
         {
             var ec2Mock = new Mock<IEC2Controller>();
             ec2Mock.Setup(ec2 => ec2.ResumeInstance(It.IsAny<string>())).Throws<InvalidOperationException>();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -182,12 +185,12 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             ec2Mock.Verify();
         }
 
-
         [Fact]
         public async Task ServerControl_JobIsNotStartedOnMultipleServers()
         {
             var ec2Mock = new Mock<IEC2Controller>();
             ec2Mock.Setup(ec2 => ec2.ResumeInstance(It.IsAny<string>())).Throws<InvalidOperationException>();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -263,6 +266,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
                     }
                 }))
                 .Verifiable();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -340,6 +344,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
                     }
                 }))
                 .Verifiable();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -403,6 +408,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
         {
             var ec2Mock = new Mock<IEC2Controller>();
             ec2Mock.Setup(ec2 => ec2.LaunchNewInstance()).Throws<InvalidOperationException>();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -469,6 +475,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
         {
             var ec2Mock = new Mock<IEC2Controller>();
             ec2Mock.Setup(ec2 => ec2.LaunchNewInstance()).Throws<InvalidOperationException>();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -513,6 +520,129 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             Assert.Equal(123, server1.ReservedFor);
             Assert.Null(server2.ReservedFor);
             Assert.Equal(ServerStatus.Provisioning, server2.Status);
+
+            ec2Mock.Verify();
+        }
+
+        [Fact]
+        public async Task ServerControl_ExternalServersAreUsedBeforeEC2()
+        {
+            var ec2Mock = new Mock<IEC2Controller>();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+
+            var jobClientMock = new Mock<IBackgroundJobClient>();
+
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+            await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase("ExternalServersBeforeEC2")
+                .Options, notificationsMock.Object);
+
+            CIProjectTestDatabaseData.Seed(database);
+            var job = await AddTestJob(database);
+
+            var job2 = new CiJob()
+            {
+                CiProjectId = CIProjectTestDatabaseData.CIProjectId,
+                CiBuildId = CIProjectTestDatabaseData.CIBuildId,
+                CiJobId = 2,
+                JobName = "job2",
+                Image = "test/test:v1",
+                CacheSettingsJson = "{}",
+            };
+
+            await database.CiJobs.AddAsync(job2);
+
+            var server1 = new ExternalServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+            };
+
+            await database.ExternalServers.AddAsync(server1);
+
+            var server2 = new ControlledServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+                InstanceId = "id-1111",
+            };
+
+            await database.ControlledServers.AddAsync(server2);
+            await database.SaveChangesAsync();
+
+            var handler =
+                new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+
+            Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+
+            Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+            Assert.Equal(job.CiJobId, server1.ReservedFor);
+
+            Assert.Equal(ServerReservationType.None, server2.ReservationType);
+            Assert.Null(server2.ReservedFor);
+
+            Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job2 }));
+
+            Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+            Assert.Equal(job.CiJobId, server1.ReservedFor);
+
+            Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
+            Assert.Equal(job2.CiJobId, server2.ReservedFor);
+
+            ec2Mock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task ServerControl_EC2NotBeingConfiguredAllowsExternalToRun()
+        {
+            var ec2Mock = new Mock<IEC2Controller>();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(false).Verifiable();
+
+            var jobClientMock = new Mock<IBackgroundJobClient>();
+
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+            await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase("ExternalRunEC2NotConfiguredForMore")
+                .Options, notificationsMock.Object);
+
+            CIProjectTestDatabaseData.Seed(database);
+            var job = await AddTestJob(database);
+
+            var job2 = new CiJob()
+            {
+                CiProjectId = CIProjectTestDatabaseData.CIProjectId,
+                CiBuildId = CIProjectTestDatabaseData.CIBuildId,
+                CiJobId = 2,
+                JobName = "job2",
+                Image = "test/test:v1",
+                CacheSettingsJson = "{}",
+            };
+
+            await database.CiJobs.AddAsync(job2);
+
+            var server1 = new ExternalServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+            };
+
+            await database.ExternalServers.AddAsync(server1);
+            await database.SaveChangesAsync();
+
+            var handler =
+                new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+
+            Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+
+            Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+            Assert.Equal(job.CiJobId, server1.ReservedFor);
+
+            Assert.False(await handler.HandleCIJobs(new List<CiJob>() { job2 }));
+
+            Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+            Assert.Equal(job.CiJobId, server1.ReservedFor);
 
             ec2Mock.Verify();
         }

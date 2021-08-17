@@ -27,10 +27,10 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<LauncherController> logger;
         private readonly NotificationsEnabledDb database;
-        private readonly GeneralRemoteDownloadUrls remoteDownloads;
+        private readonly IGeneralRemoteDownloadUrls remoteDownloads;
 
         public LauncherController(ILogger<LauncherController> logger, NotificationsEnabledDb database,
-            GeneralRemoteDownloadUrls remoteDownloads)
+            IGeneralRemoteDownloadUrls remoteDownloads)
         {
             this.logger = logger;
             this.database = database;

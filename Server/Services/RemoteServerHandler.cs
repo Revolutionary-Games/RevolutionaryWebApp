@@ -20,6 +20,7 @@ namespace ThriveDevCenter.Server.Services
         private readonly IEC2Controller ec2Controller;
         private readonly IBackgroundJobClient jobClient;
         private readonly Lazy<Task<List<ControlledServer>>> servers;
+        private readonly Lazy<Task<List<ExternalServer>>> externalServers;
 
         private readonly int shutdownIdleDelay;
         private readonly int maximumRunningServers;
@@ -39,13 +40,29 @@ namespace ThriveDevCenter.Server.Services
             servers =
                 new Lazy<Task<List<ControlledServer>>>(() =>
                     database.ControlledServers.AsQueryable().OrderBy(s => s.Id).ToListAsync());
+            externalServers =
+                new Lazy<Task<List<ExternalServer>>>(() =>
+                    database.ExternalServers.AsQueryable().OrderBy(s => s.Id).ToListAsync());
         }
 
         public bool NewServersAdded { get; private set; }
 
-        public Task<List<ControlledServer>> GetServers()
+        public Task<List<ControlledServer>> GetControlledServers()
         {
             return servers.Value;
+        }
+
+        public Task<List<ExternalServer>> GetExternalServers()
+        {
+            return externalServers.Value;
+        }
+
+        public async Task<List<BaseServer>> GetAllServers()
+        {
+            var controlledTask = GetControlledServers();
+            var external = await GetExternalServers();
+
+            return external.Select(s => (BaseServer)s).Concat(await controlledTask).ToList();
         }
 
         public async Task CheckServerStatuses(CancellationToken cancellationToken)
@@ -54,7 +71,7 @@ namespace ThriveDevCenter.Server.Services
 
             var now = DateTime.UtcNow;
 
-            foreach (var server in await GetServers())
+            foreach (var server in await GetControlledServers())
             {
                 switch (server.Status)
                 {
@@ -106,7 +123,7 @@ namespace ThriveDevCenter.Server.Services
         {
             int missingServer = 0;
 
-            var potentialServers = await GetServers();
+            var potentialServers = await GetAllServers();
 
             foreach (var job in ciJobsNeedingActions)
             {
@@ -127,11 +144,10 @@ namespace ThriveDevCenter.Server.Services
 
                             await database.SaveChangesAsync();
 
-                            // Can run this job here
+                            // Can run this job on this server
                             jobClient.Enqueue<RunJobOnServerJob>(x =>
-                                x.Execute(job.CiProjectId, job.CiBuildId, job.CiJobId, server.Id,
-                                    RunJobOnServerJob.DefaultJobConnectRetries,
-                                    CancellationToken.None));
+                                x.Execute(job.CiProjectId, job.CiBuildId, job.CiJobId, server.Id, server.IsExternal,
+                                    RunJobOnServerJob.DefaultJobConnectRetries, CancellationToken.None));
                             found = true;
                             break;
                         }
@@ -146,10 +162,17 @@ namespace ThriveDevCenter.Server.Services
             if (missingServer < 1)
                 return true;
 
-            var provisioning = potentialServers.Count(s => s.Status == ServerStatus.Provisioning);
-            var starting = potentialServers.Count(s => s.Status == ServerStatus.WaitingForStartup);
-            var stopping = potentialServers.Count(s => s.Status == ServerStatus.Stopping);
-            var running = potentialServers.Count(s => s.Status == ServerStatus.Running);
+            // Exit if we can't manage the EC2 servers. And return false so that re-check happens when we might have
+            // servers available
+            if (!ec2Controller.Configured)
+                return false;
+
+            var controlledServers = await GetControlledServers();
+
+            var provisioning = controlledServers.Count(s => s.Status == ServerStatus.Provisioning);
+            var starting = controlledServers.Count(s => s.Status == ServerStatus.WaitingForStartup);
+            var stopping = controlledServers.Count(s => s.Status == ServerStatus.Stopping);
+            var running = controlledServers.Count(s => s.Status == ServerStatus.Running);
 
             logger.LogInformation(
                 "Not enough server to run jobs, missing: {MissingServer} currently starting: {Starting} " +
@@ -177,7 +200,7 @@ namespace ThriveDevCenter.Server.Services
             {
                 bool foundServer = false;
 
-                foreach (var server in potentialServers)
+                foreach (var server in controlledServers)
                 {
                     if (server.WantsMaintenance)
                         continue;
@@ -243,7 +266,7 @@ namespace ThriveDevCenter.Server.Services
             }
 
             // If still not enough, create new servers if allowed
-            if (missingServer > 0 && potentialServers.Count < maximumRunningServers)
+            if (missingServer > 0 && controlledServers.Count < maximumRunningServers)
             {
                 logger.LogInformation("Creating a new server to meet demand");
 
@@ -285,9 +308,13 @@ namespace ThriveDevCenter.Server.Services
 
         public async Task ShutdownIdleServers()
         {
+            // Skip if we can't manage EC2 servers
+            if (!ec2Controller.Configured)
+                return;
+
             var now = DateTime.UtcNow;
 
-            foreach (var server in await GetServers())
+            foreach (var server in await GetControlledServers())
             {
                 if (server.ProvisionedFully && server.Status == ServerStatus.Running &&
                     server.ReservationType == ServerReservationType.None)

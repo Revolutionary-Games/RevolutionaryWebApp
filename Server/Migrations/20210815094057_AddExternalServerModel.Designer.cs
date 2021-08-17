@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ThriveDevCenter.Server.Models;
@@ -10,9 +11,10 @@ using ThriveDevCenter.Server.Models;
 namespace ThriveDevCenter.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class WebApiContextModelSnapshot : ModelSnapshot
+    [Migration("20210815094057_AddExternalServerModel")]
+    partial class AddExternalServerModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -292,10 +294,6 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Property<long>("RunningOnServerId")
                         .HasColumnType("bigint")
                         .HasColumnName("running_on_server_id");
-
-                    b.Property<bool?>("RunningOnServerIsExternal")
-                        .HasColumnType("boolean")
-                        .HasColumnName("running_on_server_is_external");
 
                     b.Property<int>("State")
                         .HasColumnType("integer")

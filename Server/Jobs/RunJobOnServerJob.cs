@@ -25,38 +25,52 @@ namespace ThriveDevCenter.Server.Jobs
 
     public class RunJobOnServerJob : BaseCIJobManagingJob
     {
-        public const int DefaultJobConnectRetries = 30;
+        public const int DefaultJobConnectRetries = 15;
 
         private readonly IConfiguration configuration;
-        private readonly ControlledServerSSHAccess sshAccess;
-        private readonly GeneralRemoteDownloadUrls remoteDownloadUrls;
+        private readonly IControlledServerSSHAccess controlledSSHAccess;
+        private readonly IExternalServerSSHAccess externalSSHAccess;
+        private readonly IGeneralRemoteDownloadUrls remoteDownloadUrls;
 
         private readonly int cleanThreshold;
 
         public RunJobOnServerJob(ILogger<RunJobOnServerJob> logger, IConfiguration configuration,
-            NotificationsEnabledDb database, ControlledServerSSHAccess sshAccess, IBackgroundJobClient jobClient,
-            GithubCommitStatusReporter statusReporter, GeneralRemoteDownloadUrls remoteDownloadUrls) : base(logger,
-            database,
-            jobClient, statusReporter)
+            NotificationsEnabledDb database, IControlledServerSSHAccess controlledSSHAccess,
+            IExternalServerSSHAccess externalSSHAccess, IBackgroundJobClient jobClient,
+            IGithubCommitStatusReporter statusReporter, IGeneralRemoteDownloadUrls remoteDownloadUrls) : base(logger,
+            database, jobClient, statusReporter)
         {
             this.configuration = configuration;
-            this.sshAccess = sshAccess;
+            this.controlledSSHAccess = controlledSSHAccess;
+            this.externalSSHAccess = externalSSHAccess;
             this.remoteDownloadUrls = remoteDownloadUrls;
             cleanThreshold = Convert.ToInt32(configuration["CI:ServerCleanUpDiskUsePercentage"]);
         }
 
-        public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId, int retries,
-            CancellationToken cancellationToken)
+        public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, long serverId, bool serverIsExternal,
+            int retries, CancellationToken cancellationToken)
         {
             // Includes are needed here to provide fully populated data for update notifications
             var job = await Database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
                 .FirstOrDefaultAsync(
                     j => j.CiProjectId == ciProjectId && j.CiBuildId == ciBuildId && j.CiJobId == ciJobId,
                     cancellationToken);
-            var server = await Database.ControlledServers.FindAsync(new object[] { serverId }, cancellationToken);
+
+            BaseServer server;
+            if (serverIsExternal)
+            {
+                server = await Database.ExternalServers.FindAsync(new object[] { serverId }, cancellationToken);
+            }
+            else
+            {
+                server = await Database.ControlledServers.FindAsync(new object[] { serverId }, cancellationToken);
+            }
 
             if (server == null)
-                throw new ArgumentException("Could not find server to run build on");
+            {
+                throw new ArgumentException($"Could not find server ({serverId}, external: {serverIsExternal}) " +
+                    "to run build on");
+            }
 
             if (job == null)
             {
@@ -136,24 +150,35 @@ namespace ThriveDevCenter.Server.Jobs
                     AppInfo.RemoteStorageUploadExpireTime + TimeSpan.FromMinutes(5));
             }
 
-            Logger.LogInformation("Trying to start job {CIProjectId}-{CIBuildId}-{CIJobId} on reserved server ({Id})",
-                ciProjectId, ciBuildId, ciJobId, server.Id);
+            Logger.LogInformation("Trying to start job {CIProjectId}-{CIBuildId}-{CIJobId} on reserved " +
+                "server ({Id}, {ServerIsExternal})", ciProjectId, ciBuildId, ciJobId, server.Id, serverIsExternal);
 
             // Try to start running the job, this can fail if the server is not actually really up yet
+            IBaseSSHAccess sshAccess;
             try
             {
-                sshAccess.ConnectTo(server.PublicAddress.ToString());
+                if (serverIsExternal)
+                {
+                    externalSSHAccess.ConnectTo(server.PublicAddress.ToString(),
+                        ((ExternalServer)server).SSHKeyFileName);
+                    sshAccess = externalSSHAccess;
+                }
+                else
+                {
+                    controlledSSHAccess.ConnectTo(server.PublicAddress.ToString());
+                    sshAccess = controlledSSHAccess;
+                }
             }
             catch (SocketException)
             {
-                Logger.LogInformation("Connection failed (socket exception), server is probably not up yet");
-                await Requeue(job, retries - 1, server);
+                Logger.LogInformation("Connection failed (socket exception), server is probably not up (yet)");
+                await Requeue(job, retries - 1, server, serverIsExternal);
                 return;
             }
             catch (SshOperationTimeoutException)
             {
-                Logger.LogInformation("Connection failed (ssh timed out), server is probably not up yet");
-                await Requeue(job, retries - 1, server);
+                Logger.LogInformation("Connection failed (ssh timed out), server is probably not up (yet)");
+                await Requeue(job, retries - 1, server, serverIsExternal);
                 return;
             }
 
@@ -162,6 +187,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             // Connection success, so now we can run the job starting on the server
             job.RunningOnServerId = serverId;
+            job.RunningOnServerIsExternal = server.IsExternal;
             job.State = CIJobState.Running;
 
             CISecretType jobSpecificSecretType = job.Build.IsSafe ? CISecretType.SafeOnly : CISecretType.UnsafeOnly;
@@ -170,7 +196,7 @@ namespace ThriveDevCenter.Server.Jobs
                 .Where(s => s.CiProjectId == job.CiProjectId && (s.UsedForBuildTypes == jobSpecificSecretType ||
                     s.UsedForBuildTypes == CISecretType.All)).ToListAsync(cancellationToken);
 
-            await PerformServerCleanUpIfNeeded(server);
+            await PerformServerCleanUpIfNeeded(server, sshAccess);
 
             // This save is done here as the build status might get reported back to us before we finish with the ssh
             // commands
@@ -243,19 +269,19 @@ namespace ThriveDevCenter.Server.Jobs
                 TimeSpan.FromMinutes(5));
 
             JobClient.Schedule<CancelCIBuildIfStuckJob>(
-                x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, CancellationToken.None),
+                x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, server.IsExternal, CancellationToken.None),
                 TimeSpan.FromMinutes(61));
 
             Logger.LogInformation(
                 "CI job startup succeeded, now it's up to the executor to contact us with updates");
         }
 
-        private async Task PerformServerCleanUpIfNeeded(ControlledServer server)
+        private async Task PerformServerCleanUpIfNeeded(BaseServer server, IBaseSSHAccess sshAccess)
         {
             int? detectedUsedPercentage = null;
 
             // Check server remaining disk space here
-            var diskSpaceResult = sshAccess.RunCommand("df");
+            var diskSpaceResult = sshAccess.RunCommand(DiskUsageCheckCommand);
 
             if (!diskSpaceResult.Success)
             {
@@ -309,21 +335,22 @@ namespace ThriveDevCenter.Server.Jobs
                         server.Id, server.UsedDiskSpace, cleanThreshold);
                 }
 
-                await PerformServerCleanUp(server);
+                await PerformServerCleanUp(server, sshAccess);
                 server.CleanUpQueued = false;
             }
 
             await Database.SaveChangesAsync();
         }
 
-        private async Task PerformServerCleanUp(ControlledServer server)
+        private async Task PerformServerCleanUp(BaseServer server, IBaseSSHAccess sshAccess)
         {
             var start = DateTime.UtcNow;
 
             // This deletes everything (maybe sometimes it would be better to leave the downloaded images alone)
             // "-f" is very important here to prevent this just getting locked up forever
             var cleanupResult =
-                sshAccess.RunCommand("sudo rm -rf /executor_cache/* && rm -rf ~/images && podman system reset -f");
+                sshAccess.RunCommand(
+                    "sudo rm -rf /executor_cache/* && rm -rf ~/images && podman system reset -f");
 
             if (!cleanupResult.Success)
             {
@@ -340,7 +367,7 @@ namespace ThriveDevCenter.Server.Jobs
             Logger.LogInformation("Completed cleanup for server {Id}, elapsed: {Elapsed}", server.Id, elapsed);
         }
 
-        private async Task Requeue(CiJob job, int retries, ControlledServer server)
+        private async Task Requeue(CiJob job, int retries, BaseServer server, bool serverIsExternal)
         {
             if (retries < 1)
             {
@@ -349,7 +376,8 @@ namespace ThriveDevCenter.Server.Jobs
                 job.FinishedAt = DateTime.UtcNow;
                 job.Succeeded = false;
 
-                // TODO: add job output about the connect failure
+                await job.CreateFailureSection(Database, "Connection to build server failed after multiple retries",
+                    "Server Failure");
 
                 // Stop hogging the server and mark the build as failed
                 await OnJobEnded(server, job);
@@ -357,7 +385,8 @@ namespace ThriveDevCenter.Server.Jobs
             }
 
             JobClient.Schedule<RunJobOnServerJob>(x =>
-                    x.Execute(job.CiProjectId, job.CiBuildId, job.CiJobId, server.Id, retries, CancellationToken.None),
+                    x.Execute(job.CiProjectId, job.CiBuildId, job.CiJobId, server.Id, serverIsExternal, retries,
+                        CancellationToken.None),
                 TimeSpan.FromSeconds(10));
         }
 

@@ -2,36 +2,23 @@ namespace ThriveDevCenter.Server.Models
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     using Microsoft.EntityFrameworkCore;
-    using Shared;
     using Shared.Models;
     using Shared.Notifications;
     using Utilities;
 
-    public class ControlledServer : BaseServer, IUpdateNotifications
+    [Index(nameof(PublicAddress), IsUnique = true)]
+    public class ExternalServer : BaseServer, IUpdateNotifications
     {
-        [AllowSortingBy]
-        public double TotalRuntime { get; set; } = 0.0;
-
-        // TODO: hook these two up so that a maintenance job can recreate outdated servers
-        public string CreatedWithImage { get; set; }
-        public string AWSInstanceType { get; set; }
-        public long CreatedVolumeSize { get; set; }
-
-        public string InstanceId { get; set; }
+        [Required]
+        public string SSHKeyFileName { get; set; }
 
         [NotMapped]
-        public override bool IsExternal => false;
+        public override bool IsExternal => true;
 
-        public void SetProvisioningStatus(string instanceId)
-        {
-            MarkAsProvisioningStarted();
-
-            InstanceId = instanceId;
-        }
-
-        public ControlledServerDTO GetDTO()
+        public ExternalServerDTO GetDTO()
         {
             return new()
             {
@@ -42,13 +29,12 @@ namespace ThriveDevCenter.Server.Models
                 ReservedFor = ReservedFor?.ToString() ?? "unset",
                 PublicAddress = PublicAddress,
                 RunningSince = RunningSince,
-                TotalRuntime = TotalRuntime,
                 ProvisionedFully = ProvisionedFully,
-                InstanceId = InstanceId,
                 WantsMaintenance = WantsMaintenance,
                 LastMaintenance = LastMaintenance,
                 UsedDiskSpace = UsedDiskSpace,
                 CleanUpQueued = CleanUpQueued,
+                SSHKeyFileName = SSHKeyFileName,
                 CreatedAt = CreatedAt,
                 UpdatedAt = UpdatedAt,
             };
@@ -56,11 +42,11 @@ namespace ThriveDevCenter.Server.Models
 
         public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
         {
-            yield return new Tuple<SerializedNotification, string>(new ControlledServersUpdated()
+            yield return new Tuple<SerializedNotification, string>(new ExternalServersUpdated()
             {
                 Type = entityState.ToChangeType(),
                 Item = GetDTO()
-            }, NotificationGroups.ControlledServerListUpdated);
+            }, NotificationGroups.ExternalServerListUpdated);
         }
     }
 }

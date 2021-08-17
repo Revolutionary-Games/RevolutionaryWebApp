@@ -22,10 +22,10 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<DownloadController> logger;
         private readonly ApplicationDbContext database;
-        private readonly GeneralRemoteDownloadUrls remoteDownload;
+        private readonly IGeneralRemoteDownloadUrls remoteDownload;
 
         public DownloadController(ILogger<DownloadController> logger, ApplicationDbContext database,
-            GeneralRemoteDownloadUrls remoteDownload)
+            IGeneralRemoteDownloadUrls remoteDownload)
         {
             this.logger = logger;
             this.database = database;

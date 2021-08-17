@@ -152,8 +152,8 @@ namespace ThriveDevCenter.Server.Jobs
 
         private Task QueueEmailNotification(CiBuild build, string email, string checkLink)
         {
-            // Skip duplicate emails
-            if (!alreadySentEmails.Add(email))
+            // Skip duplicate emails and likely no reply addresses
+            if (!alreadySentEmails.Add(email) || EmailHelpers.IsNoReplyAddress(email))
                 return Task.CompletedTask;
 
             logger.LogInformation("Sending build failure / status ({CiProjectId}-{CiBuildId}) email to: {Email}",

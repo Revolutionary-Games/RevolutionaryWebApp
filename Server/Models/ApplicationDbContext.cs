@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<CiJobArtifact> CiJobArtifacts { get; set; }
         public DbSet<CiJobOutputSection> CiJobOutputSections { get; set; }
         public DbSet<ControlledServer> ControlledServers { get; set; }
+        public DbSet<ExternalServer> ExternalServers { get; set; }
         public DbSet<Cla> Clas { get; set; }
         public DbSet<ClaSignature> ClaSignatures { get; set; }
         public DbSet<PullRequest> PullRequests { get; set; }
@@ -343,6 +345,18 @@ namespace ThriveDevCenter.Server.Models
                 entity.UseXminAsConcurrencyToken();
 
                 entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
+            });
+
+            modelBuilder.Entity<ExternalServer>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+
+                entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
+
+                // Mapping IP to string is required for use with unique index
+                // https://github.com/dotnet/efcore/issues/23775
+                entity.Property(e => e.PublicAddress).IsRequired()
+                    .HasConversion(a => a.ToString(), s => IPAddress.Parse(s));
             });
 
             modelBuilder.Entity<Cla>(entity =>

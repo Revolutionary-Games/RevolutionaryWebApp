@@ -174,7 +174,7 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<RedirectVerifier>();
             services.AddSingleton<StaticHomePageNotice>();
             services.AddSingleton<LfsDownloadUrls>();
-            services.AddSingleton<GeneralRemoteDownloadUrls>();
+            services.AddSingleton<IGeneralRemoteDownloadUrls, GeneralRemoteDownloadUrls>();
             services.AddSingleton<ILocalTempFileLocks, LocalTempFileLocks>();
 
             services.AddScoped<IPatreonAPI, PatreonAPI>();
@@ -184,8 +184,9 @@ namespace ThriveDevCenter.Server
             services.AddScoped<CommunityForumAPI>();
             services.AddScoped<RemoteServerHandler>();
             services.AddScoped<IEC2Controller, EC2Controller>();
-            services.AddScoped<ControlledServerSSHAccess>();
-            services.AddScoped<GithubCommitStatusReporter>();
+            services.AddScoped<IControlledServerSSHAccess, ControlledServerSSHAccess>();
+            services.AddScoped<IExternalServerSSHAccess, ExternalServerSSHAccess>();
+            services.AddScoped<IGithubCommitStatusReporter, GithubCommitStatusReporter>();
             services.AddScoped<DiscordNotifications>();
             services.AddScoped<IMailQueue, MailToQueueSender>();
             services.AddScoped<ICLASignatureStorage, CLASignatureStorage>();

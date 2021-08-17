@@ -2,15 +2,24 @@
 @using ThriveDevCenter.Shared.Models
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
-<h3>Servers</h3>
+    <h3>Servers</h3>
 
-<h4>Controlled Servers</h4>
+    <h4>Controlled Servers</h4>
 
-These are automatically managed servers managed through AWS API.
+    These are automatically managed servers managed through AWS API.
 
-<br />
+    <br />
 
-<ControlledServers />
+    <ControlledServers />
+
+    <h4>External Servers</h4>
+
+    These are servers that aren't provisioned automatically, instead they need to be manually created and configured
+    here to be used.
+
+    <br />
+
+    <ExternalServers />
 </AccessLimited>
 
 @code {

@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
     using Filters;
@@ -9,7 +10,7 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.AspNetCore.WebUtilities;
     using Shared.Models;
 
-    public abstract class BaseCDNDownload
+    public abstract class BaseCDNDownload : IBaseCDNDownload
     {
         private readonly string downloadKey;
 
@@ -38,11 +39,18 @@ namespace ThriveDevCenter.Server.Services
             if (path[0] != '/')
                 path = '/' + path;
 
+            // CDN token needs to be made from the unescaped path
+            var unescaped = path;
+
+            // But special characters in URL paths need to be escaped for the URL sent to the client for S3 storage
+            // to work
+            path = string.Join('/', path.Split('/').Select(Uri.EscapeDataString));
+
             long expirationTimestamp = (DateTimeOffset.UtcNow + expiresIn).ToUnixTimeSeconds();
 
             var fullUri = new Uri(CDNBaseUrl, path);
 
-            var unhashedKey = $"{downloadKey}{path}{expirationTimestamp}";
+            var unhashedKey = $"{downloadKey}{unescaped}{expirationTimestamp}";
 
             // IP validation could be used here if not for ipv6 and ipv4 mixed use
             // Now it's possible to use countries, so that is likely much more reliable regarding ipv4 and ipv6
@@ -50,8 +58,8 @@ namespace ThriveDevCenter.Server.Services
 
             return QueryHelpers.AddQueryString(fullUri.ToString(), new Dictionary<string, string>()
             {
-                {"token", HashToken(unhashedKey)},
-                {"expires", expirationTimestamp.ToString()}
+                { "token", HashToken(unhashedKey) },
+                { "expires", expirationTimestamp.ToString() }
             });
         }
 
@@ -86,5 +94,11 @@ namespace ThriveDevCenter.Server.Services
         {
             return base64String.Replace("\n", "").Replace("+", "-").Replace("/", "_").Replace("=", "");
         }
+    }
+
+    public interface IBaseCDNDownload
+    {
+        bool Configured { get; }
+        string GenerateSignedURL(string path, TimeSpan expiresIn);
     }
 }

@@ -27,11 +27,11 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly NotificationsEnabledDb database;
         private readonly IBackgroundJobClient jobClient;
         private readonly ILocalTempFileLocks localTempFileLocks;
-        private readonly GithubCommitStatusReporter statusReporter;
+        private readonly IGithubCommitStatusReporter statusReporter;
 
         public CheckAndStartCIBuild(ILogger<CheckAndStartCIBuild> logger, NotificationsEnabledDb database,
             IBackgroundJobClient jobClient, ILocalTempFileLocks localTempFileLocks,
-            GithubCommitStatusReporter statusReporter)
+            IGithubCommitStatusReporter statusReporter)
         {
             this.logger = logger;
             this.database = database;

@@ -1,15 +1,12 @@
 namespace ThriveDevCenter.Server.Services
 {
-    using System;
     using Microsoft.Extensions.Configuration;
     using Renci.SshNet;
 
-    public class ControlledServerSSHAccess : IDisposable
+    public class ControlledServerSSHAccess : BaseSSHAccess, IControlledServerSSHAccess
     {
         private readonly PrivateKeyAuthenticationMethod keyAuth;
         private readonly string username;
-
-        private SshClient client;
 
         public ControlledServerSSHAccess(IConfiguration configuration)
         {
@@ -27,63 +24,14 @@ namespace ThriveDevCenter.Server.Services
             Configured = true;
         }
 
-        public bool Configured { get; }
-
         public void ConnectTo(string address)
         {
-            client?.Dispose();
-
-            var connectionInfo = new ConnectionInfo(address, username, keyAuth)
-            {
-                Timeout = TimeSpan.FromSeconds(10)
-            };
-
-            client = new SshClient(connectionInfo);
-
-            // TODO: is there a way to verify the other side fingerprint?
-
-            client.Connect();
+            StartNewConnection(address, username, keyAuth);
         }
+    }
 
-        // TODO: add more async stuff in this class
-
-        public CommandResult RunCommand(string commandStr)
-        {
-            using var command = client.CreateCommand(commandStr);
-
-            command.CommandTimeout = TimeSpan.FromMinutes(10);
-            var result = command.Execute();
-
-            // Result is the command output
-            // Error is maybe the error stream?
-
-            return new CommandResult()
-            {
-                ExitCode = command.ExitStatus,
-                Error = command.Error,
-                Result = result
-            };
-        }
-
-        public void Dispose()
-        {
-            client?.Dispose();
-        }
-
-        protected void ThrowIfNotConfigured()
-        {
-            if (!Configured)
-                throw new Exception("SSH access to EC2 started servers is not configured");
-        }
-
-        public class CommandResult
-        {
-            public int ExitCode { get; set; }
-
-            public bool Success => ExitCode == 0;
-
-            public string Error { get; set; }
-            public string Result { get; set; }
-        }
+    public interface IControlledServerSSHAccess : IBaseSSHAccess
+    {
+        void ConnectTo(string address);
     }
 }

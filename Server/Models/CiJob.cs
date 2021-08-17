@@ -51,6 +51,11 @@ namespace ThriveDevCenter.Server.Models
         public long RunningOnServerId { get; set; } = -1;
 
         /// <summary>
+        ///   Defines if the RunningOnServerId is external or internal server ID
+        /// </summary>
+        public bool? RunningOnServerIsExternal { get; set; }
+
+        /// <summary>
         ///   This contains json serialized for of the cache settings for this build. This is sent to the CI executor
         ///   so that it can handle cache setup before cloning the repo.
         /// </summary>

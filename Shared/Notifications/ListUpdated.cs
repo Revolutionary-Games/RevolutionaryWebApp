@@ -70,6 +70,10 @@ namespace ThriveDevCenter.Shared.Notifications
     {
     }
 
+    public class ExternalServersUpdated : ListUpdated<ExternalServerDTO>
+    {
+    }
+
     public class CIProjectBuildsListUpdated : ListUpdated<CIBuildDTO>
     {
     }

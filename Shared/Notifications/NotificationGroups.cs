@@ -51,6 +51,7 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string FolderContentsUpdatedOwnerPrefix = "OwnerFolder_";
 
         public const string ControlledServerListUpdated = "CServers";
+        public const string ExternalServerListUpdated = "EServers";
 
         public const string UserLauncherLinksUpdatedPrefix = "UserLaunchers_";
 
