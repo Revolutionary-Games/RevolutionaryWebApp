@@ -23,7 +23,7 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly IMailQueue mailQueue;
         private readonly BuildReportType discordNotice;
         private readonly Uri baseUrl;
-        private readonly bool sendEmails;
+        private readonly GithubEmailReportReceivers sendEmails;
         private readonly HashSet<string> alreadySentEmails = new();
 
         public CheckOverallBuildStatusJob(ILogger<CheckOverallBuildStatusJob> logger, IConfiguration configuration,
@@ -35,7 +35,7 @@ namespace ThriveDevCenter.Server.Jobs
             this.mailQueue = mailQueue;
 
             discordNotice = Enum.Parse<BuildReportType>(configuration["CI:StatusReporting:Discord"]);
-            sendEmails = Convert.ToBoolean(configuration["CI:StatusReporting:Email"]);
+            sendEmails = Enum.Parse<GithubEmailReportReceivers>(configuration["CI:StatusReporting:Email"]);
             baseUrl = configuration.GetBaseUrl();
         }
 
@@ -129,17 +129,18 @@ namespace ThriveDevCenter.Server.Jobs
             }
 
             // Send emails on failure
-            if (sendEmails && build.Status == BuildStatus.Failed && mailQueue.Configured)
+            if (sendEmails != GithubEmailReportReceivers.None && build.Status == BuildStatus.Failed &&
+                mailQueue.Configured)
             {
                 try
                 {
                     foreach (var commit in build.ParsedCommits)
                     {
-                        if (!string.IsNullOrEmpty(commit.Author?.Email))
-                            await QueueEmailNotification(build, commit.Author.Email, checkLink);
+                        if ((sendEmails & GithubEmailReportReceivers.Author) != 0)
+                            await QueueEmailNotification(build, commit.Author?.Email, checkLink);
 
-                        if (!string.IsNullOrEmpty(commit.Committer?.Email))
-                            await QueueEmailNotification(build, commit.Committer.Email, checkLink);
+                        if ((sendEmails & GithubEmailReportReceivers.Committer) != 0)
+                            await QueueEmailNotification(build, commit.Committer?.Email, checkLink);
                     }
                 }
                 catch (JsonException e)
@@ -152,6 +153,10 @@ namespace ThriveDevCenter.Server.Jobs
 
         private Task QueueEmailNotification(CiBuild build, string email, string checkLink)
         {
+            // Return here if given no email, simplifies calling code
+            if (string.IsNullOrEmpty(email))
+                return Task.CompletedTask;
+
             // Skip duplicate emails and likely no reply addresses
             if (!alreadySentEmails.Add(email) || EmailHelpers.IsNoReplyAddress(email))
                 return Task.CompletedTask;
