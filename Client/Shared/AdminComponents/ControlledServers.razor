@@ -36,7 +36,7 @@
                         <td>@item.Id</td>
                         <td>@item.Status</td>
                         <td>@item.PublicAddress</td>
-                        <td>@item.StatusLastChecked.ToLocalTime().ToString("t")</td>
+                        <td><RecentTimeShortener Time="@item.StatusLastChecked" /></td>
                         <td>@item.ReservationType (@item.ReservedFor)</td>
                         <td>@($"{item.UsedDiskSpace}%")</td>
                         <td>@(TimeSpan.FromSeconds(Math.Round(item.TotalRuntime)))</td>
