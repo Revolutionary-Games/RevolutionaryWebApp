@@ -1,9 +1,11 @@
 namespace ThriveDevCenter.Server.Tests.Jobs.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Configuration;
     using Moq;
     using Server.Jobs;
     using Server.Models;
@@ -32,6 +34,11 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
             var ec2Mock = new Mock<IEC2Controller>();
             ec2Mock.Setup(ec2 => ec2.TerminateInstance(Server1InstanceId)).Returns(Task.CompletedTask).Verifiable();
             ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new KeyValuePair<string, string>[]
+            {
+                new("CI:TerminateStoppedServersDelayHours", "24"),
+            }).Build();
 
             var notificationsMock = new Mock<IModelUpdateNotificationSender>();
 
@@ -71,13 +78,15 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
             Assert.Equal(ServerStatus.Stopped, server2.Status);
             Assert.Equal(ServerStatus.Running, server3.Status);
 
-            await new TerminateLongStoppedServersJob(logger, database, ec2Mock.Object).Execute(CancellationToken.None);
+            await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock.Object).Execute(CancellationToken
+                .None);
 
             Assert.Equal(ServerStatus.Terminated, server1.Status);
             Assert.Equal(ServerStatus.Stopped, server2.Status);
             Assert.Equal(ServerStatus.Running, server3.Status);
 
-            await new TerminateLongStoppedServersJob(logger, database, ec2Mock.Object).Execute(CancellationToken.None);
+            await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock.Object).Execute(CancellationToken
+                .None);
 
             Assert.Equal(ServerStatus.Terminated, server1.Status);
             Assert.Equal(ServerStatus.Stopped, server2.Status);

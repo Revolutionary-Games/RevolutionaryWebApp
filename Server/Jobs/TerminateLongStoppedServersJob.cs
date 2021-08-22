@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
@@ -12,18 +13,22 @@ namespace ThriveDevCenter.Server.Jobs
 
     public class TerminateLongStoppedServersJob : IJob
     {
-        private readonly TimeSpan terminateStoppedServerDelay = TimeSpan.FromDays(2);
+        private readonly TimeSpan terminateStoppedServerDelay;
 
         private readonly ILogger<TerminateLongStoppedServersJob> logger;
         private readonly ApplicationDbContext database;
         private readonly IEC2Controller ec2Controller;
 
         public TerminateLongStoppedServersJob(ILogger<TerminateLongStoppedServersJob> logger,
+            IConfiguration configuration,
             ApplicationDbContext database, IEC2Controller ec2Controller)
         {
             this.logger = logger;
             this.database = database;
             this.ec2Controller = ec2Controller;
+
+            terminateStoppedServerDelay =
+                TimeSpan.FromHours(Convert.ToInt32(configuration["CI:TerminateStoppedServersDelayHours"]));
         }
 
         public async Task Execute(CancellationToken cancellationToken)
