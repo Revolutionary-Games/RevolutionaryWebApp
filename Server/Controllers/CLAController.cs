@@ -249,6 +249,8 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost("startSigning")]
         public async Task<ActionResult<SigningStartResponse>> StartSigning([Required] long id)
         {
+            logger.LogInformation("Received a request to start signing CLA: {Id}", id);
+
             var cla = await database.Clas.FindAsync(id);
 
             if (cla == null)
