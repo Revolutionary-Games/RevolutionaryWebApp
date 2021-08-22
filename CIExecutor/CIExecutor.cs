@@ -147,6 +147,7 @@ namespace CIExecutor
 
             // Start socket related tasks
             var processMessagesTask = Task.Run(ProcessBuildMessages);
+
             var cancelRead = new CancellationTokenSource();
 
             // ReSharper disable once MethodSupportsCancellation
@@ -382,9 +383,9 @@ namespace CIExecutor
                 await QueueSendBasicMessage($"Checked out commit {ciCommit}");
 
                 // Clean out non-ignored files
-                await GitRunHelpers.Clean(currentBuildRootFolder, CancellationToken.None);
+                var deleted = await GitRunHelpers.Clean(currentBuildRootFolder, CancellationToken.None);
 
-                await QueueSendBasicMessage("Cleaned non-ignored extra files");
+                await QueueSendBasicMessage($"Cleaned non-ignored extra files:\n{deleted}");
 
                 // Handling of shared cache paths with symlinks
                 if (cacheConfig.Shared != null)

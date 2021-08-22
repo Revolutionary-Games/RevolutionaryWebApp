@@ -146,7 +146,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
             }
         }
 
-        public static async Task Clean(string folder, CancellationToken cancellationToken)
+        public static async Task<string> Clean(string folder, CancellationToken cancellationToken)
         {
             if (!Directory.Exists(folder))
                 throw new ArgumentException($"Specified folder: \"{folder}\" doesn't exist");
@@ -163,6 +163,8 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 throw new Exception(
                     $"Failed to clean repo, process exited with error: {result.FullOutput}");
             }
+
+            return result.Output;
         }
 
         public static bool IsPullRequestRef(string remoteRef)
