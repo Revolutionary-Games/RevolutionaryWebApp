@@ -63,7 +63,7 @@ namespace ThriveDevCenter.Server.Services
 
             // TODO: should *all* the variables be checked here
             if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(accessKeyId) ||
-                string.IsNullOrEmpty(secretAccessKey))
+                string.IsNullOrEmpty(secretAccessKey) || string.IsNullOrEmpty(imageId))
             {
                 Configured = false;
                 return;
