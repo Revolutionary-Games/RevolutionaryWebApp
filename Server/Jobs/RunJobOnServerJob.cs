@@ -191,7 +191,9 @@ namespace ThriveDevCenter.Server.Jobs
             // Connection success, so now we can run the job starting on the server
             job.RunningOnServerId = serverId;
             job.RunningOnServerIsExternal = server.IsExternal;
-            job.State = CIJobState.Running;
+
+            // TODO: permanently store on which server this job was ran on and how long since creation it took to get
+            // here
 
             CISecretType jobSpecificSecretType = job.Build.IsSafe ? CISecretType.SafeOnly : CISecretType.UnsafeOnly;
 
@@ -200,10 +202,6 @@ namespace ThriveDevCenter.Server.Jobs
                     s.UsedForBuildTypes == CISecretType.All)).ToListAsync(cancellationToken);
 
             await PerformServerCleanUpIfNeeded(server, sshAccess);
-
-            // This save is done here as the build status might get reported back to us before we finish with the ssh
-            // commands
-            await Database.SaveChangesAsync(cancellationToken);
 
             // Then move on to the build starting, first thing is to download the CI executor script
             // TODO: is there a possibility that this is not secure? Someone would need to do HTTPS MItM attack...
@@ -221,9 +219,12 @@ namespace ThriveDevCenter.Server.Jobs
                         executorResourceDownload) + "chmod +x ~/CIExecutor");
 
             if (!result1.Success)
-            {
                 throw new Exception($"Failed to run executor download step: {result1.Result}, error: {result1.Error}");
-            }
+
+            // This save is done here as the build status might get reported back to us before we finish with the ssh
+            // commands
+            job.State = CIJobState.Running;
+            await Database.SaveChangesAsync(cancellationToken);
 
             // and then run it with environment variables for this build
 
