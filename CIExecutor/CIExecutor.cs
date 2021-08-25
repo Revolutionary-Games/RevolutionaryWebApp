@@ -449,51 +449,39 @@ namespace CIExecutor
 
             try
             {
-                var imageFolder = PathParser.GetParentPath(ciImageFile);
+                await QueueSendBasicMessage($"Storing images in {imageCacheFolder}");
 
-                await QueueSendBasicMessage($"Storing images in {imageFolder}");
+                // Check if podman already has the image, if it exists, we don't need to do anything further
 
-                if (!File.Exists(ciImageFile))
+                var startInfo = new ProcessStartInfo("podman")
                 {
-                    Directory.CreateDirectory(imageFolder);
+                    CreateNoWindow = true,
+                    ArgumentList = { "images" },
+                };
 
-                    await QueueSendBasicMessage("Build environment image doesn't exist locally, downloading...");
+                var result = await ProcessRunHelpers.RunProcessAsync(startInfo, CancellationToken.None);
+                if (result.ExitCode != 0)
+                    throw new Exception($"Failed to check existing images from podman: {result.FullOutput}");
 
-                    if (!await RunWithOutputStreaming("curl", new List<string>
-                    {
-                        "-LsS", Environment.GetEnvironmentVariable("CI_IMAGE_DL_URL"), "--output", ciImageFile
-                    }))
-                    {
-                        // Delete a partial download
-                        try
-                        {
-                            File.Delete(ciImageFile);
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine("Failed to delete failed image download: {0}", e);
-                        }
+                var imageNameParts = ciImageName.Split(':');
 
-                        throw new Exception("Failed to download image file");
-                    }
+                if (imageNameParts.Length != 2)
+                    throw new Exception("Image name part expected to have two parts separated by ':'");
+
+                var existingImageLine = result.Output.Split('\n')
+                    .FirstOrDefault(l => l.Contains(imageNameParts[0]) && l.Contains(imageNameParts[1]));
+
+                if (existingImageLine != null)
+                {
+                    await QueueSendBasicMessage($"Build environment image already exists: {existingImageLine}");
+                }
+                else
+                {
+                    await LoadBuildImageToPodman();
+                    await QueueSendBasicMessage("Build environment image loaded");
                 }
 
-                if (!await RunWithOutputStreaming("podman", new List<string> { "load", "-i", ciImageFile }))
-                {
-                    // Delete a bad download
-                    try
-                    {
-                        File.Delete(ciImageFile);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("Failed to delete invalid image file: {0}", e);
-                    }
-
-                    throw new Exception("Failed to load the image file");
-                }
-
-                await QueueSendBasicMessage("Build environment image loaded");
+                await DeleteBuildImageDownload();
 
                 await QueueSendMessage(new RealTimeBuildMessage()
                 {
@@ -505,6 +493,70 @@ namespace CIExecutor
             catch (Exception e)
             {
                 await EndSectionWithFailure($"Error handling build image: {e}");
+            }
+        }
+
+        private async Task LoadBuildImageToPodman()
+        {
+            if (!File.Exists(ciImageFile))
+            {
+                await DownloadBuildImage();
+            }
+
+            if (!await RunWithOutputStreaming("podman", new List<string> { "load", "-i", ciImageFile }))
+            {
+                // Delete a bad download
+                try
+                {
+                    File.Delete(ciImageFile);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed to delete invalid image file: {0}", e);
+                }
+
+                throw new Exception("Failed to load the image file");
+            }
+        }
+
+        private async Task DownloadBuildImage()
+        {
+            Directory.CreateDirectory(PathParser.GetParentPath(ciImageFile));
+
+            await QueueSendBasicMessage("Build environment image doesn't exist locally, downloading...");
+
+            if (!await RunWithOutputStreaming("curl", new List<string>
+            {
+                "-LsS", Environment.GetEnvironmentVariable("CI_IMAGE_DL_URL"), "--output", ciImageFile,
+            }))
+            {
+                // Delete a partial download
+                try
+                {
+                    File.Delete(ciImageFile);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed to delete failed image download: {0}", e);
+                }
+
+                throw new Exception("Failed to download image file");
+            }
+        }
+
+        private async Task DeleteBuildImageDownload()
+        {
+            if (!File.Exists(ciImageFile))
+                return;
+
+            try
+            {
+                File.Delete(ciImageFile);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to delete already loaded build image file: {0}", e);
+                await QueueSendBasicMessage("Error: could not delete on-disk downloaded build image to save space");
             }
         }
 
@@ -617,7 +669,7 @@ namespace CIExecutor
             return QueueSendMessage(new RealTimeBuildMessage()
             {
                 Type = BuildSectionMessageType.BuildOutput,
-                Output = $"{message}\n"
+                Output = $"{message}\n",
             });
         }
 

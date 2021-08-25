@@ -176,6 +176,7 @@ namespace ThriveDevCenter.Server
             services.AddSingleton<LfsDownloadUrls>();
             services.AddSingleton<IGeneralRemoteDownloadUrls, GeneralRemoteDownloadUrls>();
             services.AddSingleton<ILocalTempFileLocks, LocalTempFileLocks>();
+            services.AddSingleton<IRemoteResourceHashCalculator, RemoteResourceHashCalculator>();
 
             services.AddScoped<IPatreonAPI, PatreonAPI>();
             services.AddScoped<LfsRemoteStorage>();

@@ -31,19 +31,22 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly IControlledServerSSHAccess controlledSSHAccess;
         private readonly IExternalServerSSHAccess externalSSHAccess;
         private readonly IGeneralRemoteDownloadUrls remoteDownloadUrls;
+        private readonly IRemoteResourceHashCalculator hashCalculator;
 
         private readonly int cleanThreshold;
 
         public RunJobOnServerJob(ILogger<RunJobOnServerJob> logger, IConfiguration configuration,
             NotificationsEnabledDb database, IControlledServerSSHAccess controlledSSHAccess,
             IExternalServerSSHAccess externalSSHAccess, IBackgroundJobClient jobClient,
-            IGithubCommitStatusReporter statusReporter, IGeneralRemoteDownloadUrls remoteDownloadUrls) : base(logger,
+            IGithubCommitStatusReporter statusReporter, IGeneralRemoteDownloadUrls remoteDownloadUrls,
+            IRemoteResourceHashCalculator hashCalculator) : base(logger,
             database, jobClient, statusReporter)
         {
             this.configuration = configuration;
             this.controlledSSHAccess = controlledSSHAccess;
             this.externalSSHAccess = externalSSHAccess;
             this.remoteDownloadUrls = remoteDownloadUrls;
+            this.hashCalculator = hashCalculator;
             cleanThreshold = Convert.ToInt32(configuration["CI:ServerCleanUpDiskUsePercentage"]);
         }
 
@@ -205,13 +208,17 @@ namespace ThriveDevCenter.Server.Jobs
             // Then move on to the build starting, first thing is to download the CI executor script
             // TODO: is there a possibility that this is not secure? Someone would need to do HTTPS MItM attack...
 
-            // TODO: using async would be nice for the run commands when supported
+            var executorDownload = GetUrlToDownloadCIExecutor();
+            var executorResourceDownload = GetUrlToDownloadCIExecutorResource();
+            var executorHash = await hashCalculator.Sha256(executorDownload, cancellationToken);
+            var posixHelperHash = await hashCalculator.Sha256(executorResourceDownload, cancellationToken);
 
-            // TODO: implement only re-downloading the CIExecutor if the hash has changed
+            // TODO: using async would be nice for the run commands when supported
             var result1 = sshAccess
-                .RunCommand($"rm -f ~/CIExecutor && curl -L {GetUrlToDownloadCIExecutor()} -o ~/CIExecutor && " +
-                    $"curl -L {GetUrlToDownloadCIExecutorResource()} -o ~/libMonoPosixHelper.so && " +
-                    "chmod +x ~/CIExecutor");
+                .RunCommand("set -e\n" +
+                    CreateDownloadCommand("~/CIExecutor", executorHash, executorDownload) +
+                    CreateDownloadCommand("~/libMonoPosixHelper.so", posixHelperHash,
+                        executorResourceDownload) + "chmod +x ~/CIExecutor");
 
             if (!result1.Success)
             {
@@ -404,6 +411,14 @@ namespace ThriveDevCenter.Server.Jobs
         {
             return new Uri(configuration.GetBaseUrl(), $"/ciBuildConnection?key={job.BuildOutputConnectKey}")
                 .ToString();
+        }
+
+        private static string CreateDownloadCommand(string filePath, string hash, string downloadUrl)
+        {
+            return $"if [ ! -f {filePath} -o '{hash}' != \"$(sha256sum {filePath} | awk '{{print $1}}')\" ]; then\n" +
+                $"echo 'downloading missing or incorrect hash file: {filePath}'\n" +
+                $"rm -f {filePath} && curl -L {downloadUrl} -o {filePath}\n" +
+                "fi\n";
         }
     }
 }

@@ -116,7 +116,10 @@ namespace ThriveDevCenter.Server.Common.Utilities
                         process.Kill();
                     }
 
-                    result.StdOut.Append(args.Data ?? "");
+                    if (args.Data == null)
+                        return;
+
+                    result.StdOut.Append($"{args.Data}\n");
                 };
                 process.ErrorDataReceived += (_, args) =>
                 {
@@ -126,7 +129,10 @@ namespace ThriveDevCenter.Server.Common.Utilities
                         process.Kill();
                     }
 
-                    result.StdOut.Append(args.Data ?? "");
+                    if (args.Data == null)
+                        return;
+
+                    result.ErrorOut.Append($"{args.Data}\n");
                 };
             }
 

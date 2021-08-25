@@ -66,6 +66,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
                 .Returns("https://dummy.download/url").Verifiable();
 
             var githubStatusAPI = new Mock<IGithubCommitStatusReporter>();
+            var hashMock = new Mock<IRemoteResourceHashCalculator>();
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -75,7 +76,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
                         new("BaseUrl", "http://localhost:5000/"),
                         new("CI:ServerCleanUpDiskUsePercentage", "80"),
                     }).Build(), database, controlledSSHMock.Object, externalSSHMock.Object, jobClientMock.Object,
-                githubStatusAPI.Object, remoteDownloadsMock.Object);
+                githubStatusAPI.Object, remoteDownloadsMock.Object, hashMock.Object);
 
             CIProjectTestDatabaseData.Seed(database);
             var buildJob = new CiJob()
@@ -148,6 +149,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
                 .Returns("https://dummy.download/url").Verifiable();
 
             var githubStatusAPI = new Mock<IGithubCommitStatusReporter>();
+            var hashMock = new Mock<IRemoteResourceHashCalculator>();
 
             var jobClientMock = new Mock<IBackgroundJobClient>();
 
@@ -157,7 +159,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
                         new("BaseUrl", "http://localhost:5000/"),
                         new("CI:ServerCleanUpDiskUsePercentage", "80"),
                     }).Build(), database, controlledSSHMock.Object, externalSSHMock.Object, jobClientMock.Object,
-                githubStatusAPI.Object, remoteDownloadsMock.Object);
+                githubStatusAPI.Object, remoteDownloadsMock.Object, hashMock.Object);
 
             CIProjectTestDatabaseData.Seed(database);
             var buildJob = new CiJob()
