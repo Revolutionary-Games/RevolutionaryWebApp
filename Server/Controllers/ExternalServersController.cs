@@ -203,7 +203,9 @@ namespace ThriveDevCenter.Server.Controllers
 
         [HttpPost("{id:long}/priority")]
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        public async Task<IActionResult> UpdatePriority(long id, [Required] int priority)
+        public async Task<IActionResult> UpdatePriority(long id,
+            [Required] [FromBody] [Range(AppInfo.MinExternalServerPriority, AppInfo.MaxExternalServerPriority)]
+            int priority)
         {
             var server = await database.ExternalServers.FindAsync(id);
 

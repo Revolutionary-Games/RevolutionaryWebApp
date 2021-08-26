@@ -9,6 +9,7 @@
 @using System.Net
 @using ThriveDevCenter.Client.Utilities
 @using System.Diagnostics
+@using System.Globalization
 @implements ThriveDevCenter.Client.Services.INotificationHandler<ExternalServersUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.ExternalServerDTO>
 
@@ -96,7 +97,8 @@
                                     Update priority:
                                     <select class="custom-select ml-1" value="@item.Priority"
                                             @onchange="async args => await UpdatePriority(item, args)">
-                                        @foreach (int value in Enumerable.Range(-10, 21))
+                                        @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
+                                            AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
                                         {
                                             <option value="@value">@value</option>
                                         }
@@ -670,9 +672,8 @@
 
         try
         {
-            result = await http.PostAsync(
-                $"api/v1/ExternalServers/{server.Id}/priority?priority={Convert.ToInt32(args.Value)}",
-                new StringContent(string.Empty));
+            result = await http.PostAsJsonAsync($"api/v1/ExternalServers/{server.Id}/priority",
+                Convert.ToInt32(args.Value).ToString(CultureInfo.InvariantCulture));
         }
         catch (HttpRequestException e)
         {

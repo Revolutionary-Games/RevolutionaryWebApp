@@ -99,6 +99,8 @@ namespace ThriveDevCenter.Shared
         public const int LongestTableRefreshIntervalCutoff = 11;
 
         public const long SingleResourceTableRowId = 1;
+        public const int MinExternalServerPriority = -10;
+        public const int MaxExternalServerPriority = 10;
 
         public const int Major = 1;
         public const int Minor = 10;
