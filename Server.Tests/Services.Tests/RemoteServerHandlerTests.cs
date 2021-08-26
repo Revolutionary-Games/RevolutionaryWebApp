@@ -647,6 +647,75 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             ec2Mock.Verify();
         }
 
+        [Fact]
+        public async Task ServerControl_ExternalServersPriorityWorks()
+        {
+            var ec2Mock = new Mock<IEC2Controller>();
+            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(false);
+
+            var jobClientMock = new Mock<IBackgroundJobClient>();
+
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+            await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase("ExternalServerPriority")
+                .Options, notificationsMock.Object);
+
+            CIProjectTestDatabaseData.Seed(database);
+            var job = await AddTestJob(database);
+
+            var job2 = new CiJob()
+            {
+                CiProjectId = CIProjectTestDatabaseData.CIProjectId,
+                CiBuildId = CIProjectTestDatabaseData.CIBuildId,
+                CiJobId = 2,
+                JobName = "job2",
+                Image = "test/test:v1",
+                CacheSettingsJson = "{}",
+            };
+
+            await database.CiJobs.AddAsync(job2);
+
+            var server1 = new ExternalServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+            };
+
+            await database.ExternalServers.AddAsync(server1);
+
+            var server2 = new ExternalServer()
+            {
+                Status = ServerStatus.Running,
+                ProvisionedFully = true,
+                Priority = 1,
+            };
+
+            await database.ExternalServers.AddAsync(server2);
+            await database.SaveChangesAsync();
+
+            var handler =
+                new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+
+            Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+
+            Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
+            Assert.Equal(job.CiJobId, server2.ReservedFor);
+
+            Assert.Equal(ServerReservationType.None, server1.ReservationType);
+            Assert.Null(server1.ReservedFor);
+
+            Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job2 }));
+
+            Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
+            Assert.Equal(job.CiJobId, server2.ReservedFor);
+
+            Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+            Assert.Equal(job2.CiJobId, server1.ReservedFor);
+
+            ec2Mock.VerifyNoOtherCalls();
+        }
+
         private static async Task<CiJob> AddTestJob(NotificationsEnabledDb database)
         {
             var job = new CiJob()

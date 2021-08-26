@@ -25,5 +25,7 @@ namespace ThriveDevCenter.Shared.Models
 
         [Required]
         public string SSHKeyFileName { get; set; }
+
+        public int Priority { get; set; }
     }
 }

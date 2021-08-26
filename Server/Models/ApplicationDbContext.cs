@@ -352,6 +352,7 @@ namespace ThriveDevCenter.Server.Models
                 entity.UseXminAsConcurrencyToken();
 
                 entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
+                entity.Property(e => e.Priority).HasDefaultValue(0);
 
                 // Mapping IP to string is required for use with unique index
                 // https://github.com/dotnet/efcore/issues/23775

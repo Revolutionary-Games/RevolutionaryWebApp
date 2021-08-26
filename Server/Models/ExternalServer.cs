@@ -15,6 +15,8 @@ namespace ThriveDevCenter.Server.Models
         [Required]
         public string SSHKeyFileName { get; set; }
 
+        public int Priority { get; set; }
+
         [NotMapped]
         public override bool IsExternal => true;
 
@@ -35,6 +37,7 @@ namespace ThriveDevCenter.Server.Models
                 UsedDiskSpace = UsedDiskSpace,
                 CleanUpQueued = CleanUpQueued,
                 SSHKeyFileName = SSHKeyFileName,
+                Priority = Priority,
                 CreatedAt = CreatedAt,
                 UpdatedAt = UpdatedAt,
             };

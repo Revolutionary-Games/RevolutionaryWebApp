@@ -46,6 +46,17 @@ a.active:hover {
     color: red;
 }
 
+.clickable {
+    cursor: pointer;
+}
+
+.expanded-box {
+    border-radius: 2px;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
 #blazor-error-ui {
     background: lightyellow;
     bottom: 0;

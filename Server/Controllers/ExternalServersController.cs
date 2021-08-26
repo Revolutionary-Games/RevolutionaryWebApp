@@ -192,10 +192,29 @@ namespace ThriveDevCenter.Server.Controllers
                 });
             }
 
+            server.BumpUpdatedAt();
             await database.SaveChangesAsync();
 
             if (!offline)
                 jobClient.Enqueue<WaitForExternalServerStartUpJob>(x => x.Execute(server.Id, CancellationToken.None));
+
+            return Ok();
+        }
+
+        [HttpPost("{id:long}/priority")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> UpdatePriority(long id, [Required] int priority)
+        {
+            var server = await database.ExternalServers.FindAsync(id);
+
+            if (server == null)
+                return NotFound();
+
+            if (server.Priority == priority)
+                return Ok();
+
+            server.Priority = priority;
+            await database.SaveChangesAsync();
 
             return Ok();
         }
@@ -263,8 +282,6 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<IActionResult> QueueCleanUp(long id)
         {
-            FailIfNotConfigured();
-
             var server = await database.ControlledServers.FindAsync(id);
 
             if (server == null)
@@ -280,6 +297,7 @@ namespace ThriveDevCenter.Server.Controllers
             });
 
             server.CleanUpQueued = true;
+            server.BumpUpdatedAt();
             await database.SaveChangesAsync();
 
             return Ok();
@@ -306,6 +324,7 @@ namespace ThriveDevCenter.Server.Controllers
             });
 
             server.WantsMaintenance = true;
+            server.BumpUpdatedAt();
             await database.SaveChangesAsync();
 
             // TODO: job to do maintenance

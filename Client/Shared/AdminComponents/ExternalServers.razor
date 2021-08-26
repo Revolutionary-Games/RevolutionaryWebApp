@@ -8,6 +8,7 @@
 @using ThriveDevCenter.Shared.Models
 @using System.Net
 @using ThriveDevCenter.Client.Utilities
+@using System.Diagnostics
 @implements ThriveDevCenter.Client.Services.INotificationHandler<ExternalServersUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.ExternalServerDTO>
 
@@ -37,10 +38,21 @@
                     if (clientSideResourceStatus.IsDeleted(item.Id))
                         continue;
 
-                    @* TODO: implement an arrow button to toggle showing full details of a server, with editing
-                        possibility *@
+                    var status = clientSideResourceStatus.GetStatus(item.Id);
+
                     <tr @key="item.Id">
-                        <td>@item.Id</td>
+                        <td @onclick="() => ToggleDetails(item)" class="clickable">
+                            @if (status.Expanded)
+                            {
+                                <span class="oi oi-chevron-top"></span>
+                            }
+                            else
+                            {
+                                <span class="oi oi-chevron-right"></span>
+                            }
+                            <span class="ml-1">@item.Id</span>
+                        </td>
+                        <td>@item.Priority</td>
                         <td>@item.Status</td>
                         <td>@item.PublicAddress</td>
                         <td><RecentTimeShortener Time="@item.StatusLastChecked" /></td>
@@ -66,35 +78,68 @@
                                     Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm mb-1">
                                 Queue Clean
                             </Button>
-                            <br />
                             <Button Enabled="@(!IsProcessing(item.Id))"
                                     OnPressed="@(async () => await RefreshStatus(item.Id))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm mr-1">
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm mb-1">
                                 Refresh
-                            </Button>
-                            @if (item.Status != ServerStatus.Stopped && item.Status != ServerStatus.Stopping)
-                            {
-                                <Button Enabled="@(!IsProcessing(item.Id))"
-                                        OnPressed="@(async () => await SetManualStatus(item.Id, true))"
-                                        Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm">
-                                    Set Offline
-                                </Button>
-                            }
-                            else
-                            {
-                                <Button Enabled="@(!IsProcessing(item.Id))"
-                                        OnPressed="@(async () => await SetManualStatus(item.Id, false))"
-                                        Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm">
-                                    Set Online
-                                </Button>
-                            }
-                            <Button Enabled="@CanDelete(item)"
-                                    OnPressed="@(async () => await VerifyDeleteServer(item))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm ml-1">
-                                Delete
                             </Button>
                         </td>
                     </tr>
+
+                    @if (status.Expanded)
+                    {
+                        var key = $"{item.Id}-details";
+                        @* TODO: firefox once again complains here about that relative now has an effect here *@
+                        <tr @key="key" style="position: relative;">
+                            <td colspan="@columns.Count" class="mb-2 expanded-box">
+                                <form class="form-inline mr-2">
+                                    Update priority:
+                                    <select class="custom-select ml-1" value="@item.Priority"
+                                            @onchange="async args => await UpdatePriority(item, args)">
+                                        @foreach (int value in Enumerable.Range(-10, 21))
+                                        {
+                                            <option value="@value">@value</option>
+                                        }
+                                    </select>
+                                </form>
+
+                                <span class="float-right">
+                                    @if (item.Status != ServerStatus.Stopped && item.Status != ServerStatus.Stopping)
+                                    {
+                                        <Button Enabled="@(!IsProcessing(item.Id))"
+                                                OnPressed="@(async () => await SetManualStatus(item.Id, true))"
+                                                Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm">
+                                            Set Offline
+                                        </Button>
+                                    }
+                                    else
+                                    {
+                                        <Button Enabled="@(!IsProcessing(item.Id))"
+                                                OnPressed="@(async () => await SetManualStatus(item.Id, false))"
+                                                Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm">
+                                            Set Online
+                                        </Button>
+                                    }
+                                    <Button Enabled="@CanDelete(item)"
+                                            OnPressed="@(async () => await VerifyDeleteServer(item))"
+                                            Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm ml-1">
+                                        Delete
+                                    </Button>
+                                </span>
+                                @if (status.Processing)
+                                {
+                                    <div class="overlay">
+                                        <div class="d-flex justify-content-center align-items-center"
+                                             style="height: 100%;">
+                                            <div class="spinner-border text-light" role="status">
+                                                <span class="sr-only">Processing...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
                 }
             }
         </PaginatedTable>
@@ -140,6 +185,7 @@
     private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Id", true),
+        new TableColumn("Priority", false),
         new TableColumn("Status", true),
         new TableColumn("Address", false),
         new TableColumn("Status Checked", true, "StatusLastChecked"),
@@ -151,9 +197,10 @@
         new TableColumn("Actions", false)
     };
 
+    // TODO: merge this usage with the one in ServerResourceStatus
     private readonly Dictionary<long, bool> processingItems = new();
 
-    private readonly ClientSideResourceStatus<DeletedResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ServerResourceStatus> clientSideResourceStatus = new();
 
     private string message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
@@ -600,6 +647,62 @@
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleDetails(ExternalServerDTO server)
+    {
+        var status = clientSideResourceStatus.GetStatus(server.Id);
+        status.Expanded = !status.Expanded;
+    }
+
+    private async Task UpdatePriority(ExternalServerDTO server, ChangeEventArgs args)
+    {
+        if (args.Value == null)
+            throw new Exception("new value is null");
+
+        var status = clientSideResourceStatus.GetStatus(server.Id);
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync(
+                $"api/v1/ExternalServers/{server.Id}/priority?priority={Convert.ToInt32(args.Value)}",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Updated priority";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private class ServerResourceStatus : IDeletedResourceStatus
+    {
+        public bool Deleted { get; set; }
+        public bool Expanded { get; set; }
+        public bool Processing { get; set; }
     }
 
 }
