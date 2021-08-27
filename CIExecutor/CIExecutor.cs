@@ -385,7 +385,7 @@ namespace CIExecutor
                 // Clean out non-ignored files
                 var deleted = await GitRunHelpers.Clean(currentBuildRootFolder, CancellationToken.None);
 
-                await QueueSendBasicMessage($"Cleaned non-ignored extra files:\n{deleted}");
+                await QueueSendBasicMessage($"Cleaned non-ignored extra files: {deleted}");
 
                 // Handling of shared cache paths with symlinks
                 if (cacheConfig.Shared != null)
