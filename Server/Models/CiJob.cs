@@ -61,6 +61,16 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         public string CacheSettingsJson { get; set; }
 
+        /// <summary>
+        ///   Stores permanently which server this job was ran on
+        /// </summary>
+        public string RanOnServer { get; set; }
+
+        /// <summary>
+        ///   Measures how long it took for the job to start running on a server after it was created
+        /// </summary>
+        public TimeSpan? TimeWaitingForServer { get; set; }
+
         [ForeignKey("CiProjectId,CiBuildId")]
         public CiBuild Build { get; set; }
 
@@ -119,6 +129,8 @@ namespace ThriveDevCenter.Server.Models
                 JobName = JobName,
                 State = State,
                 Succeeded = Succeeded,
+                RanOnServer = RanOnServer,
+                TimeWaitingForServer = TimeWaitingForServer,
                 ProjectName = Build?.CiProject?.Name ?? CiProjectId.ToString()
             };
         }

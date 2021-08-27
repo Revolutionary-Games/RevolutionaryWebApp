@@ -7,6 +7,7 @@
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<CIProjectBuildJobsListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.CIJobDTO>
@@ -45,14 +46,7 @@ else
                         <td>Running</td>
                     }
 
-                    @if (item.CreatedAt != null)
-                    {
-                        <td><DurationDisplayer Start="@item.CreatedAt.Value" End="@item.FinishedAt" /></td>
-                    }
-                    else
-                    {
-                        <td><span>Unknown</span></td>
-                    }
+                    <td><DurationDisplayer Start="@item.CreatedAt" End="@item.FinishedAt" /></td>
                 </tr>
             }
         }
@@ -110,27 +104,12 @@ else
     protected override Task<PagedResult<CIJobDTO>> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<CIJobDTO>>(
-            QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs", requestParams));
+            QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs", requestParams),
+            HttpClientHelpers.GetOptionsWithSerializers());
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
         await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
-    }
-
-    protected string ComputeDuration(CIJobDTO item)
-    {
-        if (item.CreatedAt == null)
-            return "unknown";
-
-        // TODO: this class needs a timer that triggers StateHasChanged to update this
-        if (item.FinishedAt != null)
-        {
-            return (item.FinishedAt.Value - item.CreatedAt.Value).ToString(AppInfo.SecondPrecisionDurationFormat);
-        }
-        else
-        {
-            return (DateTime.UtcNow - item.CreatedAt.Value).ToString(AppInfo.SecondPrecisionDurationFormat);
-        }
     }
 }

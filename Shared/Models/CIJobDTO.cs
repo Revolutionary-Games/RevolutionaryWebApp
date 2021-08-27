@@ -11,11 +11,13 @@ namespace ThriveDevCenter.Shared.Models
         public long CiJobId { get; set; }
 
         public string JobName { get; set; }
-        public DateTime? CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; }
         public DateTime? FinishedAt { get; set; }
         public CIJobState State { get; set; }
         public string ProjectName { get; set; }
         public bool Succeeded { get; set; }
+        public string RanOnServer { get; set; }
+        public TimeSpan? TimeWaitingForServer { get; set; }
 
         /// <summary>
         ///   Used for notifications to detect which model was updated, that's why this shouldn't be super bad that

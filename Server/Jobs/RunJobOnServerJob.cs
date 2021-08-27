@@ -224,6 +224,8 @@ namespace ThriveDevCenter.Server.Jobs
             // This save is done here as the build status might get reported back to us before we finish with the ssh
             // commands
             job.State = CIJobState.Running;
+            job.RanOnServer = serverIsExternal ? $"External server {serverId}" : $"Controlled server {serverId}";
+            job.TimeWaitingForServer = DateTime.UtcNow - job.CreatedAt;
             await Database.SaveChangesAsync(cancellationToken);
 
             // and then run it with environment variables for this build

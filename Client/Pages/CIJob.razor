@@ -5,7 +5,9 @@
 @inherits SingleResourcePage<CIJobDTO, CIJobUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Converters
 @using ThriveDevCenter.Shared.Notifications
 @implements IAsyncDisposable
 
@@ -14,7 +16,7 @@
     {
         <h3>
             CI Job @Data.JobName for Build #@Data.CiBuildId in @Data.ProjectName
-            @if(Data.State == CIJobState.Finished)
+            @if (Data.State == CIJobState.Finished)
             {
                 @if (Data.Succeeded)
                 {
@@ -32,7 +34,14 @@
                 <strong>Succeeded</strong>:
                 @(Data.State == CIJobState.Finished ? Data.Succeeded.ToString() : "pending")
             </li>
-            <li><strong>Started At</strong>: @(Data.CreatedAt?.ToLocalTime().ToString("G") ?? "unknown")</li>
+            <li><strong>Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+            <li>
+                <strong>Time Waiting For Server</strong>: @(Data.TimeWaitingForServer?.ToShortForm() ?? "still waiting")
+            </li>
+            <li><strong>Ran On Server</strong>: @(Data.RanOnServer ?? "not started yet")</li>
+            <li>
+                <strong>Total Duration</strong>: <DurationDisplayer Start="@Data.CreatedAt" End="@Data.FinishedAt" />
+            </li>
         </ul>
 
         <NavLink href="@($"/ci/{Data.CiProjectId}/build/{Data.CiBuildId}")" Match="NavLinkMatch.All">
@@ -79,7 +88,8 @@
 
     protected override Task<CIJobDTO> StartQuery()
     {
-        return http.GetFromJsonAsync<CIJobDTO>($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{Id}");
+        return http.GetFromJsonAsync<CIJobDTO>($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{Id}",
+            HttpClientHelpers.GetOptionsWithSerializers());
     }
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
