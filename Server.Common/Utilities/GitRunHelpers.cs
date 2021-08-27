@@ -146,7 +146,8 @@ namespace ThriveDevCenter.Server.Common.Utilities
             }
         }
 
-        public static async Task<string> Clean(string folder, CancellationToken cancellationToken)
+        public static async Task<string> Clean(string folder, CancellationToken cancellationToken,
+            bool removeUntrackedDirectories = true)
         {
             if (!Directory.Exists(folder))
                 throw new ArgumentException($"Specified folder: \"{folder}\" doesn't exist");
@@ -155,7 +156,9 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
             startInfo.ArgumentList.Add("clean");
             startInfo.ArgumentList.Add("-f");
-            startInfo.ArgumentList.Add("-d");
+
+            if (removeUntrackedDirectories)
+                startInfo.ArgumentList.Add("-d");
 
             var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
             if (result.ExitCode != 0)
