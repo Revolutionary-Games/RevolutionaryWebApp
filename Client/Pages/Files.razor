@@ -594,14 +594,13 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task HandleDragEnter()
+    private void HandleDragEnter()
     {
         // The drag level is a workaround for the problem of child elements receiving the drag enter before the
         // parent receives drag leave (from the event bubbling up from the child)
         // see: https://stackoverflow.com/questions/7110353/html5-dragleave-fired-when-hovering-a-child-element
         ++dragLevel;
         showUploadOverlay = dragLevel > 0;
-        return;
     }
 
     private void HandleDragOver()
@@ -829,6 +828,8 @@ else
 
         var uploadTasks = new List<ValueTask<string>>();
 
+        Console.WriteLine($"Number of starting chunk lists: {startingChunks.Count}");
+
         foreach (int i in Enumerable.Range(0, AppInfo.MultipartSimultaneousUploads))
         {
             var initialChunks = i < startingChunks.Count ? startingChunks[i] :
@@ -871,6 +872,7 @@ else
     private async ValueTask<string> UploadChunksUntilDone(string fileName, string moreChunksToken,
         IEnumerable<MultipartFileUpload.FileChunk> initialChunks)
     {
+        Console.WriteLine("Starting chunk upload task");
         var error = await UploadSingleChunkList(fileName, initialChunks);
 
         if (error != null)
@@ -911,6 +913,7 @@ else
 
             if (nextUpload.NextChunks == null)
             {
+                Console.WriteLine("A chunk upload task finished");
                 return null;
             }
 
