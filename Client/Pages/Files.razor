@@ -39,7 +39,7 @@ else
         {
             <div @ref="dropArea" class="block-overlay"
                  @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave" @ondrop="OnDrop"
-                 @ondragover="HandleDragEnter"
+                 @ondragover="HandleDragOver"
                  @ondragover:preventDefault="@true"
                  @ondrop:preventDefault="@true">
 
@@ -88,6 +88,7 @@ else
                                    accept="*"
                                    OnChange="OnInputFilesChanged"
                                    @ondragenter="HandleDragEnter"
+                                   @ondragleave="HandleDragLeave"
                                    multiple />
                     </div>
 
@@ -290,6 +291,7 @@ else
     private bool showUploadOverlay;
     private bool uploadInProgress;
     private string uploadStatus;
+    private int dragLevel;
 
     /// <summary>
     ///   If true uploading is in progress, and new uploads can't start
@@ -580,22 +582,25 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-
-
     private async Task HandleDragEnter()
     {
-        showUploadOverlay = true;
-        // The wait here is to workaround the problem of child elements receiving the drag enter before the
+        // The drag level is a workaround for the problem of child elements receiving the drag enter before the
         // parent receives drag leave (from the event bubbling up from the child)
-        // TODO: find a better solution
         // see: https://stackoverflow.com/questions/7110353/html5-dragleave-fired-when-hovering-a-child-element
-        await Task.Delay(1);
-        showUploadOverlay = true;
+        ++dragLevel;
+        showUploadOverlay = dragLevel > 0;
+        return;
+    }
+
+    private void HandleDragOver()
+    {
+        // This empty method is needed, otherwise drops are not detected
     }
 
     private void HandleDragLeave()
     {
-        showUploadOverlay = false;
+        --dragLevel;
+        showUploadOverlay = dragLevel > 0;
     }
 
     private async Task OnDrop()
