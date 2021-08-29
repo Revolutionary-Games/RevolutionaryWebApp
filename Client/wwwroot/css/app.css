@@ -205,6 +205,10 @@ table.non-fixed {
     text-align: center;
 }
 
+.preview-box pre {
+    text-align: left;
+}
+
 .preview-image {
     width: 100%;
     height: 100%;
