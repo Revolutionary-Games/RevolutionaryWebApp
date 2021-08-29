@@ -73,7 +73,7 @@ function registerFileDropArea(dropElement, inputElementId) {
     dropElement.dataset.dropListen = inputElementId;
 }
 
-// Hack needed for putFormFile to work
+// Hack needed for putFormFile (and chunked variant) to work
 function storeFileInputFilesForLaterUse(inputElementId) {
     const inputElement = document.getElementById(inputElementId);
 
@@ -85,18 +85,47 @@ function storeFileInputFilesForLaterUse(inputElementId) {
 function putFormFile(fileName, url) {
     const file = fileObjects[fileName];
 
-    if (!file)
-        return "Form file object not found";
+    if (!file) {
+        return new Promise((resolve, reject) => {
+            reject("Form file object not found");
+        });
+    }
 
     delete fileObjects[fileName];
 
+    return performPut(url, file.type, file);
+}
+
+// This variant allows sending a part of the file to an url (used for multipart uploads).
+// Call reportFormFileChunksUploaded after uploading all parts.
+function putFormFileChunk(fileName, url, offset, length) {
+    const file = fileObjects[fileName];
+
+    if (!file) {
+        return new Promise((resolve, reject) => {
+            reject("Form file object not found");
+        });
+    }
+
+    console.log("Starting chunk upload " + fileName + " offset: " + offset + " length: " + length);
+    const chunkEnd = offset + length;
+
+    /* "Content-Range": "bytes " + offset + "-" + (chunkEnd - 1) + "/" + file.size, */
+    return performPut(url, file.type, file.slice(offset, chunkEnd));
+}
+
+function reportFormFileChunksUploaded(fileName) {
+    delete fileObjects[fileName];
+}
+
+function performPut(url, type, body) {
     return new Promise((resolve, reject) => {
         fetch(url, {
             method: 'PUT',
             headers: {
-                "Content-Type": file.type ?? "application/octet-stream"
+                "Content-Type": type ?? "application/octet-stream"
             },
-            body: file
+            body: body
         }).then(response => {
             if (!response.ok) {
                 response.text().then(text => {
@@ -115,5 +144,5 @@ function putFormFile(fileName, url) {
 
             resolve("Fetch error: " + error + extra);
         });
-    })
+    });
 }

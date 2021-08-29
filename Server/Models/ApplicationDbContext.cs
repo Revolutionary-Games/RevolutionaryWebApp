@@ -53,6 +53,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<MeetingPollVote> MeetingPollVotes { get; set; }
         public DbSet<MeetingPollVotingRecord> MeetingPollVotingRecords { get; set; }
         public DbSet<InProgressClaSignature> InProgressClaSignatures { get; set; }
+        public DbSet<InProgressMultipartUpload> InProgressMultipartUploads { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save

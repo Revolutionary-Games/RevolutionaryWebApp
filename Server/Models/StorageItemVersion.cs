@@ -59,7 +59,7 @@ namespace ThriveDevCenter.Server.Models
                 StoragePath = await ComputeStoragePath(database),
                 Size = size,
                 Uploading = true,
-                UploadExpires = uploadExpiresAt + TimeSpan.FromSeconds(1)
+                UploadExpires = uploadExpiresAt + TimeSpan.FromSeconds(1),
             };
 
             StorageFile = file;

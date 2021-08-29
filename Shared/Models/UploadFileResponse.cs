@@ -4,7 +4,9 @@ namespace ThriveDevCenter.Shared.Models
 
     public class UploadFileResponse
     {
-        [Required]
+        /// <summary>
+        ///   The upload url to upload the file to. Set when Multipart is not set.
+        /// </summary>
         public string UploadURL { get; set; }
 
         [Required]
@@ -15,5 +17,7 @@ namespace ThriveDevCenter.Shared.Models
 
         [Required]
         public string UploadVerifyToken { get; set; }
+
+        public MultipartFileUpload Multipart { get; set; }
     }
 }

@@ -9,6 +9,7 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Amazon.S3.Model;
     using Authorization;
     using BlazorPagination;
     using Filters;
@@ -30,12 +31,14 @@ namespace ThriveDevCenter.Server.Controllers
     public class StorageFilesController : Controller
     {
         private const string FileUploadProtectionPurposeString = "StorageFilesController.Upload.v1";
+        private const string FileUploadChunkProtectionPurposeString = "StorageFilesController.UploadChunk.v1";
 
         private readonly ILogger<StorageFilesController> logger;
         private readonly NotificationsEnabledDb database;
         private readonly GeneralRemoteStorage remoteStorage;
         private readonly IBackgroundJobClient jobClient;
         private readonly ITimeLimitedDataProtector dataProtector;
+        private readonly ITimeLimitedDataProtector chunkDataProtector;
 
         public StorageFilesController(ILogger<StorageFilesController> logger, NotificationsEnabledDb database,
             GeneralRemoteStorage remoteStorage, IDataProtectionProvider dataProtectionProvider,
@@ -47,6 +50,8 @@ namespace ThriveDevCenter.Server.Controllers
             this.jobClient = jobClient;
 
             dataProtector = dataProtectionProvider.CreateProtector(FileUploadProtectionPurposeString)
+                .ToTimeLimitedDataProtector();
+            chunkDataProtector = dataProtectionProvider.CreateProtector(FileUploadChunkProtectionPurposeString)
                 .ToTimeLimitedDataProtector();
         }
 
@@ -402,7 +407,7 @@ namespace ThriveDevCenter.Server.Controllers
                     ReadAccess = request.ReadAccess,
                     WriteAccess = request.WriteAccess,
                     AllowParentless = parentId == null,
-                    ParentId = parentId,
+                    Parent = parentFolder,
                     OwnerId = user.Id,
                 };
 
@@ -413,7 +418,70 @@ namespace ThriveDevCenter.Server.Controllers
             var file = await version.CreateStorageFile(database,
                 DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime, request.Size);
 
-            await database.SaveChangesAsync();
+            string uploadUrl = null;
+            MultipartFileUpload multipart = null;
+            long? multipartId = null;
+            string uploadId = null;
+
+            if (request.Size >= AppInfo.FileSizeBeforeMultipartUpload)
+            {
+                // Multipart upload is recommended for large files, as large files are hard to make go through
+                // in a reasonable time with a single PUT request
+                try
+                {
+                    uploadId = await remoteStorage.CreateMultipartUpload(file.UploadPath, request.MimeType);
+                    if (uploadId == null)
+                        throw new Exception("returned uploadId is null");
+                }
+                catch (Exception e)
+                {
+                    logger.LogError("Failed to create multipart upload: {@E}", e);
+                    return Problem("Failed to create a new multipart upload");
+                }
+
+                var chunks = ComputeChunksForFile(request.Size).ToList();
+                var initialChunksToUpload = AddUploadUrlsToChunks(chunks, file.UploadPath, uploadId,
+                        AppInfo.RemoteStorageUploadExpireTime)
+                    .Take(AppInfo.MultipartSimultaneousUploads *
+                        AppInfo.MultipartUploadPartsToReturnInSingleCall).ToList();
+
+                var multipartModel = new InProgressMultipartUpload()
+                {
+                    UploadId = uploadId,
+                    Path = file.UploadPath,
+                    NextChunkIndex = initialChunksToUpload.Count,
+                };
+
+                await database.InProgressMultipartUploads.AddAsync(multipartModel);
+                await database.SaveChangesAsync();
+
+                multipartId = multipartModel.Id;
+
+                var chunkToken = new ChunkRetrieveToken()
+                {
+                    MultipartId = multipartModel.Id,
+                    UploadId = uploadId,
+                    TargetStorageFile = file.Id,
+                };
+
+                var chunkTokenStr = JsonSerializer.Serialize(chunkToken);
+
+                multipart = new MultipartFileUpload()
+                {
+                    ChunkRetrieveToken =
+                        chunkDataProtector.Protect(chunkTokenStr, AppInfo.MultipartUploadTotalAllowedTime),
+                    TotalChunks = chunks.Count,
+                    NextChunks = initialChunksToUpload,
+                };
+            }
+            else
+            {
+                // Normal upload (in a single PUT request)
+                await database.SaveChangesAsync();
+
+                uploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
+                    AppInfo.RemoteStorageUploadExpireTime);
+            }
 
             // Need to queue a job to calculate the parent folder size
             if (parentId != null)
@@ -422,24 +490,92 @@ namespace ThriveDevCenter.Server.Controllers
                     CancellationToken.None));
             }
 
+            if (uploadId != null)
+            {
+                jobClient.Schedule<DeleteNonFinishedMultipartUploadJob>((x) => x.Execute(uploadId,
+                    CancellationToken.None), AppInfo.MultipartUploadTotalAllowedTime * 2);
+            }
+
             // TODO: queue a job to delete the version / UploadPath after a few hours if the upload fails
 
             var token = new UploadVerifyToken()
             {
                 TargetStorageItem = existingItem.Id,
                 TargetStorageItemVersion = version.Id,
+                MultipartId = multipartId,
             };
 
             var tokenStr = JsonSerializer.Serialize(token);
 
             return new UploadFileResponse()
             {
-                UploadURL = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
-                    AppInfo.RemoteStorageUploadExpireTime),
+                UploadURL = uploadUrl,
+                Multipart = multipart,
                 TargetStorageItem = existingItem.Id,
                 TargetStorageItemVersion = version.Id,
-                UploadVerifyToken = dataProtector.Protect(tokenStr, AppInfo.RemoteStorageUploadExpireTime),
+                UploadVerifyToken = dataProtector.Protect(tokenStr,
+                    multipart == null ?
+                        AppInfo.RemoteStorageUploadExpireTime :
+                        AppInfo.MultipartUploadTotalAllowedTime),
             };
+        }
+
+        [HttpPost("moreChunks")]
+        public async Task<ActionResult<MultipartFileUpload>> GetMoreMultipartChunks(
+            [Required] [FromBody] MoreChunksRequestForm request)
+        {
+            // Verify token first as there is no other protection on this endpoint
+            ChunkRetrieveToken verifiedToken;
+
+            try
+            {
+                verifiedToken =
+                    JsonSerializer.Deserialize<ChunkRetrieveToken>(
+                        chunkDataProtector.Unprotect(request.Token));
+
+                if (verifiedToken == null)
+                    throw new Exception("deserialized token is null");
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning("Failed to verify more chunks token: {@E}", e);
+                return BadRequest("Invalid more chunks token");
+            }
+
+            var upload = await database.InProgressMultipartUploads.FindAsync(verifiedToken.MultipartId);
+            var file = await database.StorageFiles.FindAsync(verifiedToken.TargetStorageFile);
+
+            if (upload == null || file == null || upload.Finished ||
+                !SecurityHelpers.SlowEquals(upload.UploadId, verifiedToken.UploadId))
+            {
+                return BadRequest("Invalid specified file or multipart data in chunks token");
+            }
+
+            List<MultipartFileUpload.FileChunk> chunks;
+            if (file.Size != null)
+            {
+                chunks = AddUploadUrlsToChunks(
+                    ComputeChunksForFile(file.Size.Value).Skip(upload.NextChunkIndex)
+                        .Take(AppInfo.MultipartUploadPartsToReturnInSingleCall), upload.Path, upload.UploadId,
+                    AppInfo.RemoteStorageUploadExpireTime).ToList();
+            }
+            else
+            {
+                return Problem("File in database is missing size");
+            }
+
+            if (chunks.Count < 1)
+            {
+                chunks = null;
+            }
+            else
+            {
+                upload.BumpUpdatedAt();
+                upload.NextChunkIndex += chunks.Count;
+                await database.SaveChangesAsync();
+            }
+
+            return new MultipartFileUpload() { NextChunks = chunks };
         }
 
         [HttpPost("finishUpload")]
@@ -470,6 +606,34 @@ namespace ThriveDevCenter.Server.Controllers
             if (item == null || version == null || item.Ftype != FileType.File || version.StorageFile == null)
                 return BadRequest("Invalid specified version or item in verify token");
 
+            // Finish the upload if it is a multipart one
+            if (verifiedToken.MultipartId.HasValue)
+            {
+                var upload = await database.InProgressMultipartUploads.FindAsync(verifiedToken.MultipartId);
+
+                if (upload == null || (upload.Path != version.StorageFile.UploadPath &&
+                    upload.Path != version.StorageFile.StoragePath))
+                {
+                    return BadRequest("Could not find multipart upload data");
+                }
+
+                try
+                {
+                    var parts = await remoteStorage.ListMultipartUploadParts(upload.Path, upload.UploadId);
+                    await remoteStorage.FinishMultipartUpload(upload.Path, upload.UploadId,
+                        parts.Select(p => (PartETag)p).ToList());
+                }
+                catch (Exception e)
+                {
+                    logger.LogWarning("Failed to complete multipart upload in remote storage: {@E}", e);
+                    return BadRequest("Failed to complete multipart upload in remote storage");
+                }
+
+                upload.Finished = true;
+                upload.BumpUpdatedAt();
+                logger.LogInformation("Finished multipart upload {UploadId}", upload.UploadId);
+            }
+
             // Verify that the file is properly in remote storage and copy it to an unmodifiable path
             try
             {
@@ -494,6 +658,8 @@ namespace ThriveDevCenter.Server.Controllers
             try
             {
                 // Move the uploaded file to a path the user can't anymore access to overwrite it
+                // TODO: this move only works for up to 5GB files, so multipart uploads over that size *must* go directly
+                // to the storage path
                 await remoteStorage.MoveObject(version.StorageFile.UploadPath, version.StorageFile.StoragePath);
 
                 // Check the stored file size once again
@@ -569,6 +735,54 @@ namespace ThriveDevCenter.Server.Controllers
             return item;
         }
 
+        [NonAction]
+        private IEnumerable<MultipartFileUpload.FileChunk> ComputeChunksForFile(long fileSize)
+        {
+            if (fileSize < 1)
+                throw new ArgumentException();
+
+            int chunkNumber = 0;
+            long chunkSize = GetChunkSize(fileSize);
+            long offset = 0;
+
+            while (fileSize > 0)
+            {
+                var chunk = new MultipartFileUpload.FileChunk()
+                {
+                    ChunkNumber = ++chunkNumber,
+                    Length = Math.Min(chunkSize, fileSize),
+                    Offset = offset,
+                };
+                yield return chunk;
+
+                offset += chunk.Length;
+                fileSize -= chunk.Length;
+            }
+        }
+
+        private IEnumerable<MultipartFileUpload.FileChunk> AddUploadUrlsToChunks(
+            IEnumerable<MultipartFileUpload.FileChunk> chunks, string path, string uploadId, TimeSpan expiresIn)
+        {
+            foreach (var chunk in chunks)
+            {
+                chunk.UploadURL = remoteStorage.CreatePresignedUploadURL(path, uploadId, chunk.ChunkNumber, expiresIn);
+                yield return chunk;
+            }
+        }
+
+        [NonAction]
+        private long GetChunkSize(long fileSize)
+        {
+            if (fileSize <= AppInfo.GIBIBYTE)
+            {
+                return AppInfo.MultipartUploadChunkSize;
+            }
+            else
+            {
+                return AppInfo.MultipartUploadChunkSizeLarge;
+            }
+        }
+
         private class UploadVerifyToken
         {
             [Required]
@@ -576,6 +790,20 @@ namespace ThriveDevCenter.Server.Controllers
 
             [Required]
             public long TargetStorageItemVersion { get; set; }
+
+            public long? MultipartId { get; set; }
+        }
+
+        private class ChunkRetrieveToken
+        {
+            [Required]
+            public long MultipartId { get; set; }
+
+            [Required]
+            public long TargetStorageFile { get; set; }
+
+            [Required]
+            public string UploadId { get; set; }
         }
     }
 }

@@ -12,6 +12,8 @@
 @using System.Threading
 @using System.Net
 @using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Converters
 @using ThriveDevCenter.Shared.Forms
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
 @inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.StorageItemInfo>
@@ -70,6 +72,10 @@ else
 
                 @if (uploadInProgress)
                 {
+                    @if (!string.IsNullOrEmpty(currentFileUploadMessage))
+                    {
+                        <div>@currentFileUploadMessage</div>
+                    }
                     <div class="spinner-border text-primary mb-3 drop-area" role="status">
                         <span class="sr-only">Uploading...</span>
                     </div>
@@ -266,6 +272,7 @@ else
 
     private readonly List<string> uploadErrors = new List<string>();
     private readonly List<IBrowserFile> filesToBeUploaded = new();
+    private readonly SemaphoreSlim requestNextChunksSemaphore = new(1, 1);
 
     private bool folderPathParsed;
 
@@ -292,6 +299,11 @@ else
     private bool uploadInProgress;
     private string uploadStatus;
     private int dragLevel;
+
+    private string currentFileUploadMessage;
+    private int totalChunks;
+    private int alreadyUploadedChunks;
+    private long alreadyUploadedChunkDataBytes;
 
     /// <summary>
     ///   If true uploading is in progress, and new uploads can't start
@@ -721,6 +733,7 @@ else
         }
 
         uploadStatus = $"Uploading: \"{toUpload.Name}\" with size of {toUpload.Size.BytesToMiB()}";
+        currentFileUploadMessage = null;
         uploadInProgress = true;
         await InvokeAsync(StateHasChanged);
 
@@ -771,7 +784,16 @@ else
 
     private async Task UploadFile(IBrowserFile file, UploadFileResponse info)
     {
-        var error = await js.InvokeAsync<string>("putFormFile", file.Name, info.UploadURL);
+        string error;
+
+        if (info.Multipart != null)
+        {
+            error = await UploadMultipartFile(file.Name, info.Multipart);
+        }
+        else
+        {
+            error = await UploadSinglePartFile(file.Name, info.UploadURL);
+        }
 
         if (!string.IsNullOrEmpty(error))
         {
@@ -783,6 +805,145 @@ else
             await ReportFileUploadComplete(info);
         }
     }
+
+    private ValueTask<string> UploadSinglePartFile(string fileName, string url)
+    {
+        return js.InvokeAsync<string>("putFormFile", fileName, url);
+    }
+
+    private void UpdateCurrentChunkMessage()
+    {
+        currentFileUploadMessage = $"{alreadyUploadedChunks}/{totalChunks} chunks " +
+            alreadyUploadedChunkDataBytes.BytesToMiB(1) + " uploaded";
+    }
+
+    private async ValueTask<string> UploadMultipartFile(string fileName, MultipartFileUpload upload)
+    {
+        totalChunks = upload.TotalChunks;
+        alreadyUploadedChunks = 0;
+        alreadyUploadedChunkDataBytes = 0;
+        UpdateCurrentChunkMessage();
+        await InvokeAsync(StateHasChanged);
+
+        var startingChunks = upload.NextChunks.AsEnumerable().Chunk(AppInfo.MultipartSimultaneousUploads).ToList();
+
+        var uploadTasks = new List<ValueTask<string>>();
+
+        foreach (int i in Enumerable.Range(0, AppInfo.MultipartSimultaneousUploads))
+        {
+            var initialChunks = i < startingChunks.Count ? startingChunks[i] :
+                new List<MultipartFileUpload.FileChunk>();
+
+            uploadTasks.Add(UploadChunksUntilDone(fileName, upload.ChunkRetrieveToken, initialChunks));
+        }
+
+        string error = null;
+
+        foreach (var task in uploadTasks)
+        {
+            var currentError = await task;
+
+            if (string.IsNullOrEmpty(currentError))
+            {
+                if(error == null)
+                {
+                    error = currentError;
+                }
+                else
+                {
+                    error += $". Another chunk task failed: {currentError}";
+                }
+            }
+        }
+
+        try
+        {
+            await js.InvokeVoidAsync("reportFormFileChunksUploaded", fileName);
+        }
+        catch (Exception e)
+        {
+            await Console.Error.WriteLineAsync($"Failed to call multipart file upload chunks finished: #{e}");
+        }
+
+        return error;
+    }
+
+    private async ValueTask<string> UploadChunksUntilDone(string fileName, string moreChunksToken,
+        IEnumerable<MultipartFileUpload.FileChunk> initialChunks)
+    {
+        var error = await UploadSingleChunkList(fileName, initialChunks);
+
+        if (error != null)
+            return error;
+
+        // Keep uploading chunks until we run out
+        while (true)
+        {
+            MultipartFileUpload nextUpload;
+            await requestNextChunksSemaphore.WaitAsync();
+
+            try
+            {
+                var result = await http.PostAsJsonAsync("api/v1/Files/moreChunks",
+                    new MoreChunksRequestForm { Token = moreChunksToken });
+
+                var content = await result.Content.ReadAsStringAsync();
+
+                if (!result.IsSuccessStatusCode)
+                {
+                    throw new Exception($"Failed to get more chunks from the server: {content}, {result.StatusCode}");
+                }
+
+                nextUpload = JsonSerializer.Deserialize<MultipartFileUpload>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers());
+
+                if (nextUpload == null)
+                    throw new Exception("Multipart upload data JSON parse resulted in null");
+            }
+            catch (Exception e)
+            {
+                return $"Fetching more chunks failed: {e}";
+            }
+            finally
+            {
+                requestNextChunksSemaphore.Release();
+            }
+
+            if (nextUpload.NextChunks == null)
+            {
+                return null;
+            }
+
+            error = await UploadSingleChunkList(fileName, nextUpload.NextChunks);
+
+            if (error != null)
+                return error;
+        }
+    }
+
+    private async ValueTask<string> UploadSingleChunkList(string fileName,
+        IEnumerable<MultipartFileUpload.FileChunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            var error = await js.InvokeAsync<string>("putFormFileChunk", fileName, chunk.UploadURL,
+                chunk.Offset, chunk.Length);
+
+            if (error != null)
+            {
+                Console.WriteLine($"Failed to upload chunk {chunk.ChunkNumber}");
+                return error;
+            }
+
+            Interlocked.Add(ref alreadyUploadedChunkDataBytes, chunk.Length);
+            Interlocked.Increment(ref alreadyUploadedChunks);
+            UpdateCurrentChunkMessage();
+            await InvokeAsync(StateHasChanged);
+        }
+
+        return null;
+    }
+
 
     private async Task ReportFileUploadComplete(UploadFileResponse info)
     {

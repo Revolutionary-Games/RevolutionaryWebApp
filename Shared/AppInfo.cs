@@ -55,6 +55,7 @@ namespace ThriveDevCenter.Shared
 
         public const int KIBIBYTE = 1024;
         public const int MEBIBYTE = KIBIBYTE * KIBIBYTE;
+        public const int GIBIBYTE = MEBIBYTE * 1024;
 
         /// <summary>
         ///   Maximum size of a file to upload through LFS
@@ -72,9 +73,17 @@ namespace ThriveDevCenter.Shared
         public const long MaxDevBuildUploadSize = 50 * MEBIBYTE;
 
         /// <summary>
-        ///   Maximum size of a file uploaded to the general file storage by a client
+        ///   Maximum size of a file uploaded to the general file storage by a client.
+        ///   Note that if this is increased over this value, multipart uploads need to go directly to the final
+        ///   storage path (as they can't be copied)
         /// </summary>
         public const long MaxGeneralFileStoreSize = 4024L * MEBIBYTE;
+
+        public const long FileSizeBeforeMultipartUpload = 70 * MEBIBYTE;
+        public const long MultipartUploadChunkSize = 50 * MEBIBYTE;
+        public const long MultipartUploadChunkSizeLarge = 100 * MEBIBYTE;
+        public const int MultipartSimultaneousUploads = 3;
+        public const int MultipartUploadPartsToReturnInSingleCall = 5;
 
         public const int MaxInBrowserPreviewTextFileSize = MEBIBYTE * 20;
         public const int MaxSingleBuildOutputMessageLength = MEBIBYTE * 20;
@@ -120,6 +129,8 @@ namespace ThriveDevCenter.Shared
         ///   How long the token is valid to upload to the general remote storage
         /// </summary>
         public static readonly TimeSpan RemoteStorageUploadExpireTime = TimeSpan.FromMinutes(60);
+
+        public static readonly TimeSpan MultipartUploadTotalAllowedTime = TimeSpan.FromHours(4);
 
         public static readonly TimeSpan RemoteStorageDownloadExpireTime = TimeSpan.FromMinutes(15);
 

@@ -1,6 +1,8 @@
 namespace ThriveDevCenter.Server.Services
 {
     using System;
+    using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Net;
     using System.Security.Cryptography;
@@ -58,8 +60,92 @@ namespace ThriveDevCenter.Server.Services
                 BucketName = bucket,
                 Key = path,
                 Expires = DateTime.UtcNow + expiresIn,
-                Verb = HttpVerb.PUT
+                Verb = HttpVerb.PUT,
             });
+        }
+
+        public async Task<string> CreateMultipartUpload(string path, string mimeType)
+        {
+            ThrowIfNotConfigured();
+
+            var response = await s3Client.InitiateMultipartUploadAsync(new InitiateMultipartUploadRequest()
+            {
+                BucketName = bucket,
+                Key = path,
+                ContentType = mimeType,
+            });
+
+            return response.UploadId;
+        }
+
+        /// <summary>
+        ///   Creates a pre-signed upload URL that is part of a multipart upload
+        /// </summary>
+        public string CreatePresignedUploadURL(string path, string uploadId, int partNumber, TimeSpan expiresIn)
+        {
+            ThrowIfNotConfigured();
+
+            return s3Client.GetPreSignedURL(new GetPreSignedUrlRequest()
+            {
+                BucketName = bucket,
+                Key = path,
+                Expires = DateTime.UtcNow + expiresIn,
+                Verb = HttpVerb.PUT,
+                UploadId = uploadId,
+                PartNumber = partNumber
+            });
+        }
+
+        public async Task FinishMultipartUpload(string path, string uploadId, List<PartETag> parts)
+        {
+            ThrowIfNotConfigured();
+
+            await s3Client.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest()
+            {
+                BucketName = bucket,
+                Key = path,
+                UploadId = uploadId,
+                PartETags = parts,
+            });
+        }
+
+        public async Task AbortMultipartUpload(string path, string uploadId)
+        {
+            ThrowIfNotConfigured();
+
+            await s3Client.AbortMultipartUploadAsync(new AbortMultipartUploadRequest()
+            {
+                BucketName = bucket,
+                Key = path,
+                UploadId = uploadId,
+            });
+        }
+
+        public async Task<List<PartDetail>> ListMultipartUploadParts(string path, string uploadId)
+        {
+            ThrowIfNotConfigured();
+
+            var parts = new List<PartDetail>();
+
+            string continueParts = null;
+
+            ListPartsResponse response;
+            do
+            {
+                response = await s3Client.ListPartsAsync(new ListPartsRequest()
+                {
+                    BucketName = bucket,
+                    Key = path,
+                    UploadId = uploadId,
+                    PartNumberMarker = continueParts,
+                });
+
+                parts.AddRange(response.Parts);
+                continueParts = response.NextPartNumberMarker.ToString(CultureInfo.InvariantCulture);
+            }
+            while (response.IsTruncated);
+
+            return parts;
         }
 
         public Task UploadFile(string path, string data, string contentType)
