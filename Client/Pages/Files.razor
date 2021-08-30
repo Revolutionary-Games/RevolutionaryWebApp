@@ -828,7 +828,11 @@ else
 
         var uploadTasks = new List<ValueTask<string>>();
 
-        Console.WriteLine($"Number of starting chunk lists: {startingChunks.Count}");
+        if (startingChunks.Count != AppInfo.MultipartSimultaneousUploads)
+        {
+            await Console.Error.WriteAsync($"Number of starting chunk lists: {startingChunks.Count} " +
+                $"doesn't match tasks: {AppInfo.MultipartSimultaneousUploads}");
+        }
 
         foreach (int i in Enumerable.Range(0, AppInfo.MultipartSimultaneousUploads))
         {
@@ -842,7 +846,16 @@ else
 
         foreach (var task in uploadTasks)
         {
-            var currentError = await task;
+            string currentError;
+            try
+            {
+                currentError = await task;
+            }
+            catch (Exception e)
+            {
+                await Console.Error.WriteLineAsync($"Failed to run chunk upload task: {e}");
+                currentError = e.ToString();
+            }
 
             if (string.IsNullOrEmpty(currentError))
             {
@@ -927,8 +940,10 @@ else
     private async ValueTask<string> UploadSingleChunkList(string fileName,
         IEnumerable<MultipartFileUpload.FileChunk> chunks)
     {
+        bool uploaded = false;
         foreach (var chunk in chunks)
         {
+            uploaded = true;
             var error = await js.InvokeAsync<string>("putFormFileChunk", fileName, chunk.UploadURL,
                 chunk.Offset, chunk.Length);
 
@@ -943,6 +958,9 @@ else
             UpdateCurrentChunkMessage();
             await InvokeAsync(StateHasChanged);
         }
+
+        if (!uploaded)
+            await Console.Error.WriteLineAsync($"{nameof(UploadSingleChunkList)} was given an empty list of chunks");
 
         return null;
     }
