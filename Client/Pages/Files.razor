@@ -824,7 +824,8 @@ else
         UpdateCurrentChunkMessage();
         await InvokeAsync(StateHasChanged);
 
-        var startingChunks = upload.NextChunks.AsEnumerable().Chunk(AppInfo.MultipartSimultaneousUploads).ToList();
+        var startingChunks = upload.NextChunks.AsEnumerable().Chunk(
+            (int)Math.Ceiling(upload.NextChunks.Count / (float)AppInfo.MultipartSimultaneousUploads)).ToList();
 
         var uploadTasks = new List<ValueTask<string>>();
 
