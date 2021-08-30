@@ -82,6 +82,7 @@ namespace ThriveDevCenter.Shared
         public const long FileSizeBeforeMultipartUpload = 70 * MEBIBYTE;
         public const long MultipartUploadChunkSize = 50 * MEBIBYTE;
         public const long MultipartUploadChunkSizeLarge = 100 * MEBIBYTE;
+        public const long MultipartUploadChunkSizeLargeThreshold = 1 * GIBIBYTE;
         public const int MultipartSimultaneousUploads = 3;
         public const int MultipartUploadPartsToReturnInSingleCall = 5;
 

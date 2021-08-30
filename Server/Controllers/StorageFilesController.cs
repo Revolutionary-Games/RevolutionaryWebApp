@@ -440,10 +440,9 @@ namespace ThriveDevCenter.Server.Controllers
                 }
 
                 var chunks = ComputeChunksForFile(request.Size).ToList();
-                var initialChunksToUpload = AddUploadUrlsToChunks(chunks, file.UploadPath, uploadId,
-                        AppInfo.RemoteStorageUploadExpireTime)
-                    .Take(AppInfo.MultipartSimultaneousUploads *
-                        AppInfo.MultipartUploadPartsToReturnInSingleCall).ToList();
+                var initialChunksToUpload = AddUploadUrlsToChunks(chunks.Take(AppInfo.MultipartSimultaneousUploads *
+                        AppInfo.MultipartUploadPartsToReturnInSingleCall), file.UploadPath, uploadId,
+                    AppInfo.RemoteStorageUploadExpireTime).ToList();
 
                 var multipartModel = new InProgressMultipartUpload()
                 {
@@ -760,6 +759,7 @@ namespace ThriveDevCenter.Server.Controllers
             }
         }
 
+        [NonAction]
         private IEnumerable<MultipartFileUpload.FileChunk> AddUploadUrlsToChunks(
             IEnumerable<MultipartFileUpload.FileChunk> chunks, string path, string uploadId, TimeSpan expiresIn)
         {
@@ -773,7 +773,7 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private long GetChunkSize(long fileSize)
         {
-            if (fileSize <= AppInfo.GIBIBYTE)
+            if (fileSize <= AppInfo.MultipartUploadChunkSizeLargeThreshold)
             {
                 return AppInfo.MultipartUploadChunkSize;
             }
