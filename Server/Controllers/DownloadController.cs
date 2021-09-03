@@ -105,6 +105,9 @@ namespace ThriveDevCenter.Server.Controllers
             if (patreonSettings == null)
                 return Problem("Patreon settings not found");
 
+            logger.LogInformation("Patron list for credits has been accessed by {Email}",
+                HttpContext.AuthenticatedUser().Email);
+
             var groups = patrons.GroupBy(p => p.RewardId).ToList();
 
             var vips = groups.FirstOrDefault(g => g.Key == patreonSettings.VipRewardId);
