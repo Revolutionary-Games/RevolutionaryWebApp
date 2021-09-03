@@ -1,4 +1,5 @@
 @page "/admin/patreon"
+@inject NavigationManager navManager
 @using ThriveDevCenter.Shared.Models
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
@@ -9,9 +10,17 @@
     <hr />
 
     <PatronsList />
+
+    <Button class="mt-3" ButtonStyle="primary" OnPressed="@RedirectToCreditsDownload">
+        Download list for Credits
+    </Button>
 </AccessLimited>
 
 
 @code {
 
+    private void RedirectToCreditsDownload()
+    {
+        navManager.NavigateTo("/api/v1/download/patreonCredits", true);
+    }
 }

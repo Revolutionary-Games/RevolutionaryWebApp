@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Threading.Tasks;
@@ -91,6 +92,44 @@ namespace ThriveDevCenter.Server.Controllers
 
             return Redirect(remoteDownload.CreateDownloadFor(toDownload.StorageFile,
                 AppInfo.RemoteStorageDownloadExpireTime));
+        }
+
+        [HttpGet("patreonCredits")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<ActionResult<PatreonCredits>> DownloadPatronCredits()
+        {
+            var patrons = await database.Patrons.AsQueryable().Where(p => p.Suspended != true).ToListAsync();
+
+            var patreonSettings = await database.PatreonSettings.AsQueryable().OrderBy(s => s.Id).FirstOrDefaultAsync();
+
+            if (patreonSettings == null)
+                return Problem("Patreon settings not found");
+
+            var groups = patrons.GroupBy(p => p.RewardId).ToList();
+
+            var vips = groups.FirstOrDefault(g => g.Key == patreonSettings.VipRewardId);
+            var devbuilds = groups.FirstOrDefault(g => g.Key == patreonSettings.DevbuildsRewardId);
+            var other = groups.FirstOrDefault(g =>
+                g.Key != patreonSettings.VipRewardId && g.Key != patreonSettings.DevbuildsRewardId);
+
+            var result = new PatreonCredits()
+            {
+                VIPPatrons = PreparePatronGroup(vips),
+                DevBuildPatrons = PreparePatronGroup(devbuilds),
+                SupporterPatrons = PreparePatronGroup(other),
+            };
+
+            Response.Headers.Add("Content-Disposition", "attachment; filename=\"patrons.json\"");
+            return result;
+        }
+
+        [NonAction]
+        private List<string> PreparePatronGroup(IGrouping<string, Patron> group)
+        {
+            if (group == null)
+                return new List<string>();
+
+            return group.OrderBy(p => p.Username).Select(p => p.Username).ToList();
         }
     }
 }
