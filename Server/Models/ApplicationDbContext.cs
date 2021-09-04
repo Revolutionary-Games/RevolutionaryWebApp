@@ -54,6 +54,8 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<MeetingPollVotingRecord> MeetingPollVotingRecords { get; set; }
         public DbSet<InProgressClaSignature> InProgressClaSignatures { get; set; }
         public DbSet<InProgressMultipartUpload> InProgressMultipartUploads { get; set; }
+        public DbSet<GithubAutoComment> GithubAutoComments { get; set; }
+        public DbSet<GithubPullRequest> GithubPullRequests { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -438,6 +440,11 @@ namespace ThriveDevCenter.Server.Models
                     .WithOne(p => p.InProgressClaSignature).OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(d => d.Cla).WithMany(p => p.InProgressSignatures).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<GithubAutoComment>(entity =>
+            {
+                entity.HasMany(d => d.PostedOnPullRequests).WithMany(p => p.AutoComments);
             });
         }
 

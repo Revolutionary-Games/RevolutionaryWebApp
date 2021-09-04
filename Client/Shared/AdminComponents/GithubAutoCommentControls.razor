@@ -1,0 +1,425 @@
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Converters
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
+@implements ThriveDevCenter.Client.Services.INotificationHandler<GithubAutoCommentListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.GithubAutoCommentDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <StatusMessageShower Message="@message" Type="@messageType" />
+
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (clientSideResourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                var status = clientSideResourceStatus.GetStatus(item.Id);
+
+                <tr @key="item.Id">
+                    <th @onclick="() => ToggleEdit(item)" class="clickable">
+                        @if (status.Expanded)
+                        {
+                            <span class="oi oi-chevron-top"></span>
+                        }
+                        else
+                        {
+                            <span class="oi oi-chevron-right"></span>
+                        }
+                        <span class="ml-1">@item.Id</span>
+                    </th>
+                    <td>@item.Enabled</td>
+                    <td>@item.Repository</td>
+                    <td>@item.Condition</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.CommentText.Truncate(40)</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                </tr>
+
+                @if (status.Expanded)
+                {
+                    var key = $"{item.Id}-details";
+                    @* TODO: firefox once again complains here about that relative now has an effect here *@
+                    <tr @key="key" style="position: relative;">
+                        <td colspan="@columns.Count" class="mb-2 expanded-box">
+                            <form class="form-inline mr-2">
+                                <label for="@($"enabledEditCheckbox{item.Id}")">Enabled:</label>
+                                <input type="checkbox" class="form-control" id="@($"enabledEditCheckbox{item.Id}")"
+                                        @bind="item.Enabled">
+
+                                <label for="@($"conditionEdit{item.Id}")">Condition:</label>
+                                <select class="custom-select ml-1" @bind="item.Condition"
+                                        id="@($"conditionEdit{item.Id}")">
+                                    @foreach (var name in Enum.GetNames<AutoCommentCondition>())
+                                    {
+                                        <option value="@name">@name</option>
+                                    }
+                                </select>
+
+                                <label for="@($"repositoryEdit{item.Id}")">Repo:</label>
+                                <input type="checkbox" class="form-control" id="@($"repositoryEdit{item.Id}")"
+                                        @bind="item.Repository">
+
+                                <label for="@($"commentTextEdit{item.Id}")">Text:</label>
+                                <textarea class="form-control" id="@($"commentTextEdit{item.Id}")"
+                                        @bind="item.CommentText"></textarea>
+
+                                @* TODO: implement form error checking here *@
+                                <Button class="mb-2" type="submit" ButtonStyle="primary"
+                                        Enabled="@true" OnPressed="@(() => UpdateItem(item))"
+                                        Spinner="@status.Processing">
+                                    Send
+                                </Button>
+                            </form>
+                            @if (status.Processing)
+                            {
+                                <div class="overlay">
+                                    <div class="d-flex justify-content-center align-items-center"
+                                         style="height: 100%;">
+                                        <div class="spinner-border text-light" role="status">
+                                            <span class="sr-only">Processing...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <form>
+        <div class="form-row">
+            <div class="form-group col-12">
+                <label for="newCommentRepository">Repository Name</label>
+                <input type="text" class="form-control" id="newCommentRepository" @bind="newRepoName"
+                       @bind:event="oninput" placeholder="Repository this comment is active on (or empty for all)">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group col-12">
+                <label for="newCommentText">Comment Text</label>
+                <textarea class="form-control" id="newCommentText" @bind="newCommentText" @bind:event="oninput"
+                    placeholder="Comment to post" rows="5">
+                </textarea>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label class="mr-1" for="newCommentCondition">Condition</label>
+                <select class="custom-select" id="newCommentCondition" @bind="newCommentCondition">
+                    @foreach (var name in Enum.GetNames<AutoCommentCondition>())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group col-md-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="newCommentEnabled" @bind="newEnabled">
+                    <label class="form-check-label" for="newCommentEnabled">Enabled?</label>
+                </div>
+            </div>
+        </div>
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+            Create
+        </Button>
+    </form>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Enabled", true),
+        new TableColumn("Repository", false),
+        new TableColumn("Condition", true),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Text", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+    };
+
+    private readonly ClientSideResourceStatus<AutoCommentResourceStatus> clientSideResourceStatus = new();
+
+    private string message;
+    private SiteNoticeType messageType;
+
+    private string createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newRepoName;
+    private bool newEnabled;
+    private string newCommentText;
+    private AutoCommentCondition newCommentCondition;
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newCommentText);
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public GithubAutoCommentControls() : base(new SortHelper("Id", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(GithubAutoCommentListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.GithubAutoCommentListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<GithubAutoCommentDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<GithubAutoCommentDTO>>(
+            QueryHelpers.AddQueryString("api/v1/GithubConfiguration/autoComments", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private bool IsProcessing(long commentId)
+    {
+        return clientSideResourceStatus.GetStatus(commentId).Processing;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newRepoName = null;
+            newEnabled = true;
+            newCommentText = null;
+            newCommentCondition = AutoCommentCondition.IfCLANotSigned;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/GithubConfiguration/autoComments", new GithubAutoCommentDTO()
+            {
+                Repository = newRepoName,
+                Enabled = newEnabled,
+                CommentText = newCommentText,
+                Condition = newCommentCondition,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New auto comment created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task VerifyDeleteServer(ExternalServerDTO comment)
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmDelete.Name), $"Auto comment {comment.Id}");
+
+        var modal = Modal.Show<ConfirmDelete>("Delete auto comment?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await DeleteComment(comment.Id);
+    }
+
+    private async Task DeleteComment(long commentId)
+    {
+        var status = clientSideResourceStatus.GetStatus(commentId);
+
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/GithubConfiguration/autoComments/{commentId}");
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Comment deleted";
+            messageType = SiteNoticeType.Warning;
+            clientSideResourceStatus.SetDeletedStatus(commentId);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateItem(GithubAutoCommentDTO comment)
+    {
+        var status = clientSideResourceStatus.GetStatus(comment.Id);
+
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PutAsJsonAsync($"api/v1/GithubConfiguration/autoComments/{comment.Id}", comment);
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Comment updated";
+            messageType = SiteNoticeType.Primary;
+            status.Expanded = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleEdit(GithubAutoCommentDTO comment)
+    {
+        var status = clientSideResourceStatus.GetStatus(comment.Id);
+        status.Expanded = !status.Expanded;
+    }
+
+    private class AutoCommentResourceStatus : DeletedResourceStatus
+    {
+        public bool Expanded { get; set; }
+        public bool Processing { get; set; }
+    }
+}

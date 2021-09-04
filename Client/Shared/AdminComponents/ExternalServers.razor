@@ -699,9 +699,8 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private class ServerResourceStatus : IDeletedResourceStatus
+    private class ServerResourceStatus : DeletedResourceStatus
     {
-        public bool Deleted { get; set; }
         public bool Expanded { get; set; }
         public bool Processing { get; set; }
     }

@@ -231,6 +231,7 @@ namespace ThriveDevCenter.Server.Hubs
                 case NotificationGroups.ControlledServerListUpdated:
                 case NotificationGroups.ExternalServerListUpdated:
                 case NotificationGroups.CLAListUpdated:
+                case NotificationGroups.GithubAutoCommentListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
                 case NotificationGroups.PrivateCIProjectUpdated:

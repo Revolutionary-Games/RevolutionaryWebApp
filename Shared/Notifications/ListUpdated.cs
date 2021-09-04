@@ -106,4 +106,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class MeetingPollListUpdated : ListUpdated<MeetingPollDTO>
     {
     }
+
+    public class GithubAutoCommentListUpdated : ListUpdated<GithubAutoCommentDTO>
+    {
+    }
 }
