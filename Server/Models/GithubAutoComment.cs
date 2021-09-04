@@ -14,17 +14,21 @@ namespace ThriveDevCenter.Server.Models
     public class GithubAutoComment : UpdateableModel, IUpdateNotifications
     {
         [AllowSortingBy]
+        [UpdateFromClientRequest]
         public bool Enabled { get; set; }
 
         /// <summary>
         ///   Only matching repository PRs are considered. If null, empty or * will post on any repo
         /// </summary>
+        [UpdateFromClientRequest]
         public string Repository { get; set; }
 
         [Required]
+        [UpdateFromClientRequest]
         public string CommentText { get; set; }
 
         [AllowSortingBy]
+        [UpdateFromClientRequest]
         public AutoCommentCondition Condition { get; set; }
 
         public ICollection<GithubPullRequest> PostedOnPullRequests { get; set; } = new HashSet<GithubPullRequest>();

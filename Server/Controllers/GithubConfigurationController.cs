@@ -2,22 +2,28 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ThriveDevCenter.Server.Controllers
 {
+    using System;
+    using System.ComponentModel.DataAnnotations;
+    using System.Linq;
     using System.Threading.Tasks;
     using Authorization;
+    using BlazorPagination;
+    using Filters;
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
     using Shared.Models;
+    using Utilities;
 
     [ApiController]
     [Route("api/v1/[controller]")]
     public class GithubConfigurationController : Controller
     {
         private readonly ILogger<GithubConfigurationController> logger;
-        private readonly ApplicationDbContext database;
+        private readonly NotificationsEnabledDb database;
 
         public GithubConfigurationController(ILogger<GithubConfigurationController> logger,
-            ApplicationDbContext database)
+            NotificationsEnabledDb database)
         {
             this.logger = logger;
             this.database = database;
@@ -47,6 +53,124 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             return existing.GetDTO();
+        }
+
+        [HttpGet("autoComments")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<PagedResult<GithubAutoCommentDTO>> GetAutoComments([Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+            [Required] [Range(1, 100)] int pageSize)
+        {
+            IQueryable<GithubAutoComment> query;
+
+            try
+            {
+                query = database.GithubAutoComments.AsQueryable().OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        [HttpPost("autoComments")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> CreateAutoComment([Required] [FromBody] GithubAutoCommentDTO request)
+        {
+            var comment = new GithubAutoComment()
+            {
+                Enabled = request.Enabled,
+                CommentText = request.CommentText,
+                Condition = request.Condition,
+                Repository = request.Repository,
+            };
+
+            var user = HttpContext.AuthenticatedUser();
+
+            await database.GithubAutoComments.AddAsync(comment);
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"New Github auto comment created (condition: {comment.Condition})",
+                PerformedById = user.Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("New Github auto comment {Id} created by {Email}", comment.Id, user.Email);
+
+            return Ok();
+        }
+
+        [HttpGet("autoComments/{id:long}")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<ActionResult<GithubAutoCommentDTO>> GetAutoComment([Required] long id)
+        {
+            var result = await database.GithubAutoComments.FindAsync(id);
+
+            if (result == null)
+                return NotFound();
+
+            return result.GetDTO();
+        }
+
+        [HttpPut("autoComments/{id:long}")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> UpdateAutoComment([Required] [FromBody] GithubAutoCommentDTO request)
+        {
+            var comment = await database.GithubAutoComments.FindAsync(request.Id);
+
+            if (comment == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser();
+
+            var (changes, description) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(comment, request);
+
+            if (!changes)
+                return Ok();
+
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"Github auto comment {comment.Id} edited",
+
+                // TODO: there could be an extra info property where the description is stored
+                PerformedById = user.Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("Github auto comment {Id} edited by {Email}, changes: {Description}", comment.Id,
+                user.Email, description);
+            return Ok();
+        }
+
+        [HttpDelete("autoComments/{id:long}")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> DeleteAutoComment([Required] long id)
+        {
+            var comment = await database.GithubAutoComments.FindAsync(id);
+
+            if (comment == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser();
+
+            database.GithubAutoComments.Remove(comment);
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"Github auto comment {comment.Id} deleted",
+                PerformedById = user.Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("Github auto comment {Id} deleted by {Email}", comment.Id, user.Email);
+            return Ok();
         }
 
         [NonAction]

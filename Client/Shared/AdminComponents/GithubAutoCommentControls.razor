@@ -68,11 +68,11 @@ else
                         <td colspan="@columns.Count" class="mb-2 expanded-box">
                             <form class="form-inline mr-2">
                                 <label for="@($"enabledEditCheckbox{item.Id}")">Enabled:</label>
-                                <input type="checkbox" class="form-control" id="@($"enabledEditCheckbox{item.Id}")"
-                                        @bind="item.Enabled">
+                                <input type="checkbox" class="form-control ml-1 mr-2"
+                                       id="@($"enabledEditCheckbox{item.Id}")" @bind="item.Enabled">
 
                                 <label for="@($"conditionEdit{item.Id}")">Condition:</label>
-                                <select class="custom-select ml-1" @bind="item.Condition"
+                                <select class="custom-select ml-1 mr-2" @bind="item.Condition"
                                         id="@($"conditionEdit{item.Id}")">
                                     @foreach (var name in Enum.GetNames<AutoCommentCondition>())
                                     {
@@ -81,18 +81,18 @@ else
                                 </select>
 
                                 <label for="@($"repositoryEdit{item.Id}")">Repo:</label>
-                                <input type="checkbox" class="form-control" id="@($"repositoryEdit{item.Id}")"
-                                        @bind="item.Repository">
+                                <input type="text" class="form-control ml-1 mr-2"
+                                       id="@($"repositoryEdit{item.Id}")" @bind="item.Repository">
 
                                 <label for="@($"commentTextEdit{item.Id}")">Text:</label>
-                                <textarea class="form-control" id="@($"commentTextEdit{item.Id}")"
+                                <textarea class="form-control ml-1 mr-3" id="@($"commentTextEdit{item.Id}")"
                                         @bind="item.CommentText"></textarea>
 
                                 @* TODO: implement form error checking here *@
                                 <Button class="mb-2" type="submit" ButtonStyle="primary"
                                         Enabled="@true" OnPressed="@(() => UpdateItem(item))"
                                         Spinner="@status.Processing">
-                                    Send
+                                    Save
                                 </Button>
                             </form>
                             @if (status.Processing)
