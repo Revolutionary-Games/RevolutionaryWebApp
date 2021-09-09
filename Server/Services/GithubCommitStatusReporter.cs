@@ -30,10 +30,19 @@ namespace ThriveDevCenter.Server.Services
 
             return new Uri(baseUrl, $"/ci/{job.CiProjectId}/build/{job.CiBuildId}/jobs/{job.CiJobId}").ToString();
         }
+
+        public string CreateStatusUrlForCLA()
+        {
+            if (baseUrl == null)
+                throw new InvalidOperationException("Base URL is not set");
+
+            return new Uri(baseUrl, "/cla").ToString();
+        }
     }
 
     public interface IGithubCommitStatusReporter : IGithubAPI
     {
         string CreateStatusUrlForJob(CiJob job);
+        string CreateStatusUrlForCLA();
     }
 }

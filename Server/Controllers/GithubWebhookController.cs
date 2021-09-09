@@ -159,6 +159,10 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 bool matched = false;
 
+                jobClient.Enqueue<CheckPullRequestStatusJob>(x => x.Execute(data.Repository.FullName,
+                    data.PullRequest.Number, data.PullRequest.Head.Sha, data.PullRequest.User.Login,
+                    !data.IsClosedPullRequest, CancellationToken.None));
+
                 // Detect if this PR is for any of our repos
                 foreach (var project in await database.CiProjects.AsQueryable().Where(p =>
                     p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
@@ -166,7 +170,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     matched = true;
 
-                    if (data.Deleted || data.PullRequest.State == "closed")
+                    if (data.IsClosedPullRequest)
                     {
                         logger.LogInformation("A pull request was closed");
                     }
@@ -320,6 +324,9 @@ namespace ThriveDevCenter.Server.Controllers
         public GithubPullRequest PullRequest { get; set; }
 
         public bool Deleted { get; set; }
+
+        [JsonIgnore]
+        public bool IsClosedPullRequest => Deleted || PullRequest.State == "closed";
     }
 
     public class GithubCommit

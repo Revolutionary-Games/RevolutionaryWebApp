@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 {
     using System.Threading.Tasks;
     using Fixtures;
+    using Hangfire;
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Server.Controllers;
@@ -27,9 +28,10 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         {
             var mailMock = new Mock<IMailQueue>();
             var storageMock = new Mock<ICLASignatureStorage>();
+            var jobsMock = new Mock<IBackgroundJobClient>();
 
             var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object);
+                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
 
             var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA2Signature1Email, null);
 
@@ -55,9 +57,10 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         {
             var mailMock = new Mock<IMailQueue>();
             var storageMock = new Mock<ICLASignatureStorage>();
+            var jobsMock = new Mock<IBackgroundJobClient>();
 
             var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object);
+                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
 
             var result = await controller.SearchSignatures(fixture.CLA2Id, null, fixture.CLA2Signature1Github);
 
@@ -83,9 +86,10 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         {
             var mailMock = new Mock<IMailQueue>();
             var storageMock = new Mock<ICLASignatureStorage>();
+            var jobsMock = new Mock<IBackgroundJobClient>();
 
             var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object);
+                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
 
             var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA2Signature1Email,
                 fixture.CLA2Signature1Github);
@@ -113,9 +117,10 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         {
             var mailMock = new Mock<IMailQueue>();
             var storageMock = new Mock<ICLASignatureStorage>();
+            var jobsMock = new Mock<IBackgroundJobClient>();
 
             var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object);
+                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
 
             var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA1Signature1Email, null);
 
@@ -135,9 +140,10 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         {
             var mailMock = new Mock<IMailQueue>();
             var storageMock = new Mock<ICLASignatureStorage>();
+            var jobsMock = new Mock<IBackgroundJobClient>();
 
             var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object);
+                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
 
             var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA2Signature1Email,
                 fixture.CLA2Signature1Github.Substring(0, AppInfo.PartialGithubMatchRevealAfterLenght));
@@ -166,9 +172,10 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         {
             var mailMock = new Mock<IMailQueue>();
             var storageMock = new Mock<ICLASignatureStorage>();
+            var jobsMock = new Mock<IBackgroundJobClient>();
 
             var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object);
+                fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
 
             var result = await controller.SearchSignatures(fixture.CLA2Id,
                 fixture.CLA2Signature1Email.Substring(0, AppInfo.PartialEmailMatchRevealAfterLenght),

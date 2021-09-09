@@ -115,6 +115,28 @@ namespace ThriveDevCenter.Server.Services
             return true;
         }
 
+        public async Task<bool> PostComment(string qualifiedRepoName, long issueOrPullRequestNumber,
+            string commentContent)
+        {
+            if (!CheckIsConfigured())
+                return false;
+
+            var response = await client.PostAsJsonAsync(
+                $"https://api.github.com/repos/{qualifiedRepoName}/issues/{issueOrPullRequestNumber}/comments",
+                new CommentPostRequest()
+                {
+                    Body = commentContent
+                });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                await ReportFailedRequest(response);
+                return false;
+            }
+
+            return true;
+        }
+
         protected bool CheckIsConfigured()
         {
             if (Configured)
@@ -135,10 +157,9 @@ namespace ThriveDevCenter.Server.Services
                 response.StatusCode, response.ReasonPhrase, content);
         }
 
+        // ReSharper disable UnusedAutoPropertyAccessor.Local
         private class CommitStatusSetRequest
         {
-            // ReSharper disable UnusedAutoPropertyAccessor.Local
-
             [JsonPropertyName("state")]
             public CommitStatus State { get; set; }
 
@@ -150,9 +171,18 @@ namespace ThriveDevCenter.Server.Services
 
             [JsonPropertyName("context")]
             public string Context { get; set; }
-
-            // ReSharper restore UnusedAutoPropertyAccessor.Local
         }
+
+        private class CommentPostRequest
+        {
+            /// <summary>
+            ///   The body of the comment
+            /// </summary>
+            [JsonPropertyName("body")]
+            public string Body { get; set; }
+        }
+
+        // ReSharper restore UnusedAutoPropertyAccessor.Local
     }
 
     public interface IGithubAPI
@@ -164,6 +194,9 @@ namespace ThriveDevCenter.Server.Services
 
         Task<bool> SetCommitStatus(string qualifiedRepoName, string sha, GithubAPI.CommitStatus state,
             string buildStatusUrl, string description, string contextSuffix);
+
+        Task<bool> PostComment(string qualifiedRepoName, long issueOrPullRequestNumber,
+            string commentContent);
     }
 
     public class GithubUserInfo

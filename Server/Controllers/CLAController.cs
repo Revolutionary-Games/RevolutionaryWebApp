@@ -12,6 +12,8 @@ namespace ThriveDevCenter.Server.Controllers
     using Authorization;
     using BlazorPagination;
     using Filters;
+    using Hangfire;
+    using Jobs;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -29,15 +31,18 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly NotificationsEnabledDb database;
         private readonly ICLASignatureStorage signatureStorage;
         private readonly IMailQueue mailQueue;
+        private readonly IBackgroundJobClient jobClient;
         private readonly string emailSignaturesTo;
 
         public CLAController(ILogger<CLAController> logger, IConfiguration configuration,
-            NotificationsEnabledDb database, ICLASignatureStorage signatureStorage, IMailQueue mailQueue)
+            NotificationsEnabledDb database, ICLASignatureStorage signatureStorage, IMailQueue mailQueue,
+            IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.database = database;
             this.signatureStorage = signatureStorage;
             this.mailQueue = mailQueue;
+            this.jobClient = jobClient;
 
             emailSignaturesTo = configuration["CLA:SignatureEmailBCC"];
         }
@@ -100,12 +105,15 @@ namespace ThriveDevCenter.Server.Controllers
                 RawMarkdown = request.RawMarkdown,
             };
 
+            bool inactivated = false;
+
             // Other active CLAs need to become inactive if new one is added
             if (newCla.Active)
             {
                 foreach (var cla in await database.Clas.AsQueryable().Where(c => c.Active).ToListAsync())
                 {
                     cla.Active = false;
+                    inactivated = true;
                     logger.LogInformation("CLA {Id} is being made inactive due to creating a new one", cla.Id);
                 }
             }
@@ -123,6 +131,11 @@ namespace ThriveDevCenter.Server.Controllers
 
             logger.LogInformation("New CLA {Id} with active: {Active} created by {Email}", newCla.Id,
                 newCla.Active, user.Email);
+
+            if (inactivated)
+            {
+                jobClient.Enqueue<InvalidatePullRequestsWithCLASignaturesJob>(x => x.Execute(CancellationToken.None));
+            }
 
             return Ok();
         }
@@ -153,6 +166,8 @@ namespace ThriveDevCenter.Server.Controllers
             logger.LogInformation("CLA {Id} activated by {Email}", cla.Id,
                 HttpContext.AuthenticatedUser().Email);
 
+            jobClient.Enqueue<InvalidatePullRequestsWithCLASignaturesJob>(x => x.Execute(CancellationToken.None));
+
             return Ok();
         }
 
@@ -173,6 +188,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             logger.LogInformation("CLA {Id} deactivated by {Email}", cla.Id,
                 HttpContext.AuthenticatedUser().Email);
+
+            jobClient.Enqueue<InvalidatePullRequestsWithCLASignaturesJob>(x => x.Execute(CancellationToken.None));
 
             return Ok();
         }
@@ -585,6 +602,12 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             await emailTask;
+
+            if (!string.IsNullOrEmpty(finalSignature.GithubAccount))
+            {
+                jobClient.Enqueue<CheckPullRequestsAfterNewSignatureJob>(x =>
+                    x.Execute(finalSignature.GithubAccount, CancellationToken.None));
+            }
 
             return Ok();
         }
