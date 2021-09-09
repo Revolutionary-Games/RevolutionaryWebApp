@@ -70,14 +70,18 @@ else
                 </div>
             </div>
             <div class="form-row">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="newCIProjectPublic" @bind="newPublic">
-                    <label class="form-check-label" for="newCIProjectPublic">Visible to non-developers?</label>
+                <div class="form-group col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="newCIProjectPublic" @bind="newPublic">
+                        <label class="form-check-label" for="newCIProjectPublic">Visible to non-developers?</label>
+                    </div>
                 </div>
             </div>
             <div class="form-row">
-                <label for="newCIProjectCloneURL">Clone URL</label>
-                <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
+                <div class="form-group col-12">
+                    <label for="newCIProjectCloneURL">Clone URL</label>
+                    <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
+                </div>
             </div>
 
             <div class="form-row">
