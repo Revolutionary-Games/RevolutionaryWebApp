@@ -2,15 +2,20 @@ namespace ThriveDevCenter.Server.Models
 {
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using Microsoft.EntityFrameworkCore;
 
     /// <summary>
     ///   DevCenter side info for a pull request
     /// </summary>
+    [Index(nameof(Repository), nameof(GithubId), IsUnique = true)]
     public class GithubPullRequest : UpdateableModel
     {
         [Required]
         public string Repository { get; set; }
 
+        /// <summary>
+        ///   The pull request number
+        /// </summary>
         public long GithubId { get; set; }
 
         public bool Open { get; set; } = true;

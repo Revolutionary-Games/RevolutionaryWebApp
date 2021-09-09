@@ -45,8 +45,6 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<ExternalServer> ExternalServers { get; set; }
         public DbSet<Cla> Clas { get; set; }
         public DbSet<ClaSignature> ClaSignatures { get; set; }
-        public DbSet<PullRequest> PullRequests { get; set; }
-        public DbSet<PullRequestAutoComment> PullRequestAutoComments { get; set; }
         public DbSet<Meeting> Meetings { get; set; }
         public DbSet<MeetingMember> MeetingMembers { get; set; }
         public DbSet<MeetingPoll> MeetingPolls { get; set; }
