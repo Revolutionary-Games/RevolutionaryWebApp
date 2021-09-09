@@ -1,0 +1,101 @@
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Converters
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<SentBulkEmailListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.SentBulkEmailDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row">@item.Id</th>
+                    <td>@item.Title.Truncate(45)</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.Recipients</td>
+                    <td>@item.SentById</td>
+                    <td>@item.SystemSend</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Title", false),
+        new TableColumn("Sent At", true, "CreatedAt"),
+        new TableColumn("Recipients", false),
+        new TableColumn("Sent By", true, "SentById"),
+        new TableColumn("System Send", true, "SystemSend"),
+    };
+
+    public BulkEmailList() : base(new SortHelper("Id", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(SentBulkEmailListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.SentBulkEmailListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<SentBulkEmailDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<SentBulkEmailDTO>>(
+            QueryHelpers.AddQueryString("api/v1/BulkEmail", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+}

@@ -54,6 +54,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<InProgressMultipartUpload> InProgressMultipartUploads { get; set; }
         public DbSet<GithubAutoComment> GithubAutoComments { get; set; }
         public DbSet<GithubPullRequest> GithubPullRequests { get; set; }
+        public DbSet<SentBulkEmail> SentBulkEmails { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -443,6 +444,11 @@ namespace ThriveDevCenter.Server.Models
             modelBuilder.Entity<GithubAutoComment>(entity =>
             {
                 entity.HasMany(d => d.PostedOnPullRequests).WithMany(p => p.AutoComments);
+            });
+
+            modelBuilder.Entity<SentBulkEmail>(entity =>
+            {
+                entity.HasOne(d => d.SentBy).WithMany(p => p.SentBulkEmails).OnDelete(DeleteBehavior.SetNull);
             });
         }
 

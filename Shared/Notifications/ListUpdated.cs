@@ -110,4 +110,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class GithubAutoCommentListUpdated : ListUpdated<GithubAutoCommentDTO>
     {
     }
+
+    public class SentBulkEmailListUpdated : ListUpdated<SentBulkEmailDTO>
+    {
+    }
 }

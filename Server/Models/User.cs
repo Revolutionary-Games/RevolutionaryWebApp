@@ -138,6 +138,8 @@ namespace ThriveDevCenter.Server.Models
         public ICollection<MeetingPollVotingRecord> VotedInPollsRecords { get; set; } =
             new HashSet<MeetingPollVotingRecord>();
 
+        public ICollection<SentBulkEmail> SentBulkEmails { get; set; } = new HashSet<SentBulkEmail>();
+
         public bool HasAccessLevel(UserAccessLevel level)
         {
             return ComputeAccessLevel().HasAccess(level);

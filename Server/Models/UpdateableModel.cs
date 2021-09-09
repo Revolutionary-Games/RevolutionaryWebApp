@@ -4,11 +4,8 @@ namespace ThriveDevCenter.Server.Models
     using Shared;
     using Shared.Models;
 
-    public class UpdateableModel : BaseModel, ITimestampedModel
+    public class UpdateableModel : ModelWithCreationTime, ITimestampedModel
     {
-        [AllowSortingBy]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
         [AllowSortingBy]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
