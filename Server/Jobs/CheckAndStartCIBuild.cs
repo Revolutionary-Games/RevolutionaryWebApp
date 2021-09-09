@@ -140,6 +140,14 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            if (configuration.Jobs.Any(j => j.Key == "CLA"))
+            {
+                logger.LogError("Build configuration job contains 'CLA' in it");
+
+                await CreateFailedJob(build, "Invalid configuration yaml, forbidden job name", cancellationToken);
+                return;
+            }
+
             // TODO: do something with the version number here...
 
             // Then queue the jobs we found in the configuration
