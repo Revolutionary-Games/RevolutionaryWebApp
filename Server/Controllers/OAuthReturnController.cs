@@ -30,6 +30,8 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly bool githubConfigured;
 
         public OAuthReturnController(ILogger<OAuthReturnController> logger, IConfiguration configuration,
+
+            // ReSharper disable once ContextualLoggerProblem
             NotificationsEnabledDb database, ILogger<GithubAPI> githubLog) : base(logger, database)
         {
             this.githubLog = githubLog;

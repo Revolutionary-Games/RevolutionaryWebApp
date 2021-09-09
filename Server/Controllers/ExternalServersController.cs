@@ -264,7 +264,7 @@ namespace ThriveDevCenter.Server.Controllers
             }
             catch (Exception e)
             {
-                logger.LogError("Failed to reboot external server {Id} due to: {@E}", server.Id, e);
+                logger.LogError(e, "Failed to reboot external server {Id} due to exception", server.Id);
                 return BadRequest("Failed to issue reboot command to target server");
             }
 
