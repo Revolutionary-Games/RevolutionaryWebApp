@@ -28,6 +28,11 @@
     <div class="alert alert-danger" role="alert">
         @Error
     </div>
+
+    @if (!currentUserInfo.LoggedIn)
+    {
+        <NavLink href="@navManager.GetLinkToLogin()">Login Here</NavLink>
+    }
 }
 else
 {
