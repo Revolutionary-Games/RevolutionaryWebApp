@@ -1,6 +1,7 @@
-namespace ThriveDevCenter.Server.ModelVerifiers
+namespace ThriveDevCenter.Shared.ModelVerifiers
 {
     using System;
+    using System.ComponentModel;
     using System.ComponentModel.DataAnnotations;
 
     /// <summary>
@@ -11,6 +12,10 @@ namespace ThriveDevCenter.Server.ModelVerifiers
     public class NotNullOrEmptyIfAttribute : RequiredAttribute
     {
         public string BooleanPropertyIsTrue { get; set; }
+
+        public string PropertyMatchesValue { get; set; }
+
+        public string Value { get; set; }
 
         protected override ValidationResult IsValid(object value, ValidationContext validationContext)
         {
@@ -31,28 +36,49 @@ namespace ThriveDevCenter.Server.ModelVerifiers
                         requiredValue = true;
                 }
             }
+            else if (!string.IsNullOrEmpty(PropertyMatchesValue))
+            {
+                var property = validationContext.ObjectType.GetProperty(PropertyMatchesValue);
+
+                if (property == null)
+                    throw new InvalidOperationException("NotNullOrEmpty conditional property to read is missing");
+
+                var propertyValue = property.GetValue(validationContext.ObjectInstance);
+
+                if (ReferenceEquals(Value, propertyValue))
+                {
+                    requiredValue = true;
+                }
+                else if (propertyValue != null && Value != null)
+                {
+                    var converter = TypeDescriptor.GetConverter(property.PropertyType);
+                    if (propertyValue.Equals(converter.ConvertFromInvariantString(Value)))
+                        requiredValue = true;
+                }
+            }
             else
             {
                 throw new InvalidOperationException("NotNullOrEmpty is misconfigured");
             }
 
             if (requiredValue)
-            {
-                return CheckRequired(value, validationContext.DisplayName);
-            }
+                return CheckRequired(value, validationContext.MemberName, validationContext.DisplayName);
 
             return ValidationResult.Success;
         }
 
-        private ValidationResult CheckRequired(object value, string propertyName)
+        private ValidationResult CheckRequired(object value, string propertyName, string displayName)
         {
             if (value == null)
-                return new ValidationResult($"Required property '{propertyName}' is null");
+                return new ValidationResult($"The {displayName} field is required.", new[] { propertyName });
 
             if (value is string str)
             {
                 if (string.IsNullOrWhiteSpace(str))
-                    return new ValidationResult($"Required property '{propertyName}' is empty");
+                {
+                    return new ValidationResult($"The {displayName} field should not be empty.",
+                        new[] { propertyName });
+                }
             }
             else
             {

@@ -4,42 +4,46 @@
 @using ThriveDevCenter.Shared.Forms
 @using ThriveDevCenter.Shared.Models
 
-<form>
+<EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
+    <DataAnnotationsValidator />
+
     <div class="form-row">
         <div class="form-group col-md-4">
             <label class="mr-1" for="bulkRecipientMode">Recipients Mode</label>
-            <select class="custom-select" id="bulkRecipientMode" @bind="recipientsMode">
+            <InputSelect class="custom-select" id="bulkRecipientMode" @bind-Value="request.RecipientsMode">
                 @foreach (var name in Enum.GetNames<BulkEmailRecipientsMode>())
                 {
                     <option value="@name">@name</option>
                 }
-            </select>
+            </InputSelect>
         </div>
         <div class="form-group col-md-4">
             <label class="mr-1" for="bulkIgnoreMode">Ignored Recipients</label>
-            <select class="custom-select" id="bulkIgnoreMode" @bind="ignoreMode">
+            <InputSelect class="custom-select" id="bulkIgnoreMode" @bind-Value="request.IgnoreMode">
                 @foreach (var name in Enum.GetNames<BulkEmailIgnoreMode>())
                 {
                     <option value="@name">@name</option>
                 }
-            </select>
+            </InputSelect>
         </div>
         <div class="form-group col-md-4">
             <label class="mr-1" for="bulkReplyMode">Reply-To Mode</label>
-            <select class="custom-select" id="bulkReplyMode" @bind="replyMode">
+            <InputSelect class="custom-select" id="bulkReplyMode" @bind-Value="request.ReplyMode">
                 @foreach (var name in Enum.GetNames<BulkEmailReplyToMode>())
                 {
                     <option value="@name">@name</option>
                 }
-            </select>
+            </InputSelect>
         </div>
     </div>
 
-    @if(recipientsMode == BulkEmailRecipientsMode.ManualList)
+    @if (request.RecipientsMode == BulkEmailRecipientsMode.ManualList)
     {
         <div class="form-row">
             <div class="form-group col-12">
-                <textarea @bind="recipients" placeholder="Manual recipients (one email per line)"></textarea>
+                <CustomInputTextArea class="form-control" @bind-Value="request.ManualRecipients"
+                               rows="15" placeholder="Manual recipients (one email per line)">
+                </CustomInputTextArea>
             </div>
         </div>
     }
@@ -47,67 +51,68 @@
     <div class="form-row">
         <div class="form-group col-12">
             <label for="bulkEmailTitle">Title</label>
-            <input type="text" class="form-control" id="bulkEmailTitle" @bind="title" placeholder="Email title">
+            <CustomInputText class="form-control" id="bulkEmailTitle" @bind-Value="request.Title"
+                       placeholder="Email title" />
         </div>
     </div>
     <div class="form-row">
         <div class="form-group col-12">
             <label for="bulkEmailPlainBody">Plain Text Body</label>
-            <input type="text" class="form-control" id="bulkEmailPlainBody" @bind="plainBody"
-                   placeholder="Plain text body">
+            <CustomInputTextArea class="form-control" id="bulkEmailPlainBody" @bind-Value="request.PlainBody" rows="10"
+                placeholder="Plain text body"></CustomInputTextArea>
         </div>
     </div>
     <div class="form-row">
         <div class="form-group col-md-6">
             <label for="bulkEmailHTMLBody">HTML Body</label>
-            <input type="text" class="form-control" id="bulkEmailHTMLBody" @bind="htmlBody"
-                   placeholder="HTML version of the message body">
+            <CustomInputTextArea class="form-control" id="bulkEmailHTMLBody" @bind-Value="request.HTMLBody" rows="15"
+                placeholder="HTML version of the message body"></CustomInputTextArea>
         </div>
         <div class="form-group col-md-6">
             <label for="bulkEmailHTMLPreview">Preview</label>
             <div id="bulkEmailHTMLPreview">
-                @((MarkupString)htmlBody)
+                @((MarkupString)request.HTMLBody)
             </div>
         </div>
     </div>
 
+    <ValidationSummary />
+
     <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-    <Button class="my-1" Enabled="@CanSend" OnPressed="@CreateNew" Spinner="@processing"
+    <Button class="my-1" Enabled="@(!processing)" type="submit" Spinner="@processing"
             ButtonStyle="warning">
         Send
     </Button>
-</form>
+</EditForm>
 
 @code {
     private string createMessage;
     private SiteNoticeType createMessageType;
     private bool processing;
 
-    private string plainBody;
-    private string htmlBody;
-    private string title;
-    private BulkEmailRecipientsMode recipientsMode;
-    private BulkEmailIgnoreMode ignoreMode;
-    private BulkEmailReplyToMode replyMode;
-    private string recipients;
+    private EditContext editContext;
 
-    private bool CanSend => !processing && !string.IsNullOrEmpty(plainBody);
+    private BulkEmailSendRequestForm request;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+        request = new BulkEmailSendRequestForm();
         ClearForm();
+
+        editContext = new(request);
     }
 
     private void ClearForm()
     {
-        plainBody = null;
-        htmlBody = null;
-        title = null;
-        recipientsMode = BulkEmailRecipientsMode.ManualList;
-        ignoreMode = BulkEmailIgnoreMode.Nobody;
-        replyMode = BulkEmailReplyToMode.SendingUser;
-        recipients = null;
+        request.RecipientsMode = BulkEmailRecipientsMode.ManualList;
+        request.IgnoreMode = BulkEmailIgnoreMode.Nobody;
+        request.ReplyMode = BulkEmailReplyToMode.SendingUser;
+        request.Title = null;
+        request.ManualRecipients = null;
+        request.PlainBody = null;
+        request.HTMLBody = null;
     }
 
     private async void CreateNew()
@@ -121,16 +126,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/BulkEmail", new BulkEmailSendRequestForm()
-            {
-                Title = title,
-                PlainBody = plainBody,
-                HTMLBody = htmlBody,
-                RecipientsMode = recipientsMode,
-                IgnoreMode = ignoreMode,
-                ReplyMode = replyMode,
-                ManualRecipients = recipients,
-            });
+            result = await http.PostAsJsonAsync("api/v1/BulkEmail", request);
         }
         catch (HttpRequestException e)
         {

@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
-    using ModelVerifiers;
+    using Shared.ModelVerifiers;
     using Shared;
     using Shared.Models;
     using Shared.Notifications;
