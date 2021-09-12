@@ -26,6 +26,12 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public string SystemSend { get; set; }
 
+        [Required]
+        public string HtmlBody { get; set; }
+
+        [Required]
+        public string PlainBody { get; set; }
+
         public User SentBy { get; set; }
 
         public SentBulkEmailDTO GetDTO()
