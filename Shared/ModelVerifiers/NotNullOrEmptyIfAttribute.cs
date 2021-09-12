@@ -8,7 +8,14 @@ namespace ThriveDevCenter.Shared.ModelVerifiers
     ///   Requires that a property is not null when a condition is true (for example a boolean property is true).
     ///   Derives from RequiredAttribute to make sure this is always used in validations.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
+    /// <remarks>
+    ///   <para>
+    ///     Multiple are currently not allowed because the other validations don't run at all. See:
+    ///     https://stackoverflow.com/questions/40273835/asp-net-core-model-validation-multiple-attributes
+    ///     for a solution that doesn't work
+    ///   </para>
+    /// </remarks>
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
     public class NotNullOrEmptyIfAttribute : RequiredAttribute
     {
         public string BooleanPropertyIsTrue { get; set; }

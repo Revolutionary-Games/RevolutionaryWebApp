@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace ThriveDevCenter.Server.Tests.Dummies
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using Server.Authorization;
     using Server.Models;
     using Shared;
     using Shared.Models;
+    using Shared.ModelVerifiers;
 
     [ApiController]
     [Route("dummy")]
@@ -52,6 +54,23 @@ namespace ThriveDevCenter.Server.Tests.Dummies
                 throw new InvalidOperationException("user not retrieved or doesn't have access level");
 
             return user.GetInfo(RecordAccessLevel.Admin);
+        }
+
+        [HttpPost]
+        public IActionResult PostValidation([Required] [FromBody] DummyModel request)
+        {
+            return NoContent();
+        }
+
+        public class DummyModel
+        {
+            [Required]
+            public string Field { get; set; }
+
+            [NotNullOrEmptyIf(PropertyMatchesValue = nameof(AValue), Value = "5")]
+            public string AnotherField { get; set; }
+
+            public int AValue { get; set; }
         }
     }
 }
