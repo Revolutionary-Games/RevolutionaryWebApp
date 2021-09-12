@@ -21,7 +21,18 @@ namespace ThriveDevCenter.Shared.Forms
         public string HTMLBody { get; set; }
 
         public BulkEmailRecipientsMode RecipientsMode { get; set; }
+
+        [DisallowIf(ThisMatches = nameof(BulkEmailIgnoreMode.DevCenterDevelopers),
+            OtherProperty = nameof(RecipientsMode),
+            IfOtherMatchesValue = nameof(BulkEmailRecipientsMode.DevCenterDevelopers),
+            ErrorMessage = "Ignore mode set so that no one will receive this email.")]
+        [DisallowIf(ThisMatches = nameof(BulkEmailIgnoreMode.DevCenterUsers),
+            OtherProperty = nameof(RecipientsMode),
+            IfOtherMatchesValue = nameof(BulkEmailRecipientsMode.DevCenterUsers),
+            ErrorMessage = "Ignore mode set so that no one will receive this email.")]
+        [DisallowIfEnabled]
         public BulkEmailIgnoreMode IgnoreMode { get; set; }
+
         public BulkEmailReplyToMode ReplyMode { get; set; }
 
         [StringLength(200000, MinimumLength = 10)]

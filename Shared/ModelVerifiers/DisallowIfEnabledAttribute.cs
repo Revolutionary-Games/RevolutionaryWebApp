@@ -48,7 +48,7 @@ namespace ThriveDevCenter.Shared.ModelVerifiers
                 }
 
                 if (!matches)
-                    return ValidationResult.Success;
+                    continue;
 
                 var property = validationContext.ObjectType.GetProperty(configuration.OtherProperty);
 
