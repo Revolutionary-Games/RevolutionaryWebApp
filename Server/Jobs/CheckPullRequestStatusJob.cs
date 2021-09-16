@@ -81,9 +81,10 @@ namespace ThriveDevCenter.Server.Jobs
         private async Task<bool?> CheckNewCLASignedStatus(bool? oldStatus, string username)
         {
             // Some users (like automated bot accounts) are exempt from requiring CLA signatures
-            if (claExemptions.IsExempt(username) && oldStatus is null or true)
+            if (claExemptions.IsExempt(username))
             {
-                logger.LogInformation("{Username} is exempt from requiring to sign a CLA", username);
+                if (oldStatus is null or false)
+                    logger.LogInformation("{Username} is exempt from requiring to sign a CLA", username);
                 return true;
             }
 
