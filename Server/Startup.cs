@@ -191,6 +191,7 @@ namespace ThriveDevCenter.Server
             services.AddScoped<DiscordNotifications>();
             services.AddScoped<IMailQueue, MailToQueueSender>();
             services.AddScoped<ICLASignatureStorage, CLASignatureStorage>();
+            services.AddScoped<ICLAExemptions, CLAExemptions>();
 
             // Prefer the queue sender to not make operations wait for emails to be sent
             services.AddScoped<IMailSender, MailSender>();

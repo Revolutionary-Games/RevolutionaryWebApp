@@ -26,15 +26,18 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly string githubClientId;
         private readonly string githubClientSecret;
         private readonly ILogger<GithubAPI> githubLog;
+        private readonly ICLAExemptions claExemptions;
 
         private readonly bool githubConfigured;
 
         public OAuthReturnController(ILogger<OAuthReturnController> logger, IConfiguration configuration,
 
             // ReSharper disable once ContextualLoggerProblem
-            NotificationsEnabledDb database, ILogger<GithubAPI> githubLog) : base(logger, database)
+            NotificationsEnabledDb database, ILogger<GithubAPI> githubLog, ICLAExemptions claExemptions) : base(logger,
+            database)
         {
             this.githubLog = githubLog;
+            this.claExemptions = claExemptions;
 
             githubClientId = configuration["Login:Github:ClientId"];
             githubClientSecret = configuration["Login:Github:ClientSecret"];
@@ -104,6 +107,13 @@ namespace ThriveDevCenter.Server.Controllers
             if (email == null)
             {
                 return this.WorkingForbid("Failed to get any verified email from your Github account");
+            }
+
+            // Disallow attaching if this is an account that doesn't need a CLA signature
+            if (claExemptions.IsExempt(user.Login))
+            {
+                return this.WorkingForbid(
+                    "This Github account is exempt from CLA signing and can't be attached to a signature");
             }
 
             // We store both username and user id to be able to detect if someone changes their username (as an extra

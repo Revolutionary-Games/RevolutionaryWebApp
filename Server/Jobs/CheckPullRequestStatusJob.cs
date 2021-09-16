@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Services;
     using Shared.Models;
 
     [DisableConcurrentExecution(60)]
@@ -14,13 +15,15 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly ILogger<CheckPullRequestStatusJob> logger;
         private readonly NotificationsEnabledDb database;
         private readonly IBackgroundJobClient jobClient;
+        private readonly ICLAExemptions claExemptions;
 
         public CheckPullRequestStatusJob(ILogger<CheckPullRequestStatusJob> logger, NotificationsEnabledDb database,
-            IBackgroundJobClient jobClient)
+            IBackgroundJobClient jobClient, ICLAExemptions claExemptions)
         {
             this.logger = logger;
             this.database = database;
             this.jobClient = jobClient;
+            this.claExemptions = claExemptions;
         }
 
         public async Task Execute(string repository, long pullRequestNumber, string commit, string githubUsername,
@@ -77,6 +80,13 @@ namespace ThriveDevCenter.Server.Jobs
 
         private async Task<bool?> CheckNewCLASignedStatus(bool? oldStatus, string username)
         {
+            // Some users (like automated bot accounts) are exempt from requiring CLA signatures
+            if (claExemptions.IsExempt(username) && oldStatus is null or true)
+            {
+                logger.LogInformation("{Username} is exempt from requiring to sign a CLA", username);
+                return true;
+            }
+
             if (oldStatus.HasValue)
                 return oldStatus.Value;
 
