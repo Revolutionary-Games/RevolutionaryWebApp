@@ -77,6 +77,9 @@ namespace ThriveDevCenter.Server.Services
             if (!string.IsNullOrEmpty(request.Cc))
                 email.Cc.Add(MailboxAddress.Parse(request.Cc));
 
+            if (!string.IsNullOrEmpty(request.ReplyTo))
+                email.ReplyTo.Add(MailboxAddress.Parse(request.ReplyTo));
+
             email.From.Add(sender);
 
             email.To.Add(MailboxAddress.Parse(request.Recipient));
@@ -153,6 +156,7 @@ namespace ThriveDevCenter.Server.Services
         public string Recipient { get; set; }
         public string Cc { get; set; }
         public string Bcc { get; set; }
+        public string ReplyTo { get; set; }
         public string Subject { get; set; }
         public string HtmlBody { get; set; }
         public string PlainTextBody { get; set; }

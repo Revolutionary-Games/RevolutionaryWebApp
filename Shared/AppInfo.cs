@@ -91,6 +91,10 @@ namespace ThriveDevCenter.Shared
 
         public const int MaxBuildOutputLineLength = 4000;
 
+        public const int MaxBulkEmailsPerInterval = 4;
+        public const int MaxBulkEmailDelaySeconds = 3600;
+        public const int BulkEmailChunkSize = 10;
+
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days of inactivity
         /// </summary>
@@ -138,5 +142,7 @@ namespace ThriveDevCenter.Shared
         public static readonly TimeSpan LauncherLinkCodeExpireTime = TimeSpan.FromMinutes(15);
 
         public static readonly TimeSpan StartedSigningTimeout = TimeSpan.FromHours(4);
+
+        public static readonly TimeSpan BulkEmailRateLimitInterval = TimeSpan.FromDays(1);
     }
 }

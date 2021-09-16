@@ -1932,6 +1932,16 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("HtmlBody")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("html_body");
+
+                    b.Property<string>("PlainBody")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("plain_body");
+
                     b.Property<int>("Recipients")
                         .HasColumnType("integer")
                         .HasColumnName("recipients");
