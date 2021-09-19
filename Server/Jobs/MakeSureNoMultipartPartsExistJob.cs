@@ -25,6 +25,8 @@ namespace ThriveDevCenter.Server.Jobs
         {
             logger.LogInformation("Making sure no multipart parts exist for {UploadId}", uploadId);
 
+            bool hadParts = false;
+
             try
             {
                 var parts = await remoteStorage.ListMultipartUploadParts(path, uploadId);
@@ -33,6 +35,10 @@ namespace ThriveDevCenter.Server.Jobs
                     logger.LogInformation("No parts detected for the multipart upload");
 
                     // But still try to delete it
+                }
+                else
+                {
+                    hadParts = true;
                 }
             }
             catch (Exception e)
@@ -46,10 +52,13 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 await remoteStorage.AbortMultipartUpload(path, uploadId);
 
-                // Try to delete it one more time just to be extra safe
-                jobClient.Schedule<MakeSureNoMultipartPartsExistJob>(
-                    x => x.Execute(uploadId, path, CancellationToken.None),
-                    TimeSpan.FromDays(1));
+                if (hadParts)
+                {
+                    // Try to delete it one more time just to be extra safe
+                    jobClient.Schedule<MakeSureNoMultipartPartsExistJob>(
+                        x => x.Execute(uploadId, path, CancellationToken.None),
+                        TimeSpan.FromDays(1));
+                }
             }
             catch (Exception e)
             {

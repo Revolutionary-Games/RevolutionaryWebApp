@@ -374,6 +374,11 @@ namespace ThriveDevCenter.Server
             AddJobHelper<TerminateLongStoppedServersJob>(configurationSection["TerminateLongStoppedServers"]);
             AddJobHelper<ScheduleServerMaintenanceJob>(configurationSection["ScheduleServerMaintenance"]);
             AddJobHelper<TimeoutInProgressClAsJob>(configurationSection["TimeoutInProgressCLAs"]);
+            AddJobHelper<CancelStuckMultipartUploadsJob>(configurationSection["CancelStuckMultipartUploads"]);
+            AddJobHelper<RemoveOldCompletedMultipartUploadsJob>(
+                configurationSection["RemoveOldCompletedMultipartUploads"]);
+            AddJobHelper<DeleteAbandonedInProgressCLASignaturesJob>(
+                configurationSection["DeleteAbandonedInProgressCLASignatures"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

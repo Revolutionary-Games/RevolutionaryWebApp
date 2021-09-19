@@ -144,5 +144,9 @@ namespace ThriveDevCenter.Shared
         public static readonly TimeSpan StartedSigningTimeout = TimeSpan.FromHours(4);
 
         public static readonly TimeSpan BulkEmailRateLimitInterval = TimeSpan.FromDays(1);
+
+        public static readonly TimeSpan DeleteAbandonedInProgressSignaturesAfter = TimeSpan.FromDays(2);
+
+        public static readonly TimeSpan OldMultipartUploadThreshold = TimeSpan.FromDays(30);
     }
 }

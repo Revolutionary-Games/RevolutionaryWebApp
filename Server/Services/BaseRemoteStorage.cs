@@ -4,8 +4,10 @@ namespace ThriveDevCenter.Server.Services
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Security.Cryptography;
+    using System.Threading;
     using System.Threading.Tasks;
     using Amazon.Runtime;
     using Amazon.S3;
@@ -142,6 +144,36 @@ namespace ThriveDevCenter.Server.Services
 
                 parts.AddRange(response.Parts);
                 continueParts = response.NextPartNumberMarker.ToString(CultureInfo.InvariantCulture);
+            }
+            while (response.IsTruncated);
+
+            return parts;
+        }
+
+        public async Task<List<(string key, string uploadId)>> ListMultipartUploads(CancellationToken cancellationToken)
+        {
+            ThrowIfNotConfigured();
+
+            var parts = new List<(string key, string uploadId)>();
+
+            string nextKeyMarker = null;
+            string nextUploadIdMarker = null;
+
+            ListMultipartUploadsResponse response;
+
+            do
+            {
+                response = await s3Client.ListMultipartUploadsAsync(new ListMultipartUploadsRequest()
+                {
+                    BucketName = bucket,
+                    KeyMarker = nextKeyMarker,
+                    UploadIdMarker = nextUploadIdMarker,
+                }, cancellationToken);
+
+                parts.AddRange(response.MultipartUploads.Select(u => (u.Key, u.UploadId)));
+
+                nextKeyMarker = response.NextKeyMarker;
+                nextUploadIdMarker = response.NextUploadIdMarker;
             }
             while (response.IsTruncated);
 
