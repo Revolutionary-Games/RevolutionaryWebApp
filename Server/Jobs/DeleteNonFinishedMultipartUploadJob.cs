@@ -41,7 +41,15 @@ namespace ThriveDevCenter.Server.Jobs
                 // Seems stuck
                 logger.LogWarning("Detected abandoned multipart upload ({Path}) {UploadId}, attempting to delete",
                     upload.Path, upload.UploadId);
-                await remoteStorage.AbortMultipartUpload(upload.Path, upload.UploadId);
+
+                try
+                {
+                    await remoteStorage.AbortMultipartUpload(upload.Path, upload.UploadId);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Failed to abort the multipart upload. Still going to try to cancel it later");
+                }
 
                 jobClient.Schedule<MakeSureNoMultipartPartsExistJob>(
                     x => x.Execute(uploadId, upload.Path, CancellationToken.None),
