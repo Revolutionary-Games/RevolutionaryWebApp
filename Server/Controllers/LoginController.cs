@@ -688,9 +688,6 @@ namespace ThriveDevCenter.Server.Controllers
 
             var sessionId = session.Id;
 
-            Logger.LogInformation("SSO login succeeded to user id: {Id}, from: {RemoteAddress}, session: {SessionId}",
-                user.Id, remoteAddress, sessionId);
-
             string returnUrl = session.SsoReturnUrl;
 
             session.User = user;
@@ -700,6 +697,10 @@ namespace ThriveDevCenter.Server.Controllers
             ClearSSOParametersFromSession(session);
 
             await Database.SaveChangesAsync();
+
+            // Need to print here to get user id for new users working (after the DB save)
+            Logger.LogInformation("SSO login succeeded to user id: {Id}, from: {RemoteAddress}, session: {SessionId}",
+                user.Id, remoteAddress, sessionId);
 
             if (string.IsNullOrEmpty(returnUrl) ||
                 !redirectVerifier.SanitizeRedirectUrl(returnUrl, out string redirect))
