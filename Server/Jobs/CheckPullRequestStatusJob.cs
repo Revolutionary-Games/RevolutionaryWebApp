@@ -29,8 +29,11 @@ namespace ThriveDevCenter.Server.Jobs
         public async Task Execute(string repository, long pullRequestNumber, string commit, string githubUsername,
             bool open, CancellationToken cancellationToken)
         {
+            logger.LogInformation("Update to PR {Repository}/{PullRequestNumber} detected by {GithubUsername}",
+                repository, pullRequestNumber, githubUsername);
+
             var pullRequest =
-                await EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(database.GithubPullRequests, p =>
+                await database.GithubPullRequests.FirstOrDefaultAsync(p =>
                     p.Repository == repository && p.GithubId == pullRequestNumber, cancellationToken);
 
             if (pullRequest == null)
