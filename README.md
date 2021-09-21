@@ -40,7 +40,8 @@ buckets need the following kind of permissions:
         "s3:Get*",
         "s3:List*",
         "s3:Put*",
-        "s3:Delete*"
+        "s3:Delete*",
+        "s3:AbortMultipartUpload"
       ],
       "Resource": [
         "arn:aws:s3:::bucket-name/*"
@@ -50,8 +51,7 @@ buckets need the following kind of permissions:
       "Effect": "Allow",
       "Action": [
         "s3:ListMultipartUploadParts",
-        "s3:ListBucketMultipartUploads",
-        "s3:AbortMultipartUpload"
+        "s3:ListBucketMultipartUploads"
       ],
       "Resource": [
         "arn:aws:s3:::bucket-name"
