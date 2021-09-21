@@ -21,6 +21,53 @@ instances (and remembering rate limit rates over restarts).
 The connection string to redis is configured in the app
 configuration. It's recommended to have a password on the redis.
 
+### Remote S3 Storage
+
+Various features require (but these features are optional so you can
+setup a site without this but many features will be unavailable) an S3
+storage bucket. It's recommended to have a separate LFS and general
+file storage buckets.
+
+The buckets need to specify their access details, and the keys for the
+buckets need the following kind of permissions:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:Get*",
+        "s3:List*",
+        "s3:Put*",
+        "s3:Delete*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::bucket-name/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListMultipartUploadParts",
+        "s3:ListBucketMultipartUploads",
+        "s3:AbortMultipartUpload"
+      ],
+      "Resource": [
+        "arn:aws:s3:::bucket-name"
+      ]
+    }
+  ]
+}
+```
+
+Note that LFS bucket doesn't require the multipart permissions as that
+is not used there.
+
+For providing downloads a CI system from bunny.net is used. To
+configure that you should add separate access key with only the `Get`
+and `List` actions allowed on it.
+
 ## Site configuration
 
 To configure the site in production you should use environment
