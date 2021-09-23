@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Shared.Forms
     public class BulkCLACheckRequest
     {
         [Required]
-        [StringLength(1600, MinimumLength = 3)]
+        [StringLength(10000, MinimumLength = 3)]
         [Display(Name = "Items To Check")]
         public string ItemsToCheck { get; set; }
 
