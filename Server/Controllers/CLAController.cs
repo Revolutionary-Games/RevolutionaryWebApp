@@ -283,7 +283,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("There is no active CLA to perform the check with");
 
             var rawList = request.ItemsToCheck.Split('\n').Select(s => s.Trim())
-                .Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                .Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToList();
 
             if (rawList.Count < 1)
                 return BadRequest("No items to check provided");
