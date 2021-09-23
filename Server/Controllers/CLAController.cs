@@ -20,7 +20,9 @@ namespace ThriveDevCenter.Server.Controllers
     using Models;
     using Services;
     using Shared;
+    using Shared.Forms;
     using Shared.Models;
+    using Shared.Models.Enums;
     using Utilities;
 
     [ApiController]
@@ -261,6 +263,70 @@ namespace ThriveDevCenter.Server.Controllers
             var objects = await query.ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        /// <summary>
+        ///   Checks a bulk data blob for CLA signatures
+        /// </summary>
+        /// <param name="request">The request data</param>
+        /// <returns>
+        ///   List of either signed or not signed people in the request, depending on the flags in the request
+        /// </returns>
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpPost("checkSignatures")]
+        public async Task<ActionResult<List<string>>> BulkCheckSignatures(
+            [Required] [FromBody] BulkCLACheckRequest request)
+        {
+            var cla = await database.Clas.AsQueryable().Where(c => c.Active).FirstOrDefaultAsync();
+
+            if (cla == null)
+                return BadRequest("There is no active CLA to perform the check with");
+
+            var rawList = request.ItemsToCheck.Split('\n').Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+
+            if (rawList.Count < 1)
+                return BadRequest("No items to check provided");
+
+            if (rawList.Count > AppInfo.MaxBulkCLAChecksPerCall)
+                return BadRequest($"Too many items to check at once. Maximum is: {AppInfo.MaxBulkCLAChecksPerCall}");
+
+            var found = new List<string>();
+
+            switch (request.CheckType)
+            {
+                case CLACheckRequestType.Email:
+                    foreach (var email in rawList)
+                    {
+                        if (await database.ClaSignatures.AsQueryable().FirstOrDefaultAsync(s =>
+                            s.ValidUntil == null && s.ClaId == cla.Id && s.Email == email) != null)
+                        {
+                            found.Add(email);
+                        }
+                    }
+
+                    break;
+                case CLACheckRequestType.GithubUsername:
+                    foreach (var github in rawList)
+                    {
+                        if (await database.ClaSignatures.AsQueryable().FirstOrDefaultAsync(s =>
+                            s.ValidUntil == null && s.ClaId == cla.Id && s.GithubAccount == github) != null)
+                        {
+                            found.Add(github);
+                        }
+                    }
+
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            if (request.ReturnNotFound)
+            {
+                return rawList.Where(i => !found.Contains(i)).ToList();
+            }
+
+            return found;
         }
 
         [HttpPost("startSigning")]

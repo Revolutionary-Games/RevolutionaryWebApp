@@ -1,0 +1,125 @@
+@inject HttpClient http
+@using ThriveDevCenter.Shared.Models.Enums
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Forms
+@using ThriveDevCenter.Shared.Models
+@using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
+
+<EditForm Model="@request" OnValidSubmit="@Search">
+    <DataAnnotationsValidator />
+
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label class="mr-1" for="checkRequestType">Check Mode</label>
+            <InputSelect class="custom-select" id="checkRequestType" @bind-Value="request.CheckType">
+                @foreach (var name in Enum.GetNames<CLACheckRequestType>())
+                {
+                    <option value="@name">@name</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="form-group col-md-6">
+            <div class="form-check">
+                <InputCheckbox class="form-check-input" id="newCIProjectPublic" @bind-Value="request.ReturnNotFound" />
+                <label class="form-check-label" for="newCIProjectPublic">Return not signed?</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-12">
+            <CustomInputTextArea class="form-control" @bind-Value="request.ItemsToCheck"
+                                 rows="5" placeholder="People to check (one per line)">
+            </CustomInputTextArea>
+        </div>
+    </div>
+
+    <ValidationSummary />
+
+    <StatusMessageShower Message="@message" Type="@messageType" />
+    <Button class="my-1" Enabled="@(!processing)" type="submit" Spinner="@processing" ButtonStyle="primary">
+        Check
+    </Button>
+</EditForm>
+
+@if (results != null)
+{
+    <p>
+        @if (resultsAreNotFound)
+        {
+            <span>Not signed:</span>
+        }
+        else
+        {
+            <span>Signed:</span>
+        }
+        @foreach (var result in results)
+        {
+            <div>@result</div>
+        }
+
+        @if (results.Count < 1)
+        {
+            <span class="ml-1">Server returned an empty list</span>
+        }
+
+    </p>
+}
+
+@code {
+    private string message;
+    private SiteNoticeType messageType;
+    private bool processing;
+
+    private BulkCLACheckRequest request = new();
+
+    private bool resultsAreNotFound;
+    private List<string> results;
+
+    private async void Search()
+    {
+        processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+        resultsAreNotFound = request.ReturnNotFound;
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/CLA/checkSignatures", request);
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+            results = null;
+        }
+        else
+        {
+            try
+            {
+                results = JsonSerializer.Deserialize<List<string>>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers());
+            }
+            catch (Exception e)
+            {
+                message = $"Error, failed to parse result: {e}";
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

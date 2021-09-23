@@ -95,6 +95,8 @@ namespace ThriveDevCenter.Shared
         public const int MaxBulkEmailDelaySeconds = 3600;
         public const int BulkEmailChunkSize = 10;
 
+        public const int MaxBulkCLAChecksPerCall = 250;
+
         /// <summary>
         ///   Sessions (and cookies) expire after 30 days of inactivity
         /// </summary>
