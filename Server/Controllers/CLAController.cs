@@ -593,10 +593,14 @@ namespace ThriveDevCenter.Server.Controllers
             if (cla is not { Active: true })
                 return BadRequest("CLA document you are trying to sign was not found or it is no longer active");
 
+            var user = HttpContext.AuthenticatedUser();
+            var userId = user?.Id;
+
             // Fail if there's already exactly this signature created
             if (await database.ClaSignatures.AsQueryable()
                 .FirstOrDefaultAsync(s => s.ClaId == cla.Id && s.Email == signature.Email &&
-                    s.DeveloperUsername == signature.GithubAccount && s.ValidUntil == null) != null)
+                    s.GithubAccount == signature.GithubAccount && s.DeveloperUsername == signature.DeveloperUsername &&
+                    s.UserId == userId && s.ValidUntil == null) != null)
             {
                 return BadRequest(
                     "A CLA has already been signed with the details you provided. Signing it multiple " +
@@ -605,8 +609,6 @@ namespace ThriveDevCenter.Server.Controllers
 
             signature.SignerSignature = request.SignerSignature;
             signature.GuardianSignature = request.GuardianSignature;
-
-            var user = HttpContext.AuthenticatedUser();
 
             // Create the actual signature database entry
             var finalSignature = new ClaSignature()
@@ -617,7 +619,7 @@ namespace ThriveDevCenter.Server.Controllers
                 GithubUserId = signature.GithubUserId,
                 DeveloperUsername = signature.DeveloperUsername,
                 ClaId = cla.Id,
-                UserId = user?.Id,
+                UserId = userId,
             };
 
             var fileName = $"{signature.Email}-{finalSignature.CreatedAt:dd-HH:mm:ss}.md";
