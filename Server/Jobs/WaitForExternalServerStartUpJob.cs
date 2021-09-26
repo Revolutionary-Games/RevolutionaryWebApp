@@ -77,7 +77,7 @@ namespace ThriveDevCenter.Server.Jobs
             if (!up)
             {
                 logger.LogTrace("External server {Id} is not up currently", id);
-                jobClient.Schedule<ProvisionControlledServerJob>(x => Execute(id, CancellationToken.None),
+                jobClient.Schedule<WaitForExternalServerStartUpJob>(x => Execute(id, CancellationToken.None),
                     TimeSpan.FromSeconds(30));
             }
             else
