@@ -194,7 +194,10 @@ namespace ThriveDevCenter.Server.Controllers
                 catch (WebSocketProtocolException e)
                 {
                     logger.LogWarning("Error reading build message from websocket: {@E}", e);
-                    break;
+
+                    // Let's try not closing the socket here to avoid spurious build failures
+                    outputSectionText.Append("Failed to read a build output message\n");
+                    continue;
                 }
 
                 if (message == null)

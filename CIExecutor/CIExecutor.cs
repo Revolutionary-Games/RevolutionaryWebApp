@@ -27,6 +27,7 @@ namespace CIExecutor
         private const string LineTruncateMessage = " THIS LINE WAS TRUNCATED BECAUSE IT IS TOO LONG";
 
         private readonly string websocketUrl;
+        private readonly ReaderWriterLock protocolSocketLock = new();
 
         private readonly string imageCacheFolder;
         private readonly string ciImageFile;
@@ -47,6 +48,7 @@ namespace CIExecutor
 
         private readonly List<RealTimeBuildMessage> queuedBuildMessages = new();
 
+        private ClientWebSocket webSocket;
         private RealTimeBuildMessageSocket protocolSocket;
         private CiJobCacheConfiguration cacheConfig;
 
@@ -109,11 +111,7 @@ namespace CIExecutor
             running = true;
 
             Console.WriteLine("Starting websocket");
-            var websocket = new ClientWebSocket();
-
-            // This is now the same as on the server, hopefully causes less issues
-            websocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(60);
-            var connectTask = websocket.ConnectAsync(new Uri(websocketUrl), CancellationToken.None);
+            var connectTask = AcquireWebsocketConnection();
 
             await QueueSendMessage(new RealTimeBuildMessage()
             {
@@ -143,7 +141,6 @@ namespace CIExecutor
 
             // Wait for connection before continuing from the git setup
             await connectTask;
-            protocolSocket = new RealTimeBuildMessageSocket(websocket);
 
             // Start socket related tasks
             var processMessagesTask = Task.Run(ProcessBuildMessages);
@@ -191,8 +188,11 @@ namespace CIExecutor
 
             try
             {
-                await websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
-                websocket.Dispose();
+                if (webSocket == null)
+                    throw new Exception("Web socket object is null");
+
+                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+                webSocket.Dispose();
             }
             catch (Exception e)
             {
@@ -200,6 +200,27 @@ namespace CIExecutor
             }
 
             Console.WriteLine("CI executor finished");
+        }
+
+        private async Task AcquireWebsocketConnection()
+        {
+            Console.WriteLine("Starting socket acquire");
+            webSocket = new ClientWebSocket();
+
+            // This is now the same as on the server, hopefully causes less issues
+            webSocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(60);
+            await webSocket.ConnectAsync(new Uri(websocketUrl), CancellationToken.None);
+            Console.WriteLine("Websocket opened");
+
+            protocolSocketLock.AcquireWriterLock(TimeSpan.FromSeconds(15));
+            try
+            {
+                protocolSocket = new RealTimeBuildMessageSocket(webSocket);
+            }
+            finally
+            {
+                protocolSocketLock.ReleaseWriterLock();
+            }
         }
 
         private async Task QueueSendMessage(RealTimeBuildMessage message)
@@ -246,6 +267,8 @@ namespace CIExecutor
 
             bool sleep = false;
 
+            var lastSend = DateTime.Now;
+
             while (true)
             {
                 if (sleep)
@@ -259,19 +282,67 @@ namespace CIExecutor
                     {
                         if (!running)
                             break;
-
-                        continue;
                     }
+                    else
+                    {
+                        sleep = false;
 
-                    sleep = false;
-
-                    toSend.AddRange(queuedBuildMessages);
-                    queuedBuildMessages.Clear();
+                        toSend.AddRange(queuedBuildMessages);
+                        queuedBuildMessages.Clear();
+                    }
                 }
 
-                foreach (var message in toSend)
-                    await protocolSocket.Write(message, CancellationToken.None);
+                if (sleep)
+                {
+                    // Send some text to keep the build socket open?
+                    if (DateTime.Now - lastSend > TimeSpan.FromSeconds(50))
+                    {
+                        try
+                        {
+                            protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(10));
 
+                            try
+                            {
+                                await protocolSocket.Write(
+                                    new RealTimeBuildMessage()
+                                        { Type = BuildSectionMessageType.BuildOutput, Output = "..." },
+                                    CancellationToken.None);
+                            }
+                            finally
+                            {
+                                protocolSocketLock.ReleaseReaderLock();
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Socket dots keepalive message send exception: {0}", e);
+                        }
+                    }
+
+                    continue;
+                }
+
+                try
+                {
+                    protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(10));
+
+                    try
+                    {
+                        foreach (var message in toSend)
+                            await protocolSocket.Write(message, CancellationToken.None);
+                    }
+                    finally
+                    {
+                        protocolSocketLock.ReleaseReaderLock();
+                    }
+                }
+                catch (Exception e)
+                {
+                    sleep = true;
+                    Console.WriteLine("Socket message send exception: {0}, inner: {1}", e, e.InnerException);
+                }
+
+                lastSend = DateTime.Now;
                 toSend.Clear();
             }
         }
@@ -284,19 +355,28 @@ namespace CIExecutor
                     break;
 
                 (RealTimeBuildMessage message, bool closed) received;
+
+                protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(120));
                 try
                 {
                     received = await protocolSocket.Read(cancellationToken);
                 }
                 catch (WebSocketProtocolException e)
                 {
-                    Console.WriteLine("Socket read exception: {0}", e);
+                    Console.WriteLine("Socket read exception: {0}, inner: {1}", e, e.InnerException);
+
+                    // TODO: perform socket re-opening here
+
                     break;
                 }
                 catch (OperationCanceledException)
                 {
                     Console.WriteLine("Socket read canceled");
                     break;
+                }
+                finally
+                {
+                    protocolSocketLock.ReleaseReaderLock();
                 }
 
                 if (received.closed)
