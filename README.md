@@ -223,6 +223,36 @@ Provide the password used in the previous step if prompted.
 And now follow the instructions in the "Getting an admin account"
 section.
 
+## Deploying
+
+First prepare the server to deploy with all the software.
+
+For CentOS / Fedora you can install things with:
+```sh
+dnf install aspnetcore-runtime-5.0 git postgresql-server redis nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget
+```
+Note that some packages are optional but better for a full production setup.
+
+And then configure them.
+Finally edit the remote hosts configuration of the deploy script and run it.
+
+Additional recommended server setup:
+
+```sh
+useradd -s /usr/bin/false thrivedevcenter
+systemctl enable firewalld --now
+firewall-cmd --add-service http
+firewall-cmd --add-service https
+firewall-cmd --permanent --add-service http
+firewall-cmd --permanent --add-service https
+```
+
+Edit auto config to have just security upgrades (and enable it):
+```sh
+emacs /etc/dnf/automatic.conf
+systemctl enable --now dnf-automatic-install.timer
+```
+
 ## Maintenance
 
 ### Out of sync sequences
