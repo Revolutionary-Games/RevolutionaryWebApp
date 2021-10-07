@@ -317,6 +317,8 @@ namespace CIExecutor
                         {
                             Console.WriteLine("Socket dots keepalive message send exception: {0}", e);
                         }
+
+                        lastSend = DateTime.Now;
                     }
 
                     continue;
