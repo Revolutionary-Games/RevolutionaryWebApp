@@ -295,6 +295,9 @@ namespace CIExecutor
                 if (sleep)
                 {
                     // Send some text to keep the build socket open?
+                    // Actually the download image step has taken over 10 minutes with no output in the past, so
+                    // this can't actually be a fix. It must be that sometimes jetbrains build step dies for some
+                    // other reason
                     if (DateTime.Now - lastSend > TimeSpan.FromSeconds(50))
                     {
                         try
