@@ -143,6 +143,11 @@ namespace ThriveDevCenter.Server.Jobs
                             await QueueEmailNotification(build, commit.Committer?.Email, checkLink);
                     }
                 }
+                catch (ArgumentNullException e)
+                {
+                    logger.LogWarning(
+                        "Failed to send email notification because Commits is null: {@E}", e);
+                }
                 catch (JsonException e)
                 {
                     logger.LogError(

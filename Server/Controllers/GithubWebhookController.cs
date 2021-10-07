@@ -137,7 +137,7 @@ namespace ThriveDevCenter.Server.Controllers
                             IsSafe = !GitRunHelpers.IsPullRequestRef(data.Ref),
                             PreviousCommit = data.Before,
                             CommitMessage = data.HeadCommit?.Message ?? data.Commits.FirstOrDefault()?.Message,
-                            Commits = JsonSerializer.Serialize(data.Commits),
+                            ParsedCommits = data.Commits,
                         };
 
                         await database.CiBuilds.AddAsync(build);
