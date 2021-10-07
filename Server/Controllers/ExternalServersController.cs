@@ -133,7 +133,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [HttpDelete("{id:long}")]
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        public async Task<ActionResult<ControlledServerDTO>> Destroy(long id)
+        public async Task<IActionResult> Destroy(long id)
         {
             FailIfNotConfigured();
 
@@ -223,7 +223,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [HttpPost("{id:long}/reboot")]
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        public async Task<ActionResult<ControlledServerDTO>> ForceRebootServer(long id)
+        public async Task<IActionResult> ForceRebootServer(long id)
         {
             FailIfNotConfigured();
 
@@ -284,7 +284,7 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<IActionResult> QueueCleanUp(long id)
         {
-            var server = await database.ControlledServers.FindAsync(id);
+            var server = await database.ExternalServers.FindAsync(id);
 
             if (server == null)
                 return NotFound();
@@ -311,7 +311,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             FailIfNotConfigured();
 
-            var server = await database.ControlledServers.FindAsync(id);
+            var server = await database.ExternalServers.FindAsync(id);
 
             if (server == null)
                 return NotFound();
