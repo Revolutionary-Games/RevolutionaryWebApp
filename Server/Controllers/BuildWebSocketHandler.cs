@@ -24,6 +24,8 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class BuildWebSocketHandler
     {
+        private const int MaxSocketReadFailuresBeforeGivingUp = 5;
+
         /// <summary>
         ///   Not every log message is written to the DB to save on performance
         /// </summary>
@@ -141,6 +143,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             bool error = false;
 
+            int readFailures = 0;
+
             while (!socket.CloseStatus.HasValue)
             {
                 RealTimeBuildMessage message;
@@ -197,11 +201,22 @@ namespace ThriveDevCenter.Server.Controllers
 
                     // Let's try not closing the socket here to avoid spurious build failures
                     outputSectionText.Append("Failed to read a build output message\n");
+                    ++readFailures;
+
+                    if (readFailures > MaxSocketReadFailuresBeforeGivingUp)
+                    {
+                        error = true;
+                        break;
+                    }
+
                     continue;
                 }
 
                 if (message == null)
                     continue;
+
+                // Reset failures on successful read
+                readFailures = 0;
 
                 switch (message.Type)
                 {
