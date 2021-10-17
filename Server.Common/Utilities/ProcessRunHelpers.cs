@@ -9,7 +9,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
     public static class ProcessRunHelpers
     {
         public static Task<ProcessResult> RunProcessAsync(ProcessStartInfo startInfo,
-            CancellationToken cancellationToken, bool captureOutput = true, int startRetries = 3)
+            CancellationToken cancellationToken, bool captureOutput = true, int startRetries = 5)
         {
             if (captureOutput)
             {
@@ -39,7 +39,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
             if (process == null)
                 throw new ArgumentException("Process must not be null for starting output read");
 
-            const int retries = 3;
+            const int retries = 5;
 
             // For some reason it seems that this sometimes fails with "System.InvalidOperationException:
             // StandardOut has not been redirected or the process hasn't started yet." So this is retried a
@@ -55,7 +55,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 }
                 catch (InvalidOperationException)
                 {
-                    if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(10 * (i + 1))))
+                    if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(15 * (i + 1))))
                         cancellationToken.ThrowIfCancellationRequested();
                 }
             }
@@ -76,7 +76,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 }
                 catch (InvalidOperationException)
                 {
-                    if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(10 * (i + 1))))
+                    if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(15 * (i + 1))))
                         cancellationToken.ThrowIfCancellationRequested();
                 }
             }
