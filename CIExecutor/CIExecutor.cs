@@ -1026,7 +1026,15 @@ namespace CIExecutor
                     Console.WriteLine("Failed to run (with input): {0}", executable);
                 }
 
-                process.Dispose();
+                try
+                {
+                    process.Dispose();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed to dispose the process object: {0}", e);
+                }
+
                 taskCompletionSource.SetResult(code == 0);
             };
 
