@@ -29,10 +29,10 @@ OptionParser.new do |opts|
           'Deploy mode. staging or production') do |mode|
     @options[:mode] = mode
   end
-  opts.on('-t', '--migration-type TYPE',
-          'Deploy mode. staging or production') do |type|
-    @options[:migration] = type
-  end
+  # opts.on('-t', '--migration-type TYPE',
+  #         'Type of migration to perform') do |type|
+  #   @options[:migration] = type
+  # end
   opts.on('--skip-migrations',
           'Skip applying migrations') do |_f|
     @options[:use_migrations] = false
