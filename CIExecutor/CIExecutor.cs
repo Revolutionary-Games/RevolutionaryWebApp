@@ -424,9 +424,9 @@ namespace CIExecutor
                             continue;
 
                         if (!await RunWithOutputStreaming("cp", new List<string>
-                        {
-                            "-aT", cachePath, currentBuildRootFolder,
-                        }))
+                            {
+                                "-aT", cachePath, currentBuildRootFolder,
+                            }))
                         {
                             throw new Exception("Failed to run cache copy command");
                         }
@@ -611,9 +611,9 @@ namespace CIExecutor
             await QueueSendBasicMessage("Build environment image doesn't exist locally, downloading...");
 
             if (!await RunWithOutputStreaming("curl", new List<string>
-            {
-                "-LsS", Environment.GetEnvironmentVariable("CI_IMAGE_DL_URL"), "--output", ciImageFile,
-            }))
+                {
+                    "-LsS", Environment.GetEnvironmentVariable("CI_IMAGE_DL_URL"), "--output", ciImageFile,
+                }))
             {
                 // Delete a partial download
                 try
@@ -839,11 +839,36 @@ namespace CIExecutor
             var command = new List<string>
             {
                 "echo 'Starting running build in container'",
-                $"cd '{folder}' || {{ echo \"Couldn't switch to build folder\"; exit 1; }}",
-                "echo 'Starting build commands'",
-                $"echo '{OutputSpecialCommandMarker} SectionEnd 0'",
-                "overallStatus=0",
             };
+
+            if (config.Cache?.System != null)
+            {
+                // Setup the system cache redirects
+                foreach (var systemCacheEntry in config.Cache.System)
+                {
+                    if (!systemCacheEntry.Key.StartsWith("/root"))
+                    {
+                        command.Add("echo 'Ignored system cache that doesn't begin with \"/root\"'");
+                        continue;
+                    }
+
+                    command.Add($"echo 'Setting up system cache folder \"{systemCacheEntry.Key}\" to " +
+                        $"point to \"{systemCacheEntry.Value}\"'");
+
+                    var cacheTarget = Path.Join(sharedCacheFolder, systemCacheEntry.Value);
+
+                    command.Add($"rm -rf '{systemCacheEntry.Key}'");
+                    command.Add($"mkdir -p '{cacheTarget}'");
+                    command.Add($"ln -sf '{cacheTarget}' '{systemCacheEntry.Key}' || " +
+                        "{ echo \"Couldn't link system cache folder\"; exit 1; }");
+                    command.Add("echo 'Finished system cache folder linking'");
+                }
+            }
+
+            command.Add($"cd '{folder}' || {{ echo \"Couldn't switch to build folder\"; exit 1; }}");
+            command.Add("echo 'Starting build commands'");
+            command.Add($"echo '{OutputSpecialCommandMarker} SectionEnd 0'");
+            command.Add("overallStatus=0");
 
             // Build commands
             foreach (var step in config.Steps)

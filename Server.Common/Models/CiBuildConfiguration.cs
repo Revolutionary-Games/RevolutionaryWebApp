@@ -50,6 +50,11 @@ namespace ThriveDevCenter.Server.Common.Models
         [MaxLength(10)]
         [JsonPropertyName("shared")]
         public Dictionary<string, string> Shared { get; set; }
+
+        [MinLength(1)]
+        [MaxLength(5)]
+        [JsonPropertyName("system")]
+        public Dictionary<string, string> System { get; set; }
     }
 
     public class CiJobBuildStep

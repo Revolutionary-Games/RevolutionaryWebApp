@@ -113,9 +113,15 @@ namespace ThriveDevCenter.Server.Jobs
 
             // TODO: refactor these checks to be cleaner
             if (configuration.Jobs.Select(j => j.Value.Cache).Any(c =>
-                c.LoadFrom.Any(p => p.Contains("..") || p.StartsWith("/")) || c.WriteTo.Contains("..") ||
-                c.WriteTo.Contains("/") ||
-                c.Shared.Any(s => s.Key.Contains("..") || s.Value.Contains("..") || s.Value.Contains("/"))))
+                    c.LoadFrom.Any(p => p.Contains("..") || p.StartsWith("/")) || c.WriteTo.Contains("..") ||
+                    c.WriteTo.Contains("/") ||
+                    c.Shared.Any(s =>
+                        s.Key.Contains("..") || s.Key.StartsWith("/") || s.Value.Contains("..") ||
+                        s.Value.Contains("/")) ||
+                    c.System.Any(s =>
+                        s.Key.Contains("..") || s.Key.Contains("'") || !s.Key.StartsWith("/") ||
+                        s.Value.Contains("..") ||
+                        s.Value.Contains("/") || s.Value.Contains("'"))))
             {
                 logger.LogError("Build configuration cache paths have \"..\" in them or starts with a slash");
 
@@ -132,7 +138,7 @@ namespace ThriveDevCenter.Server.Jobs
             }
 
             if (configuration.Jobs.SelectMany(j => j.Value.Artifacts.Paths).Any(p =>
-                p.Length < 3 || p.Length > 250 || p.StartsWith("/") || p.Contains("..")))
+                    p.Length < 3 || p.Length > 250 || p.StartsWith("/") || p.Contains("..")))
             {
                 logger.LogError("Build has a too long, short, or non-relative artifact path");
 
@@ -182,8 +188,8 @@ namespace ThriveDevCenter.Server.Jobs
             foreach (var job in jobs)
             {
                 if (!await statusReporter.SetCommitStatus(build.CiProject.RepositoryFullName, build.CommitHash,
-                    GithubAPI.CommitStatus.Pending, statusReporter.CreateStatusUrlForJob(job), "CI checks starting",
-                    job.JobName))
+                        GithubAPI.CommitStatus.Pending, statusReporter.CreateStatusUrlForJob(job), "CI checks starting",
+                        job.JobName))
                 {
                     logger.LogError("Failed to set commit status for a build's job: {JobName}", job.JobName);
                 }
@@ -229,8 +235,8 @@ namespace ThriveDevCenter.Server.Jobs
             await database.SaveChangesAsync(cancellationToken);
 
             if (!await statusReporter.SetCommitStatus(build.CiProject.RepositoryFullName, build.CommitHash,
-                GithubAPI.CommitStatus.Failure, statusReporter.CreateStatusUrlForJob(job), failure,
-                job.JobName))
+                    GithubAPI.CommitStatus.Failure, statusReporter.CreateStatusUrlForJob(job), failure,
+                    job.JobName))
             {
                 logger.LogError("Failed to report serious failed commit status with context {JobName}", job.JobName);
             }
