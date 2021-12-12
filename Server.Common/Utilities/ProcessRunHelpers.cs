@@ -53,7 +53,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                     success = true;
                     break;
                 }
-                catch (InvalidOperationException)
+                catch (Exception e) when (e is InvalidOperationException or NullReferenceException)
                 {
                     if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(15 * (i + 1))))
                         cancellationToken.ThrowIfCancellationRequested();
@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
                     success = true;
                     break;
                 }
-                catch (InvalidOperationException)
+                catch (Exception e) when (e is InvalidOperationException or NullReferenceException)
                 {
                     if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(15 * (i + 1))))
                         cancellationToken.ThrowIfCancellationRequested();
