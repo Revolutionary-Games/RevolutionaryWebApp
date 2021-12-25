@@ -162,6 +162,12 @@ namespace ThriveDevCenter.Server
                 opts.UseDefaultTypeSerializer();
             });
 
+            services.AddHangfireServer(opts =>
+            {
+                opts.WorkerCount = Convert.ToInt32(Configuration["Tasks:ThreadCount"]);
+                opts.SchedulePollingInterval = TimeSpan.FromSeconds(10);
+            });
+
             services.AddControllers(options =>
             {
                 options.ModelMetadataDetailsProviders.Add(new RequiredBindingMetadataProvider());
@@ -309,12 +315,6 @@ namespace ThriveDevCenter.Server
                     new HangfireDashboardAuthorization(
                         app.ApplicationServices.GetRequiredService<ILogger<HangfireDashboardAuthorization>>())
                 }
-            });
-
-            app.UseHangfireServer(new BackgroundJobServerOptions()
-            {
-                WorkerCount = Convert.ToInt32(Configuration["Tasks:ThreadCount"]),
-                SchedulePollingInterval = TimeSpan.FromSeconds(10),
             });
 
             SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));
