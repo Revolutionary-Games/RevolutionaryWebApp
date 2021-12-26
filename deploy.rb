@@ -16,10 +16,13 @@ require_relative 'fix_boot_json_hashes'
   use_deploy: true
 }
 
-CLIENT_BUILT_WEBROOT = 'Client/bin/Release/net5.0/publish/wwwroot/'
-SERVER_BUILT_BASE = 'Server/bin/Release/net5.0/publish/'
-CI_EXECUTOR_BUILT_FILE = 'CIExecutor/bin/Release/net5.0/linux-x64/publish/CIExecutor'
-CI_EXECUTOR_EXTRA_RESOURCES = ['CIExecutor/bin/Release/net5.0/linux-x64/' \
+# TODO: make this possible to configure from the command line
+MODE = 'Release'
+
+CLIENT_BUILT_WEBROOT = "Client/bin/#{MODE}/net5.0/publish/wwwroot/"
+SERVER_BUILT_BASE = "Server/bin/#{MODE}/net5.0/publish/"
+CI_EXECUTOR_BUILT_FILE = "CIExecutor/bin/#{MODE}/net5.0/linux-x64/publish/CIExecutor"
+CI_EXECUTOR_EXTRA_RESOURCES = ["CIExecutor/bin/#{MODE}/net5.0/linux-x64/" \
                               'libMonoPosixHelper.so'].freeze
 
 OptionParser.new do |opts|
@@ -112,12 +115,12 @@ if @options[:use_migrations]
 
   abort('grants change failed') if $CHILD_STATUS.exitstatus != 0
 
-  puts 'Migration complete. Building release files'
+  puts "Migration complete. Building #{MODE} files"
 else
-  puts 'Building release files'
+  puts "Building #{MODE} files"
 end
 
-system('dotnet publish -c Release')
+system('dotnet', 'publish', '-c', MODE)
 
 abort('failed to build') if $CHILD_STATUS.exitstatus != 0
 
