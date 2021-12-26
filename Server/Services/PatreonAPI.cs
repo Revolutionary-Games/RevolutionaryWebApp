@@ -178,6 +178,12 @@ namespace ThriveDevCenter.Server.Services
                             "Pledge relationship to reward data is not included for user");
                     }
 
+                    // This happens if the user has not selected a reward
+                    // TODO: would be nice to log this problem here as we should let the patron know they need to
+                    // select a reward
+                    if (rewardRelationship.Data == null)
+                        continue;
+
                     var rewardData =
                         response.FindIncludedObject(rewardRelationship.Data.Id, rewardRelationship.Data.Type);
 
