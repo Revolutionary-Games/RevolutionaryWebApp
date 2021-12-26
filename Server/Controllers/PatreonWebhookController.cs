@@ -127,6 +127,7 @@ namespace ThriveDevCenter.Server.Controllers
                     catch (Exception e)
                     {
                         logger.LogWarning("Couldn't find reward ID in patreon webhook: {@E}", e);
+                        rewardId = "Unknown";
                     }
 
                     await PatreonGroupHandler.HandlePatreonPledgeObject(pledge, userData, rewardId, database,
