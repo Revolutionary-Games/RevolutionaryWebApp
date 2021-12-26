@@ -137,7 +137,8 @@ namespace ThriveDevCenter.Server.Services
         /// <param name="settings">Where to get the campaign from</param>
         /// <param name="cancellationToken">Supports canceling this while waiting</param>
         /// <returns>API response with all the patron objects</returns>
-        public async Task<List<PatronMemberInfo>> GetPatrons(PatreonSettings settings, CancellationToken cancellationToken)
+        public async Task<List<PatronMemberInfo>> GetPatrons(PatreonSettings settings,
+            CancellationToken cancellationToken)
         {
             // ReSharper disable once StringLiteralTypo
             var url =
@@ -158,7 +159,10 @@ namespace ThriveDevCenter.Server.Services
                     if (data.Type != "pledge")
                         continue;
 
-                    var patronRelationship = data.Relationships.Patron;
+                    var patronRelationship = data.Relationships?.Patron;
+
+                    if (patronRelationship == null)
+                        throw new PatreonAPIDataException("Pledge relationship to patron doesn't exist");
 
                     var userData =
                         response.FindIncludedObject(patronRelationship.Data.Id, patronRelationship.Data.Type);
@@ -166,10 +170,13 @@ namespace ThriveDevCenter.Server.Services
                     if (userData == null)
                         throw new PatreonAPIDataException("Failed to find pledge's related user object");
 
-                    var rewardRelationship = data.Relationships.Reward;
+                    var rewardRelationship = data.Relationships?.Reward;
 
                     if (rewardRelationship == null)
-                        throw new PatreonAPIDataException("reward data is not included for user");
+                    {
+                        throw new PatreonAPIDataException(
+                            "Pledge relationship to reward data is not included for user");
+                    }
 
                     var rewardData =
                         response.FindIncludedObject(rewardRelationship.Data.Id, rewardRelationship.Data.Type);
@@ -246,7 +253,7 @@ namespace ThriveDevCenter.Server.Services
             {
                 if (item.Id == objectId)
                 {
-                    if(neededType != null && item.Type != neededType)
+                    if (neededType != null && item.Type != neededType)
                         continue;
 
                     return item;
