@@ -116,7 +116,12 @@ nginx config and reload it.
 Before starting the server you need to migrate the database. To do
 this use the dotnet entity framework tool to update the localhost
 server, or see how the deploy script generates an sql script and then
-executes it on a remote server.
+executes it on a remote server. There's an utility script provided
+that can do it automatically:
+
+```sh
+ruby ef.rb -m
+```
 
 ### Getting an admin account
 
