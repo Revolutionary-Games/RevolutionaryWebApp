@@ -191,7 +191,7 @@ namespace ThriveDevCenter.Server.Controllers
                 ReporterEmail = request.Email,
             };
 
-            if (!report.ReporterEmail.Contains("@"))
+            if (report.ReporterEmail != null && !report.ReporterEmail.Contains("@"))
             {
                 logger.LogWarning("Ignoring provided crash reporter email that seems invalid: {ReporterEmail}",
                     report.ReporterEmail);
