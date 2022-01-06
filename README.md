@@ -104,7 +104,14 @@ installed. Or you can alternatively have a different proxy
 server than nginx. Additionally of course the database and redis can be ran on
 the same server.
 
-TODO: add the example systemd and nginx files
+There are example template nginx and systemd files in the `templates`
+folder. After copying and modifying them (remember to also setup the
+devcenter linux local account and adjust the systemd service
+environment variable files) you can enable and start the service
+`systemctl enable --now thrivedevcenter` (might need to do a daemon
+reload first). Then check that the service is up and running
+`systemctl status thrivedevcenter`. After it is up, you should verify
+nginx config and reload it.
 
 Before starting the server you need to migrate the database. To do
 this use the dotnet entity framework tool to update the localhost
