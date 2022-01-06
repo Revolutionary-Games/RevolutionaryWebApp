@@ -22,6 +22,8 @@
 }
 else
 {
+    <p>TODO: implement text search</p>
+
     <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                     OnPageChanged="async (e) => await ChangePage(e)"
                     OnSortChanged="async (column) => await ChangeSort(column)"
@@ -35,6 +37,11 @@ else
             {
                 <tr @key="item.Id">
                     <th scope="row"><NavLink href="@($"reports/{item.Id}")">@item.Id</NavLink></th>
+                    <td>@item.State</td>
+                    <td>@item.ExitCodeOrSignal</td>
+                    <td>@item.Platform</td>
+                    <td>@item.StoreOrVersion</td>
+                    <td>@item.HappenedAt.ToLocalTime().ToString("G")</td>
                     <td>@item.Public</td>
                 </tr>
             }
@@ -46,11 +53,17 @@ else
 private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Id", true),
+        new TableColumn("State", false),
+        new TableColumn("Exit Code", false),
+        new TableColumn("Platform", false),
+        new TableColumn("Version", false),
+        new TableColumn("Happened At", false),
         new TableColumn("Public", false),
     };
 
     public Reports() : base(new SortHelper("Id", SortDirection.Descending))
     {
+        DefaultPageSize = 50;
     }
 
     protected override async Task OnInitializedAsync()

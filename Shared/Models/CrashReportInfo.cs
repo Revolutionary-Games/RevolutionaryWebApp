@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Shared.Models
     public class CrashReportInfo : ClientSideTimedModel
     {
         public bool Public { get; set; }
+        public ReportState State { get; set; }
         public ThrivePlatform Platform { get; set; }
         public DateTime HappenedAt { get; set; }
         public string ExitCodeOrSignal { get; set; }

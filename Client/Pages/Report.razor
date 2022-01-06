@@ -5,13 +5,23 @@
 @inherits SingleResourcePage<CrashReportDTO, CrashReportUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models.Enums
 @using ThriveDevCenter.Shared.Notifications
 @implements IAsyncDisposable
 
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
     @if (Data != null)
     {
-        <h3>Crash Report @Data.Id</h3>
+        <h3>
+            Crash Report @Data.Id
+            @if (Data.State == ReportState.Closed)
+            {
+                <span class="badge badge-success ml-2">Closed</span>
+            } else if (Data.State == ReportState.Duplicate)
+            {
+                <span class="badge badge-warning ml-2">Duplicate</span>
+            }
+        </h3>
 
         <ul>
             <li><strong>Public</strong>: @Data.Public</li>
@@ -24,14 +34,53 @@
                                     DeleteURLBase="api/v1/CrashReport"
                                     DeletePromptTitle="Delete this Crash Report?" />
 
+        <h3>Description</h3>
+
+        @* TODO: move this to markdown once the XSS resistant version is in nuget *@
+
+        <p>@Data.Description</p>
+
+        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.User">
+            <AuthorizedContent>
+                @if (Data.DescriptionLastEdited.HasValue)
+                {
+                    <p>Description last edited at
+                        @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G") by
+                        @Data.DescriptionLastEditedById</p>
+                }
+            </AuthorizedContent>
+            <AccessMissingContent>
+                @if (Data.DescriptionLastEdited.HasValue)
+                {
+                    <p>Description last edited at @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G")</p>
+                }
+            </AccessMissingContent>
+        </AccessLimited>
+
+        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+            <Button ButtonStyle="secondary" Enabled="@false">Edit</Button>
+        </AccessLimited>
+
         <h3>Callstack</h3>
 
+        <pre>@Data.PrimaryCallstack</pre>
 
         <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
             <AuthorizedContent>
                 <h3>Logs</h3>
+                <pre>TODO: fetch logs</pre>
 
                 <h3>Crash dump</h3>
+                <pre>TODO: fetch crash dump</pre>
+
+                @if (Data.CanReProcess)
+                {
+                    <Button ButtonStyle="secondary" Enabled="@false">ReProcess Dump File</Button>
+                }
+                else
+                {
+                    <p>Crash dump for this report has been deleted.</p>
+                }
             </AuthorizedContent>
             <AccessMissingContent>
                 <h3>Logs</h3>

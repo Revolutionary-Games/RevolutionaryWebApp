@@ -86,6 +86,7 @@ namespace ThriveDevCenter.Server.Models
                 Id = Id,
                 UpdatedAt = UpdatedAt,
                 CreatedAt = CreatedAt,
+                State = State,
                 Public = Public,
                 Platform = Platform,
                 HappenedAt = HappenedAt,
@@ -102,11 +103,17 @@ namespace ThriveDevCenter.Server.Models
                 UpdatedAt = UpdatedAt,
                 CreatedAt = CreatedAt,
                 Public = Public,
+                State = State,
                 Platform = Platform,
                 HappenedAt = HappenedAt,
                 ExitCodeOrSignal = ExitCodeOrSignal,
                 Store = Store,
                 Version = Version,
+                PrimaryCallstack = PrimaryCallstack,
+                Description = Description,
+                DescriptionLastEdited = DescriptionLastEdited,
+                DescriptionLastEditedById = DescriptionLastEditedById,
+                DuplicateOfId = DuplicateOfId,
 
                 // TODO: This kind of leaks information to unauthorized users, but there isn't much they can do with this
                 // Fixing would require passing the remote user access level to this method as a parameter
