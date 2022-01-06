@@ -89,6 +89,9 @@ namespace ThriveDevCenter.Shared
         public const int MaxInBrowserPreviewTextFileSize = MEBIBYTE * 20;
         public const int MaxSingleBuildOutputMessageLength = MEBIBYTE * 20;
 
+        public const long MaxCrashDumpUploadSize = MEBIBYTE * 9;
+        public const long MaxCrashLogsLength = MEBIBYTE * 5;
+
         public const int MaxBuildOutputLineLength = 4000;
 
         public const int MaxBulkEmailsPerInterval = 4;
@@ -107,6 +110,8 @@ namespace ThriveDevCenter.Shared
         ///   than the session expiry
         /// </summary>
         public const int ClientCookieExpirySeconds = 60 * 60 * 24 * 60;
+
+        public const int CrashDumpDumpFileRetentionDays = 90;
 
         public const int DefaultTableNotificationFetchTimer = 1000;
         public const int LongerTableNotificationFetchTimer = 5000;

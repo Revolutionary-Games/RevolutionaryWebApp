@@ -236,11 +236,14 @@ namespace ThriveDevCenter.Server.Hubs
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
                 case NotificationGroups.PrivateCIProjectUpdated:
+                case NotificationGroups.CrashReportListUpdatedPrivate:
+                case NotificationGroups.SymbolListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Developer, user);
                 case NotificationGroups.DevBuildsListUpdated:
                     return RequireAccessLevel(UserAccessLevel.User, user);
                 case NotificationGroups.LFSListUpdated:
                 case NotificationGroups.CIProjectListUpdated:
+                case NotificationGroups.CrashReportListUpdatedPublic:
                     return RequireAccessLevel(UserAccessLevel.NotLoggedIn, user);
             }
 
@@ -462,6 +465,17 @@ namespace ThriveDevCenter.Server.Hubs
 
                 // Only admins see other CLA data
                 return RequireAccessLevel(UserAccessLevel.Admin, user);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.CrashReportUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.CrashReports, out var item))
+                    return false;
+
+                if (RequireAccessLevel(UserAccessLevel.Developer, user))
+                    return true;
+
+                return item.Public;
             }
 
             // Only admins see this

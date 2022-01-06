@@ -55,6 +55,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<GithubAutoComment> GithubAutoComments { get; set; }
         public DbSet<GithubPullRequest> GithubPullRequests { get; set; }
         public DbSet<SentBulkEmail> SentBulkEmails { get; set; }
+        public DbSet<CrashReport> CrashReports { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -449,6 +450,14 @@ namespace ThriveDevCenter.Server.Models
             modelBuilder.Entity<SentBulkEmail>(entity =>
             {
                 entity.HasOne(d => d.SentBy).WithMany(p => p.SentBulkEmails).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<CrashReport>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+
+                entity.HasOne(d => d.DescriptionLastEditedBy).WithMany(p => p.LastEditedCrashReportDescriptions)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
         }
 

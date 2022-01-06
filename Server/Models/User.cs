@@ -140,6 +140,8 @@ namespace ThriveDevCenter.Server.Models
 
         public ICollection<SentBulkEmail> SentBulkEmails { get; set; } = new HashSet<SentBulkEmail>();
 
+        public ICollection<CrashReport> LastEditedCrashReportDescriptions { get; set; } = new HashSet<CrashReport>();
+
         public bool HasAccessLevel(UserAccessLevel level)
         {
             return ComputeAccessLevel().HasAccess(level);

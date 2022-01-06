@@ -114,4 +114,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class SentBulkEmailListUpdated : ListUpdated<SentBulkEmailDTO>
     {
     }
+
+    public class CrashReportListUpdated : ListUpdated<CrashReportInfo>
+    {
+    }
 }

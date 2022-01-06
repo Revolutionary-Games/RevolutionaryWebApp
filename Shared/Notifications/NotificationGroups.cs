@@ -67,6 +67,12 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string GithubAutoCommentListUpdated = "GHAutoComment";
         public const string SentBulkEmailListUpdated = "BulkMails";
 
+        public const string CrashReportUpdatedPrefix = "SCReport_";
+        public const string CrashReportListUpdatedPublic = "CReport";
+        public const string CrashReportListUpdatedPrivate = "CReport_Developer";
+
+        public const string SymbolListUpdated = "Symbol";
+
         /// <summary>
         ///   The client doesn't know their session ID so this is used as-is on the client but with a suffix on the
         ///   server side

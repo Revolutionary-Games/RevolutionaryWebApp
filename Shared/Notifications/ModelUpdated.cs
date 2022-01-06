@@ -52,4 +52,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class InProgressClaSignatureUpdated : ModelUpdated<InProgressClaSignatureDTO>
     {
     }
+
+    public class CrashReportUpdated : ModelUpdated<CrashReportDTO>
+    {
+    }
 }
