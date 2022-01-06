@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
     using Server.Controllers;
     using Server.Services;
     using Shared;
+    using Shared.Converters;
     using Utilities;
     using Xunit;
     using Xunit.Abstractions;
@@ -146,7 +147,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
                 fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
 
             var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA2Signature1Email,
-                fixture.CLA2Signature1Github.Substring(0, AppInfo.PartialGithubMatchRevealAfterLenght));
+                fixture.CLA2Signature1Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLenght));
 
             var data = result.Value;
 
@@ -156,7 +157,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             Assert.Equal(fixture.CLA2Signature1DeveloperUsername, data[0].DeveloperUsername);
 
             result = await controller.SearchSignatures(fixture.CLA2Id,
-                fixture.CLA2Signature2Email.Substring(0, AppInfo.PartialEmailMatchRevealAfterLenght),
+                fixture.CLA2Signature2Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLenght),
                 fixture.CLA2Signature2Github);
 
             data = result.Value;
@@ -178,16 +179,16 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
                 fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
 
             var result = await controller.SearchSignatures(fixture.CLA2Id,
-                fixture.CLA2Signature1Email.Substring(0, AppInfo.PartialEmailMatchRevealAfterLenght),
-                fixture.CLA2Signature1Github.Substring(0, AppInfo.PartialGithubMatchRevealAfterLenght));
+                fixture.CLA2Signature1Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLenght),
+                fixture.CLA2Signature1Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLenght));
 
             var data = result.Value;
 
             Assert.Empty(data);
 
             result = await controller.SearchSignatures(fixture.CLA2Id,
-                fixture.CLA2Signature2Email.Substring(0, AppInfo.PartialEmailMatchRevealAfterLenght),
-                fixture.CLA2Signature2Github.Substring(0, AppInfo.PartialGithubMatchRevealAfterLenght));
+                fixture.CLA2Signature2Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLenght),
+                fixture.CLA2Signature2Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLenght));
 
             data = result.Value;
 

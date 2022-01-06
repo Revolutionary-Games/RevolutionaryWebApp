@@ -9,6 +9,7 @@ namespace ThriveDevCenter.Server.Services
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Configuration;
+    using Shared.Converters;
 
     public class Stackwalk : IStackwalk
     {
@@ -98,16 +99,12 @@ namespace ThriveDevCenter.Server.Services
             if (!foundStart)
             {
                 if (fallback)
-                {
-                    return decodedDump[..PrimaryCallstackSubstituteCharacterCount];
-                }
-                else
-                {
-                    return null;
-                }
+                    return decodedDump.Truncate(PrimaryCallstackSubstituteCharacterCount);
+
+                return null;
             }
 
-            return builder.ToString()[..MaximumPrimaryCallstackLength];
+            return builder.ToString().Truncate(MaximumPrimaryCallstackLength);
         }
 
         private void ThrowIfNotConfigured()

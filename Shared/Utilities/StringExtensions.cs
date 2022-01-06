@@ -17,5 +17,18 @@ namespace ThriveDevCenter.Shared.Converters
 
             return str.Substring(0, length - TruncateText.Length) + TruncateText;
         }
+
+        public static string TruncateWithoutEllipsis(this string str, int length)
+        {
+            if (str == null)
+                return string.Empty;
+
+            if (str.Length <= length)
+            {
+                return str;
+            }
+
+            return str.Substring(0, length);
+        }
     }
 }

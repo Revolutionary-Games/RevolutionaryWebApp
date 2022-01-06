@@ -877,7 +877,7 @@ namespace CIExecutor
                     continue;
 
                 var name = string.IsNullOrEmpty(step.Run.Name) ?
-                    step.Run.Command.Substring(0, Math.Min(70, step.Run.Command.Length)) :
+                    step.Run.Command.Truncate(70) :
                     step.Run.Name;
 
                 if (step.Run.When == CiJobStepRunCondition.Always)
