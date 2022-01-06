@@ -64,7 +64,7 @@ namespace ThriveDevCenter.Server.Jobs
             var searchText = string.Join('\n', report.PrimaryCallstack.Split('\n').Skip(1));
 
             var potentiallyDuplicateOf = await database.CrashReports.AsQueryable().Where(r =>
-                r.PrimaryCallstack != null && r.State != ReportState.Duplicate &&
+                r.PrimaryCallstack != null && r.Id != report.Id && r.State != ReportState.Duplicate &&
                 r.PrimaryCallstack.Contains(searchText)).OrderBy(r => r.Id).FirstOrDefaultAsync(cancellationToken);
 
             if (potentiallyDuplicateOf == null)
@@ -82,9 +82,8 @@ namespace ThriveDevCenter.Server.Jobs
                     DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
                     report.DuplicateOfId = potentiallyDuplicateOf.Id;
 
-                    if(report.State != ReportState.Closed)
+                    if (report.State != ReportState.Closed)
                         report.State = ReportState.Duplicate;
-
                 }, cancellationToken);
 
             logger.LogInformation("Report {ReportId} seems to be a duplicate of {Id}", reportId,
