@@ -54,7 +54,7 @@ namespace ThriveDevCenter.Server.Services
         /// </summary>
         /// <param name="suffix">Suffix to add to the temporary folder</param>
         /// <param name="path">The final result path</param>
-        /// <returns>A semaphore that needs to be locked while using hte path</returns>
+        /// <returns>A semaphore that needs to be locked while using the path</returns>
         SemaphoreSlim GetTempFilePath(string suffix, out string path);
     }
 }

@@ -25,6 +25,8 @@
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [QueryStringParameterAttribute]
+    // Used through query strings
+    // ReSharper disable once UnusedAutoPropertyAccessor.Local
     private string Token { get; set; }
 
     protected override async Task OnInitializedAsync()

@@ -22,7 +22,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
                         { 2, new PollData.PollChoice(2, "Name2") },
                         { 3, new PollData.PollChoice(3, "Name3") }
                     },
-                    WeightedChoices = new PollData.WeightedChoicesList() { },
+                    WeightedChoices = new PollData.WeightedChoicesList(),
                 }
             };
 

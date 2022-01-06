@@ -30,7 +30,7 @@
             <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
         </ul>
 
-        <AdminResourceDeleteButtons UsesSoftDelete="@false" Name="@($"Crash Report ${Data.Id}")" Id="@Data.Id"
+        <AdminResourceDeleteButtons UsesSoftDelete="@false" Name="@($"Crash Report {Data.Id}")" Id="@Data.Id"
                                     DeleteURLBase="api/v1/CrashReport"
                                     DeletePromptTitle="Delete this Crash Report?" />
 

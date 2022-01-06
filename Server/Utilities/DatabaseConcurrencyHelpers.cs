@@ -56,7 +56,7 @@ namespace ThriveDevCenter.Server.Utilities
                 if (conflictEntry.Entity != entry)
                 {
                     throw new NotSupportedException(
-                        $"Can't handle concurrency conflict for entity of type ${conflictEntry.Metadata.Name}");
+                        $"Can't handle concurrency conflict for entity of type {conflictEntry.Metadata.Name}");
                 }
 
                 var proposedValues = conflictEntry.CurrentValues;
@@ -64,7 +64,7 @@ namespace ThriveDevCenter.Server.Utilities
 
                 foreach (var property in proposedValues.Properties)
                 {
-                    var proposedValue = proposedValues[property];
+                    // var proposedValue = proposedValues[property];
                     var databaseValue = databaseValues[property];
 
                     // Replace all values with the new values

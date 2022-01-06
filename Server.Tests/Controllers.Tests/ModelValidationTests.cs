@@ -41,9 +41,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-            response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel()
-            {
-            });
+            response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel());
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
