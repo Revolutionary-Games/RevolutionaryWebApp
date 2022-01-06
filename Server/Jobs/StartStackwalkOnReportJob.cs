@@ -69,11 +69,16 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            var startTime = DateTime.UtcNow;
+
             // TODO: implement an async API in the stackwalk service and swap to using that here
             var result = await stackwalk.PerformBlockingStackwalk(dump, cancellationToken);
             var primaryCallstack = stackwalk.FindPrimaryCallstack(result);
+            var condensedCallstack = stackwalk.CondenseCallstack(primaryCallstack);
 
             cancellationToken.ThrowIfCancellationRequested();
+
+            logger.LogInformation("Stackwalking took: {Duration}", DateTime.UtcNow - startTime);
 
             await database.LogEntries.AddAsync(new LogEntry()
             {
@@ -85,6 +90,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             report.WholeCrashDump = result;
             report.PrimaryCallstack = primaryCallstack;
+            report.CondensedCallstack = condensedCallstack;
 
             await database.SaveChangesWithConflictResolvingAsync(
                 conflictEntries =>
@@ -92,6 +98,7 @@ namespace ThriveDevCenter.Server.Jobs
                     DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
                     report.WholeCrashDump = result;
                     report.PrimaryCallstack = primaryCallstack;
+                    report.CondensedCallstack = condensedCallstack;
                 }, cancellationToken);
 
             jobClient.Schedule<CheckCrashReportDuplicatesJob>(x => x.Execute(report.Id, CancellationToken.None),

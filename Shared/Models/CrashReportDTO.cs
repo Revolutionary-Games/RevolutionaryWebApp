@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Shared.Models
         public string Store { get; set; }
         public string Version { get; set; }
         public string PrimaryCallstack { get; set; }
+        public string CondensedCallstack { get; set; }
         public string Description { get; set; }
         public DateTime? DescriptionLastEdited { get; set; }
         public long? DescriptionLastEditedById { get; set; }

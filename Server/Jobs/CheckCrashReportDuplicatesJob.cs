@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Shared.Models.Enums;
     using Utilities;
 
-    [DisableConcurrentExecution(600)]
+    [DisableConcurrentExecution(300)]
     public class CheckCrashReportDuplicatesJob
     {
         private readonly ILogger<CheckCrashReportDuplicatesJob> logger;
@@ -51,21 +51,21 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            if (report.PrimaryCallstack == null)
+            if (report.CondensedCallstack == null)
             {
                 logger.LogWarning(
-                    "Report is missing primary callstack, can't check whether it is a duplicate automatically: {ReportId}",
+                    "Report is missing primary (condensed) callstack, can't check whether it is a " +
+                    "duplicate automatically: {ReportId}",
                     reportId);
                 return;
             }
 
-            // For duplication consider all of the lines of the primary callstack except the first one (which has
-            // the thread id on it)
-            var searchText = string.Join('\n', report.PrimaryCallstack.Split('\n').Skip(1));
+            // TODO: should this use the first 75% of the stack lines to find duplicates (but at least 3)?
 
             var potentiallyDuplicateOf = await database.CrashReports.AsQueryable().Where(r =>
-                r.PrimaryCallstack != null && r.Id != report.Id && r.State != ReportState.Duplicate &&
-                r.PrimaryCallstack.Contains(searchText)).OrderBy(r => r.Id).FirstOrDefaultAsync(cancellationToken);
+                    r.CondensedCallstack != null && r.Id != report.Id && r.State != ReportState.Duplicate &&
+                    r.CondensedCallstack.Contains(report.CondensedCallstack))
+                .OrderBy(r => r.Id).FirstOrDefaultAsync(cancellationToken);
 
             if (potentiallyDuplicateOf == null)
             {

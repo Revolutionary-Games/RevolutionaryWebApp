@@ -19,7 +19,7 @@ namespace ThriveDevCenter.Server.Models
     [Index(nameof(HappenedAt))]
     [Index(nameof(HashedDeleteKey), IsUnique = true)]
     [Index(nameof(UploadedFrom))]
-    [Index(nameof(PrimaryCallstack))]
+    [Index(nameof(CondensedCallstack))]
     [Index(nameof(ReporterEmail))]
     [Index(nameof(Description))]
     public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashedLookUps
@@ -59,6 +59,7 @@ namespace ThriveDevCenter.Server.Models
         public string Version { get; set; }
 
         public string PrimaryCallstack { get; set; }
+        public string CondensedCallstack { get; set; }
 
         /// <summary>
         ///   The entire decoded crash dump
@@ -122,6 +123,7 @@ namespace ThriveDevCenter.Server.Models
                 Store = Store,
                 Version = Version,
                 PrimaryCallstack = PrimaryCallstack,
+                CondensedCallstack = CondensedCallstack,
                 Description = Description,
                 DescriptionLastEdited = DescriptionLastEdited,
                 DescriptionLastEditedById = DescriptionLastEditedById,
