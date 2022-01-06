@@ -19,8 +19,13 @@ namespace ThriveDevCenter.Server.Models
     [Index(nameof(HappenedAt))]
     [Index(nameof(HashedDeleteKey), IsUnique = true)]
     [Index(nameof(UploadedFrom))]
+    [Index(nameof(PrimaryCallstack))]
+    [Index(nameof(ReporterEmail))]
+    [Index(nameof(Description))]
     public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashedLookUps
     {
+        public const string CrashReportTempStorageFolderName = "crashReports";
+
         public bool Public { get; set; }
 
         public ReportState State { get; set; } = ReportState.Open;
@@ -46,7 +51,10 @@ namespace ThriveDevCenter.Server.Models
 
         [Required]
         public string ExitCodeOrSignal { get; set; }
+
+        [Required]
         public string Logs { get; set; }
+
         public string Store { get; set; }
         public string Version { get; set; }
 
@@ -75,6 +83,10 @@ namespace ThriveDevCenter.Server.Models
         public ICollection<CrashReport> Duplicates { get; set; } = new HashSet<CrashReport>();
 
         public string DumpLocalFileName { get; set; }
+
+        // TODO: switch this to a proper notification system with subscription confirmations and users also being able
+        // to watch reports
+        public string ReporterEmail { get; set; }
 
         [NotMapped]
         public string StoreOrVersion => Store ?? Version;

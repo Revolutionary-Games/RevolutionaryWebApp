@@ -74,5 +74,28 @@ namespace ThriveDevCenter.Server.Services
             jobClient.Enqueue<SendDiscordWebhookMessageJob>(x => x.Execute("CIBuildNotification",
                 message.ToString(), CancellationToken.None));
         }
+
+        public void NotifyAboutNewCrashReport(CrashReport report, Uri baseUrl)
+        {
+            var infoUrl = CrashReportUrl(baseUrl, report.Id);
+
+            jobClient.Enqueue<SendDiscordWebhookMessageJob>(x => x.Execute("CrashReportNotification",
+                $"New crash report (id: {report.Id}) created for {report.StoreOrVersion} on {report.Platform} {infoUrl}",
+                CancellationToken.None));
+        }
+
+        public void NotifyCrashReportStateChanged(CrashReport report, Uri baseUrl)
+        {
+            var infoUrl = CrashReportUrl(baseUrl, report.Id);
+
+            jobClient.Enqueue<SendDiscordWebhookMessageJob>(x => x.Execute("CrashReportNotification",
+                $"Crash report {report.Id} is now in state {report.State} {infoUrl}",
+                CancellationToken.None));
+        }
+
+        private static Uri CrashReportUrl(Uri baseUrl, long id)
+        {
+            return new Uri(baseUrl, $"/reports/{id}");
+        }
     }
 }

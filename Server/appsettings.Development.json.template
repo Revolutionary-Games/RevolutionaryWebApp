@@ -23,6 +23,9 @@
   "CLA": {
     "SignatureEmailBCC": "test@example.com"
   },
+  "Crashes": {
+    "StackwalkService": "http://localhost:9090/"
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
