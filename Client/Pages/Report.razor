@@ -1,0 +1,83 @@
+@page "/reports/{Id:long}"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navigationManager
+@inherits SingleResourcePage<CrashReportDTO, CrashReportUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <h3>Crash Report @Data.Id</h3>
+
+        <ul>
+            <li><strong>Public</strong>: @Data.Public</li>
+            <li><strong>Crash Happened At</strong>: @Data.HappenedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+        </ul>
+
+        <AdminResourceDeleteButtons UsesSoftDelete="@false" Name="@($"Crash Report ${Data.Id}")" Id="@Data.Id"
+                                    DeleteURLBase="api/v1/CrashReport"
+                                    DeletePromptTitle="Delete this Crash Report?" />
+
+        <h3>Callstack</h3>
+
+
+        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+            <AuthorizedContent>
+                <h3>Logs</h3>
+
+                <h3>Crash dump</h3>
+            </AuthorizedContent>
+            <AccessMissingContent>
+                <h3>Logs</h3>
+
+                <p>
+                    Only Thrive developers can view logs.
+                    <NavLink href="@navigationManager.GetLinkToLogin("Only developers can view logs")">
+                        Login
+                    </NavLink>
+                </p>
+
+            </AccessMissingContent>
+        </AccessLimited>
+
+        /*@ TODO: implement commenting at some point
+        <h3>Comments</h3>
+        @*/
+
+        /*@ TODO: implement notification registering
+        <h3>Notifications</h3>
+        @*/
+    }
+</SingleResourceDisplayer>
+
+@code {
+
+    [Parameter]
+    public string FileBrowserPath { get; set; }
+
+    protected override Task<CrashReportDTO> StartQuery()
+    {
+        return http.GetFromJsonAsync<CrashReportDTO>($"api/v1/CrashReport/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CrashReportUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return notificationHandler.Register(this);
+    }
+}
