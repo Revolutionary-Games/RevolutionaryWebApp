@@ -53,7 +53,7 @@ namespace ThriveDevCenter.Server.Services
             // TODO: implement special mode for windows dumps that were compiled with mingw
             // form.Add(new StringContent("mingw"), "custom");
 
-            form.Add(new StreamContent(dumpContent), "file");
+            form.Add(new StreamContent(dumpContent), "file", "file");
             var response = await httpClient.PostAsync(url, form, cancellationToken);
 
             if (response.StatusCode != HttpStatusCode.OK)
