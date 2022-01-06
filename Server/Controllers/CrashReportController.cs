@@ -135,6 +135,32 @@ namespace ThriveDevCenter.Server.Controllers
             return report.WholeCrashDump ?? string.Empty;
         }
 
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        [HttpPost("{id:long}/reprocess")]
+        public async Task<IActionResult> ReProcessCrashDump([Required] long id)
+        {
+            var report = await WithoutLogs(database.CrashReports, true).Where(r => r.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (report == null)
+                return NotFound();
+
+            if (report.DumpLocalFileName == null)
+                return BadRequest("Report no longer has a crash dump file");
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Report {report.Id} crash dump reprocessing requested",
+                PerformedById = HttpContext.AuthenticatedUser().Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            jobClient.Enqueue<StartStackwalkOnReportJob>(x => x.Execute(report.Id, CancellationToken.None));
+
+            return Ok();
+        }
+
         [HttpPost]
         public async Task<ActionResult<CreateCrashReportResponse>> CreateReport(
             [Required] [FromForm] CreateCrashReportData request, [Required] IFormFile dump)

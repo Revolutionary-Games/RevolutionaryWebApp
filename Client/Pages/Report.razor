@@ -5,6 +5,7 @@
 @inherits SingleResourcePage<CrashReportDTO, CrashReportUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models.Enums
 @using ThriveDevCenter.Shared.Notifications
 @implements IAsyncDisposable
@@ -76,9 +77,14 @@
                 <h3>Crash dump</h3>
                 <pre>TODO: fetch crash dump</pre>
 
+                <StatusMessageShower Type="@bottomStatusType" Message="@bottomStatus" />
+
                 @if (Data.CanReProcess)
                 {
-                    <Button ButtonStyle="secondary" Enabled="@false">ReProcess Dump File</Button>
+                    <Button ButtonStyle="secondary" Spinner="@reprocessingFile"
+                            Enabled="@(!reprocessingFile)" OnPressed="@RequestReProcessing">
+                        Reprocess Dump File
+                    </Button>
                 }
                 else
                 {
@@ -110,6 +116,11 @@
 
 @code {
 
+    private SiteNoticeType bottomStatusType = SiteNoticeType.Info;
+    private string bottomStatus;
+
+    private bool reprocessingFile;
+
     [Parameter]
     public string FileBrowserPath { get; set; }
 
@@ -131,5 +142,43 @@
     protected override Task OnFirstDataReceived()
     {
         return notificationHandler.Register(this);
+    }
+
+    private async Task RequestReProcessing()
+    {
+        reprocessingFile = true;
+        bottomStatus = null;
+        bottomStatusType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/CrashReport/{Id}/reprocess", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            bottomStatus = $"Network request failed: {e.Message}";
+            reprocessingFile = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        reprocessingFile = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            bottomStatus = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            bottomStatus = "Report reprocessing queued";
+            bottomStatusType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }
