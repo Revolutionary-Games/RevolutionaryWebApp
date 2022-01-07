@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
+    using Shared.Models;
     using Utilities;
 
     [DisableConcurrentExecution(1000)]
@@ -91,6 +92,7 @@ namespace ThriveDevCenter.Server.Jobs
             report.WholeCrashDump = result;
             report.PrimaryCallstack = primaryCallstack;
             report.CondensedCallstack = condensedCallstack;
+            report.BumpUpdatedAt();
 
             await database.SaveChangesWithConflictResolvingAsync(
                 conflictEntries =>
@@ -99,6 +101,7 @@ namespace ThriveDevCenter.Server.Jobs
                     report.WholeCrashDump = result;
                     report.PrimaryCallstack = primaryCallstack;
                     report.CondensedCallstack = condensedCallstack;
+                    report.BumpUpdatedAt();
                 }, cancellationToken);
 
             jobClient.Schedule<CheckCrashReportDuplicatesJob>(x => x.Execute(report.Id, CancellationToken.None),

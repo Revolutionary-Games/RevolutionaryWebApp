@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
+    using Shared.Models;
     using Utilities;
 
     public class DeleteCrashReportDumpJob
@@ -81,12 +82,14 @@ namespace ThriveDevCenter.Server.Jobs
             }, cancellationToken);
 
             report.DumpLocalFileName = null;
+            report.BumpUpdatedAt();
 
             await database.SaveChangesWithConflictResolvingAsync(
                 conflictEntries =>
                 {
                     DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
                     report.DumpLocalFileName = null;
+                    report.BumpUpdatedAt();
                 }, cancellationToken);
         }
     }

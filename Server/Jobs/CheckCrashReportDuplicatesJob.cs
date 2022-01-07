@@ -10,6 +10,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
+    using Shared.Models;
     using Shared.Models.Enums;
     using Utilities;
 
@@ -62,6 +63,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             // TODO: should this use the first 75% of the stack lines to find duplicates (but at least 3)?
 
+            // TODO: if this is a public report, it should not become a duplicate of a private report
             var potentiallyDuplicateOf = await database.CrashReports.AsQueryable().Where(r =>
                     r.CondensedCallstack != null && r.Id != report.Id && r.State != ReportState.Duplicate &&
                     r.CondensedCallstack.Contains(report.CondensedCallstack))
@@ -73,17 +75,13 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            report.DuplicateOfId = potentiallyDuplicateOf.Id;
-            report.State = ReportState.Duplicate;
+            SetReportData(report, potentiallyDuplicateOf.Id);
 
             await database.SaveChangesWithConflictResolvingAsync(
                 conflictEntries =>
                 {
                     DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
-                    report.DuplicateOfId = potentiallyDuplicateOf.Id;
-
-                    if (report.State != ReportState.Closed)
-                        report.State = ReportState.Duplicate;
+                    SetReportData(report, potentiallyDuplicateOf.Id);
                 }, cancellationToken);
 
             logger.LogInformation("Report {ReportId} seems to be a duplicate of {Id}", reportId,
@@ -94,6 +92,42 @@ namespace ThriveDevCenter.Server.Jobs
                 CancellationToken.None));
 
             discordNotifications.NotifyCrashReportStateChanged(report, baseUrl);
+        }
+
+        private static void SetReportData(CrashReport report, long duplicateId)
+        {
+            report.DuplicateOfId = duplicateId;
+
+            if (report.State != ReportState.Closed)
+                report.State = ReportState.Duplicate;
+
+            var automaticText = GetAutomaticText(duplicateId);
+
+            if (report.Description == null)
+            {
+                report.Description = automaticText;
+            }
+            else if (!report.Description.Contains(automaticText))
+            {
+                if (string.IsNullOrWhiteSpace(report.Description))
+                {
+                    report.Description += automaticText;
+                }
+                else
+                {
+                    report.Description += "\n" + automaticText;
+                }
+            }
+
+            // Edited by system
+            report.DescriptionLastEditedById = null;
+
+            report.BumpUpdatedAt();
+        }
+
+        private static string GetAutomaticText(long duplicate)
+        {
+            return $"Automatically detected as duplicate of report {duplicate} from callstack";
         }
     }
 }
