@@ -70,8 +70,14 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async void OnConnectionChanged(object sender, bool e)
+    private async void OnConnectionChanged(object sender, bool connectionLost)
     {
+        if (connectionLost)
+        {
+            // Wait a bit to not have the connection loss show up on refresh or navigating to another site
+            await Task.Delay(AppInfo.TimeBeforeShowingConnectionLoss);
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
