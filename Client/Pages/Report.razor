@@ -25,8 +25,20 @@
         </h3>
 
         <ul>
-            <li><strong>Public</strong>: @Data.Public</li>
             <li><strong>Crash Happened At</strong>: @Data.HappenedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Crash Reason</strong>: @Data.ExitCodeOrSignal</li>
+            <li><strong>Version</strong>: @Data.Version</li>
+            <li><strong>Store Version</strong>: @Data.Store</li>
+            <li><strong>Platform</strong>: @Data.Platform</li>
+            <li><strong>State</strong>: @Data.State</li>
+
+            @if (Data.DuplicateOfId.HasValue)
+            {
+                <li><strong>Duplicate Of</strong>: <NavLink href="@($"/reports/{Data.DuplicateOfId.Value}")">
+                    Report @Data.DuplicateOfId.Value
+                </NavLink></li>
+            }
+
             <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
             <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
         </ul>

@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Controllers
     public class CrashReportController : Controller
     {
         private readonly ILogger<CrashReportController> logger;
-        private readonly ApplicationDbContext database;
+        private readonly NotificationsEnabledDb database;
         private readonly ILocalTempFileLocks localTempFileLocks;
         private readonly IBackgroundJobClient jobClient;
         private readonly DiscordNotifications discordNotifications;
@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly Uri baseUrl;
 
         public CrashReportController(ILogger<CrashReportController> logger,
-            ApplicationDbContext database, IConfiguration configuration, ILocalTempFileLocks localTempFileLocks,
+            NotificationsEnabledDb database, IConfiguration configuration, ILocalTempFileLocks localTempFileLocks,
             IBackgroundJobClient jobClient, DiscordNotifications discordNotifications)
         {
             this.logger = logger;
@@ -341,6 +341,7 @@ namespace ThriveDevCenter.Server.Controllers
                         UpdatedAt = c.UpdatedAt,
                         HappenedAt = c.HappenedAt,
                         Public = c.Public,
+                        ExitCodeOrSignal = c.ExitCodeOrSignal,
                         State = c.State,
                         Platform = c.Platform,
                         Store = c.Store,
@@ -363,6 +364,7 @@ namespace ThriveDevCenter.Server.Controllers
                     UpdatedAt = c.UpdatedAt,
                     HappenedAt = c.HappenedAt,
                     Public = c.Public,
+                    ExitCodeOrSignal = c.ExitCodeOrSignal,
                     State = c.State,
                     Platform = c.Platform,
                     Store = c.Store,
