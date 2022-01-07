@@ -69,7 +69,11 @@ namespace ThriveDevCenter.Client.Shared
             base.OnParametersSet();
 
             if (Id != previouslyFetchedId)
+            {
+                // Changed to showing a different entity
+                DataReceived = false;
                 return FetchData();
+            }
 
             return Task.CompletedTask;
         }
