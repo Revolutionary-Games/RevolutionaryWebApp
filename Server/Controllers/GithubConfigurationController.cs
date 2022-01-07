@@ -129,10 +129,12 @@ namespace ThriveDevCenter.Server.Controllers
 
             var user = HttpContext.AuthenticatedUser();
 
-            var (changes, description) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(comment, request);
+            var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(comment, request);
 
             if (!changes)
                 return Ok();
+
+            comment.BumpUpdatedAt();
 
             await database.AdminActions.AddAsync(new AdminAction()
             {

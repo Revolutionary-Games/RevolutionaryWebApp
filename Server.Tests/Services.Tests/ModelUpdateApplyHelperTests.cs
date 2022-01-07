@@ -16,10 +16,11 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
 
             Assert.Equal(JsonSerializer.Serialize(old), JsonSerializer.Serialize(update));
 
-            var (changes, description) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
+            var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
 
             Assert.False(changes);
             Assert.Null(description);
+            Assert.Null(fields);
             Assert.Equal(JsonSerializer.Serialize(old), initial);
             Assert.Equal(update.SomeField, old.SomeField);
         }
@@ -31,12 +32,18 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var initial = JsonSerializer.Serialize(old);
             var update = new ModelDTO();
 
-            var (changes, description) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
+            var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
 
             Assert.True(changes);
             Assert.NotEmpty(description);
             Assert.False(description.StartsWith(","));
+            Assert.NotNull(fields);
+            Assert.Contains(nameof(Model.SomeField), fields);
+            Assert.DoesNotContain(nameof(Model.Id), fields);
+            Assert.DoesNotContain(nameof(Model.Flag), fields);
+
             Assert.NotEqual(JsonSerializer.Serialize(old), initial);
+
             Assert.Contains(nameof(Model.SomeField), description);
             Assert.DoesNotContain(nameof(Model.Id), description);
             Assert.DoesNotContain(nameof(Model.Flag), description);
@@ -54,10 +61,11 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
                 Id = 123,
             };
 
-            var (changes, description) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
+            var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
 
             Assert.False(changes);
             Assert.Null(description);
+            Assert.Null(fields);
             Assert.Equal(JsonSerializer.Serialize(old), initial);
             Assert.NotEqual(update.Id, old.Id);
         }
@@ -74,7 +82,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
 
             Assert.NotEqual(update.Flag, old.Flag);
 
-            var (changes, description) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
+            var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
 
             Assert.True(changes);
             Assert.NotEmpty(description);
@@ -82,6 +90,10 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             Assert.Contains(nameof(Model.SomeField), description);
             Assert.DoesNotContain(nameof(Model.Id), description);
             Assert.Contains(nameof(Model.Flag), description);
+            Assert.Contains(nameof(Model.SomeField), fields);
+            Assert.DoesNotContain(nameof(Model.Id), fields);
+            Assert.Contains(nameof(Model.Flag), fields);
+
             Assert.Equal(update.SomeField, old.SomeField);
             Assert.Equal(update.Flag, old.Flag);
         }

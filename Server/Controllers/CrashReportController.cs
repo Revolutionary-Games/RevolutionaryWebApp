@@ -189,6 +189,49 @@ namespace ThriveDevCenter.Server.Controllers
             return results.Select(r => r.Id).ToList();
         }
 
+        [HttpPut("{id:long}")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        public async Task<IActionResult> UpdateSingle([Required] long id, [Required] [FromBody] CrashReportDTO request)
+        {
+            var report = await database.CrashReports.FindAsync(id);
+
+            if (report == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser();
+
+            var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(report, request);
+
+            if (!changes)
+                return Ok();
+
+            report.BumpUpdatedAt();
+
+            bool editedDescription = fields.Contains(nameof(CrashReport.Description));
+
+            if (editedDescription)
+            {
+                report.DescriptionLastEdited = DateTime.UtcNow;
+                report.DescriptionLastEditedById = user.Id;
+            }
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = editedDescription ?
+                    $"Crash report {report.Id} edited (edit included description)" :
+                    $"Crash report {report.Id} edited",
+
+                // TODO: there could be an extra info property where the description is stored
+                PerformedById = user.Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("Crash report {Id} edited by {Email}, changes: {Description}", report.Id,
+                user.Email, description);
+            return Ok();
+        }
+
         [HttpPost]
         public async Task<ActionResult<CreateCrashReportResponse>> CreateReport(
             [Required] [FromForm] CreateCrashReportData request, [Required] IFormFile dump)

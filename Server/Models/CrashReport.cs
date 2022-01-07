@@ -69,6 +69,7 @@ namespace ThriveDevCenter.Server.Models
         /// <summary>
         ///   Manually or automatically written issue description by developers
         /// </summary>
+        [UpdateFromClientRequest]
         public string Description { get; set; }
 
         public DateTime? DescriptionLastEdited { get; set; }

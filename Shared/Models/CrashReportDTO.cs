@@ -3,7 +3,7 @@ namespace ThriveDevCenter.Shared.Models
     using System;
     using Enums;
 
-    public class CrashReportDTO : ClientSideTimedModel
+    public class CrashReportDTO : ClientSideTimedModel, ICloneable
     {
         public bool Public { get; set; }
         public ReportState State { get; set; }
@@ -19,5 +19,26 @@ namespace ThriveDevCenter.Shared.Models
         public long? DescriptionLastEditedById { get; set; }
         public long? DuplicateOfId { get; set; }
         public bool CanReProcess { get; set; }
+
+        public object Clone()
+        {
+            return new CrashReportDTO()
+            {
+                Public = Public,
+                State = State,
+                Platform = Platform,
+                HappenedAt = HappenedAt,
+                ExitCodeOrSignal = ExitCodeOrSignal,
+                Store = Store,
+                Version = Version,
+                PrimaryCallstack = PrimaryCallstack,
+                CondensedCallstack = CondensedCallstack,
+                Description = Description,
+                DescriptionLastEdited = DescriptionLastEdited,
+                DescriptionLastEditedById = DescriptionLastEditedById,
+                DuplicateOfId = DuplicateOfId,
+                CanReProcess = CanReProcess,
+            };
+        }
     }
 }

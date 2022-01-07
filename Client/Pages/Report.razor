@@ -133,7 +133,9 @@
                 </AccessLimited>
 
                 <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
-                    <Button ButtonStyle="secondary" Enabled="@false">Edit</Button>
+                    <TextEditor Identifier="@($"report-desc-{Id}")" Placeholder="New description..."
+                                FieldLabel="Description" CurrentlySavedText="@Data.Description"
+                                GetSaveRequest="@GetDescriptionSaveRequest"/>
                 </AccessLimited>
 
                 <h3>Callstack</h3>
@@ -379,5 +381,13 @@
     {
         showAllDuplicates = showAll;
         return InvokeAsync(StateHasChanged);
+    }
+
+    private Tuple<string, object> GetDescriptionSaveRequest(string newDescription)
+    {
+        var result = (CrashReportDTO)Data.Clone();
+        result.Description = newDescription;
+
+        return new Tuple<string, object>($"api/v1/CrashReport/{Id}", result);
     }
 }

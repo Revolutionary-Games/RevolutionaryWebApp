@@ -1,15 +1,18 @@
 namespace ThriveDevCenter.Server.Utilities
 {
     using System;
+    using System.Collections.Generic;
     using System.Reflection;
     using System.Text;
     using System.Text.Json;
 
     public static class ModelUpdateApplyHelper
     {
-        public static (bool changes, string changeDescription) ApplyUpdateRequestToModel<T, TRequest>(T model,
+        public static (bool changes, string changeDescription, List<string> changedFields) ApplyUpdateRequestToModel<T,
+            TRequest>(T model,
             TRequest updateRequest)
         {
+            var changedFields = new List<string>();
             var stringBuilder = new StringBuilder(200);
             bool changes = false;
 
@@ -47,6 +50,8 @@ namespace ThriveDevCenter.Server.Utilities
                 if (oldValue != null && newValue != null && oldValue.Equals(newValue))
                     continue;
 
+                changedFields.Add(property.Name);
+
                 if (changes)
                     stringBuilder.Append(", ");
 
@@ -67,7 +72,10 @@ namespace ThriveDevCenter.Server.Utilities
                 throw new ArgumentException("Model has no attributes marked as updateable");
             }
 
-            return (changes, changes ? stringBuilder.ToString() : null);
+            if(!changes)
+                return (false, null, null);
+
+            return (true, stringBuilder.ToString(), changedFields);
         }
     }
 }

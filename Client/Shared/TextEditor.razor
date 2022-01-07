@@ -1,0 +1,165 @@
+@inject HttpClient http
+@using ThriveDevCenter.Shared
+
+@if (showForm)
+{
+    <form>
+        <div class="form-row">
+            <div class="form-group">
+                @if (string.IsNullOrEmpty(FieldLabel))
+                {
+                    <textarea class="form-control" @bind="text"
+                       @bind:event="oninput" placeholder="@Placeholder"
+                       cols="@cols" rows="@rows">
+                    </textarea>
+                }
+                else
+                {
+                    var fieldId = $"textEditorFor-{Identifier}";
+
+                    <label for="@fieldId">@FieldLabel</label>
+                    <textarea class="form-control" id="@fieldId" @bind="text"
+                       @bind:event="oninput" placeholder="@Placeholder"
+                       cols="@cols" rows="@rows">
+                    </textarea>
+                }
+            </div>
+        </div>
+
+        @* @foreach (var error in GetErrors())
+        {
+            <div>@error</div>
+        }*@
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+        <Button class="my-1 mr-1" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing" ButtonStyle="primary">
+            Save
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@Cancel">
+            Cancel
+        </Button>
+    </form>
+}
+else
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+
+    <Button Enabled="@CanEdit" ButtonStyle="secondary" OnPressed="@ShowForm">Edit</Button>
+}
+
+@code {
+    private string text;
+
+    private bool showForm;
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public string CurrentlySavedText { get; set; }
+
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    [Parameter]
+    public string FieldLabel { get; set; }
+
+    [Parameter]
+    public string Placeholder { get; set; } = "Text...";
+
+    /// <summary>
+    ///   Used to make the editor controls unique, should be a combination of an id number and part of model name
+    /// </summary>
+    [Parameter]
+    public string Identifier { get; set; }
+
+    /// <summary>
+    ///   This defines a callback that returns a tuple of url, object to put that is used to save the data after
+    ///   editing and pressing save
+    /// </summary>
+    [Parameter]
+    public Func<string, Tuple<string, object>> GetSaveRequest { get; set; }
+
+    // ReSharper disable InconsistentNaming
+    [Parameter]
+    public int cols { get; set; } = AppInfo.MaxDevBuildDescriptionNiceLineLength + 1;
+
+    [Parameter]
+    public int rows { get; set; } = 5;
+
+    // ReSharper restore InconsistentNaming
+
+    // TODO: implement markdown mode with preview (that is either side by side or below the input)
+
+    // private bool CanSave => GetErrors().Count < 1;
+    private bool CanSave => true;
+
+    private void ShowForm()
+    {
+        text = CurrentlySavedText;
+        statusMessage = null;
+        showForm = true;
+    }
+
+    private void Cancel()
+    {
+        showForm = false;
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    // TODO: implement a way to detect errors in this and show them to allow DevBuildEditor to move to using this
+    /*private List<string> GetErrors()
+    {
+        var result = new List<string>();
+
+        throw new NotImplementedException();
+
+        return result;
+    }*/
+
+    private async Task Save()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        var (url, data) = GetSaveRequest(text);
+
+        try
+        {
+            result = await http.PutAsJsonAsync(url, data);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Changes saved";
+            statusMessageType = SiteNoticeType.Primary;
+            showForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}
