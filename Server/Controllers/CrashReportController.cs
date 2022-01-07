@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ThriveDevCenter.Server.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.IO;
     using System.Linq;
@@ -159,6 +160,33 @@ namespace ThriveDevCenter.Server.Controllers
             jobClient.Enqueue<StartStackwalkOnReportJob>(x => x.Execute(report.Id, CancellationToken.None));
 
             return Ok();
+        }
+
+        [HttpGet("{id:long}/duplicates")]
+        public async Task<ActionResult<List<long>>> DuplicatesOfThisReport([Required] long id)
+        {
+            bool developer = HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
+                AuthenticationScopeRestriction.None);
+
+            var report = await WithoutLogs(database.CrashReports, true).Where(r => r.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (report == null)
+                return NotFound();
+
+            if (!report.Public && !developer)
+                return NotFound();
+
+            // Developers can view all items, others can only view public items so also limit the duplicates list
+            var query = developer ?
+                database.CrashReports.AsQueryable().Where(p => p.DuplicateOfId == report.Id) :
+                database.CrashReports.AsQueryable().Where(p => p.Public == true && p.DuplicateOfId == report.Id);
+
+            // A maximum limit is imposed on the number of returned rows to not return a ton of data
+            var results = await query.Select(r => new { Id = r.Id }).OrderByDescending(r => r.Id)
+                .Take(AppInfo.MaximumDuplicateReports).ToListAsync();
+
+            return results.Select(r => r.Id).ToList();
         }
 
         [HttpPost]

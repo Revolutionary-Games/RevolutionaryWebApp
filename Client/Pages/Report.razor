@@ -2,6 +2,7 @@
 @inject HttpClient http
 @inject NotificationHandler notificationHandler
 @inject NavigationManager navigationManager
+@inject CurrentUserInfo currentUserInfo
 @inherits SingleResourcePage<CrashReportDTO, CrashReportUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -21,6 +22,11 @@
             } else if (Data.State == ReportState.Duplicate)
             {
                 <span class="badge badge-warning ml-2">Duplicate</span>
+            }
+
+            @if (!Data.Public)
+            {
+                <span class="badge badge-secondary ml-2">Private</span>
             }
         </h3>
 
@@ -43,95 +49,191 @@
             <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
         </ul>
 
+        <StatusMessageShower Type="@topStatusType" Message="@topStatus" />
+
         <AdminResourceDeleteButtons UsesSoftDelete="@false" Name="@($"Crash Report {Data.Id}")" Id="@Data.Id"
                                     DeleteURLBase="api/v1/CrashReport"
                                     DeletePromptTitle="Delete this Crash Report?" />
 
-        <h3>Description</h3>
+        <div class="row">
+            <div class="col-12 col-xl">
+                <h4>Duplicates</h4>
 
-        @* TODO: move this to markdown once the XSS resistant version is in nuget *@
-
-        <p>@Data.Description</p>
-
-        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.User">
-            <AuthorizedContent>
-                @if (Data.DescriptionLastEdited.HasValue)
+                @if (fetchingDuplicates)
                 {
-                    <p>Description last edited at
-                        @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G") by
-                        @Data.DescriptionLastEditedById</p>
-                }
-            </AuthorizedContent>
-            <AccessMissingContent>
-                @if (Data.DescriptionLastEdited.HasValue)
+                    <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+                } else if (duplicates != null)
                 {
-                    <p>Description last edited at @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G")</p>
+                    @if (duplicates.Count < 1)
+                    {
+                        <span>Nothing is a duplicate of this report.</span>
+                    }
+                    else
+                    {
+                        <ul>
+                            @foreach (var duplicate in duplicates.Take(showAllDuplicates ?
+                                AppInfo.MaximumDuplicateReports : SmallDuplicateAmount))
+                            {
+                                <li><NavLink href="@($"/reports/{duplicate}")">Report @duplicate</NavLink></li>
+                            }
+                        </ul>
+
+                        @if (duplicates.Count >= AppInfo.MaximumDuplicateReports)
+                        {
+                            <p>
+                                This report has so many duplicates that not all can be shown.
+                                Only @AppInfo.MaximumDuplicateReports are shown.
+                            </p>
+                        }
+
+                        @if (duplicates.Count > SmallDuplicateAmount)
+                        {
+                            @if (showAllDuplicates)
+                            {
+                                <Button ButtonStyle="secondary"
+                                        OnPressed="@(() => SetDuplicatesFullShowing(false))">
+                                    Show Only The First Duplicates
+                                </Button>
+                            }
+                            else
+                            {
+                                <Button ButtonStyle="secondary"
+                                        OnPressed="@(() => SetDuplicatesFullShowing(true))">
+                                    Show All @duplicates.Count Duplicates
+                                </Button>
+                            }
+                        }
+                    }
                 }
-            </AccessMissingContent>
-        </AccessLimited>
 
-        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
-            <Button ButtonStyle="secondary" Enabled="@false">Edit</Button>
-        </AccessLimited>
+                <h3>Description</h3>
 
-        <h3>Callstack</h3>
+                @* TODO: move this to markdown once the XSS resistant version is in nuget *@
 
-        <pre>@Data.CondensedCallstack</pre>
+                <p>@Data.Description</p>
 
-        <h4>Full Stack Details</h4>
-        <pre>@Data.PrimaryCallstack</pre>
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.User">
+                    <AuthorizedContent>
+                        @if (Data.DescriptionLastEdited.HasValue)
+                        {
+                            <p>Description last edited at
+                                @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G") by
+                                @Data.DescriptionLastEditedById</p>
+                        }
+                    </AuthorizedContent>
+                    <AccessMissingContent>
+                        @if (Data.DescriptionLastEdited.HasValue)
+                        {
+                            <p>
+                                Description last edited at
+                                @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G")
+                            </p>
+                        }
+                    </AccessMissingContent>
+                </AccessLimited>
 
-        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
-            <AuthorizedContent>
-                <h3>Logs</h3>
-                <pre>TODO: fetch logs</pre>
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+                    <Button ButtonStyle="secondary" Enabled="@false">Edit</Button>
+                </AccessLimited>
 
-                <h3>Crash dump</h3>
-                <pre>TODO: fetch crash dump</pre>
+                <h3>Callstack</h3>
 
-                <StatusMessageShower Type="@bottomStatusType" Message="@bottomStatus" />
+                <pre>@Data.CondensedCallstack</pre>
 
-                @if (Data.CanReProcess)
-                {
-                    <Button ButtonStyle="secondary" Spinner="@reprocessingFile"
-                            Enabled="@(!reprocessingFile)" OnPressed="@RequestReProcessing">
-                        Reprocess Dump File
-                    </Button>
-                }
-                else
-                {
-                    <p>Crash dump for this report has been deleted.</p>
-                }
-            </AuthorizedContent>
-            <AccessMissingContent>
-                <h3>Logs</h3>
+                <h4>Full Stack Details</h4>
+                <pre>@Data.PrimaryCallstack</pre>
 
-                <p>
-                    Only Thrive developers can view logs.
-                    <NavLink href="@navigationManager.GetLinkToLogin("Only developers can view logs")">
-                        Login
-                    </NavLink>
-                </p>
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+                    <AuthorizedContent>
+                        <h3>Logs</h3>
 
-            </AccessMissingContent>
-        </AccessLimited>
+                        @if (fetchingLogs)
+                        {
+                            <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <pre>@logs</pre>
+                        }
 
-        /*@ TODO: implement commenting at some point
+                        <p>Note: logs and crash dump won't auto refresh on data change.</p>
+
+                    </AuthorizedContent>
+                    <AccessMissingContent>
+                        <h3>Logs</h3>
+
+                        <p>
+                            Only Thrive developers can view logs.
+                            <NavLink href="@navigationManager.GetLinkToLogin("Only developers can view logs")">
+                                Login
+                            </NavLink>
+                        </p>
+
+                    </AccessMissingContent>
+                </AccessLimited>
+            </div>
+
+            <div class="col-12 col-xl overflow-auto">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+                    <h3>Crash dump</h3>
+                        @if (fetchingCrashDump)
+                        {
+                            <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <pre>@crashDump</pre>
+                        }
+
+                        <StatusMessageShower Type="@bottomStatusType" Message="@bottomStatus" />
+
+                        @if (Data.CanReProcess)
+                        {
+                            <Button ButtonStyle="secondary" Spinner="@reprocessingFile"
+                                    Enabled="@(!reprocessingFile)" OnPressed="@RequestReProcessing">
+                                Reprocess Dump File
+                            </Button>
+                        }
+                        else
+                        {
+                            <p>Crash dump for this report has been deleted.</p>
+                        }
+                </AccessLimited>
+            </div>
+        </div>
+
+        @* TODO: implement commenting at some point
         <h3>Comments</h3>
-        @*/
+        *@
 
-        /*@ TODO: implement notification registering
+        @* TODO: implement notification registering
         <h3>Notifications</h3>
-        @*/
+        *@
     }
 </SingleResourceDisplayer>
 
 @code {
 
+    private const int SmallDuplicateAmount = 5;
+
+    private SiteNoticeType topStatusType = SiteNoticeType.Info;
+    private string topStatus;
+
     private SiteNoticeType bottomStatusType = SiteNoticeType.Info;
     private string bottomStatus;
 
     private bool reprocessingFile;
+
+    private bool fetchingDuplicates;
+    private List<long> duplicates;
+    private bool showAllDuplicates;
+
+    private bool fetchingLogs;
+    private string logs;
+
+    private bool fetchingCrashDump;
+    private string crashDump;
+
 
     [Parameter]
     public string FileBrowserPath { get; set; }
@@ -151,9 +253,88 @@
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task OnFirstDataReceived()
+    protected override async Task OnFirstDataReceived()
     {
-        return notificationHandler.Register(this);
+        await notificationHandler.Register(this);
+
+        var tasks = new List<Task> { FetchDuplicates() };
+
+        if (currentUserInfo.IsDeveloper)
+        {
+            tasks.Add(FetchLogs());
+            tasks.Add(FetchCrashDump());
+        }
+
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task FetchDuplicates()
+    {
+        duplicates = null;
+        fetchingDuplicates = true;
+        topStatus = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            duplicates = await http.GetFromJsonAsync<List<long>>($"api/v1/CrashReport/{Id}/duplicates");
+        }
+        catch (Exception e)
+        {
+            topStatus = $"Fetching duplicates failed: {e.Message}";
+            topStatusType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            fetchingDuplicates = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task FetchLogs()
+    {
+        logs = null;
+        fetchingLogs = true;
+        topStatus = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            logs = await http.GetStringAsync($"api/v1/CrashReport/{Id}/logs");
+        }
+        catch (Exception e)
+        {
+            topStatus = $"Fetching logs failed: {e.Message}";
+            topStatusType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            fetchingLogs = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task FetchCrashDump()
+    {
+        crashDump = null;
+        fetchingCrashDump = true;
+        topStatus = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            crashDump = await http.GetStringAsync($"api/v1/CrashReport/{Id}/decodedDump");
+        }
+        catch (Exception e)
+        {
+            topStatus = $"Fetching crash dump failed: {e.Message}";
+            topStatusType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            fetchingCrashDump = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task RequestReProcessing()
@@ -192,5 +373,11 @@
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private Task SetDuplicatesFullShowing(bool showAll)
+    {
+        showAllDuplicates = showAll;
+        return InvokeAsync(StateHasChanged);
     }
 }

@@ -112,6 +112,7 @@ namespace ThriveDevCenter.Shared
         public const int ClientCookieExpirySeconds = 60 * 60 * 24 * 60;
 
         public const int CrashDumpDumpFileRetentionDays = 90;
+        public const int MaximumDuplicateReports = 1000;
 
         public const int DefaultTableNotificationFetchTimer = 1000;
         public const int LongerTableNotificationFetchTimer = 5000;
