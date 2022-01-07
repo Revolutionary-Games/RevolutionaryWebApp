@@ -179,8 +179,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             // Developers can view all items, others can only view public items so also limit the duplicates list
             var query = developer ?
-                database.CrashReports.AsQueryable().Where(p => p.DuplicateOfId == report.Id) :
-                database.CrashReports.AsQueryable().Where(p => p.Public == true && p.DuplicateOfId == report.Id);
+                database.CrashReports.AsQueryable().Where(r => r.DuplicateOfId == report.Id) :
+                database.CrashReports.AsQueryable().Where(r => r.Public == true && r.DuplicateOfId == report.Id);
 
             // A maximum limit is imposed on the number of returned rows to not return a ton of data
             var results = await query.Select(r => new { Id = r.Id }).OrderByDescending(r => r.Id)
@@ -230,6 +230,33 @@ namespace ThriveDevCenter.Server.Controllers
             logger.LogInformation("Crash report {Id} edited by {Email}, changes: {Description}", report.Id,
                 user.Email, description);
             return Ok();
+        }
+
+        [HttpDelete("{id:long}")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> Delete([Required] long id)
+        {
+            var report = await database.CrashReports.FindAsync(id);
+
+            if (report == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser();
+
+            // And then delete the report itself, there may be a leftover dump delete job for the report but that will
+            // only cause a warning
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"Crash report {report.Id} queued for deletion",
+                PerformedById = user.Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            jobClient.Enqueue<DeleteCrashReportJob>(x => x.Execute(report.Id, CancellationToken.None));
+
+            logger.LogInformation("Crash report {Id} queued for deletion by {Email}", report.Id, user.Email);
+            return Ok("Queued for deletion");
         }
 
         [HttpPost]
