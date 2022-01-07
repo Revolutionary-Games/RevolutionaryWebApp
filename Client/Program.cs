@@ -43,6 +43,9 @@ namespace ThriveDevCenter.Client
                 DefaultRequestHeaders = { { "X-CSRF-Token", sp.GetRequiredService<ICSRFTokenReader>().Token } }
             }).AddTransient<HttpCookieHandler>();
 
+            builder.Services.AddScoped(sp =>
+                new UsernameRetriever(sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<HttpClient>()));
+
             builder.Services.AddBlazoredLocalStorage();
             builder.Services.AddMediaQueryService();
 

@@ -118,7 +118,7 @@
                         {
                             <p>Description last edited at
                                 @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G") by
-                                @Data.DescriptionLastEditedById</p>
+                                <UsernameDisplayer UserId="@Data.DescriptionLastEditedById"/></p>
                         }
                     </AuthorizedContent>
                     <AccessMissingContent>

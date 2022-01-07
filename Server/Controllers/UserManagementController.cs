@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace ThriveDevCenter.Server.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Authorization;
     using BlazorPagination;
     using Filters;
+    using Microsoft.EntityFrameworkCore;
     using Models;
     using Shared;
     using Shared.Forms;
@@ -75,6 +77,34 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             return user.GetInfo(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
+        }
+
+        // TODO: should this be allowed for non-logged in users so that the uploader names in public folder items
+        // could be shown?
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [HttpPost("usernames")]
+        public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
+        {
+            var users = await database.Users.AsQueryable().Where(u => ids.Contains(u.Id))
+                .Select(u => new Tuple<long, string>(u.Id, u.UserName)).ToListAsync();
+
+            Dictionary<long, string> result = new();
+
+            foreach (var (id, username) in users)
+            {
+                result.Add(id, username);
+            }
+
+            // Add missing text for users we didn't find
+            foreach (var requestedId in ids)
+            {
+                if (!result.ContainsKey(requestedId))
+                {
+                    result.Add(requestedId, $"unknown user ({requestedId})");
+                }
+            }
+
+            return result;
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]

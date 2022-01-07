@@ -1,0 +1,54 @@
+@using ThriveDevCenter.Client.Services
+@inject UsernameRetriever usernameRetriever
+
+@if (username != null)
+{
+    @* TODO: link to the user page? (but only if the id is valid) *@
+    <span>@username</span>
+}
+else
+{
+    <span>Loading user...</span>
+}
+
+@code {
+    private bool fetchedOnce;
+
+    private long? previousId;
+    private string username;
+
+    [Parameter]
+    public long? UserId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await StartNameRetrieve();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        if (previousId != UserId && fetchedOnce)
+        {
+            await StartNameRetrieve();
+        }
+    }
+
+    private async Task StartNameRetrieve()
+    {
+        username = null;
+        fetchedOnce = true;
+        var id = UserId;
+        previousId = id;
+
+        if (id == null)
+        {
+            username = "unknown / system";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        username = await usernameRetriever.GetUsername(id.Value);
+    }
+}

@@ -133,6 +133,8 @@ namespace ThriveDevCenter.Shared
 
         public const int DefaultDatabaseUpdateFailureAttempts = 100;
 
+        public const int UsernameRetrieveBatchSize = 50;
+
         /// <summary>
         ///   The interval in seconds that a session use is updated to the database
         /// </summary>

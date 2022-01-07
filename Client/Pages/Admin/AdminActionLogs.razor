@@ -39,8 +39,13 @@
                     <tr @key="item.Id">
                         <td>@item.Message</td>
                         <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
-                        <td>@item.PerformedById</td>
-                        <td>@item.TargetUserId</td>
+                        <td><UsernameDisplayer UserId="@item.PerformedById"/></td>
+                        <td>
+                            @if (item.TargetUserId != null)
+                            {
+                                <UsernameDisplayer UserId="@item.TargetUserId"/>
+                            }
+                        </td>
                     </tr>
                 }
             }
