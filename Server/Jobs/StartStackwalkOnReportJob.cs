@@ -79,11 +79,14 @@ namespace ThriveDevCenter.Server.Jobs
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            logger.LogInformation("Stackwalking took: {Duration}", DateTime.UtcNow - startTime);
+            var duration = DateTime.UtcNow - startTime;
+
+            logger.LogInformation("Stackwalking took: {Duration}", duration);
 
             await database.LogEntries.AddAsync(new LogEntry()
             {
-                Message = $"Stackwalking performed on {report.Id}, result length: {result.Length}",
+                Message = $"Stackwalking performed on report {report.Id}, result length: {result.Length}, " +
+                    $"duration: {duration}",
             }, cancellationToken);
 
             if (string.IsNullOrWhiteSpace(result))
