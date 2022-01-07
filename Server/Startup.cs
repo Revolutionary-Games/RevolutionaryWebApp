@@ -390,6 +390,10 @@ namespace ThriveDevCenter.Server
 
         private static void AddJobHelper<T>(string schedule) where T : class, IJob
         {
+            // If the server restarts very fast this can get locked in a crashing spiral due to
+            // Hangfire.PostgreSql.PostgreSqlDistributedLockException
+            // TODO: perhaps we should add a try catch here and just log the errors if there are any?
+            // See: https://github.com/frankhommers/Hangfire.PostgreSql/issues/119
             RecurringJob.AddOrUpdate<T>(x => x.Execute(CancellationToken.None), schedule);
         }
     }
