@@ -236,7 +236,8 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<IActionResult> Delete([Required] long id)
         {
-            var report = await database.CrashReports.FindAsync(id);
+            var report = await WithoutLogs(database.CrashReports).Where(r => r.Id == id)
+                .FirstOrDefaultAsync();
 
             if (report == null)
                 return NotFound();
@@ -396,6 +397,46 @@ namespace ThriveDevCenter.Server.Controllers
             return Created($"reports/{response.CreatedId}", response);
         }
 
+        [HttpPost("checkDeleteKey")]
+        public async Task<ActionResult<CrashReportDTO>> GetDeleteKeyDetails([Required] [FromBody] string key)
+        {
+            if (!Guid.TryParse(key, out var parsedKey))
+                return BadRequest("Invalid key format");
+
+            var report = await WithoutLogs(database.CrashReports.WhereHashed(nameof(CrashReport.DeleteKey), key)
+            ).ToAsyncEnumerable().FirstOrDefaultAsync(r => r.DeleteKey == parsedKey);
+
+            if (report == null)
+                return NotFound("No report found with key");
+
+            return report.GetDTO();
+        }
+
+        [HttpPost("useDeleteKey")]
+        public async Task<IActionResult> UseDeleteKey([Required] [FromBody] string key)
+        {
+            if (!Guid.TryParse(key, out var parsedKey))
+                return BadRequest("Invalid key format");
+
+            var report = await WithoutLogs(database.CrashReports.WhereHashed(nameof(CrashReport.DeleteKey), key)
+            ).ToAsyncEnumerable().FirstOrDefaultAsync(r => r.DeleteKey == parsedKey);
+
+            if (report == null)
+                return NotFound("No report found with key");
+
+            await database.LogEntries.AddAsync(new LogEntry()
+            {
+                Message = $"Crash report {report.Id} queued for deletion through the use of the delete key",
+            });
+
+            await database.SaveChangesAsync();
+
+            jobClient.Enqueue<DeleteCrashReportJob>(x => x.Execute(report.Id, CancellationToken.None));
+
+            logger.LogInformation("Crash report {Id} queued for deletion with the delete key", report.Id);
+            return Ok("Queued for deletion");
+        }
+
         private static ThrivePlatform ParsePlatform(string platform)
         {
             switch (platform.ToLowerInvariant())
@@ -451,6 +492,7 @@ namespace ThriveDevCenter.Server.Controllers
                         Description = c.Description,
                         DescriptionLastEdited = c.DescriptionLastEdited,
                         DescriptionLastEditedById = c.DescriptionLastEditedById,
+                        DeleteKey = c.DeleteKey,
                     });
             }
 
@@ -475,6 +517,7 @@ namespace ThriveDevCenter.Server.Controllers
                     Description = c.Description,
                     DescriptionLastEdited = c.DescriptionLastEdited,
                     DescriptionLastEditedById = c.DescriptionLastEditedById,
+                    DeleteKey = c.DeleteKey,
                 });
         }
     }

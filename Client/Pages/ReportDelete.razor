@@ -1,0 +1,156 @@
+@page "/deleteReport/{Key}"
+@inject HttpClient http
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
+<h3>Delete Report With Key</h3>
+
+@if (retrievingInfo)
+{
+    <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+}
+else if(report == null)
+{
+    <p>No report found with the delete key. Either the report has already been deleted or your key is incorrect.</p>
+}
+else
+{
+    <p>You are about to delete the following report:</p>
+
+    <ul>
+        <li><strong>Id</strong>: <NavLink href="@($"/reports/{report.Id}")">@report.Id</NavLink></li>
+        <li><strong>Public</strong>: @report.Public</li>
+        <li><strong>Crash Happened At</strong>: @report.HappenedAt.ToLocalTime().ToString("G")</li>
+        <li><strong>Crash Reason</strong>: @report.ExitCodeOrSignal</li>
+        <li><strong>Version</strong>: @report.Version</li>
+        <li><strong>Store Version</strong>: @report.Store</li>
+        <li><strong>Platform</strong>: @report.Platform</li>
+        <li><strong>State</strong>: @report.State</li>
+        <li><strong>Created At</strong>: @report.CreatedAt.ToLocalTime().ToString("G")</li>
+        <li><strong>Updated At</strong>: @report.UpdatedAt.ToLocalTime().ToString("G")</li>
+    </ul>
+
+    <p>
+        Please don't delete your report unless it has some information that must be deleted.
+        If you delete your report we won't be able to use it to try to resolve the issue you had.
+    </p>
+}
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+
+<Button Enabled="@CanDelete" ButtonStyle="danger" OnPressed="@DeleteReport" Spinner="@processing">
+    Delete Report
+</Button>
+
+@code {
+    private bool retrievingInfo;
+
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool succeeded;
+
+    private CrashReportDTO report;
+
+    [Parameter]
+    public string Key { get; set; }
+
+    private bool CanDelete => !retrievingInfo && !processing && !succeeded && report != null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await RetrieveInformation();
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private async Task RetrieveInformation()
+    {
+        retrievingInfo = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/CrashReport/checkDeleteKey", Key);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            retrievingInfo = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        retrievingInfo = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            try
+            {
+                report = JsonSerializer.Deserialize<CrashReportDTO>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers());
+            }
+            catch (Exception e)
+            {
+                statusMessage = $"Error, failed to parse server response JSON: {e}";
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteReport()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsJsonAsync("api/v1/CrashReport/useDeleteKey", Key);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Report deletion queued successfully. In most cases report deletion " +
+                "should take less than a few seconds.";
+            statusMessageType = SiteNoticeType.Primary;
+            succeeded = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}
