@@ -254,7 +254,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (!string.IsNullOrWhiteSpace(request.ExtraDescription))
             {
-                report.Description = $"Reporter provided description:\n{request.ExtraDescription}";
+                report.Description = $"Reporter provided description:\n{request.ExtraDescription}\n";
             }
 
             await database.CrashReports.AddAsync(report);

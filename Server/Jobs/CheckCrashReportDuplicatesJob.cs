@@ -121,6 +121,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             // Edited by system
             report.DescriptionLastEditedById = null;
+            report.DescriptionLastEdited = DateTime.UtcNow;
 
             report.BumpUpdatedAt();
         }
