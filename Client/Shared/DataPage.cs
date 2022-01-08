@@ -228,6 +228,9 @@ namespace ThriveDevCenter.Client.Shared
             try
             {
                 Data = await query;
+
+                // Clear error on successful data retrieve
+                Error = null;
             }
             catch (Exception e)
             {

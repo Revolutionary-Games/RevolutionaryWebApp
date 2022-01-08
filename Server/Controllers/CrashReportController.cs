@@ -53,26 +53,54 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet]
-        public async Task<PagedResult<CrashReportInfo>> Get([Required] string sortColumn,
+        public async Task<ActionResult<PagedResult<CrashReportInfo>>> Get([Required] string sortColumn,
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-            [Required] [Range(1, 100)] int pageSize)
+            [Required] [Range(1, 100)] int pageSize, bool searchDuplicates = true, bool searchClosed = true,
+            string searchText = null)
         {
             IQueryable<CrashReport> query;
 
+            // Developers can view all items, others can only view public items
+            if (HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
+                    AuthenticationScopeRestriction.None))
+            {
+                // Exclude the output from fetch in DB which might be very large
+                query = WithoutLogs(database.CrashReports);
+            }
+            else
+            {
+                query = WithoutLogs(database.CrashReports).Where(r => r.Public == true);
+            }
+
+            if (!searchDuplicates && !searchClosed)
+            {
+                query = query.Where(r => r.State == ReportState.Open);
+            }
+            else if (!searchDuplicates)
+            {
+                query = query.Where(r => r.State != ReportState.Duplicate);
+            }
+            else if (!searchClosed)
+            {
+                query = query.Where(r => r.State != ReportState.Closed);
+            }
+
+            if (searchText != null)
+            {
+                if (searchText.Length < AppInfo.MinimumReportTextSearchLength)
+                {
+                    return BadRequest(
+                        $"Search text needs to be at least {AppInfo.MinimumReportTextSearchLength} characters");
+                }
+
+                // TODO: should logs be searched as well? Might be a bit performance intensive...
+                query = query.Where(r => r.Description.Contains(searchText) ||
+                    r.PrimaryCallstack.Contains(searchText) || r.ExitCodeOrSignal.Contains(searchText));
+            }
+
             try
             {
-                // Developers can view all items, others can only view public items
-                if (HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
-                        AuthenticationScopeRestriction.None))
-                {
-                    // Exclude the output from fetch in DB which might be very large
-                    query = WithoutLogs(database.CrashReports).OrderBy(sortColumn, sortDirection);
-                }
-                else
-                {
-                    query = WithoutLogs(database.CrashReports).Where(p => p.Public == true)
-                        .OrderBy(sortColumn, sortDirection);
-                }
+                query = query.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {

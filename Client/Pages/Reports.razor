@@ -14,6 +14,31 @@
 
 <h3>Crash Reports</h3>
 
+<form class="form-inline">
+    <div class="form-check mb-2 mr-sm-2">
+        <input class="form-check-input" type="checkbox" id="searchReportsDuplicates" @bind="SearchDuplicates">
+        <label class="form-check-label" for="searchReportsDuplicates">
+            Duplicates
+        </label>
+    </div>
+
+    <div class="form-check mb-2 mr-sm-2">
+        <input class="form-check-input" type="checkbox" id="searchReportsClosed" @bind="SearchClosed">
+        <label class="form-check-label" for="searchReportsClosed">
+            Closed
+        </label>
+    </div>
+
+    <label class="sr-only" for="reportTextSearch">Text to search:</label>
+    <input type="text" class="form-control mb-2 flex-fill mr-sm-2" id="reportTextSearch"
+           placeholder="Containing text..." @bind="SearchText" @bind:event="oninput">
+
+    <Button class="mb-2" type="submit" ButtonStyle="primary"
+            Enabled="@CanSearch" OnPressed="@(async () => await FetchData())">
+        Search
+    </Button>
+</form>
+
 @if (!string.IsNullOrEmpty(Error))
 {
     <div class="alert alert-danger" role="alert">
@@ -22,8 +47,6 @@
 }
 else
 {
-    <p>TODO: implement text search</p>
-
     <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                     OnPageChanged="async (e) => await ChangePage(e)"
                     OnSortChanged="async (column) => await ChangeSort(column)"
@@ -36,7 +59,9 @@ else
             @foreach (var item in Data.Results)
             {
                 <tr @key="item.Id">
-                    <th scope="row"><NavLink href="@($"reports/{item.Id}")">@item.Id</NavLink></th>
+                    <th scope="row">
+                        <NavLink href="@($"reports/{item.Id}")">@item.Id</NavLink>
+                    </th>
                     <td>@item.State</td>
                     <td>@item.ExitCodeOrSignal</td>
                     <td>@item.Platform</td>
@@ -50,7 +75,8 @@ else
 }
 
 @code {
-private readonly List<TableColumn> columns = new()
+
+    private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Id", true),
         new TableColumn("State", false),
@@ -65,6 +91,18 @@ private readonly List<TableColumn> columns = new()
     {
         DefaultPageSize = 50;
     }
+
+    [QueryStringParameterAttribute]
+    private bool SearchDuplicates { get; set; } = true;
+
+    [QueryStringParameterAttribute]
+    private bool SearchClosed { get; set; } = true;
+
+    [QueryStringParameterAttribute]
+    private string SearchText { get; set; }
+
+    private bool CanSearch => string.IsNullOrEmpty(SearchText) ||
+        SearchText.Length >= AppInfo.MinimumReportTextSearchLength;
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,6 +134,33 @@ private readonly List<TableColumn> columns = new()
     {
         await base.DisposeAsync();
         await notificationHandler.Unregister(this);
+    }
+
+    protected override Dictionary<string, string> CreatePageRequestParams()
+    {
+        var result = base.CreatePageRequestParams();
+
+        result.Add("searchDuplicates", SearchDuplicates.ToString());
+        result.Add("searchClosed", SearchClosed.ToString());
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+            result.Add("searchText", SearchText);
+
+        return result;
+    }
+
+    protected override void PruneRequestParams(Dictionary<string, string> queryParams)
+    {
+        base.PruneRequestParams(queryParams);
+
+        if (SearchDuplicates)
+            queryParams.Remove("searchDuplicates");
+
+        if (SearchClosed)
+            queryParams.Remove("searchClosed");
+
+        if (string.IsNullOrWhiteSpace(SearchText))
+            queryParams.Remove("searchText");
     }
 
     protected override Task<PagedResult<CrashReportInfo>> StartQuery(Dictionary<string, string> requestParams)
