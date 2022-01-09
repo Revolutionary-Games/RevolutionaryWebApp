@@ -56,6 +56,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<GithubPullRequest> GithubPullRequests { get; set; }
         public DbSet<SentBulkEmail> SentBulkEmails { get; set; }
         public DbSet<CrashReport> CrashReports { get; set; }
+        public DbSet<StackwalkTask> StackwalkTasks { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save

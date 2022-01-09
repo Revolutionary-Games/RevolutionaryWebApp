@@ -1,0 +1,162 @@
+@page "/tools/crashDump"
+@inject HttpClient http
+@using ThriveDevCenter.Shared
+@using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
+<h3>Crash Dump Tool</h3>
+
+<p>Decode a crashdump created by Thrive</p>
+
+<p>
+    The Thrive Launcher provides a tool for creating a full crash report. Use that instead.
+    Unless you specifically want to see what is inside a crashdump file.
+</p>
+
+<p>
+    If Thrive has crashed it will generate a ".dmp" file.
+    The file will be named a bunch of hexadecimal characters and it will be in the "crashes" folder of the Thrive
+    user data folder (the same folder as the saves and logs folders).
+    An example name is "e709d739-416a-43ee-7b902580-9f81d05a.dmp"
+</p>
+
+<p>You can upload a crash dump (see above) with the form below, to get it in processed form.</p>
+
+@* might actually make the tool results force download a .txt file <p>This tool does not store the dumps. So if you want to share them you need to copy them somewhere else.</p> *@
+
+<h4>Upload</h4>
+
+<form class="form">
+    <div class="form-row">
+        <label for="dumpsUploadSelection" class="mr-1">
+            Select crash dump:
+        </label>
+        <InputFile id="dumpsUploadSelection" accept="*.dmp" OnChange="OnInputFilesChanged" />
+    </div>
+
+    @* TODO: support drag and drop here once someone has time to implement that *@
+
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+
+    <div class="form-row">
+        <Button ButtonStyle="primary" Enabled="@CanSubmit" type="submit" Spinner="@processing" OnPressed="@Submit"
+                class="mb-2">
+            Submit
+        </Button>
+    </div>
+</form>
+
+<h4>Results</h4>
+
+@if (uploadedDumpsToWatch.Count < 1)
+{
+    <p>No crash dumps uploaded yet</p>
+}
+else
+{
+    <p>
+        Note that results are deleted after one hour so download them for future reference before then.
+        If you close or refresh this page you won't see the results again.
+    </p>
+
+    @* TODO: save the waiting for crash dump decode results in local storage so that page refresh is not a problem *@
+    foreach (var dumpId in uploadedDumpsToWatch)
+    {
+        <div @key="dumpId" class="mb-3">
+            <StackwalkToolResult ResultId="@dumpId" />
+        </div>
+    }
+}
+
+@code {
+    private readonly List<string> uploadedDumpsToWatch = new();
+
+    private bool fileChanged;
+
+    private bool processing;
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    IBrowserFile file;
+
+    private bool CanSubmit => !processing && fileChanged && file is {Size: < AppInfo.MaxCrashDumpUploadSize };
+
+    private void OnInputFilesChanged(InputFileChangeEventArgs e)
+    {
+        file = e.File;
+        fileChanged = true;
+
+        if (file is {Size: >= AppInfo.MaxCrashDumpUploadSize })
+        {
+            statusMessage = "Selected file is too large";
+            statusMessageType = SiteNoticeType.Danger;
+        }
+        else
+        {
+            statusMessage = null;
+        }
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private async Task Submit()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        using var requestContent = new MultipartFormDataContent();
+        var fileContent = new StreamContent(file.OpenReadStream(AppInfo.MaxCrashDumpUploadSize));
+
+        requestContent.Add(fileContent, "file", "file");
+
+        try
+        {
+            result = await http.PostAsync("api/v1/StackwalkTool/submit", requestContent);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            try
+            {
+                string newIdToWatch = JsonSerializer.Deserialize<string>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers());
+
+                if (string.IsNullOrWhiteSpace(newIdToWatch))
+                    throw new Exception("Decoded string is empty");
+
+                fileChanged = false;
+                statusMessage = "Dump uploaded. Please see the results below. " +
+                    "It may take some minutes to finish processing.";
+                statusMessageType = SiteNoticeType.Primary;
+
+                uploadedDumpsToWatch.Add(newIdToWatch);
+            }
+            catch (Exception e)
+            {
+                statusMessage = $"Failed to parse server response JSON: {e}";
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

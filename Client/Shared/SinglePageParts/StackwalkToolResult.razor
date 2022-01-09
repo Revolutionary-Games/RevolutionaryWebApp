@@ -1,0 +1,123 @@
+@using ThriveDevCenter.Shared
+@using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
+@using System.Net
+@inject HttpClient http
+@inject IJSRuntime jsRuntime
+<h5>Result @ResultId</h5>
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+
+@if (!resultReady)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+else
+{
+    <Button OnPressed="@Download" class="mr-1" Enabled="@(!downloading)" Spinner="@downloading">Download</Button>
+
+    @if (!showEntireResult)
+    {
+        <Button OnPressed="@ToggleShow" ButtonStyle="secondary">View Result</Button>
+    }
+    else
+    {
+        <Button OnPressed="@ToggleShow" ButtonStyle="secondary">Hide Result</Button>
+
+        <pre>
+            @entireResponse
+        </pre>
+    }
+}
+
+@code {
+    private string statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool resultReady;
+    private string entireResponse;
+    private bool showEntireResult;
+    private bool downloading;
+
+    [Parameter]
+    public string ResultId { get; set; }
+
+    [Parameter]
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(5);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        // Not the cleanest to basically wait very long here before this chain of tasks completes, but this seems
+        // to work
+        await PollResult();
+    }
+
+    private async Task PollResult()
+    {
+        while(!resultReady)
+        {
+            await Task.Delay(PollInterval);
+
+            statusMessage = null;
+            statusMessageType = SiteNoticeType.Danger;
+
+            HttpResponseMessage result;
+
+            try
+            {
+                result = await http.GetAsync($"api/v1/StackwalkTool/check/{ResultId}");
+            }
+            catch (HttpRequestException e)
+            {
+                statusMessage = $"Network request failed: {e.Message}";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            var content = await result.Content.ReadAsStringAsync();
+
+            if (!result.IsSuccessStatusCode)
+            {
+                statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+            }
+            else if (result.StatusCode != HttpStatusCode.NoContent)
+            {
+                // NoContent indicates that response was not ready yet
+                entireResponse = content;
+
+                if(string.IsNullOrEmpty(entireResponse))
+                    entireResponse = "Received a blank result";
+
+                resultReady = true;
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private void ToggleShow()
+    {
+        showEntireResult = !showEntireResult;
+    }
+
+    private async Task Download()
+    {
+        downloading = true;
+        await InvokeAsync(StateHasChanged);
+
+        var file = System.Text.Encoding.UTF8.GetBytes(entireResponse);
+        await jsRuntime.InvokeVoidAsync("downloadFileFromBytes", "dump.txt", "text/plain", file);
+
+        downloading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+}

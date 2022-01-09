@@ -380,6 +380,8 @@ namespace ThriveDevCenter.Server
                 configurationSection["RemoveOldCompletedMultipartUploads"]);
             AddJobHelper<DeleteAbandonedInProgressCLASignaturesJob>(
                 configurationSection["DeleteAbandonedInProgressCLASignatures"]);
+            AddJobHelper<DeleteStackwalkToolResultsJob>(
+                configurationSection["DeleteStackwalkToolResults"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

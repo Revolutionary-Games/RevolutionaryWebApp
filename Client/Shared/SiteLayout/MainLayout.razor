@@ -20,6 +20,11 @@
                 <AssociationNavBar />
             }
 
+            @if (navigationManager.RelativeUrl().StartsWith("tools"))
+            {
+                <ToolsNavBar />
+            }
+
             <AnotherTabSigninDetector />
             <CSRFExpiryAlerter />
             <SiteNotifications />
