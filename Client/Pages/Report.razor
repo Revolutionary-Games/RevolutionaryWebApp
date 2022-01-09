@@ -61,7 +61,9 @@
 
                 @if (fetchingDuplicates)
                 {
-                    <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
                 } else if (duplicates != null)
                 {
                     @if (duplicates.Count < 1)
@@ -151,7 +153,9 @@
 
                         @if (fetchingLogs)
                         {
-                            <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
                         }
                         else
                         {
@@ -180,7 +184,9 @@
                     <h3>Crash dump</h3>
                         @if (fetchingCrashDump)
                         {
-                            <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
                         }
                         else
                         {

@@ -8,7 +8,9 @@
 
 @if (retrievingInfo)
 {
-    <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
 }
 else if(report == null)
 {
