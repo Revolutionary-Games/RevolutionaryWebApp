@@ -1,0 +1,188 @@
+@page "/symbols"
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<DebugSymbolListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.DebugSymbolDTO>
+
+
+<AccessLimited RequiredAccess="UserAccessLevel.Developer" RedirectOnInsufficientPermission="@true">
+    <h3>Debug Symbols</h3>
+
+    <p>
+        Active debug symbols are used to decode the received crash reports from players.
+        The symbols are uploaded with a separate tool, but can be disabled here.
+        Disabled symbols will be deleted automatically after @AppInfo.InactiveSymbolKeepDuration.Days days.
+    </p>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <StatusMessageShower Message="@message" Type="@messageType" />
+
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound"
+                        UseNonFixedColumns="@true">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        <td>@item.Id</td>
+                        <td>@item.Name</td>
+                        <td>@item.RelativePath</td>
+                        <td>@item.Size.BytesToMiB(3)</td>
+                        <td>@item.Uploaded</td>
+                        <td><a href="@($"/api/v1/download/{item.StoredInItemId}")">@item.StoredInItemId</a></td>
+                        <td><UsernameDisplayer UserId="@item.CreatedById" /></td>
+                        <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>
+                            <Button Enabled="@CanEnableOrDisable(item)"
+                                    OnPressed="@(async () => await PerformActiveToggle(item))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="@ActiveToggleButtonStyle(item)"
+                                    class="btn-sm">
+                                @if (item.Active)
+                                {
+                                    <span>Disable</span>
+                                }
+                                else
+                                {
+                                    <span>Activate</span>
+                                }
+                            </Button>
+                        </td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    }
+
+</AccessLimited>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Name", true),
+        new TableColumn("Path", true, "RelativePath"),
+        new TableColumn("Size", false),
+        new TableColumn("Uploaded", false),
+        new TableColumn("Storage Item", false),
+        new TableColumn("Created By", false),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly Dictionary<long, bool> processingItems = new();
+
+    private string message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public DebugSymbols() : base(new SortHelper("Id", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(DebugSymbolListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.ControlledServerListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<DebugSymbolDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<DebugSymbolDTO>>(
+            QueryHelpers.AddQueryString("api/v1/DebugSymbol", requestParams));
+    }
+
+    private bool IsProcessing(long serverId)
+    {
+        return processingItems.GetValueOrDefault(serverId, false);
+    }
+
+    private async Task PerformActiveToggle(DebugSymbolDTO symbol)
+    {
+        processingItems[symbol.Id] = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        var data = (DebugSymbolDTO)symbol.Clone();
+
+        try
+        {
+            result = await http.PutAsJsonAsync($"api/v1/DebugSymbol/{symbol.Id}", data);
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            processingItems[symbol.Id] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[symbol.Id] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Symbol successfully updated";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool CanEnableOrDisable(DebugSymbolDTO symbol)
+    {
+        if (IsProcessing(symbol.Id))
+            return false;
+
+        return symbol.Uploaded;
+    }
+
+    private string ActiveToggleButtonStyle(DebugSymbolDTO symbol)
+    {
+        return symbol.Active ? "warning" : "secondary";
+    }
+}

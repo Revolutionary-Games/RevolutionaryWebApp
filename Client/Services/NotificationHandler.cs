@@ -375,8 +375,11 @@ namespace ThriveDevCenter.Client.Services
                 ConnectionPermanentlyLost = true;
             }
 
+            // ReSharper disable HeuristicUnreachableCode
             if (FullMessageLogging)
                 Console.WriteLine("Performing post hub connection start operations");
+
+            // ReSharper restore HeuristicUnreachableCode
 
             if (!userInfoRegistered)
             {

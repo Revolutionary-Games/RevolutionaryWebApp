@@ -19,6 +19,7 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.EntityFrameworkCore;
     using Models;
     using SHA3.Net;
+    using Shared.Models;
     using Utilities;
 
     public abstract class BaseRemoteStorage : IBaseRemoteStorage
@@ -360,12 +361,24 @@ namespace ThriveDevCenter.Server.Services
             return file;
         }
 
-        public void MarkFileAndVersionsAsUploaded(StorageFile file)
+        public async Task PerformFileUploadSuccessActions(StorageFile file, ApplicationDbContext database)
         {
+            file.BumpUpdatedAt();
             file.Uploading = false;
 
             foreach (var version in file.StorageItemVersions)
+            {
                 version.Uploading = false;
+                version.BumpUpdatedAt();
+
+                // Update StorageItem if the version is the latest
+                if (version.Version >= await database.StorageItemVersions.AsQueryable()
+                        .Where(s => s.StorageItemId == version.StorageItemId).MaxAsync(s => s.Version))
+                {
+                    version.StorageItem.Size = file.Size;
+                    version.StorageItem.BumpUpdatedAt();
+                }
+            }
         }
 
         public bool TokenMatchesFile(StorageUploadVerifyToken token, StorageFile file)
@@ -408,7 +421,7 @@ namespace ThriveDevCenter.Server.Services
         Task<StorageFile> HandleFinishedUploadToken(ApplicationDbContext database,
             StorageUploadVerifyToken token);
 
-        void MarkFileAndVersionsAsUploaded(StorageFile file);
+        Task PerformFileUploadSuccessActions(StorageFile file, ApplicationDbContext database);
         bool TokenMatchesFile(StorageUploadVerifyToken token, StorageFile file);
     }
 }

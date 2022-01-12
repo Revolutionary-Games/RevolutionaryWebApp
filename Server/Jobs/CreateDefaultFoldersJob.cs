@@ -61,6 +61,9 @@ namespace ThriveDevCenter.Server.Jobs
             itemsToRecompute.Add(await CreateDefaultFolder("Public", null, FileAccess.Public, FileAccess.Developer,
                 cancellationToken));
 
+            itemsToRecompute.Add(await CreateDefaultFolder("Symbols", null, FileAccess.Developer, FileAccess.Nobody,
+                cancellationToken));
+
             var ci = await CreateDefaultFolder(CIFolderName, null, FileAccess.Developer, FileAccess.Developer,
                 cancellationToken);
 

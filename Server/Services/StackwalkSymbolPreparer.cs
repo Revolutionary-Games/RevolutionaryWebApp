@@ -1,0 +1,106 @@
+namespace ThriveDevCenter.Server.Services
+{
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Net.Http;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Logging;
+    using Models;
+    using Shared;
+
+    public class StackwalkSymbolPreparer : IStackwalkSymbolPreparer
+    {
+        private static readonly SemaphoreSlim GlobalSymbolPrepareLock = new(1);
+
+        private readonly ILogger<StackwalkSymbolPreparer> logger;
+        private readonly ApplicationDbContext database;
+        private readonly IGeneralRemoteDownloadUrls downloadUrls;
+
+        private readonly HttpClient httpClient = new();
+
+        public StackwalkSymbolPreparer(ILogger<StackwalkSymbolPreparer> logger, ApplicationDbContext database,
+            IGeneralRemoteDownloadUrls downloadUrls)
+        {
+            this.logger = logger;
+            this.database = database;
+            this.downloadUrls = downloadUrls;
+        }
+
+        public async Task PrepareSymbolsInFolder(string baseFolder, CancellationToken cancellationToken)
+        {
+            var lockTask = GlobalSymbolPrepareLock.WaitAsync(cancellationToken);
+
+            var wantedSymbols = await database.DebugSymbols.Include(s => s.StoredInItem).Where(s => s.Active)
+                .ToListAsync(cancellationToken);
+
+            await lockTask;
+            try
+            {
+                await HandleSymbols(baseFolder, wantedSymbols, cancellationToken);
+            }
+            finally
+            {
+                GlobalSymbolPrepareLock.Release();
+            }
+        }
+
+        private async Task HandleSymbols(string baseFolder, List<DebugSymbol> wantedSymbols,
+            CancellationToken cancellationToken)
+        {
+            if (wantedSymbols.Count < 1)
+                return;
+
+            if (!downloadUrls.Configured)
+                throw new Exception("Download URLs are not configured, we can't download the symbols");
+
+            // TODO: add pruning extraneous files from the symbol folders
+
+            foreach (var symbol in wantedSymbols)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var finalPath = Path.Combine(baseFolder, symbol.RelativePath);
+
+                if (File.Exists(finalPath))
+                    continue;
+
+                var version = await symbol.StoredInItem.GetHighestUploadedVersion(database);
+
+                var tempFile = finalPath + ".tmp";
+
+                logger.LogInformation("Downloading missing debug symbol {RelativePath}", symbol.RelativePath);
+
+                var response = await httpClient.GetAsync(downloadUrls.CreateDownloadFor(version.StorageFile,
+                    AppInfo.RemoteStorageDownloadExpireTime), cancellationToken);
+
+                response.EnsureSuccessStatusCode();
+
+                var content = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+                try
+                {
+                    await using var writer = File.OpenWrite(tempFile);
+                    await content.CopyToAsync(writer, cancellationToken);
+                }
+                catch (OperationCanceledException e)
+                {
+                    logger.LogWarning(e, "Write to symbol file canceled, attempting to delete temp file");
+                    File.Delete(tempFile);
+                    throw;
+                }
+
+                File.Move(tempFile, finalPath);
+                logger.LogInformation("Downloaded symbol {Id}", symbol.Id);
+            }
+        }
+    }
+
+    public interface IStackwalkSymbolPreparer
+    {
+        Task PrepareSymbolsInFolder(string baseFolder, CancellationToken cancellationToken);
+    }
+}

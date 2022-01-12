@@ -209,7 +209,7 @@ namespace ThriveDevCenter.Server.Controllers
             var parentId = parentFolder?.Id;
 
             if (await database.StorageItems.AsQueryable()
-                .FirstOrDefaultAsync(i => i.ParentId == parentId && i.Name == request.Name) != null)
+                    .FirstOrDefaultAsync(i => i.ParentId == parentId && i.Name == request.Name) != null)
             {
                 return BadRequest("Item with that name already exists in the parent folder");
             }
@@ -598,6 +598,9 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Invalid upload token");
             }
 
+            // TODO: unify this with the debug symbol and devbuild uploading
+            // remoteStorage.HandleFinishedUploadToken
+
             var item = await database.StorageItems.FindAsync(verifiedToken.TargetStorageItem);
             var version = await database.StorageItemVersions.Include(v => v.StorageFile)
                 .FirstOrDefaultAsync(v => v.Id == verifiedToken.TargetStorageItemVersion);
@@ -611,7 +614,7 @@ namespace ThriveDevCenter.Server.Controllers
                 var upload = await database.InProgressMultipartUploads.FindAsync(verifiedToken.MultipartId);
 
                 if (upload == null || (upload.Path != version.StorageFile.UploadPath &&
-                    upload.Path != version.StorageFile.StoragePath))
+                        upload.Path != version.StorageFile.StoragePath))
                 {
                     return BadRequest("Could not find multipart upload data");
                 }
@@ -688,13 +691,13 @@ namespace ThriveDevCenter.Server.Controllers
 
             // Update StorageItem if the version is the latest
             if (version.Version >= await database.StorageItemVersions.AsQueryable()
-                .Where(s => s.StorageItemId == item.Id).MaxAsync(s => s.Version))
+                    .Where(s => s.StorageItemId == item.Id).MaxAsync(s => s.Version))
             {
                 item.Size = version.StorageFile.Size;
                 item.BumpUpdatedAt();
             }
 
-            remoteStorage.MarkFileAndVersionsAsUploaded(version.StorageFile);
+            await remoteStorage.PerformFileUploadSuccessActions(version.StorageFile, database);
             await database.SaveChangesAsync();
 
             logger.LogInformation("StorageItem {Id} has now version {Version} uploaded", item.Id, version.Version);

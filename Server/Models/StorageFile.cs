@@ -35,5 +35,12 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         [NotMapped]
         public string UploadPath => "@upload/" + StoragePath;
+
+        public void OnVersionUploadFinished(StorageItemVersion uploadedVersion)
+        {
+            uploadedVersion.Uploading = false;
+
+            Uploading = false;
+        }
     }
 }

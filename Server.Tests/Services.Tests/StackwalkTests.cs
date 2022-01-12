@@ -2,9 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
 {
     using Microsoft.Extensions.Configuration;
     using Server.Services;
-    using Utilities;
     using Xunit;
-    using Xunit.Abstractions;
 
     public class StackwalkTests
     {

@@ -50,6 +50,8 @@ namespace ThriveDevCenter.Server.Models
         public ICollection<DevBuild> DevBuilds { get; set; } = new HashSet<DevBuild>();
         public ICollection<CiJobArtifact> CiJobArtifacts { get; set; } = new HashSet<CiJobArtifact>();
 
+        public ICollection<DebugSymbol> DebugSymbols { get; set; } = new HashSet<DebugSymbol>();
+
         public static Task<StorageItem> GetDevBuildsFolder(ApplicationDbContext database)
         {
             return database.StorageItems.AsQueryable()
@@ -70,6 +72,12 @@ namespace ThriveDevCenter.Server.Models
 
             return await database.StorageItems.AsQueryable()
                 .FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Dehydrated");
+        }
+
+        public static Task<StorageItem> GetSymbolsFolder(ApplicationDbContext database)
+        {
+            return database.StorageItems.AsQueryable()
+                .FirstAsync(i => i.ParentId == null && i.Name == "Symbols");
         }
 
         public static async Task<StorageItem> FindByPath(ApplicationDbContext database, string path)

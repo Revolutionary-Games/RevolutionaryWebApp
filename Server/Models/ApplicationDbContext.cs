@@ -57,6 +57,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<SentBulkEmail> SentBulkEmails { get; set; }
         public DbSet<CrashReport> CrashReports { get; set; }
         public DbSet<StackwalkTask> StackwalkTasks { get; set; }
+        public DbSet<DebugSymbol> DebugSymbols { get; set; }
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -232,7 +233,7 @@ namespace ThriveDevCenter.Server.Models
                     .WithMany(p => p.StorageItemVersions).OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(d => d.StorageItem)
-                    .WithMany(p => p.StorageItemVersions).OnDelete(DeleteBehavior.ClientCascade);
+                    .WithMany(p => p.StorageItemVersions).OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<User>(entity =>
@@ -459,6 +460,12 @@ namespace ThriveDevCenter.Server.Models
 
                 entity.HasOne(d => d.DescriptionLastEditedBy).WithMany(p => p.LastEditedCrashReportDescriptions)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<DebugSymbol>(entity =>
+            {
+                entity.HasOne(d => d.StoredInItem).WithMany(p => p.DebugSymbols).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.CreatedBy).WithMany(p => p.CreatedDebugSymbols).OnDelete(DeleteBehavior.SetNull);
             });
         }
 

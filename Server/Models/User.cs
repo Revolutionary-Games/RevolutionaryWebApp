@@ -142,6 +142,8 @@ namespace ThriveDevCenter.Server.Models
 
         public ICollection<CrashReport> LastEditedCrashReportDescriptions { get; set; } = new HashSet<CrashReport>();
 
+        public ICollection<DebugSymbol> CreatedDebugSymbols { get; set; } = new HashSet<DebugSymbol>();
+
         public bool HasAccessLevel(UserAccessLevel level)
         {
             return ComputeAccessLevel().HasAccess(level);

@@ -94,6 +94,8 @@ namespace ThriveDevCenter.Shared
         public const long MaxCrashDumpUploadSize = MEBIBYTE * 9;
         public const long MaxCrashLogsLength = MEBIBYTE * 5;
 
+        public const long MaxDebugSymbolSize = MEBIBYTE * 500;
+
         public const int MaxBuildOutputLineLength = 4000;
 
         public const int MaxBulkEmailsPerInterval = 4;
@@ -137,6 +139,8 @@ namespace ThriveDevCenter.Shared
 
         public const int UsernameRetrieveBatchSize = 50;
 
+        public const int MaxDebugSymbolOfferBatch = 50;
+
         /// <summary>
         ///   The interval in seconds that a session use is updated to the database
         /// </summary>
@@ -170,5 +174,7 @@ namespace ThriveDevCenter.Shared
         public static readonly TimeSpan KeepStackwalkResultsFor = TimeSpan.FromHours(1);
 
         public static readonly TimeSpan DeleteFailedStackwalkAttemptsAfter = TimeSpan.FromHours(8);
+
+        public static readonly TimeSpan InactiveSymbolKeepDuration = TimeSpan.FromDays(180);
     }
 }

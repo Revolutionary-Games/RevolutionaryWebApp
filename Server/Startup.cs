@@ -199,6 +199,7 @@ namespace ThriveDevCenter.Server
             services.AddScoped<ICLASignatureStorage, CLASignatureStorage>();
             services.AddScoped<ICLAExemptions, CLAExemptions>();
             services.AddScoped<IStackwalk, Stackwalk>();
+            services.AddScoped<IStackwalkSymbolPreparer, StackwalkSymbolPreparer>();
 
             // Prefer the queue sender to not make operations wait for emails to be sent
             services.AddScoped<IMailSender, MailSender>();
@@ -380,8 +381,8 @@ namespace ThriveDevCenter.Server
                 configurationSection["RemoveOldCompletedMultipartUploads"]);
             AddJobHelper<DeleteAbandonedInProgressCLASignaturesJob>(
                 configurationSection["DeleteAbandonedInProgressCLASignatures"]);
-            AddJobHelper<DeleteStackwalkToolResultsJob>(
-                configurationSection["DeleteStackwalkToolResults"]);
+            AddJobHelper<DeleteStackwalkToolResultsJob>(configurationSection["DeleteStackwalkToolResults"]);
+            AddJobHelper<DeleteOldDisabledSymbolsJob>(configurationSection["DeleteOldDisabledSymbols"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

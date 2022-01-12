@@ -493,22 +493,7 @@ namespace ThriveDevCenter.Server.Controllers
                 }
             }
 
-            file.BumpUpdatedAt();
-            foreach (var version in file.StorageItemVersions)
-            {
-                // TODO: is it right that all versions are bumped here?
-                version.BumpUpdatedAt();
-
-                // Update StorageItem if the version is the latest
-                if (version.Version >= await database.StorageItemVersions.AsQueryable()
-                    .Where(s => s.StorageItemId == version.StorageItemId).MaxAsync(s => s.Version))
-                {
-                    version.StorageItem.Size = file.Size;
-                    version.StorageItem.BumpUpdatedAt();
-                }
-            }
-
-            remoteStorage.MarkFileAndVersionsAsUploaded(file);
+            await remoteStorage.PerformFileUploadSuccessActions(file, database);
             await database.SaveChangesAsync();
 
             logger.LogInformation("DevBuild item ({StoragePath}) is now uploaded", file.StoragePath);

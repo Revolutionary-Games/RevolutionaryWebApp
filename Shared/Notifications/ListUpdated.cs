@@ -118,4 +118,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CrashReportListUpdated : ListUpdated<CrashReportInfo>
     {
     }
+
+    public class DebugSymbolListUpdated : ListUpdated<DebugSymbolDTO>
+    {
+    }
 }

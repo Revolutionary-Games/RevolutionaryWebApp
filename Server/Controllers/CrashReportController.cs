@@ -211,7 +211,7 @@ namespace ThriveDevCenter.Server.Controllers
                 database.CrashReports.AsQueryable().Where(r => r.Public == true && r.DuplicateOfId == report.Id);
 
             // A maximum limit is imposed on the number of returned rows to not return a ton of data
-            var results = await query.Select(r => new { Id = r.Id }).OrderByDescending(r => r.Id)
+            var results = await query.Select(r => new { r.Id }).OrderByDescending(r => r.Id)
                 .Take(AppInfo.MaximumDuplicateReports).ToListAsync();
 
             return results.Select(r => r.Id).ToList();
