@@ -46,6 +46,7 @@
                         <td>@item.Name</td>
                         <td>@item.RelativePath</td>
                         <td>@item.Size.BytesToMiB(3)</td>
+                        <td>@item.Active</td>
                         <td>@item.Uploaded</td>
                         <td><a href="@($"/api/v1/download/{item.StoredInItemId}")" target="_blank">
                             @item.StoredInItemId
@@ -83,6 +84,7 @@
         new TableColumn("Name", true),
         new TableColumn("Path", true, "RelativePath"),
         new TableColumn("Size", false),
+        new TableColumn("Active", false),
         new TableColumn("Uploaded", false),
         new TableColumn("Storage Item", false),
         new TableColumn("Created By", false),
@@ -146,6 +148,7 @@
         HttpResponseMessage result;
 
         var data = (DebugSymbolDTO)symbol.Clone();
+        data.Active = !data.Active;
 
         try
         {
