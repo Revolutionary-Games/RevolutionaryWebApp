@@ -129,7 +129,7 @@ namespace ThriveDevCenter.Shared
         public const int MaxExternalServerPriority = 10;
 
         public const int Major = 1;
-        public const int Minor = 10;
+        public const int Minor = 11;
 
         public const int DefaultMaxLauncherLinks = 5;
 
