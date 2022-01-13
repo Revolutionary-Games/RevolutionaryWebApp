@@ -47,6 +47,7 @@ namespace ThriveDevCenter.Server.Services
             await lockTask;
             try
             {
+                Directory.CreateDirectory(baseFolder);
                 await HandleSymbols(baseFolder, wantedSymbols, cancellationToken);
             }
             finally
