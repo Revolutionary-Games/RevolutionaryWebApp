@@ -11,6 +11,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Models;
     using Shared;
 
+    [DisableConcurrentExecution(500)]
     public class DeleteOldDisabledSymbolsJob : IJob
     {
         private readonly ILogger<DeleteOldDisabledSymbolsJob> logger;
@@ -46,21 +47,43 @@ namespace ThriveDevCenter.Server.Jobs
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                await database.LogEntries.AddAsync(new LogEntry()
+                logger.LogInformation("Deleting old inactive symbol: {RelativePath} ({Id})", symbol.RelativePath,
+                    symbol.Id);
+
+                // Queue the jobs to perform the actions
+                foreach (var storageItemVersion in symbol.StoredInItem.StorageItemVersions)
                 {
-                    Message = $"Deleted inactive symbol ({symbol.Id}): {symbol.RelativePath}",
-                });
+                    jobClient.Enqueue<DeleteStorageItemVersionJob>(x =>
+                        x.Execute(storageItemVersion.Id, CancellationToken.None));
+                }
 
-                logger.LogInformation("Deleting old inactive symbol: {RelativePath}", symbol.RelativePath);
+                jobClient.Schedule<DeleteOldDisabledSymbolsJob>(
+                    x => x.PerformFinalDelete(symbol.Id, CancellationToken.None), TimeSpan.FromSeconds(90));
+            }
+        }
 
-                logger.LogInformation("Deleting old inactive symbol storage item {Id} and associated versions",
-                    symbol.StoredInItem.Id);
-                DeleteStorageItemJob.PerformProperDelete(symbol.StoredInItem, jobClient);
+        public async Task PerformFinalDelete(long symbolId, CancellationToken cancellationToken)
+        {
+            var symbol =
+                await DeleteDebugSymbolIfUploadFailedJob.DeleteDebugSymbolFinal(symbolId, database, cancellationToken);
 
-                database.DebugSymbols.Remove(symbol);
+            if (symbol == null)
+            {
+                logger.LogError(
+                    "Debug symbol disappeared before old symbol delete task could run on: {SymbolId}",
+                    symbolId);
+                return;
             }
 
-            await database.SaveChangesAsync();
+            logger.LogInformation("Performing final delete on symbol {Id} as it is being deleted as old",
+                symbol.Id);
+
+            await database.LogEntries.AddAsync(new LogEntry()
+            {
+                Message = $"Deleted inactive symbol ({symbol.Id}): {symbol.RelativePath}",
+            }, cancellationToken);
+
+            await database.SaveChangesAsync(cancellationToken);
         }
     }
 }

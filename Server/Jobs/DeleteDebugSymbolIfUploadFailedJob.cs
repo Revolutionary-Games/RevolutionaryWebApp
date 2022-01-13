@@ -23,6 +23,26 @@ namespace ThriveDevCenter.Server.Jobs
             this.jobClient = jobClient;
         }
 
+        public static async Task<DebugSymbol> DeleteDebugSymbolFinal(long symbolId, ApplicationDbContext database,
+            CancellationToken cancellationToken)
+        {
+            var symbol = await database.DebugSymbols.Include(s => s.StoredInItem)
+                .ThenInclude(i => i.StorageItemVersions).Where(s => s.Id == symbolId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (symbol == null)
+                return null;
+
+            if (symbol.StoredInItem.StorageItemVersions.Count > 0)
+                throw new Exception("Symbol's storage item still has existing versions");
+
+            // These need to be deleted in this order to not cause a constraint error
+            database.DebugSymbols.Remove(symbol);
+            database.StorageItems.Remove(symbol.StoredInItem);
+
+            return symbol;
+        }
+
         public async Task Execute(long symbolId, CancellationToken cancellationToken)
         {
             var symbol = await database.DebugSymbols.Include(s => s.StoredInItem)
@@ -59,9 +79,7 @@ namespace ThriveDevCenter.Server.Jobs
 
         public async Task PerformFinalDelete(long symbolId, CancellationToken cancellationToken)
         {
-            var symbol = await database.DebugSymbols.Include(s => s.StoredInItem)
-                .ThenInclude(i => i.StorageItemVersions).Where(s => s.Id == symbolId)
-                .FirstOrDefaultAsync(cancellationToken);
+            var symbol = await DeleteDebugSymbolFinal(symbolId, database, cancellationToken);
 
             if (symbol == null)
             {
@@ -71,9 +89,6 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            if (symbol.StoredInItem.StorageItemVersions.Count > 0)
-                throw new Exception("Symbol's storage item still has existing versions");
-
             logger.LogInformation("Performing final delete on symbol {Id} as it had not been uploaded successfully",
                 symbol.Id);
 
@@ -81,9 +96,6 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 Message = $"Deleted failed to be uploaded DebugSymbol {symbol.Id}",
             }, cancellationToken);
-
-            database.StorageItems.Remove(symbol.StoredInItem);
-            database.DebugSymbols.Remove(symbol);
 
             await database.SaveChangesAsync(cancellationToken);
         }
