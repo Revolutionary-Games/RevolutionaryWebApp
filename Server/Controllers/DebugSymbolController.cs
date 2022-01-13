@@ -74,8 +74,14 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<DebugSymbolOfferResponse>> OfferSymbols(
             [Required] [FromBody] DebugSymbolOfferRequest request)
         {
+            foreach (var symbolPath in request.SymbolPaths)
+            {
+                if (symbolPath.StartsWith("/"))
+                    return BadRequest("Symbol path should not start with '/'");
+            }
+
             var existing = await database.DebugSymbols.AsQueryable()
-                .Where(d => !request.SymbolPaths.Contains(d.RelativePath)).Select(d => d.RelativePath).ToListAsync();
+                .Where(d => request.SymbolPaths.Contains(d.RelativePath)).Select(d => d.RelativePath).ToListAsync();
 
             return new DebugSymbolOfferResponse
                 { Upload = request.SymbolPaths.Where(s => !existing.Contains(s)).ToList() };
