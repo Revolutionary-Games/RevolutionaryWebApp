@@ -42,7 +42,7 @@ namespace ThriveDevCenter.Server.Utilities
             // Detect folders that didn't have any wanted files in them
             foreach (var directory in potentiallyRemovedDirectories)
             {
-                if (wantedFolders.Any(f => directory.StartsWith(f)))
+                if (wantedFolders.Any(f => f.StartsWith(directory)))
                     continue;
 
                 toRemove.Add(directory);
