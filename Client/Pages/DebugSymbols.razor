@@ -47,7 +47,9 @@
                         <td>@item.RelativePath</td>
                         <td>@item.Size.BytesToMiB(3)</td>
                         <td>@item.Uploaded</td>
-                        <td><a href="@($"/api/v1/download/{item.StoredInItemId}")">@item.StoredInItemId</a></td>
+                        <td><a href="@($"/api/v1/download/{item.StoredInItemId}")" target="_blank">
+                            @item.StoredInItemId
+                        </a></td>
                         <td><UsernameDisplayer UserId="@item.CreatedById" /></td>
                         <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
                         <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
