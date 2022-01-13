@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
@@ -19,15 +20,20 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly ILocalTempFileLocks localTempFileLocks;
         private readonly IStackwalk stackwalk;
         private readonly IBackgroundJobClient jobClient;
+        private readonly IStackwalkSymbolPreparer symbolPreparer;
+        private readonly string symbolFolder;
 
         public StartStackwalkOnReportJob(ILogger<StartStackwalkOnReportJob> logger, NotificationsEnabledDb database,
-            ILocalTempFileLocks localTempFileLocks, IStackwalk stackwalk, IBackgroundJobClient jobClient)
+            IConfiguration configuration, ILocalTempFileLocks localTempFileLocks, IStackwalk stackwalk,
+            IBackgroundJobClient jobClient, IStackwalkSymbolPreparer symbolPreparer)
         {
             this.logger = logger;
             this.database = database;
             this.localTempFileLocks = localTempFileLocks;
             this.stackwalk = stackwalk;
             this.jobClient = jobClient;
+            this.symbolPreparer = symbolPreparer;
+            symbolFolder = configuration["Crashes:StackwalkSymbolFolder"];
         }
 
         public async Task Execute(long reportId, CancellationToken cancellationToken)
@@ -42,6 +48,8 @@ namespace ThriveDevCenter.Server.Jobs
                 logger.LogError("Can't stackwalk on non-existent report: {ReportId}", reportId);
                 return;
             }
+
+            var symbolPrepareTask = symbolPreparer.PrepareSymbolsInFolder(symbolFolder, cancellationToken);
 
             logger.LogInformation("Starting stackwalk on report {ReportId}", reportId);
 
@@ -63,6 +71,8 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 semaphore.Release();
             }
+
+            await symbolPrepareTask;
 
             if (report.DumpLocalFileName == null || dump == null)
             {

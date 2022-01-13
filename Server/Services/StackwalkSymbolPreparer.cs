@@ -11,6 +11,7 @@ namespace ThriveDevCenter.Server.Services
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
+    using Utilities;
 
     public class StackwalkSymbolPreparer : IStackwalkSymbolPreparer
     {
@@ -32,6 +33,12 @@ namespace ThriveDevCenter.Server.Services
 
         public async Task PrepareSymbolsInFolder(string baseFolder, CancellationToken cancellationToken)
         {
+            if (string.IsNullOrWhiteSpace(baseFolder))
+            {
+                logger.LogInformation("Debug symbols base folder is not configured, not handling symbols");
+                return;
+            }
+
             var lockTask = GlobalSymbolPrepareLock.WaitAsync(cancellationToken);
 
             var wantedSymbols = await database.DebugSymbols.Include(s => s.StoredInItem).Where(s => s.Active)
@@ -56,8 +63,6 @@ namespace ThriveDevCenter.Server.Services
 
             if (!downloadUrls.Configured)
                 throw new Exception("Download URLs are not configured, we can't download the symbols");
-
-            // TODO: add pruning extraneous files from the symbol folders
 
             foreach (var symbol in wantedSymbols)
             {
@@ -95,6 +100,28 @@ namespace ThriveDevCenter.Server.Services
 
                 File.Move(tempFile, finalPath);
                 logger.LogInformation("Downloaded symbol {Id}", symbol.Id);
+            }
+
+            PruneExtraneousFiles(baseFolder, wantedSymbols);
+        }
+
+        private void PruneExtraneousFiles(string baseFolder, List<DebugSymbol> wantedSymbols)
+        {
+            var toDelete = DirectoryHelpers.GetFilesAndDirectoriesThatShouldNotExist(baseFolder,
+                wantedSymbols.Select(s => s.RelativePath).ToList());
+
+            foreach (var path in toDelete)
+            {
+                logger.LogInformation("Deleting extraneous file/directory from symbols folder: {Path}", path);
+
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path);
+                }
+                else
+                {
+                    File.Delete(path);
+                }
             }
         }
     }

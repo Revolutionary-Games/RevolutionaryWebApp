@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
@@ -16,14 +17,19 @@ namespace ThriveDevCenter.Server.Jobs
         private readonly NotificationsEnabledDb database;
         private readonly ILocalTempFileLocks localTempFileLocks;
         private readonly IStackwalk stackwalk;
+        private readonly IStackwalkSymbolPreparer symbolPreparer;
+        private readonly string symbolFolder;
 
         public RunStackwalkTaskJob(ILogger<RunStackwalkTaskJob> logger, NotificationsEnabledDb database,
-            ILocalTempFileLocks localTempFileLocks, IStackwalk stackwalk)
+            IConfiguration configuration, ILocalTempFileLocks localTempFileLocks, IStackwalk stackwalk,
+            IStackwalkSymbolPreparer symbolPreparer)
         {
             this.logger = logger;
             this.database = database;
             this.localTempFileLocks = localTempFileLocks;
             this.stackwalk = stackwalk;
+            this.symbolPreparer = symbolPreparer;
+            symbolFolder = configuration["Crashes:StackwalkSymbolFolder"];
         }
 
         public async Task Execute(Guid taskId, CancellationToken cancellationToken)
@@ -38,6 +44,8 @@ namespace ThriveDevCenter.Server.Jobs
                 logger.LogError("Can't stackwalk on non-existent task: {TaskId}", taskId);
                 return;
             }
+
+            var symbolPrepareTask = symbolPreparer.PrepareSymbolsInFolder(symbolFolder, cancellationToken);
 
             logger.LogInformation("Starting stackwalk on task {TaskId}", taskId);
 
@@ -59,6 +67,8 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 semaphore.Release();
             }
+
+            await symbolPrepareTask;
 
             if (task.DumpFileName == null || dump == null)
             {

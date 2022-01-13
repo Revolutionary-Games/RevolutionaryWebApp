@@ -24,7 +24,8 @@
     "SignatureEmailBCC": "test@example.com"
   },
   "Crashes": {
-    "StackwalkService": "http://localhost:9090/"
+    "StackwalkService": "http://localhost:9090/",
+    "StackwalkSymbolFolder": put/a/folder/here
   },
   "Logging": {
     "LogLevel": {
