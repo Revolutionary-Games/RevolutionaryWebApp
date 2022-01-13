@@ -87,6 +87,10 @@ namespace ThriveDevCenter.Server.Services
 
                 var content = await response.Content.ReadAsStreamAsync(cancellationToken);
 
+                // Make sure the directory we want to write to exists
+                Directory.CreateDirectory(Path.GetDirectoryName(tempFile) ??
+                    throw new Exception("Failed to get parent folder for the symbol file to write"));
+
                 try
                 {
                     await using var writer = File.OpenWrite(tempFile);
