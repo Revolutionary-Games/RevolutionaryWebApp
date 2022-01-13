@@ -147,6 +147,51 @@ CIExecutor executable is not automatically moved to the webroot,
 meaning that running CI jobs on controlled servers is not possible
 without a little bit of manual work.
 
+### Stackwalk
+
+The DevCenter uses a stackwalk service in order to decode crash dump files. This
+is accessed through HTTP. You can use for example 
+https://github.com/hhyyrylainen/StackWalkAsAService running on the local host.
+You can find instructions in that repo on how to run the service. Note that
+there needs to be a folder that both the service container and ThriveDevCenter
+can access to have correct symbol files.
+
+This can be setup for example with:
+```sh
+useradd stackwalk -s /sbin/nologin
+mkdir /var/lib/thrivedevcenter/
+mkdir /var/lib/thrivedevcenter/symbols
+mkdir /var/lib/thrivedevcenter/symbols/production
+chown root:thrivedevcenter /var/lib/thrivedevcenter/symbols/production
+chmod g+w /var/lib/thrivedevcenter/symbols/production
+```
+
+Then the stackwalk service configured to have 
+`/var/lib/thrivedevcenter/symbols/production` as the symbols folder mounted
+inside the container. The container needs to also have the same port configured
+as in the following ThriveDevCenter configuration:
+```
+Crashes__Enabled=true
+Crashes__StackwalkService=http://localhost:3115
+Crashes__StackwalkSymbolFolder=/var/lib/thrivedevcenter/symbols/production
+```
+
+Refer to the repository linked above for full instructions but the following
+will get a running stackwalk service going:
+```sh
+podman run -d --rm -p 127.0.0.1:3115:9090 --mount type=bind,src=/var/lib/thrivedevcenter/symbols/production,destination=/Symbols,ro=true,relabel=shared --name stackwalkweb hhyyrylainen/stackwalk:latest --http-port 9090
+podman generate systemd --new --name stackwalkweb > /etc/systemd/system/stackwalkweb.service
+# Add `User=stackwalk` to the service section and replace `%t/` with `/home/stackwalk/`
+emacs /etc/systemd/system/stackwalkweb.service
+systemctl daemon-reload
+su - stackwalk -s /usr/bin/bash
+podman run --rm --name stackwalkweb hhyyrylainen/stackwalk:latest
+exit
+systemctl enable --now stackwalkweb
+```
+
+Note that running as root is not recommended.
+
 ## Testing
 
 To test the project (run the xunit tests), you need to have some extra
