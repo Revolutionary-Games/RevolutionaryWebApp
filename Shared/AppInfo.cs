@@ -169,7 +169,7 @@ namespace ThriveDevCenter.Shared
 
         public static readonly TimeSpan WaitBeforeNameRetrieveBatchStart = TimeSpan.FromMilliseconds(100);
 
-        public static readonly TimeSpan TimeBeforeShowingConnectionLoss = TimeSpan.FromMilliseconds(400);
+        public static readonly TimeSpan TimeBeforeShowingConnectionLoss = TimeSpan.FromMilliseconds(700);
 
         public static readonly TimeSpan KeepStackwalkResultsFor = TimeSpan.FromHours(1);
 
