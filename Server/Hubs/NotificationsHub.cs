@@ -35,6 +35,7 @@ namespace ThriveDevCenter.Server.Hubs
         {
             var http = Context.GetHttpContext();
             User connectedUser = null;
+            Session session = null;
 
             if (http != null)
             {
@@ -73,7 +74,6 @@ namespace ThriveDevCenter.Server.Hubs
                     csrf = accessToken[0];
                 }
 
-                Session session;
                 try
                 {
                     session = await http.Request.Cookies.GetSession(database);
@@ -110,6 +110,9 @@ namespace ThriveDevCenter.Server.Hubs
                     await Clients.Caller.ReceiveVersionMismatch();
             }
 
+            if (connectedUser != null && session == null)
+                throw new Exception("Logic error! user is not null but session is null");
+
             Context.Items["User"] = connectedUser;
 
             await base.OnConnectedAsync();
@@ -120,6 +123,10 @@ namespace ThriveDevCenter.Server.Hubs
             }
             else
             {
+                // All sessions listen to notifications about them
+                await Groups.AddToGroupAsync(Context.ConnectionId,
+                    NotificationGroups.SessionImportantMessage + session.Id);
+
                 await Clients.Caller.ReceiveOwnUserInfo(connectedUser.GetInfo(
                     connectedUser.HasAccessLevel(UserAccessLevel.Admin) ?
                         RecordAccessLevel.Admin :

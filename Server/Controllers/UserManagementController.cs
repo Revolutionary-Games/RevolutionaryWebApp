@@ -18,6 +18,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Shared;
     using Shared.Forms;
     using Shared.Models;
+    using Shared.Notifications;
     using Utilities;
 
     [ApiController]
@@ -191,10 +192,138 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.ConvertResult(i => i.GetDTO(i.Id == requestSession?.Id));
         }
 
-        [NonAction]
-        private async Task InvalidateUserSessions(string userId)
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [HttpDelete("{id:long}/sessions")]
+        public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteAllUserSessions([Required] long id)
         {
-            await notifications.Clients.User(userId).ReceiveSessionInvalidation();
+            bool admin =
+                HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
+
+            var user = await database.Users.FindAsync(id);
+            var actingUser = HttpContext.AuthenticatedUser();
+
+            if (user == null)
+                return NotFound();
+
+            // Has to be an admin or performing an action on their own data
+            if (!admin && actingUser.Id != user.Id)
+                return NotFound();
+
+            var sessions = await database.Sessions.AsQueryable().Where(s => s.UserId == id).ToListAsync();
+
+            if (sessions.Count < 1)
+                return Ok();
+
+            if (admin && actingUser.Id != user.Id)
+            {
+                await database.AdminActions.AddAsync(new AdminAction()
+                {
+                    Message = "Forced logout",
+                    PerformedById = actingUser.Id,
+                    TargetUserId = user.Id,
+                });
+            }
+
+            database.Sessions.RemoveRange(sessions);
+            await database.SaveChangesAsync();
+
+            await InvalidateSessions(sessions.Select(s => s.Id));
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [HttpDelete("{id:long}/otherSessions")]
+        public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteOtherUserSessions([Required] long id)
+        {
+            var user = await database.Users.FindAsync(id);
+
+            if (user == null)
+                return NotFound();
+
+            // It makes sense only for the current user to perform this action
+            if (HttpContext.AuthenticatedUser().Id != user.Id)
+                return NotFound();
+
+            var requestSession = HttpContext.AuthenticatedUserSession();
+
+            if (requestSession == null)
+                return Forbid("This action can only be performed with an active session");
+
+            var sessions = await database.Sessions.AsQueryable().Where(s => s.UserId == id).ToListAsync();
+
+            if (sessions.Count < 1)
+                return Ok();
+
+            sessions = sessions.Where(s => s.Id != requestSession.Id).ToList();
+
+            database.Sessions.RemoveRange(sessions);
+            await database.SaveChangesAsync();
+
+            await InvalidateSessions(sessions.Select(s => s.Id));
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [HttpDelete("{id:long}/sessions/{sessionId:long}")]
+        public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteSpecificUserSession([Required] long id,
+            [Required] long sessionId)
+        {
+            bool admin =
+                HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
+
+            var user = await database.Users.FindAsync(id);
+            var actingUser = HttpContext.AuthenticatedUser();
+
+            if (user == null)
+                return NotFound();
+
+            // Has to be an admin or performing an action on their own data
+            if (!admin && actingUser.Id != user.Id)
+                return NotFound();
+
+            var sessions = await database.Sessions.AsQueryable().Where(s => s.UserId == id).ToListAsync();
+
+            Session session = null;
+
+            // For safety we never give out the real ids of the session, so we need to here find the actual
+            // target session
+            foreach (var potentialSession in sessions)
+            {
+                if (potentialSession.GetDoubleHashedId() == sessionId)
+                {
+                    session = potentialSession;
+                    break;
+                }
+            }
+
+            if (session == null)
+                return NotFound();
+
+            if (admin && actingUser.Id != user.Id)
+            {
+                await database.AdminActions.AddAsync(new AdminAction()
+                {
+                    Message = $"Force ended session {session.Id}",
+                    PerformedById = actingUser.Id,
+                    TargetUserId = user.Id,
+                });
+            }
+
+            database.Sessions.Remove(session);
+            await database.SaveChangesAsync();
+
+            await InvalidateSessions(new[] { session.Id });
+            return Ok();
+        }
+
+        [NonAction]
+        private async Task InvalidateSessions(IEnumerable<Guid> sessions)
+        {
+            // This per-user variant didn't end up being needed currently (this probably works, but is not tested)
+            // await notifications.Clients.User(userId.ToString()).ReceiveSessionInvalidation();
+
+            await notifications.Clients.Groups(sessions.Select(s => NotificationGroups.SessionImportantMessage + s))
+                .ReceiveSessionInvalidation();
 
             // TODO: force close signalr connections for the user https://github.com/dotnet/aspnetcore/issues/5333
         }

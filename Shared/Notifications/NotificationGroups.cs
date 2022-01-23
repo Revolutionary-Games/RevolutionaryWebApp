@@ -79,5 +79,11 @@ namespace ThriveDevCenter.Shared.Notifications
         ///   server side
         /// </summary>
         public const string InProgressCLASignatureUpdated = "InProgressCLA_";
+
+        /// <summary>
+        ///   This is always listened for a valid connected session, this is used to send very important messages
+        ///   like logout requests.
+        /// </summary>
+        public const string SessionImportantMessage = "USM_";
     }
 }

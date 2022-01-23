@@ -47,7 +47,7 @@ else
                     <td>
                         <Button Enabled="@(!IsProcessing(item.Id))"
                                 OnPressed="@(async () => await DeleteSpecificSession(item.Id))"
-                                Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm">
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="@SessionLogoutStyle(item)" class="btn-sm">
                             Logout
                         </Button>
                     </td>
@@ -59,10 +59,14 @@ else
 
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
-<Button class="mr-1" ButtonStyle="warning" Enabled="@(!processingDestroy)" OnPressed="@DestroyOtherSessions"
-        Spinner="@processingDestroy">
-    Logout Other Sessions
-</Button>
+
+@if(LookingAtSelf)
+{
+    <Button class="mr-1" ButtonStyle="warning" Enabled="@(!processingDestroy)" OnPressed="@DestroyOtherSessions"
+            Spinner="@processingDestroy">
+        Logout Other Sessions
+    </Button>
+}
 
 <Button ButtonStyle="danger" Enabled="@(!processingDestroy)" OnPressed="@DestroyAllSessions" Spinner="@processingDestroy">
     Logout Everywhere
@@ -91,6 +95,9 @@ else
 
     [Parameter]
     public long Id { get; set; }
+
+    [Parameter]
+    public bool LookingAtSelf { get; set; }
 
     private bool CurrentSessionKnown => false;
 
@@ -138,6 +145,14 @@ else
         return processingItems.GetValueOrDefault(sessionId, false);
     }
 
+    private string SessionLogoutStyle(SessionDTO item)
+    {
+        if (item.Current)
+            return "danger";
+
+        return "warning";
+    }
+
     private async Task DestroyOtherSessions()
     {
         processingDestroy = true;
@@ -171,12 +186,6 @@ else
         {
             statusMessage = "Other sessions logged out";
             statusMessageType = SiteNoticeType.Info;
-
-
-            await InvokeAsync(StateHasChanged);
-
-            await Task.Delay(TimeSpan.FromSeconds(5));
-            navManager.NavigateTo("/login");
         }
 
         await InvokeAsync(StateHasChanged);
@@ -213,12 +222,20 @@ else
         }
         else
         {
-            statusMessage = "All sessions logged out. You will be redirected to the login page in a few seconds.";
-            statusMessageType = SiteNoticeType.Info;
-            await InvokeAsync(StateHasChanged);
+            if(LookingAtSelf)
+            {
+                statusMessage = "All sessions logged out. You will be redirected to the login page in a few seconds.";
+                statusMessageType = SiteNoticeType.Info;
+                await InvokeAsync(StateHasChanged);
 
-            await Task.Delay(TimeSpan.FromSeconds(5));
-            navManager.NavigateTo("/login");
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                navManager.NavigateTo("/login");
+            }
+            else
+            {
+                statusMessage = "All sessions of target user logged out";
+                statusMessageType = SiteNoticeType.Info;
+            }
         }
 
         await InvokeAsync(StateHasChanged);

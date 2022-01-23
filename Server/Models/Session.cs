@@ -60,11 +60,16 @@ namespace ThriveDevCenter.Server.Models
             return DateTime.UtcNow - LastUsed > TimeSpan.FromSeconds(AppInfo.SessionExpirySeconds - 3600 * 8);
         }
 
+        public long GetDoubleHashedId()
+        {
+            return SelectByHashedProperty.DoubleHashAsIdStandIn(Id.ToString(), HashedId);
+        }
+
         public SessionDTO GetDTO(bool current)
         {
             return new()
             {
-                Id = SelectByHashedProperty.DoubleHashAsIdStandIn(Id.ToString(), HashedId),
+                Id = GetDoubleHashedId(),
                 CreatedAt = StartedAt,
                 UpdatedAt = LastUsed,
                 LastUsedFrom = LastUsedFrom,
