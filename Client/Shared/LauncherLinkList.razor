@@ -35,8 +35,14 @@ else
 
                 <tr @key="item.Id">
                     <td>
-                        @(item.LastConnection != null ? item.LastConnection.Value.ToLocalTime().ToString("G") :
-                            "never")
+                        @if (item.LastConnection != null)
+                        {
+                            <RecentTimeShortener Time="@item.LastConnection.Value" />
+                        }
+                        else
+                        {
+                            <span>never</span>
+                        }
                     </td>
                     <td>@item.LastIp</td>
                     <td>@item.TotalApiCalls</td>
