@@ -31,9 +31,9 @@ namespace ThriveDevCenter.Server.Utilities
 
             bool declined = !string.IsNullOrEmpty(pledge.Attributes.DeclinedSince);
 
-            var email = user.Attributes.Email;
+            var email = user.Attributes.Email?.Trim();
 
-            if(string.IsNullOrEmpty(email))
+            if (string.IsNullOrEmpty(email))
                 throw new Exception("Patron object has null email");
 
             var patron = await database.Patrons.AsQueryable().FirstOrDefaultAsync(p => p.Email == email);
