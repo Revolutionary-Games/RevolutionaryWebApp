@@ -532,7 +532,8 @@ namespace ThriveDevCenter.Server.Controllers
                         $"Your Patron status is currently suspended. Reason: {patron.SuspendedReason}"));
                 }
 
-                var patreonSettings = await Database.PatreonSettings.AsQueryable().FirstOrDefaultAsync();
+                var patreonSettings =
+                    await Database.PatreonSettings.AsQueryable().OrderBy(s => s.Id).FirstOrDefaultAsync();
 
                 if (patreonSettings == null)
                 {
