@@ -86,8 +86,8 @@ namespace ThriveDevCenter.Server.Models
 
             yield return new Tuple<SerializedNotification, string>(new SessionListUpdated()
             {
-                Item = GetDTO(false),
                 Type = entityState.ToChangeType(),
+                Item = GetDTO(false),
             }, NotificationGroups.UserSessionsUpdatedPrefix + UserId);
         }
     }

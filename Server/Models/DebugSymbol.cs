@@ -57,8 +57,12 @@ namespace ThriveDevCenter.Server.Models
 
         public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
         {
-            yield return new Tuple<SerializedNotification, string>(new DebugSymbolListUpdated() { Item = GetDTO() },
-                NotificationGroups.SymbolListUpdated);
+            yield return new Tuple<SerializedNotification, string>(
+                new DebugSymbolListUpdated()
+                {
+                    Type = entityState.ToChangeType(),
+                    Item = GetDTO(),
+                }, NotificationGroups.SymbolListUpdated);
         }
     }
 }
