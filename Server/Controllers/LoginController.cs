@@ -570,11 +570,13 @@ namespace ThriveDevCenter.Server.Controllers
 
         [NonAction]
         private async Task<(IActionResult result, bool saved)> HandleSsoLoginToAccount(Session session, string email,
-            string username,
-            string ssoType,
-            bool developerLogin)
+            string username, string ssoType, bool developerLogin)
         {
-            if (string.IsNullOrEmpty(email))
+            // Ensure whitespace is consistent
+            email = email?.Trim();
+            username = username?.Trim();
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(username))
                 return (GetInvalidSsoParametersResult(), false);
 
             Logger.LogInformation("Logging in SSO login user with email: {Email}", email);
@@ -655,6 +657,34 @@ namespace ThriveDevCenter.Server.Controllers
                 return (Redirect(QueryHelpers.AddQueryString("/login", "error",
                         $"Your account is suspended {suspension}")),
                     false);
+            }
+
+            // Change username from SSO login
+            if (user.UserName != username)
+            {
+                Logger.LogInformation(
+                    "Trying to change username for {Email} from {Username} to {Username2} " +
+                    "due to SSO login with new name", email, user.UserName, username);
+
+                var conflictingUser =
+                    await Database.Users.AsQueryable().FirstOrDefaultAsync(u => u.UserName == username);
+
+                if (conflictingUser != null)
+                {
+                    Logger.LogError("Can't change SSO logged in user's username due to a conflict, leaving as-is");
+                }
+                else
+                {
+                    await Database.LogEntries.AddAsync(new LogEntry()
+                    {
+                        Message = $"Username changed due to SSO login to \"{username}\"",
+                        TargetUserId = user.Id,
+                    });
+
+                    user.UserName = username;
+
+                    // Save should happen in FinishSsoLoginToAccount
+                }
             }
 
             var result = await FinishSsoLoginToAccount(user, session);
