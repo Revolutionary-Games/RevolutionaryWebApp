@@ -55,7 +55,7 @@ namespace ThriveDevCenter.Server.Authorization
 
                 if (user != null && user.Suspended != true)
                 {
-                    OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None);
+                    OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, null);
                     return AuthMethodResult.Authenticated;
                 }
 
@@ -107,7 +107,7 @@ namespace ThriveDevCenter.Server.Authorization
 
             if (user != null && user.Suspended != true)
             {
-                OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None);
+                OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, null);
                 return AuthMethodResult.Authenticated;
             }
 
@@ -154,7 +154,7 @@ namespace ThriveDevCenter.Server.Authorization
 
             context.Items[AppInfo.LauncherLinkMiddlewareKey] = link;
 
-            OnAuthenticationSucceeded(context, link.User, AuthenticationScopeRestriction.LauncherOnly);
+            OnAuthenticationSucceeded(context, link.User, AuthenticationScopeRestriction.LauncherOnly, null);
             return AuthMethodResult.Authenticated;
         }
 
@@ -163,7 +163,7 @@ namespace ThriveDevCenter.Server.Authorization
             if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string session) &&
                 !string.IsNullOrEmpty(session))
             {
-                var user = await context.Request.Cookies.GetUserFromSession(database,
+                var (user, sessionObject) = await context.Request.Cookies.GetUserFromSession(database,
                     context.Connection.RemoteIpAddress);
 
                 if (user != null)
@@ -176,7 +176,7 @@ namespace ThriveDevCenter.Server.Authorization
 
                     if (user.Suspended != true)
                     {
-                        OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None);
+                        OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, sessionObject);
                         return AuthMethodResult.Authenticated;
                     }
 

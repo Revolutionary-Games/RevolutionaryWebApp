@@ -104,6 +104,20 @@ namespace ThriveDevCenter.Server.Authorization
             return rawUser as User;
         }
 
+        public static Session AuthenticatedUserSession(this HttpContext context)
+        {
+            if (context.User.Identity == null ||
+                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser) || rawUser is null)
+            {
+                return null;
+            }
+
+            if (!context.Items.TryGetValue(AppInfo.CurrentUserSessionMiddleWareKey, out object rawSession))
+                return null;
+
+            return rawSession as Session;
+        }
+
         public static (User user, AuthenticationScopeRestriction restriction) AuthenticatedUserWithRestriction(
             this HttpContext context)
         {

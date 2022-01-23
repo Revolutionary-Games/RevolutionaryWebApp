@@ -1,0 +1,267 @@
+@inject HttpClient http
+@inject NotificationHandler notificationHandler
+@inject NavigationManager navManager
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<SessionListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.SessionDTO>
+
+<p>Note: last used time is only updated every @AppInfo.LastUsedSessionAccuracy.TotalSeconds seconds.</p>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (resourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                <tr @key="item.Id">
+                    <td><RecentTimeShortener Time="@item.UpdatedAt" /></td>
+                    <td>
+                        @item.LastUsedFrom
+                        @if (item.Current)
+                        {
+                            <span class="badge badge-success ml-2">Current Session</span>
+                        }
+                    </td>
+                    <td><RecentTimeShortener Time="@item.CreatedAt" /></td>
+                    <td>
+                        <Button Enabled="@(!IsProcessing(item.Id))"
+                                OnPressed="@(async () => await DeleteSpecificSession(item.Id))"
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm">
+                            Logout
+                        </Button>
+                    </td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+<Button class="mr-1" ButtonStyle="warning" Enabled="@(!processingDestroy)" OnPressed="@DestroyOtherSessions"
+        Spinner="@processingDestroy">
+    Logout Other Sessions
+</Button>
+
+<Button ButtonStyle="danger" Enabled="@(!processingDestroy)" OnPressed="@DestroyAllSessions" Spinner="@processingDestroy">
+    Logout Everywhere
+</Button>
+
+@code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Last Used At", true, "LastUsed"),
+        new TableColumn("Last Used From", false),
+        new TableColumn("Started At", false, "StartedAt"),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
+    private readonly Dictionary<long, bool> processingItems = new();
+
+    private string statusMessage;
+    private SiteNoticeType statusMessageType;
+    private bool processingDestroy;
+
+    public UserSessions() : base(new SortHelper("LastUsed", SortDirection.Descending))
+    {
+    }
+
+    [Parameter]
+    public long Id { get; set; }
+
+    private bool CurrentSessionKnown => false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(SessionListUpdated notification, CancellationToken cancellationToken)
+    {
+        // Override the current property as the notification sender on the server won't know which session receives
+        // them
+        if (Data?.Results != null)
+        {
+            foreach (var existingData in Data.Results)
+            {
+                if (existingData.Id == notification.Item.Id)
+                    notification.Item.Current = existingData.Current;
+            }
+        }
+
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.UserSessionsUpdatedPrefix + Id);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<SessionDTO>> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<SessionDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/UserManagement/{Id}/sessions", requestParams));
+    }
+
+    private bool IsProcessing(long sessionId)
+    {
+        return processingItems.GetValueOrDefault(sessionId, false);
+    }
+
+    private async Task DestroyOtherSessions()
+    {
+        processingDestroy = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/UserManagement/{Id}/otherSessions");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingDestroy = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingDestroy = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Other sessions logged out";
+            statusMessageType = SiteNoticeType.Info;
+
+
+            await InvokeAsync(StateHasChanged);
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            navManager.NavigateTo("/login");
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DestroyAllSessions()
+    {
+        processingDestroy = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/UserManagement/{Id}/sessions");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingDestroy = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingDestroy = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "All sessions logged out. You will be redirected to the login page in a few seconds.";
+            statusMessageType = SiteNoticeType.Info;
+            await InvokeAsync(StateHasChanged);
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            navManager.NavigateTo("/login");
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteSpecificSession(long sessionId)
+    {
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        processingItems[sessionId] = true;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/UserManagement/{Id}/sessions/{sessionId}");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingDestroy = false;
+            processingItems[sessionId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[sessionId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Logged out the session that was requested to be deleted";
+            statusMessageType = SiteNoticeType.Info;
+
+            resourceStatus.SetDeletedStatus(sessionId);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

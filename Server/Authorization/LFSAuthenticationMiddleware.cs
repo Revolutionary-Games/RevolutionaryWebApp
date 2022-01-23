@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Authorization
             // The given "username" part of the basic auth needs to either match the email or name of the found user
             if (user != null && user.Suspended != true && (user.UserName == parts[0] || user.Email == parts[0]))
             {
-                OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.LFSOnly);
+                OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.LFSOnly, null);
                 return true;
             }
 

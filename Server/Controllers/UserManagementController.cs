@@ -152,6 +152,45 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [HttpGet("{id:long}/sessions")]
+        public async Task<ActionResult<PagedResult<SessionDTO>>> GetUserSessions([Required] long id,
+            [Required] string sortColumn,
+            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+            [Required] [Range(1, 50)] int pageSize)
+        {
+            bool admin =
+                HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
+
+            var user = await database.Users.FindAsync(id);
+
+            if (user == null)
+                return NotFound();
+
+            // Has to be an admin or looking at their own data
+            if (!admin && HttpContext.AuthenticatedUser().Id != user.Id)
+                return NotFound();
+
+            // If requestSession is null this request came with an API key and not a browser session
+            var requestSession = HttpContext.AuthenticatedUserSession();
+
+            IQueryable<Session> query;
+
+            try
+            {
+                query = database.Sessions.AsQueryable().Where(s => s.UserId == id).OrderBy(sortColumn, sortDirection);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning("Invalid requested order: {@E}", e);
+                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            }
+
+            var objects = await query.ToPagedResultAsync(page, pageSize);
+
+            return objects.ConvertResult(i => i.GetDTO(i.Id == requestSession?.Id));
+        }
+
         [NonAction]
         private async Task InvalidateUserSessions(string userId)
         {

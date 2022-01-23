@@ -248,7 +248,8 @@ namespace ThriveDevCenter.Server.Hubs
             }
 
             // Then check prefixes
-            if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefix))
+            if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefix) ||
+                groupName.StartsWith(NotificationGroups.UserSessionsUpdatedPrefix))
             {
                 if (!GetIDPartFromGroup(groupName, out long id))
                     return false;

@@ -14,9 +14,9 @@ namespace ThriveDevCenter.Server.Controllers
         private static readonly TimeSpan SsoTimeout = TimeSpan.FromMinutes(20);
 
         protected readonly ILogger<SSOLoginController> Logger;
-        protected readonly ApplicationDbContext Database;
+        protected readonly NotificationsEnabledDb Database;
 
-        protected SSOLoginController(ILogger<SSOLoginController> logger, ApplicationDbContext database)
+        protected SSOLoginController(ILogger<SSOLoginController> logger, NotificationsEnabledDb database)
         {
             Logger = logger;
             Database = database;

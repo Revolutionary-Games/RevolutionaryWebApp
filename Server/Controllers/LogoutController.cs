@@ -15,10 +15,11 @@ namespace ThriveDevCenter.Server.Controllers
     public class LogoutController : Controller
     {
         private readonly ILogger<LogoutController> logger;
-        private readonly ApplicationDbContext database;
+        private readonly NotificationsEnabledDb database;
         private readonly ITokenVerifier csrfVerifier;
 
-        public LogoutController(ILogger<LogoutController> logger, ApplicationDbContext database, ITokenVerifier csrfVerifier)
+        public LogoutController(ILogger<LogoutController> logger, NotificationsEnabledDb database,
+            ITokenVerifier csrfVerifier)
         {
             this.logger = logger;
             this.database = database;

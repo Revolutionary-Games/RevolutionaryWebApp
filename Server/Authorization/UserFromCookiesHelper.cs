@@ -18,23 +18,25 @@ namespace ThriveDevCenter.Server.Authorization
         /// <param name="cookies">Cookies to read the session cookie from</param>
         /// <param name="database">Where to get users from</param>
         /// <param name="clientAddress">The address the cookies are from (used to track where session is used)</param>
-        /// <returns>The user for the session cookie or null</returns>
+        /// <returns>The user for the session cookie or null and the session that the user was retrieved from</returns>
         /// <exception cref="ArgumentException">If the cookie is malformed</exception>
-        public static Task<User> GetUserFromSession(this IRequestCookieCollection cookies,
+        public static Task<(User user, Session session)> GetUserFromSession(this IRequestCookieCollection cookies,
             ApplicationDbContext database, IPAddress clientAddress)
         {
             if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string session) || string.IsNullOrEmpty(session))
-                return Task.FromResult<User>(null);
+                return Task.FromResult<(User, Session)>((null, null));
 
             return GetUserFromSession(session, database, true, clientAddress);
         }
 
-        public static async Task<User> GetUserFromSession(string sessionId, ApplicationDbContext database,
+        public static async Task<(User user, Session session)> GetUserFromSession(string sessionId,
+            ApplicationDbContext database,
             bool updateLastUsed = true, IPAddress clientAddress = null)
         {
             var existingSession = await GetSession(sessionId, database);
 
-            return await GetUserFromSession(existingSession, database, updateLastUsed, clientAddress);
+            return (await GetUserFromSession(existingSession, database, updateLastUsed, clientAddress),
+                existingSession);
         }
 
         public static async Task<User> GetUserFromSession(Session existingSession, ApplicationDbContext database,

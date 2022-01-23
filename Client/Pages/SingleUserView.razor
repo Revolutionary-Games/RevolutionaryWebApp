@@ -8,19 +8,14 @@
 
 <h3>User: @Id</h3>
 
-<LoggedInContent>
-    <NotLoggedIn>
-        <RedirectToLogin />
-    </NotLoggedIn>
-    <LoggedIn>
-        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
-            @if (Data != null)
-            {
-                <UserInfoPageContent User="@Data" ShowSelfIdentification="@true" />
-            }
-        </SingleResourceDisplayer>
-    </LoggedIn>
-</LoggedInContent>
+<AccessLimited RequiredAccess="@UserAccessLevel.User">
+    <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+        @if (Data != null)
+        {
+            <UserInfoPageContent User="@Data" ShowSelfIdentification="@true" />
+        }
+    </SingleResourceDisplayer>
+</AccessLimited>
 
 @code {
     protected override Task<UserInfo> StartQuery()

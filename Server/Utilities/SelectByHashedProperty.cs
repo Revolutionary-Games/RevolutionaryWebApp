@@ -82,6 +82,29 @@ namespace ThriveDevCenter.Server.Utilities
             return Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(rawValue)));
         }
 
+        /// <summary>
+        ///   Returns a double hash of a value in an integer. For use as id number stand-in for types
+        /// </summary>
+        /// <param name="rawValue">The raw value to hash</param>
+        /// <param name="onceHashedValue">
+        ///   If the value has been hashed already once (not null and not empty) this is used to avoid one extra
+        ///   hash calculation
+        /// </param>
+        /// <returns>The first bytes that fit in a long of the hash</returns>
+        public static long DoubleHashAsIdStandIn(string rawValue, string onceHashedValue)
+        {
+            var hashData = SHA256.HashData(string.IsNullOrEmpty(onceHashedValue) ?
+                SHA256.HashData(Encoding.UTF8.GetBytes(rawValue)) :
+                Convert.FromBase64String(onceHashedValue));
+
+            var tempQuery = hashData.Take(sizeof(long));
+
+            if (BitConverter.IsLittleEndian)
+                tempQuery = tempQuery.Reverse();
+
+            return BitConverter.ToInt64(tempQuery.ToArray(), 0);
+        }
+
         public static void ComputeHashedLookUpValues(this IContainsHashedLookUps instance)
         {
             var hashedLookup = typeof(HashedLookUpAttribute);

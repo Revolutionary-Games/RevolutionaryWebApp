@@ -7,47 +7,42 @@
 
 <h3>Your Profile</h3>
 
-<LoggedInContent>
-    <NotLoggedIn>
-        <RedirectToLogin />
-    </NotLoggedIn>
-    <LoggedIn>
-        <UserInfoPageContent User="@currentUserInfo.Info" />
+<AccessLimited RequiredAccess="@UserAccessLevel.User">
+    <UserInfoPageContent User="@currentUserInfo.Info" />
 
-        <br />
-        <hr />
+    <br />
+    <hr />
 
-        <h4>Redeem Code</h4>
+    <h4>Redeem Code</h4>
 
-        <p>If you have a special code to redeem in the ThriveDevCenter, you can redeem one here.</p>
+    <p>If you have a special code to redeem in the ThriveDevCenter, you can redeem one here.</p>
 
-        @if (statusMessage != null)
-        {
-            <div class="alert alert-info" role="alert">
-                @statusMessage
-            </div>
-        }
-        @if (errorMessage != null)
-        {
-            <div class="alert alert-danger" role="alert">
-                @errorMessage
-            </div>
-        }
+    @if (statusMessage != null)
+    {
+        <div class="alert alert-info" role="alert">
+            @statusMessage
+        </div>
+    }
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
 
-        <form class="login-form">
-            <div class="form-group">
-                <input type="text" class="form-control" placeholder="code" @bind="codeRedeem" @bind:event="oninput">
-            </div>
-            <Button class="my-1" Enabled="CodeEntered" OnPressed="Submit">
-                @if (processing)
-                {
-                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                }
-                Redeem
-            </Button>
-        </form>
-    </LoggedIn>
-</LoggedInContent>
+    <form class="login-form">
+        <div class="form-group">
+            <input type="text" class="form-control" placeholder="code" @bind="codeRedeem" @bind:event="oninput">
+        </div>
+        <Button class="my-1" Enabled="CodeEntered" OnPressed="Submit">
+            @if (processing)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            }
+            Redeem
+        </Button>
+    </form>
+</AccessLimited>
 
 @code {
     private bool processing;

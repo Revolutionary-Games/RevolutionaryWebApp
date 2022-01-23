@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Authorization
         protected abstract Task<bool> PerformAuthentication(HttpContext context);
 
         protected void OnAuthenticationSucceeded(HttpContext context, User user,
-            AuthenticationScopeRestriction restriction)
+            AuthenticationScopeRestriction restriction, Session session)
         {
             if (user == null)
                 throw new ArgumentException("can't set authenticated user to null");
@@ -47,6 +47,10 @@ namespace ThriveDevCenter.Server.Authorization
 
             context.User.AddIdentity(identity);
             context.Items[AppInfo.CurrentUserMiddlewareKey] = user;
+
+            // When using cookie authentication, there exist a session for the login, we store it here for a few
+            // special actions that use the knowledge of which of the user's session was used to authenticate
+            context.Items[AppInfo.CurrentUserSessionMiddleWareKey] = session;
             context.Items["AuthenticatedUserScopeRestriction"] = restriction;
         }
     }

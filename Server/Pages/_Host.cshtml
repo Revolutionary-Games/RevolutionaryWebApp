@@ -74,7 +74,7 @@ else
 
     private async Task<string> GenerateUserTokenJSON()
     {
-        var user = await Request.Cookies.GetUserFromSession(database,
+        var (user, _) = await Request.Cookies.GetUserFromSession(database,
             Request.HttpContext.Connection.RemoteIpAddress);
 
         UserInfo info = null;

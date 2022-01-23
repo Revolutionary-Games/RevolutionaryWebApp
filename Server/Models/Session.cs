@@ -1,17 +1,20 @@
 namespace ThriveDevCenter.Server.Models
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Net;
     using System.Text.Json.Serialization;
     using Shared.Converters;
     using Microsoft.EntityFrameworkCore;
     using Shared;
+    using Shared.Models;
+    using Shared.Notifications;
     using Utilities;
 
     [Index(nameof(UserId))]
     [Index(nameof(HashedId), IsUnique = true)]
-    public class Session : IContainsHashedLookUps
+    public class Session : IContainsHashedLookUps, IUpdateNotifications
     {
         [Key]
         [HashedLookUp]
@@ -22,7 +25,8 @@ namespace ThriveDevCenter.Server.Models
         public long? UserId { get; set; }
         public User User { get; set; }
 
-        // TODO: should move to a model where the Sessions are deleted when user is forced to logout
+        // TODO: remove this and also remove from the User model, we can now invalidate sessions without needing this
+        // variable
         public long SessionVersion { get; set; } = 1;
 
         public string SsoNonce { get; set; }
@@ -54,6 +58,32 @@ namespace ThriveDevCenter.Server.Models
         public bool IsCloseToExpiry()
         {
             return DateTime.UtcNow - LastUsed > TimeSpan.FromSeconds(AppInfo.SessionExpirySeconds - 3600 * 8);
+        }
+
+        public SessionDTO GetDTO(bool current)
+        {
+            return new()
+            {
+                Id = SelectByHashedProperty.DoubleHashAsIdStandIn(Id.ToString(), HashedId),
+                CreatedAt = StartedAt,
+                UpdatedAt = LastUsed,
+                LastUsedFrom = LastUsedFrom,
+                Current = current,
+            };
+        }
+
+        public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+        {
+            // Only user ID based session listening is possible, so if this session doesn't belong to an user
+            // we can skip sending any updates
+            if (UserId == null)
+                yield break;
+
+            yield return new Tuple<SerializedNotification, string>(new SessionListUpdated()
+            {
+                Item = GetDTO(false),
+                Type = entityState.ToChangeType(),
+            }, NotificationGroups.UserSessionsUpdatedPrefix + UserId);
         }
     }
 }

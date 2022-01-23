@@ -41,7 +41,7 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly bool useSecureCookies;
         private readonly bool localLoginEnabled;
 
-        public LoginController(ILogger<LoginController> logger, ApplicationDbContext database,
+        public LoginController(ILogger<LoginController> logger, NotificationsEnabledDb database,
             IConfiguration configuration, ITokenVerifier csrfVerifier,
             RedirectVerifier redirectVerifier, IPatreonAPI patreonAPI) : base(logger, database)
         {
@@ -453,8 +453,8 @@ namespace ThriveDevCenter.Server.Controllers
                     var parsedGroups = groups.SelectMany(groupList => groupList.Split(','));
 
                     if (!parsedGroups.Any(group =>
-                        DiscourseApiHelpers.CommunityDevBuildGroup.Equals(group) ||
-                        DiscourseApiHelpers.CommunityVIPGroup.Equals(group)))
+                            DiscourseApiHelpers.CommunityDevBuildGroup.Equals(group) ||
+                            DiscourseApiHelpers.CommunityVIPGroup.Equals(group)))
                     {
                         Logger.LogInformation(
                             "Not allowing login due to missing group membership for: {Email}, groups: {ParsedGroups}",
@@ -681,8 +681,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<IActionResult> FinishSsoLoginToAccount(User user,
-            Session session)
+        private async Task<IActionResult> FinishSsoLoginToAccount(User user, Session session)
         {
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
 

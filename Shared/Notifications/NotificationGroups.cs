@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string UserListUpdated = "Users";
         public const string UserUpdatedPrefix = "SUser_";
         public const string UserUpdatedPrefixAdminInfo = "SAUser_";
+        public const string UserSessionsUpdatedPrefix = "SUserSession_";
 
         public const string CLAListUpdated = "CLAs";
         public const string CLAUpdatedPrefix = "CLA_";

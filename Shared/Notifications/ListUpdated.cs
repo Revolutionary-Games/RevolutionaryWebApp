@@ -122,4 +122,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class DebugSymbolListUpdated : ListUpdated<DebugSymbolDTO>
     {
     }
+
+    public class SessionListUpdated : ListUpdated<SessionDTO>
+    {
+    }
 }
