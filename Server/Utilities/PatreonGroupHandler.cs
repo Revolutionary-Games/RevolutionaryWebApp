@@ -49,6 +49,9 @@ namespace ThriveDevCenter.Server.Utilities
                 username = user.Attributes.FirstName;
             }
 
+            // Ensure no trailing spaces in patron names
+            username = username?.Trim();
+
             if (string.IsNullOrWhiteSpace(username))
             {
                 // Fallback to using the id if everything failed...
@@ -90,7 +93,7 @@ namespace ThriveDevCenter.Server.Utilities
                 {
                     await database.LogEntries.AddAsync(new LogEntry()
                     {
-                        Message = "A patron is now in declined state. Setting as suspended"
+                        Message = "A patron is now in declined state. Setting as suspended",
                     });
 
                     patron.Suspended = true;
@@ -104,7 +107,7 @@ namespace ThriveDevCenter.Server.Utilities
             {
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
-                    Message = "A patron has changed their reward or name"
+                    Message = "A patron has changed their reward or name",
                 });
 
                 patron.RewardId = rewardId;
