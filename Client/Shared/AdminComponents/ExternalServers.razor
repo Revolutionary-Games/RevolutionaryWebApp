@@ -56,7 +56,7 @@
                         <td>@item.Priority</td>
                         <td>@item.Status</td>
                         <td>@item.PublicAddress</td>
-                        <td><RecentTimeShortener Time="@item.StatusLastChecked" /></td>
+                        <td><RecentTimeShortener Time="@item.StatusLastChecked" IncludeSeconds="@false" /></td>
                         <td>@item.ReservationType (@item.ReservedFor)</td>
                         <td>@($"{item.UsedDiskSpace}%")</td>
                         <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>

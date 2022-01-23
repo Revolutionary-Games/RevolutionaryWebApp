@@ -35,7 +35,7 @@
             <li><strong>Commit</strong>: @Data.CommitHash</li>
             <li><strong>Ref</strong>: @Data.RemoteRef</li>
             <li><strong>Status</strong>: @Data.Status</li>
-            <li><strong>Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Started At</strong>: <RecentTimeShortener Time="@Data.CreatedAt" /></li>
         </ul>
 
         <NavLink href="@($"/ci/{Data.CiProjectId}")" Match="NavLinkMatch.All">

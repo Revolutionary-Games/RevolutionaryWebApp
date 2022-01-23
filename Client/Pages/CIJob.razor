@@ -34,7 +34,7 @@
                 <strong>Succeeded</strong>:
                 @(Data.State == CIJobState.Finished ? Data.Succeeded.ToString() : "pending")
             </li>
-            <li><strong>Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Started At</strong>: <RecentTimeShortener Time="@Data.CreatedAt" /></li>
             <li>
                 <strong>Time Waiting For Server</strong>: @(Data.TimeWaitingForServer?.ToShortForm() ?? "still waiting")
             </li>

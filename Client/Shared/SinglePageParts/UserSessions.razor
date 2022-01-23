@@ -35,7 +35,7 @@ else
                     continue;
 
                 <tr @key="item.Id">
-                    <td><RecentTimeShortener Time="@item.UpdatedAt" /></td>
+                    <td><RecentTimeShortener Time="@item.UpdatedAt" IncludeSeconds="@false" /></td>
                     <td>
                         @item.LastUsedFrom
                         @if (item.Current)

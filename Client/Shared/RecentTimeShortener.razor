@@ -6,6 +6,9 @@
     public DateTime Time { get; set; }
 
     [Parameter]
+    public bool IncludeSeconds { get; set; } = true;
+
+    [Parameter]
     public TimeSpan ShortDisplayCutoff { get; set; } = TimeSpan.FromHours(20);
 
     private string FormatString
@@ -22,7 +25,7 @@
 
             if (now - Time < ShortDisplayCutoff)
             {
-                return "t";
+                return IncludeSeconds ? "T" : "t";
             }
 
             return "G";

@@ -36,7 +36,7 @@ else
                     </NavLink></th>
                     <td>@item.CommitHash</td>
                     <td>@item.RemoteRef</td>
-                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td><RecentTimeShortener Time="@item.CreatedAt" /></td>
                     <td class="@(item.Status == BuildStatus.Failed || item.Status == BuildStatus.GoingToFail ?
                                    "bg-danger" : "")">
                         @item.Status

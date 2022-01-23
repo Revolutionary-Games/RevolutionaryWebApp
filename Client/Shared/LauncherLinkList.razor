@@ -37,7 +37,7 @@ else
                     <td>
                         @if (item.LastConnection != null)
                         {
-                            <RecentTimeShortener Time="@item.LastConnection.Value" />
+                            <RecentTimeShortener Time="@item.LastConnection.Value" IncludeSeconds="@false" />
                         }
                         else
                         {
