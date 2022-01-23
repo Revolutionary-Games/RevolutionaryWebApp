@@ -24,7 +24,6 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<StackwalkToolController> logger;
         private readonly ApplicationDbContext database;
-        private readonly IConfiguration configuration;
         private readonly IBackgroundJobClient jobClient;
         private readonly ILocalTempFileLocks localTempFileLocks;
 
@@ -35,7 +34,6 @@ namespace ThriveDevCenter.Server.Controllers
         {
             this.logger = logger;
             this.database = database;
-            this.configuration = configuration;
             this.jobClient = jobClient;
             this.localTempFileLocks = localTempFileLocks;
 
