@@ -93,7 +93,7 @@ namespace ThriveDevCenter.Server.Utilities
                 {
                     await database.LogEntries.AddAsync(new LogEntry()
                     {
-                        Message = "A patron is now in declined state. Setting as suspended",
+                        Message = $"A patron ({patron.Id}) is now in declined state. Setting as suspended",
                     });
 
                     patron.Suspended = true;
@@ -107,7 +107,7 @@ namespace ThriveDevCenter.Server.Utilities
             {
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
-                    Message = "A patron has changed their reward or name",
+                    Message = $"A patron ({patron.Id}) has changed their reward or name",
                 });
 
                 patron.RewardId = rewardId;
