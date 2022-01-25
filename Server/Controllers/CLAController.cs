@@ -553,7 +553,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Is minor field is not filled in");
 
             if (signature.SignerIsMinor == true && (string.IsNullOrWhiteSpace(request.GuardianSignature) ||
-                request.GuardianSignature.Length < 3))
+                    request.GuardianSignature.Length < 3))
             {
                 return BadRequest("Missing guardian signature");
             }
@@ -563,7 +563,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Email is not verified");
 
             if (!signature.GithubSkipped && (string.IsNullOrWhiteSpace(signature.GithubAccount)
-                || string.IsNullOrEmpty(signature.GithubEmail) || !signature.GithubUserId.HasValue))
+                    || string.IsNullOrEmpty(signature.GithubEmail) || !signature.GithubUserId.HasValue))
             {
                 return BadRequest("Bad Github account status in signature");
             }
@@ -575,7 +575,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Bad format username");
 
             if (signature.SignerIsMinor == true && (string.IsNullOrWhiteSpace(signature.GuardianName) ||
-                request.GuardianName.Length < 3))
+                    request.GuardianName.Length < 3))
             {
                 return BadRequest("Missing guardian name");
             }

@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly ITokenVerifier csrfVerifier;
         private readonly NotificationsEnabledDb database;
 
-        public RegistrationController(ILogger<RegistrationController> logger,IRegistrationStatus configuration,
+        public RegistrationController(ILogger<RegistrationController> logger, IRegistrationStatus configuration,
             ITokenVerifier csrfVerifier, NotificationsEnabledDb database)
         {
             this.logger = logger;

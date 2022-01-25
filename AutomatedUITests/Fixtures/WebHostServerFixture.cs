@@ -58,7 +58,7 @@ namespace AutomatedUITests.Fixtures
             Host = CreateWebHost();
             RunInBackgroundThread(Host.Start);
             return Host.Services.GetRequiredService<IServer>().Features
-                .Get<IServerAddressesFeature>()
+                .Get<IServerAddressesFeature>()!
                 .Addresses.Single();
         }
 

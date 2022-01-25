@@ -448,7 +448,7 @@ namespace ThriveDevCenter.Server.Controllers
             }
 
             if (request.ExpectedDuration != null && (request.ExpectedDuration.Value < TimeSpan.FromMinutes(1) ||
-                request.ExpectedDuration.Value > TimeSpan.FromMinutes(650)))
+                    request.ExpectedDuration.Value > TimeSpan.FromMinutes(650)))
             {
                 return BadRequest($"Invalid expected duration, got value: {request.ExpectedDuration}");
             }

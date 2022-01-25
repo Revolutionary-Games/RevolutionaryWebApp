@@ -244,7 +244,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!project.Public)
             {
                 if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
-                    AuthenticationScopeRestriction.None))
+                        AuthenticationScopeRestriction.None))
                 {
                     return false;
                 }

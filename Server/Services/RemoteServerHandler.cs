@@ -90,7 +90,7 @@ namespace ThriveDevCenter.Server.Services
             if (toCheck.Count > 0)
             {
                 foreach (var status in await ec2Controller.GetInstanceStatuses(
-                    toCheck.AsEnumerable().Select(i => i.InstanceId).ToList(), cancellationToken))
+                             toCheck.AsEnumerable().Select(i => i.InstanceId).ToList(), cancellationToken))
                 {
                     var actualStatus = EC2Controller.InstanceStateToStatus(status);
 

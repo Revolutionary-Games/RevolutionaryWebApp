@@ -328,7 +328,7 @@ namespace ThriveDevCenter.Server.Controllers
         private bool RequireWriteAccess(out ActionResult resultIfFailed)
         {
             switch (HttpContext.HasAuthenticatedUserWithAccessExtended(UserAccessLevel.Developer,
-                AuthenticationScopeRestriction.LFSOnly))
+                        AuthenticationScopeRestriction.LFSOnly))
             {
                 case HttpContextAuthorizationExtensions.AuthenticationResult.NoUser:
                     resultIfFailed = RequestAuthResult();

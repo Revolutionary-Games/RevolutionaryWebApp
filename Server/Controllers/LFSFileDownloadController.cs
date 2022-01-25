@@ -34,7 +34,7 @@ namespace ThriveDevCenter.Server.Controllers
             var projectObject = await database.LfsProjects.FindAsync(project);
 
             if (projectObject == null || projectObject.Deleted || (!projectObject.Public &&
-                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer, null)))
+                    !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer, null)))
             {
                 return NotFound("Invalid project specified, or you don't have access. Logging in may help");
             }
