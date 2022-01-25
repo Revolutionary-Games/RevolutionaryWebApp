@@ -114,7 +114,7 @@ namespace AutomatedUITests.Fixtures
                     var applicationPath = typeof(TStartup).Assembly.Location;
 
                     // var applicationDirectory = Path.GetDirectoryName(applicationPath);
-                    var name = Path.ChangeExtension(applicationPath, ".StaticWebAssets.xml");
+                    var name = Path.ChangeExtension(applicationPath, ".staticwebassets.runtime.json");
 
                     var inMemoryConfiguration = new Dictionary<string, string>
                     {
