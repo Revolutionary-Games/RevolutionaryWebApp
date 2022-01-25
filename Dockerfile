@@ -1,5 +1,5 @@
-FROM fedora:33 as builder
-ENV DOTNET_VERSION "5.0"
+FROM fedora:35 as builder
+ENV DOTNET_VERSION "6.0"
 
 RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} && dnf clean all
 
@@ -21,8 +21,8 @@ RUN PATH="$PATH:/root/.dotnet/tools" dotnet ef migrations script --idempotent \
     --project Server/ThriveDevCenter.Server.csproj --context ApplicationDbContext \
     -o /migration.sql
 
-FROM fedora:33 as proxy
-ENV DOTNET_VERSION "5.0"
+FROM fedora:35 as proxy
+ENV DOTNET_VERSION "6.0"
 
 RUN dnf install -y --setopt=deltarpm=false nginx && dnf clean all
 
@@ -38,8 +38,8 @@ RUN ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["nginx"]
 
-FROM fedora:33 as application
-ENV DOTNET_VERSION "5.0"
+FROM fedora:35 as application
+ENV DOTNET_VERSION "6.0"
 
 RUN dnf install -y --setopt=deltarpm=false aspnetcore-runtime-${DOTNET_VERSION} postgresql && \
     dnf clean all

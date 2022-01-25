@@ -14,6 +14,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Hangfire;
     using Jobs;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Renci.SshNet.Common;

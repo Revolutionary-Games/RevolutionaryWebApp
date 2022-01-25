@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.EC2;
@@ -557,6 +558,8 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             {
                 Status = ServerStatus.Running,
                 ProvisionedFully = true,
+                PublicAddress = new IPAddress(1234),
+                SSHKeyFileName = "key.pem",
             };
 
             await database.ExternalServers.AddAsync(server1);
@@ -626,6 +629,8 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             {
                 Status = ServerStatus.Running,
                 ProvisionedFully = true,
+                PublicAddress = new IPAddress(1234),
+                SSHKeyFileName = "key.pem",
             };
 
             await database.ExternalServers.AddAsync(server1);
@@ -680,6 +685,8 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             {
                 Status = ServerStatus.Running,
                 ProvisionedFully = true,
+                PublicAddress = new IPAddress(1234),
+                SSHKeyFileName = "key.pem",
             };
 
             await database.ExternalServers.AddAsync(server1);
@@ -689,6 +696,8 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
                 Status = ServerStatus.Running,
                 ProvisionedFully = true,
                 Priority = 1,
+                PublicAddress = new IPAddress(5678),
+                SSHKeyFileName = "key.pem",
             };
 
             await database.ExternalServers.AddAsync(server2);

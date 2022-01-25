@@ -22,7 +22,7 @@ namespace ThriveDevCenter.Server.Jobs
 
         // TODO: put this somewhere more sensible
         public const string GeneralProvisionCommandPart =
-            "sudo dnf install -y podman curl git git-lfs gawk dotnet-runtime-5.0 && " +
+            "sudo dnf install -y podman curl git git-lfs gawk dotnet-runtime-6.0 && " +
             "git lfs install && sudo mkdir -p /executor_cache";
 
         protected bool CheckServerDataIsFineForProvisioning(long id, BaseServer server)

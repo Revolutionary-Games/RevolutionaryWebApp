@@ -12,9 +12,9 @@ namespace ThriveDevCenter.Client
     using Microsoft.JSInterop;
     using Modulight.Modules.Hosting;
     using Services;
-    using TextCopy;
     using ThriveDevCenter.Shared;
     using StardustDL.RazorComponents.Markdown;
+    using TextCopy;
 
     public class Program
     {
@@ -60,14 +60,14 @@ namespace ThriveDevCenter.Client
             builder.Services.AddSingleton<StaticHomePageNotice>();
 
             builder.Services.AddBlazoredModal();
-            builder.Services.InjectClipboard();
+            builder.Services.AddSingleton<IClipboard>(sp => new BlazorClipboard(sp.GetRequiredService<IJSRuntime>()));
 
             var app = builder.Build();
 
             // CSRF token is already needed here
             var tokenReader = app.Services.GetRequiredService<ICSRFTokenReader>();
 
-            // This is probably a bit unkosher, but this is the only place where we need to trigger these methods
+            // This is probably a bit non-kosher, but this is the only place where we need to trigger these methods
             var concreteReader = (CSRFTokenReader)tokenReader;
             await concreteReader.Read();
 

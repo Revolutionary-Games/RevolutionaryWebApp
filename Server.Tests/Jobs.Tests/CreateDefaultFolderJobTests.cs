@@ -1,12 +1,12 @@
 namespace ThriveDevCenter.Server.Tests.Jobs.Tests
 {
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Fixtures;
     using Hangfire;
     using Hangfire.Common;
     using Hangfire.States;
+    using Microsoft.EntityFrameworkCore;
     using Moq;
     using Server.Jobs;
     using Utilities;

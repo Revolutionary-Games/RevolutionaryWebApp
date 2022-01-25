@@ -148,15 +148,12 @@ function performPut(url, type, body) {
 }
 
 // TODO: when moving to .NET 6 update this to use a more efficient approach
-// The following 3 functions are mostly copied as-is from:
+// The following function is copied from:
 // https://www.meziantou.net/generating-and-downloading-a-file-in-a-blazor-webassembly-application.htm
+// Use it for .NET 6+
 function downloadFileFromBytes(filename, contentType, content) {
-    // Blazor marshall byte[] to a base64 string, so we first need to convert
-    // the string (content) to a Uint8Array to create the File
-    const data = base64DecToArr(content);
-
     // Create the URL
-    const file = new File([data], filename, {type: contentType});
+    const file = new File([content], filename, {type: contentType});
     const exportUrl = URL.createObjectURL(file);
 
     // Create the <a> element and click on it
@@ -170,30 +167,4 @@ function downloadFileFromBytes(filename, contentType, content) {
     // We don't need to keep the object url, let's release the memory
     // On Safari it seems you need to comment this line... (please let me know if you know why)
     URL.revokeObjectURL(exportUrl);
-}
-
-// Convert a base64 string to a Uint8Array. This is needed to create a blob object from the base64 string.
-// The code comes from: https://developer.mozilla.org/fr/docs/Web/API/WindowBase64/D%C3%A9coder_encoder_en_base64
-function b64ToUint6(nChr) {
-    return nChr > 64 && nChr < 91 ? nChr - 65 : nChr > 96 && nChr < 123 ? nChr - 71 : nChr > 47 && nChr < 58 ? nChr + 4 : nChr === 43 ? 62 : nChr === 47 ? 63 : 0;
-}
-
-function base64DecToArr(sBase64, nBlocksSize) {
-    const sB64Enc = sBase64.replace(/[^A-Za-z0-9+\/]/g, ""),
-        nInLen = sB64Enc.length,
-        nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2,
-        taBytes = new Uint8Array(nOutLen);
-
-    let nMod3, nMod4, nUint24 = 0, nOutIdx = 0, nInIdx = 0;
-    for (; nInIdx < nInLen; nInIdx++) {
-        nMod4 = nInIdx & 3;
-        nUint24 |= b64ToUint6(sB64Enc.charCodeAt(nInIdx)) << 18 - 6 * nMod4;
-        if (nMod4 === 3 || nInLen - nInIdx === 1) {
-            for (nMod3 = 0; nMod3 < 3 && nOutIdx < nOutLen; nMod3++, nOutIdx++) {
-                taBytes[nOutIdx] = nUint24 >>> (16 >>> nMod3 & 24) & 255;
-            }
-            nUint24 = 0;
-        }
-    }
-    return taBytes;
 }
