@@ -53,7 +53,7 @@ namespace ThriveDevCenter.Server.Controllers
             const string sameBrowserAdvice =
                 "Make sure to use the link in the same browser where you started email verification from.";
 
-            string redirect = null;
+            string redirect;
 
             switch (verifiedToken.Type)
             {

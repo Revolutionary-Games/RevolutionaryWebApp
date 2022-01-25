@@ -115,7 +115,7 @@ namespace ThriveDevCenter.Server.Controllers
                 case EventType.Create:
                 case EventType.Update:
                 {
-                    string rewardId = null;
+                    string rewardId;
 
                     try
                     {
