@@ -9,7 +9,7 @@ namespace ThriveDevCenter.Server.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("SET TimeZone='UTC'");
+            migrationBuilder.Sql("SET TimeZone='UTC';");
 
             migrationBuilder.DropForeignKey(
                 name: "fk_meeting_poll_votes_meeting_polls_poll_meeting_id_poll_id1",
@@ -806,7 +806,7 @@ namespace ThriveDevCenter.Server.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("SET TimeZone='UTC'");
+            migrationBuilder.Sql("SET TimeZone='UTC';");
 
             migrationBuilder.DropForeignKey(
                 name: "fk_meeting_poll_votes_meeting_polls_poll_temp_id",
