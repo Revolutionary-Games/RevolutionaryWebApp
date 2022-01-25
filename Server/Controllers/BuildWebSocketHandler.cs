@@ -77,8 +77,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 var database = serviceProvider.GetRequiredService<NotificationsEnabledDb>();
 
-                var job = await database.CiJobs.AsQueryable()
-                    .WhereHashed(nameof(CiJob.BuildOutputConnectKey), key.ToString())
+                var job = await database.CiJobs.WhereHashed(nameof(CiJob.BuildOutputConnectKey), key.ToString())
                     .AsAsyncEnumerable().FirstOrDefaultAsync(b => b.BuildOutputConnectKey == key);
 
                 if (job == null || job.State == CIJobState.Finished)
@@ -115,9 +114,9 @@ namespace ThriveDevCenter.Server.Controllers
         private async Task Run()
         {
             // Detect existing sections (if this is a reconnection)
-            sectionNumberCounter = await database.CiJobOutputSections.AsQueryable()
-                .Where(s => s.CiProjectId == job.CiProjectId && s.CiBuildId == job.CiBuildId &&
-                    s.CiJobId == job.CiJobId).MaxAsync(s => (long?)s.CiJobOutputSectionId) ?? 0;
+            sectionNumberCounter = await database.CiJobOutputSections.Where(s => s.CiProjectId == job.CiProjectId &&
+                    s.CiBuildId == job.CiBuildId && s.CiJobId == job.CiJobId)
+                .MaxAsync(s => (long?)s.CiJobOutputSectionId) ?? 0;
 
             if (sectionNumberCounter > 0)
             {
@@ -126,10 +125,10 @@ namespace ThriveDevCenter.Server.Controllers
                     sectionNumberCounter);
 
                 // Fetch the open section if there is one
-                activeSection = await database.CiJobOutputSections.AsQueryable()
-                    .Where(s => s.CiProjectId == job.CiProjectId && s.CiBuildId == job.CiBuildId &&
-                        s.CiJobId == job.CiJobId && s.Status == CIJobSectionStatus.Running)
-                    .OrderByDescending(s => s.CiJobOutputSectionId).FirstOrDefaultAsync();
+                activeSection = await database.CiJobOutputSections.Where(s => s.CiProjectId == job.CiProjectId &&
+                        s.CiBuildId == job.CiBuildId && s.CiJobId == job.CiJobId &&
+                        s.Status == CIJobSectionStatus.Running).OrderByDescending(s => s.CiJobOutputSectionId)
+                    .FirstOrDefaultAsync();
 
                 if (activeSection != null)
                 {

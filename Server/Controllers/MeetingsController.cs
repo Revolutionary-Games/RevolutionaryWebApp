@@ -48,8 +48,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.Meetings.AsQueryable().Where(m => m.ReadAccess <= access)
-                    .OrderBy(sortColumn, sortDirection);
+                query = database.Meetings.Where(m => m.ReadAccess <= access).OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -66,7 +65,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var access = GetCurrentUserAccess();
 
-            var meeting = await database.Meetings.AsQueryable().Where(m => m.Id == id && m.ReadAccess <= access)
+            var meeting = await database.Meetings.Where(m => m.Id == id && m.ReadAccess <= access)
                 .FirstOrDefaultAsync();
 
             if (meeting == null)
@@ -146,7 +145,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.MeetingMembers.AsQueryable().Where(m => m.MeetingId == meeting.Id)
+                query = database.MeetingMembers.Where(m => m.MeetingId == meeting.Id)
                     .OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
@@ -197,8 +196,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.MeetingPolls.AsQueryable().Where(m => m.MeetingId == meeting.Id)
-                    .OrderBy(sortColumn, sortDirection);
+                query = database.MeetingPolls.Where(m => m.MeetingId == meeting.Id).OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -363,7 +361,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             // TODO: check that there isn't a poll with the same title already
 
-            var previousPollId = await database.MeetingPolls.AsQueryable().Where(p => p.MeetingId == meeting.Id)
+            var previousPollId = await database.MeetingPolls.Where(p => p.MeetingId == meeting.Id)
                 .MaxAsync(p => (long?)p.PollId) ?? 0;
 
             var poll = new MeetingPoll
@@ -468,7 +466,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (request.JoinAccess > access)
                 return BadRequest("Can't create a meeting you couldn't join due to join restriction");
 
-            if (await database.Meetings.AsQueryable().FirstOrDefaultAsync(m => m.Name == request.Name) != null)
+            if (await database.Meetings.FirstOrDefaultAsync(m => m.Name == request.Name) != null)
                 return BadRequest("A meeting with that name already exists");
 
             var user = HttpContext.AuthenticatedUser();
@@ -521,8 +519,7 @@ namespace ThriveDevCenter.Server.Controllers
             }
 
             // Need to close still open polls
-            var pollsToClose = await database.MeetingPolls.AsQueryable()
-                .Where(p => p.MeetingId == meeting.Id && p.ClosedAt == null)
+            var pollsToClose = await database.MeetingPolls.Where(p => p.MeetingId == meeting.Id && p.ClosedAt == null)
                 .ToListAsync();
 
             foreach (var poll in pollsToClose)
@@ -577,15 +574,14 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private Task<MeetingMember> GetMeetingMember(long meetingId, long userId)
         {
-            return database.MeetingMembers.AsQueryable()
-                .FirstOrDefaultAsync(m => m.MeetingId == meetingId && m.UserId == userId);
+            return database.MeetingMembers.FirstOrDefaultAsync(m => m.MeetingId == meetingId && m.UserId == userId);
         }
 
         [NonAction]
         private Task<MeetingPollVotingRecord> GetPollVotingRecord(long meetingId, long pollId, long userId)
         {
-            return database.MeetingPollVotingRecords.AsQueryable()
-                .FirstOrDefaultAsync(r => r.MeetingId == meetingId && r.PollId == pollId && r.UserId == userId);
+            return database.MeetingPollVotingRecords.FirstOrDefaultAsync(r =>
+                r.MeetingId == meetingId && r.PollId == pollId && r.UserId == userId);
         }
     }
 }

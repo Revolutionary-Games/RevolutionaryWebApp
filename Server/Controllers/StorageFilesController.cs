@@ -95,8 +95,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 var currentId = currentItem?.Id;
                 var nextItem =
-                    await database.StorageItems.AsQueryable()
-                        .FirstOrDefaultAsync(i => i.ParentId == currentId && i.Name == part);
+                    await database.StorageItems.FirstOrDefaultAsync(i => i.ParentId == currentId && i.Name == part);
 
                 if (nextItem == null || !nextItem.IsReadableBy(user))
                 {
@@ -142,8 +141,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.StorageItems.AsQueryable()
-                    .Where(i => i.ParentId == parentId).ToAsyncEnumerable()
+                query = database.StorageItems.Where(i => i.ParentId == parentId).ToAsyncEnumerable()
                     .OrderByDescending(p => p.Ftype).ThenBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
@@ -185,8 +183,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (request.ParentFolder != null)
             {
-                parentFolder = await database.StorageItems.AsQueryable()
-                    .FirstOrDefaultAsync(i => i.Ftype == FileType.Folder && i.Id == request.ParentFolder.Value);
+                parentFolder = await database.StorageItems.FirstOrDefaultAsync(i =>
+                    i.Ftype == FileType.Folder && i.Id == request.ParentFolder.Value);
 
                 if (parentFolder == null)
                     return NotFound("Parent folder doesn't exist");
@@ -208,8 +206,8 @@ namespace ThriveDevCenter.Server.Controllers
             // Check for duplicate name
             var parentId = parentFolder?.Id;
 
-            if (await database.StorageItems.AsQueryable()
-                    .FirstOrDefaultAsync(i => i.ParentId == parentId && i.Name == request.Name) != null)
+            if (await database.StorageItems.FirstOrDefaultAsync(i =>
+                    i.ParentId == parentId && i.Name == request.Name) != null)
             {
                 return BadRequest("Item with that name already exists in the parent folder");
             }
@@ -357,8 +355,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (request.ParentFolder != null)
             {
-                parentFolder = await database.StorageItems.AsQueryable()
-                    .FirstOrDefaultAsync(i => i.Ftype == FileType.Folder && i.Id == request.ParentFolder.Value);
+                parentFolder = await database.StorageItems.FirstOrDefaultAsync(i =>
+                    i.Ftype == FileType.Folder && i.Id == request.ParentFolder.Value);
 
                 if (parentFolder == null)
                     return NotFound("Parent folder doesn't exist");
@@ -366,8 +364,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             // Check if the item already exists (a new version is being uploaded)
             var parentId = parentFolder?.Id;
-            var existingItem = await database.StorageItems.AsQueryable()
-                .FirstOrDefaultAsync(i => i.ParentId == parentId && i.Name == request.Name);
+            var existingItem =
+                await database.StorageItems.FirstOrDefaultAsync(i => i.ParentId == parentId && i.Name == request.Name);
 
             if (existingItem != null)
             {
@@ -690,8 +688,8 @@ namespace ThriveDevCenter.Server.Controllers
             version.BumpUpdatedAt();
 
             // Update StorageItem if the version is the latest
-            if (version.Version >= await database.StorageItemVersions.AsQueryable()
-                    .Where(s => s.StorageItemId == item.Id).MaxAsync(s => s.Version))
+            if (version.Version >= await database.StorageItemVersions.Where(s => s.StorageItemId == item.Id)
+                    .MaxAsync(s => s.Version))
             {
                 item.Size = version.StorageFile.Size;
                 item.BumpUpdatedAt();

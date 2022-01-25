@@ -23,7 +23,7 @@ namespace ThriveDevCenter.Server.Jobs
 
         public async Task Execute(CancellationToken cancellationToken)
         {
-            foreach (var id in await database.LfsProjects.AsQueryable().Where(p => p.Deleted != true).Select(p => p.Id)
+            foreach (var id in await database.LfsProjects.Where(p => p.Deleted != true).Select(p => p.Id)
                 .ToListAsync(cancellationToken))
             {
                 jobClient.Enqueue<RefreshLFSProjectFilesJob>(x => x.Execute(id, CancellationToken.None));

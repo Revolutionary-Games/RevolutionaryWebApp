@@ -51,7 +51,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.ExternalServers.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.ExternalServers.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {

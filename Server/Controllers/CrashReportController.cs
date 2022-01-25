@@ -138,7 +138,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpGet("{id:long}/logs")]
         public async Task<ActionResult<string>> GetLogs([Required] long id)
         {
-            var report = await database.CrashReports.AsQueryable().Where(r => r.Id == id).Select(
+            var report = await database.CrashReports.Where(r => r.Id == id).Select(
                     r => new
                     {
                         r.Logs,
@@ -207,8 +207,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             // Developers can view all items, others can only view public items so also limit the duplicates list
             var query = developer ?
-                database.CrashReports.AsQueryable().Where(r => r.DuplicateOfId == report.Id) :
-                database.CrashReports.AsQueryable().Where(r => r.Public == true && r.DuplicateOfId == report.Id);
+                database.CrashReports.Where(r => r.DuplicateOfId == report.Id) :
+                database.CrashReports.Where(r => r.Public == true && r.DuplicateOfId == report.Id);
 
             // A maximum limit is imposed on the number of returned rows to not return a ton of data
             var results = await query.Select(r => new { r.Id }).OrderByDescending(r => r.Id)

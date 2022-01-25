@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var cutoff = DateTime.UtcNow - AppInfo.StartedSigningTimeout;
 
-            var toTimeOut = await database.InProgressClaSignatures.AsQueryable().Where(s => s.CreatedAt < cutoff)
+            var toTimeOut = await database.InProgressClaSignatures.Where(s => s.CreatedAt < cutoff)
                 .ToListAsync(cancellationToken);
 
             if (toTimeOut.Count < 1)

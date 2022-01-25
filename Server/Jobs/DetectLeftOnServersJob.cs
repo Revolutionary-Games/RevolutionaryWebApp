@@ -41,9 +41,8 @@ namespace ThriveDevCenter.Server.Jobs
 
             bool jobNeeded = false;
 
-            foreach (var server in await database.ControlledServers.AsQueryable().Where(s =>
-                    s.UpdatedAt < cutoff && s.Status == ServerStatus.Running)
-                .ToListAsync(cancellationToken))
+            foreach (var server in await database.ControlledServers.Where(s =>
+                         s.UpdatedAt < cutoff && s.Status == ServerStatus.Running).ToListAsync(cancellationToken))
             {
                 logger.LogWarning("Server {Id} has been left running, last updated: {UpdatedAt}",
                     server.Id, server.UpdatedAt);

@@ -36,7 +36,7 @@ namespace ThriveDevCenter.Server.Utilities
             if (string.IsNullOrEmpty(email))
                 throw new Exception("Patron object has null email");
 
-            var patron = await database.Patrons.AsQueryable().FirstOrDefaultAsync(p => p.Email == email);
+            var patron = await database.Patrons.FirstOrDefaultAsync(p => p.Email == email);
 
             var username = user.Attributes.Vanity;
 

@@ -42,8 +42,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             var cutoff = DateTime.UtcNow - terminateStoppedServerDelay;
 
-            var servers = await database.ControlledServers.AsQueryable()
-                .Where(s => s.Status == ServerStatus.Stopped && s.UpdatedAt < cutoff).ToListAsync(cancellationToken);
+            var servers = await database.ControlledServers.Where(s => s.Status == ServerStatus.Stopped && s.UpdatedAt < cutoff).ToListAsync(cancellationToken);
 
             if (servers.Count < 1)
                 return;

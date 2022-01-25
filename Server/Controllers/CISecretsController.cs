@@ -43,7 +43,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.CiSecrets.AsQueryable().Where(s => s.CiProjectId == project.Id)
+                query = database.CiSecrets.Where(s => s.CiProjectId == project.Id)
                     .OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
@@ -65,15 +65,13 @@ namespace ThriveDevCenter.Server.Controllers
             if (project == null)
                 return NotFound();
 
-            if (await database.CiSecrets.AsQueryable()
-                .FirstOrDefaultAsync(s =>
-                    s.CiProjectId == project.Id && s.SecretName == request.SecretName &&
-                    s.UsedForBuildTypes == request.UsedForBuildTypes) != null)
+            if (await database.CiSecrets.FirstOrDefaultAsync(s => s.CiProjectId == project.Id &&
+                    s.SecretName == request.SecretName && s.UsedForBuildTypes == request.UsedForBuildTypes) != null)
             {
                 return BadRequest("A secret with the given name and type already exists");
             }
 
-            var previousSecretId = await database.CiSecrets.AsQueryable().Where(s => s.CiProjectId == project.Id)
+            var previousSecretId = await database.CiSecrets.Where(s => s.CiProjectId == project.Id)
                 .MaxAsync(s => (long?)s.CiSecretId) ?? 0;
 
             var user = HttpContext.AuthenticatedUser();
@@ -110,8 +108,8 @@ namespace ThriveDevCenter.Server.Controllers
             if (project == null)
                 return NotFound();
 
-            var item = await database.CiSecrets.AsQueryable()
-                .FirstOrDefaultAsync(s => s.CiProjectId == project.Id && s.CiSecretId == id);
+            var item = await database.CiSecrets.FirstOrDefaultAsync(s =>
+                s.CiProjectId == project.Id && s.CiSecretId == id);
 
             if (item == null)
                 return NotFound();

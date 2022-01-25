@@ -197,9 +197,9 @@ namespace ThriveDevCenter.Server.Jobs
 
             CISecretType jobSpecificSecretType = job.Build.IsSafe ? CISecretType.SafeOnly : CISecretType.UnsafeOnly;
 
-            var secrets = await Database.CiSecrets.AsQueryable()
-                .Where(s => s.CiProjectId == job.CiProjectId && (s.UsedForBuildTypes == jobSpecificSecretType ||
-                    s.UsedForBuildTypes == CISecretType.All)).ToListAsync(cancellationToken);
+            var secrets = await Database.CiSecrets.Where(s => s.CiProjectId == job.CiProjectId &&
+                    (s.UsedForBuildTypes == jobSpecificSecretType || s.UsedForBuildTypes == CISecretType.All))
+                .ToListAsync(cancellationToken);
 
             await PerformServerCleanUpIfNeeded(server, sshAccess);
 

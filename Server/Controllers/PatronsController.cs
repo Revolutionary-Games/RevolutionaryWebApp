@@ -39,7 +39,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.Patrons.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.Patrons.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {

@@ -54,30 +54,26 @@ namespace ThriveDevCenter.Server.Models
 
         public static Task<StorageItem> GetDevBuildsFolder(ApplicationDbContext database)
         {
-            return database.StorageItems.AsQueryable()
-                .FirstAsync(i => i.ParentId == null && i.Name == "DevBuild files");
+            return database.StorageItems.FirstAsync(i => i.ParentId == null && i.Name == "DevBuild files");
         }
 
         public static async Task<StorageItem> GetDehydratedFolder(ApplicationDbContext database)
         {
             var devbuilds = await GetDevBuildsFolder(database);
 
-            return await database.StorageItems.AsQueryable()
-                .FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Objects");
+            return await database.StorageItems.FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Objects");
         }
 
         public static async Task<StorageItem> GetDevBuildBuildsFolder(ApplicationDbContext database)
         {
             var devbuilds = await GetDevBuildsFolder(database);
 
-            return await database.StorageItems.AsQueryable()
-                .FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Dehydrated");
+            return await database.StorageItems.FirstAsync(i => i.ParentId == devbuilds.Id && i.Name == "Dehydrated");
         }
 
         public static Task<StorageItem> GetSymbolsFolder(ApplicationDbContext database)
         {
-            return database.StorageItems.AsQueryable()
-                .FirstAsync(i => i.ParentId == null && i.Name == "Symbols");
+            return database.StorageItems.FirstAsync(i => i.ParentId == null && i.Name == "Symbols");
         }
 
         public static async Task<StorageItem> FindByPath(ApplicationDbContext database, string path)
@@ -104,8 +100,7 @@ namespace ThriveDevCenter.Server.Models
 
                 var currentId = currentItem?.Id;
                 var nextItem =
-                    await database.StorageItems.AsQueryable()
-                        .FirstOrDefaultAsync(i => i.ParentId == currentId && i.Name == part);
+                    await database.StorageItems.FirstOrDefaultAsync(i => i.ParentId == currentId && i.Name == part);
 
                 currentItem = nextItem ?? throw new ArgumentException($"Path part \"{part}\" doesn't exist");
             }
@@ -132,20 +127,20 @@ namespace ThriveDevCenter.Server.Models
 
         public Task<StorageItemVersion> GetHighestVersion(ApplicationDbContext database)
         {
-            return database.StorageItemVersions.AsQueryable().Where(v => v.StorageItemId == Id)
+            return database.StorageItemVersions.Where(v => v.StorageItemId == Id)
                 .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
         }
 
         public Task<StorageItemVersion> GetHighestUploadedVersion(ApplicationDbContext database)
         {
-            return database.StorageItemVersions.AsQueryable().Include(v => v.StorageFile)
+            return database.StorageItemVersions.Include(v => v.StorageFile)
                 .Where(v => v.StorageItemId == Id && v.Uploading != true)
                 .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
         }
 
         public Task<StorageItemVersion> GetLowestUploadedVersion(ApplicationDbContext database)
         {
-            return database.StorageItemVersions.AsQueryable().Include(v => v.StorageFile)
+            return database.StorageItemVersions.Include(v => v.StorageFile)
                 .Where(v => v.StorageItemId == Id && v.Uploading != true)
                 .OrderBy(v => v.Version).FirstOrDefaultAsync();
         }

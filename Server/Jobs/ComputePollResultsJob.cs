@@ -33,8 +33,7 @@ namespace ThriveDevCenter.Server.Jobs
                 throw new Exception("Can't calculate results for a poll that is not closed");
 
             // This will work until we have more than hundreds of thousands of votes per poll
-            var votes = await database.MeetingPollVotes.AsQueryable()
-                .Where(v => v.MeetingId == poll.MeetingId && v.PollId == poll.PollId)
+            var votes = await database.MeetingPollVotes.Where(v => v.MeetingId == poll.MeetingId && v.PollId == poll.PollId)
                 .ToListAsync(cancellationToken);
 
             poll.CalculateResults(votes);

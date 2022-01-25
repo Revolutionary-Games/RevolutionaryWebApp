@@ -25,8 +25,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var cutoff = DateTime.UtcNow - AppInfo.OldMultipartUploadThreshold;
 
-            var items = await database.InProgressMultipartUploads.AsQueryable()
-                .Where(i => i.UpdatedAt < cutoff && i.Finished)
+            var items = await database.InProgressMultipartUploads.Where(i => i.UpdatedAt < cutoff && i.Finished)
                 .ToListAsync(cancellationToken);
 
             if (items.Count < 1)

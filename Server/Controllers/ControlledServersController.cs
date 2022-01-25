@@ -51,7 +51,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.ControlledServers.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.ControlledServers.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -321,8 +321,8 @@ namespace ThriveDevCenter.Server.Controllers
         {
             FailIfNotConfigured();
 
-            var servers = await database.ControlledServers.AsQueryable()
-                .Where(s => s.Status != ServerStatus.Terminated).ToListAsync();
+            var servers = await database.ControlledServers.Where(s => s.Status != ServerStatus.Terminated)
+                .ToListAsync();
 
             if (servers.Count < 1)
                 return Ok("No servers exist");
@@ -374,8 +374,8 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<IActionResult> RemoveTerminated()
         {
-            var servers = await database.ControlledServers.AsQueryable()
-                .Where(s => s.Status == ServerStatus.Terminated).ToListAsync();
+            var servers = await database.ControlledServers.Where(s => s.Status == ServerStatus.Terminated)
+                .ToListAsync();
 
             if (servers.Count < 1)
                 return Ok("No terminated servers exist");

@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Jobs
             if (job.State == CIJobState.Finished)
                 return;
 
-            var outputSections = await database.CiJobOutputSections.AsQueryable().CountAsync(s =>
+            var outputSections = await database.CiJobOutputSections.CountAsync(s =>
                     s.CiProjectId == ciProjectId && s.CiBuildId == ciBuildId && s.CiJobId == ciJobId,
                 cancellationToken);
 

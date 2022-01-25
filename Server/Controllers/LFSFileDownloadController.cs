@@ -39,7 +39,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound("Invalid project specified, or you don't have access. Logging in may help");
             }
 
-            var file = await database.ProjectGitFiles.AsQueryable().FirstOrDefaultAsync(p =>
+            var file = await database.ProjectGitFiles.FirstOrDefaultAsync(p =>
                 p.LfsProjectId == projectObject.Id && p.Name == name && p.Path == path);
 
             if (file == null)
@@ -48,8 +48,9 @@ namespace ThriveDevCenter.Server.Controllers
             if (string.IsNullOrEmpty(file.LfsOid))
                 return BadRequest("File is non-lfs file");
 
-            var lfsObject = await database.LfsObjects.AsQueryable()
-                .FirstOrDefaultAsync(o => o.LfsProjectId == projectObject.Id && o.LfsOid == file.LfsOid);
+            var lfsObject =
+                await database.LfsObjects.FirstOrDefaultAsync(o =>
+                    o.LfsProjectId == projectObject.Id && o.LfsOid == file.LfsOid);
 
             if (lfsObject == null)
                 return BadRequest("Required LFS object doesn't exist");

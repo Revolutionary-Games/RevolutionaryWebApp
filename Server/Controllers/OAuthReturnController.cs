@@ -64,8 +64,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (result != null)
                 return result;
 
-            var signature = await Database.InProgressClaSignatures.AsQueryable()
-                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+            var signature = await Database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
 
             if (signature == null)
                 return NotFound("No active signature to authorize against");

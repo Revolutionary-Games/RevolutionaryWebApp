@@ -47,7 +47,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.Users.AsQueryable().OrderBy(sortColumn, sortDirection, new[] { "UserName" });
+                query = database.Users.OrderBy(sortColumn, sortDirection, new[] { "UserName" });
             }
             catch (ArgumentException e)
             {
@@ -86,7 +86,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost("usernames")]
         public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
         {
-            var users = await database.Users.AsQueryable().Where(u => ids.Contains(u.Id))
+            var users = await database.Users.Where(u => ids.Contains(u.Id))
                 .Select(u => new Tuple<long, string>(u.Id, u.UserName)).ToListAsync();
 
             Dictionary<long, string> result = new();
@@ -179,7 +179,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.Sessions.AsQueryable().Where(s => s.UserId == id).OrderBy(sortColumn, sortDirection);
+                query = database.Sessions.Where(s => s.UserId == id).OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -209,7 +209,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!admin && actingUser.Id != user.Id)
                 return NotFound();
 
-            var sessions = await database.Sessions.AsQueryable().Where(s => s.UserId == id).ToListAsync();
+            var sessions = await database.Sessions.Where(s => s.UserId == id).ToListAsync();
 
             if (sessions.Count < 1)
                 return Ok();
@@ -249,7 +249,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (requestSession == null)
                 return Forbid("This action can only be performed with an active session");
 
-            var sessions = await database.Sessions.AsQueryable().Where(s => s.UserId == id).ToListAsync();
+            var sessions = await database.Sessions.Where(s => s.UserId == id).ToListAsync();
 
             if (sessions.Count < 1)
                 return Ok();
@@ -281,7 +281,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!admin && actingUser.Id != user.Id)
                 return NotFound();
 
-            var sessions = await database.Sessions.AsQueryable().Where(s => s.UserId == id).ToListAsync();
+            var sessions = await database.Sessions.Where(s => s.UserId == id).ToListAsync();
 
             Session session = null;
 

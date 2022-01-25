@@ -18,8 +18,8 @@ namespace ThriveDevCenter.Server.Jobs
 
         public async Task Execute(CancellationToken cancellationToken)
         {
-            bool needToRun = await database.Users.AsQueryable()
-                .Where(u => u.LfsToken != null && u.HashedLfsToken == null).AnyAsync(cancellationToken);
+            bool needToRun = await database.Users.Where(u => u.LfsToken != null && u.HashedLfsToken == null)
+                .AnyAsync(cancellationToken);
 
             if (needToRun)
             {

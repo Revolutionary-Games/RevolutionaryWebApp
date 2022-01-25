@@ -64,7 +64,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpGet("{slug}")]
         public async Task<ActionResult<LFSProjectInfo>> GetBasicInfo([Required] string slug)
         {
-            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug && p.Deleted != true)
+            var project = await database.LfsProjects.Where(p => p.Slug == slug && p.Deleted != true)
                 .FirstOrDefaultAsync();
 
             if (project == null)
@@ -90,7 +90,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (request == null || !request.SupportsBasicTransfer)
                 return CreateErrorResult("Only basic transfer adapter is supported");
 
-            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug && p.Deleted != true)
+            var project = await database.LfsProjects.Where(p => p.Slug == slug && p.Deleted != true)
                 .FirstOrDefaultAsync();
 
             if (project?.Public != true)
@@ -191,13 +191,13 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var project = await database.LfsProjects.AsQueryable().Where(p => p.Slug == slug && p.Deleted != true)
+            var project = await database.LfsProjects.Where(p => p.Slug == slug && p.Deleted != true)
                 .FirstOrDefaultAsync();
 
             if (project == null)
                 return NotFound();
 
-            var existingObject = await database.LfsObjects.AsQueryable()
+            var existingObject = await database.LfsObjects
                 .Where(o => o.LfsProjectId == project.Id && o.LfsOid == verifiedToken.Oid).FirstOrDefaultAsync();
 
             if (existingObject != null)
@@ -390,7 +390,7 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private async ValueTask<LFSResponse.LFSObject> HandleDownload(LfsProject project, LFSRequest.LFSObject obj)
         {
-            var existingObject = await database.LfsObjects.AsQueryable()
+            var existingObject = await database.LfsObjects
                 .Where(o => o.LfsOid == obj.Oid && o.LfsProjectId == project.Id).Include(o => o.LfsProject)
                 .FirstOrDefaultAsync();
 
@@ -436,7 +436,7 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private async ValueTask<LFSResponse.LFSObject> HandleUpload(LfsProject project, LFSRequest.LFSObject obj)
         {
-            var existingObject = await database.LfsObjects.AsQueryable()
+            var existingObject = await database.LfsObjects
                 .Where(o => o.LfsOid == obj.Oid && o.LfsProjectId == project.Id).Include(o => o.LfsProject)
                 .FirstOrDefaultAsync();
 

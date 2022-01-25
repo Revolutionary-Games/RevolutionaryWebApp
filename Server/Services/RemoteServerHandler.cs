@@ -39,11 +39,10 @@ namespace ThriveDevCenter.Server.Services
 
             servers =
                 new Lazy<Task<List<ControlledServer>>>(() =>
-                    database.ControlledServers.AsQueryable().OrderBy(s => s.Id).ToListAsync());
+                    database.ControlledServers.OrderBy(s => s.Id).ToListAsync());
             externalServers =
                 new Lazy<Task<List<ExternalServer>>>(() =>
-                    database.ExternalServers.AsQueryable().OrderByDescending(s => s.Priority).ThenBy(s => s.Id)
-                        .ToListAsync());
+                    database.ExternalServers.OrderByDescending(s => s.Priority).ThenBy(s => s.Id).ToListAsync());
         }
 
         public bool NewServersAdded { get; private set; }

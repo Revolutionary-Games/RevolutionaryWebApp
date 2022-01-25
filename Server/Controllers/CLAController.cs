@@ -59,7 +59,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.Clas.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.Clas.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -89,7 +89,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpGet("active")]
         public async Task<ActionResult<CLADTO>> GetActive()
         {
-            var cla = await database.Clas.AsQueryable().Where(c => c.Active).FirstOrDefaultAsync();
+            var cla = await database.Clas.Where(c => c.Active).FirstOrDefaultAsync();
 
             if (cla == null)
                 return NotFound();
@@ -112,7 +112,7 @@ namespace ThriveDevCenter.Server.Controllers
             // Other active CLAs need to become inactive if new one is added
             if (newCla.Active)
             {
-                foreach (var cla in await database.Clas.AsQueryable().Where(c => c.Active).ToListAsync())
+                foreach (var cla in await database.Clas.Where(c => c.Active).ToListAsync())
                 {
                     cla.Active = false;
                     inactivated = true;
@@ -155,7 +155,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Already active");
 
             // Other active CLAs need to become inactive
-            foreach (var otherCla in await database.Clas.AsQueryable().Where(c => c.Active).ToListAsync())
+            foreach (var otherCla in await database.Clas.Where(c => c.Active).ToListAsync())
             {
                 otherCla.Active = false;
                 logger.LogInformation("CLA {Id} is being made inactive due to activating {Id2}", otherCla.Id,
@@ -201,7 +201,7 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<List<CLASignatureSearchResult>>> SearchSignatures([Required] long id,
             string email, string githubAccount)
         {
-            IQueryable<ClaSignature> query = database.ClaSignatures.AsQueryable().Where(s => s.ClaId == id);
+            IQueryable<ClaSignature> query = database.ClaSignatures.Where(s => s.ClaId == id);
 
             bool allowEmailInResult = false;
             bool allowGithubInResult = false;
@@ -252,7 +252,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.ClaSignatures.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.ClaSignatures.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -277,7 +277,7 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<List<string>>> BulkCheckSignatures(
             [Required] [FromBody] BulkCLACheckRequest request)
         {
-            var cla = await database.Clas.AsQueryable().Where(c => c.Active).FirstOrDefaultAsync();
+            var cla = await database.Clas.Where(c => c.Active).FirstOrDefaultAsync();
 
             if (cla == null)
                 return BadRequest("There is no active CLA to perform the check with");
@@ -298,8 +298,8 @@ namespace ThriveDevCenter.Server.Controllers
                 case CLACheckRequestType.Email:
                     foreach (var email in rawList)
                     {
-                        if (await database.ClaSignatures.AsQueryable().FirstOrDefaultAsync(s =>
-                            s.ValidUntil == null && s.ClaId == cla.Id && s.Email == email) != null)
+                        if (await database.ClaSignatures.FirstOrDefaultAsync(s =>
+                                s.ValidUntil == null && s.ClaId == cla.Id && s.Email == email) != null)
                         {
                             found.Add(email);
                         }
@@ -309,8 +309,8 @@ namespace ThriveDevCenter.Server.Controllers
                 case CLACheckRequestType.GithubUsername:
                     foreach (var github in rawList)
                     {
-                        if (await database.ClaSignatures.AsQueryable().FirstOrDefaultAsync(s =>
-                            s.ValidUntil == null && s.ClaId == cla.Id && s.GithubAccount == github) != null)
+                        if (await database.ClaSignatures.FirstOrDefaultAsync(s =>
+                                s.ValidUntil == null && s.ClaId == cla.Id && s.GithubAccount == github) != null)
                         {
                             found.Add(github);
                         }
@@ -378,8 +378,8 @@ namespace ThriveDevCenter.Server.Controllers
                 // the sign button again
 
                 // But add a new one if missing
-                var signature = await database.InProgressClaSignatures.AsQueryable()
-                    .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+                var signature =
+                    await database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
                 if (signature == null || signature.ClaId != id)
                 {
                     if (signature != null)
@@ -420,8 +420,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (session == null)
                 return this.WorkingForbid("You don't have an active session");
 
-            var signature = await database.InProgressClaSignatures.AsQueryable()
-                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+            var signature = await database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
 
             if (signature == null)
                 return NotFound();
@@ -437,8 +436,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (session == null)
                 return this.WorkingForbid("You don't have an active session");
 
-            var signature = await database.InProgressClaSignatures.AsQueryable()
-                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+            var signature = await database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
 
             if (signature == null)
                 return NotFound();
@@ -462,8 +460,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (session == null)
                 return this.WorkingForbid("You don't have an active session");
 
-            var signature = await database.InProgressClaSignatures.AsQueryable()
-                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+            var signature = await database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
 
             if (signature == null)
                 return NotFound();
@@ -536,8 +533,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (session == null)
                 return this.WorkingForbid("You don't have an active session");
 
-            var signature = await database.InProgressClaSignatures.AsQueryable()
-                .FirstOrDefaultAsync(s => s.SessionId == session.Id);
+            var signature = await database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
 
             if (signature == null)
                 return NotFound();
@@ -597,9 +593,9 @@ namespace ThriveDevCenter.Server.Controllers
             var userId = user?.Id;
 
             // Fail if there's already exactly this signature created
-            if (await database.ClaSignatures.AsQueryable()
-                .FirstOrDefaultAsync(s => s.ClaId == cla.Id && s.Email == signature.Email &&
-                    s.GithubAccount == signature.GithubAccount && s.DeveloperUsername == signature.DeveloperUsername &&
+            if (await database.ClaSignatures.FirstOrDefaultAsync(s => s.ClaId == cla.Id && s.Email == signature.Email &&
+                    s.GithubAccount == signature.GithubAccount &&
+                    s.DeveloperUsername == signature.DeveloperUsername &&
                     s.UserId == userId && s.ValidUntil == null) != null)
             {
                 return BadRequest(

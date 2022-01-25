@@ -94,9 +94,8 @@ namespace ThriveDevCenter.Server.Jobs
 
         private Task<StorageItem> FindFolder(string name, StorageItem parent, CancellationToken cancellationToken)
         {
-            return database.StorageItems.AsQueryable()
-                .FirstOrDefaultAsync(i => i.Name == name && i.Ftype == FileType.Folder && i.Parent == parent,
-                    cancellationToken);
+            return database.StorageItems.FirstOrDefaultAsync(
+                i => i.Name == name && i.Ftype == FileType.Folder && i.Parent == parent, cancellationToken);
         }
 
         private async Task<StorageItem> CreateDefaultFolder(string name, StorageItem parent, FileAccess read,

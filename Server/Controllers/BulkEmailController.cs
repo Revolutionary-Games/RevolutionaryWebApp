@@ -49,7 +49,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.SentBulkEmails.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.SentBulkEmails.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -68,7 +68,7 @@ namespace ThriveDevCenter.Server.Controllers
             // Rate limit to just a few per day
             var cutoff = DateTime.UtcNow - AppInfo.BulkEmailRateLimitInterval;
 
-            var count = await database.SentBulkEmails.AsQueryable().CountAsync(b => b.CreatedAt >= cutoff);
+            var count = await database.SentBulkEmails.CountAsync(b => b.CreatedAt >= cutoff);
 
             if (count >= AppInfo.MaxBulkEmailsPerInterval)
             {
@@ -111,7 +111,7 @@ namespace ThriveDevCenter.Server.Controllers
             };
 
             // Make sure count is still good
-            if (count != await database.SentBulkEmails.AsQueryable().CountAsync(b => b.CreatedAt >= cutoff))
+            if (count != await database.SentBulkEmails.CountAsync(b => b.CreatedAt >= cutoff))
             {
                 return Problem("The number of sent bulk emails changed while processing, please try again");
             }
@@ -141,10 +141,10 @@ namespace ThriveDevCenter.Server.Controllers
             IEnumerable<string> recipients;
 
             Lazy<Task<List<string>>> devCenterUsers =
-                new(() => database.Users.AsQueryable().Select(u => u.Email).ToListAsync());
+                new(() => database.Users.Select(u => u.Email).ToListAsync());
 
             Lazy<Task<List<string>>> devCenterDevelopers =
-                new(() => database.Users.AsQueryable().Where(u => u.Developer == true).Select(u => u.Email)
+                new(() => database.Users.Where(u => u.Developer == true).Select(u => u.Email)
                     .ToListAsync());
 
             switch (request.RecipientsMode)
@@ -183,7 +183,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 case BulkEmailIgnoreMode.CLASigned:
                 {
-                    var activeCLA = await database.Clas.AsQueryable().FirstOrDefaultAsync(c => c.Active);
+                    var activeCLA = await database.Clas.FirstOrDefaultAsync(c => c.Active);
 
                     if (activeCLA == null)
                     {
@@ -191,7 +191,7 @@ namespace ThriveDevCenter.Server.Controllers
                         break;
                     }
 
-                    var ignoreData = new HashSet<string>(await database.ClaSignatures.AsQueryable()
+                    var ignoreData = new HashSet<string>(await database.ClaSignatures
                         .Where(s => s.ClaId == activeCLA.Id && s.ValidUntil == null).Select(s => s.Email)
                         .ToListAsync());
                     recipients = recipients.Where(r => !ignoreData.Contains(r));

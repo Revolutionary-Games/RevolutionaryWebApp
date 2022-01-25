@@ -31,7 +31,7 @@ namespace ThriveDevCenter.Server.Jobs
 
         public async Task Execute(CancellationToken cancellationToken)
         {
-            var ciJobsNeedingActions = await database.CiJobs.AsQueryable().Where(j => j.State != CIJobState.Finished)
+            var ciJobsNeedingActions = await database.CiJobs.Where(j => j.State != CIJobState.Finished)
                 .ToListAsync(cancellationToken);
 
             await serverHandler.CheckServerStatuses(cancellationToken);

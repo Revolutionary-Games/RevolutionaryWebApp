@@ -39,18 +39,17 @@ namespace ThriveDevCenter.Server.Controllers
         [ResponseCache(Duration = 300)]
         public async Task<ActionResult<DevBuildsStatisticsDTO>> Get()
         {
-            var buildsSize = await database.DevBuilds.AsQueryable()
-                .Include(b => b.StorageItem).SumAsync(b =>
-                    b.StorageItem.Size.HasValue ? Convert.ToInt64(b.StorageItem.Size.Value) : 0L);
+            var buildsSize = await database.DevBuilds.Include(b => b.StorageItem).SumAsync(b =>
+                b.StorageItem.Size.HasValue ? Convert.ToInt64(b.StorageItem.Size.Value) : 0L);
 
-            var dehydratedSize = await database.DehydratedObjects.AsQueryable().Include(d => d.StorageItem)
+            var dehydratedSize = await database.DehydratedObjects.Include(d => d.StorageItem)
                 .SumAsync(b => b.StorageItem.Size.HasValue ? Convert.ToInt64(b.StorageItem.Size.Value) : 0L);
 
-            var totalBuilds = await database.DevBuilds.AsQueryable().CountAsync();
+            var totalBuilds = await database.DevBuilds.CountAsync();
 
             DateTime? botdCreated = null;
 
-            foreach (var build in await database.DevBuilds.AsQueryable().Where(b => b.BuildOfTheDay).ToListAsync())
+            foreach (var build in await database.DevBuilds.Where(b => b.BuildOfTheDay).ToListAsync())
             {
                 if (botdCreated == null || build.CreatedAt > botdCreated)
                 {
@@ -62,15 +61,15 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (totalBuilds > 0)
             {
-                latestBuild = await database.DevBuilds.AsQueryable().MaxAsync(b => b.CreatedAt);
+                latestBuild = await database.DevBuilds.MaxAsync(b => b.CreatedAt);
             }
 
             var result = new DevBuildsStatisticsDTO
             {
                 TotalBuilds = totalBuilds,
-                TotalDownloads = await database.DevBuilds.AsQueryable().SumAsync(b => b.Downloads),
-                DehydratedFiles = await database.DehydratedObjects.AsQueryable().CountAsync(),
-                ImportantBuilds = await database.DevBuilds.AsQueryable().CountAsync(b => b.Important),
+                TotalDownloads = await database.DevBuilds.SumAsync(b => b.Downloads),
+                DehydratedFiles = await database.DehydratedObjects.CountAsync(),
+                ImportantBuilds = await database.DevBuilds.CountAsync(b => b.Important),
                 BOTDUpdated = botdCreated,
                 LatestBuild = latestBuild,
                 DevBuildsSize = buildsSize,
@@ -91,12 +90,10 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.DevBuilds.AsQueryable()
-                    .Where(b =>
-                        type == DevBuildSearchType.BOTD ?
-                            b.BuildOfTheDay :
-                            (type == DevBuildSearchType.NonAnonymous ? !b.Anonymous : b.Anonymous)
-                    ).OrderBy(sortColumn, sortDirection);
+                query = database.DevBuilds.Where(b => type == DevBuildSearchType.BOTD ?
+                    b.BuildOfTheDay :
+                    (type == DevBuildSearchType.NonAnonymous ? !b.Anonymous : b.Anonymous)
+                ).OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -130,7 +127,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (build == null)
                 return NotFound();
 
-            return await database.DevBuilds.AsQueryable().Where(b => b.BuildHash == build.BuildHash && b.Id != build.Id)
+            return await database.DevBuilds.Where(b => b.BuildHash == build.BuildHash && b.Id != build.Id)
                 .Select(b => b.Id).ToListAsync();
         }
 
@@ -357,14 +354,13 @@ namespace ThriveDevCenter.Server.Controllers
         [NonAction]
         private Task<List<DevBuild>> GetSiblingBuilds(DevBuild devBuild)
         {
-            return database.DevBuilds.AsQueryable()
-                .Where(b => b.BuildHash == devBuild.BuildHash && b.Branch == devBuild.Branch && b.Id != devBuild.Id)
-                .ToListAsync();
+            return database.DevBuilds.Where(b =>
+                b.BuildHash == devBuild.BuildHash && b.Branch == devBuild.Branch && b.Id != devBuild.Id).ToListAsync();
         }
 
         private async Task RemoveAllBOTDStatuses()
         {
-            foreach (var build in await database.DevBuilds.AsQueryable().Where(b => b.BuildOfTheDay).ToListAsync())
+            foreach (var build in await database.DevBuilds.Where(b => b.BuildOfTheDay).ToListAsync())
             {
                 logger.LogInformation("Unmarking build {Id} being the BOTD", build.Id);
                 build.BuildOfTheDay = false;

@@ -74,15 +74,14 @@ namespace ThriveDevCenter.Server.Controllers
             if (anonymous)
             {
                 query =
-                    database.DevBuilds.AsQueryable().Where(b =>
+                    database.DevBuilds.Where(b =>
                         b.BuildHash == request.BuildHash && b.Platform == request.BuildPlatform);
             }
             else
             {
                 query =
-                    database.DevBuilds.AsQueryable().Where(b =>
-                        b.BuildHash == request.BuildHash && b.Platform == request.BuildPlatform &&
-                        b.Anonymous == false);
+                    database.DevBuilds.Where(b => b.BuildHash == request.BuildHash &&
+                        b.Platform == request.BuildPlatform && b.Anonymous == false);
             }
 
             var existing = await query.Include(b => b.StorageItem).FirstOrDefaultAsync();
@@ -157,10 +156,8 @@ namespace ThriveDevCenter.Server.Controllers
             if (request.BuildHash.Contains('/'))
                 return BadRequest("The hash contains an invalid character");
 
-            var existing = await database.DevBuilds.AsQueryable()
-                .Include(d => d.StorageItem)
-                .Include(d => d.DehydratedObjects).FirstOrDefaultAsync(d =>
-                    d.BuildHash == request.BuildHash && d.Platform == request.BuildPlatform);
+            var existing = await database.DevBuilds.Include(d => d.StorageItem).Include(d => d.DehydratedObjects)
+                .FirstOrDefaultAsync(d => d.BuildHash == request.BuildHash && d.Platform == request.BuildPlatform);
 
             if (anonymous)
             {
@@ -207,8 +204,8 @@ namespace ThriveDevCenter.Server.Controllers
 
                 var fileName = $"{request.BuildHash}_{sanitizedPlatform}.7z";
 
-                var storageItem = await database.StorageItems.AsQueryable()
-                    .FirstOrDefaultAsync(i => i.Name == fileName && i.Parent == folder);
+                var storageItem =
+                    await database.StorageItems.FirstOrDefaultAsync(i => i.Name == fileName && i.Parent == folder);
 
                 if (storageItem == null)
                 {
@@ -250,8 +247,9 @@ namespace ThriveDevCenter.Server.Controllers
             // Apply objects
 
             var dehydrated = await request.RequiredDehydratedObjects.ToAsyncEnumerable().SelectAwait(hash =>
-                new ValueTask<DehydratedObject>(database.DehydratedObjects.AsQueryable()
-                    .FirstOrDefaultAsync(d => d.Sha3 == hash))).ToListAsync();
+                    new ValueTask<DehydratedObject>(
+                        database.DehydratedObjects.FirstOrDefaultAsync(d => d.Sha3 == hash)))
+                .ToListAsync();
 
             if (dehydrated.Any(item => item == null))
                 return BadRequest("One or more dehydrated object hashes doesn't exist");
@@ -328,7 +326,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             foreach (var obj in request.Objects)
             {
-                var dehydrated = await database.DehydratedObjects.AsQueryable().Include(d => d.StorageItem)
+                var dehydrated = await database.DehydratedObjects.Include(d => d.StorageItem)
                     .FirstOrDefaultAsync(d => d.Sha3 == obj.Sha3);
 
                 if (dehydrated != null && await dehydrated.IsUploaded(database))
@@ -480,7 +478,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (build != null)
             {
                 // Update build hash if this is the latest version
-                var highestVersion = await database.StorageItemVersions.AsQueryable()
+                var highestVersion = await database.StorageItemVersions
                     .Where(s => s.StorageItemId == build.StorageItemId).MaxAsync(s => s.Version);
 
                 if (file.StorageItemVersions.Max(s => s.Version) >= highestVersion)

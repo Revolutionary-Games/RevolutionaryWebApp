@@ -56,7 +56,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.DebugSymbols.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.DebugSymbols.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -80,8 +80,8 @@ namespace ThriveDevCenter.Server.Controllers
                     return BadRequest("Symbol path should not start with '/'");
             }
 
-            var existing = await database.DebugSymbols.AsQueryable()
-                .Where(d => request.SymbolPaths.Contains(d.RelativePath)).Select(d => d.RelativePath).ToListAsync();
+            var existing = await database.DebugSymbols.Where(d => request.SymbolPaths.Contains(d.RelativePath))
+                .Select(d => d.RelativePath).ToListAsync();
 
             return new DebugSymbolOfferResponse
                 { Upload = request.SymbolPaths.Where(s => !existing.Contains(s)).ToList() };

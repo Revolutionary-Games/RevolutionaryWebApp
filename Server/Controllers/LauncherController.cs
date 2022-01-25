@@ -264,7 +264,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             Response.ContentType = "application/json";
 
-            var query = database.DevBuilds.AsQueryable().Where(b => b.BuildHash == request.BuildHash);
+            var query = database.DevBuilds.Where(b => b.BuildHash == request.BuildHash);
 
             if (!string.IsNullOrEmpty(request.Platform))
             {
@@ -302,11 +302,11 @@ namespace ThriveDevCenter.Server.Controllers
             switch (request.Type)
             {
                 case DevBuildFindByTypeForm.BuildType.BuildOfTheDay:
-                    build = await database.DevBuilds.AsQueryable()
-                        .FirstOrDefaultAsync(b => b.Platform == request.Platform && b.BuildOfTheDay);
+                    build = await database.DevBuilds.FirstOrDefaultAsync(b =>
+                        b.Platform == request.Platform && b.BuildOfTheDay);
                     break;
                 case DevBuildFindByTypeForm.BuildType.Latest:
-                    build = await database.DevBuilds.AsQueryable()
+                    build = await database.DevBuilds
                         .Where(b => b.Platform == request.Platform && (b.Verified || !b.Anonymous))
                         .FirstOrDefaultAsync();
                     break;

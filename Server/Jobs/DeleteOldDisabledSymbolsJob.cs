@@ -32,7 +32,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var cutoff = DateTime.UtcNow - AppInfo.InactiveSymbolKeepDuration;
 
-            var symbols = await database.DebugSymbols.AsQueryable().Where(s => !s.Active && s.UpdatedAt < cutoff)
+            var symbols = await database.DebugSymbols.Where(s => !s.Active && s.UpdatedAt < cutoff)
                 .Include(s => s.StoredInItem).ThenInclude(i => i.StorageItemVersions).ThenInclude(v => v.StorageFile)
                 .ToListAsync(cancellationToken);
 
