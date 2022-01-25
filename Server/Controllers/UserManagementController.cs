@@ -223,6 +223,11 @@ namespace ThriveDevCenter.Server.Controllers
                     TargetUserId = user.Id,
                 });
             }
+            else
+            {
+                logger.LogInformation("User ({Email}) deleted their sessions from {RemoteIpAddress}", user.Email,
+                    HttpContext.Connection.RemoteIpAddress);
+            }
 
             database.Sessions.RemoveRange(sessions);
             await database.SaveChangesAsync();
@@ -258,6 +263,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             database.Sessions.RemoveRange(sessions);
             await database.SaveChangesAsync();
+
+            logger.LogInformation("User ({Email}) deleted their other sessions than {Id} from {RemoteIpAddress}",
+                user.Email, requestSession.Id, HttpContext.Connection.RemoteIpAddress);
 
             await InvalidateSessions(sessions.Select(s => s.Id));
             return Ok();
@@ -307,6 +315,11 @@ namespace ThriveDevCenter.Server.Controllers
                     PerformedById = actingUser.Id,
                     TargetUserId = user.Id,
                 });
+            }
+            else
+            {
+                logger.LogInformation("User ({Email}) deleted their session {Id} from {RemoteIpAddress}",
+                    user.Email, session.Id, HttpContext.Connection.RemoteIpAddress);
             }
 
             database.Sessions.Remove(session);
