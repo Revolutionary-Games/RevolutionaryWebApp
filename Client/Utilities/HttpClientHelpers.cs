@@ -1,7 +1,6 @@
 namespace ThriveDevCenter.Client.Utilities
 {
     using System.Text.Json;
-    using ThriveDevCenter.Shared.Converters;
 
     public static class HttpClientHelpers
     {
@@ -12,6 +11,11 @@ namespace ThriveDevCenter.Client.Utilities
         ///   serializers the server configures
         /// </summary>
         /// <returns>The configured options</returns>
+        /// <remarks>
+        ///   <para>
+        ///     TODO: now that .net6 is here and there's a default TimeSpan converter this is not really needed anymore
+        ///   </para>
+        /// </remarks>
         public static JsonSerializerOptions GetOptionsWithSerializers()
         {
             return Options;
@@ -21,8 +25,6 @@ namespace ThriveDevCenter.Client.Utilities
         {
             var result = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
-            // TODO: this is also separately configured in NotificationHandler
-            result.Converters.Add(new TimeSpanConverter());
             return result;
         }
     }
