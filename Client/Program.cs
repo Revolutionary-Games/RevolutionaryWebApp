@@ -60,7 +60,7 @@ namespace ThriveDevCenter.Client
             builder.Services.AddSingleton<StaticHomePageNotice>();
 
             builder.Services.AddBlazoredModal();
-            builder.Services.AddSingleton<IClipboard>(sp => new BlazorClipboard(sp.GetRequiredService<IJSRuntime>()));
+            builder.Services.InjectClipboard();
 
             var app = builder.Build();
 
