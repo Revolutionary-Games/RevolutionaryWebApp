@@ -310,6 +310,27 @@ emacs /etc/dnf/automatic.conf
 systemctl enable --now dnf-automatic-install.timer
 ```
 
+### Extra tools
+
+To get better release binaries some extra tools are needed.
+
+Runtime relinking will reduce the runtime size clients need to
+download. It should enable if you run the following:
+```sh
+dotnet workload install wasm-tools
+```
+
+Though it seems only to apply when using AOT compilation. To enable that
+edit the client `.csproj` to include:
+
+```xml
+<PropertyGroup>
+  <RunAOTCompilation>true</RunAOTCompilation>
+</PropertyGroup>
+```
+
+Note that this increases the app download size but should help performance.
+
 ## Maintenance
 
 ### Out of sync sequences
