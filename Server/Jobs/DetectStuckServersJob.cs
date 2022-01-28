@@ -34,9 +34,9 @@ namespace ThriveDevCenter.Server.Jobs
 
             var cutoff = DateTime.UtcNow - TimeSpan.FromHours(2);
 
-            foreach (var server in await database.ControlledServers.AsQueryable().Where(s =>
-                    s.UpdatedAt < cutoff && s.Status != ServerStatus.Stopped && s.Status != ServerStatus.Terminated)
-                .ToListAsync(cancellationToken))
+            foreach (var server in await database.ControlledServers.Where(s =>
+                         s.UpdatedAt < cutoff && s.Status != ServerStatus.Stopped &&
+                         s.Status != ServerStatus.Terminated).ToListAsync(cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 

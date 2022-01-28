@@ -52,8 +52,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var cutoff = DateTime.UtcNow - AppInfo.OldMultipartUploadThreshold;
 
-            var items = await database.InProgressMultipartUploads.AsQueryable()
-                .Where(i => i.UpdatedAt < cutoff && !i.Finished)
+            var items = await database.InProgressMultipartUploads.Where(i => i.UpdatedAt < cutoff && !i.Finished)
                 .ToListAsync(cancellationToken);
 
             if (items.Count < 1)
@@ -75,8 +74,8 @@ namespace ThriveDevCenter.Server.Jobs
 
         private async Task QueryAndCancelMultipartUploadsFromRemoteStorage(CancellationToken cancellationToken)
         {
-            var activeUploads = await database.InProgressMultipartUploads.AsQueryable()
-                .Where(i => !i.Finished).ToListAsync(cancellationToken);
+            var activeUploads = await database.InProgressMultipartUploads.Where(i => !i.Finished)
+                .ToListAsync(cancellationToken);
 
             var uploads = await remoteStorage.ListMultipartUploads(cancellationToken);
 

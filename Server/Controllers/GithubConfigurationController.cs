@@ -65,7 +65,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.GithubAutoComments.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.GithubAutoComments.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {

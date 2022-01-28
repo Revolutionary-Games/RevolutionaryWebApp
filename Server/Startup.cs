@@ -27,7 +27,6 @@ namespace ThriveDevCenter.Server
     using Models;
     using Modulight.Modules.Hosting;
     using Services;
-    using Shared.Converters;
     using StackExchange.Redis;
     using StardustDL.RazorComponents.Markdown;
     using Utilities;
@@ -108,11 +107,10 @@ namespace ThriveDevCenter.Server
             // Caching used for expensive API endpoints
             services.AddResponseCaching(options => { options.UseCaseSensitivePaths = true; });
 
-            services.AddControllersWithViews().AddJsonOptions(options =>
+            services.AddControllersWithViews().AddJsonOptions(_ =>
             {
                 // Custom serializers for now also need to be configured in NotificationHelpers.ReceiveNotification
                 // As well as in the Client project
-                options.JsonSerializerOptions.Converters.Add(new TimeSpanConverter());
 
                 // This doesn't seem to do anything... So manual deserialize on client needs case insensitive mode on
                 // options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -270,7 +268,6 @@ namespace ThriveDevCenter.Server
 
             if (env.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
                 app.UseWebAssemblyDebugging();
             }
             else

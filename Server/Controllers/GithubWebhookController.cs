@@ -116,15 +116,14 @@ namespace ThriveDevCenter.Server.Controllers
                     bool matched = false;
 
                     // Detect if this triggers any builds
-                    foreach (var project in await database.CiProjects.AsQueryable().Where(p =>
-                        p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
-                        p.RepositoryFullName == data.Repository.FullName).ToListAsync())
+                    foreach (var project in await database.CiProjects.Where(p =>
+                                 p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
+                                 p.RepositoryFullName == data.Repository.FullName).ToListAsync())
                     {
                         matched = true;
 
                         // Detect next id
-                        var previousBuildId = await database.CiBuilds.AsQueryable()
-                            .Where(b => b.CiProjectId == project.Id)
+                        var previousBuildId = await database.CiBuilds.Where(b => b.CiProjectId == project.Id)
                             .MaxAsync(b => (long?)b.CiBuildId) ?? 0;
 
                         var build = new CiBuild()
@@ -164,9 +163,9 @@ namespace ThriveDevCenter.Server.Controllers
                     !data.IsClosedPullRequest, CancellationToken.None));
 
                 // Detect if this PR is for any of our repos
-                foreach (var project in await database.CiProjects.AsQueryable().Where(p =>
-                    p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
-                    p.RepositoryFullName == data.Repository.FullName).ToListAsync())
+                foreach (var project in await database.CiProjects.Where(p =>
+                             p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
+                             p.RepositoryFullName == data.Repository.FullName).ToListAsync())
                 {
                     matched = true;
 
@@ -192,8 +191,7 @@ namespace ThriveDevCenter.Server.Controllers
                             var headRef = GitRunHelpers.GenerateRefForPullRequest(data.PullRequest.Number);
 
                             // Detect next id
-                            var previousBuildId = await database.CiBuilds.AsQueryable()
-                                .Where(b => b.CiProjectId == project.Id)
+                            var previousBuildId = await database.CiBuilds.Where(b => b.CiProjectId == project.Id)
                                 .MaxAsync(b => (long?)b.CiBuildId) ?? 0;
 
                             var build = new CiBuild()

@@ -38,8 +38,7 @@ namespace ThriveDevCenter.Server.Jobs
                 return false;
             }
 
-            Settings = await Database.PatreonSettings.AsQueryable().OrderBy(p => p.Id)
-                .FirstOrDefaultAsync(cancellationToken);
+            Settings = await Database.PatreonSettings.OrderBy(p => p.Id).FirstOrDefaultAsync(cancellationToken);
 
             if (Settings == null)
             {

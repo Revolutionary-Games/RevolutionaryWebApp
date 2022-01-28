@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Server.Jobs
 
         public async Task Execute(string githubUsername, CancellationToken cancellationToken)
         {
-            var pullRequests = await database.GithubPullRequests.AsQueryable()
+            var pullRequests = await database.GithubPullRequests
                 .Where(p => p.ClaSigned != true && p.AuthorUsername == githubUsername).ToListAsync(cancellationToken);
 
             foreach (var pullRequest in pullRequests)

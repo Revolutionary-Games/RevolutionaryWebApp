@@ -28,10 +28,9 @@ namespace ThriveDevCenter.Server.Jobs
             var cutoff = DateTime.UtcNow - serverMaintenanceInterval;
 
             // Only one server is scheduled for maintenance at once to avoid all being unavailable for job running
-            var serverToMaintain = await database.ControlledServers.AsQueryable()
-                .Where(s => !s.WantsMaintenance && s.Status != ServerStatus.Terminated && s.LastMaintenance < cutoff)
-                .OrderBy(s => s.LastMaintenance)
-                .FirstOrDefaultAsync(cancellationToken);
+            var serverToMaintain = await database.ControlledServers.Where(s =>
+                    !s.WantsMaintenance && s.Status != ServerStatus.Terminated && s.LastMaintenance < cutoff)
+                .OrderBy(s => s.LastMaintenance).FirstOrDefaultAsync(cancellationToken);
 
             if (serverToMaintain == null)
                 return;

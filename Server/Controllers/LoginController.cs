@@ -239,7 +239,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             await PerformPreLoginChecks(login.CSRF);
 
-            var user = await Database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
+            var user = await Database.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
 
             if (user == null || string.IsNullOrEmpty(user.PasswordHash) ||
                 !Passwords.CheckPassword(user.PasswordHash, login.Password))
@@ -518,7 +518,7 @@ namespace ThriveDevCenter.Server.Controllers
                 if (email == null)
                     throw new NullReferenceException();
 
-                var patron = await Database.Patrons.AsQueryable().Where(p => p.Email == email).FirstOrDefaultAsync();
+                var patron = await Database.Patrons.Where(p => p.Email == email).FirstOrDefaultAsync();
 
                 if (patron == null)
                 {
@@ -532,8 +532,7 @@ namespace ThriveDevCenter.Server.Controllers
                         $"Your Patron status is currently suspended. Reason: {patron.SuspendedReason}"));
                 }
 
-                var patreonSettings =
-                    await Database.PatreonSettings.AsQueryable().OrderBy(s => s.Id).FirstOrDefaultAsync();
+                var patreonSettings = await Database.PatreonSettings.OrderBy(s => s.Id).FirstOrDefaultAsync();
 
                 if (patreonSettings == null)
                 {
@@ -582,7 +581,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             Logger.LogInformation("Logging in SSO login user with email: {Email}", email);
 
-            var user = await Database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == email);
+            var user = await Database.Users.FirstOrDefaultAsync(u => u.Email == email);
 
             if (user == null)
             {
@@ -667,8 +666,7 @@ namespace ThriveDevCenter.Server.Controllers
                     "Trying to change username for {Email} from {Username} to {Username2} " +
                     "due to SSO login with new name", email, user.UserName, username);
 
-                var conflictingUser =
-                    await Database.Users.AsQueryable().FirstOrDefaultAsync(u => u.UserName == username);
+                var conflictingUser = await Database.Users.FirstOrDefaultAsync(u => u.UserName == username);
 
                 if (conflictingUser != null)
                 {

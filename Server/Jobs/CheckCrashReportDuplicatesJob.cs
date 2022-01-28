@@ -64,7 +64,7 @@ namespace ThriveDevCenter.Server.Jobs
             // TODO: should this use the first 75% of the stack lines to find duplicates (but at least 3)?
 
             // TODO: if this is a public report, it should not become a duplicate of a private report
-            var potentiallyDuplicateOf = await database.CrashReports.AsQueryable().Where(r =>
+            var potentiallyDuplicateOf = await database.CrashReports.Where(r =>
                     r.CondensedCallstack != null && r.Id != report.Id && r.State != ReportState.Duplicate &&
                     r.CondensedCallstack.Contains(report.CondensedCallstack))
                 .OrderBy(r => r.Id).FirstOrDefaultAsync(cancellationToken);

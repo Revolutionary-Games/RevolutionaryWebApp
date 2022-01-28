@@ -76,7 +76,7 @@ namespace ThriveDevCenter.Server.Utilities
 
             return dataProtector.Protect(JsonSerializer.Serialize(this, new JsonSerializerOptions()
             {
-                IgnoreNullValues = true
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             }));
         }
     }

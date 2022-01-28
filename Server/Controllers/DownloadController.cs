@@ -62,8 +62,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (version != null)
             {
                 // Access to specific version
-                var wantedVersion = await database.StorageItemVersions.AsQueryable()
-                    .Include(v => v.StorageFile)
+                var wantedVersion = await database.StorageItemVersions.Include(v => v.StorageFile)
                     .Where(v => v.StorageItem == item && v.Version == version).FirstOrDefaultAsync();
 
                 if (wantedVersion == null || wantedVersion.Id != latestUploaded.Id)
@@ -98,9 +97,9 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<ActionResult<PatreonCredits>> DownloadPatronCredits()
         {
-            var patrons = await database.Patrons.AsQueryable().Where(p => p.Suspended != true).ToListAsync();
+            var patrons = await database.Patrons.Where(p => p.Suspended != true).ToListAsync();
 
-            var patreonSettings = await database.PatreonSettings.AsQueryable().OrderBy(s => s.Id).FirstOrDefaultAsync();
+            var patreonSettings = await database.PatreonSettings.OrderBy(s => s.Id).FirstOrDefaultAsync();
 
             if (patreonSettings == null)
                 return Problem("Patreon settings not found");

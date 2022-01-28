@@ -4,10 +4,10 @@ namespace ThriveDevCenter.Server.Controllers
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Authorization;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Models;
@@ -53,7 +53,7 @@ namespace ThriveDevCenter.Server.Controllers
             const string sameBrowserAdvice =
                 "Make sure to use the link in the same browser where you started email verification from.";
 
-            string redirect = null;
+            string redirect;
 
             switch (verifiedToken.Type)
             {

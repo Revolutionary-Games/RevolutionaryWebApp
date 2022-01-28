@@ -99,7 +99,7 @@ now.
 ## Running
 
 The server computer needs to the following packages
-aspnetcore-runtime-5.0 (at the time of writing), nginx, and git
+aspnetcore-runtime-6.0 (at the time of writing), nginx, and git
 installed. Or you can alternatively have a different proxy
 server than nginx. Additionally of course the database and redis can be ran on
 the same server.
@@ -286,7 +286,7 @@ First prepare the server to deploy with all the software.
 
 For CentOS / Fedora you can install things with:
 ```sh
-dnf install aspnetcore-runtime-5.0 git postgresql-server redis nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget
+dnf install aspnetcore-runtime-6.0 git postgresql-server redis nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget
 ```
 Note that some packages are optional but better for a full production setup.
 
@@ -309,6 +309,27 @@ Edit auto config to have just security upgrades (and enable it):
 emacs /etc/dnf/automatic.conf
 systemctl enable --now dnf-automatic-install.timer
 ```
+
+### Extra tools
+
+To get better release binaries some extra tools are needed.
+
+Runtime relinking will reduce the runtime size clients need to
+download. It should enable if you run the following:
+```sh
+dotnet workload install wasm-tools
+```
+
+Though it seems only to apply when using AOT compilation. To enable that
+edit the client `.csproj` to include:
+
+```xml
+<PropertyGroup>
+  <RunAOTCompilation>true</RunAOTCompilation>
+</PropertyGroup>
+```
+
+Note that this increases the app download size but should help performance.
 
 ## Maintenance
 

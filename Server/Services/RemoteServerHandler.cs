@@ -39,11 +39,10 @@ namespace ThriveDevCenter.Server.Services
 
             servers =
                 new Lazy<Task<List<ControlledServer>>>(() =>
-                    database.ControlledServers.AsQueryable().OrderBy(s => s.Id).ToListAsync());
+                    database.ControlledServers.OrderBy(s => s.Id).ToListAsync());
             externalServers =
                 new Lazy<Task<List<ExternalServer>>>(() =>
-                    database.ExternalServers.AsQueryable().OrderByDescending(s => s.Priority).ThenBy(s => s.Id)
-                        .ToListAsync());
+                    database.ExternalServers.OrderByDescending(s => s.Priority).ThenBy(s => s.Id).ToListAsync());
         }
 
         public bool NewServersAdded { get; private set; }
@@ -91,7 +90,7 @@ namespace ThriveDevCenter.Server.Services
             if (toCheck.Count > 0)
             {
                 foreach (var status in await ec2Controller.GetInstanceStatuses(
-                    toCheck.AsEnumerable().Select(i => i.InstanceId).ToList(), cancellationToken))
+                             toCheck.AsEnumerable().Select(i => i.InstanceId).ToList(), cancellationToken))
                 {
                     var actualStatus = EC2Controller.InstanceStateToStatus(status);
 

@@ -39,7 +39,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.LogEntries.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.LogEntries.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -62,7 +62,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.AdminActions.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.AdminActions.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -85,7 +85,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.ActionLogEntries.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.ActionLogEntries.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {

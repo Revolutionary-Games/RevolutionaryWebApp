@@ -14,6 +14,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Hangfire;
     using Jobs;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Renci.SshNet.Common;
@@ -50,7 +51,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.ExternalServers.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.ExternalServers.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {

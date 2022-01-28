@@ -42,8 +42,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = Entities.AsQueryable().Where(p => p.Deleted == deleted)
-                    .OrderBy(sortColumn, sortDirection);
+                query = Entities.Where(p => p.Deleted == deleted).OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {

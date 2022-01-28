@@ -38,9 +38,8 @@ namespace ThriveDevCenter.Server.Jobs
             // Delete the data that depends on the report first
 
             // Any reports that are a duplicate of this need to be modified
-            var duplicates = await database.CrashReports.AsQueryable().Where(r => r.DuplicateOfId == report.Id)
-                .OrderBy(r => r.Id)
-                .ToListAsync(cancellationToken);
+            var duplicates = await database.CrashReports.Where(r => r.DuplicateOfId == report.Id)
+                .OrderBy(r => r.Id).ToListAsync(cancellationToken);
 
             if (duplicates.Count > 1)
             {

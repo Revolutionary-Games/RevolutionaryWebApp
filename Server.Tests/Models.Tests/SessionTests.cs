@@ -1,9 +1,9 @@
 namespace ThriveDevCenter.Server.Tests.Models.Tests
 {
     using System;
-    using System.Linq;
     using System.Threading.Tasks;
     using Fixtures;
+    using Microsoft.EntityFrameworkCore;
     using Server.Models;
     using Server.Utilities;
     using Xunit;

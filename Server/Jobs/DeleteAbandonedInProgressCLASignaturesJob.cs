@@ -25,7 +25,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var cutoff = DateTime.UtcNow - AppInfo.DeleteAbandonedInProgressSignaturesAfter;
 
-            var items = await database.InProgressClaSignatures.AsQueryable().Where(i => i.UpdatedAt < cutoff)
+            var items = await database.InProgressClaSignatures.Where(i => i.UpdatedAt < cutoff)
                 .ToListAsync(cancellationToken);
 
             if (items.Count < 1)

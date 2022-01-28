@@ -94,7 +94,7 @@ namespace ThriveDevCenter.Server.Jobs
             if (oldStatus.HasValue)
                 return oldStatus.Value;
 
-            var active = await database.Clas.AsQueryable().FirstOrDefaultAsync(c => c.Active);
+            var active = await database.Clas.FirstOrDefaultAsync(c => c.Active);
 
             if (active == null)
             {
@@ -102,7 +102,7 @@ namespace ThriveDevCenter.Server.Jobs
                 return null;
             }
 
-            return await database.ClaSignatures.AsQueryable().FirstOrDefaultAsync(s =>
+            return await database.ClaSignatures.FirstOrDefaultAsync(s =>
                 s.ValidUntil == null && s.ClaId == active.Id && s.GithubAccount == username) != null;
         }
     }

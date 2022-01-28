@@ -51,8 +51,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.ProjectGitFiles.AsQueryable()
-                    .Where(p => p.LfsProjectId == item.Id && p.Path == path).ToAsyncEnumerable()
+                query = database.ProjectGitFiles.Where(p => p.LfsProjectId == item.Id && p.Path == path)
+                    .ToAsyncEnumerable()
                     .OrderByDescending(p => p.Ftype).ThenBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
@@ -77,7 +77,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (item == null || item.Deleted)
                 return NotFound();
 
-            var objects = await database.LfsObjects.AsQueryable().Where(l => l.LfsProjectId == item.Id)
+            var objects = await database.LfsObjects.Where(l => l.LfsProjectId == item.Id)
                 .OrderByDescending(l => l.Id).ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetDTO());
@@ -110,8 +110,8 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Project name is too long or too short");
 
             // Check for duplicate data
-            if (await database.LfsProjects.AsQueryable().Where(p => p.Name == project.Name).AnyAsync() ||
-                await database.LfsProjects.AsQueryable().Where(p => p.Slug == project.Slug).AnyAsync())
+            if (await database.LfsProjects.Where(p => p.Name == project.Name).AnyAsync() ||
+                await database.LfsProjects.Where(p => p.Slug == project.Slug).AnyAsync())
             {
                 return BadRequest("Project name or slug is already in-use");
             }
@@ -146,7 +146,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!project.Public)
             {
                 if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
-                    AuthenticationScopeRestriction.None))
+                        AuthenticationScopeRestriction.None))
                 {
                     return false;
                 }

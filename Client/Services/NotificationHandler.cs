@@ -12,7 +12,6 @@ namespace ThriveDevCenter.Client.Services
     using Microsoft.Extensions.Logging;
     using Shared;
     using ThriveDevCenter.Shared;
-    using ThriveDevCenter.Shared.Converters;
     using ThriveDevCenter.Shared.Models;
     using ThriveDevCenter.Shared.Notifications;
     using Utilities;
@@ -318,9 +317,9 @@ namespace ThriveDevCenter.Client.Services
 
                 try
                 {
-                    // TODO: unify this with HttpClientHelpers
+                    // TODO: unify this with HttpClientHelpers and Startup code
                     var notification = JsonSerializer.Deserialize<SerializedNotification>(json,
-                        new JsonSerializerOptions() { Converters = { converter, new TimeSpanConverter() } });
+                        new JsonSerializerOptions() { Converters = { converter } });
 
                     await ForwardNotification(notification);
                 }

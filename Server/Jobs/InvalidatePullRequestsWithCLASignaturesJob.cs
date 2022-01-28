@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Jobs
                 .Where(pr => pr.ClaSigned == true)
                 .ToListAsync(cancellationToken);
 
-            var comments = await database.GithubAutoComments.AsQueryable().Where(c =>
+            var comments = await database.GithubAutoComments.Where(c =>
                 c.Enabled && c.Condition == AutoCommentCondition.IfCLABecomesInvalid).ToListAsync(cancellationToken);
 
             foreach (var pullRequest in pullRequests)

@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly ITokenVerifier csrfVerifier;
         private readonly NotificationsEnabledDb database;
 
-        public RegistrationController(ILogger<RegistrationController> logger,IRegistrationStatus configuration,
+        public RegistrationController(ILogger<RegistrationController> logger, IRegistrationStatus configuration,
             ITokenVerifier csrfVerifier, NotificationsEnabledDb database)
         {
             this.logger = logger;
@@ -57,9 +57,11 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Password is too short");
 
             // Check for conflicting username or email
-            if (await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.UserName == request.Name) != null ||
-                await database.Users.AsQueryable().FirstOrDefaultAsync(u => u.Email == request.Email) != null)
+            if (await database.Users.FirstOrDefaultAsync(u => u.UserName == request.Name) != null ||
+                await database.Users.FirstOrDefaultAsync(u => u.Email == request.Email) != null)
+            {
                 return BadRequest("There is already an account associated with the given email or name");
+            }
 
             var password = Passwords.CreateSaltedPasswordHash(request.Password);
 

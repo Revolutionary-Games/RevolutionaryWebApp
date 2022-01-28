@@ -52,8 +52,8 @@ namespace ThriveDevCenter.Server.Controllers
         {
             var type = GetEventType();
 
-            var settings = await database.PatreonSettings.AsQueryable()
-                .FirstOrDefaultAsync(s => s.WebhookId == webhookId && s.Active);
+            var settings =
+                await database.PatreonSettings.FirstOrDefaultAsync(s => s.WebhookId == webhookId && s.Active);
 
             var verifiedPayload = await CheckSignature(settings);
             logger.LogTrace("Got patreon payload: {VerifiedPayload}", verifiedPayload);
@@ -115,7 +115,7 @@ namespace ThriveDevCenter.Server.Controllers
                 case EventType.Create:
                 case EventType.Update:
                 {
-                    string rewardId = null;
+                    string rewardId;
 
                     try
                     {
@@ -137,7 +137,7 @@ namespace ThriveDevCenter.Server.Controllers
                 case EventType.Delete:
                 {
                     // Find relevant patron object and delete it
-                    var patron = await database.Patrons.AsQueryable().FirstOrDefaultAsync(p => p.Email == email);
+                    var patron = await database.Patrons.FirstOrDefaultAsync(p => p.Email == email);
 
                     if (patron != null)
                     {

@@ -25,8 +25,8 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var cutoff = DateTime.UtcNow - AppInfo.KeepStackwalkResultsFor;
 
-            var finishedTasks = await database.StackwalkTasks.AsQueryable()
-                .Where(s => s.FinishedAt != null && s.FinishedAt < cutoff).ToListAsync(cancellationToken);
+            var finishedTasks = await database.StackwalkTasks.Where(s => s.FinishedAt != null && s.FinishedAt < cutoff)
+                .ToListAsync(cancellationToken);
 
             if (finishedTasks.Count > 0)
             {
@@ -38,8 +38,8 @@ namespace ThriveDevCenter.Server.Jobs
 
             var cutoff2 = DateTime.UtcNow - AppInfo.DeleteFailedStackwalkAttemptsAfter;
 
-            var failedTasks = await database.StackwalkTasks.AsQueryable()
-                .Where(s => s.CreatedAt < cutoff2).ToListAsync(cancellationToken);
+            var failedTasks = await database.StackwalkTasks.Where(s => s.CreatedAt < cutoff2)
+                .ToListAsync(cancellationToken);
 
             if (failedTasks.Count > 0)
             {

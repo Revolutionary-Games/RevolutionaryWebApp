@@ -23,6 +23,12 @@ namespace ThriveDevCenter.Shared.Converters
                 result += $"{timeSpan.Minutes}m";
             }
 
+            if (string.IsNullOrEmpty(result) && timeSpan.TotalSeconds < -60)
+            {
+                // We have the time range the wrong way around or future times are coming from the database
+                return timeSpan.ToString();
+            }
+
             result += $"{timeSpan.Seconds}s";
 
             return result;

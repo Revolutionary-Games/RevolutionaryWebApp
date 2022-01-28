@@ -58,7 +58,7 @@ namespace AutomatedUITests.Fixtures
             Host = CreateWebHost();
             RunInBackgroundThread(Host.Start);
             return Host.Services.GetRequiredService<IServer>().Features
-                .Get<IServerAddressesFeature>()
+                .Get<IServerAddressesFeature>()!
                 .Addresses.Single();
         }
 
@@ -114,7 +114,7 @@ namespace AutomatedUITests.Fixtures
                     var applicationPath = typeof(TStartup).Assembly.Location;
 
                     // var applicationDirectory = Path.GetDirectoryName(applicationPath);
-                    var name = Path.ChangeExtension(applicationPath, ".StaticWebAssets.xml");
+                    var name = Path.ChangeExtension(applicationPath, ".staticwebassets.runtime.json");
 
                     var inMemoryConfiguration = new Dictionary<string, string>
                     {

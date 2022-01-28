@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System.Threading;
     using System.Threading.Tasks;
     using Hangfire;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;

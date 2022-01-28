@@ -62,9 +62,8 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Project name is too long or too short");
 
             // Check for duplicate data
-            if (await database.CiProjects.AsQueryable().Where(p => p.Name == project.Name).AnyAsync() ||
-                await database.CiProjects.AsQueryable().Where(p => p.RepositoryFullName == project.RepositoryFullName)
-                    .AnyAsync())
+            if (await database.CiProjects.Where(p => p.Name == project.Name).AnyAsync() ||
+                await database.CiProjects.Where(p => p.RepositoryFullName == project.RepositoryFullName).AnyAsync())
             {
                 return BadRequest("Project name or repository full name is already in-use");
             }
@@ -107,8 +106,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.CiBuilds.AsQueryable().Where(b => b.CiProjectId == projectId)
-                    .OrderBy(sortColumn, sortDirection);
+                query = database.CiBuilds.Where(b => b.CiProjectId == projectId).OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -149,7 +147,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.CiJobs.AsQueryable().Where(j => j.CiProjectId == projectId && j.CiBuildId == buildId)
+                query = database.CiJobs.Where(j => j.CiProjectId == projectId && j.CiBuildId == buildId)
                     .OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
@@ -191,7 +189,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.CiJobOutputSections.AsQueryable().Where(s =>
+                query = database.CiJobOutputSections.Where(s =>
                         s.CiProjectId == projectId && s.CiBuildId == buildId && s.CiJobId == jobId)
                     .OrderBy(sortColumn, sortDirection);
             }
@@ -229,7 +227,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (job == null || !CheckExtraAccess(job.Build.CiProject) || job.Build.CiProject.Deleted)
                 return NotFound("CI Job does not exist or you don't have access to it");
 
-            var section = await database.CiJobOutputSections.AsQueryable().FirstOrDefaultAsync(s =>
+            var section = await database.CiJobOutputSections.FirstOrDefaultAsync(s =>
                 s.CiProjectId == projectId && s.CiBuildId == buildId && s.CiJobId == jobId && s.CiJobOutputSectionId ==
                 sectionId);
 
@@ -246,7 +244,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!project.Public)
             {
                 if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
-                    AuthenticationScopeRestriction.None))
+                        AuthenticationScopeRestriction.None))
                 {
                     return false;
                 }

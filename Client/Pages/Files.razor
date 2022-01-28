@@ -13,7 +13,6 @@
 @using System.Net
 @using System.Text.Json
 @using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Converters
 @using ThriveDevCenter.Shared.Forms
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
 @inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.StorageItemInfo>
@@ -843,7 +842,7 @@ else
         foreach (int i in Enumerable.Range(0, AppInfo.MultipartSimultaneousUploads))
         {
             var initialChunks = i < startingChunks.Count ? startingChunks[i] :
-                new List<MultipartFileUpload.FileChunk>();
+                Array.Empty<MultipartFileUpload.FileChunk>();
 
             uploadTasks.Add(UploadChunksUntilDone(fileName, upload.ChunkRetrieveToken, initialChunks));
         }

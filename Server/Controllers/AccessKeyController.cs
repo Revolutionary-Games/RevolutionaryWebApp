@@ -40,7 +40,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.AccessKeys.AsQueryable().OrderBy(sortColumn, sortDirection);
+                query = database.AccessKeys.OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -57,7 +57,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateNew([Required] [FromBody] AccessKeyDTO newKey)
         {
-            if (string.IsNullOrWhiteSpace(newKey.Description) || await database.AccessKeys.AsQueryable()
+            if (string.IsNullOrWhiteSpace(newKey.Description) || await database.AccessKeys
                 .FirstOrDefaultAsync(a => a.Description == newKey.Description) != null)
             {
                 return BadRequest("Description is empty or a key with that description already exists");

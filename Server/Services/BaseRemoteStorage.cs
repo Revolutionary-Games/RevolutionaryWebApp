@@ -372,7 +372,7 @@ namespace ThriveDevCenter.Server.Services
                 version.BumpUpdatedAt();
 
                 // Update StorageItem if the version is the latest
-                if (version.Version >= await database.StorageItemVersions.AsQueryable()
+                if (version.Version >= await database.StorageItemVersions
                         .Where(s => s.StorageItemId == version.StorageItemId).MaxAsync(s => s.Version))
                 {
                     version.StorageItem.Size = file.Size;

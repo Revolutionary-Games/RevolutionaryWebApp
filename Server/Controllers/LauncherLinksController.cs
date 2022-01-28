@@ -49,7 +49,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.LauncherLinks.AsQueryable().Where(l => l.UserId == userId)
+                query = database.LauncherLinks.Where(l => l.UserId == userId)
                     .OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
@@ -76,7 +76,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return Forbid();
             }
 
-            var linksToDelete = await database.LauncherLinks.AsQueryable().Where(l => l.UserId == userId).ToListAsync();
+            var linksToDelete = await database.LauncherLinks.Where(l => l.UserId == userId).ToListAsync();
 
             // Skip doing anything if there's nothing to delete
             if (linksToDelete.Count < 1)
@@ -120,8 +120,8 @@ namespace ThriveDevCenter.Server.Controllers
                 return Forbid();
             }
 
-            var linkToDelete = await database.LauncherLinks.AsQueryable()
-                .FirstOrDefaultAsync(l => l.Id == linkId && l.UserId == userId);
+            var linkToDelete =
+                await database.LauncherLinks.FirstOrDefaultAsync(l => l.Id == linkId && l.UserId == userId);
 
             if (linkToDelete == null)
                 return NotFound("Link with the given ID not found, or it doesn't belong to the target user");
@@ -158,8 +158,7 @@ namespace ThriveDevCenter.Server.Controllers
             var user = HttpContext.AuthenticatedUser();
 
             // Fail if too many links
-            if (await database.LauncherLinks.AsQueryable().CountAsync(l => l.UserId == user.Id) >=
-                AppInfo.DefaultMaxLauncherLinks)
+            if (await database.LauncherLinks.CountAsync(l => l.UserId == user.Id) >= AppInfo.DefaultMaxLauncherLinks)
             {
                 return BadRequest("You already have the maximum number of launchers linked");
             }

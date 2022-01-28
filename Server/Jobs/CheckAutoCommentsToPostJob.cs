@@ -36,9 +36,8 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            var possibleComments = await database.GithubAutoComments.AsQueryable().Where(c =>
-                c.Enabled &&
-                (string.IsNullOrEmpty(c.Repository) || c.Repository == "*" ||
+            var possibleComments = await database.GithubAutoComments.Where(c =>
+                c.Enabled && (string.IsNullOrEmpty(c.Repository) || c.Repository == "*" ||
                     c.Repository == pullRequest.Repository)).ToListAsync(cancellationToken);
 
             foreach (var possibleComment in possibleComments)
