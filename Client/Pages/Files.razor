@@ -13,6 +13,7 @@
 @using System.Net
 @using System.Text.Json
 @using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Converters
 @using ThriveDevCenter.Shared.Forms
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
 @inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.StorageItemInfo>
@@ -215,7 +216,7 @@ else
                 </ul>
 
                 @if (!parsedFolderInfo.Special && parsedFolderInfo.WriteAccess.IsAccessibleTo(
-                    currentUserInfo.AccessLevel, currentUserInfo.Info.Id, parsedFolderInfo.OwnerId))
+                    currentUserInfo.AccessLevel, currentUserInfo.Info!.Id, parsedFolderInfo.OwnerId))
                 {
                     <StorageItemFolderEditor Data="@parsedFolderInfo" />
                 }
@@ -282,29 +283,29 @@ else
 
     private long? parsedFolderId;
 
-    private StorageItemDTO parsedFolderInfo;
-    private StorageItemDTO shownFile;
+    private StorageItemDTO? parsedFolderInfo;
+    private StorageItemDTO? shownFile;
 
     private bool folderIsWritable;
 
     private bool showFolderInfo;
 
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewFolderCreate;
     private bool processingNewForm;
 
-    private string newFolderName;
+    private string? newFolderName;
     private FileAccess newFolderReadAccess;
     private FileAccess newFolderWriteAccess;
 
     private bool showUploadOverlay;
     private bool uploadInProgress;
-    private string uploadStatus;
+    private string? uploadStatus;
     private int dragLevel;
 
-    private string currentFileUploadMessage;
+    private string? currentFileUploadMessage;
     private int totalChunks;
     private int alreadyUploadedChunks;
     private long alreadyUploadedChunkDataBytes;
@@ -315,9 +316,6 @@ else
     private bool uploading;
 
     private ElementReference dropArea;
-
-    [Parameter]
-    public string ProjectRepoURL { get; set; }
 
     [Parameter]
     public long ProjectId { get; set; }
@@ -368,7 +366,7 @@ else
         if (shownFile != null)
             groups.Add(NotificationGroups.StorageItemUpdatedPrefix + shownFile.Id);
 
-        string folderId = parsedFolderId != null ? parsedFolderId.ToString() : "root";
+        string folderId = parsedFolderId != null ? parsedFolderId.ToString()! : "root";
 
         // Folder content change listening
         groups.Add(NotificationGroups.FolderContentsUpdatedPublicPrefix + folderId);
@@ -405,7 +403,7 @@ else
     {
         var requestParams = base.CreatePageRequestParams();
 
-        requestParams["parentId"] = parsedFolderId.ToString();
+        requestParams["parentId"] = parsedFolderId?.ToString() ?? string.Empty;
 
         return requestParams;
     }
@@ -417,7 +415,7 @@ else
         queryParams.Remove("parentId");
     }
 
-    protected override Task<PagedResult<StorageItemInfo>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<StorageItemInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<StorageItemInfo>>(
             QueryHelpers.AddQueryString($"api/v1/Files/folderContents", requestParams));
@@ -511,7 +509,7 @@ else
         }
         else
         {
-            newWritable = parsedFolderInfo.WriteAccess.IsAccessibleTo(currentUserInfo.AccessLevel,
+            newWritable = parsedFolderInfo!.WriteAccess.IsAccessibleTo(currentUserInfo.AccessLevel,
                 currentUserInfo.Info?.Id, parsedFolderInfo.OwnerId);
         }
 
@@ -565,7 +563,7 @@ else
         {
             result = await http.PostAsJsonAsync("api/v1/Files/createFolder", new CreateFolderForm()
             {
-                Name =  newFolderName,
+                Name = newFolderName!,
                 ParentFolder = parsedFolderId,
                 ReadAccess = newFolderReadAccess,
                 WriteAccess = newFolderWriteAccess,
@@ -708,7 +706,7 @@ else
             return;
         }
 
-        IBrowserFile toUpload = null;
+        IBrowserFile? toUpload = null;
 
         while (filesToBeUploaded.Count > 0)
         {
@@ -756,7 +754,7 @@ else
         await BeginNextUpload();
     }
 
-    private async Task<UploadFileResponse> GetFileUploadUrl(IBrowserFile file, StorageItemDTO parentFolder)
+    private async Task<UploadFileResponse> GetFileUploadUrl(IBrowserFile file, StorageItemDTO? parentFolder)
     {
         var result = await http.PostAsJsonAsync("api/v1/Files/startUpload",
             new UploadFileRequestForm()
@@ -782,12 +780,12 @@ else
         }
 
         return JsonSerializer.Deserialize<UploadFileResponse>(content,
-            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
     }
 
     private async Task UploadFile(IBrowserFile file, UploadFileResponse info)
     {
-        string error;
+        string? error;
 
         if (info.Multipart != null)
         {
@@ -795,7 +793,8 @@ else
         }
         else
         {
-            error = await UploadSinglePartFile(file.Name, info.UploadURL);
+            error = await UploadSinglePartFile(file.Name, info.UploadURL ??
+                throw new ArgumentException("no upload URL in non-multipart upload"));
         }
 
         if (!string.IsNullOrEmpty(error))
@@ -820,7 +819,7 @@ else
             alreadyUploadedChunkDataBytes.BytesToMiB(1) + " uploaded";
     }
 
-    private async ValueTask<string> UploadMultipartFile(string fileName, MultipartFileUpload upload)
+    private async ValueTask<string?> UploadMultipartFile(string fileName, MultipartFileUpload upload)
     {
         totalChunks = upload.TotalChunks;
         alreadyUploadedChunks = 0;
@@ -828,10 +827,13 @@ else
         UpdateCurrentChunkMessage();
         await InvokeAsync(StateHasChanged);
 
+        if (upload.NextChunks == null || upload.NextChunks.Count < 1)
+            throw new ArgumentException("Multipart upload didn't specify initial chunks to upload");
+
         var startingChunks = upload.NextChunks.AsEnumerable().Chunk(
             (int)Math.Ceiling(upload.NextChunks.Count / (float)AppInfo.MultipartSimultaneousUploads)).ToList();
 
-        var uploadTasks = new List<ValueTask<string>>();
+        var uploadTasks = new List<ValueTask<string?>>();
 
         if (startingChunks.Count != AppInfo.MultipartSimultaneousUploads)
         {
@@ -847,11 +849,11 @@ else
             uploadTasks.Add(UploadChunksUntilDone(fileName, upload.ChunkRetrieveToken, initialChunks));
         }
 
-        string error = null;
+        string? error = null;
 
         foreach (var task in uploadTasks)
         {
-            string currentError;
+            string? currentError;
             try
             {
                 currentError = await task;
@@ -887,7 +889,7 @@ else
         return error;
     }
 
-    private async ValueTask<string> UploadChunksUntilDone(string fileName, string moreChunksToken,
+    private async ValueTask<string?> UploadChunksUntilDone(string fileName, string moreChunksToken,
         IEnumerable<MultipartFileUpload.FileChunk> initialChunks)
     {
         Console.WriteLine("Starting chunk upload task");
@@ -915,10 +917,7 @@ else
                 }
 
                 nextUpload = JsonSerializer.Deserialize<MultipartFileUpload>(content,
-                    HttpClientHelpers.GetOptionsWithSerializers());
-
-                if (nextUpload == null)
-                    throw new Exception("Multipart upload data JSON parse resulted in null");
+                    HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
             }
             catch (Exception e)
             {
@@ -942,14 +941,14 @@ else
         }
     }
 
-    private async ValueTask<string> UploadSingleChunkList(string fileName,
+    private async ValueTask<string?> UploadSingleChunkList(string fileName,
         IEnumerable<MultipartFileUpload.FileChunk> chunks)
     {
         bool uploaded = false;
         foreach (var chunk in chunks)
         {
             uploaded = true;
-            var error = await js.InvokeAsync<string>("putFormFileChunk", fileName, chunk.UploadURL,
+            var error = await js.InvokeAsync<string?>("putFormFileChunk", fileName, chunk.UploadURL,
                 chunk.Offset, chunk.Length);
 
             if (error != null)

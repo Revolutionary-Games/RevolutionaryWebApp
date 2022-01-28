@@ -94,9 +94,11 @@ else
     };
 
     [Parameter]
-    public string ProjectRepoURL { get; set; }
+    [EditorRequired]
+    public string ProjectRepoURL { get; set; } = null!;
 
     [Parameter]
+    [EditorRequired]
     public long ProjectId { get; set; }
 
     public LFSProjectFileBrowser()
@@ -155,7 +157,7 @@ else
         queryParams.Remove("path");
     }
 
-    protected override Task<PagedResult<ProjectGitFileDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<ProjectGitFileDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<ProjectGitFileDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LFSProject/{ProjectId}/files", requestParams));

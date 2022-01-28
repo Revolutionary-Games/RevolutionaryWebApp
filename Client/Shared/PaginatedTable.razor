@@ -39,7 +39,7 @@
     private bool isLarge;
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public string ResponsiveType { get; set; } = "table-responsive-sm";
@@ -69,7 +69,8 @@
     public int? PageCount { get; set; }
 
     [Parameter]
-    public List<TableColumn> Columns { get; set; }
+    [EditorRequired]
+    public List<TableColumn> Columns { get; set; } = null!;
 
     [Parameter]
     public EventCallback<int> OnPageChanged { get; set; }
@@ -78,7 +79,8 @@
     public EventCallback<string> OnSortChanged { get; set; }
 
     [Parameter]
-    public SortableTable.CalculateSortClass GetSortClass { get; set; }
+    [EditorRequired]
+    public SortableTable.CalculateSortClass GetSortClass { get; set; } = null!;
 
     private int PaginatorVisiblePages
     {

@@ -21,6 +21,9 @@ namespace ThriveDevCenter.Server.Controllers
     [Route("api/v1/[controller]")]
     public class CIProjectController : BaseSoftDeletedResourceController<CiProject, CIProjectInfo, CIProjectDTO>
     {
+        private const string BuildDoesNotExistError = "CI Build does not exist or you don't have access to it";
+        private const string JobDoesNotExistError = "CI Job does not exist or you don't have access to it";
+
         private readonly ILogger<CIProjectController> logger;
         private readonly NotificationsEnabledDb database;
 
@@ -72,7 +75,7 @@ namespace ThriveDevCenter.Server.Controllers
             var action = new AdminAction()
             {
                 Message = $"New CI project created, repo: {project.RepositoryFullName}, name: {project.Name}",
-                PerformedById = HttpContext.AuthenticatedUser().Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id
             };
 
             await database.CiProjects.AddAsync(project);
@@ -126,7 +129,13 @@ namespace ThriveDevCenter.Server.Controllers
             var item = await database.CiBuilds.Include(b => b.CiProject)
                 .FirstOrDefaultAsync(b => b.CiProjectId == projectId && b.CiBuildId == buildId);
 
-            if (item == null || !CheckExtraAccess(item.CiProject) || item.CiProject.Deleted)
+            if (item == null)
+                return NotFound(BuildDoesNotExistError);
+
+            if (item.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
+            if (!CheckExtraAccess(item.CiProject) || item.CiProject.Deleted)
                 return NotFound("CI Build does not exist or you don't have access to it");
 
             return item.GetDTO();
@@ -140,7 +149,13 @@ namespace ThriveDevCenter.Server.Controllers
             var build = await database.CiBuilds.Include(b => b.CiProject)
                 .FirstOrDefaultAsync(b => b.CiProjectId == projectId && b.CiBuildId == buildId);
 
-            if (build == null || !CheckExtraAccess(build.CiProject) || build.CiProject.Deleted)
+            if (build == null)
+                return NotFound(BuildDoesNotExistError);
+
+            if (build.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
+            if (!CheckExtraAccess(build.CiProject) || build.CiProject.Deleted)
                 return NotFound("CI Build does not exist or you don't have access to it");
 
             IQueryable<CiJob> query;
@@ -165,11 +180,17 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<CIJobDTO>> GetJob([Required] long projectId,
             [Required] long buildId, [Required] long jobId)
         {
-            var item = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+            var item = await database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
                 .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
 
-            if (item == null || !CheckExtraAccess(item.Build.CiProject) || item.Build.CiProject.Deleted)
-                return NotFound("CI Job does not exist or you don't have access to it");
+            if (item == null)
+                return NotFound(JobDoesNotExistError);
+
+            if (item.Build?.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
+            if (!CheckExtraAccess(item.Build.CiProject) || item.Build.CiProject.Deleted)
+                return NotFound(JobDoesNotExistError);
 
             return item.GetDTO();
         }
@@ -179,11 +200,17 @@ namespace ThriveDevCenter.Server.Controllers
             [Required] long buildId, [Required] long jobId, [Required] string sortColumn,
             [Required] SortDirection sortDirection)
         {
-            var job = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+            var job = await database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
                 .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
 
-            if (job == null || !CheckExtraAccess(job.Build.CiProject) || job.Build.CiProject.Deleted)
-                return NotFound("CI Job does not exist or you don't have access to it");
+            if (job == null)
+                return NotFound(JobDoesNotExistError);
+
+            if (job.Build?.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
+            if (!CheckExtraAccess(job.Build.CiProject) || job.Build.CiProject.Deleted)
+                return NotFound(JobDoesNotExistError);
 
             IQueryable<CiJobOutputSection> query;
 
@@ -221,10 +248,16 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<CIJobOutputSectionDTO>> GetJobOutputSection([Required] long projectId,
             [Required] long buildId, [Required] long jobId, [Required] long sectionId)
         {
-            var job = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+            var job = await database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
                 .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
 
-            if (job == null || !CheckExtraAccess(job.Build.CiProject) || job.Build.CiProject.Deleted)
+            if (job == null)
+                return NotFound(JobDoesNotExistError);
+
+            if (job.Build?.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
+            if (!CheckExtraAccess(job.Build.CiProject) || job.Build.CiProject.Deleted)
                 return NotFound("CI Job does not exist or you don't have access to it");
 
             var section = await database.CiJobOutputSections.FirstOrDefaultAsync(s =>

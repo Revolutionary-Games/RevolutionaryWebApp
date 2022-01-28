@@ -169,16 +169,17 @@ else
     private bool clearingAllLinks;
     private bool gettingLauncherLinkCode;
 
-    private string linkResult;
+    private string? linkResult;
     private SiteNoticeType linkResultType = SiteNoticeType.Danger;
 
     private bool clearingTokens;
 
-    private string actionResult;
+    private string? actionResult;
     private SiteNoticeType actionResultType = SiteNoticeType.Danger;
 
     [Parameter]
-    public UserInfo User { get; set; }
+    [EditorRequired]
+    public UserInfo User { get; set; } = null!;
 
     [Parameter]
     public bool ShowSelfIdentification { get; set; }

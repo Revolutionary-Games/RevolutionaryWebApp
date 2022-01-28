@@ -77,7 +77,7 @@
 
 @code {
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
@@ -86,7 +86,7 @@
     [Parameter]
     public long BuildId { get; set; }
 
-    protected override Task<CIJobDTO> StartQuery()
+    protected override Task<CIJobDTO?> StartQuery()
     {
         return http.GetFromJsonAsync<CIJobDTO>($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{Id}",
             HttpClientHelpers.GetOptionsWithSerializers());

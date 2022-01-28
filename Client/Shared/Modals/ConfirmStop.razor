@@ -15,10 +15,11 @@
 @code {
 
     [CascadingParameter]
-    BlazoredModalInstance ModalInstance { get; set; }
+    BlazoredModalInstance ModalInstance { get; set; } = null!;
 
     [Parameter]
-    public string Name { get; set; }
+    [EditorRequired]
+    public string Name { get; set; } = null!;
 
     private void Confirm()
     {

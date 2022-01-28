@@ -42,15 +42,16 @@ else
 
     // TODO: merge this component into TextEditor
 
-    private string description;
+    private string? description;
 
     private bool showForm;
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
-    public DevBuildDTO Data { get; set; }
+    [EditorRequired]
+    public DevBuildDTO Data { get; set; } = null!;
 
     private bool CanEdit => Data is {BuildOfTheDay: false };
 

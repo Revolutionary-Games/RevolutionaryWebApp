@@ -59,14 +59,14 @@
     public bool AutoRedirectIfNotLoggedIn { get; set; } = true;
 
     [Parameter]
-    public RenderFragment AccessMissingContent { get; set; }
+    public RenderFragment? AccessMissingContent { get; set; }
 
     [Parameter]
-    public RenderFragment AuthorizedContent { get; set; }
+    public RenderFragment? AuthorizedContent { get; set; }
 
     /// <summary>
     ///   Alternative to AuthorizedContent if that isn't set
     /// </summary>
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 }

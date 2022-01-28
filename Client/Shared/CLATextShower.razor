@@ -26,7 +26,7 @@
     [Parameter]
     public bool ShowInfoLine { get; set; }
 
-    protected override Task<CLADTO> StartQuery()
+    protected override Task<CLADTO?> StartQuery()
     {
         return http.GetFromJsonAsync<CLADTO>($"api/v1/CLA/{Id}");
     }

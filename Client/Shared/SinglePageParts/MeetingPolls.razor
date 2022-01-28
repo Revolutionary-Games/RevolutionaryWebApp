@@ -39,7 +39,7 @@ else
                     var choiceData = GetOrSetupPollData(item);
 
                     @* TODO: cache this json parsing *@
-                    var resultData = item.ParsedResults;
+                    var resultData = item.ParsedResults!;
 
                     <div>
                         Results:
@@ -199,17 +199,17 @@ else
     private readonly Dictionary<long, bool> pollsWithActiveAction = new ();
     private bool processing;
 
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewForm;
     private bool processingNewForm;
     private int? newAutoCloseInMinutes;
-    private MeetingPollDTO newPollDTOData;
-    private PollData newPollData;
+    private MeetingPollDTO newPollDTOData = new();
+    private PollData newPollData = new();
 
     [Parameter]
     public long MeetingId { get; set; }
@@ -217,7 +217,7 @@ else
     [Parameter]
     public bool CanEdit { get; set; }
 
-    private bool CanCreateNew => !processingNewForm && newPollDTOData != null &&
+    private bool CanCreateNew => !processingNewForm &&
         !string.IsNullOrEmpty(newPollDTOData.Title) && newPollData.Choices.Count > 1;
 
     public MeetingPolls() : base(new SortHelper("PollId", SortDirection.Ascending))
@@ -246,7 +246,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<List<MeetingPollDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<List<MeetingPollDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<List<MeetingPollDTO>>(
             QueryHelpers.AddQueryString($"api/v1/Meetings/{MeetingId}/polls", requestParams));
@@ -297,7 +297,7 @@ else
 
         ++maxId;
 
-        newPollData.Choices.Add(maxId, new PollData.PollChoice(maxId, null));
+        newPollData.Choices.Add(maxId, new PollData.PollChoice(maxId, string.Empty));
 
         StateHasChanged();
     }
@@ -440,7 +440,7 @@ else
 
     private Tuple<Dictionary<int, VoteData>, PollData> GetOrSetupPollData(MeetingPollDTO item)
     {
-        if (!pollChoices.TryGetValue(item.PollId, out Tuple<Dictionary<int, VoteData>, PollData> data))
+        if (!pollChoices.TryGetValue(item.PollId, out var data))
         {
             data = new Tuple<Dictionary<int, VoteData>, PollData>(new Dictionary<int, VoteData>(),
                 item.ParsedData);

@@ -90,7 +90,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LfsObjectDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LfsObjectDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<LfsObjectDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LFSProject/{Id}/raw", requestParams));

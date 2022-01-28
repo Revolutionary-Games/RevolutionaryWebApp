@@ -18,10 +18,10 @@
 
 @code {
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-    private string recipient;
+    private string? recipient;
 
     private bool CanSend => !string.IsNullOrWhiteSpace(recipient) && !processing;
 
@@ -38,7 +38,7 @@
         {
             result = await http.PostAsJsonAsync("api/v1/Mail/test", new EmailTestRequestForm
             {
-                Recipient = recipient,
+                Recipient = recipient!,
             });
         }
         catch (HttpRequestException e)

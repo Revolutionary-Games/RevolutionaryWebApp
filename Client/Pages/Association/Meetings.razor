@@ -140,13 +140,13 @@ else
         new TableColumn("Visible To", false),
     };
 
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewForm;
     private bool processingNewForm;
-    private string newName;
-    private string newDescription;
+    private string? newName;
+    private string? newDescription;
     private DateTime newStartDate;
     private DateTime newStartTime;
     private int newJoinGraceMinutes;
@@ -193,7 +193,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<MeetingInfo>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<MeetingInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<MeetingInfo>>(
             QueryHelpers.AddQueryString("api/v1/Meetings", requestParams));
@@ -242,8 +242,8 @@ else
         {
             result = await http.PostAsJsonAsync("api/v1/Meetings", new MeetingDTO()
             {
-                Name = newName,
-                Description = newDescription,
+                Name = newName!,
+                Description = newDescription!,
                 ReadAccess = newMeetingReadAccess,
                 JoinAccess = newMeetingJoinAccess,
                 JoinGracePeriod = TimeSpan.FromMinutes(newJoinGraceMinutes),

@@ -114,19 +114,20 @@
 
 @code {
 
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-    private string downloadCheckedFilename;
+    private string? downloadCheckedFilename;
     private bool downloadingData = true;
 
     // TODO: implement markdown parsing etc
-    private string downloadedTextContent;
+    private string? downloadedTextContent;
 
     private bool linkCopied;
 
     [Parameter]
-    public StorageItemDTO Item { get; set; }
+    [EditorRequired]
+    public StorageItemDTO Item { get; set; } = null!;
 
     [Parameter]
     public bool PreventClose { get; set; }
@@ -136,9 +137,6 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-
-        if (Item == null)
-            return;
 
         if (downloadCheckedFilename != Item.Name)
         {

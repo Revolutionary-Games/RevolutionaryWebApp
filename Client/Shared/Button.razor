@@ -10,7 +10,7 @@
 @code {
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public string ButtonStyle { get; set; } = "primary";
@@ -31,7 +31,7 @@
     public string type { get; set; } = "button";
 
     [Parameter]
-    public string id { get; set; }
+    public string? id { get; set; }
 
     // ReSharper restore InconsistentNaming
 

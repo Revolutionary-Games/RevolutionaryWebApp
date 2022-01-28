@@ -75,7 +75,7 @@ else
 
     private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
 
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
@@ -107,7 +107,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherLinkDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LauncherLinkDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<LauncherLinkDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LauncherLinks/{UserId}", requestParams));

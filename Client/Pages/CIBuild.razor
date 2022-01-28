@@ -67,7 +67,7 @@
 
 @code {
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     private bool retriedBefore;
@@ -80,7 +80,7 @@
     private bool CanRetryAll => !retriedBefore && Data != null && Data.Status != BuildStatus.Running &&
         Data.Status != BuildStatus.GoingToFail;
 
-    protected override Task<CIBuildDTO> StartQuery()
+    protected override Task<CIBuildDTO?> StartQuery()
     {
         return http.GetFromJsonAsync<CIBuildDTO>($"api/v1/CIProject/{ProjectId}/builds/{Id}");
     }

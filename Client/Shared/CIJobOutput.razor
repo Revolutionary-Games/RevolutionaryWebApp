@@ -160,7 +160,7 @@ else
         await notificationHandler.Unregister((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
     }
 
-    protected override Task<List<CIJobOutputSectionInfo>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<List<CIJobOutputSectionInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<List<CIJobOutputSectionInfo>>(
             QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{JobId}/output",
@@ -203,7 +203,7 @@ else
         return shown;
     }
 
-    private List<string> GetOutput(long sectionId)
+    private List<string>? GetOutput(long sectionId)
     {
         if (receivingRealtimeOutputForSection != sectionId)
             return null;

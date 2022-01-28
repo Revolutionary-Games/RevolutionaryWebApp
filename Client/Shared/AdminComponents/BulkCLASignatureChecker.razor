@@ -45,7 +45,7 @@
 
 @if (results != null)
 {
-    <p>
+    <div>
         @if (resultsAreNotFound)
         {
             <span>Not signed:</span>
@@ -63,19 +63,18 @@
         {
             <span class="ml-1">Server returned an empty list</span>
         }
-
-    </p>
+    </div>
 }
 
 @code {
-    private string message;
+    private string? message;
     private SiteNoticeType messageType;
     private bool processing;
 
     private BulkCLACheckRequest request = new();
 
     private bool resultsAreNotFound;
-    private List<string> results;
+    private List<string>? results;
 
     private async void Search()
     {

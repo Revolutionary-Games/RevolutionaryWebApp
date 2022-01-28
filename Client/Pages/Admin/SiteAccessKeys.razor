@@ -47,12 +47,12 @@
 
 
 @code {
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewForm;
     private bool processingNewForm;
-    private string newDescription;
+    private string? newDescription;
     private AccessKeyType newKeyType;
 
     private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newDescription);
@@ -89,7 +89,7 @@
         {
             result = await http.PostAsJsonAsync("api/v1/AccessKey", new AccessKeyDTO()
             {
-                Description = newDescription,
+                Description = newDescription!,
                 KeyType = newKeyType
             });
         }

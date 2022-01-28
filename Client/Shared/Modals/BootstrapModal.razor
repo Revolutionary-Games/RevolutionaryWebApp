@@ -19,10 +19,10 @@
 @code {
 
     [CascadingParameter]
-    BlazoredModalInstance Modal { get; set; }
+    BlazoredModalInstance Modal { get; set; } = null!;
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public EventCallback OnCancel { get; set; }

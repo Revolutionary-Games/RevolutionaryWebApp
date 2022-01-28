@@ -80,7 +80,7 @@
 </SingleResourceDisplayer>
 
 @code {
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     private bool isMemberRetrieved = false;
@@ -103,7 +103,7 @@
         }
     }
 
-    protected override Task<MeetingDTO> StartQuery()
+    protected override Task<MeetingDTO?> StartQuery()
     {
         return http.GetFromJsonAsync<MeetingDTO>($"api/v1/Meetings/{Id}",
             HttpClientHelpers.GetOptionsWithSerializers());
@@ -131,12 +131,12 @@
         statusMessageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
 
-        MeetingMemberDTO result;
+        MeetingMemberDTO? result;
 
         try
         {
             result = await http.GetFromJsonAsync<MeetingMemberDTO>(
-                $"api/v1/Meetings/{Id}/members/{currentUserInfo.Info.Id}");
+                $"api/v1/Meetings/{Id}/members/{currentUserInfo.Info!.Id}");
         }
         catch (HttpRequestException e)
         {

@@ -120,7 +120,7 @@ namespace ThriveDevCenter.Server.Controllers
                 }
             }
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             await database.AdminActions.AddAsync(new AdminAction()
             {
@@ -166,7 +166,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             logger.LogInformation("CLA {Id} activated by {Email}", cla.Id,
-                HttpContext.AuthenticatedUser().Email);
+                HttpContext.AuthenticatedUser()!.Email);
 
             jobClient.Enqueue<InvalidatePullRequestsWithCLASignaturesJob>(x => x.Execute(CancellationToken.None));
 
@@ -189,7 +189,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             logger.LogInformation("CLA {Id} deactivated by {Email}", cla.Id,
-                HttpContext.AuthenticatedUser().Email);
+                HttpContext.AuthenticatedUser()!.Email);
 
             jobClient.Enqueue<InvalidatePullRequestsWithCLASignaturesJob>(x => x.Execute(CancellationToken.None));
 

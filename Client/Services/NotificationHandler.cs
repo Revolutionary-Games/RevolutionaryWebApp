@@ -252,7 +252,7 @@ namespace ThriveDevCenter.Client.Services
                     options =>
                     {
                         // Apparently we have to leak this in the url as there is no other way to set this...
-                        options.AccessTokenProvider = () => Task.FromResult(csrfTokenReader.Token);
+                        options.AccessTokenProvider = () => Task.FromResult<string?>(csrfTokenReader.Token);
 
                         // options.WebSocketConfiguration = socketOptions =>
                         // {

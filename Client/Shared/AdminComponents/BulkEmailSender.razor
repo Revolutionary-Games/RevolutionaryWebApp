@@ -86,19 +86,17 @@
 </EditForm>
 
 @code {
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
     private bool processing;
 
-    private EditContext editContext;
+    private EditContext editContext = null!;
 
-    private BulkEmailSendRequestForm request;
+    private BulkEmailSendRequestForm request = new();
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-
-        request = new BulkEmailSendRequestForm();
         ClearForm();
 
         editContext = new(request);
@@ -109,10 +107,10 @@
         request.RecipientsMode = BulkEmailRecipientsMode.ManualList;
         request.IgnoreMode = BulkEmailIgnoreMode.Nobody;
         request.ReplyMode = BulkEmailReplyToMode.SendingUser;
-        request.Title = null;
+        request.Title = string.Empty;
         request.ManualRecipients = null;
-        request.PlainBody = null;
-        request.HTMLBody = null;
+        request.PlainBody = string.Empty;
+        request.HTMLBody = string.Empty;
     }
 
     private async void CreateNew()

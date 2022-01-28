@@ -101,7 +101,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<CIJobDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CIJobDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<CIJobDTO>>(
             QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs", requestParams),

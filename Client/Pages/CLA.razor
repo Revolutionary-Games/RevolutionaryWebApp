@@ -81,7 +81,7 @@
 </AccessLimited>
 
 @code {
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType;
 
     private bool dataFetched;
@@ -91,7 +91,7 @@
 
     private bool CanStartSign => checkBoxChecked && !processing;
 
-    protected override async Task<CLADTO> StartQuery()
+    protected override async Task<CLADTO?> StartQuery()
     {
         dataFetched = false;
 
@@ -141,7 +141,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/CLA/startSigning?id={Data.Id}", new StringContent(string.Empty));
+            result = await http.PostAsync($"api/v1/CLA/startSigning?id={Data!.Id}", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {

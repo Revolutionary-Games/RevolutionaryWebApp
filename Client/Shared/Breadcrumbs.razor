@@ -13,17 +13,19 @@
 </nav>
 
 @code {
+
     /// <summary>
     ///   Used to construct full NavLink paths. Needs to end with a slash
     /// </summary>
     [Parameter]
-    public string BasePath { get; set; }
+    [EditorRequired]
+    public string BasePath { get; set; } = null!;
 
     /// <summary>
     ///   The currently shown path
     /// </summary>
     [Parameter]
-    public string CurrentPath { get; set; }
+    public string? CurrentPath { get; set; }
 
     /// <summary>
     ///   The name of the root item in the paths
@@ -41,8 +43,14 @@
 
     private class PathItem
     {
-        public string ItemName;
-        public string PathSoFar;
+        public PathItem(string name, string pathSoFar)
+        {
+            ItemName = name;
+            PathSoFar = pathSoFar;
+        }
+
+        public readonly string ItemName;
+        public readonly string PathSoFar;
         public bool Active = false;
         public bool Root = false;
     }
@@ -58,22 +66,18 @@
         if (parts.Length == 0)
         {
             // Only root path here
-            result.Add(new PathItem()
+            result.Add(new PathItem(RootPathName, "")
             {
-                ItemName = RootPathName,
-                PathSoFar = "",
                 Active = true,
-                Root = true
+                Root = true,
             });
         }
         else
         {
             // Add root path first
-            result.Add(new PathItem()
+            result.Add(new PathItem(RootPathName, "")
             {
-                ItemName = RootPathName,
-                PathSoFar = "",
-                Root = true
+                Root = true,
             });
 
             string pathSoFar = "";
@@ -84,11 +88,7 @@
                 if(string.IsNullOrWhiteSpace(item))
                     continue;
 
-                result.Add(new PathItem()
-                {
-                    ItemName = item,
-                    PathSoFar = pathSoFar
-                });
+                result.Add(new PathItem(item, pathSoFar));
 
                 if (pathSoFar.Length > 0)
                     pathSoFar += "/";
@@ -107,7 +107,7 @@
     private string PathForItem(PathItem item)
     {
         // Last item needs query parameters appended to work correctly
-        string query = null;
+        string? query = null;
 
         if (item.Active)
         {

@@ -5,6 +5,7 @@
 @using ThriveDevCenter.Shared.Models
 @using System.Text.Json
 @using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Converters
 @inject HttpClient http
 @inject NavigationManager navManager
 @inject ComponentUrlHelper urlHelper
@@ -21,13 +22,13 @@
 
 @code {
     private bool processing = true;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [QueryStringParameterAttribute]
     // Used through query strings
     // ReSharper disable once UnusedAutoPropertyAccessor.Local
-    private string Token { get; set; }
+    private string? Token { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,9 +41,17 @@
 
     private async Task VerifyToken()
     {
+        statusMessageType = SiteNoticeType.Danger;
+
+        if (string.IsNullOrEmpty(Token))
+        {
+            statusMessage = "Failed to read token from URL";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
         processing = true;
         statusMessage = null;
-        statusMessageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
 
         HttpResponseMessage result;
@@ -71,13 +80,11 @@
         }
         else
         {
-            EmailVerifyResult data = null;
+            EmailVerifyResult? data = null;
             try
             {
                 data = JsonSerializer.Deserialize<EmailVerifyResult>(content,
-                    HttpClientHelpers.GetOptionsWithSerializers());
-                if (data == null)
-                    throw new JsonException("deserialized data is null");
+                    HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
             }
             catch (JsonException e)
             {

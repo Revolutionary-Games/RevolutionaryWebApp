@@ -119,17 +119,17 @@ else
         new TableColumn("Public", false),
     };
 
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewForm;
     private bool processingNewForm;
-    private string newName;
-    private string newFullRepoName;
+    private string? newName;
+    private string? newFullRepoName;
     private bool newPublic;
-    private string newCloneURL;
+    private string? newCloneURL;
     private CIProjectType newProjectType;
-    private string newDefaultBranch;
+    private string? newDefaultBranch;
 
     private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newName);
 
@@ -169,7 +169,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<CIProjectInfo>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CIProjectInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<CIProjectInfo>>(
             QueryHelpers.AddQueryString("api/v1/CIProject", requestParams));
@@ -205,9 +205,17 @@ else
 
     private async void CreateNew()
     {
+        createMessageType = SiteNoticeType.Danger;
+
+        if (newFullRepoName == null || newCloneURL == null || newDefaultBranch == null)
+        {
+            createMessage = "Full repo name, clone URL, and default branch are required";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
         processingNewForm = true;
         createMessage = null;
-        createMessageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
 
         HttpResponseMessage result;
@@ -216,7 +224,7 @@ else
         {
             result = await http.PostAsJsonAsync("api/v1/CIProject", new CIProjectDTO()
             {
-                Name = newName,
+                Name = newName!,
                 RepositoryFullName = newFullRepoName,
                 Public = newPublic,
                 RepositoryCloneUrl = newCloneURL,

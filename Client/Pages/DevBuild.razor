@@ -92,13 +92,13 @@
 
 @code {
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     private bool CanMakeBOTD => !processing && Data is {BuildOfTheDay: false } &&
         !string.IsNullOrEmpty(Data.Description) && (Data.Verified || !Data.Anonymous);
 
-    protected override Task<DevBuildDTO> StartQuery()
+    protected override Task<DevBuildDTO?> StartQuery()
     {
         return http.GetFromJsonAsync<DevBuildDTO>($"api/v1/DevBuilds/{Id}");
     }

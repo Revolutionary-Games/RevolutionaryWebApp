@@ -23,7 +23,7 @@
 
 @code {
 
-    protected override Task<DevBuildsStatisticsDTO> StartQuery()
+    protected override Task<DevBuildsStatisticsDTO?> StartQuery()
     {
         return http.GetFromJsonAsync<DevBuildsStatisticsDTO>("api/v1/DevBuilds");
     }
