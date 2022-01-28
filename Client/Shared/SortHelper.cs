@@ -52,7 +52,7 @@ namespace ThriveDevCenter.Client.Shared
         public string SortClass(string currentColumn)
         {
             if (SortColumn != currentColumn)
-                return String.Empty;
+                return string.Empty;
 
             switch (Direction)
             {
