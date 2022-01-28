@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost]
         public async Task<IActionResult> Redeem([Required] RedeemCodeData data)
         {
-            var target = await database.Users.FindAsync(HttpContext.AuthenticatedUser().Id);
+            var target = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
 
             if (target == null)
                 throw new Exception("User not found after authorization");

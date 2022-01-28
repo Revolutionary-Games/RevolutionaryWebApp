@@ -17,13 +17,13 @@
 
 @code {
     [Parameter]
-    public string Message { get; set; }
+    public string? Message { get; set; }
 
     [Parameter]
     public SiteNoticeType Type { get; set; } = SiteNoticeType.Danger;
 
     [Parameter]
-    public string ExtraCSS { get; set; }
+    public string? ExtraCSS { get; set; }
 
     /// <summary>
     ///   Adds support for closing this. The button is automatically added if this is not null

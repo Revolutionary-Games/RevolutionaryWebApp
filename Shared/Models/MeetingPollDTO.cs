@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Shared.Models
     using System.ComponentModel.DataAnnotations;
     using System.Text.Json;
     using System.Text.Json.Serialization;
+    using Converters;
     using Enums;
 
     public class MeetingPollDTO : IIdentifiable
@@ -13,11 +14,14 @@ namespace ThriveDevCenter.Shared.Models
 
         [Required]
         [StringLength(200, MinimumLength = 3)]
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         public VotingTiebreakType TiebreakType { get; set; }
-        public string PollData { get; set; }
-        public string PollResults { get; set; }
+
+        [Required]
+        public string PollData { get; set; } = string.Empty;
+
+        public string? PollResults { get; set; }
         public DateTime? PollResultsCreatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? ClosedAt { get; set; }
@@ -31,10 +35,7 @@ namespace ThriveDevCenter.Shared.Models
         {
             get
             {
-                if (PollData == null)
-                    return null;
-
-                return JsonSerializer.Deserialize<PollData>(PollData);
+                return JsonSerializer.Deserialize<PollData>(PollData) ?? throw new NullDecodedJsonException();
             }
             set
             {
@@ -43,7 +44,7 @@ namespace ThriveDevCenter.Shared.Models
         }
 
         [JsonIgnore]
-        public PollResultData ParsedResults
+        public PollResultData? ParsedResults
         {
             get
             {

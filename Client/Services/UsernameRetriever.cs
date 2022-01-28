@@ -9,6 +9,7 @@ namespace ThriveDevCenter.Client.Services
     using System.Threading;
     using System.Threading.Tasks;
     using ThriveDevCenter.Shared;
+    using ThriveDevCenter.Shared.Converters;
     using Utilities;
 
     public class UsernameRetriever
@@ -117,10 +118,7 @@ namespace ThriveDevCenter.Client.Services
                 var content = await response.Content.ReadAsStringAsync();
 
                 result = JsonSerializer.Deserialize<Dictionary<long, string>>(content,
-                    HttpClientHelpers.GetOptionsWithSerializers());
-
-                if (result == null)
-                    throw new Exception("Decoded JSON response is null");
+                    HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
             }
             catch (Exception e)
             {

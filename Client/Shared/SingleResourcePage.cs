@@ -16,7 +16,7 @@ namespace ThriveDevCenter.Client.Shared
     /// </summary>
     public abstract class SingleResourcePage<T, TNotification> : SingleResourcePage<T>,
         INotificationHandler<TNotification>
-        where T : class, IIdentifiable
+        where T : class, IIdentifiable, new()
         where TNotification : ModelUpdated<T>
     {
         public Task Handle(TNotification notification, CancellationToken cancellationToken)

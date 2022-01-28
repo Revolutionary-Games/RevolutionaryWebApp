@@ -6,12 +6,12 @@ namespace ThriveDevCenter.Shared.Models
     public class PatreonCredits
     {
         [Required]
-        public List<string> VIPPatrons { get; set; }
+        public List<string> VIPPatrons { get; set; } = new();
 
         [Required]
-        public List<string> DevBuildPatrons { get; set; }
+        public List<string> DevBuildPatrons { get; set; } = new();
 
         [Required]
-        public List<string> SupporterPatrons { get; set; }
+        public List<string> SupporterPatrons { get; set; } = new();
     }
 }

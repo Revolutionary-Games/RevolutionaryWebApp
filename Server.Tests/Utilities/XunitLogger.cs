@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Server.Tests.Utilities
             this.output = output;
         }
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception,
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
             Func<TState, Exception, string> formatter)
         {
             output.WriteLine(state.ToString());

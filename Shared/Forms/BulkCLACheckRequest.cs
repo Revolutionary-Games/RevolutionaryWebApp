@@ -8,7 +8,7 @@ namespace ThriveDevCenter.Shared.Forms
         [Required]
         [StringLength(10000, MinimumLength = 3)]
         [Display(Name = "Items To Check")]
-        public string ItemsToCheck { get; set; }
+        public string ItemsToCheck { get; set; } = string.Empty;
 
         public CLACheckRequestType CheckType { get; set; }
 

@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Server.Tests.Dummies
         [HttpGet("user")]
         public UserInfo GetLoggedIn()
         {
-            var user = (User)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
+            var user = (User?)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
 
             if (user == null || !user.HasAccessLevel(UserAccessLevel.User))
                 throw new InvalidOperationException("user not retrieved or doesn't have access level");
@@ -36,7 +36,7 @@ namespace ThriveDevCenter.Server.Tests.Dummies
         [HttpGet("developer")]
         public UserInfo GetDeveloper()
         {
-            var user = (User)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
+            var user = (User?)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
 
             if (user == null || !user.HasAccessLevel(UserAccessLevel.Developer))
                 throw new InvalidOperationException("user not retrieved or doesn't have access level");
@@ -48,7 +48,7 @@ namespace ThriveDevCenter.Server.Tests.Dummies
         [HttpGet("admin")]
         public UserInfo GetAdmin()
         {
-            var user = (User)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
+            var user = (User?)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
 
             if (user == null || !user.HasAccessLevel(UserAccessLevel.Admin))
                 throw new InvalidOperationException("user not retrieved or doesn't have access level");
@@ -65,10 +65,10 @@ namespace ThriveDevCenter.Server.Tests.Dummies
         public class DummyModel
         {
             [Required]
-            public string Field { get; set; }
+            public string Field { get; set; } = string.Empty;
 
             [NotNullOrEmptyIf(PropertyMatchesValue = nameof(AValue), Value = "5")]
-            public string AnotherField { get; set; }
+            public string? AnotherField { get; set; }
 
             public int AValue { get; set; }
         }

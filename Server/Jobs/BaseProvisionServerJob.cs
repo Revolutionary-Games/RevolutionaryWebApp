@@ -25,7 +25,7 @@ namespace ThriveDevCenter.Server.Jobs
             "sudo dnf install -y --refresh podman curl git git-lfs gawk dotnet-runtime-6.0 && " +
             "git lfs install && sudo mkdir -p /executor_cache";
 
-        protected bool CheckServerDataIsFineForProvisioning(long id, BaseServer server)
+        protected bool CheckServerDataIsFineForProvisioning(long id, BaseServer? server)
         {
             if (server == null)
             {

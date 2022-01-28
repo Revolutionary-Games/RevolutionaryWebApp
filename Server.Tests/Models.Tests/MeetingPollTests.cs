@@ -67,7 +67,8 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
 
             var resultData = poll.ParsedResults;
 
-            Assert.NotNull(resultData.Results);
+            Assert.NotNull(resultData);
+            Assert.NotNull(resultData!.Results);
             Assert.Null(resultData.TiebreakInFavourOf);
             Assert.Equal(7.833333333333333, resultData.TotalVotes);
 

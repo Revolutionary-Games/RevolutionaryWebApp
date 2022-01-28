@@ -1,27 +1,33 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
 
+    // TODO: rename as v1 and implement v2 launcher API for the C# rewritten launcher
     public class DevBuildLauncherDTO : ITimestampedModel
     {
         [JsonPropertyName("id")]
         public long Id { get; set; }
 
+        [Required]
         [JsonPropertyName("build_hash")]
-        public string BuildHash { get; set; }
+        public string BuildHash { get; set; } = string.Empty;
 
+        [Required]
         [JsonPropertyName("platform")]
-        public string Platform { get; set; }
+        public string Platform { get; set; } = string.Empty;
 
+        [Required]
         [JsonPropertyName("branch")]
-        public string Branch { get; set; }
+        public string Branch { get; set; } = string.Empty;
 
+        [Required]
         [JsonPropertyName("build_zip_hash")]
-        public string BuildZipHash { get; set; }
+        public string BuildZipHash { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [JsonPropertyName("score")]
         public int Score { get; set; }

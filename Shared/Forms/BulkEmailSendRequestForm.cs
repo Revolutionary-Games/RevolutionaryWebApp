@@ -8,17 +8,17 @@ namespace ThriveDevCenter.Shared.Forms
     {
         [Required]
         [StringLength(120, MinimumLength = 10, ErrorMessage = "Title must be between 10 and 120 characters.")]
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         [Required]
         [StringLength(8000, MinimumLength = 40)]
         [Display(Name = "Plain Text Body")]
-        public string PlainBody { get; set; }
+        public string PlainBody { get; set; } = string.Empty;
 
         [Required]
         [StringLength(16000, MinimumLength = 40)]
         [Display(Name = "HTML Body")]
-        public string HTMLBody { get; set; }
+        public string HTMLBody { get; set; } = string.Empty;
 
         public BulkEmailRecipientsMode RecipientsMode { get; set; }
 
@@ -39,6 +39,6 @@ namespace ThriveDevCenter.Shared.Forms
         [NotNullOrEmptyIf(PropertyMatchesValue = nameof(RecipientsMode),
             Value = nameof(BulkEmailRecipientsMode.ManualList))]
         [Display(Name = "Manual Recipients List")]
-        public string ManualRecipients { get; set; }
+        public string? ManualRecipients { get; set; }
     }
 }

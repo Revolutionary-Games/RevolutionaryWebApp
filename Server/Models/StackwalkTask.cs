@@ -25,26 +25,27 @@ namespace ThriveDevCenter.Server.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
-        public string HashedId { get; set; }
+        public string HashedId { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? FinishedAt { get; set; }
 
         [Required]
-        public string DumpTempCategory { get; set; }
+        public string DumpTempCategory { get; set; } = string.Empty;
 
         [Required]
-        public string DumpFileName { get; set; }
+        public string DumpFileName { get; set; } = string.Empty;
 
         public bool DeleteDumpAfterRunning { get; set; } = true;
 
         /// <summary>
         ///   Will be used in the future once crash reports are processed through this
+        ///   TODO: starting to look like this won't be needed
         /// </summary>
-        public string SpecialWalkType { get; set; }
+        public string? SpecialWalkType { get; set; }
 
-        public string Result { get; set; }
+        public string? Result { get; set; }
 
         public bool Succeeded { get; set; }
 

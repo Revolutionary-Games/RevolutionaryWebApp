@@ -18,21 +18,23 @@ namespace ThriveDevCenter.Server.Services
 
         private static readonly Regex CrashedThreadRegex =
             new(@"Thread\s+\d+\s+\(crashed\).*", RegexOptions.IgnoreCase);
+
         private static readonly Regex StackFrameStartRegex = new(@"^\s*\d+\s+.*");
 
         private readonly HttpClient httpClient;
-        private readonly Uri serviceBaseUrl;
+        private readonly Uri? serviceBaseUrl;
 
         public Stackwalk(IConfiguration configuration)
         {
             var url = configuration["Crashes:StackwalkService"];
+
+            httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
 
             if (string.IsNullOrEmpty(url))
                 return;
 
             serviceBaseUrl = new Uri(url);
 
-            httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
             Configured = true;
         }
 
@@ -47,7 +49,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var url = new Uri(serviceBaseUrl, "api/v1");
+            var url = new Uri(serviceBaseUrl!, "api/v1");
 
             using var form = new MultipartFormDataContent();
 
@@ -70,7 +72,7 @@ namespace ThriveDevCenter.Server.Services
             return await reader.ReadToEndAsync();
         }
 
-        public string FindPrimaryCallstack(string decodedDump, bool fallback)
+        public string? FindPrimaryCallstack(string decodedDump, bool fallback)
         {
             if (string.IsNullOrWhiteSpace(decodedDump))
                 return null;
@@ -108,7 +110,7 @@ namespace ThriveDevCenter.Server.Services
             return builder.ToString().Truncate(MaximumPrimaryCallstackLength);
         }
 
-        public string CondenseCallstack(string callstack)
+        public string? CondenseCallstack(string? callstack)
         {
             if (callstack == null)
                 return null;
@@ -153,16 +155,16 @@ namespace ThriveDevCenter.Server.Services
         ///   failed
         /// </param>
         /// <returns>The found primary callstack or null</returns>
-        string FindPrimaryCallstack(string decodedDump, bool fallback = true);
+        string? FindPrimaryCallstack(string decodedDump, bool fallback = true);
 
         /// <summary>
         ///   Takes in a callstack with register and other info present and condenses it
         /// </summary>
         /// <param name="callstack">
-        ///   The callstack to process, for example from <see cref="FindPrimaryCallstack"/>.
-        ///   If null, null is returned.
+        ///     The callstack to process, for example from <see cref="FindPrimaryCallstack"/>.
+        ///     If null, null is returned.
         /// </param>
         /// <returns>The condensed callstack with just the function and location information</returns>
-        string CondenseCallstack(string callstack);
+        string? CondenseCallstack(string? callstack);
     }
 }

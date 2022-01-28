@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Shared.Forms
         [Required]
         [MaxLength(AppInfo.MaxDebugSymbolOfferBatch)]
         [MinLength(1)]
-        public List<string> SymbolPaths { get; set; }
+        // ReSharper disable once CollectionNeverUpdated.Global
+        public List<string> SymbolPaths { get; set; } = new();
     }
 }

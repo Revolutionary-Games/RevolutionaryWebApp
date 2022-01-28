@@ -16,13 +16,14 @@ namespace ThriveDevCenter.Server.Models
     {
         [Required]
         [HashedLookUp]
-        public string LinkCode { get; set; }
+        public string LinkCode { get; set; } = string.Empty;
 
-        public string HashedLinkCode { get; set; }
+        public string? HashedLinkCode { get; set; }
 
         [Required]
         [AllowSortingBy]
-        public string LastIp { get; set; }
+        // TODO: switch this to IPAddress type
+        public string? LastIp { get; set; }
 
         [AllowSortingBy]
         public DateTime? LastConnection { get; set; }
@@ -31,7 +32,7 @@ namespace ThriveDevCenter.Server.Models
         public int TotalApiCalls { get; set; } = 0;
 
         public long UserId { get; set; }
-        public User User { get; set; }
+        public User? User { get; set; }
 
         public LauncherLinkDTO GetDTO()
         {

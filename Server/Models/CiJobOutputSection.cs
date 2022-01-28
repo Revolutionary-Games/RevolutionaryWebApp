@@ -22,7 +22,7 @@ namespace ThriveDevCenter.Server.Models
         public long CiJobOutputSectionId { get; set; }
 
         [Required]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         public CIJobSectionStatus Status { get; set; } = CIJobSectionStatus.Running;
 
@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Models
         public long OutputLength { get; set; }
 
         [ForeignKey("CiProjectId,CiBuildId,CiJobId")]
-        public CiJob Job { get; set; }
+        public CiJob? Job { get; set; }
 
         /// <summary>
         ///   Fills the OutputLength property based on the Output property

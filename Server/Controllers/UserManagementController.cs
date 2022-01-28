@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             // Has to be an admin or looking at their own data
-            if (!admin && HttpContext.AuthenticatedUser().Id != user.Id)
+            if (!admin && HttpContext.AuthenticatedUser()!.Id != user.Id)
                 return NotFound();
 
             return user.GetInfo(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
@@ -119,7 +119,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (request.BoardMember && !request.HasBeenBoardMember)
                 return BadRequest("If currently a board member must have been a board member");
 
-            var performingUser = HttpContext.AuthenticatedUser();
+            var performingUser = HttpContext.AuthenticatedUser()!;
 
             var user = await database.Users.FindAsync(id);
 
@@ -169,7 +169,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             // Has to be an admin or looking at their own data
-            if (!admin && HttpContext.AuthenticatedUser().Id != user.Id)
+            if (!admin && HttpContext.AuthenticatedUser()!.Id != user.Id)
                 return NotFound();
 
             // If requestSession is null this request came with an API key and not a browser session
@@ -200,7 +200,7 @@ namespace ThriveDevCenter.Server.Controllers
                 HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
 
             var user = await database.Users.FindAsync(id);
-            var actingUser = HttpContext.AuthenticatedUser();
+            var actingUser = HttpContext.AuthenticatedUser()!;
 
             if (user == null)
                 return NotFound();
@@ -246,7 +246,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             // It makes sense only for the current user to perform this action
-            if (HttpContext.AuthenticatedUser().Id != user.Id)
+            if (HttpContext.AuthenticatedUser()!.Id != user.Id)
                 return NotFound();
 
             var requestSession = HttpContext.AuthenticatedUserSession();
@@ -280,7 +280,7 @@ namespace ThriveDevCenter.Server.Controllers
                 HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
 
             var user = await database.Users.FindAsync(id);
-            var actingUser = HttpContext.AuthenticatedUser();
+            var actingUser = HttpContext.AuthenticatedUser()!;
 
             if (user == null)
                 return NotFound();
@@ -291,7 +291,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var sessions = await database.Sessions.Where(s => s.UserId == id).ToListAsync();
 
-            Session session = null;
+            Session? session = null;
 
             // For safety we never give out the real ids of the session, so we need to here find the actual
             // target session

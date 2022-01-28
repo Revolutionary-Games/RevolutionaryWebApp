@@ -4,13 +4,13 @@ namespace ThriveDevCenter.Client.Shared
     {
         public string Name { get; set; }
 
-        public string ColumnName { get; set; }
+        public string? ColumnName { get; set; }
 
         public bool IsSortable { get; set; }
 
         public string SortName => ColumnName ?? Name;
 
-        public TableColumn(string name, bool sortable, string sortName = null)
+        public TableColumn(string name, bool sortable, string? sortName = null)
         {
             Name = name;
             IsSortable = sortable;

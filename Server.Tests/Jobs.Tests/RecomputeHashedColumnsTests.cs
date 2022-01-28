@@ -51,7 +51,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
                 .FromSqlInterpolated($"SELECT * FROM sessions WHERE id = {created.Id}").FirstOrDefaultAsync();
             Assert.NotNull(retrieved);
 
-            Assert.Equal(created.HashedId, retrieved.HashedId);
+            Assert.Equal(created.HashedId, retrieved!.HashedId);
             Assert.Equal(created.SsoNonce, retrieved.SsoNonce);
 
             Assert.Null(await database.Sessions

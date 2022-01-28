@@ -1,13 +1,19 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using Enums;
 
     public class MeetingDTO : ClientSideTimedModel
     {
-        public string Name { get; set; }
-        public string Minutes { get; set; }
-        public string Description { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        public string? Minutes { get; set; }
+
+        [Required]
+        public string Description { get; set; } = string.Empty;
+
         public DateTime StartsAt { get; set; }
         public TimeSpan? ExpectedDuration { get; set; }
         public TimeSpan JoinGracePeriod { get; set; }

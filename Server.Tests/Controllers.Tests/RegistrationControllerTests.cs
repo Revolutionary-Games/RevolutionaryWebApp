@@ -34,30 +34,42 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         }
 
         [Fact]
-        public void Get_ReturnsRegistrationEnabledStatus()
+        public async Task Get_ReturnsRegistrationEnabledStatus()
         {
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+            await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
+
             var controller = new RegistrationController(logger, new DummyRegistrationStatus()
             {
                 RegistrationEnabled = true,
                 RegistrationCode = "abc123"
-            }, null, null);
+            }, Mock.Of<ITokenVerifier>(), database);
 
             var result = controller.Get();
 
             Assert.True(result);
+
+            notificationsMock.VerifyNoOtherCalls();
         }
 
         [Fact]
-        public void Get_ReturnsRegistrationDisabledStatus()
+        public async Task Get_ReturnsRegistrationDisabledStatus()
         {
+            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+            await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
+
             var controller = new RegistrationController(logger, new DummyRegistrationStatus()
             {
                 RegistrationEnabled = false
-            }, null, null);
+            }, Mock.Of<ITokenVerifier>(), database);
 
             var result = controller.Get();
 
             Assert.False(result);
+
+            notificationsMock.VerifyNoOtherCalls();
         }
 
         [Theory]

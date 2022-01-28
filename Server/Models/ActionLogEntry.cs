@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Server.Models
     public class ActionLogEntry : BaseModel
     {
         [Required]
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -21,7 +21,7 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public long? PerformedById { get; set; }
 
-        public User PerformedBy { get; set; }
+        public User? PerformedBy { get; set; }
 
         public ActionLogEntryDTO GetDTO()
         {

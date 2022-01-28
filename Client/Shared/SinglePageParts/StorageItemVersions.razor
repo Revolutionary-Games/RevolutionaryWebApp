@@ -6,6 +6,7 @@
 @using System.Threading
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
+@using System.Text.Json
 @implements ThriveDevCenter.Client.Services.INotificationHandler<StorageItemVersionListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.StorageItemVersionInfo>
 
@@ -87,7 +88,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<StorageItemVersionInfo>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<StorageItemVersionInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<StorageItemVersionInfo>>(
             QueryHelpers.AddQueryString($"api/v1/Files/{StorageItemId}/versions", requestParams));

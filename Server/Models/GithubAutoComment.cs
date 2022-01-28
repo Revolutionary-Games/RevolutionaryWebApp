@@ -21,11 +21,11 @@ namespace ThriveDevCenter.Server.Models
         ///   Only matching repository PRs are considered. If null, empty or * will post on any repo
         /// </summary>
         [UpdateFromClientRequest]
-        public string Repository { get; set; }
+        public string? Repository { get; set; }
 
         [Required]
         [UpdateFromClientRequest]
-        public string CommentText { get; set; }
+        public string CommentText { get; set; } = string.Empty;
 
         [AllowSortingBy]
         [UpdateFromClientRequest]

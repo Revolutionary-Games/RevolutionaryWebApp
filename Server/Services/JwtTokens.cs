@@ -26,7 +26,7 @@ namespace ThriveDevCenter.Server.Services
             CSRFSecret = Encoding.UTF8.GetBytes(secret);
         }
 
-        protected string UserIdFromPotentiallyNull(User user)
+        protected string UserIdFromPotentiallyNull(User? user)
         {
             if (user == null)
                 return "null";
@@ -37,12 +37,12 @@ namespace ThriveDevCenter.Server.Services
 
     public interface ITokenVerifier
     {
-        bool IsValidCSRFToken(string tokenString, User requiredUser, bool verifyUser = true);
+        bool IsValidCSRFToken(string tokenString, User? requiredUser, bool verifyUser = true);
     }
 
     public interface ITokenGenerator
     {
-        string GenerateCSRFToken(User user);
+        string GenerateCSRFToken(User? user);
         DateTime GetCSRFTokenExpiry();
     }
 
@@ -59,7 +59,7 @@ namespace ThriveDevCenter.Server.Services
                 SecurityAlgorithms.HmacSha256Signature);
         }
 
-        public string GenerateCSRFToken(User user)
+        public string GenerateCSRFToken(User? user)
         {
             var claims = new List<Claim>()
             {
@@ -119,7 +119,7 @@ namespace ThriveDevCenter.Server.Services
             };
         }
 
-        public bool IsValidCSRFToken(string tokenString, User requiredUser, bool verifyUser = true)
+        public bool IsValidCSRFToken(string tokenString, User? requiredUser, bool verifyUser = true)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
 

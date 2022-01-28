@@ -4,9 +4,9 @@ namespace ThriveDevCenter.Shared.Models
 
     public class CLASignatureSearchResult
     {
-        public string Email { get; set; }
-        public string GithubAccount { get; set; }
-        public string DeveloperUsername { get; set; }
+        public string? Email { get; set; }
+        public string? GithubAccount { get; set; }
+        public string? DeveloperUsername { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }

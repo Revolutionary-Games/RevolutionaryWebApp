@@ -15,7 +15,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
         ///     This approach has been ported over from RubySetupSystem
         ///   </para>
         /// </remarks>
-        public static string Which(string commandName)
+        public static string? Which(string commandName)
         {
             if (Environment.OSVersion.Platform == PlatformID.Win32Windows)
             {

@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
 
     public class CIJobDTO : IIdentifiable
@@ -10,13 +11,18 @@ namespace ThriveDevCenter.Shared.Models
 
         public long CiJobId { get; set; }
 
-        public string JobName { get; set; }
+        [Required]
+        public string JobName { get; set; } = string.Empty;
+
         public DateTime CreatedAt { get; set; }
         public DateTime? FinishedAt { get; set; }
         public CIJobState State { get; set; }
-        public string ProjectName { get; set; }
+
+        [Required]
+        public string ProjectName { get; set; } = string.Empty;
+
         public bool Succeeded { get; set; }
-        public string RanOnServer { get; set; }
+        public string? RanOnServer { get; set; }
         public TimeSpan? TimeWaitingForServer { get; set; }
 
         /// <summary>

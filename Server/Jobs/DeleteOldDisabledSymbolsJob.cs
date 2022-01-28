@@ -10,6 +10,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared;
+    using Utilities;
 
     [DisableConcurrentExecution(500)]
     public class DeleteOldDisabledSymbolsJob : IJob
@@ -33,7 +34,7 @@ namespace ThriveDevCenter.Server.Jobs
             var cutoff = DateTime.UtcNow - AppInfo.InactiveSymbolKeepDuration;
 
             var symbols = await database.DebugSymbols.Where(s => !s.Active && s.UpdatedAt < cutoff)
-                .Include(s => s.StoredInItem).ThenInclude(i => i.StorageItemVersions).ThenInclude(v => v.StorageFile)
+                .Include(s => s.StoredInItem!).ThenInclude(i => i.StorageItemVersions).ThenInclude(v => v.StorageFile)
                 .ToListAsync(cancellationToken);
 
             if (symbols.Count < 1)
@@ -49,6 +50,9 @@ namespace ThriveDevCenter.Server.Jobs
 
                 logger.LogInformation("Deleting old inactive symbol: {RelativePath} ({Id})", symbol.RelativePath,
                     symbol.Id);
+
+                if (symbol.StoredInItem == null)
+                    throw new NotLoadedModelNavigationException();
 
                 // Queue the jobs to perform the actions
                 foreach (var storageItemVersion in symbol.StoredInItem.StorageItemVersions)

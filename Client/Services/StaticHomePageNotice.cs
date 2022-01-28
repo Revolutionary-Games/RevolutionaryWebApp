@@ -7,14 +7,14 @@ namespace ThriveDevCenter.Client.Services
     {
         private readonly IJSRuntime jsRuntime;
         private bool fetched;
-        private string value;
+        private string? value;
 
         public StaticHomePageNotice(IJSRuntime jsRuntime)
         {
             this.jsRuntime = jsRuntime;
         }
 
-        public async Task<string> ReadNotice()
+        public async Task<string?> ReadNotice()
         {
             if (fetched)
                 return value;

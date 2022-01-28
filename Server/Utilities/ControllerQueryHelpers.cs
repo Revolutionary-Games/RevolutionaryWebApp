@@ -44,12 +44,8 @@ namespace ThriveDevCenter.Server.Utilities
         }
 
         public static IOrderedAsyncEnumerable<T> OrderBy<T>(this IAsyncEnumerable<T> source, string column,
-            SortDirection direction,
-            IEnumerable<string> extraAllowedColumns = null)
+            SortDirection direction, IEnumerable<string>? extraAllowedColumns = null)
         {
-            if (source == null)
-                return null;
-
             var lambda = CreatePropertySelector<T>(column, extraAllowedColumns);
 
             if (direction == SortDirection.Descending)
@@ -61,12 +57,8 @@ namespace ThriveDevCenter.Server.Utilities
         }
 
         public static IOrderedAsyncEnumerable<T> ThenBy<T>(this IOrderedAsyncEnumerable<T> source, string column,
-            SortDirection direction,
-            IEnumerable<string> extraAllowedColumns = null)
+            SortDirection direction, IEnumerable<string>? extraAllowedColumns = null)
         {
-            if (source == null)
-                return null;
-
             var lambda = CreatePropertySelector<T>(column, extraAllowedColumns);
 
             if (direction == SortDirection.Descending)
@@ -77,7 +69,7 @@ namespace ThriveDevCenter.Server.Utilities
             return source.ThenBy(lambda);
         }
 
-        private static Func<T, object> CreatePropertySelector<T>(string column, IEnumerable<string> extraAllowedColumns)
+        private static Func<T, object> CreatePropertySelector<T>(string column, IEnumerable<string>? extraAllowedColumns)
         {
             var parameter = Expression.Parameter(typeof(T), "x");
             var selector = Expression.PropertyOrField(parameter, column);

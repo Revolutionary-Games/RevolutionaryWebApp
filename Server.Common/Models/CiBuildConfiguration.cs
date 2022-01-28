@@ -16,21 +16,26 @@ namespace ThriveDevCenter.Server.Common.Models
         [MaxLength(20)]
         [MinLength(1)]
         [Required]
-        public Dictionary<string, CiJobConfiguration> Jobs { get; set; }
+
+        // ReSharper disable once CollectionNeverUpdated.Global
+        public Dictionary<string, CiJobConfiguration> Jobs { get; set; } = new();
     }
 
     public class CiJobConfiguration
     {
         [Required]
         [StringLength(500, MinimumLength = 4)]
-        public string Image { get; set; }
+        public string Image { get; set; } = string.Empty;
 
-        public CiJobCacheConfiguration Cache { get; set; }
+        [Required]
+        public CiJobCacheConfiguration Cache { get; set; } = new();
 
         [Required]
         [MinLength(1)]
         [MaxLength(50)]
-        public List<CiJobBuildStep> Steps { get; set; }
+
+        // ReSharper disable once CollectionNeverUpdated.Global
+        public List<CiJobBuildStep> Steps { get; set; } = new();
 
         public CiArtifactsConfiguration Artifacts { get; set; } = new();
     }
@@ -41,36 +46,40 @@ namespace ThriveDevCenter.Server.Common.Models
         [MinLength(1)]
         [MaxLength(10)]
         [JsonPropertyName("load_from")]
-        public List<string> LoadFrom { get; set; }
 
+        // ReSharper disable once CollectionNeverUpdated.Global
+        public List<string> LoadFrom { get; set; } = new();
+
+        [Required]
         [JsonPropertyName("write_to")]
-        public string WriteTo { get; set; }
+        [StringLength(120, MinimumLength = 2)]
+        public string WriteTo { get; set; } = string.Empty;
 
         [MinLength(1)]
         [MaxLength(10)]
         [JsonPropertyName("shared")]
-        public Dictionary<string, string> Shared { get; set; }
+        public Dictionary<string, string>? Shared { get; set; }
 
         [MinLength(1)]
         [MaxLength(5)]
         [JsonPropertyName("system")]
-        public Dictionary<string, string> System { get; set; }
+        public Dictionary<string, string>? System { get; set; }
     }
 
     public class CiJobBuildStep
     {
-        public CiJobBuildStepRun Run { get; set; }
+        public CiJobBuildStepRun? Run { get; set; }
     }
 
     public class CiJobBuildStepRun
     {
         [Required]
         [StringLength(90, MinimumLength = 2)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [StringLength(4000, MinimumLength = 1)]
-        public string Command { get; set; }
+        public string Command { get; set; } = string.Empty;
 
         public CiJobStepRunCondition When { get; set; } = CiJobStepRunCondition.Success;
     }
@@ -85,6 +94,8 @@ namespace ThriveDevCenter.Server.Common.Models
     public class CiArtifactsConfiguration
     {
         [MaxLength(25)]
+
+        // ReSharper disable once CollectionNeverUpdated.Global
         public List<string> Paths { get; set; } = new();
     }
 }

@@ -1,24 +1,33 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
 
     public class LoginOptions
     {
-        public List<LoginCategory> Categories { get; set; }
+        [Required]
+        public List<LoginCategory> Categories { get; set; } = new();
     }
 
     public class LoginCategory
     {
-        public string Name { get; set; }
-        public List<LoginOption> Options { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public List<LoginOption> Options { get; set; } = new();
     }
 
     public class LoginOption
     {
-        public string ReadableName { get; set; }
-        public string InternalName { get; set; }
+        [Required]
+        public string ReadableName { get; set; } = string.Empty;
+
+        [Required]
+        public string InternalName { get; set; } = string.Empty;
+
         public bool Active { get; set; } = true;
 
-        public bool Local { get; set; } = false;
+        public bool Local { get; set; }
     }
 }

@@ -48,18 +48,18 @@ namespace CIExecutor
 
         private readonly List<RealTimeBuildMessage> queuedBuildMessages = new();
 
-        private ClientWebSocket webSocket;
-        private RealTimeBuildMessageSocket protocolSocket;
-        private CiJobCacheConfiguration cacheConfig;
+        private ClientWebSocket? webSocket;
+        private RealTimeBuildMessageSocket? protocolSocket;
+        private CiJobCacheConfiguration? cacheConfig;
 
-        private string currentBuildRootFolder;
+        private string? currentBuildRootFolder;
 
         private bool running;
         private bool failure;
         private bool buildCommandsFailed;
 
         private bool lastSectionClosed = true;
-        private string ciCommit;
+        private string? ciCommit;
 
         public CIExecutor(string websocketUrl)
         {
@@ -70,11 +70,16 @@ namespace CIExecutor
 
             imageCacheFolder = Path.Join(home, "images");
             ciImageFile = Path.Join(imageCacheFolder, Environment.GetEnvironmentVariable("CI_IMAGE_FILENAME"));
-            ciImageName = Environment.GetEnvironmentVariable("CI_IMAGE_NAME");
-            localBranch = Environment.GetEnvironmentVariable("CI_BRANCH");
-            ciJobName = Environment.GetEnvironmentVariable("CI_JOB_NAME");
-            ciRef = Environment.GetEnvironmentVariable("CI_REF");
-            defaultBranch = Environment.GetEnvironmentVariable("CI_DEFAULT_BRANCH");
+            ciImageName = Environment.GetEnvironmentVariable("CI_IMAGE_NAME") ??
+                throw new Exception("Missing environment variable 'CI_IMAGE_NAME'");
+            localBranch = Environment.GetEnvironmentVariable("CI_BRANCH") ??
+                throw new Exception("Missing environment variable 'CI_BRANCH'");
+            ciJobName = Environment.GetEnvironmentVariable("CI_JOB_NAME") ??
+                throw new Exception("Missing environment variable 'CI_JOB_NAME'");
+            ciRef = Environment.GetEnvironmentVariable("CI_REF") ??
+                throw new Exception("Missing environment variable 'CI_REF'");
+            defaultBranch = Environment.GetEnvironmentVariable("CI_DEFAULT_BRANCH") ??
+                throw new Exception("Missing environment variable 'CI_DEFAULT_BRANCH'");
 
             isSafe = Convert.ToBoolean(Environment.GetEnvironmentVariable("CI_TRUSTED"));
 
@@ -126,6 +131,9 @@ namespace CIExecutor
                 cacheConfig = JsonSerializer.Deserialize<CiJobCacheConfiguration>(
                     Environment.GetEnvironmentVariable("CI_CACHE_OPTIONS") ??
                     throw new Exception("environment variable for cache not set"));
+
+                if (cacheConfig == null)
+                    throw new Exception("Loaded cache config is null");
             }
             catch (Exception e)
             {
@@ -243,7 +251,7 @@ namespace CIExecutor
                     var last = queuedBuildMessages.LastOrDefault();
 
                     if (last != null && last.Type == message.Type &&
-                        last.Output.Length + message.Output.Length < TargetOutputSingleMessageSize)
+                        last.Output!.Length + message.Output!.Length < TargetOutputSingleMessageSize)
                     {
                         // Messages can be merged for sending them together
                         last.Output += message.Output;
@@ -306,6 +314,9 @@ namespace CIExecutor
 
                             try
                             {
+                                if (protocolSocket == null)
+                                    throw new Exception("protocolSocket has been destroyed");
+
                                 await protocolSocket.Write(
                                     new RealTimeBuildMessage()
                                         { Type = BuildSectionMessageType.BuildOutput, Output = "..." },
@@ -333,6 +344,9 @@ namespace CIExecutor
 
                     try
                     {
+                        if (protocolSocket == null)
+                            throw new Exception("protocolSocket has been destroyed");
+
                         foreach (var message in toSend)
                             await protocolSocket.Write(message, CancellationToken.None);
                     }
@@ -359,11 +373,14 @@ namespace CIExecutor
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                (RealTimeBuildMessage message, bool closed) received;
+                (RealTimeBuildMessage? message, bool closed) received;
 
                 protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(120));
                 try
                 {
+                    if (protocolSocket == null)
+                        throw new Exception("protocolSocket has been destroyed");
+
                     received = await protocolSocket.Read(cancellationToken);
                 }
                 catch (WebSocketProtocolException e)
@@ -409,7 +426,7 @@ namespace CIExecutor
                 Directory.CreateDirectory(sharedCacheFolder);
                 Directory.CreateDirectory(imageCacheFolder);
 
-                currentBuildRootFolder = Path.Join(jobCacheBaseFolder, HandleCacheTemplates(cacheConfig.WriteTo));
+                currentBuildRootFolder = Path.Join(jobCacheBaseFolder, HandleCacheTemplates(cacheConfig!.WriteTo));
 
                 var cacheCopyFromFolders =
                     cacheConfig.LoadFrom.Select(p => Path.Join(jobCacheBaseFolder, HandleCacheTemplates(p))).ToList();
@@ -449,31 +466,35 @@ namespace CIExecutor
 
             try
             {
-                ciCommit = Environment.GetEnvironmentVariable("CI_COMMIT_HASH");
-                var ciOrigin = Environment.GetEnvironmentVariable("CI_ORIGIN");
+                ciCommit = Environment.GetEnvironmentVariable("CI_COMMIT_HASH") ??
+                    throw new Exception("Missing environment variable 'CI_COMMIT_HASH'");
+                var ciOrigin = Environment.GetEnvironmentVariable("CI_ORIGIN") ??
+                    throw new Exception("Missing environment variable 'CI_ORIGIN'");
 
                 await QueueSendBasicMessage($"Checking out the needed ref: {ciRef} and commit: {ciCommit}");
 
-                await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, currentBuildRootFolder, false,
+                var folder = currentBuildRootFolder ?? throw new Exception("build root folder not set");
+
+                await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, folder, false,
                     CancellationToken.None);
 
                 // Fetch the ref
                 await QueueSendBasicMessage($"Fetching the ref: {ciRef}");
-                await GitRunHelpers.FetchRef(currentBuildRootFolder, ciRef, CancellationToken.None);
+                await GitRunHelpers.FetchRef(folder, ciRef, CancellationToken.None);
 
                 // Also fetch the default branch for comparing changes against it
-                await GitRunHelpers.Fetch(currentBuildRootFolder, defaultBranch, ciOrigin, CancellationToken.None);
+                await GitRunHelpers.Fetch(folder, defaultBranch, ciOrigin, CancellationToken.None);
 
-                await GitRunHelpers.Checkout(currentBuildRootFolder, ciCommit, false, CancellationToken.None, true);
+                await GitRunHelpers.Checkout(folder, ciCommit, false, CancellationToken.None, true);
                 await QueueSendBasicMessage($"Checked out commit {ciCommit}");
 
                 // Clean out non-ignored files
-                var deleted = await GitRunHelpers.Clean(currentBuildRootFolder, CancellationToken.None);
+                var deleted = await GitRunHelpers.Clean(folder, CancellationToken.None);
 
                 await QueueSendBasicMessage($"Cleaned non-ignored extra files: {deleted}");
 
                 // Handling of shared cache paths with symlinks
-                if (cacheConfig.Shared != null)
+                if (cacheConfig!.Shared != null)
                 {
                     foreach (var tuple in cacheConfig.Shared)
                     {
@@ -610,9 +631,12 @@ namespace CIExecutor
 
             await QueueSendBasicMessage("Build environment image doesn't exist locally, downloading...");
 
+            var downloadUrl = Environment.GetEnvironmentVariable("CI_IMAGE_DL_URL") ??
+                throw new Exception("Missing environment variable 'CI_IMAGE_DL_URL'");
+
             if (!await RunWithOutputStreaming("curl", new List<string>
                 {
-                    "-LsS", Environment.GetEnvironmentVariable("CI_IMAGE_DL_URL"), "--output", ciImageFile,
+                    "-LsS", downloadUrl, "--output", ciImageFile,
                 }))
             {
                 // Delete a partial download
@@ -659,12 +683,13 @@ namespace CIExecutor
 
                 await QueueSendBasicMessage($"Using build environment image: {ciImageName}");
 
-                var buildConfig = await LoadCIBuildConfiguration(currentBuildRootFolder);
+                var folder = currentBuildRootFolder ?? throw new Exception("build root folder not set");
+                var buildConfig = await LoadCIBuildConfiguration(folder);
 
                 if (buildConfig == null)
                     return;
 
-                var command = BuildCommandsFromBuildConfig(buildConfig, ciJobName, currentBuildRootFolder);
+                var command = BuildCommandsFromBuildConfig(buildConfig, ciJobName, folder);
 
                 if (command == null || command.Count < 1)
                     throw new Exception("Failed to parse CI configuration to build list of build commands");
@@ -672,7 +697,7 @@ namespace CIExecutor
                 if (printBuildCommands)
                     PrintBuildCommands(command);
 
-                List<CiSecretExecutorData> secrets;
+                List<CiSecretExecutorData>? secrets;
                 try
                 {
                     secrets = JsonSerializer.Deserialize<List<CiSecretExecutorData>>(
@@ -799,7 +824,7 @@ namespace CIExecutor
             }
         }
 
-        private async Task<CiBuildConfiguration> LoadCIBuildConfiguration(string folder)
+        private async Task<CiBuildConfiguration?> LoadCIBuildConfiguration(string folder)
         {
             try
             {
@@ -826,10 +851,10 @@ namespace CIExecutor
             }
         }
 
-        private List<string> BuildCommandsFromBuildConfig(CiBuildConfiguration configuration, string jobName,
+        private List<string>? BuildCommandsFromBuildConfig(CiBuildConfiguration configuration, string jobName,
             string folder)
         {
-            if (!configuration.Jobs.TryGetValue(jobName, out CiJobConfiguration config))
+            if (!configuration.Jobs.TryGetValue(jobName, out CiJobConfiguration? config))
             {
                 QueueSendBasicMessage($"Config file is missing current job: {jobName}");
                 return null;
@@ -841,7 +866,7 @@ namespace CIExecutor
                 "echo 'Starting running build in container'",
             };
 
-            if (config.Cache?.System != null)
+            if (config.Cache.System != null)
             {
                 // Setup the system cache redirects
                 foreach (var systemCacheEntry in config.Cache.System)

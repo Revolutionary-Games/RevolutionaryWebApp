@@ -11,10 +11,12 @@ namespace ThriveDevCenter.Shared.Models
         public ServerStatus Status { get; set; }
         public DateTime StatusLastChecked { get; set; }
         public ServerReservationType ReservationType { get; set; }
-        public string ReservedFor { get; set; }
+
+        [Required]
+        public string ReservedFor { get; set; } = string.Empty;
 
         [JsonConverter(typeof(IPAddressConverter))]
-        public IPAddress PublicAddress { get; set; }
+        public IPAddress? PublicAddress { get; set; }
 
         public DateTime? RunningSince { get; set; }
         public bool ProvisionedFully { get; set; }
@@ -24,7 +26,7 @@ namespace ThriveDevCenter.Shared.Models
         public bool CleanUpQueued { get; set; }
 
         [Required]
-        public string SSHKeyFileName { get; set; }
+        public string SSHKeyFileName { get; set; } = string.Empty;
 
         public int Priority { get; set; }
     }

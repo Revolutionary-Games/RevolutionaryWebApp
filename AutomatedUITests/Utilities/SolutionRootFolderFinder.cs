@@ -10,10 +10,9 @@ namespace AutomatedUITests.Utilities
         ///   Extracted method from UseSolutionRelativeContentRoot as we also need solution relative web root
         /// </summary>
         /// <returns></returns>
-        public static string FindSolutionRootFolder(string solutionName = "*.sln", string baseDirectory = null)
+        public static string FindSolutionRootFolder(string solutionName = "*.sln", string? baseDirectory = null)
         {
-            if (baseDirectory == null)
-                baseDirectory = AppContext.BaseDirectory;
+            baseDirectory ??= AppContext.BaseDirectory;
 
             var directoryInfo = new DirectoryInfo(baseDirectory);
             do
@@ -26,7 +25,7 @@ namespace AutomatedUITests.Utilities
 
                 directoryInfo = directoryInfo.Parent;
             }
-            while (directoryInfo.Parent != null);
+            while (directoryInfo?.Parent != null);
 
             throw new InvalidOperationException("Solution root could not be located");
         }

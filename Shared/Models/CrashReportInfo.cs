@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using Enums;
 
     public class CrashReportInfo : ClientSideTimedModel
@@ -9,7 +10,10 @@ namespace ThriveDevCenter.Shared.Models
         public ReportState State { get; set; }
         public ThrivePlatform Platform { get; set; }
         public DateTime HappenedAt { get; set; }
-        public string ExitCodeOrSignal { get; set; }
-        public string StoreOrVersion { get; set; }
+
+        [Required]
+        public string ExitCodeOrSignal { get; set; } = string.Empty;
+
+        public string? StoreOrVersion { get; set; }
     }
 }

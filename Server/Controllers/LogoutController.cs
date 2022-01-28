@@ -2,13 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ThriveDevCenter.Server.Controllers
 {
-    using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using Authorization;
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
     using Shared;
+    using Shared.Forms;
 
     [Controller]
     [Route("[controller]")]
@@ -57,11 +57,5 @@ namespace ThriveDevCenter.Server.Controllers
             database.Sessions.Remove(session);
             return database.SaveChangesAsync();
         }
-    }
-
-    public class LogoutFormData
-    {
-        [Required]
-        public string CSRF { get; set; }
     }
 }

@@ -54,7 +54,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             var filePath = Path.Combine(baseFolder, task.DumpFileName);
 
-            FileStream dump = null;
+            FileStream? dump = null;
 
             // On Linux an open file should not impact deleting etc. so I'm pretty sure this is pretty safe
             await semaphore.WaitAsync(cancellationToken);
@@ -70,7 +70,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             await symbolPrepareTask;
 
-            if (task.DumpFileName == null || dump == null)
+            if (string.IsNullOrEmpty(task.DumpFileName) || dump == null)
             {
                 logger.LogError("Can't stackwalk for task with missing dump file: {FilePath}", filePath);
                 return;

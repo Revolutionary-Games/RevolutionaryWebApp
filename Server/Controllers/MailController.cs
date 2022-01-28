@@ -41,15 +41,13 @@ namespace ThriveDevCenter.Server.Controllers
             if (!mailSender.Configured)
                 return BadRequest("Email is not configured");
 
-            logger.LogInformation("Test email sent by {Email} to {Recipient}", HttpContext.AuthenticatedUser().Email,
+            logger.LogInformation("Test email sent by {Email} to {Recipient}", HttpContext.AuthenticatedUser()!.Email,
                 request.Recipient);
 
             try
             {
-                await mailSender.SendEmail(new MailRequest()
+                await mailSender.SendEmail(new MailRequest(request.Recipient, "Test Email from ThriveDevCenter")
                 {
-                    Recipient = request.Recipient,
-                    Subject = "Test Email from ThriveDevCenter",
                     PlainTextBody =
                         "This is a test email from ThriveDevCenter.\n If you received this, then things are working.",
                     HtmlBody =

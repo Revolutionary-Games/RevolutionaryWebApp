@@ -1,10 +1,14 @@
 namespace ThriveDevCenter.Shared.Models
 {
+    using System.ComponentModel.DataAnnotations;
+
     public class SentBulkEmailDTO : ClientSideModelWithCreationTime
     {
-        public string Title { get; set; }
+        [Required]
+        public string Title { get; set; } = string.Empty;
+
         public int Recipients { get; set; }
         public long? SentById { get; set; }
-        public string SystemSend { get; set; }
+        public string? SystemSend { get; set; }
     }
 }

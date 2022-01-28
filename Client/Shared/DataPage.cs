@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Client.Shared
     ///   Base for data pages that don't use pagination (all data is fetched at once)
     /// </summary>
     public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
-        where T : class, IIdentifiable
+        where T : class, IIdentifiable, new()
         where TData : class
     {
         [Parameter]
@@ -42,7 +42,7 @@ namespace ThriveDevCenter.Client.Shared
             }
         }
 
-        public string Error { get; protected set; }
+        public string? Error { get; protected set; }
 
         /// <summary>
         ///   True when fetching new data. Can be used for example to show a loading spinner
@@ -93,7 +93,7 @@ namespace ThriveDevCenter.Client.Shared
 
         protected readonly SortHelper Sort;
 
-        protected TData Data;
+        protected TData? Data;
 
         private readonly Timer fetchStartTimer;
         private bool wantsToFetchDataAgain;
@@ -120,7 +120,7 @@ namespace ThriveDevCenter.Client.Shared
 
         public string SortClass(string currentColumn)
         {
-            return Sort?.SortClass(currentColumn) ?? string.Empty;
+            return Sort.SortClass(currentColumn);
         }
 
         /// <summary>
@@ -134,12 +134,6 @@ namespace ThriveDevCenter.Client.Shared
             {
                 case ListItemChangeType.ItemUpdated:
                 {
-                    if (notification.Item == null)
-                    {
-                        Console.WriteLine("Got a list notification update with empty Item, can't process this");
-                        break;
-                    }
-
                     // Can't apply if data not loaded
                     // TODO: could queue this and retry applying this in 1 second
                     if (Data == null)
@@ -180,7 +174,7 @@ namespace ThriveDevCenter.Client.Shared
 
         public virtual ValueTask DisposeAsync()
         {
-            fetchStartTimer?.Dispose();
+            fetchStartTimer.Dispose();
             return ValueTask.CompletedTask;
         }
 
@@ -239,6 +233,9 @@ namespace ThriveDevCenter.Client.Shared
                 Error = $"Error fetching data: {e.Message}";
             }
 
+            if (Data == null)
+                Console.WriteLine("Got null data query response in DataPage");
+
             FetchInProgress = false;
             VisibleFetchInProgress = false;
 
@@ -272,7 +269,7 @@ namespace ThriveDevCenter.Client.Shared
         ///   Starts the actual query to fetch data from the server
         /// </summary>
         /// <param name="requestParams">The parameters to query with</param>
-        protected abstract Task<TData> StartQuery(Dictionary<string, string> requestParams);
+        protected abstract Task<TData?> StartQuery(Dictionary<string, string> requestParams);
 
         /// <summary>
         ///   Child classes can update the current url or whatever they want here once a query is sent
@@ -305,7 +302,7 @@ namespace ThriveDevCenter.Client.Shared
             return Task.CompletedTask;
         }
 
-        private async void OnFetchTimer(object sender, ElapsedEventArgs elapsedEventArgs)
+        private async void OnFetchTimer(object? sender, ElapsedEventArgs elapsedEventArgs)
         {
             if (FetchInProgress)
                 return;
@@ -324,7 +321,7 @@ namespace ThriveDevCenter.Client.Shared
     }
 
     public abstract class ListDataPage<T> : DataPage<T, List<T>>
-        where T : class, IIdentifiable
+        where T : class, IIdentifiable, new()
     {
         public override bool NoItemsFound => Data is { Count: < 1 };
 
@@ -332,6 +329,9 @@ namespace ThriveDevCenter.Client.Shared
 
         protected override async Task SingleItemUpdateReceived(T updatedItem)
         {
+            if (Data == null)
+                return;
+
             for (int i = 0; i < Data.Count; ++i)
             {
                 if (Data[i].Id == updatedItem.Id)
@@ -346,6 +346,9 @@ namespace ThriveDevCenter.Client.Shared
 
         protected override Task SingleItemDeleteReceived(T deletedItem)
         {
+            if (Data == null)
+                return Task.CompletedTask;
+
             bool deleted = Data.RemoveAll(i => i.Id == deletedItem.Id) > 0;
 
             if (deleted)
@@ -356,6 +359,9 @@ namespace ThriveDevCenter.Client.Shared
 
         protected override Task SingleItemAddReceived(T addedItem)
         {
+            if (Data == null)
+                return Task.CompletedTask;
+
             // TODO: apply sort on item add to place it in the right place
             Data.Add(addedItem);
             return InvokeAsync(StateHasChanged);

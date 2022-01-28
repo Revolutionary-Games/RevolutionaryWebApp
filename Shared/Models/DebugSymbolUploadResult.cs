@@ -5,9 +5,10 @@ namespace ThriveDevCenter.Shared.Models
     public class DebugSymbolUploadResult
     {
         [Required]
-        public string UploadUrl { get; set; }
+        public string UploadUrl { get; set; } = string.Empty;
 
         [Required]
-        public string VerifyToken { get; set; }
+        [MaxLength(AppInfo.MaximumTokenLength)]
+        public string VerifyToken { get; set; } = string.Empty;
     }
 }

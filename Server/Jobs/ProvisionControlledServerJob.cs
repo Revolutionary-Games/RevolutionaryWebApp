@@ -14,7 +14,7 @@ namespace ThriveDevCenter.Server.Jobs
     {
         private const string ProvisioningCommand = GeneralProvisionCommandPart +
             " && sudo chown -R centos:centos /executor_cache";
-        
+
         private readonly IEC2Controller ec2Controller;
         private readonly IBackgroundJobClient jobClient;
         private readonly IControlledServerSSHAccess sshAccess;
@@ -32,12 +32,15 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var server = await Database.ControlledServers.FindAsync(id);
 
-            if (CheckServerDataIsFineForProvisioning(id, server))
+            if (CheckServerDataIsFineForProvisioning(id, server) || server == null)
                 return;
+
+            if (string.IsNullOrEmpty(server.InstanceId))
+                throw new Exception("Server InstanceId is null, can't provision");
 
             // Check that the server is running before starting provisioning
             foreach (var status in await ec2Controller.GetInstanceStatuses(new List<string>() { server.InstanceId },
-                cancellationToken))
+                         cancellationToken))
             {
                 if (status.InstanceId != server.InstanceId)
                     continue;
@@ -59,7 +62,7 @@ namespace ThriveDevCenter.Server.Jobs
                     server.BumpUpdatedAt();
                     await Database.SaveChangesAsync(cancellationToken);
                 }
-                
+
                 break;
             }
 
@@ -74,6 +77,9 @@ namespace ThriveDevCenter.Server.Jobs
 
         protected override IBaseSSHAccess ConnectWithSSH(BaseServer server)
         {
+            if (server.PublicAddress == null)
+                throw new InvalidOperationException("Can't connect to a server with no public address");
+
             sshAccess.ConnectTo(server.PublicAddress.ToString());
             return sshAccess;
         }

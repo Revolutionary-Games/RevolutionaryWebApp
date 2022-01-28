@@ -19,7 +19,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
         private readonly byte[] messageSizeBuffer = new byte [4];
 
-        private byte[] messageBuffer;
+        private byte[]? messageBuffer;
 
         public RealTimeBuildMessageSocket(WebSocket socket)
         {
@@ -28,7 +28,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
         public WebSocketCloseStatus? CloseStatus => socket.CloseStatus;
 
-        public async Task<(RealTimeBuildMessage message, bool closed)> Read(CancellationToken cancellationToken)
+        public async Task<(RealTimeBuildMessage? message, bool closed)> Read(CancellationToken cancellationToken)
         {
             WebSocketReceiveResult sizeReadResult;
             try

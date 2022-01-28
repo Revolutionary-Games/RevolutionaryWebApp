@@ -5,6 +5,6 @@ namespace ThriveDevCenter.Server.Tests.Dummies
     public class DummyRegistrationStatus : IRegistrationStatus
     {
         public bool RegistrationEnabled { get; set; }
-        public string RegistrationCode { get; set; }
+        public string RegistrationCode { get; set; } = string.Empty;
     }
 }

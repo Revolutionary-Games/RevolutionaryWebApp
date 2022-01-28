@@ -20,18 +20,17 @@ namespace ThriveDevCenter.Server.Authorization
         /// <param name="clientAddress">The address the cookies are from (used to track where session is used)</param>
         /// <returns>The user for the session cookie or null and the session that the user was retrieved from</returns>
         /// <exception cref="ArgumentException">If the cookie is malformed</exception>
-        public static Task<(User user, Session session)> GetUserFromSession(this IRequestCookieCollection cookies,
-            ApplicationDbContext database, IPAddress clientAddress)
+        public static Task<(User? user, Session? session)> GetUserFromSession(this IRequestCookieCollection cookies,
+            ApplicationDbContext database, IPAddress? clientAddress)
         {
-            if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string session) || string.IsNullOrEmpty(session))
-                return Task.FromResult<(User, Session)>((null, null));
+            if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) || string.IsNullOrEmpty(session))
+                return Task.FromResult<(User?, Session?)>((null, null));
 
             return GetUserFromSession(session, database, true, clientAddress);
         }
 
-        public static async Task<(User user, Session session)> GetUserFromSession(string sessionId,
-            ApplicationDbContext database,
-            bool updateLastUsed = true, IPAddress clientAddress = null)
+        public static async Task<(User? user, Session? session)> GetUserFromSession(string sessionId,
+            ApplicationDbContext database, bool updateLastUsed = true, IPAddress? clientAddress = null)
         {
             var existingSession = await GetSession(sessionId, database);
 
@@ -39,8 +38,8 @@ namespace ThriveDevCenter.Server.Authorization
                 existingSession);
         }
 
-        public static async Task<User> GetUserFromSession(Session existingSession, ApplicationDbContext database,
-            bool updateLastUsed = true, IPAddress clientAddress = null)
+        public static async Task<User?> GetUserFromSession(Session? existingSession, ApplicationDbContext database,
+            bool updateLastUsed = true, IPAddress? clientAddress = null)
         {
             // No user if the session was not found, or the session was invalidated
             if (existingSession?.User == null || existingSession.SessionVersion != existingSession.User.SessionVersion)
@@ -70,7 +69,7 @@ namespace ThriveDevCenter.Server.Authorization
             return existingSession.User;
         }
 
-        public static async Task<Session> GetSession(string sessionId, ApplicationDbContext database)
+        public static async Task<Session?> GetSession(string sessionId, ApplicationDbContext database)
         {
             // TODO: maybe it should be configurable if the user info should be fetched, as in some cases it might be
             // not needed
@@ -89,11 +88,11 @@ namespace ThriveDevCenter.Server.Authorization
                 .ToAsyncEnumerable().FirstOrDefaultAsync(s => s.Id == parsed);
         }
 
-        public static Task<Session> GetSession(this IRequestCookieCollection cookies,
+        public static Task<Session?> GetSession(this IRequestCookieCollection cookies,
             ApplicationDbContext database)
         {
-            if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string session) || string.IsNullOrEmpty(session))
-                return Task.FromResult<Session>(null);
+            if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) || string.IsNullOrEmpty(session))
+                return Task.FromResult<Session?>(null);
 
             return GetSession(session, database);
         }

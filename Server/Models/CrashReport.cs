@@ -39,7 +39,7 @@ namespace ThriveDevCenter.Server.Models
         public Guid DeleteKey { get; set; } = Guid.NewGuid();
 
         [Required]
-        public string HashedDeleteKey { get; set; }
+        public string HashedDeleteKey { get; set; }  = string.Empty;
 
         /// <summary>
         ///   The IP address the report was uploaded from, used to combat spam / too many reports from the same user
@@ -47,51 +47,51 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         [Required]
         [JsonConverter(typeof(IPAddressConverter))]
-        public IPAddress UploadedFrom { get; set; }
+        public IPAddress UploadedFrom { get; set; } = IPAddress.None;
 
         [Required]
-        public string ExitCodeOrSignal { get; set; }
+        public string ExitCodeOrSignal { get; set; } = string.Empty;
 
         [Required]
-        public string Logs { get; set; }
+        public string Logs { get; set; } = string.Empty;
 
-        public string Store { get; set; }
-        public string Version { get; set; }
+        public string? Store { get; set; }
+        public string? Version { get; set; }
 
-        public string PrimaryCallstack { get; set; }
-        public string CondensedCallstack { get; set; }
+        public string? PrimaryCallstack { get; set; }
+        public string? CondensedCallstack { get; set; }
 
         /// <summary>
         ///   The entire decoded crash dump
         /// </summary>
-        public string WholeCrashDump { get; set; }
+        public string? WholeCrashDump { get; set; }
 
         /// <summary>
         ///   Manually or automatically written issue description by developers
         /// </summary>
         [UpdateFromClientRequest]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public DateTime? DescriptionLastEdited { get; set; }
 
         public long? DescriptionLastEditedById { get; set; }
 
-        public User DescriptionLastEditedBy { get; set; }
+        public User? DescriptionLastEditedBy { get; set; }
 
         public long? DuplicateOfId { get; set; }
 
-        public CrashReport DuplicateOf { get; set; }
+        public CrashReport? DuplicateOf { get; set; }
 
         public ICollection<CrashReport> Duplicates { get; set; } = new HashSet<CrashReport>();
 
-        public string DumpLocalFileName { get; set; }
+        public string? DumpLocalFileName { get; set; }
 
         // TODO: switch this to a proper notification system with subscription confirmations and users also being able
         // to watch reports
-        public string ReporterEmail { get; set; }
+        public string? ReporterEmail { get; set; }
 
         [NotMapped]
-        public string StoreOrVersion => Store ?? Version;
+        public string? StoreOrVersion => Store ?? Version;
 
         public CrashReportInfo GetInfo()
         {

@@ -48,7 +48,7 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly StringBuilder outputSectionText = new();
 
         private long sectionNumberCounter;
-        private CiJobOutputSection activeSection;
+        private CiJobOutputSection? activeSection;
 
         private BuildWebSocketHandler(ILogger<BuildWebSocketHandler> logger, WebSocket socket,
             NotificationsEnabledDb database, IHubContext<NotificationsHub, INotifications> notifications, CiJob job)
@@ -146,7 +146,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             while (!socket.CloseStatus.HasValue)
             {
-                RealTimeBuildMessage message;
+                RealTimeBuildMessage? message;
                 try
                 {
                     var readResult = await socket.Read(CancellationToken.None);
@@ -528,6 +528,12 @@ namespace ThriveDevCenter.Server.Controllers
         {
             if (outputSectionText.Length < 1)
                 return;
+
+            if (activeSection == null)
+            {
+                outputSectionText.Append("\nNo active section to flush output!\n");
+                return;
+            }
 
             activeSection.Output += outputSectionText.ToString();
             activeSection.CalculateOutputLength();

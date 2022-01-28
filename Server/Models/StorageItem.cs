@@ -3,6 +3,7 @@
 namespace ThriveDevCenter.Server.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,8 @@ namespace ThriveDevCenter.Server.Models
     {
         // TODO: is there a threat from timing attack trying to enumerate existing files?
         [AllowSortingBy]
-        public string Name { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
 
         // TODO: change to required
         public FileType Ftype { get; set; }
@@ -35,10 +37,10 @@ namespace ThriveDevCenter.Server.Models
         public FileAccess WriteAccess { get; set; } = FileAccess.Developer;
 
         public long? OwnerId { get; set; }
-        public User Owner { get; set; }
+        public User? Owner { get; set; }
 
         public long? ParentId { get; set; }
-        public StorageItem Parent { get; set; }
+        public StorageItem? Parent { get; set; }
         public bool AllowParentless { get; set; } = false;
 
         // TODO: can this be named something else? This is the children of this item
@@ -76,7 +78,7 @@ namespace ThriveDevCenter.Server.Models
             return database.StorageItems.FirstAsync(i => i.ParentId == null && i.Name == "Symbols");
         }
 
-        public static async Task<StorageItem> FindByPath(ApplicationDbContext database, string path)
+        public static async Task<StorageItem?> FindByPath(ApplicationDbContext database, string path)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -86,7 +88,7 @@ namespace ThriveDevCenter.Server.Models
 
             var pathParts = path.Split('/');
 
-            StorageItem currentItem = null;
+            StorageItem? currentItem = null;
 
             foreach (var part in pathParts)
             {
@@ -108,12 +110,12 @@ namespace ThriveDevCenter.Server.Models
             return currentItem;
         }
 
-        public bool IsReadableBy(User user)
+        public bool IsReadableBy(User? user)
         {
             return ReadAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId);
         }
 
-        public bool IsWritableBy(User user)
+        public bool IsWritableBy(User? user)
         {
             if (!WriteAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId))
                 return false;
@@ -125,20 +127,20 @@ namespace ThriveDevCenter.Server.Models
             return true;
         }
 
-        public Task<StorageItemVersion> GetHighestVersion(ApplicationDbContext database)
+        public Task<StorageItemVersion?> GetHighestVersion(ApplicationDbContext database)
         {
             return database.StorageItemVersions.Where(v => v.StorageItemId == Id)
                 .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
         }
 
-        public Task<StorageItemVersion> GetHighestUploadedVersion(ApplicationDbContext database)
+        public Task<StorageItemVersion?> GetHighestUploadedVersion(ApplicationDbContext database)
         {
             return database.StorageItemVersions.Include(v => v.StorageFile)
                 .Where(v => v.StorageItemId == Id && v.Uploading != true)
                 .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
         }
 
-        public Task<StorageItemVersion> GetLowestUploadedVersion(ApplicationDbContext database)
+        public Task<StorageItemVersion?> GetLowestUploadedVersion(ApplicationDbContext database)
         {
             return database.StorageItemVersions.Include(v => v.StorageFile)
                 .Where(v => v.StorageItemId == Id && v.Uploading != true)
@@ -267,7 +269,7 @@ namespace ThriveDevCenter.Server.Models
             var info = GetInfo();
             var type = entityState.ToChangeType();
 
-            string parent = ParentId != null ? ParentId.ToString() : "root";
+            string? parent = ParentId != null ? ParentId.ToString() : "root";
 
             if (ReadAccess == FileAccess.Public)
             {

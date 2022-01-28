@@ -48,7 +48,7 @@ namespace ThriveDevCenter.Server.Jobs
                 foreach (var actualPatron in await api.GetPatrons(settings, cancellationToken))
                 {
                     await PatreonGroupHandler.HandlePatreonPledgeObject(actualPatron.Pledge, actualPatron.User,
-                        actualPatron.Reward.Id, database, jobClient);
+                        actualPatron.Reward?.Id, database, jobClient);
 
                     if (cancellationToken.IsCancellationRequested)
                         throw new TaskCanceledException();

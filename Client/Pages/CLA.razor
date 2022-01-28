@@ -175,9 +175,11 @@
 
                 checkBoxChecked = false;
 
+                if (string.IsNullOrEmpty(data.NextPath))
+                    throw new Exception("server didn't provide next path");
+
                 // Swap to the sign in progress page
-                navigationManager.NavigateTo(data.NextPath ?? throw new Exception("server didn't provide next path"),
-                    data.SessionStarted);
+                navigationManager.NavigateTo(data.NextPath, data.SessionStarted);
             }
             catch (Exception e)
             {

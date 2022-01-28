@@ -21,7 +21,7 @@ namespace ThriveDevCenter.Server.Models
         public bool Local { get; set; }
 
         [AllowSortingBy]
-        public string SsoSource { get; set; }
+        public string? SsoSource { get; set; }
 
         // TODO: combine these to a single enum field (replace these 2 properties with UserAccessLevel)
         [AllowSortingBy]
@@ -35,26 +35,26 @@ namespace ThriveDevCenter.Server.Models
         public bool HasBeenBoardMember { get; set; }
 
         [HashedLookUp]
-        public string ApiToken { get; set; }
+        public string? ApiToken { get; set; }
 
-        public string HashedApiToken { get; set; }
+        public string? HashedApiToken { get; set; }
 
         [HashedLookUp]
-        public string LfsToken { get; set; }
+        public string? LfsToken { get; set; }
 
-        public string HashedLfsToken { get; set; }
+        public string? HashedLfsToken { get; set; }
 
         // TODO: remove the nullability here
         [AllowSortingBy]
         public bool? Suspended { get; set; } = false;
 
-        public string SuspendedReason { get; set; }
+        public string? SuspendedReason { get; set; }
         public bool? SuspendedManually { get; set; } = false;
 
         [HashedLookUp]
-        public string LauncherLinkCode { get; set; }
+        public string? LauncherLinkCode { get; set; }
 
-        public string HashedLauncherLinkCode { get; set; }
+        public string? HashedLauncherLinkCode { get; set; }
         public DateTime? LauncherCodeExpires { get; set; }
 
         public int TotalLauncherLinks { get; set; } = 0;
@@ -79,7 +79,7 @@ namespace ThriveDevCenter.Server.Models
         public bool IsAuthenticated { get => true; set => throw new NotSupportedException(); }
 
         [NotMapped]
-        public string Name { get => UserName; set => UserName = value; }
+        public string? Name { get => UserName; set => UserName = value; }
 
         [NotMapped]
         public string NameOrEmail => Name ?? Email;

@@ -11,25 +11,25 @@ namespace ThriveDevCenter.Server.Models
         public bool Active { get; set; } = false;
 
         [Required]
-        public string CreatorToken { get; set; }
+        public string CreatorToken { get; set; }  = string.Empty;
 
-        public string CreatorRefreshToken { get; set; }
-
-        [Required]
-        public string WebhookId { get; set; }
+        public string? CreatorRefreshToken { get; set; }
 
         [Required]
-        public string WebhookSecret { get; set; }
+        public string WebhookId { get; set; }  = string.Empty;
+
+        [Required]
+        public string WebhookSecret { get; set; }  = string.Empty;
 
         public DateTime? LastWebhook { get; set; }
 
         public DateTime? LastRefreshed { get; set; }
 
-        public string CampaignId { get; set; }
-        public string DevbuildsRewardId { get; set; }
-        public string VipRewardId { get; set; }
+        public string? CampaignId { get; set; }
+        public string? DevbuildsRewardId { get; set; }
+        public string? VipRewardId { get; set; }
 
-        public bool IsEntitledToDevBuilds(Patron patron)
+        public bool IsEntitledToDevBuilds(Patron? patron)
         {
             if (patron == null)
                 return false;
@@ -37,7 +37,7 @@ namespace ThriveDevCenter.Server.Models
             return patron.RewardId == DevbuildsRewardId || patron.RewardId == VipRewardId;
         }
 
-        public bool IsEntitledToVIP(Patron patron)
+        public bool IsEntitledToVIP(Patron? patron)
         {
             if (patron == null)
                 return false;

@@ -25,7 +25,7 @@ namespace ThriveDevCenter.Server.Jobs
         {
             var server = await Database.ExternalServers.FindAsync(id);
 
-            if (CheckServerDataIsFineForProvisioning(id, server))
+            if (CheckServerDataIsFineForProvisioning(id, server) || server == null)
                 return;
 
             await PerformProvisioningCommands(server, GeneralProvisionCommandPart);
@@ -49,6 +49,9 @@ namespace ThriveDevCenter.Server.Jobs
 
         protected override IBaseSSHAccess ConnectWithSSH(BaseServer server)
         {
+            if (server.PublicAddress == null)
+                throw new InvalidOperationException("Can't connect to a server with no public address");
+
             sshAccess.ConnectTo(server.PublicAddress.ToString(), ((ExternalServer)server).SSHKeyFileName);
             return sshAccess;
         }

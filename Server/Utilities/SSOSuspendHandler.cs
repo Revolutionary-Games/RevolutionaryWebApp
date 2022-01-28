@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Utilities
                     }
                     else if (patron.Suspended == true)
                     {
-                        reason = patron.SuspendedReason;
+                        reason = patron.SuspendedReason ?? "Suspended as a patron but no further reason given";
                     }
                     else
                     {

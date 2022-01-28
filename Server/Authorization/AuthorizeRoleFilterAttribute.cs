@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Server.Authorization
         private AuthenticationScopeRestriction? requiredRestriction = AuthenticationScopeRestriction.None;
         public UserAccessLevel RequiredAccess { get; set; } = UserAccessLevel.User;
 
-        public string RequiredRestriction
+        public string? RequiredRestriction
         {
             get => requiredRestriction.ToString();
             set

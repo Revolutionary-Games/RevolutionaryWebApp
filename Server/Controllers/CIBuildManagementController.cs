@@ -13,6 +13,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.Extensions.Logging;
     using Models;
     using Shared.Models;
+    using Utilities;
 
     /// <summary>
     ///   Controller with control operations (from the user POV) for CI builds and jobs.
@@ -39,11 +40,17 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<IActionResult> CancelRunningJob([Required] long projectId,
             [Required] long buildId, [Required] long jobId)
         {
-            var job = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+            var job = await database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
                 .Include(j => j.CiJobOutputSections)
                 .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId && j.CiJobId == jobId);
 
-            if (job == null || job.Build.CiProject.Deleted)
+            if (job == null)
+                return NotFound();
+
+            if (job.Build?.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
+            if (job.Build.CiProject.Deleted)
                 return NotFound();
 
             if (job.State == CIJobState.Finished)
@@ -59,7 +66,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             await job.CreateFailureSection(database, "Job canceled by a user", "Canceled", ++cancelSectionId);
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             logger.LogInformation("CI job {ProjectId}-{BuildId}-{JobId} canceled by {Email}", projectId, buildId, jobId,
                 user.Email);
@@ -87,13 +94,19 @@ namespace ThriveDevCenter.Server.Controllers
             var build = await database.CiBuilds.Include(b => b.CiProject).Include(b => b.CiJobs)
                 .FirstOrDefaultAsync(j => j.CiProjectId == projectId && j.CiBuildId == buildId);
 
-            if (build == null || build.CiProject.Deleted)
+            if (build == null)
+                return NotFound();
+
+            if (build.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
+            if (build.CiProject.Deleted)
                 return NotFound();
 
             if (build.Status == BuildStatus.Running || build.Status == BuildStatus.GoingToFail)
                 return BadRequest("Build can be rerun only after it is complete");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
             logger.LogInformation("CI build {ProjectId}-{BuildId} reran by {Email}", projectId, buildId, user.Email);
 
             // TODO: would be nice to have that non-admin action log type

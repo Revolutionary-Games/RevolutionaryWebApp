@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Models;
     using Services;
     using Shared.Models;
+    using Utilities;
 
     public abstract class BaseCIJobManagingJob
     {
@@ -44,6 +45,9 @@ namespace ThriveDevCenter.Server.Jobs
                 status = GithubAPI.CommitStatus.Failure;
                 statusDescription = "Some checks failed";
             }
+
+            if (job.Build?.CiProject == null)
+                throw new NotLoadedModelNavigationException();
 
             if (!await StatusReporter.SetCommitStatus(job.Build.CiProject.RepositoryFullName, job.Build.CommitHash,
                 status, StatusReporter.CreateStatusUrlForJob(job), statusDescription,

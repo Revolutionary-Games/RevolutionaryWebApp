@@ -89,8 +89,10 @@ namespace ThriveDevCenter.Server.Services
 
             if (toCheck.Count > 0)
             {
-                foreach (var status in await ec2Controller.GetInstanceStatuses(
-                             toCheck.AsEnumerable().Select(i => i.InstanceId).ToList(), cancellationToken))
+                var instanceIdsToCheck = toCheck.AsEnumerable().Select(i =>
+                    i.InstanceId ?? throw new Exception("Instance to check status of has no ID")).ToList();
+
+                foreach (var status in await ec2Controller.GetInstanceStatuses(instanceIdsToCheck, cancellationToken))
                 {
                     var actualStatus = EC2Controller.InstanceStateToStatus(status);
 
@@ -211,7 +213,8 @@ namespace ThriveDevCenter.Server.Services
                         logger.LogInformation(
                             "Starting a stopped server to meet demand, still missing: {MissingServer}", missingServer);
 
-                        await ec2Controller.ResumeInstance(server.InstanceId);
+                        await ec2Controller.ResumeInstance(server.InstanceId ??
+                            throw new Exception("Attempted to resume instance without an ID"));
 
                         server.Status = ServerStatus.WaitingForStartup;
                         server.StatusLastChecked = DateTime.UtcNow;
@@ -328,7 +331,9 @@ namespace ThriveDevCenter.Server.Services
                         logger.LogInformation("{Action} server {Id} because it's been idle for: {IdleTime}", action,
                             server.Id, idleTime);
 
-                        await ec2Controller.StopInstance(server.InstanceId, useHibernate);
+                        await ec2Controller.StopInstance(
+                            server.InstanceId ?? throw new Exception("Attempted to stop an instance without an ID"),
+                            useHibernate);
 
                         server.Status = ServerStatus.Stopping;
                         server.BumpUpdatedAt();

@@ -12,16 +12,16 @@ namespace ThriveDevCenter.Client.Services
     /// </summary>
     public class CurrentUserInfo : INotificationHandler<UserUpdated>, INotificationHandler<UserListUpdated>
     {
-        private UserInfo info;
+        private UserInfo? info;
 
-        public delegate void UserInfoChangedEventHandler(object sender, UserInfo newInfo);
+        public delegate void UserInfoChangedEventHandler(object sender, UserInfo? newInfo);
 
-        public event UserInfoChangedEventHandler OnUserInfoChanged;
+        public event UserInfoChangedEventHandler? OnUserInfoChanged;
 
         /// <summary>
         ///   When InfoReady is true, this is non-null if currently logged in, and null if client is not logged in
         /// </summary>
-        public UserInfo Info
+        public UserInfo? Info
         {
             get
             {
@@ -56,14 +56,14 @@ namespace ThriveDevCenter.Client.Services
 
         public UserAccessLevel AccessLevel => Info?.AccessLevel ?? UserAccessLevel.NotLoggedIn;
 
-        public string Username => Info.Name;
-        public string Email => Info.Email;
+        public string? Username => Info?.Name;
+        public string? Email => Info?.Email;
 
         /// <summary>
         ///   Call whenever receiving user info objects from the server. Used to react to our own user data changing
         /// </summary>
         /// <param name="user">The user info we received</param>
-        public void OnReceivedAnUsersInfo(UserInfo user)
+        public void OnReceivedAnUsersInfo(UserInfo? user)
         {
             if (!InfoReady || user == null)
                 return;
@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Client.Services
             OnReceivedOurInfo(user);
         }
 
-        public void OnReceivedOurInfo(UserInfo user)
+        public void OnReceivedOurInfo(UserInfo? user)
         {
             var previousInfo = InfoReady;
 
@@ -102,11 +102,15 @@ namespace ThriveDevCenter.Client.Services
 
         public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
         {
-            if (!InfoReady || info == null)
+            if (!InfoReady)
+                return;
+
+            var fetchedInfo = Info;
+            if (fetchedInfo == null)
                 return;
 
             // Want to listen to our user updates
-            var idStr = Convert.ToString(Info.Id);
+            var idStr = Convert.ToString(fetchedInfo.Id);
 
             groups.Add(NotificationGroups.UserUpdatedPrefix + idStr);
 

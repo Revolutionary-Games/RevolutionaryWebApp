@@ -8,10 +8,12 @@ namespace ThriveDevCenter.Server.Services
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Net.Http.Json;
+    using System.Text.Json;
     using System.Text.Json.Serialization;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.WebUtilities;
+    using Shared.Converters;
     using Utilities;
 
     public class DiscourseAPI
@@ -21,7 +23,7 @@ namespace ThriveDevCenter.Server.Services
         // TODO: if ever any group / other list requests have more data than this, we need to implement paging
         private const int DiscourseQueryLimit = 1000;
 
-        private readonly Uri apiBaseUrl;
+        private readonly Uri? apiBaseUrl;
         private readonly string key;
         private readonly string apiUsername;
         private readonly HttpClient httpClient;
@@ -49,15 +51,16 @@ namespace ThriveDevCenter.Server.Services
             long offset = 0;
             long limit = DiscourseQueryLimit;
 
-            var url = QueryHelpers.AddQueryString(new Uri(apiBaseUrl, $"groups/{name}/members.json").ToString(),
-                new Dictionary<string, string>()
+            var url = QueryHelpers.AddQueryString(new Uri(apiBaseUrl!, $"groups/{name}/members.json").ToString(),
+                new Dictionary<string, string?>()
                 {
                     { "offset", offset.ToString() },
                     { "limit", limit.ToString() },
                 });
 
             return await PerformWithRateLimitRetries(
-                async () => await httpClient.GetFromJsonAsync<DiscourseGroupMembers>(url, cancellationToken),
+                async () => await httpClient.GetFromJsonAsync<DiscourseGroupMembers>(url, cancellationToken) ??
+                    throw new JsonException(),
                 cancellationToken);
         }
 
@@ -79,7 +82,7 @@ namespace ThriveDevCenter.Server.Services
         ///     as the group members list doesn't include emails
         ///   </para>
         /// </remarks>
-        public async Task<DiscourseUser> FindUserByEmail(string email, CancellationToken cancellationToken,
+        public async Task<DiscourseUser?> FindUserByEmail(string email, CancellationToken cancellationToken,
             bool includeNonActive = false, bool avoidEmailQuery = true)
         {
             ThrowIfNotConfigured();
@@ -93,8 +96,9 @@ namespace ThriveDevCenter.Server.Services
             if (includeNonActive)
                 searchType = "all";
 
-            var url = QueryHelpers.AddQueryString(new Uri(apiBaseUrl, $"admin/users/list/{searchType}.json").ToString(),
-                new Dictionary<string, string>()
+            var url = QueryHelpers.AddQueryString(
+                new Uri(apiBaseUrl!, $"admin/users/list/{searchType}.json").ToString(),
+                new Dictionary<string, string?>()
                 {
                     { "email", email },
                     { "show_emails", avoidEmailQuery ? "false" : "true" },
@@ -134,10 +138,11 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var url = new Uri(apiBaseUrl, $"u/{username}.json").ToString();
+            var url = new Uri(apiBaseUrl!, $"u/{username}.json").ToString();
 
             return await PerformWithRateLimitRetries(
-                async () => await httpClient.GetFromJsonAsync<DiscourseSingleUserInfo>(url, cancellationToken),
+                async () => await httpClient.GetFromJsonAsync<DiscourseSingleUserInfo>(url, cancellationToken) ??
+                    throw new JsonException(),
                 cancellationToken);
         }
 
@@ -145,20 +150,17 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var url = new Uri(apiBaseUrl, $"groups/{name}.json").ToString();
+            var url = new Uri(apiBaseUrl!, $"groups/{name}.json").ToString();
 
             return await PerformWithRateLimitRetries(
                 async () => (await httpClient.GetFromJsonAsync<DiscourseGroupInfoResponse>(url, cancellationToken))
-                    ?.Group,
+                    ?.Group ?? throw new NullDecodedJsonException(),
                 cancellationToken);
         }
 
         public async Task AddGroupMembers(DiscourseGroup group, IEnumerable<string> usernames,
             CancellationToken cancellationToken)
         {
-            if (usernames == null)
-                return;
-
             ThrowIfNotConfigured();
 
             var payload = new DiscourseGroupMemberRequest(usernames);
@@ -175,9 +177,6 @@ namespace ThriveDevCenter.Server.Services
         public async Task RemoveGroupMembers(DiscourseGroup group, IEnumerable<string> usernames,
             CancellationToken cancellationToken)
         {
-            if (usernames == null)
-                return;
-
             ThrowIfNotConfigured();
 
             var payload = new DiscourseGroupMemberRequest(usernames);
@@ -194,7 +193,7 @@ namespace ThriveDevCenter.Server.Services
         protected async Task<TResult> PerformWithRateLimitRetries<TResult>(Func<Task<TResult>> operation,
             CancellationToken cancellationToken)
         {
-            Exception latestException = null;
+            Exception? latestException = null;
 
             for (int i = 0; i < DefaultRetriesForTooManyRequestsError; ++i)
             {
@@ -237,19 +236,20 @@ namespace ThriveDevCenter.Server.Services
 
         private string GroupMemberChangeURL(DiscourseGroup group)
         {
-            return new Uri(apiBaseUrl, $"groups/{group.Id}/members.json").ToString();
+            ThrowIfNotConfigured();
+            return new Uri(apiBaseUrl!, $"groups/{group.Id}/members.json").ToString();
         }
     }
 
     public class DiscourseGroupMembers
     {
         [Required]
-        public List<DiscourseUser> Owners { get; set; }
+        public List<DiscourseUser> Owners { get; set; } = new();
 
         [Required]
-        public List<DiscourseUser> Members { get; set; }
+        public List<DiscourseUser> Members { get; set; } = new();
 
-        public DiscourseResponseMeta Meta { get; set; }
+        public DiscourseResponseMeta? Meta { get; set; }
 
         /// <summary>
         ///   Finds group members that need to be removed (weren't used when checking patrons)
@@ -300,16 +300,16 @@ namespace ThriveDevCenter.Server.Services
         public long Id { get; set; }
 
         [Required]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         ///   Display name of the group. Not set when getting the actual group data. Instead FullName is included
         /// </summary>
         [JsonPropertyName("display_name")]
-        public string DisplayName { get; set; }
+        public string? DisplayName { get; set; }
 
         [JsonPropertyName("full_name")]
-        public string FullName { get; set; }
+        public string? FullName { get; set; }
     }
 
     public class DiscourseUser
@@ -318,17 +318,17 @@ namespace ThriveDevCenter.Server.Services
         public long Id { get; set; }
 
         [Required]
-        public string Username { get; set; }
+        public string Username { get; set; } = string.Empty;
 
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         public bool Moderator { get; set; }
 
         public bool Admin { get; set; }
 
-        public string Email { get; set; }
+        public string? Email { get; set; }
 
-        public List<DiscourseGroup> Groups { get; set; }
+        public List<DiscourseGroup> Groups { get; set; } = new();
 
         // There's way more properties that aren't parsed:
         // https://docs.discourse.org/#tag/Users/paths/~1u~1{username}.json/get
@@ -345,10 +345,10 @@ namespace ThriveDevCenter.Server.Services
     public class DiscourseSingleUserInfo
     {
         [Required]
-        public DiscourseUser User { get; set; }
+        public DiscourseUser User { get; set; } = new();
 
         [JsonPropertyName("user_badges")]
-        public List<DiscourseGrantedBadge> UserBadges { get; set; }
+        public List<DiscourseGrantedBadge>? UserBadges { get; set; }
     }
 
     public class DiscourseGrantedBadge
@@ -358,16 +358,15 @@ namespace ThriveDevCenter.Server.Services
 
     public class DiscourseGroupInfoResponse
     {
-        public DiscourseGroup Group { get; set; }
+        [Required]
+        public DiscourseGroup Group { get; set; } = new();
     }
 
     public class DiscourseGroupMemberRequest
     {
-        public DiscourseGroupMemberRequest()
-        {
-        }
-
+#pragma warning disable CS8618 //initialized in a method always called in the constructor
         public DiscourseGroupMemberRequest(IEnumerable<string> usernames)
+#pragma warning restore CS8618
         {
             UsernamesFromList(usernames);
         }

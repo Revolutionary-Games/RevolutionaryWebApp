@@ -6,11 +6,14 @@ namespace ThriveDevCenter.Server.Services
 
     public class BaseSSHAccess : IDisposable, IBaseSSHAccess
     {
-        protected SshClient client { get; set; }
+        protected SshClient? client { get; set; }
         public bool Configured { get; protected set; }
 
         public CommandResult RunCommand(string commandStr)
         {
+            if (client == null)
+                throw new InvalidOperationException("No connection is open");
+
             using var command = client.CreateCommand(commandStr);
 
             command.CommandTimeout = TimeSpan.FromMinutes(10);
@@ -83,8 +86,8 @@ namespace ThriveDevCenter.Server.Services
 
             public bool Success => ExitCode == 0;
 
-            public string Error { get; set; }
-            public string Result { get; set; }
+            public string? Error { get; set; }
+            public string? Result { get; set; }
         }
     }
 

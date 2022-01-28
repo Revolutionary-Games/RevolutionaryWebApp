@@ -32,8 +32,6 @@ namespace ThriveDevCenter.Server.Controllers
     [Route("api/v1/webhook/github")]
     public class GithubWebhookController : Controller
     {
-        private const string NoCommitHash = "0000000000000000000000000000000000000000";
-
         private readonly ILogger<GithubWebhookController> logger;
 
         /// <summary>
@@ -100,13 +98,13 @@ namespace ThriveDevCenter.Server.Controllers
                 // This is a push (commit)
                 logger.LogInformation("Received a push event for ref: {Ref}", data.Ref);
 
-                if (data.Deleted || data.After == NoCommitHash)
+                if (data.Deleted || data.After == AppInfo.NoCommitHash)
                 {
                     logger.LogInformation("Push was about a deleted thing");
                 }
                 else
                 {
-                    if (data.Before == NoCommitHash)
+                    if (data.Before == AppInfo.NoCommitHash)
                     {
                         logger.LogInformation(
                             "Received a push (probably a new branch) with no before set, setting to the after commit");
@@ -341,9 +339,9 @@ namespace ThriveDevCenter.Server.Controllers
 
         public string Message { get; set; }
 
-        public CommitAuthor Author { get; set; }
+        public CommitAuthor? Author { get; set; }
 
-        public CommitAuthor Committer { get; set; }
+        public CommitAuthor? Committer { get; set; }
 
         // The file change overview this commit has
         public List<string> Added { get; set; }

@@ -15,6 +15,7 @@ namespace ThriveDevCenter.Server.Hubs
     using Shared.Models;
     using Shared.Models.Enums;
     using Shared.Notifications;
+    using Utilities;
 
     public class NotificationsHub : Hub<INotifications>
     {
@@ -33,8 +34,8 @@ namespace ThriveDevCenter.Server.Hubs
         public override async Task OnConnectedAsync()
         {
             var http = Context.GetHttpContext();
-            User connectedUser = null;
-            Session session = null;
+            User? connectedUser = null;
+            Session? session = null;
 
             if (http != null)
             {
@@ -122,6 +123,9 @@ namespace ThriveDevCenter.Server.Hubs
             }
             else
             {
+                if (session == null)
+                    throw new Exception("logic error, session is null when connected user is not null");
+
                 // All sessions listen to notifications about them
                 await Groups.AddToGroupAsync(Context.ConnectionId,
                     NotificationGroups.SessionImportantMessage + session.Id);
@@ -176,7 +180,7 @@ namespace ThriveDevCenter.Server.Hubs
                 user?.GetInfo(accessLevel));
         }
 
-        private async Task<bool> HandleSpecialGroupJoin(string groupName, User user, Session session)
+        private async Task<bool> HandleSpecialGroupJoin(string groupName, User? user, Session? session)
         {
             _ = user;
 
@@ -226,7 +230,7 @@ namespace ThriveDevCenter.Server.Hubs
             return false;
         }
 
-        private async Task<bool> IsUserAllowedInGroup(string groupName, User user)
+        private async Task<bool> IsUserAllowedInGroup(string groupName, User? user)
         {
             // First check explicitly named groups
             switch (groupName)
@@ -266,7 +270,7 @@ namespace ThriveDevCenter.Server.Hubs
                     return false;
 
                 // Can't join non-existent user groups
-                if (!GetTargetModelFromGroup(groupName, database.Users, out User item))
+                if (!GetTargetModelFromGroup(groupName, database.Users, out var item))
                     return false;
 
                 // Admins can see all user info
@@ -274,20 +278,20 @@ namespace ThriveDevCenter.Server.Hubs
                     return true;
 
                 // People can see their own info
-                return item.Id == user?.Id;
+                return item!.Id == user?.Id;
             }
 
             // TODO: refactor this with the same code that's after this
             if (groupName.StartsWith(NotificationGroups.LFSItemUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.LfsProjects, out LfsProject item))
+                if (!GetTargetModelFromGroup(groupName, database.LfsProjects, out var item))
                     return false;
 
                 if (RequireAccessLevel(UserAccessLevel.Admin, user))
                     return true;
 
                 // Only admins see deleted items
-                if (item.Deleted)
+                if (item!.Deleted)
                     return false;
 
                 // Everyone sees public projects
@@ -300,7 +304,7 @@ namespace ThriveDevCenter.Server.Hubs
             if (groupName.StartsWith(NotificationGroups.CIProjectUpdatedPrefix) ||
                 groupName.StartsWith(NotificationGroups.CIProjectBuildsUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.CiProjects, out CiProject item))
+                if (!GetTargetModelFromGroup(groupName, database.CiProjects, out var item))
                     return false;
 
                 if (RequireAccessLevel(UserAccessLevel.Admin, user))
@@ -309,7 +313,7 @@ namespace ThriveDevCenter.Server.Hubs
                 // Only admins see deleted items
                 // This doesn't really apply to deleted projects, but for code simplicity admin access is allowed to
                 // builds list even when the project is deleted
-                if (item.Deleted)
+                if (item!.Deleted)
                     return false;
 
                 // Everyone sees public projects
@@ -322,7 +326,7 @@ namespace ThriveDevCenter.Server.Hubs
             if (groupName.StartsWith(NotificationGroups.CIProjectsBuildUpdatedPrefix) ||
                 groupName.StartsWith(NotificationGroups.CIProjectBuildJobsUpdatedPrefix))
             {
-                if (!GetCompositeIDPartFromGroup(groupName, out long[] ids) || ids.Length != 2)
+                if (!GetCompositeIDPartFromGroup(groupName, out var ids) || ids!.Length != 2)
                     return false;
 
                 var item = await database.CiBuilds.Include(b => b.CiProject)
@@ -330,6 +334,9 @@ namespace ThriveDevCenter.Server.Hubs
 
                 if (item == null)
                     return false;
+
+                if (item.CiProject == null)
+                    throw new NotLoadedModelNavigationException();
 
                 // Everyone sees public projects' builds
                 if (item.CiProject.Public)
@@ -342,14 +349,17 @@ namespace ThriveDevCenter.Server.Hubs
                 groupName.StartsWith(NotificationGroups.CIProjectBuildJobSectionsUpdatedPrefix) ||
                 groupName.StartsWith(NotificationGroups.CIProjectsBuildsJobRealtimeOutputPrefix))
             {
-                if (!GetCompositeIDPartFromGroup(groupName, out long[] ids) || ids.Length != 3)
+                if (!GetCompositeIDPartFromGroup(groupName, out var ids) || ids!.Length != 3)
                     return false;
 
-                var item = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+                var item = await database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
                     .FirstOrDefaultAsync(b => b.CiProjectId == ids[0] && b.CiBuildId == ids[1] && b.CiJobId == ids[2]);
 
                 if (item == null)
                     return false;
+
+                if (item.Build?.CiProject == null)
+                    throw new NotLoadedModelNavigationException();
 
                 // Everyone sees public projects' builds' jobs (and output sections)
                 if (item.Build.CiProject.Public)
@@ -369,7 +379,7 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.UserLauncherLinksUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.Users, out User item))
+                if (!GetTargetModelFromGroup(groupName, database.Users, out var item))
                     return false;
 
                 // Admin can view other people's launcher links
@@ -377,7 +387,7 @@ namespace ThriveDevCenter.Server.Hubs
                     return true;
 
                 // Users can see their own links
-                return item.Id == user?.Id;
+                return item!.Id == user?.Id;
             }
 
             if (groupName.StartsWith(NotificationGroups.DevBuildUpdatedPrefix))
@@ -390,15 +400,15 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.StorageItemUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.StorageItems, out StorageItem item))
+                if (!GetTargetModelFromGroup(groupName, database.StorageItems, out var item))
                     return false;
 
-                return item.IsReadableBy(user);
+                return item!.IsReadableBy(user);
             }
 
             if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedPublicPrefix))
             {
-                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem item))
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
                     return false;
 
                 return CheckFolderContentsAccess(user, UserAccessLevel.NotLoggedIn, item);
@@ -406,7 +416,7 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedUserPrefix))
             {
-                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem item))
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
                     return false;
 
                 return CheckFolderContentsAccess(user, UserAccessLevel.User, item);
@@ -414,7 +424,7 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedDeveloperPrefix))
             {
-                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem item))
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
                     return false;
 
                 return CheckFolderContentsAccess(user, UserAccessLevel.Developer, item);
@@ -423,16 +433,16 @@ namespace ThriveDevCenter.Server.Hubs
             if (groupName.StartsWith(NotificationGroups.MeetingUpdatedPrefix) ||
                 groupName.StartsWith(NotificationGroups.MeetingPollListUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.Meetings, out Meeting item))
+                if (!GetTargetModelFromGroup(groupName, database.Meetings, out var item))
                     return false;
 
                 if (RequireAccessLevel(UserAccessLevel.Admin, user))
                     return true;
 
                 if (user == null)
-                    return item.ReadAccess == AssociationResourceAccess.Public;
+                    return item!.ReadAccess == AssociationResourceAccess.Public;
 
-                return user.ComputeAssociationAccessLevel() >= item.ReadAccess;
+                return user.ComputeAssociationAccessLevel() >= item!.ReadAccess;
             }
 
             if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedOwnerPrefix))
@@ -441,7 +451,7 @@ namespace ThriveDevCenter.Server.Hubs
                 if (user == null)
                     return false;
 
-                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem item))
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out StorageItem? item))
                     return false;
 
                 // Admins can act like the owner of any folder for listening to it
@@ -463,11 +473,11 @@ namespace ThriveDevCenter.Server.Hubs
 
             if (groupName.StartsWith(NotificationGroups.CLAUpdatedPrefix))
             {
-                if (!GetTargetModelFromGroup(groupName, database.Clas, out Cla item))
+                if (!GetTargetModelFromGroup(groupName, database.Clas, out var item))
                     return false;
 
                 // Everyone sees active CLA data
-                if (item.Active)
+                if (item!.Active)
                     return true;
 
                 // Only admins see other CLA data
@@ -482,7 +492,7 @@ namespace ThriveDevCenter.Server.Hubs
                 if (RequireAccessLevel(UserAccessLevel.Developer, user))
                     return true;
 
-                return item.Public;
+                return item!.Public;
             }
 
             // Only admins see this
@@ -493,7 +503,7 @@ namespace ThriveDevCenter.Server.Hubs
             return false;
         }
 
-        private static bool GetTargetModelFromGroup<T>(string groupName, DbSet<T> existingItems, out T item)
+        private static bool GetTargetModelFromGroup<T>(string groupName, DbSet<T> existingItems, out T? item)
             where T : class
         {
             if (!GetIDPartFromGroup(groupName, out long id))
@@ -508,10 +518,10 @@ namespace ThriveDevCenter.Server.Hubs
             return item != null;
         }
 
-        private static bool GetTargetModelFromGroupCompositeId<T>(string groupName, DbSet<T> existingItems, out T item)
+        private static bool GetTargetModelFromGroupCompositeId<T>(string groupName, DbSet<T> existingItems, out T? item)
             where T : class
         {
-            if (!GetCompositeIDPartFromGroup(groupName, out long[] ids))
+            if (!GetCompositeIDPartFromGroup(groupName, out var ids))
             {
                 item = null;
                 return false;
@@ -524,7 +534,7 @@ namespace ThriveDevCenter.Server.Hubs
         }
 
         private static bool GetTargetFolderFromGroup(string groupName, DbSet<StorageItem> existingItems,
-            out StorageItem item)
+            out StorageItem? item)
         {
             var idRaw = groupName.Split('_').Last();
 
@@ -546,7 +556,7 @@ namespace ThriveDevCenter.Server.Hubs
             return false;
         }
 
-        private static bool CheckFolderContentsAccess(User user, UserAccessLevel baseAccessLevel, StorageItem folder)
+        private static bool CheckFolderContentsAccess(User? user, UserAccessLevel baseAccessLevel, StorageItem? folder)
         {
             if (!RequireAccessLevel(baseAccessLevel, user))
                 return false;
@@ -570,7 +580,7 @@ namespace ThriveDevCenter.Server.Hubs
             return true;
         }
 
-        private static bool GetCompositeIDPartFromGroup(string groupName, out long[] id)
+        private static bool GetCompositeIDPartFromGroup(string groupName, out long[]? id)
         {
             try
             {
@@ -584,7 +594,7 @@ namespace ThriveDevCenter.Server.Hubs
             }
         }
 
-        private static bool RequireAccessLevel(UserAccessLevel level, User user)
+        private static bool RequireAccessLevel(UserAccessLevel level, User? user)
         {
             // All site visitors have the not logged in access level
             if (level == UserAccessLevel.NotLoggedIn)
@@ -604,7 +614,7 @@ namespace ThriveDevCenter.Server.Hubs
         Task ReceiveSiteNotice(SiteNoticeType type, string message);
         Task ReceiveSessionInvalidation();
         Task ReceiveVersionMismatch();
-        Task ReceiveOwnUserInfo(UserInfo user);
+        Task ReceiveOwnUserInfo(UserInfo? user);
 
         // Directly sending SerializedNotification doesn't work so we hack around that by manually serializing it
         // to a string before sending

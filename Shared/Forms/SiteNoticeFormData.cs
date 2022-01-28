@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Shared.Forms
     {
         [Required]
         [MaxLength(140)]
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
 
         [Required]
         public SiteNoticeType Type { get; set; }

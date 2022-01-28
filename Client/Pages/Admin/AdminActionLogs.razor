@@ -97,7 +97,7 @@
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<AdminActionDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<AdminActionDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<AdminActionDTO>>(
             QueryHelpers.AddQueryString("api/v1/Logs/adminActions", requestParams));

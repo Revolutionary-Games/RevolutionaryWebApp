@@ -18,13 +18,13 @@ namespace ThriveDevCenter.Shared.ModelVerifiers
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
     public class NotNullOrEmptyIfAttribute : RequiredAttribute
     {
-        public string BooleanPropertyIsTrue { get; set; }
+        public string? BooleanPropertyIsTrue { get; set; }
 
-        public string PropertyMatchesValue { get; set; }
+        public string? PropertyMatchesValue { get; set; }
 
-        public string Value { get; set; }
+        public string? Value { get; set; }
 
-        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
             bool requiredValue = false;
 
@@ -69,12 +69,12 @@ namespace ThriveDevCenter.Shared.ModelVerifiers
             }
 
             if (requiredValue)
-                return CheckRequired(value, validationContext.MemberName, validationContext.DisplayName);
+                return CheckRequired(value, validationContext.MemberName ?? "unknown", validationContext.DisplayName);
 
             return ValidationResult.Success;
         }
 
-        private ValidationResult CheckRequired(object value, string propertyName, string displayName)
+        private ValidationResult? CheckRequired(object? value, string propertyName, string displayName)
         {
             if (value == null)
                 return new ValidationResult($"The {displayName} field is required.", new[] { propertyName });

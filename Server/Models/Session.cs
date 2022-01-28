@@ -20,19 +20,19 @@ namespace ThriveDevCenter.Server.Models
         [HashedLookUp]
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        public string HashedId { get; set; }
+        public string? HashedId { get; set; }
 
         public long? UserId { get; set; }
-        public User User { get; set; }
+        public User? User { get; set; }
 
         // TODO: remove this and also remove from the User model, we can now invalidate sessions without needing this
         // variable
         public long SessionVersion { get; set; } = 1;
 
-        public string SsoNonce { get; set; }
-        public string StartedSsoLogin { get; set; }
+        public string? SsoNonce { get; set; }
+        public string? StartedSsoLogin { get; set; }
 
-        public string SsoReturnUrl { get; set; }
+        public string? SsoReturnUrl { get; set; }
 
         /// <summary>
         ///   Used to timeout started sso requests
@@ -51,9 +51,9 @@ namespace ThriveDevCenter.Server.Models
         public DateTime StartedAt { get; set; } = DateTime.UtcNow;
 
         [JsonConverter(typeof(IPAddressConverter))]
-        public IPAddress LastUsedFrom { get; set; }
+        public IPAddress? LastUsedFrom { get; set; }
 
-        public InProgressClaSignature InProgressClaSignature { get; set; }
+        public InProgressClaSignature? InProgressClaSignature { get; set; }
 
         public bool IsCloseToExpiry()
         {

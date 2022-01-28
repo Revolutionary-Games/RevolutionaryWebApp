@@ -7,10 +7,10 @@ namespace ThriveDevCenter.Server.Models
     public class InProgressMultipartUpload : UpdateableModel
     {
         [Required]
-        public string UploadId { get; set; }
+        public string UploadId { get; set; } = string.Empty;
 
         [Required]
-        public string Path { get; set; }
+        public string Path { get; set; } = string.Empty;
 
         public bool Finished { get; set; }
 

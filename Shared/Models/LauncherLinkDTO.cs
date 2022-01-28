@@ -4,7 +4,7 @@ namespace ThriveDevCenter.Shared.Models
 
     public class LauncherLinkDTO : ClientSideTimedModel
     {
-        public string LastIp { get; set; }
+        public string? LastIp { get; set; }
 
         public DateTime? LastConnection { get; set; }
 

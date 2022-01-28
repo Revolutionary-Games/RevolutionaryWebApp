@@ -53,7 +53,7 @@
         userInfo.OnUserInfoChanged -= OnUserInfoUpdated;
     }
 
-    private void OnUserInfoUpdated(object sender, UserInfo newInfo)
+    private void OnUserInfoUpdated(object? sender, UserInfo? newInfo)
     {
         InvokeAsync(StateHasChanged);
     }

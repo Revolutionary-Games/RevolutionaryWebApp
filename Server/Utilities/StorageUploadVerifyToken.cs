@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Utilities
 {
+    using System;
     using System.Security.Cryptography;
     using System.Text.Json;
     using System.Text.Json.Serialization;
@@ -7,7 +8,7 @@ namespace ThriveDevCenter.Server.Utilities
 
     public class StorageUploadVerifyToken
     {
-        private readonly IDataProtector dataProtector;
+        private readonly IDataProtector? dataProtector;
 
         /// <summary>
         ///   Constructs a new instance on the server that can be converted to string to be sent to a client
@@ -44,14 +45,14 @@ namespace ThriveDevCenter.Server.Utilities
         /// <summary>
         ///   This hash is done so that the remote file is ungzipped (in memory) when calculating the hash
         /// </summary>
-        public string UnGzippedHash { get; set; }
+        public string? UnGzippedHash { get; set; }
 
         /// <summary>
         ///   This hash is directly just the sha3 of the remote file
         /// </summary>
-        public string PlainFileHash { get; set; }
+        public string? PlainFileHash { get; set; }
 
-        public static StorageUploadVerifyToken TryToLoadFromString(IDataProtector dataProtector, string tokenStr)
+        public static StorageUploadVerifyToken? TryToLoadFromString(IDataProtector dataProtector, string tokenStr)
         {
             try
             {
@@ -72,7 +73,7 @@ namespace ThriveDevCenter.Server.Utilities
         public override string ToString()
         {
             if (dataProtector == null)
-                return base.ToString();
+                return base.ToString() ?? throw new InvalidOperationException("base ToString returned null");
 
             return dataProtector.Protect(JsonSerializer.Serialize(this, new JsonSerializerOptions()
             {

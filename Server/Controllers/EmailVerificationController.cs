@@ -119,10 +119,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             var returnUrl = new Uri(baseUrl, $"/verify/email?token={token}").ToString();
 
-            await mailSender.SendEmail(new MailRequest()
+            await mailSender.SendEmail(new MailRequest(request.Email, "ThriveDevCenter Email Verification")
             {
-                Recipient = request.Email,
-                Subject = "ThriveDevCenter Email Verification",
                 PlainTextBody = "Someone (hopefully you) has requested to use your email in signing a document.\n" +
                     "If this was you, please copy the below link into your browser to verify your email: \n" +
                     returnUrl + "\n" +
@@ -139,7 +137,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<(InProgressClaSignature, Session, ActionResult)> GetActiveSignature()
+        private async Task<(InProgressClaSignature?, Session?, ActionResult?)> GetActiveSignature()
         {
             var session = await HttpContext.Request.Cookies.GetSession(database);
 

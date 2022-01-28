@@ -8,6 +8,6 @@ namespace ThriveDevCenter.Server.Utilities
         /// <summary>
         ///   If not null, overrides the property where an update is looked for
         /// </summary>
-        public string RequestPropertyName { get; set; }
+        public string? RequestPropertyName { get; set; }
     }
 }

@@ -32,7 +32,7 @@ namespace ThriveDevCenter.Server.Services
         {
             var message = new StringBuilder(100);
 
-            message.Append(build.CiProject.Name);
+            message.Append(build.CiProject?.Name ?? "unknown project");
             message.Append(" build nro ");
             message.Append(build.CiBuildId);
 

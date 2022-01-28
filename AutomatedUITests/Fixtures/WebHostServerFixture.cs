@@ -30,7 +30,7 @@ namespace AutomatedUITests.Fixtures
         private readonly Lazy<Uri> rootUriInitializer;
 
         public Uri RootUri => rootUriInitializer.Value;
-        public IHost Host { get; set; }
+        public IHost? Host { get; set; }
 
         public RealIntegrationTestDatabaseFixture DatabaseFixture { get; }
 
@@ -66,7 +66,7 @@ namespace AutomatedUITests.Fixtures
         {
             var isDone = new ManualResetEvent(false);
 
-            ExceptionDispatchInfo edi = null;
+            ExceptionDispatchInfo? edi = null;
             new Thread(() =>
             {
                 try

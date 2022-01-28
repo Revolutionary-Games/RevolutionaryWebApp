@@ -31,7 +31,7 @@ namespace ThriveDevCenter.Shared.Tests.ModelVerifiers.Tests
             public AnEnum Flag { get; set; } = AnEnum.Value1;
 
             [NotNullOrEmptyIf(PropertyMatchesValue = nameof(Flag), Value = nameof(AnEnum.Value2))]
-            public string DependentProperty { get; set; }
+            public string? DependentProperty { get; set; }
         }
 
         private enum AnEnum

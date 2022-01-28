@@ -35,8 +35,9 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
 
             Assert.True(changes);
+            Assert.NotNull(description);
             Assert.NotEmpty(description);
-            Assert.False(description.StartsWith(","));
+            Assert.False(description!.StartsWith(","));
             Assert.NotNull(fields);
             Assert.Contains(nameof(Model.SomeField), fields);
             Assert.DoesNotContain(nameof(Model.Id), fields);
@@ -85,11 +86,13 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(old, update);
 
             Assert.True(changes);
+            Assert.NotNull(description);
             Assert.NotEmpty(description);
             Assert.NotEqual(JsonSerializer.Serialize(old), initial);
             Assert.Contains(nameof(Model.SomeField), description);
             Assert.DoesNotContain(nameof(Model.Id), description);
             Assert.Contains(nameof(Model.Flag), description);
+            Assert.NotNull(fields);
             Assert.Contains(nameof(Model.SomeField), fields);
             Assert.DoesNotContain(nameof(Model.Id), fields);
             Assert.Contains(nameof(Model.Flag), fields);

@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Server.Models
     using System.Text.Json;
     using Microsoft.EntityFrameworkCore;
     using Shared;
+    using Shared.Converters;
     using Shared.Models;
     using Shared.Models.Enums;
     using Shared.Notifications;
@@ -26,7 +27,7 @@ namespace ThriveDevCenter.Server.Models
         public long PollId { get; set; }
 
         [Required]
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         [Required]
         public VotingTiebreakType TiebreakType { get; set; }
@@ -35,12 +36,12 @@ namespace ThriveDevCenter.Server.Models
         ///   Poll data encoded as JSON
         /// </summary>
         [Required]
-        public string PollData { get; set; }
+        public string PollData { get; set; } = string.Empty;
 
         /// <summary>
         ///   Poll results encoded as JSON
         /// </summary>
-        public string PollResults { get; set; }
+        public string? PollResults { get; set; }
 
         public DateTime? PollResultsCreatedAt { get; set; }
 
@@ -49,7 +50,7 @@ namespace ThriveDevCenter.Server.Models
 
         public DateTime? AutoCloseAt { get; set; }
 
-        public Meeting Meeting { get; set; }
+        public Meeting? Meeting { get; set; }
 
         public ICollection<MeetingPollVotingRecord> VotingRecords { get; set; } =
             new HashSet<MeetingPollVotingRecord>();
@@ -62,7 +63,7 @@ namespace ThriveDevCenter.Server.Models
         [NotMapped]
         public PollData ParsedData
         {
-            get => JsonSerializer.Deserialize<PollData>(PollData);
+            get => JsonSerializer.Deserialize<PollData>(PollData) ?? throw new NullDecodedJsonException();
             set
             {
                 PollData = JsonSerializer.Serialize(value);
@@ -70,11 +71,17 @@ namespace ThriveDevCenter.Server.Models
         }
 
         [NotMapped]
-        public PollResultData ParsedResults
+        public PollResultData? ParsedResults
         {
-            get => JsonSerializer.Deserialize<PollResultData>(PollResults);
+            get => PollResults != null ? JsonSerializer.Deserialize<PollResultData>(PollResults) : null;
             set
             {
+                if (value == null)
+                {
+                    PollResults = null;
+                    return;
+                }
+
                 PollResults = JsonSerializer.Serialize(value);
             }
         }
@@ -120,7 +127,7 @@ namespace ThriveDevCenter.Server.Models
                 countedVotes[choice.Key] = 0;
             }
 
-            MeetingPollVote tieBreaker = null;
+            MeetingPollVote? tieBreaker = null;
 
             bool singleChoice = settings.WeightedChoices == null;
             bool votePowerDropOff = settings.WeightedChoices != null;

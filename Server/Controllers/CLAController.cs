@@ -199,7 +199,7 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
         [HttpGet("{id:long}/search")]
         public async Task<ActionResult<List<CLASignatureSearchResult>>> SearchSignatures([Required] long id,
-            string email, string githubAccount)
+            string? email, string? githubAccount)
         {
             IQueryable<ClaSignature> query = database.ClaSignatures.Where(s => s.ClaId == id);
 
@@ -639,19 +639,15 @@ namespace ThriveDevCenter.Server.Controllers
             });
 
             // Email the agreement to the person signing it
-            var emailTask = mailQueue.SendEmail(new MailRequest()
+            var emailTask = mailQueue.SendEmail(new MailRequest(finalSignature.Email, "Your signed document from ThriveDevCenter")
             {
-                Recipient = finalSignature.Email,
                 Bcc = emailSignaturesTo,
-                Subject = "Your signed document from ThriveDevCenter",
                 PlainTextBody = "Here is the document you just signed on ThriveDevCenter (as an attachment)",
                 HtmlBody = "<p>Here is the document you just signed on ThriveDevCenter (as an attachment)</p>",
                 Attachments = new List<MailAttachment>()
                 {
-                    new()
+                    new(fileName, signedDocumentText)
                     {
-                        Filename = fileName,
-                        Content = signedDocumentText,
                         MimeType = AppInfo.MarkdownMimeType,
                     }
                 },

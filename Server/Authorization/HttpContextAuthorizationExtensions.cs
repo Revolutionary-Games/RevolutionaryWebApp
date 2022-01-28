@@ -87,16 +87,16 @@ namespace ThriveDevCenter.Server.Authorization
         public static AuthenticationScopeRestriction AuthenticatedUserRestriction(this HttpContext context)
         {
             if (!context.Items.TryGetValue("AuthenticatedUserScopeRestriction",
-                out object restrictionRaw))
+                out object? restrictionRaw) || restrictionRaw == null)
                 throw new InvalidOperationException("authentication scope restriction was not set");
 
             return (AuthenticationScopeRestriction)restrictionRaw;
         }
 
-        public static User AuthenticatedUser(this HttpContext context)
+        public static User? AuthenticatedUser(this HttpContext context)
         {
             if (context.User.Identity == null ||
-                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser))
+                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? rawUser))
             {
                 return null;
             }
@@ -104,25 +104,25 @@ namespace ThriveDevCenter.Server.Authorization
             return rawUser as User;
         }
 
-        public static Session AuthenticatedUserSession(this HttpContext context)
+        public static Session? AuthenticatedUserSession(this HttpContext context)
         {
             if (context.User.Identity == null ||
-                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser) || rawUser is null)
+                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? rawUser) || rawUser is null)
             {
                 return null;
             }
 
-            if (!context.Items.TryGetValue(AppInfo.CurrentUserSessionMiddleWareKey, out object rawSession))
+            if (!context.Items.TryGetValue(AppInfo.CurrentUserSessionMiddleWareKey, out object? rawSession))
                 return null;
 
             return rawSession as Session;
         }
 
-        public static (User user, AuthenticationScopeRestriction restriction) AuthenticatedUserWithRestriction(
+        public static (User? user, AuthenticationScopeRestriction restriction) AuthenticatedUserWithRestriction(
             this HttpContext context)
         {
             if (context.User.Identity == null ||
-                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object rawUser))
+                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? rawUser))
             {
                 return (null, AuthenticationScopeRestriction.None);
             }
@@ -130,9 +130,9 @@ namespace ThriveDevCenter.Server.Authorization
             return (rawUser as User, context.AuthenticatedUserRestriction());
         }
 
-        public static AccessKey AuthenticatedAccessKey(this HttpContext context)
+        public static AccessKey? AuthenticatedAccessKey(this HttpContext context)
         {
-            if (!context.Items.TryGetValue(AppInfo.AccessKeyMiddlewareKey, out object raw))
+            if (!context.Items.TryGetValue(AppInfo.AccessKeyMiddlewareKey, out object? raw))
             {
                 return null;
             }
@@ -140,9 +140,9 @@ namespace ThriveDevCenter.Server.Authorization
             return raw as AccessKey;
         }
 
-        public static LauncherLink UsedLauncherLink(this HttpContext context)
+        public static LauncherLink? UsedLauncherLink(this HttpContext context)
         {
-            if (!context.Items.TryGetValue(AppInfo.LauncherLinkMiddlewareKey, out object raw))
+            if (!context.Items.TryGetValue(AppInfo.LauncherLinkMiddlewareKey, out object? raw))
             {
                 return null;
             }

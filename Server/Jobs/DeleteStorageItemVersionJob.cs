@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
+    using Utilities;
 
     public class DeleteStorageItemVersionJob
     {
@@ -33,6 +34,9 @@ namespace ThriveDevCenter.Server.Jobs
                     "Failed to get StorageItemVersion ({VersionId}) for deletion, assuming already deleted", versionId);
                 return;
             }
+
+            if (version.StorageFile == null)
+                throw new NotLoadedModelNavigationException();
 
             logger.LogInformation("Deleting remote storage object queued for deletion: {StoragePath}",
                 version.StorageFile.StoragePath);

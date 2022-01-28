@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Shared.Forms
     public class TokenForm
     {
         [Required]
-        public string Token { get; set; }
+        [MaxLength(AppInfo.MaximumTokenLength)]
+        public string Token { get; set; } = string.Empty;
     }
 }

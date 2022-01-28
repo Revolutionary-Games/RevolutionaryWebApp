@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Jobs
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -15,9 +16,9 @@ namespace ThriveDevCenter.Server.Jobs
         protected readonly ApplicationDbContext Database;
         protected readonly CommunityForumAPI DiscourseAPI;
 
-        protected PatreonSettings Settings;
-        protected DiscourseGroupMembers DevBuildGroupMembers;
-        protected DiscourseGroupMembers VIPGroupMembers;
+        protected PatreonSettings? Settings;
+        protected DiscourseGroupMembers? DevBuildGroupMembers;
+        protected DiscourseGroupMembers? VIPGroupMembers;
 
         protected readonly List<string> UsernamesToRemoveFromDevBuild = new();
         protected readonly List<string> UsernamesToRemoveFromVIP = new();
@@ -75,6 +76,12 @@ namespace ThriveDevCenter.Server.Jobs
 
         protected void HandlePatron(Patron patron, DiscourseUser correspondingForumUser, ILogger logger)
         {
+            if (Settings == null)
+                throw new InvalidOperationException("Patreon settings haven't been loaded");
+
+            if (DevBuildGroupMembers == null || VIPGroupMembers == null)
+                throw new InvalidOperationException("Discourse group members have not been loaded");
+
             var username = correspondingForumUser.Username;
 
             logger.LogTrace("Handling ({Patron}) {Username}", patron.Username,

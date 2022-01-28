@@ -49,6 +49,12 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            if (string.IsNullOrEmpty(report.DumpLocalFileName))
+            {
+                logger.LogError("Can't stackwalk on report that no longer has local dump: {ReportId}", reportId);
+                return;
+            }
+
             var symbolPrepareTask = symbolPreparer.PrepareSymbolsInFolder(symbolFolder, cancellationToken);
 
             logger.LogInformation("Starting stackwalk on report {ReportId}", reportId);
@@ -58,7 +64,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             var filePath = Path.Combine(baseFolder, report.DumpLocalFileName);
 
-            FileStream dump = null;
+            FileStream? dump = null;
 
             // On Linux an open file should not impact deleting etc. so I'm pretty sure this is pretty safe
             await semaphore.WaitAsync(cancellationToken);

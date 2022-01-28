@@ -73,7 +73,7 @@ namespace ThriveDevCenter.Server.Controllers
             var action = new AdminAction()
             {
                 Message = $"New access key ({key.Description}) created with scope: {key.KeyType}",
-                PerformedById = HttpContext.AuthenticatedUser().Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id
             };
 
             await database.AccessKeys.AddAsync(key);
@@ -95,7 +95,7 @@ namespace ThriveDevCenter.Server.Controllers
             var action = new AdminAction()
             {
                 Message = $"Access key {key.Id} was deleted",
-                PerformedById = HttpContext.AuthenticatedUser().Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id
             };
 
             database.AccessKeys.Remove(key);

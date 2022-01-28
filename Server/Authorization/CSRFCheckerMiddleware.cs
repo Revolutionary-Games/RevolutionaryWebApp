@@ -27,9 +27,9 @@ namespace ThriveDevCenter.Server.Authorization
                     return;
                 }
 
-                User user = null;
+                User? user = null;
 
-                if (context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object userRaw))
+                if (context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? userRaw))
                 {
                     user = userRaw as User;
                 }

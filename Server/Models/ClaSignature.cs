@@ -19,21 +19,21 @@ namespace ThriveDevCenter.Server.Models
 
         [Required]
         [AllowSortingBy]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [AllowSortingBy]
-        public string GithubAccount { get; set; }
+        public string? GithubAccount { get; set; }
 
         public long? GithubUserId { get; set; }
 
-        public string GithubEmail { get; set; }
+        public string? GithubEmail { get; set; }
 
-        public string DeveloperUsername { get; set; }
+        public string? DeveloperUsername { get; set; }
 
         [Required]
-        public string ClaSignatureStoragePath { get; set; }
+        public string ClaSignatureStoragePath { get; set; }  = string.Empty;
 
-        public string ClaInvalidationStoragePath { get; set; }
+        public string? ClaInvalidationStoragePath { get; set; }
 
         [AllowSortingBy]
         public long ClaId { get; set; }
@@ -41,9 +41,9 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public long? UserId { get; set; }
 
-        public Cla Cla { get; set; }
+        public Cla? Cla { get; set; }
 
-        public User User { get; set; }
+        public User? User { get; set; }
 
         public CLASignatureDTO GetDTO()
         {

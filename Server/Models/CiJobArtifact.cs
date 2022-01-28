@@ -14,13 +14,13 @@ namespace ThriveDevCenter.Server.Models
         public long CiJobArtifactId { get; set; }
 
         [Required]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         public long StorageItemId { get; set; }
 
-        public StorageItem StorageItem { get; set; }
+        public StorageItem? StorageItem { get; set; }
 
         [ForeignKey("CiProjectId,CiBuildId,CiJobId")]
-        public CiJob Job { get; set; }
+        public CiJob? Job { get; set; }
     }
 }

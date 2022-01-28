@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Server.Models
     public class AdminAction : BaseModel
     {
         [Required]
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -23,11 +23,11 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         [AllowSortingBy]
         public long? TargetUserId { get; set; }
-        public User TargetUser { get; set; }
+        public User? TargetUser { get; set; }
 
         [AllowSortingBy]
         public long? PerformedById { get; set; }
-        public User PerformedBy { get; set; }
+        public User? PerformedBy { get; set; }
 
         public AdminActionDTO GetDTO()
         {

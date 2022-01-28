@@ -77,7 +77,7 @@ else
         var (user, _) = await Request.Cookies.GetUserFromSession(database,
             Request.HttpContext.Connection.RemoteIpAddress);
 
-        UserInfo info = null;
+        UserInfo? info = null;
 
         if (user != null)
         {

@@ -160,7 +160,7 @@ namespace ThriveDevCenter.Server.Authorization
 
         private async Task<AuthMethodResult> CheckCookie(HttpContext context)
         {
-            if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string session) &&
+            if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out var session) &&
                 !string.IsNullOrEmpty(session))
             {
                 var (user, sessionObject) = await context.Request.Cookies.GetUserFromSession(database,

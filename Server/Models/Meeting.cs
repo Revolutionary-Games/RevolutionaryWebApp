@@ -15,12 +15,12 @@ namespace ThriveDevCenter.Server.Models
     {
         [AllowSortingBy]
         [Required]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        public string Minutes { get; set; }
+        public string? Minutes { get; set; }
 
         [Required]
-        public string Description { get; set; }
+        public string Description { get; set; }  = string.Empty;
 
         [AllowSortingBy]
         public DateTime StartsAt { get; set; }
@@ -41,10 +41,10 @@ namespace ThriveDevCenter.Server.Models
         public bool ReadOnly { get; set; }
 
         public long? OwnerId { get; set; }
-        public User Owner { get; set; }
+        public User? Owner { get; set; }
 
         public long? SecretaryId { get; set; }
-        public User Secretary { get; set; }
+        public User? Secretary { get; set; }
 
         public ICollection<MeetingMember> MeetingMembers { get; set; } = new HashSet<MeetingMember>();
         public ICollection<MeetingPoll> MeetingPolls { get; set; } = new HashSet<MeetingPoll>();

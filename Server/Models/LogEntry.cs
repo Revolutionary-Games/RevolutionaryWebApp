@@ -11,7 +11,7 @@ namespace ThriveDevCenter.Server.Models
     public class LogEntry : BaseModel
     {
         [Required]
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -21,7 +21,7 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         [AllowSortingBy]
         public long? TargetUserId { get; set; }
-        public User TargetUser { get; set; }
+        public User? TargetUser { get; set; }
 
         public LogEntryDTO GetDTO()
         {

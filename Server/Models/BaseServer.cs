@@ -28,7 +28,7 @@ namespace ThriveDevCenter.Server.Models
         ///   When running has the address to connect to the server
         /// </summary>
         [JsonConverter(typeof(IPAddressConverter))]
-        public IPAddress PublicAddress { get; set; }
+        public IPAddress? PublicAddress { get; set; }
 
         [AllowSortingBy]
         public DateTime? RunningSince { get; set; }

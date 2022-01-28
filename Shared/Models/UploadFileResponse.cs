@@ -7,7 +7,7 @@ namespace ThriveDevCenter.Shared.Models
         /// <summary>
         ///   The upload url to upload the file to. Set when Multipart is not set.
         /// </summary>
-        public string UploadURL { get; set; }
+        public string? UploadURL { get; set; }
 
         [Required]
         public long TargetStorageItem { get; set; }
@@ -16,8 +16,8 @@ namespace ThriveDevCenter.Shared.Models
         public long TargetStorageItemVersion { get; set; }
 
         [Required]
-        public string UploadVerifyToken { get; set; }
+        public string UploadVerifyToken { get; set; } = string.Empty;
 
-        public MultipartFileUpload Multipart { get; set; }
+        public MultipartFileUpload? Multipart { get; set; }
     }
 }

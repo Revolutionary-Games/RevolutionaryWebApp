@@ -29,6 +29,12 @@ namespace ThriveDevCenter.Server.Jobs
             var semaphore =
                 fileLocks.GetTempFilePath(CrashReport.CrashReportTempStorageFolderName, out string baseFolder);
 
+            if (string.IsNullOrEmpty(report.DumpLocalFileName))
+            {
+                logger.LogInformation("Crash report doesn't have a dump file set, skip deleting it");
+                return;
+            }
+
             var filePath = Path.Combine(baseFolder, report.DumpLocalFileName);
 
             await semaphore.WaitAsync(cancellationToken);

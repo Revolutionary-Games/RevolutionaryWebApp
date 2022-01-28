@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Jobs
 {
     using System;
+    using System.Net;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
@@ -48,6 +49,9 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 throw new Exception($"External server {id} has been in stopping status too short time");
             }
+
+            if (server.PublicAddress == null || server.PublicAddress.Equals(IPAddress.None))
+                throw new Exception($"External server {id} doesn't have public a address set");
 
             bool up = false;
 

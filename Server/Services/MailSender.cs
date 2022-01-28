@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -153,24 +154,43 @@ namespace ThriveDevCenter.Server.Services
 
     public class MailRequest
     {
-        public string Recipient { get; set; }
-        public string Cc { get; set; }
-        public string Bcc { get; set; }
-        public string ReplyTo { get; set; }
-        public string Subject { get; set; }
-        public string HtmlBody { get; set; }
-        public string PlainTextBody { get; set; }
+        public MailRequest(string recipient, string subject)
+        {
+            Recipient = recipient;
+            Subject = subject;
+        }
 
-        public List<MailAttachment> Attachments { get; set; }
+        [Required]
+        public string Recipient { get; set; }
+
+        public string? Cc { get; set; }
+        public string? Bcc { get; set; }
+        public string? ReplyTo { get; set; }
+
+        [Required]
+        public string Subject { get; set; }
+
+        public string? HtmlBody { get; set; }
+        public string? PlainTextBody { get; set; }
+
+        public List<MailAttachment>? Attachments { get; set; }
     }
 
     public class MailAttachment
     {
+        public MailAttachment(string filename, string content)
+        {
+            Filename = filename;
+            Content = content;
+        }
+
+        [Required]
         public string Filename { get; set; }
 
         /// <summary>
         ///   Content of the attachment. Needs to be utf8 encoded for now
         /// </summary>
+        [Required]
         public string Content { get; set; }
 
         public string MimeType { get; set; } = "plain/text";

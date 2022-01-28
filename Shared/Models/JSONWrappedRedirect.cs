@@ -5,6 +5,6 @@ namespace ThriveDevCenter.Shared.Models
     public class JSONWrappedRedirect
     {
         [Required]
-        public string RedirectTo { get; set; }
+        public string RedirectTo { get; set; } = string.Empty;
     }
 }

@@ -2,7 +2,7 @@ namespace ThriveDevCenter.Server.Authorization
 {
     public static class SecurityHelpers
     {
-        public static bool SlowEquals(string a, string b)
+        public static bool SlowEquals(string? a, string? b)
         {
             if (a == null || b == null)
                 return a == b;
@@ -15,7 +15,7 @@ namespace ThriveDevCenter.Server.Authorization
             return diff == 0;
         }
 
-        public static bool SlowEquals(byte[] a, byte[] b)
+        public static bool SlowEquals(byte[]? a, byte[]? b)
         {
             if (a == null || b == null)
                 return a == b;

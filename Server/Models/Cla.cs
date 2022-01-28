@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Server.Models
     public class Cla : BaseModel, IUpdateNotifications
     {
         [Required]
-        public string RawMarkdown { get; set; }
+        public string RawMarkdown { get; set; } = string.Empty;
 
         /// <summary>
         ///   The CLA that needs to be signed is active. Only one is able to be active at once
