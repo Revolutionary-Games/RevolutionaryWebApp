@@ -833,17 +833,17 @@ else
 
         var uploadTasks = new List<ValueTask<string>>();
 
-        if (startingChunks.Count != AppInfo.MultipartSimultaneousUploads)
+        // If there are less than MultipartSimultaneousUploads chunks, we have less tasks, or
+        // when there are exactly 4 chunks to upload, we end up with 2 tasks. So we use the upload task count
+        // here, but just guard against the case where we got too many chunks
+        if (startingChunks.Count > AppInfo.MultipartSimultaneousUploads)
         {
             await Console.Error.WriteAsync($"Number of starting chunk lists: {startingChunks.Count} " +
-                $"doesn't match tasks: {AppInfo.MultipartSimultaneousUploads}");
+                $"is over task count: {AppInfo.MultipartSimultaneousUploads}");
         }
 
-        foreach (int i in Enumerable.Range(0, AppInfo.MultipartSimultaneousUploads))
+        foreach (var initialChunks in startingChunks)
         {
-            var initialChunks = i < startingChunks.Count ? startingChunks[i] :
-                Array.Empty<MultipartFileUpload.FileChunk>();
-
             uploadTasks.Add(UploadChunksUntilDone(fileName, upload.ChunkRetrieveToken, initialChunks));
         }
 
