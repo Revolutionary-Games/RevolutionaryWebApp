@@ -58,7 +58,7 @@
         <div class="row">
             @* TODO: replace max width with something that works better, for now it fixes things to look better
             on really wide monitors *@
-            <div class="@ViewColumnClass()" style="max-width: 900px;">
+            <div class="@ViewColumnClass()" style="@MinimumWidthLeftSide()">
                 <h4>Duplicates</h4>
 
                 @if (fetchingDuplicates)
@@ -416,5 +416,13 @@
         if (multiColumnView)
             return "col-12 col-xl";
         return "col-12 col-xl-12";
+    }
+
+    private string MinimumWidthLeftSide()
+    {
+        if (multiColumnView)
+            return "max-width: 900px;";
+
+        return string.Empty;
     }
 }
