@@ -14,7 +14,7 @@ namespace ThriveDevCenter.Server.Utilities
         ///   Constructs a new instance on the server that can be converted to string to be sent to a client
         /// </summary>
         public StorageUploadVerifyToken(IDataProtector dataProtector, string fileUploadPath, string fileStoragePath,
-            long fileSize, long fileId, long? parentId, string unGzippedHash, string plainFileHash)
+            long fileSize, long fileId, long? parentId, string? unGzippedHash, string? plainFileHash)
         {
             this.dataProtector = dataProtector;
             FileUploadPath = fileUploadPath;
@@ -27,8 +27,7 @@ namespace ThriveDevCenter.Server.Utilities
         }
 
         [JsonConstructor]
-        public StorageUploadVerifyToken(string fileUploadPath, string fileStoragePath,
-            long fileSize, long fileId)
+        public StorageUploadVerifyToken(string fileUploadPath, string fileStoragePath, long fileSize, long fileId)
         {
             FileUploadPath = fileUploadPath;
             FileStoragePath = fileStoragePath;

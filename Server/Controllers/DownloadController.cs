@@ -57,7 +57,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var latestUploaded = await item.GetHighestUploadedVersion(database);
 
-            StorageItemVersion toDownload;
+            StorageItemVersion? toDownload;
 
             if (version != null)
             {
@@ -65,7 +65,7 @@ namespace ThriveDevCenter.Server.Controllers
                 var wantedVersion = await database.StorageItemVersions.Include(v => v.StorageFile)
                     .Where(v => v.StorageItem == item && v.Version == version).FirstOrDefaultAsync();
 
-                if (wantedVersion == null || wantedVersion.Id != latestUploaded.Id)
+                if (wantedVersion == null || latestUploaded == null || wantedVersion.Id != latestUploaded.Id)
                 {
                     // Non-latest uploaded file, need access
                     if (user == null || !user.HasAccessLevel(UserAccessLevel.User))
@@ -105,7 +105,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return Problem("Patreon settings not found");
 
             logger.LogInformation("Patron list for credits has been accessed by {Email}",
-                HttpContext.AuthenticatedUser().Email);
+                HttpContext.AuthenticatedUser()!.Email);
 
             var groups = patrons.GroupBy(p => p.RewardId).ToList();
 
@@ -126,7 +126,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private List<string> PreparePatronGroup(IGrouping<string, Patron> group)
+        private List<string> PreparePatronGroup(IGrouping<string, Patron>? group)
         {
             if (group == null)
                 return new List<string>();

@@ -56,7 +56,7 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<PagedResult<CrashReportInfo>>> Get([Required] string sortColumn,
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
             [Required] [Range(1, 100)] int pageSize, bool searchDuplicates = true, bool searchClosed = true,
-            string searchText = null)
+            string? searchText = null)
         {
             IQueryable<CrashReport> query;
 
@@ -94,8 +94,9 @@ namespace ThriveDevCenter.Server.Controllers
                 }
 
                 // TODO: should logs be searched as well? Might be a bit performance intensive...
-                query = query.Where(r => r.Description.Contains(searchText) ||
-                    r.PrimaryCallstack.Contains(searchText) || r.ExitCodeOrSignal.Contains(searchText));
+                query = query.Where(r => (r.Description != null && r.Description.Contains(searchText)) ||
+                    (r.PrimaryCallstack != null && r.PrimaryCallstack.Contains(searchText)) ||
+                    r.ExitCodeOrSignal.Contains(searchText));
             }
 
             try
@@ -148,7 +149,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (report == null)
                 return NotFound();
 
-            return report.Logs ?? string.Empty;
+            return report.Logs;
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
@@ -180,7 +181,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"Report {report.Id} crash dump reprocessing requested",
-                PerformedById = HttpContext.AuthenticatedUser().Id,
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             });
 
             await database.SaveChangesAsync();
@@ -226,11 +227,11 @@ namespace ThriveDevCenter.Server.Controllers
             if (report == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(report, request);
 
-            if (!changes)
+            if (!changes || fields == null)
                 return Ok();
 
             report.BumpUpdatedAt();
@@ -270,7 +271,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (report == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             // And then delete the report itself, there may be a leftover dump delete job for the report but that will
             // only cause a warning

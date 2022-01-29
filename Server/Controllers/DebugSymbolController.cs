@@ -123,7 +123,7 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var symbol = new DebugSymbol()
             {
@@ -243,7 +243,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (symbol == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(symbol, request);
 

@@ -93,12 +93,17 @@ namespace ThriveDevCenter.Server.Controllers
             if (server.Status == ServerStatus.Terminated)
                 return BadRequest("Can't stop a terminated server");
 
+            if (string.IsNullOrEmpty(server.InstanceId))
+                return BadRequest("Can't stop a server with no instance id");
+
+            var user = HttpContext.AuthenticatedUser()!;
+
             if (server.ReservationType != ServerReservationType.None)
             {
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"Server {id} force stopped by an admin while it was reserved",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
             else if (server.Status == ServerStatus.Provisioning)
@@ -106,7 +111,7 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"Server {id} force stopped by an admin while it was provisioning",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
             else
@@ -114,7 +119,7 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"Server {id} force stopped by an admin",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
 
@@ -144,12 +149,17 @@ namespace ThriveDevCenter.Server.Controllers
             if (server.Status == ServerStatus.Terminated)
                 return Ok("Server already terminated");
 
+            if (string.IsNullOrEmpty(server.InstanceId))
+                return BadRequest("Can't terminate a server with no instance id");
+
+            var user = HttpContext.AuthenticatedUser()!;
+
             if (server.ReservationType != ServerReservationType.None)
             {
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"Server {id} terminated by an admin while it was reserved",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
             else if (server.Status == ServerStatus.Provisioning)
@@ -157,7 +167,7 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"Server {id} terminated by an admin while it was provisioning",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
             else
@@ -165,7 +175,7 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"Server {id} terminated by an admin",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
 
@@ -191,6 +201,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (server.Status != ServerStatus.Stopped && server.Status != ServerStatus.Terminated)
                 return BadRequest("Only a stopped or a terminated server can be started");
+
+            if (string.IsNullOrEmpty(server.InstanceId))
+                return BadRequest("Can't start a server with no instance id");
 
             if (server.Status == ServerStatus.Terminated)
             {
@@ -257,7 +270,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.AdminActions.AddAsync(new AdminAction()
             {
                 Message = $"Server {id} is queued for clean up",
-                PerformedById = HttpContext.AuthenticatedUser().Id,
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             });
 
             server.CleanUpQueued = true;
@@ -276,6 +289,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (server == null)
                 return NotFound();
+
+            if (string.IsNullOrEmpty(server.InstanceId))
+                return BadRequest("Can't refresh status of a server with no instance id");
 
             List<Instance> newStatuses;
             try
@@ -327,13 +343,17 @@ namespace ThriveDevCenter.Server.Controllers
             if (servers.Count < 1)
                 return Ok("No servers exist");
 
-            logger.LogInformation("All server statuses refreshed by: {Email}", HttpContext.AuthenticatedUser().Email);
+            logger.LogInformation("All server statuses refreshed by: {Email}", HttpContext.AuthenticatedUser()!.Email);
+
+            if (servers.Any(s => string.IsNullOrEmpty(s.InstanceId)))
+                logger.LogWarning("There are non-terminated controlled servers that don't have an instance id");
 
             List<Instance> newStatuses;
             try
             {
                 newStatuses =
-                    await ec2Controller.GetInstanceStatuses(servers.Select(s => s.InstanceId).ToList(),
+                    await ec2Controller.GetInstanceStatuses(
+                        servers.Select(s => s.InstanceId).Where(i => !string.IsNullOrEmpty(i)).ToList()!,
                         CancellationToken.None);
             }
             catch (Exception e)
@@ -380,7 +400,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (servers.Count < 1)
                 return Ok("No terminated servers exist");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
             logger.LogInformation("All terminated servers removed by: {Email}", user.Email);
 
             await database.AdminActions.AddAsync(new AdminAction()

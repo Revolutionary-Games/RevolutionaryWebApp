@@ -33,7 +33,7 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<GithubWebhookDTO> GetSecret()
         {
-            logger.LogInformation("Github webhook secret viewed by {Email}", HttpContext.AuthenticatedUser().Email);
+            logger.LogInformation("Github webhook secret viewed by {Email}", HttpContext.AuthenticatedUser()!.Email);
             return (await GetOrCreateHook()).GetDTO();
         }
 
@@ -46,7 +46,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.AdminActions.AddAsync(new AdminAction()
             {
                 Message = "Github webhook secret recreated",
-                PerformedById = HttpContext.AuthenticatedUser().Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id
             });
 
             existing.CreateSecret();
@@ -90,7 +90,7 @@ namespace ThriveDevCenter.Server.Controllers
                 Repository = request.Repository,
             };
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             await database.GithubAutoComments.AddAsync(comment);
             await database.AdminActions.AddAsync(new AdminAction()
@@ -127,7 +127,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (comment == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(comment, request);
 
@@ -160,7 +160,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (comment == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             database.GithubAutoComments.Remove(comment);
             await database.AdminActions.AddAsync(new AdminAction()
@@ -186,7 +186,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.AdminActions.AddAsync(new AdminAction()
             {
                 Message = "New Github webhook secret created",
-                PerformedById = HttpContext.AuthenticatedUser().Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id
             });
 
             var webhook = new GithubWebhook()
