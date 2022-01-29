@@ -5,7 +5,7 @@ namespace ThriveDevCenter.Shared.Tests.ModelVerifiers.Tests
     using Shared.ModelVerifiers;
     using Xunit;
 
-    public class NotNullOrEmptyIfAttributeTest
+    public class NotNullOrEmptyIfAttributeTests
     {
         [Fact]
         public void NotNullOrEmpty_EnumComparisonWorks()

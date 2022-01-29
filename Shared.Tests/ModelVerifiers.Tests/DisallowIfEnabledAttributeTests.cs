@@ -5,7 +5,7 @@ namespace ThriveDevCenter.Shared.Tests.ModelVerifiers.Tests
     using Shared.ModelVerifiers;
     using Xunit;
 
-    public class DisallowIfEnabledAttributeTest
+    public class DisallowIfEnabledAttributeTests
     {
         [Fact]
         public void DisallowedValueIfAnotherPropertyMatches_StringEqualityFailsCorrectly()
