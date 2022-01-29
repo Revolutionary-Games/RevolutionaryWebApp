@@ -95,11 +95,13 @@ namespace ThriveDevCenter.Server.Controllers
             if (request.SymbolPath.Contains('\\'))
                 return BadRequest("The path contains a Windows line separator");
 
-            if (request.SymbolPath.Count(c => c == '/') < 2 || !request.SymbolPath.EndsWith(".sym"))
-                return BadRequest("The path must contain at least two path separators and end in .sym");
-
             if (request.SymbolPath.StartsWith("/") || request.SymbolPath.Contains(".."))
                 return BadRequest("The path must not start with a slash or contain two dots in a row");
+
+            logger.LogInformation("Upload request for symbol: {SymbolPath}", request.SymbolPath);
+
+            if (request.SymbolPath.Count(c => c == '/') < 2 || !request.SymbolPath.EndsWith(".sym"))
+                return BadRequest("The path must contain at least two path separators and end in .sym");
 
             if (!remoteStorage.Configured)
             {

@@ -3,7 +3,7 @@ namespace ThriveDevCenter.Shared.Tests.Models.Tests
     using Shared.Models;
     using Xunit;
 
-    public class UserAccessLevelTest
+    public class UserAccessLevelTests
     {
         [Fact]
         public void UserAccessLevel_AdminValuesWork()

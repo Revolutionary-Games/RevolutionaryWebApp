@@ -7,7 +7,7 @@ namespace ThriveDevCenter.Shared.Tests.Notifications.Tests
     using Shared.Notifications;
     using Xunit;
 
-    public class NotificationsSerializationTest
+    public class NotificationsSerializationTests
     {
         [Fact]
         public void NotificationJsonConverter_AddsTypeOnce()

@@ -56,7 +56,9 @@
                                     DeletePromptTitle="Delete this Crash Report?" />
 
         <div class="row">
-            <div class="col-12 col-xl">
+            @* TODO: replace max width with something that works better, for now it fixes things to look better
+            on really wide monitors *@
+            <div class="@ViewColumnClass()" style="@MinimumWidthLeftSide()">
                 <h4>Duplicates</h4>
 
                 @if (fetchingDuplicates)
@@ -64,7 +66,8 @@
                     <div class="spinner-border text-primary" role="status">
                         <span class="sr-only">Loading...</span>
                     </div>
-                } else if (duplicates != null)
+                }
+                else if (duplicates != null)
                 {
                     @if (duplicates.Count < 1)
                     {
@@ -120,7 +123,7 @@
                         {
                             <p>Description last edited at
                                 @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G") by
-                                <UsernameDisplayer UserId="@Data.DescriptionLastEditedById"/></p>
+                                <UsernameDisplayer UserId="@Data.DescriptionLastEditedById" /></p>
                         }
                     </AuthorizedContent>
                     <AccessMissingContent>
@@ -137,8 +140,13 @@
                 <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
                     <TextEditor Identifier="@($"report-desc-{Id}")" Placeholder="New description..."
                                 FieldLabel="Description" CurrentlySavedText="@Data.Description"
-                                GetSaveRequest="@GetDescriptionSaveRequest"/>
+                                GetSaveRequest="@GetDescriptionSaveRequest" />
                 </AccessLimited>
+
+                <br />
+                <Button OnPressed="@ToggleMultiColumn" ButtonStyle="secondary" Small="@true" class="mt-2">
+                    Toggle Multiple Columns
+                </Button>
 
                 <h3>Callstack</h3>
 
@@ -179,33 +187,33 @@
                 </AccessLimited>
             </div>
 
-            <div class="col-12 col-xl overflow-auto">
+            <div class="@($"{ViewColumnClass()} overflow-auto")">
                 <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
                     <h3>Crash dump</h3>
-                        @if (fetchingCrashDump)
-                        {
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <pre>@crashDump</pre>
-                        }
+                    @if (fetchingCrashDump)
+                    {
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <pre>@crashDump</pre>
+                    }
 
-                        <StatusMessageShower Type="@bottomStatusType" Message="@bottomStatus" />
+                    <StatusMessageShower Type="@bottomStatusType" Message="@bottomStatus" />
 
-                        @if (Data.CanReProcess)
-                        {
-                            <Button ButtonStyle="secondary" Spinner="@reprocessingFile"
-                                    Enabled="@(!reprocessingFile)" OnPressed="@RequestReProcessing">
-                                Reprocess Dump File
-                            </Button>
-                        }
-                        else
-                        {
-                            <p>Crash dump for this report has been deleted.</p>
-                        }
+                    @if (Data.CanReProcess)
+                    {
+                        <Button ButtonStyle="secondary" Spinner="@reprocessingFile"
+                                Enabled="@(!reprocessingFile)" OnPressed="@RequestReProcessing">
+                            Reprocess Dump File
+                        </Button>
+                    }
+                    else
+                    {
+                        <p>Crash dump for this report has been deleted.</p>
+                    }
                 </AccessLimited>
             </div>
         </div>
@@ -223,6 +231,7 @@
 @code {
 
     private const int SmallDuplicateAmount = 5;
+    private bool multiColumnView = true;
 
     private SiteNoticeType topStatusType = SiteNoticeType.Info;
     private string? topStatus;
@@ -391,5 +400,25 @@
         result.Description = newDescription;
 
         return new Tuple<string, object>($"api/v1/CrashReport/{Id}", result);
+    }
+
+    private void ToggleMultiColumn()
+    {
+        multiColumnView = !multiColumnView;
+    }
+
+    private string ViewColumnClass()
+    {
+        if (multiColumnView)
+            return "col-12 col-xl";
+        return "col-12 col-xl-12";
+    }
+
+    private string MinimumWidthLeftSide()
+    {
+        if (multiColumnView)
+            return "max-width: 900px;";
+
+        return string.Empty;
     }
 }

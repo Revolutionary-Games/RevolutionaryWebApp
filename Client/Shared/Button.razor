@@ -1,4 +1,4 @@
-<button id="@id" class="btn btn-@ButtonStyle @(@class)" aria-disabled="@Disabled" disabled="@Disabled"
+<button id="@id" class="@OurClass()" aria-disabled="@Disabled" disabled="@Disabled"
         type="@type" @onclick="PressDetected" @onclick:preventDefault="@HasCallback">
     @if (Spinner)
     {
@@ -17,6 +17,9 @@
 
     [Parameter]
     public bool Enabled { get; set; } = true;
+
+    [Parameter]
+    public bool Small { get; set; }
 
     [Parameter]
     public bool Spinner { get; set; }
@@ -48,4 +51,15 @@
             await OnPressed.InvokeAsync();
     }
 
+    private string OurClass()
+    {
+        if (Small)
+        {
+            return $"btn btn-{ButtonStyle} btn-sm {@class}";
+        }
+        else
+        {
+            return $"btn btn-{ButtonStyle} {@class}";
+        }
+    }
 }

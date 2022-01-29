@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Shared.Tests.Forms.Tests
     using Shared.Models.Enums;
     using Xunit;
 
-    public class BulkEmailSendRequestFormTest
+    public class BulkEmailSendRequestFormTests
     {
         [Fact]
         public void BulkEmailSendRequestFormTest_ValidPassesValidation()
