@@ -62,8 +62,12 @@ else
     private string? passwordVerification;
     private string? code;
 
+    // TODO: move this to use the form data approach to be able to show these validation errors to the user
     private bool CanRegister => !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(name) &&
-        !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(code) && password == passwordVerification;
+        !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(code) && password == passwordVerification &&
+        password.Length is >= AppInfo.MinPasswordLength and <= AppInfo.MaxPasswordLength &&
+        email.Length is >= AppInfo.MinEmailLength and <= AppInfo.MaxEmailLength &&
+        name.Length is >= AppInfo.MinUsernameLength and <= AppInfo.MaxUsernameLength;
 
     private string? ErrorMessage
     {

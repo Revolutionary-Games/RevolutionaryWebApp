@@ -17,6 +17,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
+    using Shared.Converters;
     using Utilities;
 
     [ApiController]
@@ -64,10 +65,16 @@ namespace ThriveDevCenter.Server.Controllers
             if (result != null)
                 return result;
 
+            if (session == null)
+                throw new Exception("Logic error, returned null session without returning an error result");
+
             var signature = await Database.InProgressClaSignatures.FirstOrDefaultAsync(s => s.SessionId == session.Id);
 
             if (signature == null)
                 return NotFound("No active signature to authorize against");
+
+            if (string.IsNullOrEmpty(session.SsoReturnUrl))
+                return NotFound("Session not setup with a return URL");
 
             var accessToken = await GetAccessTokenFromCode(code, session.SsoReturnUrl);
 
@@ -80,12 +87,12 @@ namespace ThriveDevCenter.Server.Controllers
             // We got an access token, authentication was successful. Now we can fetch the user data
             var githubAPI = new GithubAPI(githubLog, accessToken) { ThrowIfNotConfigured = true };
 
-            GithubUserInfo user;
+            GithubUserInfo? user;
 
             List<GithubEmail> emails;
             try
             {
-                user = await githubAPI.GetCurrentUserInfo();
+                user = await githubAPI.GetCurrentUserInfo() ?? throw new Exception("Github user data is null");
 
                 if (string.IsNullOrWhiteSpace(user.Login) || user.Id == 0)
                     throw new Exception("Didn't get username or id");
@@ -132,7 +139,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<string> GetAccessTokenFromCode(string code, string sessionRedirectUri)
+        private async Task<string?> GetAccessTokenFromCode(string code, string sessionRedirectUri)
         {
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -141,7 +148,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 var response = await client.PostAsync(QueryHelpers.AddQueryString(
                     "https://github.com/login/oauth/access_token",
-                    new Dictionary<string, string>()
+                    new Dictionary<string, string?>()
                     {
                         { "client_id", githubClientId },
                         { "client_secret", githubClientSecret },
@@ -158,10 +165,9 @@ namespace ThriveDevCenter.Server.Controllers
                 }
 
                 var data = JsonSerializer.Deserialize<GithubAccessTokenResponse>(content,
-                    new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? throw new NullDecodedJsonException();
 
-                if (data == null)
-                    throw new Exception("Github response resulted in null json data deserialization");
+                Validator.ValidateObject(data, new ValidationContext(data));
 
                 if (OAuthController.WantedGithubCLAScopes.Split(' ').Any(s => !data.Scope.Contains(s)))
                 {
@@ -184,13 +190,16 @@ namespace ThriveDevCenter.Server.Controllers
 
         private class GithubAccessTokenResponse
         {
+            [Required]
             [JsonPropertyName("access_token")]
-            public string AccessToken { get; set; }
+            public string AccessToken { get; set; } = string.Empty;
 
-            public string Scope { get; set; }
+            [Required]
+            public string Scope { get; set; } = string.Empty;
 
+            [Required]
             [JsonPropertyName("token_type")]
-            public string TokenType { get; set; }
+            public string TokenType { get; set; } = string.Empty;
         }
     }
 }

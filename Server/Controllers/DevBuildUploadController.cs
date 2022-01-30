@@ -559,15 +559,25 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class DehydratedObjectIdentification
     {
+        public DehydratedObjectIdentification(string sha3)
+        {
+            Sha3 = sha3;
+        }
+
         [JsonPropertyName("sha3")]
         [Required]
         [MinLength(5)]
         [MaxLength(100)]
-        public string Sha3 { get; set; } = string.Empty;
+        public string Sha3 { get; set; }
     }
 
     public class DehydratedObjectRequest : DehydratedObjectIdentification
     {
+        public DehydratedObjectRequest(string sha3, int size) : base(sha3)
+        {
+            Size = size;
+        }
+
         [Required]
         [Range(1, AppInfo.MaxDehydratedUploadSize)]
         public int Size { get; set; }
@@ -637,7 +647,7 @@ namespace ThriveDevCenter.Server.Controllers
     {
         [Required]
         [MaxLength(AppInfo.MaxDehydratedObjectsPerOffer)]
-        public List<DehydratedObjectRequest> Objects { get; set; }
+        public List<DehydratedObjectRequest> Objects { get; set; } = new();
     }
 
     public class DehydratedUploadResult

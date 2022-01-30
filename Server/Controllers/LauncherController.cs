@@ -90,11 +90,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             logger.LogInformation("New launcher linked to user {Id} from {RemoteAddress}", user.Id, remoteAddress);
 
-            return Created(string.Empty, new LauncherLinkResult()
-            {
-                Connected = true,
-                Code = code,
-            });
+            return Created(string.Empty, new LauncherLinkResult(true, code));
         }
 
         /// <summary>
@@ -105,7 +101,7 @@ namespace ThriveDevCenter.Server.Controllers
         public ActionResult<LauncherConnectionStatus> CheckStatus()
         {
             Response.ContentType = "application/json";
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             return new LauncherConnectionStatus()
             {
@@ -121,11 +117,11 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<LauncherUnlinkResult>> Disconnect()
         {
             Response.ContentType = "application/json";
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var remoteAddress = HttpContext.Connection.RemoteIpAddress;
 
-            var link = HttpContext.UsedLauncherLink();
+            var link = HttpContext.UsedLauncherLink()!;
 
             if (link == null)
             {
@@ -142,7 +138,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = $"Launcher disconnected through the launcher API from: {remoteAddress}",
-                TargetUserId = user.Id
+                TargetUserId = user.Id,
             });
 
             await database.SaveChangesAsync();
@@ -213,12 +209,9 @@ namespace ThriveDevCenter.Server.Controllers
 
             await database.SaveChangesAsync();
 
-            return new DevBuildDownload()
-            {
-                DownloadUrl =
-                    remoteDownloads.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime),
-                DownloadHash = build.BuildZipHash
-            };
+            return new DevBuildDownload(
+                remoteDownloads.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime),
+                build.BuildZipHash);
         }
 
         /// <summary>
@@ -297,7 +290,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             Response.ContentType = "application/json";
 
-            DevBuild build;
+            DevBuild? build;
 
             switch (request.Type)
             {
@@ -338,7 +331,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             Response.ContentType = "application/json";
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var objects = await request.Objects.ToAsyncEnumerable()
                 .Select(i => i.Sha3)
@@ -427,12 +420,8 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            return new DehydratedObjectDownloads.DehydratedObjectDownload()
-            {
-                Sha3 = sha3,
-                DownloadUrl =
-                    remoteDownloads.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime)
-            };
+            return new DehydratedObjectDownloads.DehydratedObjectDownload(sha3,
+                remoteDownloads.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime));
         }
     }
 
@@ -440,14 +429,21 @@ namespace ThriveDevCenter.Server.Controllers
     {
         [Required]
         [MaxLength(200)]
-        public string Code { get; set; }
+        public string Code { get; set; } = string.Empty;
     }
 
     public class LauncherLinkResult
     {
+        public LauncherLinkResult(bool connected, string code)
+        {
+            Connected = connected;
+            Code = code;
+        }
+
         [JsonPropertyName("connected")]
         public bool Connected { get; set; }
 
+        [Required]
         [JsonPropertyName("code")]
         public string Code { get; set; }
     }
@@ -458,10 +454,10 @@ namespace ThriveDevCenter.Server.Controllers
         public bool Valid { get; set; }
 
         [JsonPropertyName("username")]
-        public string Username { get; set; }
+        public string? Username { get; set; }
 
         [JsonPropertyName("email")]
-        public string Email { get; set; }
+        public string? Email { get; set; }
 
         [JsonPropertyName("developer")]
         public bool Developer { get; set; }
@@ -475,9 +471,17 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class DevBuildDownload
     {
+        public DevBuildDownload(string downloadUrl, string downloadHash)
+        {
+            DownloadUrl = downloadUrl;
+            DownloadHash = downloadHash;
+        }
+
+        [Required]
         [JsonPropertyName("download_url")]
         public string DownloadUrl { get; set; }
 
+        [Required]
         [JsonPropertyName("dl_hash")]
         public string DownloadHash { get; set; }
     }
@@ -486,7 +490,7 @@ namespace ThriveDevCenter.Server.Controllers
     {
         [JsonPropertyName("platform")]
         [MaxLength(200)]
-        public string Platform { get; set; }
+        public string? Platform { get; set; }
 
         [JsonPropertyName("offset")]
         [Range(0, int.MaxValue)]
@@ -499,9 +503,10 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class DevBuildHashSearchForm : DevBuildSearchForm
     {
+        [Required]
         [JsonPropertyName("devbuild_hash")]
         [MaxLength(200)]
-        public string BuildHash { get; set; }
+        public string BuildHash { get; set; } = string.Empty;
     }
 
     public class DevBuildFindByTypeForm
@@ -513,7 +518,7 @@ namespace ThriveDevCenter.Server.Controllers
         [JsonPropertyName("platform")]
         [MaxLength(200)]
         [Required]
-        public string Platform { get; set; }
+        public string Platform { get; set; } = string.Empty;
 
         [JsonConverter(typeof(ActualEnumStringConverter))]
         public enum BuildType
@@ -522,14 +527,15 @@ namespace ThriveDevCenter.Server.Controllers
             BuildOfTheDay,
 
             [EnumMember(Value = "latest")]
-            Latest
+            Latest,
         }
     }
 
     public class DevBuildSearchResults
     {
+        [Required]
         [JsonPropertyName("result")]
-        public List<DevBuildLauncherDTO> Result { get; set; }
+        public List<DevBuildLauncherDTO> Result { get; set; } = new();
 
         [JsonPropertyName("next_offset")]
         public int? NextOffset { get; set; }
@@ -537,18 +543,26 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class DevBuildDehydratedObjectDownloadRequest
     {
+        [Required]
         [JsonPropertyName("objects")]
         [MaxLength(AppInfo.MaxDehydratedDownloadBatch)]
-        public List<DehydratedObjectIdentification> Objects { get; set; }
+        public List<DehydratedObjectIdentification> Objects { get; set; } = new();
     }
 
     public class DehydratedObjectDownloads
     {
+        [Required]
         [JsonPropertyName("downloads")]
-        public List<DehydratedObjectDownload> Downloads { get; set; }
+        public List<DehydratedObjectDownload> Downloads { get; set; } = new();
 
         public class DehydratedObjectDownload : DehydratedObjectIdentification
         {
+            public DehydratedObjectDownload(string sha3, string downloadUrl) : base(sha3)
+            {
+                DownloadUrl = downloadUrl;
+            }
+
+            [Required]
             [JsonPropertyName("download_url")]
             public string DownloadUrl { get; set; }
         }

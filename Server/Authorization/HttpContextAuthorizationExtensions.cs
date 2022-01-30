@@ -104,6 +104,19 @@ namespace ThriveDevCenter.Server.Authorization
             return rawUser as User;
         }
 
+        public static User AuthenticatedUserOrThrow(this HttpContext context)
+        {
+            if (context.User.Identity == null ||
+                !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? rawUser) || rawUser == null)
+            {
+                throw new InvalidOperationException(
+                    $"No authenticated user when requested. Should have been checked " +
+                    $"before or {nameof(AuthenticatedUser)} should be used");
+            }
+
+            return (User)rawUser;
+        }
+
         public static Session? AuthenticatedUserSession(this HttpContext context)
         {
             if (context.User.Identity == null ||

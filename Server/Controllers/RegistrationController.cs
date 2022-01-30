@@ -47,14 +47,8 @@ namespace ThriveDevCenter.Server.Controllers
             if (!SecurityHelpers.SlowEquals(request.RegistrationCode, configuration.RegistrationCode))
                 return BadRequest("Invalid registration code");
 
-            if (request.Name == null || request.Name.Length < 3)
-                return BadRequest("Name is too short");
-
-            if (request.Email == null || request.Email.Length < 3 || !request.Email.Contains('@'))
+            if (!request.Email.Contains('@'))
                 return BadRequest("Email is invalid");
-
-            if (request.Password == null || request.Password.Length < 6)
-                return BadRequest("Password is too short");
 
             // Check for conflicting username or email
             if (await database.Users.FirstOrDefaultAsync(u => u.UserName == request.Name) != null ||
