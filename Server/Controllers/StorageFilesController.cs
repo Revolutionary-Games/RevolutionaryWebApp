@@ -57,7 +57,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("itemFromPath")]
-        public async Task<ActionResult<PathParseResult>> ParsePath([MaxLength(500)] string path)
+        public async Task<ActionResult<PathParseResult>> ParsePath([MaxLength(500)] string? path)
         {
             var user = HttpContext.AuthenticatedUser();
 
