@@ -180,11 +180,14 @@ namespace ThriveDevCenter.Server.Controllers
 
                     var session = await BeginSsoLogin(data.SsoType, data.ReturnUrl);
 
+                    if (string.IsNullOrEmpty(session.SsoNonce))
+                        throw new Exception("sso begin failed to set nonce");
+
                     var scopes = "identity identity[email]";
 
                     return Redirect(QueryHelpers.AddQueryString(
                         configuration["Login:Patreon:BaseUrl"],
-                        new Dictionary<string, string>()
+                        new Dictionary<string, string?>()
                         {
                             { "response_type", "code" },
                             { "client_id", configuration["Login:Patreon:ClientId"] },
@@ -249,13 +252,13 @@ namespace ThriveDevCenter.Server.Controllers
             await BeginNewSession(user);
 
             if (string.IsNullOrEmpty(login.ReturnUrl) ||
-                !redirectVerifier.SanitizeRedirectUrl(login.ReturnUrl, out string redirect))
+                !redirectVerifier.SanitizeRedirectUrl(login.ReturnUrl, out var redirect))
             {
                 return Redirect("/");
             }
             else
             {
-                return Redirect(redirect);
+                return Redirect(redirect ?? "/");
             }
         }
 
@@ -331,7 +334,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<Session> BeginSsoLogin(string ssoSource, string returnTo)
+        private async Task<Session> BeginSsoLogin(string ssoSource, string? returnTo)
         {
             // Re-use existing session if there is one
             var session = await HttpContext.Request.Cookies.GetSession(Database);
@@ -361,11 +364,14 @@ namespace ThriveDevCenter.Server.Controllers
 
         [NonAction]
         private async Task<IActionResult> DoDiscourseLoginRedirect(string ssoType, string secret, string redirectBase,
-            string returnUrlOnSuccess)
+            string? returnUrlOnSuccess)
         {
             var returnUrl = new Uri(configuration.GetBaseUrl(), $"/LoginController/return/{ssoType}").ToString();
 
             var session = await BeginSsoLogin(ssoType, returnUrlOnSuccess);
+
+            if (string.IsNullOrEmpty(session.SsoNonce))
+                throw new Exception("Can't create login redirect without existing session nonce");
 
             var payload = PrepareDiscoursePayload(session.SsoNonce, returnUrl);
 
@@ -373,7 +379,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             return Redirect(QueryHelpers.AddQueryString(
                 new Uri(new Uri(redirectBase), DiscourseSsoEndpoint).ToString(),
-                new Dictionary<string, string>()
+                new Dictionary<string, string?>()
                 {
                     { "sso", payload },
                     { "sig", signature }
@@ -433,6 +439,9 @@ namespace ThriveDevCenter.Server.Controllers
             // Return in case of failure
             if (result != null)
                 return result;
+
+            if (session == null)
+                throw new Exception("Logic error, returned null session without returning an error result");
 
             bool requireSave = true;
 
@@ -496,6 +505,9 @@ namespace ThriveDevCenter.Server.Controllers
             // Return in case of failure
             if (result != null)
                 return result;
+
+            if (session == null)
+                throw new Exception("Logic error, returned null session without returning an error result");
 
             bool requireSave = true;
 
@@ -569,8 +581,8 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<(IActionResult result, bool saved)> HandleSsoLoginToAccount(Session session, string email,
-            string username, string ssoType, bool developerLogin)
+        private async Task<(IActionResult result, bool saved)> HandleSsoLoginToAccount(Session session, string? email,
+            string? username, string ssoType, bool developerLogin)
         {
             // Ensure whitespace is consistent
             email = email?.Trim();
@@ -716,7 +728,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             var sessionId = session.Id;
 
-            string returnUrl = session.SsoReturnUrl;
+            string? returnUrl = session.SsoReturnUrl;
 
             session.User = user;
             session.LastUsed = DateTime.UtcNow;
@@ -731,13 +743,13 @@ namespace ThriveDevCenter.Server.Controllers
                 user.Id, remoteAddress, sessionId);
 
             if (string.IsNullOrEmpty(returnUrl) ||
-                !redirectVerifier.SanitizeRedirectUrl(returnUrl, out string redirect))
+                !redirectVerifier.SanitizeRedirectUrl(returnUrl, out string? redirect))
             {
                 return Redirect("/");
             }
             else
             {
-                return Redirect(redirect);
+                return Redirect(redirect ?? "/");
             }
         }
     }
@@ -745,25 +757,30 @@ namespace ThriveDevCenter.Server.Controllers
     public class LoginFormData
     {
         [Required]
-        public string Email { get; set; }
+        [MaxLength(AppInfo.MaxEmailLength)]
+        public string Email { get; set; } = string.Empty;
 
         [Required]
-        public string Password { get; set; }
+        [MaxLength(AppInfo.MaxPasswordLength)]
+        public string Password { get; set; } = string.Empty;
 
         [Required]
-        public string CSRF { get; set; }
+        [MaxLength(AppInfo.MaximumTokenLength)]
+        public string CSRF { get; set; } = string.Empty;
 
-        public string ReturnUrl { get; set; }
+        public string? ReturnUrl { get; set; }
     }
 
     public class SsoStartFormData
     {
         [Required]
-        public string SsoType { get; set; }
+        [MaxLength(300)]
+        public string SsoType { get; set; } = string.Empty;
 
         [Required]
-        public string CSRF { get; set; }
+        [MaxLength(AppInfo.MaximumTokenLength)]
+        public string CSRF { get; set; } = string.Empty;
 
-        public string ReturnUrl { get; set; }
+        public string? ReturnUrl { get; set; }
     }
 }

@@ -5,6 +5,6 @@ namespace ThriveDevCenter.Shared.Models
     public class RedeemCodeData
     {
         [Required]
-        public string Code { get; set; }
+        public string Code { get; set; } = string.Empty;
     }
 }

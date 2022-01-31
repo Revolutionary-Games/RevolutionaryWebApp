@@ -11,6 +11,6 @@ namespace ThriveDevCenter.Shared.Models
 
         [Required]
         [JsonPropertyName("deleteKey")]
-        public string DeleteKey { get; set; }
+        public string DeleteKey { get; set; } = string.Empty;
     }
 }

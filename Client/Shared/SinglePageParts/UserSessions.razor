@@ -85,7 +85,7 @@ else
     private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
     private readonly Dictionary<long, bool> processingItems = new();
 
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType;
     private bool processingDestroy;
 
@@ -134,7 +134,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<SessionDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<SessionDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<SessionDTO>>(
             QueryHelpers.AddQueryString($"api/v1/UserManagement/{Id}/sessions", requestParams));

@@ -7,6 +7,6 @@ namespace ThriveDevCenter.Shared.Models
     {
         [Required]
         [MaxLength(AppInfo.MaxDebugSymbolOfferBatch)]
-        public List<string> Upload { get; set; }
+        public List<string> Upload { get; set; } = new();
     }
 }

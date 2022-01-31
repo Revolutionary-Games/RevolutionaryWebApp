@@ -29,7 +29,7 @@ namespace ThriveDevCenter.Server.Jobs
             await client.SendMessageAsync(message);
         }
 
-        private string LoadKeyForHook(string hook)
+        private string? LoadKeyForHook(string hook)
         {
             var key = configuration[$"Discord:{hook}"];
 

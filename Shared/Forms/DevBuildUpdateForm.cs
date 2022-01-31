@@ -5,6 +5,6 @@ namespace ThriveDevCenter.Shared.Forms
     public class DevBuildUpdateForm
     {
         [StringLength(AppInfo.MaxDevBuildDescriptionLength, MinimumLength = AppInfo.MinimumDevBuildDescriptionLength)]
-        public string Description { get; set; }
+        public string? Description { get; set; }
     }
 }

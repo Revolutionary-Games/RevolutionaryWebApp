@@ -23,18 +23,18 @@ namespace ThriveDevCenter.Server.Models
         ///   The hash of the commit triggering this build. The build can also contain other commits
         /// </summary>
         [Required]
-        public string CommitHash { get; set; }
+        public string CommitHash { get; set; } = string.Empty;
 
         /// <summary>
         ///   Reference to the remote ref we need to checkout to run this build
         /// </summary>
         [Required]
-        public string RemoteRef { get; set; }
+        public string RemoteRef { get; set; } = string.Empty;
 
         /// <summary>
         ///   The branch detected from RemoteRef
         /// </summary>
-        public string Branch { get; set; }
+        public string? Branch { get; set; }
 
         /// <summary>
         ///   When true the RemoteRef is from the current repository (and not a fork). This determines what build
@@ -51,30 +51,36 @@ namespace ThriveDevCenter.Server.Models
 
         public BuildStatus Status { get; set; } = BuildStatus.Running;
 
-        public CiProject CiProject { get; set; }
+        public CiProject? CiProject { get; set; }
 
         public ICollection<CiJob> CiJobs { get; set; } = new HashSet<CiJob>();
 
-        public string PreviousCommit { get; set; }
+        public string? PreviousCommit { get; set; }
 
         /// <summary>
         ///   The commit message of the (latest) commit
         /// </summary>
-        public string CommitMessage { get; set; }
+        public string? CommitMessage { get; set; }
 
         /// <summary>
         ///   Json serialized list of GithubCommits that github reported as being part of the push
         ///   that created this build
         /// </summary>
-        public string Commits { get; set; }
+        public string? Commits { get; set; }
 
 
         [NotMapped]
-        public List<GithubCommit> ParsedCommits
+        public List<GithubCommit>? ParsedCommits
         {
-            get => JsonSerializer.Deserialize<List<GithubCommit>>(Commits);
+            get => Commits != null ? JsonSerializer.Deserialize<List<GithubCommit>>(Commits) : null;
             set
             {
+                if (value == null)
+                {
+                    Commits = null;
+                    return;
+                }
+
                 Commits = JsonSerializer.Serialize(value);
             }
         }

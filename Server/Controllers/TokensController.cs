@@ -27,14 +27,14 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter]
         public ActionResult<string> GetOwnAPIToken()
         {
-            return HttpContext.AuthenticatedUser().ApiToken ?? "none";
+            return HttpContext.AuthenticatedUser()!.ApiToken ?? "none";
         }
 
         [HttpGet("lfs/self")]
         [AuthorizeRoleFilter]
         public ActionResult<string> GetOwnLFSToken()
         {
-            return HttpContext.AuthenticatedUser().LfsToken ?? "none";
+            return HttpContext.AuthenticatedUser()!.LfsToken ?? "none";
         }
 
         [HttpDelete("api/self")]
@@ -42,7 +42,10 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<IActionResult> DeleteOwnAPIToken()
         {
             // We must re-fetch this data to get it from our db context for updating it
-            var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser().Id);
+            var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+            if (user == null)
+                return Problem("Could not find authenticated user in the database");
+
             logger.LogInformation("User ({Email}) deleted their own API token", user.Email);
 
             await database.LogEntries.AddAsync(new LogEntry()
@@ -62,7 +65,10 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<IActionResult> DeleteOwnLFSToken()
         {
             // We must re-fetch this data to get it from our db context for updating it
-            var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser().Id);
+            var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+            if (user == null)
+                return Problem("Could not find authenticated user in the database");
+
             logger.LogInformation("User ({Email}) deleted their own LFS token", user.Email);
 
             await database.LogEntries.AddAsync(new LogEntry()
@@ -82,7 +88,10 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<string>> CreateOwnAPIToken()
         {
             // We must re-fetch this data to get it from our db context for updating it
-            var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser().Id);
+            var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+            if (user == null)
+                return Problem("Could not find authenticated user in the database");
+
             logger.LogInformation("User ({Email}) created a new API token", user.Email);
 
             await database.LogEntries.AddAsync(new LogEntry()
@@ -102,7 +111,10 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<string>> CreateOwnLFSToken()
         {
             // We must re-fetch this data to get it from our db context for updating it
-            var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser().Id);
+            var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+            if (user == null)
+                return Problem("Could not find authenticated user in the database");
+
             logger.LogInformation("User ({Email}) created a new LFS token", user.Email);
 
             await database.LogEntries.AddAsync(new LogEntry()
@@ -130,7 +142,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (target.LfsToken == null && target.ApiToken == null)
                 return Ok("Tokens already cleared");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
             logger.LogInformation("Force clearing tokens on user {Id} by admin {Email}", target.Id, user.Email);
 
             await database.AdminActions.AddAsync(new AdminAction()

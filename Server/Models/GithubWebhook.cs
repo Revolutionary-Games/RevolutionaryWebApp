@@ -10,10 +10,10 @@ namespace ThriveDevCenter.Server.Models
     {
         [HashedLookUp]
         [Required]
-        public string Secret { get; set; }
+        public string Secret { get; set; } = string.Empty;
 
         [Required]
-        public string HashedSecret { get; set; }
+        public string HashedSecret { get; set; } = string.Empty;
 
         public DateTime? LastUsed { get; set; }
 

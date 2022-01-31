@@ -12,8 +12,8 @@ namespace ThriveDevCenter.Client.Shared
             this.categoryName = categoryName;
         }
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception,
-            Func<TState, Exception, string> formatter)
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
         {
             Console.WriteLine(categoryName + ": " + formatter(state, exception));
         }
@@ -23,7 +23,14 @@ namespace ThriveDevCenter.Client.Shared
             return true;
         }
 
-        public IDisposable BeginScope<TState>(TState state) => default;
+        public IDisposable BeginScope<TState>(TState state) => new DummyScope();
+
+        private class DummyScope : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
     }
 
     public class JavaScriptConsoleLoggerProvider : ILoggerProvider

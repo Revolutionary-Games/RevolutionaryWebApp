@@ -116,11 +116,11 @@
 
     private bool processingAllServers;
 
-    private string message;
+    private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public IModalService Modal { get; set; } = null!;
 
     public ControlledServers() : base(new SortHelper("Id", SortDirection.Ascending))
     {
@@ -148,7 +148,7 @@
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<ControlledServerDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<ControlledServerDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<ControlledServerDTO>>(
             QueryHelpers.AddQueryString("api/v1/ControlledServers", requestParams));

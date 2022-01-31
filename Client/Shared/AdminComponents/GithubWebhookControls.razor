@@ -1,5 +1,7 @@
 @using ThriveDevCenter.Shared
 @using System.Text.Json
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Converters
 @using ThriveDevCenter.Shared.Forms
 @using ThriveDevCenter.Shared.Models
 @inject HttpClient http
@@ -32,12 +34,12 @@ else
 }
 
 @code {
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     private bool visible;
     private bool loading;
-    private string secret;
+    private string? secret;
     private bool processing;
 
     private async Task ToggleShow()
@@ -57,8 +59,8 @@ else
 
         try
         {
-            // ReSharper disable once PossibleNullReferenceException
-            secret = (await http.GetFromJsonAsync<GithubWebhookDTO>("api/v1/GithubConfiguration/viewSecret")).Secret;
+            secret = (await http.GetFromJsonAsync<GithubWebhookDTO>("api/v1/GithubConfiguration/viewSecret")
+                ?? throw new NullDecodedJsonException()).Secret;
         }
         catch (Exception e)
         {
@@ -106,9 +108,8 @@ else
 
             try
             {
-                // ReSharper disable once PossibleNullReferenceException
-                secret = JsonSerializer.Deserialize<GithubWebhookDTO>(content,
-                    new JsonSerializerOptions(JsonSerializerDefaults.Web)).Secret;
+                secret = (JsonSerializer.Deserialize<GithubWebhookDTO>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException()).Secret;
             }
             catch (Exception e)
             {

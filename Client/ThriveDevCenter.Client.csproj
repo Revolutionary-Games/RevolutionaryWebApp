@@ -4,6 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <BlazorCacheBootResources>true</BlazorCacheBootResources>
     <LangVersion>10</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

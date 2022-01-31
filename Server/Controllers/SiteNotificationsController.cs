@@ -32,7 +32,7 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpPost("ephemeralNotice")]
         public async Task<IActionResult> SendEphemeralNotice([Required] SiteNoticeFormData data)
         {
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             logger.LogInformation("New site notice (ephemeral) sent by: {Email}, text: {Message}, type: {Type}",
                 user.Email, data.Message, data.Type);

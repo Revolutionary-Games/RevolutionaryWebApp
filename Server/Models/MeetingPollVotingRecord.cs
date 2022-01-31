@@ -9,8 +9,8 @@ namespace ThriveDevCenter.Server.Models
         public long PollId { get; set; }
         public long UserId { get; set; }
 
-        public Meeting Meeting { get; set; }
-        public MeetingPoll Poll { get; set; }
-        public User User { get; set; }
+        public Meeting? Meeting { get; set; }
+        public MeetingPoll? Poll { get; set; }
+        public User? User { get; set; }
     }
 }

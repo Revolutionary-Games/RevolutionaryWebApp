@@ -44,12 +44,12 @@
 </AccessLimited>
 
 @code {
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     private bool performingActivation;
 
-    protected override Task<CLADTO> StartQuery()
+    protected override Task<CLADTO?> StartQuery()
     {
         return http.GetFromJsonAsync<CLADTO>($"api/v1/CLA/{Id}");
     }

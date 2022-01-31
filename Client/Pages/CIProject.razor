@@ -64,7 +64,7 @@
 @code {
     private bool showSecretsSection;
 
-    protected override Task<CIProjectDTO> StartQuery()
+    protected override Task<CIProjectDTO?> StartQuery()
     {
         return http.GetFromJsonAsync<CIProjectDTO>($"api/v1/CIProject/{Id}");
     }

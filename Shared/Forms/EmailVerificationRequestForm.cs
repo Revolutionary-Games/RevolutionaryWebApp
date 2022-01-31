@@ -6,6 +6,6 @@ namespace ThriveDevCenter.Shared.Forms
     {
         [Required]
         [StringLength(AppInfo.MaxEmailLength, MinimumLength = 3)]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
     }
 }

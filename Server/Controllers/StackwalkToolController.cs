@@ -132,7 +132,7 @@ namespace ThriveDevCenter.Server.Controllers
             database.StackwalkTasks.Remove(task);
             await database.SaveChangesAsync();
 
-            return task.Succeeded ? task.Result : "Stackwalking did not succeed";
+            return task.Succeeded ? task.Result ?? "Error: result not set" : "Stackwalking did not succeed";
         }
     }
 }

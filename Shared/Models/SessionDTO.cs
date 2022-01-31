@@ -7,7 +7,7 @@ namespace ThriveDevCenter.Shared.Models
     public class SessionDTO : ClientSideTimedModel
     {
         [JsonConverter(typeof(IPAddressConverter))]
-        public IPAddress LastUsedFrom { get; set; }
+        public IPAddress? LastUsedFrom { get; set; }
 
         public bool Current { get; set; }
     }

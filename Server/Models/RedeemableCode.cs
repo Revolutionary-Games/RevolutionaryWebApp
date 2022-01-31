@@ -12,7 +12,8 @@ namespace ThriveDevCenter.Server.Models
         [HashedLookUp]
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        public string HashedId { get; set; }
+        [Required]
+        public string HashedId { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -20,13 +21,13 @@ namespace ThriveDevCenter.Server.Models
         ///   Specifies what this code grants. See CodeRedeemController
         /// </summary>
         [Required]
-        public string GrantedResource { get; set; }
+        public string GrantedResource { get; set; } = string.Empty;
 
         public bool MultiUse { get; set; } = false;
 
         /// <summary>
         ///   Number of uses for multi use codes
         /// </summary>
-        public int Uses { get; set; } = 0;
+        public int Uses { get; set; }
     }
 }

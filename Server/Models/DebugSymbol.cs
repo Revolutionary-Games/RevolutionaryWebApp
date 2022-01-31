@@ -16,11 +16,11 @@ namespace ThriveDevCenter.Server.Models
         // TODO: probably want to add an index for this
         [Required]
         [AllowSortingBy]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [AllowSortingBy]
-        public string RelativePath { get; set; }
+        public string RelativePath { get; set; } = string.Empty;
 
         [UpdateFromClientRequest]
         public bool Active { get; set; }
@@ -30,10 +30,10 @@ namespace ThriveDevCenter.Server.Models
         public long Size { get; set; }
 
         public long StoredInItemId { get; set; }
-        public StorageItem StoredInItem { get; set; }
+        public StorageItem? StoredInItem { get; set; }
 
         public long? CreatedById { get; set; }
-        public User CreatedBy { get; set; }
+        public User? CreatedBy { get; set; }
 
         [NotMapped]
         public string StorageFileName => RelativePath.Replace('/', '_');

@@ -34,7 +34,7 @@
 
     public void Dispose()
     {
-        secondTimer?.Dispose();
+        secondTimer.Dispose();
     }
 
     protected override void OnParametersSet()
@@ -45,7 +45,7 @@
         secondTimer.Enabled = End == null;
     }
 
-    private async void TimeToReRender(object sender, ElapsedEventArgs elapsedEventArgs)
+    private async void TimeToReRender(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
         await InvokeAsync(StateHasChanged);
     }

@@ -23,7 +23,7 @@ namespace ThriveDevCenter.Server.Jobs
             this.mailSender = mailSender;
         }
 
-        public async Task Execute(long bulkId, List<string> recipients, string replyTo,
+        public async Task Execute(long bulkId, List<string> recipients, string? replyTo,
             CancellationToken cancellationToken)
         {
             var bulkInfo = await database.SentBulkEmails.FindAsync(new object[] { bulkId }, cancellationToken);
@@ -40,11 +40,9 @@ namespace ThriveDevCenter.Server.Jobs
             // allow canceling after starting
             foreach (var recipient in recipients)
             {
-                await mailSender.SendEmail(new MailRequest()
+                await mailSender.SendEmail(new MailRequest(recipient, bulkInfo.Title)
                 {
-                    Recipient = recipient,
                     ReplyTo = replyTo,
-                    Subject = bulkInfo.Title,
                     HtmlBody = bulkInfo.HtmlBody,
                     PlainTextBody = bulkInfo.PlainBody,
                 }, CancellationToken.None);

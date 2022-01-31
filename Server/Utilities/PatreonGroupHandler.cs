@@ -21,11 +21,14 @@ namespace ThriveDevCenter.Server.Utilities
             VIP
         }
 
-        public static async Task<bool> HandlePatreonPledgeObject(PatreonObjectData pledge, PatreonObjectData user,
-            string rewardId, NotificationsEnabledDb database, IBackgroundJobClient jobClient)
+        public static async Task<bool> HandlePatreonPledgeObject(PatreonObjectData? pledge, PatreonObjectData? user,
+            string? rewardId, NotificationsEnabledDb database, IBackgroundJobClient jobClient)
         {
-            if (pledge.Attributes.AmountCents == null || user.Attributes.Email == null)
+            if (pledge?.Attributes.AmountCents == null || user?.Attributes.Email == null)
                 throw new Exception("Invalid patron API object, missing key properties");
+
+            if (rewardId == null)
+                throw new Exception("Invalid patron API object, missing any reward id");
 
             var pledgeCents = pledge.Attributes.AmountCents.Value;
 
@@ -136,7 +139,7 @@ namespace ThriveDevCenter.Server.Utilities
             return changes;
         }
 
-        public static RewardGroup ShouldBeInGroupForPatron(Patron patron, PatreonSettings settings)
+        public static RewardGroup ShouldBeInGroupForPatron(Patron? patron, PatreonSettings settings)
         {
             if (settings == null)
                 throw new ArgumentException("patreon settings is null");

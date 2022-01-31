@@ -17,11 +17,13 @@ namespace ThriveDevCenter.Server.Models
     public class LfsProject : UpdateableModel, IUpdateNotifications, ISoftDeletable, IInfoCreator<LFSProjectInfo>,
         IDTOCreator<LFSProjectDTO>
     {
+        [Required]
         [AllowSortingBy]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [AllowSortingBy]
-        public string Slug { get; set; }
+        [Required]
+        public string Slug { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public bool Public { get; set; } = true;
@@ -29,9 +31,10 @@ namespace ThriveDevCenter.Server.Models
         public bool Deleted { get; set; } = false;
 
         [Required]
-        public string RepoUrl { get; set; }
+        public string RepoUrl { get; set; } = string.Empty;
 
-        public string CloneUrl { get; set; }
+        [Required]
+        public string CloneUrl { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public int? TotalObjectSize { get; set; }
@@ -39,7 +42,7 @@ namespace ThriveDevCenter.Server.Models
         public int? TotalObjectCount { get; set; }
         public DateTime? TotalSizeUpdated { get; set; }
         public DateTime? FileTreeUpdated { get; set; }
-        public string FileTreeCommit { get; set; }
+        public string? FileTreeCommit { get; set; }
 
         public ICollection<LfsObject> LfsObjects { get; set; } = new HashSet<LfsObject>();
         public ICollection<ProjectGitFile> ProjectGitFiles { get; set; } = new HashSet<ProjectGitFile>();
@@ -82,7 +85,7 @@ namespace ThriveDevCenter.Server.Models
                 CloneUrl = CloneUrl,
                 UpdatedAt = UpdatedAt,
                 CreatedAt = CreatedAt,
-                LfsUrlSuffix = $"/api/v1/lfs/{Slug}"
+                LfsUrlSuffix = $"/api/v1/lfs/{Slug}",
             };
         }
 

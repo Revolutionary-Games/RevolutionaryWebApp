@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Server.Models
     public class ExternalServer : BaseServer, IUpdateNotifications
     {
         [Required]
-        public string SSHKeyFileName { get; set; }
+        public string SSHKeyFileName { get; set; } = string.Empty;
 
         public int Priority { get; set; }
 

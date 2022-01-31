@@ -18,7 +18,7 @@ namespace ThriveDevCenter.Client.Services
         private readonly IJSRuntime jsRuntime;
         private readonly CurrentUserInfo currentUserInfo;
 
-        private UserToken tokenAndUser;
+        private UserToken tokenAndUser = null!;
 
         private DateTime csrfTokenExpires;
 
@@ -32,7 +32,7 @@ namespace ThriveDevCenter.Client.Services
 
         public int TimeRemaining => (int)(csrfTokenExpires - DateTime.UtcNow).TotalSeconds;
 
-        public string Token => tokenAndUser?.CSRF;
+        public string Token => tokenAndUser.CSRF;
 
         public long? InitialUserId => tokenAndUser.User?.Id;
 
@@ -40,9 +40,7 @@ namespace ThriveDevCenter.Client.Services
         {
             var rawData = await jsRuntime.InvokeAsync<string>("getCSRFToken");
 
-            tokenAndUser = JsonSerializer.Deserialize<UserToken>(rawData);
-
-            if (tokenAndUser == null)
+            tokenAndUser = JsonSerializer.Deserialize<UserToken>(rawData) ??
                 throw new InvalidOperationException("The page we loaded from didn't contain CSRF token");
 
             var timeStr = await jsRuntime.InvokeAsync<string>("getCSRFTokenExpiry");

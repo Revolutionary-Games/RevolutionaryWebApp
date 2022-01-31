@@ -18,6 +18,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Services;
     using Shared;
     using Shared.Models;
+    using Utilities;
     using YamlDotNet.Serialization;
     using YamlDotNet.Serialization.NamingConventions;
 
@@ -59,7 +60,10 @@ namespace ThriveDevCenter.Server.Jobs
             var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .Build();
 
-            CiBuildConfiguration configuration;
+            if (build.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
+            CiBuildConfiguration? configuration;
 
             try
             {
@@ -114,13 +118,13 @@ namespace ThriveDevCenter.Server.Jobs
             // TODO: refactor these checks to be cleaner
             if (configuration.Jobs.Select(j => j.Value.Cache).Any(c =>
                     c.LoadFrom.Any(p => p.Contains("..") || p.StartsWith("/")) || c.WriteTo.Contains("..") ||
-                    c.WriteTo.Contains("/") ||
+                    c.WriteTo.Contains('/') ||
                     (c.Shared != null && c.Shared.Any(s =>
                         s.Key.Contains("..") || s.Key.StartsWith("/") || s.Value.Contains("..") ||
-                        s.Value.Contains("/"))) ||
+                        s.Value.Contains('/'))) ||
                     (c.System != null && c.System.Any(s =>
-                        s.Key.Contains("..") || s.Key.Contains("'") || !s.Key.StartsWith("/") ||
-                        s.Value.Contains("..") || s.Value.Contains("/") || s.Value.Contains("'")))))
+                        s.Key.Contains("..") || s.Key.Contains('\'') || !s.Key.StartsWith("/") ||
+                        s.Value.Contains("..") || s.Value.Contains('/') || s.Value.Contains('\'')))))
             {
                 logger.LogError("Build configuration cache paths have \"..\" in them or starts with a slash");
 
@@ -228,6 +232,9 @@ namespace ThriveDevCenter.Server.Jobs
                     outputSection
                 }
             };
+
+            if (build.CiProject == null)
+                throw new NotLoadedModelNavigationException();
 
             await database.CiJobs.AddAsync(job, cancellationToken);
             await database.CiJobOutputSections.AddAsync(outputSection, cancellationToken);

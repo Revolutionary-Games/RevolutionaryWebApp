@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Jobs
     using System;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.Net.Sockets;
     using System.Text;
     using System.Text.Json;
@@ -54,12 +55,12 @@ namespace ThriveDevCenter.Server.Jobs
             int retries, CancellationToken cancellationToken)
         {
             // Includes are needed here to provide fully populated data for update notifications
-            var job = await Database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+            var job = await Database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
                 .FirstOrDefaultAsync(
                     j => j.CiProjectId == ciProjectId && j.CiBuildId == ciBuildId && j.CiJobId == ciJobId,
                     cancellationToken);
 
-            BaseServer server;
+            BaseServer? server;
             if (serverIsExternal)
             {
                 server = await Database.ExternalServers.FindAsync(new object[] { serverId }, cancellationToken);
@@ -104,7 +105,7 @@ namespace ThriveDevCenter.Server.Jobs
             var imageFileName = job.GetImageFileName();
             var serverSideImagePath = Path.Join("CI/Images", imageFileName);
 
-            StorageItem imageItem;
+            StorageItem? imageItem;
             try
             {
                 imageItem = await StorageItem.FindByPath(Database, serverSideImagePath);
@@ -156,6 +157,9 @@ namespace ThriveDevCenter.Server.Jobs
             Logger.LogInformation("Trying to start job {CIProjectId}-{CIBuildId}-{CIJobId} on reserved " +
                 "server ({Id}, {ServerIsExternal})", ciProjectId, ciBuildId, ciJobId, server.Id, serverIsExternal);
 
+            if (server.PublicAddress == null || server.PublicAddress.Equals(IPAddress.None))
+                throw new Exception($"Server ({server.Id}, {serverIsExternal}) doesn't have a public address set");
+
             // Try to start running the job, this can fail if the server is not actually really up yet
             IBaseSSHAccess sshAccess;
             try
@@ -194,6 +198,9 @@ namespace ThriveDevCenter.Server.Jobs
 
             // TODO: permanently store on which server this job was ran on and how long since creation it took to get
             // here
+
+            if (job.Build == null)
+                throw new NotLoadedModelNavigationException();
 
             CISecretType jobSpecificSecretType = job.Build.IsSafe ? CISecretType.SafeOnly : CISecretType.UnsafeOnly;
 
@@ -236,15 +243,18 @@ namespace ThriveDevCenter.Server.Jobs
                     s2.SecretName == s.SecretName && s2.UsedForBuildTypes != s.UsedForBuildTypes))
                 .Select(s => s.ToExecutorData());
 
+            if (job.Build.CiProject == null)
+                throw new NotLoadedModelNavigationException();
+
             var env = new StringBuilder(250);
             env.Append("export CI_REF=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.RemoteRef));
             env.Append("\"; export CI_COMMIT_HASH=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.CommitHash));
             env.Append("\"; export CI_EARLIER_COMMIT=\"");
-            env.Append(BashEscape.EscapeForBash(job.Build.PreviousCommit));
+            env.Append(BashEscape.EscapeForBash(job.Build.PreviousCommit ?? AppInfo.NoCommitHash));
             env.Append("\"; export CI_BRANCH=\"");
-            env.Append(BashEscape.EscapeForBash(job.Build.Branch));
+            env.Append(BashEscape.EscapeForBash(job.Build.Branch ?? "unknown_branch"));
             env.Append("\"; export CI_DEFAULT_BRANCH=\"");
             env.Append(BashEscape.EscapeForBash(job.Build.CiProject.DefaultBranch));
             env.Append("\"; export CI_TRUSTED=\"");
@@ -293,7 +303,7 @@ namespace ThriveDevCenter.Server.Jobs
             // Check server remaining disk space here
             var diskSpaceResult = sshAccess.RunCommand(DiskUsageCheckCommand);
 
-            if (!diskSpaceResult.Success)
+            if (!diskSpaceResult.Success || string.IsNullOrEmpty(diskSpaceResult.Result))
             {
                 throw new Exception(
                     $"Failed to check server disk space: {diskSpaceResult.Result}, error: {diskSpaceResult.Error}");

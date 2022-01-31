@@ -10,6 +10,6 @@ namespace ThriveDevCenter.Shared.Models
 
         [MaxLength(AppInfo.MEBIBYTE * 2)]
         [Required]
-        public string RawMarkdown { get; set; }
+        public string RawMarkdown { get; set; } = string.Empty;
     }
 }

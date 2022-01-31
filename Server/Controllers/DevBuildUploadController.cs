@@ -119,6 +119,9 @@ namespace ThriveDevCenter.Server.Controllers
 
                 if (existing != null)
                 {
+                    if (existing.StorageItem == null)
+                        throw new NotLoadedModelNavigationException();
+
                     var version = await existing.StorageItem.GetHighestVersion(database);
                     if (version is { Uploading: false })
                         continue;
@@ -247,7 +250,7 @@ namespace ThriveDevCenter.Server.Controllers
             // Apply objects
 
             var dehydrated = await request.RequiredDehydratedObjects.ToAsyncEnumerable().SelectAwait(hash =>
-                    new ValueTask<DehydratedObject>(
+                    new ValueTask<DehydratedObject?>(
                         database.DehydratedObjects.FirstOrDefaultAsync(d => d.Sha3 == hash)))
                 .ToListAsync();
 
@@ -255,7 +258,10 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("One or more dehydrated object hashes doesn't exist");
 
             foreach (var dehydratedObject in dehydrated)
-                existing.DehydratedObjects.Add(dehydratedObject);
+                existing.DehydratedObjects.Add(dehydratedObject!);
+
+            if (existing.StorageItem == null)
+                throw new NotLoadedModelNavigationException();
 
             // Upload a version of the build
             var version = await existing.StorageItem.CreateNextVersion(database);
@@ -274,14 +280,13 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new Exception("this shouldn't happen");
             }
 
-            return new DevBuildUploadResult()
-            {
-                UploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
+            return new DevBuildUploadResult(
+                remoteStorage.CreatePresignedUploadURL(file.UploadPath,
                     AppInfo.RemoteStorageUploadExpireTime),
-                VerifyToken = new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
+                new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
                     file.Size.Value,
                     file.Id, existing.Id, null, request.BuildZipHash).ToString()
-            };
+            );
         }
 
         /// <summary>
@@ -363,6 +368,9 @@ namespace ThriveDevCenter.Server.Controllers
                     addedItems = true;
                 }
 
+                if (dehydrated.StorageItem == null)
+                    throw new NotLoadedModelNavigationException();
+
                 var version = await dehydrated.StorageItem.CreateNextVersion(database);
                 var file = await version.CreateStorageFile(database, expiresAt, obj.Size);
 
@@ -375,15 +383,14 @@ namespace ThriveDevCenter.Server.Controllers
                 logger.LogInformation("Upload of a dehydrated object ({Sha3}) starting from {RemoteIpAddress}",
                     obj.Sha3, HttpContext.Connection.RemoteIpAddress);
 
-                result.Upload.Add(new DehydratedUploadResult.ObjectToUpload()
-                {
-                    Sha3 = obj.Sha3,
-                    UploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
+                result.Upload.Add(new DehydratedUploadResult.ObjectToUpload(
+                    obj.Sha3,
+                    remoteStorage.CreatePresignedUploadURL(file.UploadPath,
                         AppInfo.RemoteStorageUploadExpireTime),
-                    VerifyToken = new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
+                    new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
                         file.Size.Value,
                         file.Id, null, obj.Sha3, null).ToString()
-                });
+                ));
             }
 
             await database.SaveChangesAsync();
@@ -430,7 +437,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Failed to verify that uploaded file is valid");
             }
 
-            DevBuild build = null;
+            DevBuild? build = null;
 
             if (decodedToken.ParentId != null)
             {
@@ -453,7 +460,8 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 if (string.IsNullOrEmpty(decodedToken.UnGzippedHash))
                 {
-                    expectedHash = decodedToken.PlainFileHash;
+                    expectedHash = decodedToken.PlainFileHash ??
+                        throw new Exception("plain file hash is needed if gzipped hash is not provided");
                     actualHash = await remoteStorage.ComputeSha3OfObject(file.StoragePath);
                 }
                 else
@@ -483,7 +491,8 @@ namespace ThriveDevCenter.Server.Controllers
 
                 if (file.StorageItemVersions.Max(s => s.Version) >= highestVersion)
                 {
-                    build.BuildZipHash = decodedToken.PlainFileHash;
+                    logger.LogError("Can't set hash for build {Id} as it wasn't correctly in token", build.Id);
+                    build.BuildZipHash = decodedToken.PlainFileHash ?? "missing hash when uploading";
                 }
                 else
                 {
@@ -505,7 +514,7 @@ namespace ThriveDevCenter.Server.Controllers
         /// <param name="anonymous">Whether this is an anonymous (unsafe) upload or not</param>
         /// <returns>A failure result. If not null the main action should return this</returns>
         [NonAction]
-        private ActionResult GetAccessStatus(out bool anonymous)
+        private ActionResult? GetAccessStatus(out bool anonymous)
         {
             switch (HttpContext.HasAuthenticatedAccessKeyExtended(AccessKeyType.DevBuilds))
             {
@@ -528,11 +537,11 @@ namespace ThriveDevCenter.Server.Controllers
     {
         [Required]
         [JsonPropertyName("build_hash")]
-        public string BuildHash { get; set; }
+        public string BuildHash { get; set; } = string.Empty;
 
         [Required]
         [JsonPropertyName("build_platform")]
-        public string BuildPlatform { get; set; }
+        public string BuildPlatform { get; set; } = string.Empty;
     }
 
     public class DevBuildOfferResult
@@ -545,11 +554,16 @@ namespace ThriveDevCenter.Server.Controllers
     {
         [Required]
         [MaxLength(AppInfo.MaxDehydratedObjectsPerOffer)]
-        public List<DehydratedObjectRequest> Objects { get; set; }
+        public List<DehydratedObjectRequest> Objects { get; set; } = new();
     }
 
     public class DehydratedObjectIdentification
     {
+        public DehydratedObjectIdentification(string sha3)
+        {
+            Sha3 = sha3;
+        }
+
         [JsonPropertyName("sha3")]
         [Required]
         [MinLength(5)]
@@ -559,6 +573,11 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class DehydratedObjectRequest : DehydratedObjectIdentification
     {
+        public DehydratedObjectRequest(string sha3, int size) : base(sha3)
+        {
+            Size = size;
+        }
+
         [Required]
         [Range(1, AppInfo.MaxDehydratedUploadSize)]
         public int Size { get; set; }
@@ -579,18 +598,18 @@ namespace ThriveDevCenter.Server.Controllers
         [JsonPropertyName("build_hash")]
         [MinLength(5)]
         [MaxLength(100)]
-        public string BuildHash { get; set; }
+        public string BuildHash { get; set; } = string.Empty;
 
         [Required]
         [JsonPropertyName("build_branch")]
         [MinLength(2)]
         [MaxLength(100)]
-        public string BuildBranch { get; set; }
+        public string BuildBranch { get; set; } = string.Empty;
 
         [Required]
         [JsonPropertyName("build_platform")]
         [MaxLength(255)]
-        public string BuildPlatform { get; set; }
+        public string BuildPlatform { get; set; } = string.Empty;
 
         [Required]
         [JsonPropertyName("build_size")]
@@ -601,16 +620,22 @@ namespace ThriveDevCenter.Server.Controllers
         [JsonPropertyName("build_zip_hash")]
         [MinLength(2)]
         [MaxLength(100)]
-        public string BuildZipHash { get; set; }
+        public string BuildZipHash { get; set; } = string.Empty;
 
         [Required]
         [JsonPropertyName("required_objects")]
         [MaxLength(AppInfo.MaxDehydratedObjectsInDevBuild)]
-        public List<string> RequiredDehydratedObjects { get; set; }
+        public List<string> RequiredDehydratedObjects { get; set; } = new();
     }
 
     public class DevBuildUploadResult
     {
+        public DevBuildUploadResult(string uploadUrl, string verifyToken)
+        {
+            UploadUrl = uploadUrl;
+            VerifyToken = verifyToken;
+        }
+
         [JsonPropertyName("upload_url")]
         public string UploadUrl { get; set; }
 
@@ -622,7 +647,7 @@ namespace ThriveDevCenter.Server.Controllers
     {
         [Required]
         [MaxLength(AppInfo.MaxDehydratedObjectsPerOffer)]
-        public List<DehydratedObjectRequest> Objects { get; set; }
+        public List<DehydratedObjectRequest> Objects { get; set; } = new();
     }
 
     public class DehydratedUploadResult
@@ -632,6 +657,13 @@ namespace ThriveDevCenter.Server.Controllers
 
         public class ObjectToUpload
         {
+            public ObjectToUpload(string sha3, string uploadUrl, string verifyToken)
+            {
+                Sha3 = sha3;
+                UploadUrl = uploadUrl;
+                VerifyToken = verifyToken;
+            }
+
             [JsonPropertyName("sha3")]
             public string Sha3 { get; set; }
 

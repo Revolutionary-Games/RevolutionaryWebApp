@@ -10,11 +10,8 @@ namespace ThriveDevCenter.Shared
     public static class LinqHelpers
     {
         public static IQueryable<T> OrderBy<T>(this IQueryable<T> source, string column, SortDirection direction,
-            IEnumerable<string> extraAllowedColumns = null)
+            IEnumerable<string>? extraAllowedColumns = null)
         {
-            if (source == null)
-                return null;
-
             // This logic is from Blazor.Pagination Licensed under the MIT license (this is a modified version)
             // https://github.com/villainoustourist/Blazor.Pagination/blob/24f0c938e5ecdab4eb605a41b77b9b27caa11947/src/Extensions.cs#L13
             var expression = source.Expression;
@@ -30,7 +27,7 @@ namespace ThriveDevCenter.Shared
             return source.Provider.CreateQuery<T>(expression);
         }
 
-        public static void CheckTargetColumn(string column, IEnumerable<string> extraAllowedColumns,
+        public static void CheckTargetColumn(string column, IEnumerable<string>? extraAllowedColumns,
             MemberExpression selector)
         {
             var attribute = selector.Member.GetCustomAttribute(typeof(AllowSortingByAttribute));

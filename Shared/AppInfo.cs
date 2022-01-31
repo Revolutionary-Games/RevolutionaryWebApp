@@ -13,12 +13,14 @@ namespace ThriveDevCenter.Shared
 
         public const string SessionCookieName = "ThriveDevSession";
 
+        // TODO: find out why this is not used
         public const string SecondPrecisionDurationFormat = @"hh\:mm\:ss";
 
         public const string GitLfsContentType = "application/vnd.git-lfs+json";
         public const string GithubApiContentType = "application/vnd.github.v3+json";
 
         public const string CIConfigurationFile = "CIConfiguration.yml";
+        public const string NoCommitHash = "0000000000000000000000000000000000000000";
 
         public const string CSRFNeededName = "CSRFRequired";
         public const string CSRFStatusName = "CSRF";
@@ -51,8 +53,17 @@ namespace ThriveDevCenter.Shared
         public const int MinimumDevBuildDescriptionLength = 20;
         public const int MaxDevBuildDescriptionNiceLineLength = 70;
 
+        public const int MinEmailLength = 3;
         public const int MaxEmailLength = 250;
         public const int PersonsNameMaximumLength = 500;
+
+        public const int MinPasswordLength = 6;
+        public const int MaxPasswordLength = 250;
+
+        public const int MinUsernameLength = 2;
+        public const int MaxUsernameLength = 100;
+
+        public const int MaximumTokenLength = 10000;
 
         public const int MinimumReportTextSearchLength = 3;
 

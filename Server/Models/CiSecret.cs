@@ -23,15 +23,15 @@ namespace ThriveDevCenter.Server.Models
 
         [Required]
         [AllowSortingBy]
-        public string SecretName { get; set; }
+        public string SecretName { get; set; } = string.Empty;
 
         [Required]
-        public string SecretContent { get; set; }
+        public string SecretContent { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public CiProject CiProject { get; set; }
+        public CiProject? CiProject { get; set; }
 
         public CISecretDTO GetDTO()
         {

@@ -1,20 +1,31 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
 
     public class LFSProjectDTO : ClientSideTimedModel
     {
-        public string Name { get; set; }
-        public string Slug { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public string Slug { get; set; } = string.Empty;
+
         public bool Public { get; set; }
         public int TotalObjectSize { get; set; }
         public int TotalObjectCount { get; set; }
         public DateTime? TotalSizeUpdated { get; set; }
         public DateTime? FileTreeUpdated { get; set; }
-        public string FileTreeCommit { get; set; }
-        public string RepoUrl { get; set; }
-        public string CloneUrl { get; set; }
-        public string LfsUrlSuffix { get; set; }
+        public string? FileTreeCommit { get; set; }
+
+        [Required]
+        public string RepoUrl { get; set; } = string.Empty;
+
+        [Required]
+        public string CloneUrl { get; set; } = string.Empty;
+
+        [Required]
+        public string LfsUrlSuffix { get; set; } = string.Empty;
 
         /// <summary>
         ///   Admins can view deleted items to restore them

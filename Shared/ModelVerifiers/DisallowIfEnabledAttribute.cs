@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Shared.ModelVerifiers
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
     public class DisallowIfEnabledAttribute : RequiredAttribute
     {
-        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
             if (string.IsNullOrEmpty(validationContext.MemberName))
                 throw new InvalidOperationException("MemberName is null");
@@ -41,7 +41,7 @@ namespace ThriveDevCenter.Shared.ModelVerifiers
                 {
                     matches = true;
                 }
-                else if (value != null)
+                else if (value != null && configuration.ThisMatches != null)
                 {
                     var converter = TypeDescriptor.GetConverter(value.GetType());
                     matches = value.Equals(converter.ConvertFromInvariantString(configuration.ThisMatches));
@@ -96,12 +96,12 @@ namespace ThriveDevCenter.Shared.ModelVerifiers
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
     public class DisallowIfAttribute : Attribute
     {
-        public string ThisMatches { get; set; }
+        public string? ThisMatches { get; set; }
 
-        public string OtherProperty { get; set; }
+        public string? OtherProperty { get; set; }
 
-        public string IfOtherMatchesValue { get; set; }
+        public string? IfOtherMatchesValue { get; set; }
 
-        public string ErrorMessage { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }

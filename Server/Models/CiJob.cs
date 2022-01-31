@@ -30,12 +30,12 @@ namespace ThriveDevCenter.Server.Models
 
         [Required]
         [AllowSortingBy]
-        public string JobName { get; set; }
+        public string JobName { get; set; } = string.Empty;
 
         /// <summary>
         ///   The podman image to use to run this job, should be in the form of "thing/image:v1"
         /// </summary>
-        public string Image { get; set; }
+        public string? Image { get; set; }
 
         /// <summary>
         ///   Used to allow the build server to connect back to us to communicate build logs and status
@@ -43,7 +43,7 @@ namespace ThriveDevCenter.Server.Models
         [HashedLookUp]
         public Guid? BuildOutputConnectKey { get; set; } = Guid.NewGuid();
 
-        public string HashedBuildOutputConnectKey { get; set; }
+        public string? HashedBuildOutputConnectKey { get; set; }
 
         /// <summary>
         ///   Used to detect which server to release after this job is complete
@@ -59,12 +59,13 @@ namespace ThriveDevCenter.Server.Models
         ///   This contains json serialized for of the cache settings for this build. This is sent to the CI executor
         ///   so that it can handle cache setup before cloning the repo.
         /// </summary>
-        public string CacheSettingsJson { get; set; }
+        [Required]
+        public string CacheSettingsJson { get; set; } = string.Empty;
 
         /// <summary>
         ///   Stores permanently which server this job was ran on
         /// </summary>
-        public string RanOnServer { get; set; }
+        public string? RanOnServer { get; set; }
 
         /// <summary>
         ///   Measures how long it took for the job to start running on a server after it was created
@@ -72,7 +73,7 @@ namespace ThriveDevCenter.Server.Models
         public TimeSpan? TimeWaitingForServer { get; set; }
 
         [ForeignKey("CiProjectId,CiBuildId")]
-        public CiBuild Build { get; set; }
+        public CiBuild? Build { get; set; }
 
         public ICollection<CiJobArtifact> CiJobArtifacts { get; set; } = new HashSet<CiJobArtifact>();
 
@@ -131,7 +132,7 @@ namespace ThriveDevCenter.Server.Models
                 Succeeded = Succeeded,
                 RanOnServer = RanOnServer,
                 TimeWaitingForServer = TimeWaitingForServer,
-                ProjectName = Build?.CiProject?.Name ?? CiProjectId.ToString()
+                ProjectName = Build?.CiProject?.Name ?? CiProjectId.ToString(),
             };
         }
 

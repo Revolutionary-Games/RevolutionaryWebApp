@@ -6,10 +6,10 @@ namespace ThriveDevCenter.Shared.Notifications
     ///   Notification about a list being updated
     /// </summary>
     public abstract class ListUpdated<T> : SerializedNotification
-        where T : class
+        where T : class, new()
     {
         public ListItemChangeType Type { get; init; } = ListItemChangeType.ItemUpdated;
-        public T Item { get; init; }
+        public T Item { get; init; } = new();
     }
 
     // These separate class types are needed for JSON serialization to work

@@ -46,9 +46,6 @@ namespace ThriveDevCenter.Server.Utilities
         public static IQueryable<T> WhereHashed<T>(this IQueryable<T> source, string propertyName, string rawValue,
             bool hideHashInQueryString = true)
         {
-            if (source == null)
-                return null;
-
             var parameter = Expression.Parameter(typeof(T), "x");
             var sourceSelector = Expression.PropertyOrField(parameter, propertyName);
 
@@ -91,10 +88,10 @@ namespace ThriveDevCenter.Server.Utilities
         ///   hash calculation
         /// </param>
         /// <returns>The first bytes that fit in a long of the hash</returns>
-        public static long DoubleHashAsIdStandIn(string rawValue, string onceHashedValue)
+        public static long DoubleHashAsIdStandIn(string? rawValue, string? onceHashedValue)
         {
             var hashData = SHA256.HashData(string.IsNullOrEmpty(onceHashedValue) ?
-                SHA256.HashData(Encoding.UTF8.GetBytes(rawValue)) :
+                SHA256.HashData(Encoding.UTF8.GetBytes(rawValue ?? throw new ArgumentNullException())) :
                 Convert.FromBase64String(onceHashedValue));
 
             var tempQuery = hashData.Take(sizeof(long));
@@ -134,7 +131,8 @@ namespace ThriveDevCenter.Server.Utilities
                 }
 
                 // Hash this value and put in the target field
-                var valueToSet = HashForDatabaseValue(valueToHash.ToString());
+                var valueToSet = HashForDatabaseValue(valueToHash.ToString() ??
+                    throw new Exception("ToString returned null for value to hash for lookup"));
 
                 // Skip if the value is already there
                 if (Equals(target.GetValue(instance), valueToSet))

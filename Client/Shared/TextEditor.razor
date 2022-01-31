@@ -49,21 +49,21 @@ else
 }
 
 @code {
-    private string text;
+    private string? text;
 
     private bool showForm;
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
-    public string CurrentlySavedText { get; set; }
+    public string? CurrentlySavedText { get; set; }
 
     [Parameter]
     public bool CanEdit { get; set; } = true;
 
     [Parameter]
-    public string FieldLabel { get; set; }
+    public string? FieldLabel { get; set; }
 
     [Parameter]
     public string Placeholder { get; set; } = "Text...";
@@ -72,14 +72,16 @@ else
     ///   Used to make the editor controls unique, should be a combination of an id number and part of model name
     /// </summary>
     [Parameter]
-    public string Identifier { get; set; }
+    [EditorRequired]
+    public string Identifier { get; set; } = null!;
 
     /// <summary>
     ///   This defines a callback that returns a tuple of url, object to put that is used to save the data after
     ///   editing and pressing save
     /// </summary>
     [Parameter]
-    public Func<string, Tuple<string, object>> GetSaveRequest { get; set; }
+    [EditorRequired]
+    public Func<string?, Tuple<string, object>> GetSaveRequest { get; set; } = null!;
 
     // ReSharper disable InconsistentNaming
     [Parameter]

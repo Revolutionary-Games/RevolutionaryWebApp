@@ -22,7 +22,7 @@ namespace ThriveDevCenter.Server.Authorization
             var remoteAddress = http.Connection.RemoteIpAddress;
 
             // Separate authentication handler should have already set user for us
-            if (!http.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object userRaw) || userRaw == null)
+            if (!http.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? userRaw) || userRaw == null)
             {
                 OnFailure(remoteAddress);
                 return false;
@@ -39,7 +39,7 @@ namespace ThriveDevCenter.Server.Authorization
             return true;
         }
 
-        private void OnFailure(IPAddress remoteIpdAddress)
+        private void OnFailure(IPAddress? remoteIpdAddress)
         {
             logger.LogWarning(
                 "Client from {RemoteIpAddress} tried to access hangfire dashboard without authorization",

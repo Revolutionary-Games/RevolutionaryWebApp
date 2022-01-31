@@ -5,7 +5,7 @@ namespace ThriveDevCenter.Shared.Forms
     public class MoreChunksRequestForm
     {
         [Required]
-        [MaxLength(2000)]
-        public string Token { get; set; }
+        [MaxLength(AppInfo.MaximumTokenLength)]
+        public string Token { get; set; }  = string.Empty;
     }
 }

@@ -8,9 +8,10 @@ namespace ThriveDevCenter.Server.Utilities
 
     public static class ModelUpdateApplyHelper
     {
-        public static (bool changes, string changeDescription, List<string> changedFields) ApplyUpdateRequestToModel<T,
-            TRequest>(T model,
-            TRequest updateRequest)
+        public static (bool changes, string? changeDescription, List<string>? changedFields)
+            ApplyUpdateRequestToModel<T, TRequest>(T model, TRequest updateRequest)
+            where T : class
+            where TRequest : class
         {
             var changedFields = new List<string>();
             var stringBuilder = new StringBuilder(200);
@@ -72,7 +73,7 @@ namespace ThriveDevCenter.Server.Utilities
                 throw new ArgumentException("Model has no attributes marked as updateable");
             }
 
-            if(!changes)
+            if (!changes)
                 return (false, null, null);
 
             return (true, stringBuilder.ToString(), changedFields);

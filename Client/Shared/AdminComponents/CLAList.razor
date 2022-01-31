@@ -89,12 +89,12 @@ else
         new TableColumn("Created At", false),
     };
 
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewForm;
     private bool processingNewForm;
-    private string newText;
+    private string? newText;
     private bool newActive;
 
     public CLAList() : base(new SortHelper("Id", SortDirection.Ascending))
@@ -123,7 +123,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<CLAInfo>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CLAInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<CLAInfo>>(
             QueryHelpers.AddQueryString("api/v1/CLA", requestParams));
@@ -161,7 +161,7 @@ else
         {
             result = await http.PostAsJsonAsync("api/v1/CLA", new CLADTO()
             {
-                RawMarkdown = newText,
+                RawMarkdown = newText!,
                 Active = newActive,
             });
         }

@@ -51,6 +51,9 @@ namespace ThriveDevCenter.Server.Jobs
                         $"since {server.UpdatedAt}"
                 }, cancellationToken);
 
+                if (string.IsNullOrEmpty(server.InstanceId))
+                    throw new Exception("Can't terminate server with no InstanceId");
+
                 await ec2Controller.TerminateInstance(server.InstanceId);
 
                 server.Status = ServerStatus.Terminated;

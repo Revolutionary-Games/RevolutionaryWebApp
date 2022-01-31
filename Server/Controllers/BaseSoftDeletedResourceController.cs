@@ -110,7 +110,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        protected async Task<TModel> FindAndCheckAccess(long id)
+        protected async Task<TModel?> FindAndCheckAccess(long id)
         {
             var resource = await Entities.FindAsync(id);
 

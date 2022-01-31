@@ -53,10 +53,11 @@ namespace ThriveDevCenter.Shared.Tests.Notifications.Tests
             var serialized = JsonSerializer.Serialize((SerializedNotification)original, options);
 
             var deserialized = JsonSerializer.Deserialize<SerializedNotification>(serialized, options);
+            Assert.NotNull(deserialized);
 
             Assert.IsType<LFSListUpdated>(deserialized);
 
-            var casted = (LFSListUpdated)deserialized;
+            var casted = (LFSListUpdated)deserialized!;
 
             Assert.Equal(original.Type, casted.Type);
 

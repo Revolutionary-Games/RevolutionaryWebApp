@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Controllers
                             sameBrowserAdvice);
                     }
 
-                    if (!SecurityHelpers.SlowEquals(session.HashedId, verifiedToken.VerifiedResourceId))
+                    if (!SecurityHelpers.SlowEquals(session!.HashedId, verifiedToken.VerifiedResourceId))
                     {
                         return this.WorkingForbid("Current session doesn't match one the email token " +
                             "was sent from. " + sameBrowserAdvice);
@@ -77,7 +77,7 @@ namespace ThriveDevCenter.Server.Controllers
                     logger.LogInformation("Email verification of {Email} succeeded for CLA in session {Id}",
                         verifiedToken.SentToEmail, session.Id);
 
-                    inProgressSign.EmailVerified = true;
+                    inProgressSign!.EmailVerified = true;
                     inProgressSign.Email = verifiedToken.SentToEmail;
 
                     redirect = "/cla/sign";
@@ -104,14 +104,16 @@ namespace ThriveDevCenter.Server.Controllers
             if (error != null)
                 return error;
 
-            if (inProgressSign.EmailVerified && inProgressSign.Email == request.Email)
+            if (inProgressSign!.EmailVerified && inProgressSign.Email == request.Email)
                 return BadRequest("That email has already been verified");
 
             var token = emailTokens.GenerateToken(new EmailTokenData()
             {
                 SentToEmail = request.Email,
                 Type = EmailVerificationType.CLA,
-                VerifiedResourceId = session.HashedId,
+
+                // TODO: make the hashed id a required field and remove the exception here
+                VerifiedResourceId = session!.HashedId ?? throw new Exception("hashed id not calculated for a session"),
             });
 
             logger.LogInformation("Beginning verification email send to {Email} by client from {RemoteIpAddress}",
@@ -119,10 +121,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             var returnUrl = new Uri(baseUrl, $"/verify/email?token={token}").ToString();
 
-            await mailSender.SendEmail(new MailRequest()
+            await mailSender.SendEmail(new MailRequest(request.Email, "ThriveDevCenter Email Verification")
             {
-                Recipient = request.Email,
-                Subject = "ThriveDevCenter Email Verification",
                 PlainTextBody = "Someone (hopefully you) has requested to use your email in signing a document.\n" +
                     "If this was you, please copy the below link into your browser to verify your email: \n" +
                     returnUrl + "\n" +
@@ -139,7 +139,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<(InProgressClaSignature, Session, ActionResult)> GetActiveSignature()
+        private async Task<(InProgressClaSignature?, Session?, ActionResult?)> GetActiveSignature()
         {
             var session = await HttpContext.Request.Cookies.GetSession(database);
 

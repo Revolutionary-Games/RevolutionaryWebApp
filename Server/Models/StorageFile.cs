@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Server.Models
     public class StorageFile : UpdateableModel
     {
         [Required]
-        public string StoragePath { get; set; }
+        public string StoragePath { get; set; } = string.Empty;
 
         // TODO: make non-nullable
         public long? Size { get; set; }

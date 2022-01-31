@@ -42,7 +42,7 @@ namespace ThriveDevCenter.Server.Services
         private readonly bool encryptVolumes;
         private readonly bool allowHibernate;
 
-        private readonly AmazonEC2Client ec2Client;
+        private readonly AmazonEC2Client? ec2Client;
 
         public EC2Controller(IConfiguration configuration)
         {
@@ -114,7 +114,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var response = await ec2Client.RunInstancesAsync(new RunInstancesRequest()
+            var response = await ec2Client!.RunInstancesAsync(new RunInstancesRequest()
             {
                 ImageId = imageId,
                 KeyName = serverKeyId,
@@ -161,7 +161,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var response = await ec2Client.StartInstancesAsync(new StartInstancesRequest()
+            var response = await ec2Client!.StartInstancesAsync(new StartInstancesRequest()
             {
                 InstanceIds = new List<string>() { instanceId }
             });
@@ -177,7 +177,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var response = await ec2Client.DescribeInstancesAsync(new DescribeInstancesRequest()
+            var response = await ec2Client!.DescribeInstancesAsync(new DescribeInstancesRequest()
             {
                 InstanceIds = instanceIds
             }, cancellationToken);
@@ -189,7 +189,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var response = await ec2Client.TerminateInstancesAsync(new TerminateInstancesRequest()
+            var response = await ec2Client!.TerminateInstancesAsync(new TerminateInstancesRequest()
             {
                 InstanceIds = new List<string>() { instanceId }
             });
@@ -204,7 +204,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var response = await ec2Client.StopInstancesAsync(new StopInstancesRequest()
+            var response = await ec2Client!.StopInstancesAsync(new StopInstancesRequest()
             {
                 InstanceIds = new List<string>() { instanceId },
                 Hibernate = hibernate

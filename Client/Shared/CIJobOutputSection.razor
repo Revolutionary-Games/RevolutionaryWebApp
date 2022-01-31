@@ -24,7 +24,7 @@
                     continue;
 
                 // Detect if this is last visible line
-                string id = null;
+                string? id = null;
 
                 if (i + 2 >= lineSource.Count)
                 {
@@ -62,7 +62,7 @@
     ///   If set, overrides the data from the server fetch
     /// </summary>
     [Parameter]
-    public List<string> RealtimeOutput { get; set; }
+    public List<string>? RealtimeOutput { get; set; }
 
     private string LastElementId => $"output-section-{Id}-last";
 
@@ -75,7 +75,7 @@
         await js.InvokeVoidAsync("scrollToElement", LastElementId, false);
     }
 
-    protected override async Task<IList<string>> StartQuery()
+    protected override async Task<IList<string>?> StartQuery()
     {
         if (RealtimeOutput != null)
             return new List<string>();

@@ -6,9 +6,9 @@ namespace ThriveDevCenter.Shared.Notifications
     ///   Notification about a single model page information being updated
     /// </summary>
     public abstract class ModelUpdated<T> : SerializedNotification
-        where T : class
+        where T : class, new()
     {
-        public T Item { get; init; }
+        public T Item { get; init; } = new();
     }
 
     // These separate class types are needed for JSON serialization to work

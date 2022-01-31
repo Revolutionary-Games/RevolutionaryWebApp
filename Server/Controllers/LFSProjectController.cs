@@ -120,7 +120,7 @@ namespace ThriveDevCenter.Server.Controllers
             var action = new AdminAction()
             {
                 Message = $"New LFS project created, slug: {project.Slug}, name: {project.Name}",
-                PerformedById = HttpContext.AuthenticatedUser().Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id
             };
 
             await database.LfsProjects.AddAsync(project);

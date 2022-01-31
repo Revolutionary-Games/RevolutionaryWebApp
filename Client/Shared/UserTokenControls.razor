@@ -53,27 +53,29 @@ else
     private bool creatingToken;
     private bool clearingToken;
 
-    private string token;
+    private string? token;
 
-    private string error;
+    private string? error;
 
     [Parameter]
     public bool HasThisToken { get; set; }
 
     [Parameter]
-    public string TokenType { get; set; }
+    [EditorRequired]
+    public string TokenType { get; set; } = null!;
 
     /// <summary>
     ///   If only this is specified also the other two API endpoints use the same URL (but different method)
     /// </summary>
     [Parameter]
-    public string TokenCreateAPI { get; set; }
+    [EditorRequired]
+    public string TokenCreateAPI { get; set; } = null!;
 
     [Parameter]
-    public string TokenRetrieveAPI { get; set; }
+    public string? TokenRetrieveAPI { get; set; }
 
     [Parameter]
-    public string TokenDeleteAPI { get; set; }
+    public string? TokenDeleteAPI { get; set; }
 
     private string Retrieve => TokenRetrieveAPI ?? TokenCreateAPI;
     private string Delete => TokenDeleteAPI ?? TokenCreateAPI;

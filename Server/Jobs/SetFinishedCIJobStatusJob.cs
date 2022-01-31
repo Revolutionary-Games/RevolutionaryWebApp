@@ -26,7 +26,7 @@ namespace ThriveDevCenter.Server.Jobs
         public async Task Execute(long ciProjectId, long ciBuildId, long ciJobId, bool success,
             CancellationToken cancellationToken)
         {
-            var job = await database.CiJobs.Include(j => j.Build).ThenInclude(b => b.CiProject)
+            var job = await database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
                 .FirstOrDefaultAsync(
                     j => j.CiProjectId == ciProjectId && j.CiBuildId == ciBuildId && j.CiJobId == ciJobId,
                     cancellationToken);
@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Jobs
             }
 
             // Release the server reservation and send notifications about the job
-            BaseServer server;
+            BaseServer? server;
             if (job.RunningOnServerIsExternal.Value)
             {
                 server =

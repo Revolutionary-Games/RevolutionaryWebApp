@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Server.Authorization
 
         protected override async Task<bool> PerformAuthentication(HttpContext context)
         {
-            if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string session) &&
+            if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) &&
                 !string.IsNullOrEmpty(session))
             {
                 var (user, sessionObject) = await context.Request.Cookies.GetUserFromSession(database,

@@ -5,17 +5,22 @@ namespace ThriveDevCenter.Shared.Forms
     public class RegistrationFormData
     {
         [Required]
-        public string Email { get; set; }
+        [StringLength(AppInfo.MaxEmailLength, MinimumLength = 3)]
+        public string Email { get; set; } = string.Empty;
 
         [Required]
-        public string Name { get; set; }
+        [StringLength(AppInfo.MaxUsernameLength, MinimumLength = AppInfo.MinUsernameLength)]
+        public string Name { get; set; } = string.Empty;
 
         [Required]
-        public string Password { get; set; }
+        [StringLength(AppInfo.MaxPasswordLength, MinimumLength = AppInfo.MinPasswordLength)]
+        public string Password { get; set; } = string.Empty;
 
         [Required]
-        public string CSRF { get; set; }
+        [MaxLength(AppInfo.MaximumTokenLength)]
+        public string CSRF { get; set; } = string.Empty;
 
-        public string RegistrationCode { get; set; }
+        [MaxLength(300)]
+        public string? RegistrationCode { get; set; }
     }
 }

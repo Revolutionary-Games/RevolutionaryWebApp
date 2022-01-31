@@ -49,15 +49,16 @@ else
     private bool retrievingInfo;
 
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     private bool succeeded;
 
-    private CrashReportDTO report;
+    private CrashReportDTO? report;
 
     [Parameter]
-    public string Key { get; set; }
+    [EditorRequired]
+    public string Key { get; set; } = null!;
 
     private bool CanDelete => !retrievingInfo && !processing && !succeeded && report != null;
 

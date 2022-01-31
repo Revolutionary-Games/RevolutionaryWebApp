@@ -22,6 +22,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Models;
     using Services;
     using Shared;
+    using Shared.Converters;
     using Shared.Models;
     using Shared.Utilities;
     using Utilities;
@@ -87,7 +88,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             SetContentType();
 
-            if (request == null || !request.SupportsBasicTransfer)
+            if (!request.SupportsBasicTransfer)
                 return CreateErrorResult("Only basic transfer adapter is supported");
 
             var project = await database.LfsProjects.Where(p => p.Slug == slug && p.Deleted != true)
@@ -96,7 +97,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (project?.Public != true)
             {
                 if (!RequireWriteAccess(out var result))
-                    return result;
+                    return result!;
 
                 return NotFound("Not found");
             }
@@ -151,7 +152,7 @@ namespace ThriveDevCenter.Server.Controllers
             // If all objects are in an error state, also use that for the primary return value
             if (objects.All(o => o.Error != null))
             {
-                status = objects.Where(o => o.Error != null).Select(o => o.Error.Code).First();
+                status = objects.Where(o => o.Error != null).Select(o => o.Error!.Code).First();
             }
 
             return new ObjectResult(
@@ -175,10 +176,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                verifiedToken = JsonSerializer.Deserialize<UploadVerifyToken>(dataProtector.Unprotect(token));
-
-                if (verifiedToken == null)
-                    throw new Exception("deserialized token is null");
+                verifiedToken = JsonSerializer.Deserialize<UploadVerifyToken>(dataProtector.Unprotect(token)) ??
+                    throw new NullDecodedJsonException();
             }
             catch (Exception e)
             {
@@ -325,7 +324,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private bool RequireWriteAccess(out ActionResult resultIfFailed)
+        private bool RequireWriteAccess(out ActionResult? resultIfFailed)
         {
             switch (HttpContext.HasAuthenticatedUserWithAccessExtended(UserAccessLevel.Developer,
                         AuthenticationScopeRestriction.LFSOnly))
@@ -461,7 +460,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             // New object. User must have write access
             if (!RequireWriteAccess(out var result))
-                throw new InvalidAccessException(result);
+                throw new InvalidAccessException(result!);
 
             // We don't yet create the LfsObject here to guard against upload failures
             // instead the verify callback does that
@@ -537,7 +536,10 @@ namespace ThriveDevCenter.Server.Controllers
 
         private class UploadVerifyToken
         {
-            public string Oid { get; set; }
+            [Required]
+            public string Oid { get; set; } = string.Empty;
+
+            [Required]
             public long Size { get; set; }
         }
 
@@ -557,13 +559,13 @@ namespace ThriveDevCenter.Server.Controllers
         [Required]
         public OperationType Operation { get; set; }
 
-        public List<string> Transfers { get; set; }
+        public List<string>? Transfers { get; set; }
 
-        public LFSRef Ref { get; set; }
+        public LFSRef? Ref { get; set; }
 
         [Required]
         [MaxLength(200)]
-        public List<LFSObject> Objects { get; set; }
+        public List<LFSObject> Objects { get; set; } = new();
 
         [JsonIgnore]
         public bool SupportsBasicTransfer
@@ -593,7 +595,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             [Required]
             [StringLength(128, MinimumLength = 5)]
-            public string Oid { get; set; }
+            public string Oid { get; set; } = string.Empty;
 
             [Required]
             [Range(0, long.MaxValue)]
@@ -603,7 +605,7 @@ namespace ThriveDevCenter.Server.Controllers
         public class LFSRef
         {
             [Required]
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
         }
     }
 
@@ -613,7 +615,7 @@ namespace ThriveDevCenter.Server.Controllers
         public string Transfer { get; set; } = "basic";
 
         [JsonPropertyName("objects")]
-        public List<LFSObject> Objects { get; set; }
+        public List<LFSObject>? Objects { get; set; }
 
         public class LFSObject
         {
@@ -634,11 +636,11 @@ namespace ThriveDevCenter.Server.Controllers
 
             [JsonPropertyName("actions")]
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public Dictionary<string, Action> Actions { get; set; }
+            public Dictionary<string, Action>? Actions { get; set; }
 
             [JsonPropertyName("error")]
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public ErrorInfo Error { get; set; }
+            public ErrorInfo? Error { get; set; }
 
             public LFSObject(string oid, long size)
             {
@@ -658,13 +660,13 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 [Required]
                 [JsonPropertyName("href")]
-                public string Href { get; set; }
+                public string Href { get; set; } = string.Empty;
 
                 [JsonPropertyName("expires_in")]
                 public int ExpiresIn { get; set; }
 
                 [JsonPropertyName("header")]
-                public Dictionary<string, string> Header { get; set; }
+                public Dictionary<string, string>? Header { get; set; }
             }
 
             public class DownloadAction : Action

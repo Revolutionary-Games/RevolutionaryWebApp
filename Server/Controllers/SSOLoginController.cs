@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Controllers
             session.SsoReturnUrl = null;
         }
 
-        protected void SetupSessionForSSO(string ssoSource, string returnTo, Session session)
+        protected void SetupSessionForSSO(string ssoSource, string? returnTo, Session session)
         {
             session.LastUsed = DateTime.UtcNow;
 
@@ -42,7 +42,7 @@ namespace ThriveDevCenter.Server.Controllers
             session.SsoReturnUrl = returnTo;
         }
 
-        protected async Task<(Session session, IActionResult result)> FetchAndCheckSessionForSsoReturn(string nonce,
+        protected async Task<(Session? session, IActionResult? result)> FetchAndCheckSessionForSsoReturn(string nonce,
             string ssoType)
         {
             var session = await HttpContext.Request.Cookies.GetSession(Database);
@@ -53,10 +53,16 @@ namespace ThriveDevCenter.Server.Controllers
                     "Your session was invalid. Please try again.")));
             }
 
-            if (IsSsoTimedOut(session, out IActionResult timedOut))
+            if (IsSsoTimedOut(session, out IActionResult? timedOut))
                 return (session, timedOut);
 
             var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+
+            if (session.LastUsedFrom == null)
+            {
+                return (null, Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "Your IP address when starting SSO login was not stored correctly.")));
+            }
 
             // Maybe this offers some extra security
             if (!session.LastUsedFrom.Equals(remoteAddress))
@@ -85,7 +91,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private bool IsSsoTimedOut(Session session, out IActionResult result)
+        private bool IsSsoTimedOut(Session session, out IActionResult? result)
         {
             if (session.SsoStartTime == null || DateTime.UtcNow - session.SsoStartTime > SsoTimeout)
             {

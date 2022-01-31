@@ -7,16 +7,18 @@ namespace ThriveDevCenter.Client.Shared
     using ThriveDevCenter.Shared.Models;
 
     public abstract class BaseFileBrowser<T> : PaginatedPage<T>
-        where T : class, IIdentifiable
+        where T : class, IIdentifiable, new()
     {
         [Parameter]
-        public string FileBrowserPath { get; set; }
+        public string? FileBrowserPath { get; set; }
 
         [Parameter]
-        public string BasePath { get; set; }
+        [EditorRequired]
+        public string BasePath { get; set; } = null!;
 
         [Parameter]
-        public string RootFolderName { get; set; }
+        [EditorRequired]
+        public string RootFolderName { get; set; } = null!;
 
         protected BaseFileBrowser() : base(new SortHelper("Name", SortDirection.Ascending))
         {

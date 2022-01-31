@@ -39,7 +39,7 @@ namespace ThriveDevCenter.Server.Controllers
             [Required] [Range(1, 50)] int pageSize)
         {
             // Only admins can view other user's info
-            if (userId != HttpContext.AuthenticatedUser().Id &&
+            if (userId != HttpContext.AuthenticatedUser()!.Id &&
                 !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
             {
                 return Forbid();
@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter]
         public async Task<IActionResult> DeleteAllLinks([Required] long userId)
         {
-            var performingUser = HttpContext.AuthenticatedUser();
+            var performingUser = HttpContext.AuthenticatedUser()!;
 
             // Only admins can delete other user's links
             if (userId != performingUser.Id &&
@@ -111,7 +111,7 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter]
         public async Task<IActionResult> DeleteSpecificLink([Required] long userId, [Required] long linkId)
         {
-            var performingUser = HttpContext.AuthenticatedUser();
+            var performingUser = HttpContext.AuthenticatedUser()!;
 
             // Only admins can delete other user's links
             if (userId != performingUser.Id &&
@@ -155,7 +155,7 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter]
         public async Task<IActionResult> CreateLinkCode()
         {
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             // Fail if too many links
             if (await database.LauncherLinks.CountAsync(l => l.UserId == user.Id) >= AppInfo.DefaultMaxLauncherLinks)

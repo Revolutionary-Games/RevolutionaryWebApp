@@ -27,10 +27,10 @@
 
 @code {
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-    private string message;
+    private string? message;
     private SiteNoticeType noticeType = SiteNoticeType.Primary;
 
     private bool CanSend => !string.IsNullOrWhiteSpace(message) && !processing;
@@ -48,8 +48,8 @@
         {
             result = await http.PostAsJsonAsync("api/v1/SiteNotifications/ephemeralNotice", new SiteNoticeFormData()
             {
-                Message = message,
-                Type = noticeType
+                Message = message!,
+                Type = noticeType,
             });
         }
         catch (HttpRequestException e)

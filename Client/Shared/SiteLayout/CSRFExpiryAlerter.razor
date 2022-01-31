@@ -28,26 +28,25 @@
     public int StartAlertingTimeRemaining { get; set; } = 500;
 
     private bool valid = true;
-    private string alert;
+    private string? alert;
 
-    private Timer checkTimer;
+    // Don't want to waste too much performance on this so this is quite long interval
+    private Timer checkTimer = new Timer(5000);
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        // Don't want to waste too much performance on this so this is quite long interval
-        checkTimer = new Timer(5000);
         checkTimer.Elapsed += OnCheck;
         checkTimer.Enabled = true;
     }
 
     public void Dispose()
     {
-        checkTimer?.Dispose();
+        checkTimer.Dispose();
     }
 
-    private async void OnCheck(object sender, ElapsedEventArgs elapsedEventArgs)
+    private async void OnCheck(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
         bool changes = false;
         bool newValid = csrf.Valid;
@@ -63,7 +62,7 @@
         if (remaining < StartAlertingTimeRemaining)
         {
             // To make this look better with a countdown the interval is reduced to 1 second here
-            if (checkTimer.Interval != 1000)
+            if (Math.Abs(checkTimer.Interval - 1000) > 0.01)
                 checkTimer.Interval = 1000;
 
             if (remaining < 0)

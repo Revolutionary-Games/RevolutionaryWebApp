@@ -28,16 +28,16 @@
 @code {
 
     [Parameter]
-    public RenderFragment NotLoggedIn { get; set; }
+    public RenderFragment? NotLoggedIn { get; set; }
 
     [Parameter]
-    public RenderFragment LoggedIn { get; set; }
+    public RenderFragment? LoggedIn { get; set; }
 
     /// <summary>
     ///   Alternative to LoggedIn (only used if LoggedIn is not set)
     /// </summary>
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
 
 }

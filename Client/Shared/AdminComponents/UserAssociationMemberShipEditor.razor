@@ -55,11 +55,12 @@ else
 
     private bool showForm;
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
-    public UserInfo Data { get; set; }
+    [EditorRequired]
+    public UserInfo Data { get; set; } = null!;
 
     private bool CanSave => GetErrors().Count < 1;
 

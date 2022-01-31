@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Controllers
             var previousSecretId = await database.CiSecrets.Where(s => s.CiProjectId == project.Id)
                 .MaxAsync(s => (long?)s.CiSecretId) ?? 0;
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             await database.AdminActions.AddAsync(new AdminAction()
             {
@@ -114,7 +114,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (item == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             await database.AdminActions.AddAsync(new AdminAction()
             {

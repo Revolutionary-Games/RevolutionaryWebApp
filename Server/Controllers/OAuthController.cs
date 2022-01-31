@@ -63,13 +63,16 @@ namespace ThriveDevCenter.Server.Controllers
             var returnTo = new Uri(baseUrl, "OAuthReturn/github").ToString();
             SetupSessionForSSO(GithubCLASource, returnTo, session);
 
+            if (string.IsNullOrEmpty(session.SsoNonce))
+                throw new Exception("Failed to setup sso nonce for OAuth in session");
+
             await Database.SaveChangesAsync();
             Logger.LogInformation("OAuth started for Github for attaching to a signature, session {Id}", session.Id);
 
             return new JSONWrappedRedirect()
             {
                 RedirectTo = QueryHelpers.AddQueryString("https://github.com/login/oauth/authorize",
-                    new Dictionary<string, string>()
+                    new Dictionary<string, string?>()
                     {
                         { "client_id", githubClientId },
                         { "redirect_uri", returnTo },

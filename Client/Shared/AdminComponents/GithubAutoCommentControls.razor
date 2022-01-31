@@ -181,23 +181,23 @@ else
 
     private readonly ClientSideResourceStatus<AutoCommentResourceStatus> clientSideResourceStatus = new();
 
-    private string message;
+    private string? message;
     private SiteNoticeType messageType;
 
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewForm;
     private bool processingNewForm;
-    private string newRepoName;
+    private string? newRepoName;
     private bool newEnabled;
-    private string newCommentText;
+    private string? newCommentText;
     private AutoCommentCondition newCommentCondition;
 
     private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newCommentText);
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public IModalService Modal { get; set; } = null!;
 
     public GithubAutoCommentControls() : base(new SortHelper("Id", SortDirection.Ascending))
     {
@@ -232,7 +232,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<GithubAutoCommentDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<GithubAutoCommentDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<GithubAutoCommentDTO>>(
             QueryHelpers.AddQueryString("api/v1/GithubConfiguration/autoComments", requestParams));
@@ -284,7 +284,7 @@ else
             {
                 Repository = newRepoName,
                 Enabled = newEnabled,
-                CommentText = newCommentText,
+                CommentText = newCommentText!,
                 Condition = newCommentCondition,
             });
         }

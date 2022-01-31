@@ -12,15 +12,15 @@
         ///   For some reason "Oid" refuses to create column, so this is named like this.
         /// </summary>
         [Required]
-        public string LfsOid { get; set; }
+        public string LfsOid { get; set; } = string.Empty;
 
         public long Size { get; set; }
 
         [Required]
-        public string StoragePath { get; set; }
+        public string StoragePath { get; set; } = string.Empty;
 
         public long LfsProjectId { get; set; }
-        public LfsProject LfsProject { get; set; }
+        public LfsProject? LfsProject { get; set; }
 
         public LfsObjectDTO GetDTO()
         {

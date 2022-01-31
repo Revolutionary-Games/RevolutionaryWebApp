@@ -1,6 +1,7 @@
 @inject HttpClient http
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
+@using System.ComponentModel
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.SoftDeletedResource>
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
@@ -67,10 +68,12 @@
     private bool visible;
 
     [Parameter]
-    public string FetchListEndpoint { get; set; }
+    [EditorRequired]
+    public string FetchListEndpoint { get; set; } = null!;
 
     [Parameter]
-    public string RestoreEndpoint { get; set; }
+    [EditorRequired]
+    public string RestoreEndpoint { get; set; } = null!;
 
     [Parameter]
     public bool AutoVisible { get; set; }
@@ -79,7 +82,7 @@
     public bool ShowHideButtonWhenVisible { get; set; } = true;
 
     [Parameter]
-    public string ButtonClass { get; set; }
+    public string? ButtonClass { get; set; }
 
     public DeletedResourceViewer() : base(new SortHelper("UpdatedAt", SortDirection.Descending))
     {
@@ -105,7 +108,7 @@
         }
     }
 
-    protected override Task<PagedResult<SoftDeletedResource>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<SoftDeletedResource>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<SoftDeletedResource>>(
             QueryHelpers.AddQueryString(FetchListEndpoint, requestParams));

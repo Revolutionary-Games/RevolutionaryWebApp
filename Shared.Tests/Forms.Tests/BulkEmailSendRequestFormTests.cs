@@ -44,7 +44,7 @@ namespace ThriveDevCenter.Shared.Tests.Forms.Tests
             Assert.NotEmpty(errors);
 
             Assert.NotNull(errors[0].ErrorMessage);
-            Assert.Contains("no one will receive", errors[0].ErrorMessage);
+            Assert.Contains("no one will receive", errors[0].ErrorMessage!);
         }
     }
 }

@@ -107,7 +107,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             // Don't allow duplicate IPs
             if (await database.ExternalServers.FirstOrDefaultAsync(s =>
-                s.PublicAddress.Equals(request.PublicAddress)) != null)
+                s.PublicAddress != null && s.PublicAddress.Equals(request.PublicAddress)) != null)
             {
                 return BadRequest("There is already a server configured with that IP address");
             }
@@ -122,7 +122,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.AdminActions.AddAsync(new AdminAction()
             {
                 Message = $"New external server with IP {request.PublicAddress} added",
-                PerformedById = HttpContext.AuthenticatedUser().Id,
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             });
 
             await database.SaveChangesAsync();
@@ -146,7 +146,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (server.Status != ServerStatus.Stopped)
                 return BadRequest("Only stopped server can be deleted");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             await database.AdminActions.AddAsync(new AdminAction()
             {
@@ -173,13 +173,15 @@ namespace ThriveDevCenter.Server.Controllers
             if (server == null)
                 return NotFound();
 
+            var user = HttpContext.AuthenticatedUser()!;
+
             if (offline)
             {
                 server.Status = ServerStatus.Stopped;
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"External server {id} marked offline",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
             else
@@ -189,7 +191,7 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"External server {id} marked online",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
 
@@ -233,12 +235,14 @@ namespace ThriveDevCenter.Server.Controllers
             if (server == null)
                 return NotFound();
 
+            var user = HttpContext.AuthenticatedUser()!;
+
             if (server.ReservationType != ServerReservationType.None)
             {
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"External server {id} force rebooted by an admin while it was reserved",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
             else if (server.Status == ServerStatus.Provisioning)
@@ -246,7 +250,7 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"External server {id} force rebooted by an admin while it was provisioning",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
             else
@@ -254,9 +258,12 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.AdminActions.AddAsync(new AdminAction()
                 {
                     Message = $"External server {id} rebooted by an admin",
-                    PerformedById = HttpContext.AuthenticatedUser().Id,
+                    PerformedById = user.Id,
                 });
             }
+
+            if (server.PublicAddress == null)
+                return Problem("Specified server does not have public address");
 
             try
             {
@@ -296,7 +303,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.AdminActions.AddAsync(new AdminAction()
             {
                 Message = $"Server {id} is queued for clean up",
-                PerformedById = HttpContext.AuthenticatedUser().Id,
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             });
 
             server.CleanUpQueued = true;
@@ -323,7 +330,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.AdminActions.AddAsync(new AdminAction()
             {
                 Message = $"Server {id} is queued for maintenance",
-                PerformedById = HttpContext.AuthenticatedUser().Id,
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             });
 
             server.WantsMaintenance = true;
@@ -351,6 +358,9 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 return BadRequest("The server is currently stopping (last checked less than minute ago)");
             }
+
+            if (server.PublicAddress == null)
+                return Problem("Specified server does not have public address");
 
             ServerStatus newStatus = ServerStatus.Stopped;
 

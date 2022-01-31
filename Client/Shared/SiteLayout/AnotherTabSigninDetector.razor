@@ -28,7 +28,7 @@
     private bool signinDetected;
     private bool error;
 
-    private Timer timer;
+    private Timer? timer;
 
     protected override void OnAfterRender(bool firstRender)
     {
@@ -49,7 +49,7 @@
         timer?.Dispose();
     }
 
-    private async void CheckCurrentUser(object sender, ElapsedEventArgs elapsedEventArgs)
+    private async void CheckCurrentUser(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
         // Try to detect if the data in the storage has changed
         LocalStorageUserInfo updatedInfo;
@@ -75,7 +75,7 @@
             return;
 
         // Detected a change, we can stop trying to look for them
-        timer.Stop();
+        timer?.Stop();
         signinDetected = true;
 
         Console.WriteLine($"Detected change of the logged in user, our page load: '{initialUserData.InitialUserId}' "

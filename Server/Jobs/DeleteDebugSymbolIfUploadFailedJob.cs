@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
+    using Utilities;
 
     public class DeleteDebugSymbolIfUploadFailedJob
     {
@@ -23,15 +24,18 @@ namespace ThriveDevCenter.Server.Jobs
             this.jobClient = jobClient;
         }
 
-        public static async Task<DebugSymbol> DeleteDebugSymbolFinal(long symbolId, ApplicationDbContext database,
+        public static async Task<DebugSymbol?> DeleteDebugSymbolFinal(long symbolId, ApplicationDbContext database,
             CancellationToken cancellationToken)
         {
-            var symbol = await database.DebugSymbols.Include(s => s.StoredInItem)
+            var symbol = await database.DebugSymbols.Include(s => s.StoredInItem!)
                 .ThenInclude(i => i.StorageItemVersions).Where(s => s.Id == symbolId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (symbol == null)
                 return null;
+
+            if (symbol.StoredInItem == null)
+                throw new NotLoadedModelNavigationException();
 
             if (symbol.StoredInItem.StorageItemVersions.Count > 0)
                 throw new Exception("Symbol's storage item still has existing versions");
@@ -45,7 +49,7 @@ namespace ThriveDevCenter.Server.Jobs
 
         public async Task Execute(long symbolId, CancellationToken cancellationToken)
         {
-            var symbol = await database.DebugSymbols.Include(s => s.StoredInItem)
+            var symbol = await database.DebugSymbols.Include(s => s.StoredInItem!)
                 .ThenInclude(i => i.StorageItemVersions).Where(s => s.Id == symbolId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -61,6 +65,9 @@ namespace ThriveDevCenter.Server.Jobs
                 logger.LogInformation("Symbol {Id} is uploaded", symbol.Id);
                 return;
             }
+
+            if (symbol.StoredInItem == null)
+                throw new NotLoadedModelNavigationException();
 
             logger.LogWarning("Symbol {Id} has not been uploaded successfully, deleting it", symbol.Id);
 

@@ -5,8 +5,8 @@ namespace ThriveDevCenter.Server.Common.Models
     public class CiSecretExecutorData
     {
         [Required]
-        public string SecretName { get; set; }
+        public string SecretName { get; set; } = string.Empty;
 
-        public string SecretContent { get; set; }
+        public string SecretContent { get; set; } = string.Empty;
     }
 }

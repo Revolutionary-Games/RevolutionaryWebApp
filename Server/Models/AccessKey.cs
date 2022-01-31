@@ -17,20 +17,20 @@ namespace ThriveDevCenter.Server.Models
     {
         [Required]
         [AllowSortingBy]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public DateTime? LastUsed { get; set; }
 
         [AllowSortingBy]
         [JsonConverter(typeof(IPAddressConverter))]
-        public IPAddress LastUsedFrom { get; set; }
+        public IPAddress? LastUsedFrom { get; set; }
 
         [Required]
         [HashedLookUp]
-        public string KeyCode { get; set; }
+        public string KeyCode { get; set; } = string.Empty;
 
-        public string HashedKeyCode { get; set; }
+        public string? HashedKeyCode { get; set; }
 
         [AllowSortingBy]
         public AccessKeyType KeyType { get; set; }

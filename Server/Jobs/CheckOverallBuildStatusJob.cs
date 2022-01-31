@@ -134,7 +134,7 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 try
                 {
-                    foreach (var commit in build.ParsedCommits)
+                    foreach (var commit in build.ParsedCommits ?? throw new ArgumentNullException())
                     {
                         if ((sendEmails & GithubEmailReportReceivers.Author) != 0)
                             await QueueEmailNotification(build, commit.Author?.Email, checkLink);
@@ -156,7 +156,7 @@ namespace ThriveDevCenter.Server.Jobs
             }
         }
 
-        private Task QueueEmailNotification(CiBuild build, string email, string checkLink)
+        private Task QueueEmailNotification(CiBuild build, string? email, string checkLink)
         {
             // Return here if given no email, simplifies calling code
             if (string.IsNullOrEmpty(email))
@@ -185,6 +185,9 @@ namespace ThriveDevCenter.Server.Jobs
                 "You are receiving this email because your email was associated either with the committer or pusher " +
                 "of the commit(s) causing this build. Please email webmaster at the sender domain if you receive " +
                 "this email in error.";
+
+            if (build.CiProject == null)
+                throw new NotLoadedModelNavigationException();
 
             var statusMessage = $"{build.CiProject.Name} build #{build.CiBuildId} has {status.ToLowerInvariant()}." +
                 $" This build was triggered for commit {build.CommitHash} from ref {build.RemoteRef}.";
@@ -270,13 +273,12 @@ namespace ThriveDevCenter.Server.Jobs
             plainBuilder.Append('\n');
             plainBuilder.Append(receiveReason);
 
-            return mailQueue.SendEmail(new MailRequest
-            {
-                Recipient = email,
-                Subject = $"{build.CiProject.Name} Build #{build.CiBuildId} Has {status}",
-                HtmlBody = htmlBuilder.ToString(),
-                PlainTextBody = plainBuilder.ToString(),
-            }, CancellationToken.None);
+            return mailQueue.SendEmail(
+                new MailRequest(email, $"{build.CiProject.Name} Build #{build.CiBuildId} Has {status}")
+                {
+                    HtmlBody = htmlBuilder.ToString(),
+                    PlainTextBody = plainBuilder.ToString(),
+                }, CancellationToken.None);
         }
     }
 }

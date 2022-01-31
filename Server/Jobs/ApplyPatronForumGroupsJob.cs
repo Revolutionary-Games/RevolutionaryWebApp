@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Jobs
 {
+    using System;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -30,6 +31,8 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
 
             await LoadDiscourseGroupMembers(cancellationToken);
+            if (DevBuildGroupMembers == null || VIPGroupMembers == null)
+                throw new Exception("Failed to load discourse group members");
 
             await HandlePatrons(cancellationToken);
 
@@ -51,8 +54,11 @@ namespace ThriveDevCenter.Server.Jobs
 
         private async Task HandlePatrons(CancellationToken cancellationToken)
         {
+            if (Settings == null)
+                throw new InvalidOperationException("Patreon settings haven't been loaded");
+
             // TODO: might need to change this to working in batches
-            var allPatrons = await EntityFrameworkQueryableExtensions.ToListAsync(Database.Patrons, cancellationToken);
+            var allPatrons = await Database.Patrons.ToListAsync(cancellationToken);
 
             foreach (var patron in allPatrons)
             {

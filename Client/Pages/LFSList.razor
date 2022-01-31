@@ -106,16 +106,16 @@ else
         new TableColumn("Updated At", true, "UpdatedAt"),
     };
 
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewForm;
     private bool processingNewForm;
-    private string newName;
-    private string newSlug;
+    private string? newName;
+    private string? newSlug;
     private bool newPublic;
-    private string newRepoURL;
-    private string newCloneURL;
+    private string? newRepoURL;
+    private string? newCloneURL;
 
     public LFSList() : base(new SortHelper("Name", SortDirection.Ascending))
     {
@@ -153,7 +153,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LFSProjectInfo>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LFSProjectInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<LFSProjectInfo>>(
             QueryHelpers.AddQueryString("api/v1/LFSProject", requestParams));
@@ -188,9 +188,18 @@ else
 
     private async void CreateNew()
     {
+        createMessageType = SiteNoticeType.Danger;
+
+        // TODO: disable the button like done elsewhere when not everything has been filled in
+        if(newName == null || newSlug == null || newRepoURL == null || newCloneURL == null)
+        {
+            createMessage = "A required field was not filled in";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
         processingNewForm = true;
         createMessage = null;
-        createMessageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
 
         HttpResponseMessage result;

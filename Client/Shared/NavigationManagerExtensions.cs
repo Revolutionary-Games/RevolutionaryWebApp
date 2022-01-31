@@ -9,7 +9,7 @@ namespace ThriveDevCenter.Client.Shared
         public const string LoginRequiredErrorMessage = "You need to login to view this page";
         public const string ResourcePrivateErrorMessage = "This resource may exist but is private. Logging in may make it available.";
 
-        public static string GetLinkToLogin(this NavigationManager navigationManager, string message = null)
+        public static string GetLinkToLogin(this NavigationManager navigationManager, string? message = null)
         {
             var current = Uri.EscapeDataString(navigationManager.Uri);
 

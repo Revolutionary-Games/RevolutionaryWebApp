@@ -99,7 +99,7 @@ else
     private bool SearchClosed { get; set; } = true;
 
     [QueryStringParameterAttribute]
-    private string SearchText { get; set; }
+    private string? SearchText { get; set; }
 
     private bool CanSearch => string.IsNullOrEmpty(SearchText) ||
         SearchText.Length >= AppInfo.MinimumReportTextSearchLength;
@@ -163,7 +163,7 @@ else
             queryParams.Remove("searchText");
     }
 
-    protected override Task<PagedResult<CrashReportInfo>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CrashReportInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<CrashReportInfo>>(
             QueryHelpers.AddQueryString("api/v1/CrashReport", requestParams));

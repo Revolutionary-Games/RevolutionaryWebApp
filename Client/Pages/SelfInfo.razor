@@ -46,10 +46,10 @@
 
 @code {
     private bool processing;
-    private string errorMessage;
-    private string statusMessage;
+    private string? errorMessage;
+    private string? statusMessage;
 
-    private string codeRedeem;
+    private string? codeRedeem;
 
     private bool CodeEntered => !string.IsNullOrEmpty(codeRedeem) && codeRedeem.Length >= AppInfo.MinimumRedeemableCodeLength;
 
@@ -67,7 +67,7 @@
         {
             result = await http.PostAsJsonAsync("api/v1/CodeRedeem", new RedeemCodeData()
             {
-                Code = codeRedeem
+                Code = codeRedeem!
             });
         }
         catch (HttpRequestException e)

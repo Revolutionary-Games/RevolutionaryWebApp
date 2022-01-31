@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json;
     using Microsoft.EntityFrameworkCore;
+    using Shared.Converters;
     using Shared.Models;
 
     /// <summary>
@@ -34,15 +35,15 @@ namespace ThriveDevCenter.Server.Models
         ///   Vote data encoded as JSON
         /// </summary>
         [Required]
-        public string VoteContent { get; set; }
+        public string VoteContent { get; set; } = string.Empty;
 
-        public Meeting Meeting { get; set; }
-        public MeetingPoll Poll { get; set; }
+        public Meeting? Meeting { get; set; }
+        public MeetingPoll? Poll { get; set; }
 
         [NotMapped]
         public PollVoteData ParsedVoteContent
         {
-            get => JsonSerializer.Deserialize<PollVoteData>(VoteContent);
+            get => JsonSerializer.Deserialize<PollVoteData>(VoteContent) ?? throw new NullDecodedJsonException();
             set
             {
                 VoteContent = JsonSerializer.Serialize(value);

@@ -6,6 +6,7 @@ namespace ThriveDevCenter.Server.Models
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
+    using Utilities;
 
     [Index(nameof(StorageFileId))]
     [Index(new[] { nameof(StorageItemId), nameof(Version) }, IsUnique = true)]
@@ -15,10 +16,10 @@ namespace ThriveDevCenter.Server.Models
         public int Version { get; set; } = 1;
 
         public long StorageItemId { get; set; }
-        public StorageItem StorageItem { get; set; }
+        public StorageItem? StorageItem { get; set; }
 
         public long StorageFileId { get; set; }
-        public StorageFile StorageFile { get; set; }
+        public StorageFile? StorageFile { get; set; }
 
         [AllowSortingBy]
         public bool Keep { get; set; } = false;
@@ -31,6 +32,9 @@ namespace ThriveDevCenter.Server.Models
 
         public async Task<string> ComputeStoragePath(ApplicationDbContext database)
         {
+            if (StorageItem == null)
+                throw new NotLoadedModelNavigationException();
+
             string parentPath = string.Empty;
 
             if (StorageItem.ParentId != null)

@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using Enums;
 
     public class CrashReportDTO : ClientSideTimedModel, ICloneable
@@ -9,12 +10,15 @@ namespace ThriveDevCenter.Shared.Models
         public ReportState State { get; set; }
         public ThrivePlatform Platform { get; set; }
         public DateTime HappenedAt { get; set; }
-        public string ExitCodeOrSignal { get; set; }
-        public string Store { get; set; }
-        public string Version { get; set; }
-        public string PrimaryCallstack { get; set; }
-        public string CondensedCallstack { get; set; }
-        public string Description { get; set; }
+
+        [Required]
+        public string ExitCodeOrSignal { get; set; } = string.Empty;
+
+        public string? Store { get; set; }
+        public string? Version { get; set; }
+        public string? PrimaryCallstack { get; set; }
+        public string? CondensedCallstack { get; set; }
+        public string? Description { get; set; }
         public DateTime? DescriptionLastEdited { get; set; }
         public long? DescriptionLastEditedById { get; set; }
         public long? DuplicateOfId { get; set; }

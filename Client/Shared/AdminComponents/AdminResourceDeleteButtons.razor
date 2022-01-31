@@ -28,7 +28,7 @@
 @code {
 
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
@@ -38,26 +38,29 @@
     public bool UsesSoftDelete { get; set; } = true;
 
     [Parameter]
-    public string Name { get; set; }
+    [EditorRequired]
+    public string Name { get; set; } = null!;
 
     [Parameter]
     public long Id { get; set; }
 
     [Parameter]
-    public string DeleteURLBase { get; set; }
+    [EditorRequired]
+    public string DeleteURLBase { get; set; } = null!;
 
     // If not specified defaults to also be the DeleteURLBase/id/restore
     [Parameter]
-    public string RestoreURLBase { get; set; }
+    public string? RestoreURLBase { get; set; }
 
     [Parameter]
-    public string DeletePromptTitle { get; set; }
+    [EditorRequired]
+    public string DeletePromptTitle { get; set; } = null!;
 
     /// <summary>
     ///   Custom button class content to replace the default with bottom margin
     /// </summary>
     [Parameter]
-    public string ButtonClass { get; set; }
+    public string? ButtonClass { get; set; }
 
     [Parameter]
     public EventCallback OnDeleted { get; set; }
@@ -66,10 +69,10 @@
     public EventCallback OnRestored { get; set; }
 
     [Parameter]
-    public Action<string, SiteNoticeType> CustomErrorDisplay { get; set; }
+    public Action<string?, SiteNoticeType>? CustomErrorDisplay { get; set; }
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public IModalService Modal { get; set; } = null!;
 
     private bool UseErrorDisplay => CustomErrorDisplay == null;
 
@@ -172,7 +175,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private void SetStatusMessage(string message, SiteNoticeType noticeType)
+    private void SetStatusMessage(string? message, SiteNoticeType noticeType)
     {
         if (UseErrorDisplay)
         {
@@ -181,7 +184,7 @@
         }
         else
         {
-            CustomErrorDisplay.Invoke(message, noticeType);
+            CustomErrorDisplay!.Invoke(message, noticeType);
         }
     }
 

@@ -1,11 +1,16 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
 
     public class DebugSymbolDTO : ClientSideTimedModel, ICloneable
     {
-        public string Name { get; set; }
-        public string RelativePath { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public string RelativePath { get; set; } = string.Empty;
+
         public bool Active { get; set; }
         public bool Uploaded { get; set; }
         public long Size { get; set; }

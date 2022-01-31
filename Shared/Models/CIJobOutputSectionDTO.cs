@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared.Models
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
 
     public class CIJobOutputSectionDTO : IIdentifiable
@@ -9,13 +10,17 @@ namespace ThriveDevCenter.Shared.Models
         public long CiBuildId { get; set; }
         public long CiJobId { get; set; }
         public long CiJobOutputSectionId { get; set; }
-        public string Name { get; set; }
+
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
         public CIJobSectionStatus Status { get; set; }
 
         /// <summary>
         ///   This can contain megabytes of data
         /// </summary>
-        public string Output { get; set; }
+        [Required]
+        public string Output { get; set; } = string.Empty;
 
         public long OutputLength { get; set; }
 

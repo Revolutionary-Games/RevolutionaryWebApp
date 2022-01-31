@@ -14,7 +14,7 @@ namespace ThriveDevCenter.Shared.Models
         public Dictionary<int, PollChoice> Choices { get; set; } = new();
 
         // Only one of the types should be populated to detect which kind of poll this is
-        public WeightedChoicesList WeightedChoices { get; set; }
+        public WeightedChoicesList? WeightedChoices { get; set; }
 
         /// <summary>
         ///   In the poll is a list of choices that the user can put in a certain order. Not all items need to be ranked
@@ -52,8 +52,9 @@ namespace ThriveDevCenter.Shared.Models
 
         public class PollChoice
         {
-            public PollChoice()
+            public PollChoice(string name)
             {
+                Name = name;
             }
 
             public PollChoice(int id, string name)

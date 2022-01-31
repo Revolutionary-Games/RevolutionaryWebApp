@@ -12,6 +12,7 @@ namespace ThriveDevCenter.Client.Services
     using Microsoft.Extensions.Logging;
     using Shared;
     using ThriveDevCenter.Shared;
+    using ThriveDevCenter.Shared.Converters;
     using ThriveDevCenter.Shared.Models;
     using ThriveDevCenter.Shared.Notifications;
     using Utilities;
@@ -30,7 +31,7 @@ namespace ThriveDevCenter.Client.Services
         private readonly NotificationJsonConverter converter = new NotificationJsonConverter();
 
         private readonly HashSet<string> currentlyJoinedGroups = new();
-        private HubConnection hubConnection;
+        private HubConnection? hubConnection;
 
         private bool connectionLost;
         private bool permanentlyLost;
@@ -52,20 +53,20 @@ namespace ThriveDevCenter.Client.Services
 
         public delegate void VersionMismatchEventHandler(object sender, EventArgs e);
 
-        public event ConnectionStatusEventHandler OnConnectionStatusChanged;
-        public event ConnectionRetryStatusEventHandler OnConnectionRetryModeChanged;
-        public event SiteNoticeEventHandler OnSiteNoticeReceived;
-        public event VersionMismatchEventHandler OnVersionMismatch;
+        public event ConnectionStatusEventHandler? OnConnectionStatusChanged;
+        public event ConnectionRetryStatusEventHandler? OnConnectionRetryModeChanged;
+        public event SiteNoticeEventHandler? OnSiteNoticeReceived;
+        public event VersionMismatchEventHandler? OnVersionMismatch;
 
         public SiteNoticeType CurrentNoticeType { get; private set; } = SiteNoticeType.Primary;
-        public string CurrentNotice { get; private set; }
+        public string? CurrentNotice { get; private set; }
 
         public bool VersionMisMatch { get; private set; }
 
         /// <summary>
         ///   True when hub connection is currently active
         /// </summary>
-        public bool IsConnected => hubConnection.State == HubConnectionState.Connected;
+        public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
 
         /// <summary>
         ///   If true the connection to notifications is lost
@@ -158,7 +159,7 @@ namespace ThriveDevCenter.Client.Services
                             async s =>
                             {
                                 // ReSharper disable once PossibleNullReferenceException
-                                await (Task)method.Invoke(handler, new object[] { s, default(CancellationToken) });
+                                await (Task)method.Invoke(handler, new object[] { s, default(CancellationToken) })!;
                             }));
                     }
                 }
@@ -212,7 +213,7 @@ namespace ThriveDevCenter.Client.Services
         {
             var notificationType = notification.GetType();
 
-            List<(IGroupListener, Func<SerializedNotification, Task>)> filtered;
+            List<(IGroupListener, Func<SerializedNotification, Task>)>? filtered;
 
             lock (handlers)
             {
@@ -251,7 +252,7 @@ namespace ThriveDevCenter.Client.Services
                     options =>
                     {
                         // Apparently we have to leak this in the url as there is no other way to set this...
-                        options.AccessTokenProvider = () => Task.FromResult(csrfTokenReader.Token);
+                        options.AccessTokenProvider = () => Task.FromResult<string?>(csrfTokenReader.Token);
 
                         // options.WebSocketConfiguration = socketOptions =>
                         // {
@@ -321,7 +322,7 @@ namespace ThriveDevCenter.Client.Services
                     var notification = JsonSerializer.Deserialize<SerializedNotification>(json,
                         new JsonSerializerOptions() { Converters = { converter } });
 
-                    await ForwardNotification(notification);
+                    await ForwardNotification(notification ?? throw new NullDecodedJsonException());
                 }
                 catch (Exception e)
                 {
@@ -415,7 +416,7 @@ namespace ThriveDevCenter.Client.Services
             await hubConnection.DisposeAsync();
         }
 
-        private async void OnUserInfoChanged(object sender, UserInfo info)
+        private async void OnUserInfoChanged(object? sender, UserInfo? info)
         {
             if (FullMessageLogging)
                 Console.WriteLine("Applying groups because we got user info change notification");
@@ -480,22 +481,25 @@ namespace ThriveDevCenter.Client.Services
             // All the joins and leaves are run in parallel as they should not be able to have overlapping items
             var groupTasks = new List<Task>();
 
-            foreach (var group in groupsToLeave)
+            if (hubConnection != null)
             {
-                if (FullMessageLogging)
-                    Console.WriteLine("Leaving group: " + group);
+                foreach (var group in groupsToLeave)
+                {
+                    if (FullMessageLogging)
+                        Console.WriteLine("Leaving group: " + group);
 
-                groupTasks.Add(hubConnection.InvokeAsync("LeaveGroup", group));
-                currentlyJoinedGroups.Remove(group);
-            }
+                    groupTasks.Add(hubConnection.InvokeAsync("LeaveGroup", group));
+                    currentlyJoinedGroups.Remove(group);
+                }
 
-            foreach (var group in groupsToJoin)
-            {
-                if (FullMessageLogging)
-                    Console.WriteLine("Joining group: " + group);
+                foreach (var group in groupsToJoin)
+                {
+                    if (FullMessageLogging)
+                        Console.WriteLine("Joining group: " + group);
 
-                groupTasks.Add(hubConnection.InvokeAsync("JoinGroup", group));
-                currentlyJoinedGroups.Add(group);
+                    groupTasks.Add(hubConnection.InvokeAsync("JoinGroup", group));
+                    currentlyJoinedGroups.Add(group);
+                }
             }
 
             try

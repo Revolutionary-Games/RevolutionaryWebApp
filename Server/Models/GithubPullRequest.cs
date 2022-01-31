@@ -11,7 +11,7 @@ namespace ThriveDevCenter.Server.Models
     public class GithubPullRequest : UpdateableModel
     {
         [Required]
-        public string Repository { get; set; }
+        public string Repository { get; set; } = string.Empty;
 
         /// <summary>
         ///   The pull request number
@@ -21,13 +21,13 @@ namespace ThriveDevCenter.Server.Models
         public bool Open { get; set; } = true;
 
         [Required]
-        public string AuthorUsername { get; set; }
+        public string AuthorUsername { get; set; } = string.Empty;
 
         /// <summary>
         ///   Latest commit from this PR to set the commit statuses on
         /// </summary>
         [Required]
-        public string LatestCommit { get; set; }
+        public string LatestCommit { get; set; } = string.Empty;
 
         /// <summary>
         ///   Status of cla signature for the author

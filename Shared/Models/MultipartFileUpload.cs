@@ -10,9 +10,10 @@ namespace ThriveDevCenter.Shared.Models
         ///   have already been returned.
         /// </summary>
         [MinLength(1)]
-        public List<FileChunk> NextChunks { get; set; }
+        public List<FileChunk>? NextChunks { get; set; }
 
-        public string ChunkRetrieveToken { get; set; }
+        [Required]
+        public string ChunkRetrieveToken { get; set; } = string.Empty;
 
         [Range(1, int.MaxValue)]
         public int TotalChunks { get; set; }
@@ -20,7 +21,7 @@ namespace ThriveDevCenter.Shared.Models
         public class FileChunk
         {
             [Required]
-            public string UploadURL { get; set; }
+            public string UploadURL { get; set; } = string.Empty;
 
             [Required]
             [Range(1, int.MaxValue)]

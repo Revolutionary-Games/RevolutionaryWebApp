@@ -59,17 +59,18 @@ else
 
 @code {
 
-    private string folderName;
+    private string? folderName;
     private FileAccess readAccess;
     private FileAccess writeAccess;
 
     private bool showForm;
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
-    public StorageItemDTO Data { get; set; }
+    [EditorRequired]
+    public StorageItemDTO Data { get; set; } = null!;
 
     private bool CanSave => GetErrors().Count < 1;
 
@@ -118,7 +119,7 @@ else
         {
             result = await http.PutAsJsonAsync($"api/v1/Files/{Data.Id}/edit", new StorageItemDTO()
             {
-                Name = folderName,
+                Name = folderName!,
                 ReadAccess = readAccess,
                 WriteAccess = writeAccess
             });

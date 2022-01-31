@@ -45,8 +45,8 @@ namespace ThriveDevCenter.Server.Tests.Utilities.Tests
                 SelectByHashedProperty.DoubleHashAsIdStandIn(raw, null));
             Assert.Equal(doubleLong, SelectByHashedProperty.DoubleHashAsIdStandIn(raw, null));
             Assert.Equal(doubleLong, SelectByHashedProperty.DoubleHashAsIdStandIn(raw, single));
-            Assert.Throws<ArgumentNullException>(() => SelectByHashedProperty.DoubleHashAsIdStandIn(null, null));
-            SelectByHashedProperty.DoubleHashAsIdStandIn(null, single);
+            Assert.Throws<ArgumentNullException>(() => SelectByHashedProperty.DoubleHashAsIdStandIn(null!, null));
+            SelectByHashedProperty.DoubleHashAsIdStandIn(null!, single);
         }
 
         [Fact]

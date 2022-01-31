@@ -40,10 +40,10 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<ActionResult<DevBuildsStatisticsDTO>> Get()
         {
             var buildsSize = await database.DevBuilds.Include(b => b.StorageItem).SumAsync(b =>
-                b.StorageItem.Size.HasValue ? Convert.ToInt64(b.StorageItem.Size.Value) : 0L);
+                b.StorageItem!.Size.HasValue ? Convert.ToInt64(b.StorageItem.Size.Value) : 0L);
 
             var dehydratedSize = await database.DehydratedObjects.Include(d => d.StorageItem)
-                .SumAsync(b => b.StorageItem.Size.HasValue ? Convert.ToInt64(b.StorageItem.Size.Value) : 0L);
+                .SumAsync(b => b.StorageItem!.Size.HasValue ? Convert.ToInt64(b.StorageItem.Size.Value) : 0L);
 
             var totalBuilds = await database.DevBuilds.CountAsync();
 
@@ -140,7 +140,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (build == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             bool didSomething = false;
 
@@ -191,7 +191,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (build == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             bool didSomething = false;
 
@@ -254,12 +254,12 @@ namespace ThriveDevCenter.Server.Controllers
             if (!changes)
                 return Ok("No modifications");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"Build {id} info modified",
-                PerformedById = user.Id
+                PerformedById = user.Id,
             });
 
             logger.LogInformation("DevBuild {Id} was modified by {Email}", build.Id, user.Email);
@@ -287,7 +287,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (string.IsNullOrWhiteSpace(build.Description))
                 return BadRequest("BOTD build must have a description");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
             logger.LogInformation("Build {Id} will be set as the BOTD by {Email}", build.Id, user.Email);
 
             // Unmark all BOTD of the day builds
@@ -338,11 +338,11 @@ namespace ThriveDevCenter.Server.Controllers
             // Unmark all BOTD of the day builds
             await RemoveAllBOTDStatuses();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
             await database.AdminActions.AddAsync(new AdminAction()
             {
                 Message = "BOTD unset",
-                PerformedById = user.Id
+                PerformedById = user.Id,
             });
 
             await database.SaveChangesAsync();

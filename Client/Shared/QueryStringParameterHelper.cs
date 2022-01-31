@@ -80,6 +80,6 @@ namespace ThriveDevCenter.Client.Shared
         /// <summary>
         ///   Override name for the query string parameter
         /// </summary>
-        public string Name { get; }
+        public string? Name { get; }
     }
 }

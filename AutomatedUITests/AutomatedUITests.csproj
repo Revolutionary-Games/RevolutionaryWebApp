@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
     <UserSecretsId>ThriveDevCenter.AutomatedUITests-8a844782-84d3-4aff-93a5-3503c0876969</UserSecretsId>
     <LangVersion>10</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

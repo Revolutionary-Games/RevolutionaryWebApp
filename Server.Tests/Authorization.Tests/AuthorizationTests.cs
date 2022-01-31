@@ -129,8 +129,11 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             var csrfValue = "dummyCSRFString";
 
             var user1 = await database.Users.FindAsync(1L);
+            Assert.NotNull(user1);
             var user2 = await database.Users.FindAsync(2L);
+            Assert.NotNull(user2);
             var user3 = await database.Users.FindAsync(3L);
+            Assert.NotNull(user3);
 
             var csrfMock = new Mock<ITokenVerifier>();
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, It.IsNotNull<User>(), true))
@@ -176,7 +179,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             var resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
 
             Assert.NotNull(resultUser);
-            Assert.Equal(user1.Id, resultUser.Id);
+            Assert.Equal(user1!.Id, resultUser!.Id);
             Assert.Equal(user1.Email, resultUser.Email);
 
             requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
@@ -207,7 +210,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
 
             Assert.NotNull(resultUser);
-            Assert.Equal(user2.Id, resultUser.Id);
+            Assert.Equal(user2!.Id, resultUser!.Id);
             Assert.Equal(user2.Email, resultUser.Email);
 
             requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
@@ -238,7 +241,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
 
             Assert.NotNull(resultUser);
-            Assert.Equal(user3.Id, resultUser.Id);
+            Assert.Equal(user3!.Id, resultUser!.Id);
             Assert.Equal(user3.Email, resultUser.Email);
 
             requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());

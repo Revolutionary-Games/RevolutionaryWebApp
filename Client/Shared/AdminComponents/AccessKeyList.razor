@@ -76,7 +76,7 @@ else
 
     private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
 
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     public AccessKeyList() : base(new SortHelper("Id", SortDirection.Descending))
@@ -112,7 +112,7 @@ else
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<AccessKeyDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<AccessKeyDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<AccessKeyDTO>>(
             QueryHelpers.AddQueryString("api/v1/AccessKey", requestParams));

@@ -8,7 +8,7 @@ namespace ThriveDevCenter.Server.Services
 
     public class GithubCommitStatusReporter : GithubAPI, IGithubCommitStatusReporter
     {
-        private readonly Uri baseUrl;
+        private readonly Uri? baseUrl;
 
         public GithubCommitStatusReporter(ILogger<GithubCommitStatusReporter> logger, IConfiguration configuration) :
             base(logger, configuration["CI:StatusReporting:OAuthToken"])

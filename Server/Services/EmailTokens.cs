@@ -56,7 +56,7 @@ namespace ThriveDevCenter.Server.Services
             return tokenString;
         }
 
-        public EmailTokenData ReadAndVerify(string token)
+        public EmailTokenData? ReadAndVerify(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
 

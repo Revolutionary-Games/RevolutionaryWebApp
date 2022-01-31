@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Server.Services
     public class GithubAPI : IGithubAPI
     {
         private readonly ILogger<GithubAPI> logger;
-        private readonly HttpClient client;
+        private readonly HttpClient? client;
 
         [JsonConverter(typeof(ActualEnumStringConverter))]
         public enum CommitStatus
@@ -72,26 +72,28 @@ namespace ThriveDevCenter.Server.Services
 
         public bool ThrowIfNotConfigured { get; set; }
 
-        public Task<GithubUserInfo> GetCurrentUserInfo()
+        public Task<GithubUserInfo?> GetCurrentUserInfo()
         {
-            if (!CheckIsConfigured())
-                return Task.FromResult<GithubUserInfo>(null);
+            if (!CheckIsConfigured() || client == null)
+                return Task.FromResult<GithubUserInfo?>(null);
 
             return client.GetFromJsonAsync<GithubUserInfo>("https://api.github.com/user");
         }
 
-        public Task<List<GithubEmail>> GetCurrentUserEmails()
+        public async Task<List<GithubEmail>> GetCurrentUserEmails()
         {
-            if (!CheckIsConfigured())
-                return Task.FromResult(new List<GithubEmail>());
+            if (!CheckIsConfigured() || client == null)
+                return new List<GithubEmail>();
 
-            return client.GetFromJsonAsync<List<GithubEmail>>("https://api.github.com/user/emails");
+            var result = await client.GetFromJsonAsync<List<GithubEmail>>("https://api.github.com/user/emails");
+
+            return result ?? new List<GithubEmail>();
         }
 
         public async Task<bool> SetCommitStatus(string qualifiedRepoName, string sha, CommitStatus state,
             string buildStatusUrl, string description, string contextSuffix)
         {
-            if (!CheckIsConfigured())
+            if (!CheckIsConfigured() || client == null)
                 return false;
 
             string context = $"DevCenter:{contextSuffix}";
@@ -118,15 +120,12 @@ namespace ThriveDevCenter.Server.Services
         public async Task<bool> PostComment(string qualifiedRepoName, long issueOrPullRequestNumber,
             string commentContent)
         {
-            if (!CheckIsConfigured())
+            if (!CheckIsConfigured() || client == null)
                 return false;
 
             var response = await client.PostAsJsonAsync(
                 $"https://api.github.com/repos/{qualifiedRepoName}/issues/{issueOrPullRequestNumber}/comments",
-                new CommentPostRequest()
-                {
-                    Body = commentContent
-                });
+                new CommentPostRequest(commentContent));
 
             if (!response.IsSuccessStatusCode)
             {
@@ -139,7 +138,7 @@ namespace ThriveDevCenter.Server.Services
 
         protected bool CheckIsConfigured()
         {
-            if (Configured)
+            if (Configured && client != null)
                 return true;
 
             if (ThrowIfNotConfigured)
@@ -163,18 +162,26 @@ namespace ThriveDevCenter.Server.Services
             [JsonPropertyName("state")]
             public CommitStatus State { get; set; }
 
+            [Required]
             [JsonPropertyName("target_url")]
-            public string TargetUrl { get; set; }
+            public string TargetUrl { get; set; } = string.Empty;
 
+            [Required]
             [JsonPropertyName("description")]
-            public string Description { get; set; }
+            public string Description { get; set; } = string.Empty;
 
+            [Required]
             [JsonPropertyName("context")]
-            public string Context { get; set; }
+            public string Context { get; set; } = string.Empty;
         }
 
         private class CommentPostRequest
         {
+            public CommentPostRequest(string body)
+            {
+                Body = body;
+            }
+
             /// <summary>
             ///   The body of the comment
             /// </summary>
@@ -189,7 +196,7 @@ namespace ThriveDevCenter.Server.Services
     {
         bool Configured { get; }
         bool ThrowIfNotConfigured { get; set; }
-        Task<GithubUserInfo> GetCurrentUserInfo();
+        Task<GithubUserInfo?> GetCurrentUserInfo();
         Task<List<GithubEmail>> GetCurrentUserEmails();
 
         Task<bool> SetCommitStatus(string qualifiedRepoName, string sha, GithubAPI.CommitStatus state,
@@ -205,25 +212,25 @@ namespace ThriveDevCenter.Server.Services
         ///   This is the username
         /// </summary>
         [Required]
-        public string Login { get; set; }
+        public string Login { get; set; } = string.Empty;
 
         [Required]
         public long Id { get; set; }
 
         [JsonPropertyName("node_id")]
-        public string NodeId { get; set; }
+        public string? NodeId { get; set; }
 
         [JsonPropertyName("html_url")]
-        public string HtmlUrl { get; set; }
+        public string? HtmlUrl { get; set; }
 
         /// <summary>
         ///   Valid values seem to be "User" and "Organization"
         /// </summary>
         public string Type { get; set; } = "User";
 
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
-        public string Email { get; set; }
+        public string? Email { get; set; }
 
         [JsonPropertyName("created_at")]
         public DateTime CreatedAt { get; set; }
@@ -232,7 +239,7 @@ namespace ThriveDevCenter.Server.Services
     public class GithubEmail
     {
         [Required]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         public bool Verified { get; set; }
 

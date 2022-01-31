@@ -90,7 +90,7 @@
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<ActionLogEntryDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<ActionLogEntryDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<ActionLogEntryDTO>>(
             QueryHelpers.AddQueryString("api/v1/Logs/actions", requestParams));

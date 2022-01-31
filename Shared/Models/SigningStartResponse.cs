@@ -1,5 +1,7 @@
 namespace ThriveDevCenter.Shared.Models
 {
+    using System.ComponentModel.DataAnnotations;
+
     public class SigningStartResponse
     {
         public bool SessionStarted { get; set; }
@@ -7,6 +9,7 @@ namespace ThriveDevCenter.Shared.Models
         /// <summary>
         ///   Tells where the client should go next
         /// </summary>
-        public string NextPath { get; set; }
+        [Required]
+        public string NextPath { get; set; } = string.Empty;
     }
 }

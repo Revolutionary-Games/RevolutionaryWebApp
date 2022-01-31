@@ -11,15 +11,15 @@
     {
         [Required]
         [AllowSortingBy]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         // TODO: add restriction that email alias can't be a value in Email
         [AllowSortingBy]
-        public string EmailAlias { get; set; }
+        public string? EmailAlias { get; set; }
 
         [Required]
         [AllowSortingBy]
-        public string Username { get; set; }
+        public string Username { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public int PledgeAmountCents { get; set; }
@@ -27,18 +27,18 @@
         // TODO: add pledge currency here
 
         [Required]
-        public string RewardId { get; set; }
+        public string RewardId { get; set; } = string.Empty;
 
         public bool? Marked { get; set; } = true;
 
-        public string PatreonToken { get; set; }
-        public string PatreonRefreshToken { get; set; }
+        public string? PatreonToken { get; set; }
+        public string? PatreonRefreshToken { get; set; }
 
         public bool? HasForumAccount { get; set; } = false;
 
         [AllowSortingBy]
         public bool? Suspended { get; set; } = false;
-        public string SuspendedReason { get; set; }
+        public string? SuspendedReason { get; set; }
 
         public PatronDTO GetDTO()
         {

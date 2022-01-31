@@ -1,8 +1,12 @@
 namespace ThriveDevCenter.Shared.Models
 {
+    using System.ComponentModel.DataAnnotations;
+
     public class StorageItemDTO : ClientSideTimedModel
     {
-        public string Name { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
         public FileType Ftype { get; set; }
         public bool Special { get; set; }
         public long? Size { get; set; }
@@ -15,7 +19,9 @@ namespace ThriveDevCenter.Shared.Models
 
     public class StorageItemInfo : ClientSideModel
     {
-        public string Name { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
         public FileType Ftype { get; set; }
         public long? Size { get; set; }
         public FileAccess ReadAccess { get; set; }

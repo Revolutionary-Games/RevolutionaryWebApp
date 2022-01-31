@@ -88,17 +88,17 @@ else
 <RegistrationForm />
 
 @code {
-    private LoginOptions options;
+    private LoginOptions? options;
 
     [QueryStringParameter]
-    public string Error { get; set; }
+    public string? Error { get; set; }
 
     [QueryStringParameter]
-    public string ReturnUrl { get; set; }
+    public string? ReturnUrl { get; set; }
 
 #pragma warning disable 649
-    private string email;
-    private string password;
+    private string? email;
+    private string? password;
 #pragma warning restore 649
 
     private bool LocalLoginFine => !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password);

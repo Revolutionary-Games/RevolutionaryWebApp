@@ -58,6 +58,9 @@ namespace ThriveDevCenter.Server.Jobs
                     throw new ArgumentException("Could not find server to release for a stuck build");
 
                 cancellationToken.ThrowIfCancellationRequested();
+                
+                if (server.PublicAddress == null)
+                    throw new InvalidOperationException("Can't connect to a server with no public address");
 
                 externalServerSSHAccess.ConnectTo(server.PublicAddress.ToString(), server.SSHKeyFileName);
                 externalServerSSHAccess.Reboot();
@@ -92,6 +95,9 @@ namespace ThriveDevCenter.Server.Jobs
                         $"Server {server.Id} ({server.InstanceId}) timed out running CI job, stopping it, running " +
                         $"since {server.UpdatedAt}"
                 }, cancellationToken);
+
+                if (string.IsNullOrEmpty(server.InstanceId))
+                    throw new ArgumentException("Stuck server has no InstanceId, can't stop it");
 
                 await ec2Controller.StopInstance(server.InstanceId, false);
                 server.Status = ServerStatus.Stopping;

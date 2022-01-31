@@ -15,11 +15,11 @@ namespace ThriveDevCenter.Server.Models
         public double TotalRuntime { get; set; } = 0.0;
 
         // TODO: hook these two up so that a maintenance job can recreate outdated servers
-        public string CreatedWithImage { get; set; }
-        public string AWSInstanceType { get; set; }
+        public string? CreatedWithImage { get; set; }
+        public string? AWSInstanceType { get; set; }
         public long CreatedVolumeSize { get; set; }
 
-        public string InstanceId { get; set; }
+        public string? InstanceId { get; set; }
 
         [NotMapped]
         public override bool IsExternal => false;

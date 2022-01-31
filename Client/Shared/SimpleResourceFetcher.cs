@@ -12,11 +12,11 @@ namespace ThriveDevCenter.Client.Shared
         /// <summary>
         ///   Contains any errors encountered when fetching the data
         /// </summary>
-        public string Error { get; protected set; }
+        public string? Error { get; protected set; }
 
         public bool Loading { get; protected set; } = true;
 
-        public T Data { get; protected set; }
+        public T? Data { get; protected set; }
 
         protected override async Task OnInitializedAsync()
         {
@@ -57,7 +57,7 @@ namespace ThriveDevCenter.Client.Shared
         /// <summary>
         ///   Starts the actual query to fetch data from the server
         /// </summary>
-        protected abstract Task<T> StartQuery();
+        protected abstract Task<T?> StartQuery();
 
         /// <summary>
         ///   Useful for registering to receive notifications about data updates. This is done this way to avoid trying

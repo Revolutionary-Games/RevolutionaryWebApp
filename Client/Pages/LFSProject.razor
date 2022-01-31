@@ -78,9 +78,9 @@
 @code {
 
     [Parameter]
-    public string FileBrowserPath { get; set; }
+    public string? FileBrowserPath { get; set; }
 
-    protected override Task<LFSProjectDTO> StartQuery()
+    protected override Task<LFSProjectDTO?> StartQuery()
     {
         return http.GetFromJsonAsync<LFSProjectDTO>($"api/v1/LFSProject/{Id}");
     }
@@ -102,6 +102,6 @@
 
     private string ComputeLfsURL()
     {
-        return new Uri(new Uri(navigationManager.BaseUri), Data.LfsUrlSuffix).ToString();
+        return new Uri(new Uri(navigationManager.BaseUri), Data!.LfsUrlSuffix).ToString();
     }
 }

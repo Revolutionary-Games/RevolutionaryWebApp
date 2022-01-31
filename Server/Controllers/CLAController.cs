@@ -120,7 +120,7 @@ namespace ThriveDevCenter.Server.Controllers
                 }
             }
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             await database.AdminActions.AddAsync(new AdminAction()
             {
@@ -166,7 +166,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             logger.LogInformation("CLA {Id} activated by {Email}", cla.Id,
-                HttpContext.AuthenticatedUser().Email);
+                HttpContext.AuthenticatedUser()!.Email);
 
             jobClient.Enqueue<InvalidatePullRequestsWithCLASignaturesJob>(x => x.Execute(CancellationToken.None));
 
@@ -189,7 +189,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             logger.LogInformation("CLA {Id} deactivated by {Email}", cla.Id,
-                HttpContext.AuthenticatedUser().Email);
+                HttpContext.AuthenticatedUser()!.Email);
 
             jobClient.Enqueue<InvalidatePullRequestsWithCLASignaturesJob>(x => x.Execute(CancellationToken.None));
 
@@ -199,7 +199,7 @@ namespace ThriveDevCenter.Server.Controllers
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
         [HttpGet("{id:long}/search")]
         public async Task<ActionResult<List<CLASignatureSearchResult>>> SearchSignatures([Required] long id,
-            string email, string githubAccount)
+            string? email, string? githubAccount)
         {
             IQueryable<ClaSignature> query = database.ClaSignatures.Where(s => s.ClaId == id);
 
@@ -238,7 +238,7 @@ namespace ThriveDevCenter.Server.Controllers
             return data.Select(s => s.ToSearchResult(
                     s.Email == email || (allowEmailInResult && s.Email.Contains(email!)),
                     s.GithubAccount == githubAccount ||
-                    (allowGithubInResult && s.GithubAccount.Contains(githubAccount!))))
+                    (allowGithubInResult && s.GithubAccount != null && s.GithubAccount.Contains(githubAccount!))))
                 .ToList();
         }
 
@@ -574,13 +574,13 @@ namespace ThriveDevCenter.Server.Controllers
             if (signature.DeveloperUsername != null && string.IsNullOrWhiteSpace(signature.DeveloperUsername))
                 return BadRequest("Bad format username");
 
-            if (signature.SignerIsMinor == true && (string.IsNullOrWhiteSpace(signature.GuardianName) ||
+            if (signature.SignerIsMinor == true && (string.IsNullOrWhiteSpace(request.GuardianName) ||
                     request.GuardianName.Length < 3))
             {
                 return BadRequest("Missing guardian name");
             }
 
-            if (string.IsNullOrWhiteSpace(signature.SignerName) || request.SignerName.Length < 3)
+            if (string.IsNullOrWhiteSpace(request.SignerName) || request.SignerName.Length < 3)
                 return BadRequest("Missing signer name");
 
             // Load the CLA data (it must still be active, otherwise signing is not valid)
@@ -639,23 +639,20 @@ namespace ThriveDevCenter.Server.Controllers
             });
 
             // Email the agreement to the person signing it
-            var emailTask = mailQueue.SendEmail(new MailRequest()
-            {
-                Recipient = finalSignature.Email,
-                Bcc = emailSignaturesTo,
-                Subject = "Your signed document from ThriveDevCenter",
-                PlainTextBody = "Here is the document you just signed on ThriveDevCenter (as an attachment)",
-                HtmlBody = "<p>Here is the document you just signed on ThriveDevCenter (as an attachment)</p>",
-                Attachments = new List<MailAttachment>()
+            var emailTask = mailQueue.SendEmail(
+                new MailRequest(finalSignature.Email, "Your signed document from ThriveDevCenter")
                 {
-                    new()
+                    Bcc = emailSignaturesTo,
+                    PlainTextBody = "Here is the document you just signed on ThriveDevCenter (as an attachment)",
+                    HtmlBody = "<p>Here is the document you just signed on ThriveDevCenter (as an attachment)</p>",
+                    Attachments = new List<MailAttachment>()
                     {
-                        Filename = fileName,
-                        Content = signedDocumentText,
-                        MimeType = AppInfo.MarkdownMimeType,
-                    }
-                },
-            }, CancellationToken.None);
+                        new(fileName, signedDocumentText)
+                        {
+                            MimeType = AppInfo.MarkdownMimeType,
+                        }
+                    },
+                }, CancellationToken.None);
 
             // Upload the signature to remote storage
             await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath, signedDocumentText,
@@ -678,7 +675,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [NonAction]
         private string CreateSignedDocumentText(Cla cla, InProgressClaSignature signature, ClaSignature finalSignature,
-            User user)
+            User? user)
         {
             var signedBuilder = new StringBuilder(cla.RawMarkdown.Length * 2);
             signedBuilder.Append(cla.RawMarkdown);

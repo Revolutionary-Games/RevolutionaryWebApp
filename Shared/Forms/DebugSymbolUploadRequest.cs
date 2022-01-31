@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Shared.Forms
     {
         [Required]
         [StringLength(120, MinimumLength = 3)]
-        public string SymbolPath { get; set; }
+        public string SymbolPath { get; set; } = string.Empty;
 
         [Range(1, AppInfo.MaxDebugSymbolSize)]
         public long Size { get; set; }

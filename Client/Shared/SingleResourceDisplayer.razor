@@ -42,9 +42,9 @@ else
     public bool ShowDataWithError { get; set; } = true;
 
     [Parameter]
-    public string Error { get; set; }
+    public string? Error { get; set; }
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
 }

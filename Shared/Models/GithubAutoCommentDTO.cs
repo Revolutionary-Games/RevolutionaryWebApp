@@ -8,11 +8,11 @@ namespace ThriveDevCenter.Shared.Models
         public bool Enabled { get; set; }
 
         [MaxLength(500)]
-        public string Repository { get; set; }
+        public string? Repository { get; set; }
 
         [Required]
         [StringLength(2000, MinimumLength = 5)]
-        public string CommentText { get; set; }
+        public string CommentText { get; set; } = string.Empty;
 
         public AutoCommentCondition Condition { get; set; }
     }

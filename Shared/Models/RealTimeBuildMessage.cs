@@ -11,12 +11,12 @@ namespace ThriveDevCenter.Shared.Models
         [JsonConverter(typeof(ActualEnumStringConverter))]
         public BuildSectionMessageType Type { get; set; }
 
-        public string ErrorMessage { get; set; }
+        public string? ErrorMessage { get; set; }
 
-        public string Output { get; set; }
+        public string? Output { get; set; }
 
         [MaxLength(100)]
-        public string SectionName { get; set; }
+        public string? SectionName { get; set; }
 
         public bool WasSuccessful { get; set; }
 

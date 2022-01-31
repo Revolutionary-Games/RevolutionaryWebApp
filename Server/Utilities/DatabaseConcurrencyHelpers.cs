@@ -62,6 +62,9 @@ namespace ThriveDevCenter.Server.Utilities
                 var proposedValues = conflictEntry.CurrentValues;
                 var databaseValues = conflictEntry.GetDatabaseValues();
 
+                if (databaseValues == null)
+                    throw new Exception("Original database values are null, can't apply them");
+
                 foreach (var property in proposedValues.Properties)
                 {
                     // var proposedValue = proposedValues[property];

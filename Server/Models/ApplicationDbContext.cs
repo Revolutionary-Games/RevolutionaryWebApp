@@ -16,53 +16,54 @@ namespace ThriveDevCenter.Server.Models
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
-        public DbSet<User> Users { get; set; }
-        public DbSet<Session> Sessions { get; set; }
-        public DbSet<AccessKey> AccessKeys { get; set; }
-        public DbSet<DehydratedObject> DehydratedObjects { get; set; }
-        public DbSet<DevBuild> DevBuilds { get; set; }
-        public DbSet<LauncherLink> LauncherLinks { get; set; }
-        public DbSet<LfsObject> LfsObjects { get; set; }
-        public DbSet<LfsProject> LfsProjects { get; set; }
-        public DbSet<PatreonSettings> PatreonSettings { get; set; }
-        public DbSet<Patron> Patrons { get; set; }
-        public DbSet<ProjectGitFile> ProjectGitFiles { get; set; }
-        public DbSet<StorageFile> StorageFiles { get; set; }
-        public DbSet<StorageItem> StorageItems { get; set; }
-        public DbSet<StorageItemVersion> StorageItemVersions { get; set; }
-        public DbSet<RedeemableCode> RedeemableCodes { get; set; }
-        public DbSet<AdminAction> AdminActions { get; set; }
-        public DbSet<LogEntry> LogEntries { get; set; }
-        public DbSet<ActionLogEntry> ActionLogEntries { get; set; }
-        public DbSet<GithubWebhook> GithubWebhooks { get; set; }
-        public DbSet<CiProject> CiProjects { get; set; }
-        public DbSet<CiSecret> CiSecrets { get; set; }
-        public DbSet<CiBuild> CiBuilds { get; set; }
-        public DbSet<CiJob> CiJobs { get; set; }
-        public DbSet<CiJobArtifact> CiJobArtifacts { get; set; }
-        public DbSet<CiJobOutputSection> CiJobOutputSections { get; set; }
-        public DbSet<ControlledServer> ControlledServers { get; set; }
-        public DbSet<ExternalServer> ExternalServers { get; set; }
-        public DbSet<Cla> Clas { get; set; }
-        public DbSet<ClaSignature> ClaSignatures { get; set; }
-        public DbSet<Meeting> Meetings { get; set; }
-        public DbSet<MeetingMember> MeetingMembers { get; set; }
-        public DbSet<MeetingPoll> MeetingPolls { get; set; }
-        public DbSet<MeetingPollVote> MeetingPollVotes { get; set; }
-        public DbSet<MeetingPollVotingRecord> MeetingPollVotingRecords { get; set; }
-        public DbSet<InProgressClaSignature> InProgressClaSignatures { get; set; }
-        public DbSet<InProgressMultipartUpload> InProgressMultipartUploads { get; set; }
-        public DbSet<GithubAutoComment> GithubAutoComments { get; set; }
-        public DbSet<GithubPullRequest> GithubPullRequests { get; set; }
-        public DbSet<SentBulkEmail> SentBulkEmails { get; set; }
-        public DbSet<CrashReport> CrashReports { get; set; }
-        public DbSet<StackwalkTask> StackwalkTasks { get; set; }
-        public DbSet<DebugSymbol> DebugSymbols { get; set; }
+        // These are automatically initialized by EF, we use null forgiving here to silence warnings
+        public DbSet<User> Users { get; set; } = null!;
+        public DbSet<Session> Sessions { get; set; } = null!;
+        public DbSet<AccessKey> AccessKeys { get; set; } = null!;
+        public DbSet<DehydratedObject> DehydratedObjects { get; set; } = null!;
+        public DbSet<DevBuild> DevBuilds { get; set; } = null!;
+        public DbSet<LauncherLink> LauncherLinks { get; set; } = null!;
+        public DbSet<LfsObject> LfsObjects { get; set; } = null!;
+        public DbSet<LfsProject> LfsProjects { get; set; } = null!;
+        public DbSet<PatreonSettings> PatreonSettings { get; set; } = null!;
+        public DbSet<Patron> Patrons { get; set; } = null!;
+        public DbSet<ProjectGitFile> ProjectGitFiles { get; set; } = null!;
+        public DbSet<StorageFile> StorageFiles { get; set; } = null!;
+        public DbSet<StorageItem> StorageItems { get; set; } = null!;
+        public DbSet<StorageItemVersion> StorageItemVersions { get; set; } = null!;
+        public DbSet<RedeemableCode> RedeemableCodes { get; set; } = null!;
+        public DbSet<AdminAction> AdminActions { get; set; } = null!;
+        public DbSet<LogEntry> LogEntries { get; set; } = null!;
+        public DbSet<ActionLogEntry> ActionLogEntries { get; set; } = null!;
+        public DbSet<GithubWebhook> GithubWebhooks { get; set; } = null!;
+        public DbSet<CiProject> CiProjects { get; set; } = null!;
+        public DbSet<CiSecret> CiSecrets { get; set; } = null!;
+        public DbSet<CiBuild> CiBuilds { get; set; } = null!;
+        public DbSet<CiJob> CiJobs { get; set; } = null!;
+        public DbSet<CiJobArtifact> CiJobArtifacts { get; set; } = null!;
+        public DbSet<CiJobOutputSection> CiJobOutputSections { get; set; } = null!;
+        public DbSet<ControlledServer> ControlledServers { get; set; } = null!;
+        public DbSet<ExternalServer> ExternalServers { get; set; } = null!;
+        public DbSet<Cla> Clas { get; set; } = null!;
+        public DbSet<ClaSignature> ClaSignatures { get; set; } = null!;
+        public DbSet<Meeting> Meetings { get; set; } = null!;
+        public DbSet<MeetingMember> MeetingMembers { get; set; } = null!;
+        public DbSet<MeetingPoll> MeetingPolls { get; set; } = null!;
+        public DbSet<MeetingPollVote> MeetingPollVotes { get; set; } = null!;
+        public DbSet<MeetingPollVotingRecord> MeetingPollVotingRecords { get; set; } = null!;
+        public DbSet<InProgressClaSignature> InProgressClaSignatures { get; set; } = null!;
+        public DbSet<InProgressMultipartUpload> InProgressMultipartUploads { get; set; } = null!;
+        public DbSet<GithubAutoComment> GithubAutoComments { get; set; } = null!;
+        public DbSet<GithubPullRequest> GithubPullRequests { get; set; } = null!;
+        public DbSet<SentBulkEmail> SentBulkEmails { get; set; } = null!;
+        public DbSet<CrashReport> CrashReports { get; set; } = null!;
+        public DbSet<StackwalkTask> StackwalkTasks { get; set; } = null!;
+        public DbSet<DebugSymbol> DebugSymbols { get; set; } = null!;
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
         /// </summary>
-        public IModelUpdateNotificationSender AutoSendNotifications { get; set; }
+        public IModelUpdateNotificationSender? AutoSendNotifications { get; set; }
 
         public override int SaveChanges()
         {
@@ -87,7 +88,7 @@ namespace ThriveDevCenter.Server.Models
             return result;
         }
 
-        public List<Tuple<SerializedNotification, string>> RunPreSaveChecks()
+        public List<Tuple<SerializedNotification, string>>? RunPreSaveChecks()
         {
             var changedEntities = ChangeTracker
                 .Entries()
@@ -128,7 +129,7 @@ namespace ThriveDevCenter.Server.Models
                     bool previousSoftDeleted = false;
 
                     if (notifiable.UsesSoftDelete)
-                        previousSoftDeleted = (bool)entry.OriginalValues[AppInfo.SoftDeleteAttribute];
+                        previousSoftDeleted = (bool)entry.OriginalValues[AppInfo.SoftDeleteAttribute]!;
 
                     notificationsToSend.AddRange(notifications.OnChangesDetected(entry.State, notifiable,
                         previousSoftDeleted));
@@ -362,7 +363,7 @@ namespace ThriveDevCenter.Server.Models
                 // Mapping IP to string is required for use with unique index
                 // https://github.com/dotnet/efcore/issues/23775
                 entity.Property(e => e.PublicAddress).IsRequired()
-                    .HasConversion(a => a.ToString(), s => IPAddress.Parse(s));
+                    .HasConversion(a => a != null ? a.ToString() : null, s => s != null ? IPAddress.Parse(s) : null);
             });
 
             modelBuilder.Entity<Cla>(entity =>
@@ -469,7 +470,7 @@ namespace ThriveDevCenter.Server.Models
             });
         }
 
-        private Task SendUpdateNotifications(List<Tuple<SerializedNotification, string>> messages)
+        private Task SendUpdateNotifications(List<Tuple<SerializedNotification, string>>? messages)
         {
             var notifications = AutoSendNotifications;
 

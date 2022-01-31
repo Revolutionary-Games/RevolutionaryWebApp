@@ -6,6 +6,6 @@ namespace ThriveDevCenter.Shared.Notifications
     public class BuildMessageNotification : SerializedNotification
     {
         [Required]
-        public RealTimeBuildMessage Message { get; set; }
+        public RealTimeBuildMessage Message { get; set; } = new();
     }
 }

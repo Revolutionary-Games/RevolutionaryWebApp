@@ -1,28 +1,31 @@
 ﻿namespace ThriveDevCenter.Server.Models
 {
+    using System.ComponentModel.DataAnnotations;
     using Microsoft.EntityFrameworkCore;
     using Shared;
     using Shared.Models;
 
-    [Index(new[] { nameof(LfsProjectId), nameof(Name), nameof(Path) }, IsUnique = true)]
+    [Index(nameof(LfsProjectId), nameof(Name), nameof(Path), IsUnique = true)]
     public class ProjectGitFile : UpdateableModel
     {
+        [Required]
         [AllowSortingBy]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        public string Path { get; set; }
+        [Required]
+        public string Path { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public int? Size { get; set; } = -1;
 
-        // TODO: switch to an enum
+        // TODO: switch to an enum. There's already FileType
         [AllowSortingBy]
-        public string Ftype { get; set; }
+        public string Ftype { get; set; } = string.Empty;
 
-        public string LfsOid { get; set; }
+        public string? LfsOid { get; set; }
 
         public long LfsProjectId { get; set; }
-        public virtual LfsProject LfsProject { get; set; }
+        public virtual LfsProject? LfsProject { get; set; }
 
         public ProjectGitFileDTO GetDTO()
         {

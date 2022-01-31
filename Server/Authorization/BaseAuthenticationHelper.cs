@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Authorization
         protected abstract Task<bool> PerformAuthentication(HttpContext context);
 
         protected void OnAuthenticationSucceeded(HttpContext context, User user,
-            AuthenticationScopeRestriction restriction, Session session)
+            AuthenticationScopeRestriction restriction, Session? session)
         {
             if (user == null)
                 throw new ArgumentException("can't set authenticated user to null");

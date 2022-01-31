@@ -11,6 +11,7 @@
 @using System.Net
 @using System.Text.Json
 @using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Converters
 @inherits SingleResourcePage<InProgressClaSignatureDTO, ThriveDevCenter.Shared.Notifications.InProgressClaSignatureUpdated>
 @implements IAsyncDisposable
 
@@ -246,7 +247,7 @@
 
 @code {
 
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     /// <summary>
@@ -299,7 +300,7 @@
         }
     }
 
-    private bool CanSign => DataIsValidForStep3(Data) && !string.IsNullOrWhiteSpace(Data.SignerSignature) &&
+    private bool CanSign => DataIsValidForStep3(Data) && !string.IsNullOrWhiteSpace(Data!.SignerSignature) &&
         (!string.IsNullOrWhiteSpace(Data.GuardianSignature) || Data.SignerIsMinor == false) && !finished;
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
@@ -313,7 +314,7 @@
         await notificationHandler.Unregister(this);
     }
 
-    protected override async Task<InProgressClaSignatureDTO> StartQuery()
+    protected override async Task<InProgressClaSignatureDTO?> StartQuery()
     {
         var data = await http.GetFromJsonAsync<InProgressClaSignatureDTO>("api/v1/CLA/activeSigning");
 
@@ -337,7 +338,7 @@
         await notificationHandler.Register(this);
     }
 
-    private void UpdateStepForReceivedData(InProgressClaSignatureDTO data)
+    private void UpdateStepForReceivedData(InProgressClaSignatureDTO? data)
     {
         step = 1;
 
@@ -355,7 +356,7 @@
         }
     }
 
-    private bool DataIsValidForStep2(InProgressClaSignatureDTO data)
+    private bool DataIsValidForStep2(InProgressClaSignatureDTO? data)
     {
         if (data == null)
             return false;
@@ -363,7 +364,7 @@
         return data.EmailVerified && (!string.IsNullOrEmpty(data.GithubAccount) || data.GithubSkipped);
     }
 
-    private bool DataIsValidForStep3(InProgressClaSignatureDTO data)
+    private bool DataIsValidForStep3(InProgressClaSignatureDTO? data)
     {
         if (data?.SignerIsMinor == null)
             return false;
@@ -389,7 +390,7 @@
             result = await http.PostAsJsonAsync("api/v1/EmailVerification/start/cla",
                 new EmailVerificationRequestForm
             {
-                Email = Data.Email
+                Email = Data!.Email!,
             });
         }
         catch (HttpRequestException e)
@@ -452,13 +453,11 @@
         }
         else
         {
-            JSONWrappedRedirect data = null;
+            JSONWrappedRedirect? data = null;
             try
             {
                 data = JsonSerializer.Deserialize<JSONWrappedRedirect>(content,
-                    HttpClientHelpers.GetOptionsWithSerializers());
-                if (data == null)
-                    throw new JsonException("deserialized data is null");
+                    HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
             }
             catch (JsonException e)
             {
@@ -579,12 +578,12 @@
 
     private void SetWontContributeOnGithub()
     {
-        Data.GithubSkipped = true;
+        Data!.GithubSkipped = true;
     }
 
     private void SetWillContributeOnGithub()
     {
-        Data.GithubSkipped = false;
+        Data!.GithubSkipped = false;
     }
 
     private void UpdateIsMinorSelection(ChangeEventArgs e)
@@ -593,11 +592,11 @@
 
         if (string.IsNullOrEmpty(value))
         {
-            Data.SignerIsMinor = null;
+            Data!.SignerIsMinor = null;
         }
         else
         {
-            Data.SignerIsMinor = bool.Parse(value);
+            Data!.SignerIsMinor = bool.Parse(value);
         }
     }
 

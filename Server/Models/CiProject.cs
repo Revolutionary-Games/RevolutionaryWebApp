@@ -16,13 +16,13 @@ namespace ThriveDevCenter.Server.Models
     {
         [Required]
         [AllowSortingBy]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
-        public string RepositoryFullName { get; set; }
+        public string RepositoryFullName { get; set; } = string.Empty;
 
         [Required]
-        public string RepositoryCloneUrl { get; set; }
+        public string RepositoryCloneUrl { get; set; } = string.Empty;
 
         [Required]
         public CIProjectType ProjectType { get; set; }

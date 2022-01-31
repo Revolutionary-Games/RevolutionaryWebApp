@@ -16,8 +16,8 @@ namespace ThriveDevCenter.Server.Models
 
         public bool CanReviewMinutes { get; set; }
 
-        public Meeting Meeting { get; set; }
-        public User User { get; set; }
+        public Meeting? Meeting { get; set; }
+        public User? User { get; set; }
 
         public MeetingMemberDTO GetDTO()
         {

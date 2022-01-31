@@ -7,7 +7,7 @@ namespace ThriveDevCenter.Shared.Forms
     {
         [Required]
         [StringLength(120, MinimumLength = 3)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         public long? ParentFolder { get; set; }
 
@@ -16,7 +16,8 @@ namespace ThriveDevCenter.Shared.Forms
         public long Size { get; set; }
 
         [Required]
-        public string MimeType { get; set; }
+        [MaxLength(150)]
+        public string MimeType { get; set; } = string.Empty;
 
         [Required]
         public FileAccess ReadAccess { get; set; }

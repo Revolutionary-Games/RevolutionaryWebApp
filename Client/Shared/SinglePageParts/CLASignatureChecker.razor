@@ -62,14 +62,14 @@
     [Parameter]
     public long CLAId { get; set; }
 
-    private List<CLASignatureSearchResult> data;
+    private List<CLASignatureSearchResult>? data;
 
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-    private string email;
-    private string githubAccount;
+    private string? email;
+    private string? githubAccount;
 
     private bool CanSearch => (!string.IsNullOrWhiteSpace(email) || !string.IsNullOrEmpty(githubAccount)) && !processing;
 

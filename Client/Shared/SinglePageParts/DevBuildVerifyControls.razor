@@ -120,11 +120,12 @@ else
     private bool showUnVerifyForm;
 
     private bool processing;
-    private string statusMessage;
+    private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
     [Parameter]
-    public DevBuildDTO Data { get; set; }
+    [EditorRequired]
+    public DevBuildDTO Data { get; set; } = null!;
 
     private bool CanVerify => !processing && Data is {Verified: false };
     private bool CanUnVerify => !processing && Data is {Verified: true, BuildOfTheDay: false };

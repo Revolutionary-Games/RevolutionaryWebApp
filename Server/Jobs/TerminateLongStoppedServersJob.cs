@@ -42,7 +42,8 @@ namespace ThriveDevCenter.Server.Jobs
 
             var cutoff = DateTime.UtcNow - terminateStoppedServerDelay;
 
-            var servers = await database.ControlledServers.Where(s => s.Status == ServerStatus.Stopped && s.UpdatedAt < cutoff).ToListAsync(cancellationToken);
+            var servers = await database.ControlledServers
+                .Where(s => s.Status == ServerStatus.Stopped && s.UpdatedAt < cutoff).ToListAsync(cancellationToken);
 
             if (servers.Count < 1)
                 return;
@@ -65,7 +66,8 @@ namespace ThriveDevCenter.Server.Jobs
 
                 try
                 {
-                    await ec2Controller.TerminateInstance(server.InstanceId);
+                    await ec2Controller.TerminateInstance(server.InstanceId ??
+                        throw new Exception("Server has no InstanceId"));
                 }
                 catch (Exception e)
                 {

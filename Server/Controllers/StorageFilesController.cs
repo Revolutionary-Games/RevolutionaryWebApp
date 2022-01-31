@@ -22,6 +22,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Models;
     using Services;
     using Shared;
+    using Shared.Converters;
     using Shared.Forms;
     using Shared.Models;
     using Utilities;
@@ -56,7 +57,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("itemFromPath")]
-        public async Task<ActionResult<PathParseResult>> ParsePath([MaxLength(500)] string path)
+        public async Task<ActionResult<PathParseResult>> ParsePath([MaxLength(500)] string? path)
         {
             var user = HttpContext.AuthenticatedUser();
 
@@ -80,8 +81,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             var pathParts = path.Split('/');
 
-            StorageItem currentItem = null;
-            StorageItem parentItem = null;
+            StorageItem? currentItem = null;
+            StorageItem? parentItem = null;
 
             foreach (var part in pathParts)
             {
@@ -124,7 +125,7 @@ namespace ThriveDevCenter.Server.Controllers
             // NOTE: we don't verify the parent accesses recursively, so for example if a folder has public read, but
             // it is contained in a private folder, the contents can be read through this if the parent id is known.
 
-            StorageItem item = null;
+            StorageItem? item = null;
             if (parentId != null)
             {
                 item = await FindAndCheckAccess(parentId.Value);
@@ -171,15 +172,15 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<IActionResult> CreateFolder([Required] [FromBody] CreateFolderForm request)
         {
             if (!CheckNewItemName(request.Name, out var badRequest))
-                return badRequest;
+                return badRequest!;
 
             if (request.ReadAccess == FileAccess.Nobody || request.WriteAccess == FileAccess.Nobody)
                 return BadRequest("Only system can create system readable/writable folders");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUserOrThrow();
 
             // Check write access
-            StorageItem parentFolder = null;
+            StorageItem? parentFolder = null;
 
             if (request.ParentFolder != null)
             {
@@ -250,7 +251,7 @@ namespace ThriveDevCenter.Server.Controllers
             [Required] string sortColumn, [Required] SortDirection sortDirection,
             [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
         {
-            StorageItem item = await FindAndCheckAccess(id);
+            StorageItem? item = await FindAndCheckAccess(id);
             if (item == null)
                 return NotFound();
 
@@ -278,14 +279,14 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<IActionResult> EditItem([Required] long id,
             [Required] [FromBody] StorageItemDTO newData)
         {
-            StorageItem item = await FindAndCheckAccess(id);
+            StorageItem? item = await FindAndCheckAccess(id);
             if (item == null)
                 return NotFound();
 
             if (item.Special)
                 return BadRequest("Special items can't be edited");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUserOrThrow();
 
             if (item.WriteAccess == FileAccess.Nobody)
                 return BadRequest("This item is not writable");
@@ -297,7 +298,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Only system can set system readable/writable status");
 
             if (!CheckNewItemName(newData.Name, out var badRequest))
-                return badRequest;
+                return badRequest!;
 
             item.Name = newData.Name;
             item.ReadAccess = newData.ReadAccess;
@@ -316,7 +317,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private bool CheckNewItemName(string name, out ActionResult badRequest)
+        private bool CheckNewItemName(string name, out ActionResult? badRequest)
         {
             // Purely numeric names (that are short) or starting with '@' are disallowed
             // TODO: would be nice to do this validation also on the client side form
@@ -336,7 +337,7 @@ namespace ThriveDevCenter.Server.Controllers
             [Required] [FromBody] UploadFileRequestForm request)
         {
             if (!CheckNewItemName(request.Name, out var badRequest))
-                return badRequest;
+                return badRequest!;
 
             if (!remoteStorage.Configured)
             {
@@ -348,10 +349,10 @@ namespace ThriveDevCenter.Server.Controllers
             }
 
             // TODO: maybe in the future we'll want to allow anonymous uploads to certain folders
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUserOrThrow();
 
             // Check write access
-            StorageItem parentFolder = null;
+            StorageItem? parentFolder = null;
 
             if (request.ParentFolder != null)
             {
@@ -416,10 +417,10 @@ namespace ThriveDevCenter.Server.Controllers
             var file = await version.CreateStorageFile(database,
                 DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime, request.Size);
 
-            string uploadUrl = null;
-            MultipartFileUpload multipart = null;
+            string? uploadUrl = null;
+            MultipartFileUpload? multipart = null;
             long? multipartId = null;
-            string uploadId = null;
+            string? uploadId = null;
 
             if (request.Size >= AppInfo.FileSizeBeforeMultipartUpload)
             {
@@ -454,12 +455,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 multipartId = multipartModel.Id;
 
-                var chunkToken = new ChunkRetrieveToken()
-                {
-                    MultipartId = multipartModel.Id,
-                    UploadId = uploadId,
-                    TargetStorageFile = file.Id,
-                };
+                var chunkToken = new ChunkRetrieveToken(multipartModel.Id, file.Id, uploadId);
 
                 var chunkTokenStr = JsonSerializer.Serialize(chunkToken);
 
@@ -526,12 +522,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                verifiedToken =
-                    JsonSerializer.Deserialize<ChunkRetrieveToken>(
-                        chunkDataProtector.Unprotect(request.Token));
-
-                if (verifiedToken == null)
-                    throw new Exception("deserialized token is null");
+                verifiedToken = JsonSerializer.Deserialize<ChunkRetrieveToken>(
+                    chunkDataProtector.Unprotect(request.Token)) ?? throw new NullDecodedJsonException();
             }
             catch (Exception e)
             {
@@ -548,7 +540,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Invalid specified file or multipart data in chunks token");
             }
 
-            List<MultipartFileUpload.FileChunk> chunks;
+            List<MultipartFileUpload.FileChunk>? chunks;
             if (file.Size != null)
             {
                 chunks = AddUploadUrlsToChunks(
@@ -583,12 +575,8 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                verifiedToken =
-                    JsonSerializer.Deserialize<UploadVerifyToken>(
-                        dataProtector.Unprotect(finishedUpload.UploadVerifyToken));
-
-                if (verifiedToken == null)
-                    throw new Exception("deserialized token is null");
+                verifiedToken = JsonSerializer.Deserialize<UploadVerifyToken>(
+                    dataProtector.Unprotect(finishedUpload.UploadVerifyToken)) ?? throw new NullDecodedJsonException();
             }
             catch (Exception e)
             {
@@ -703,7 +691,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<StorageItem> FindAndCheckAccess(long id, bool read = true)
+        private async Task<StorageItem?> FindAndCheckAccess(long id, bool read = true)
         {
             var item = await database.StorageItems.FindAsync(id);
 
@@ -797,6 +785,13 @@ namespace ThriveDevCenter.Server.Controllers
 
         private class ChunkRetrieveToken
         {
+            public ChunkRetrieveToken(long multipartId, long targetStorageFile, string uploadId)
+            {
+                MultipartId = multipartId;
+                TargetStorageFile = targetStorageFile;
+                UploadId = uploadId;
+            }
+
             [Required]
             public long MultipartId { get; set; }
 

@@ -27,6 +27,6 @@ namespace ThriveDevCenter.Server.Services
     public interface IRegistrationStatus
     {
         bool RegistrationEnabled { get; }
-        string RegistrationCode { get; }
+        string? RegistrationCode { get; }
     }
 }

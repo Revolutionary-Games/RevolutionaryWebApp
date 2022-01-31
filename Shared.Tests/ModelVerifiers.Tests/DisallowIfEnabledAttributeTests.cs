@@ -83,13 +83,13 @@ namespace ThriveDevCenter.Shared.Tests.ModelVerifiers.Tests
         {
             public AnEnum Flag { get; set; } = AnEnum.Value1;
 
-            public string PropertyOne { get; set; }
+            public string? PropertyOne { get; set; }
 
             [DisallowIf(ThisMatches = "disallow", OtherProperty = nameof(PropertyOne), IfOtherMatchesValue = "value")]
             [DisallowIf(ThisMatches = "disallow", OtherProperty = nameof(Flag),
                 IfOtherMatchesValue = nameof(AnEnum.Value2))]
             [DisallowIfEnabled]
-            public string DependentProperty { get; set; }
+            public string? DependentProperty { get; set; }
         }
 
         private enum AnEnum

@@ -74,7 +74,16 @@ namespace ThriveDevCenter.Server.Services
                 if (File.Exists(finalPath))
                     continue;
 
+                if (symbol.StoredInItem == null)
+                    throw new NotLoadedModelNavigationException();
+
                 var version = await symbol.StoredInItem.GetHighestUploadedVersion(database);
+
+                if (version == null)
+                    throw new NullReferenceException("No highest uploaded version for a debug symbol");
+
+                if (version.StorageFile == null)
+                    throw new NotLoadedModelNavigationException();
 
                 var tempFile = finalPath + ".tmp";
 

@@ -8,10 +8,10 @@ namespace ThriveDevCenter.Shared.Forms
         [Required]
         [MaxLength(512)]
         [MinLength(1)]
-        public string SecretName { get; set; }
+        public string SecretName { get; set; } = string.Empty;
 
         [MaxLength(16000)]
-        public string SecretContent { get; set; }
+        public string? SecretContent { get; set; }
 
         [Required]
         public CISecretType UsedForBuildTypes { get; set; }

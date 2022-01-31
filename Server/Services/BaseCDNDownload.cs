@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Server.Services
 
     public abstract class BaseCDNDownload : IBaseCDNDownload
     {
-        private readonly string downloadKey;
+        private readonly string? downloadKey;
 
         protected BaseCDNDownload(string cdnBaseUrl, string downloadKey)
         {
@@ -28,7 +28,7 @@ namespace ThriveDevCenter.Server.Services
             }
         }
 
-        public Uri CDNBaseUrl { get; }
+        public Uri? CDNBaseUrl { get; }
 
         public bool Configured { get; }
 
@@ -48,7 +48,7 @@ namespace ThriveDevCenter.Server.Services
 
             long expirationTimestamp = (DateTimeOffset.UtcNow + expiresIn).ToUnixTimeSeconds();
 
-            var fullUri = new Uri(CDNBaseUrl, path);
+            var fullUri = new Uri(CDNBaseUrl!, path);
 
             var unhashedKey = $"{downloadKey}{unescaped}{expirationTimestamp}";
 
@@ -56,7 +56,7 @@ namespace ThriveDevCenter.Server.Services
             // Now it's possible to use countries, so that is likely much more reliable regarding ipv4 and ipv6
             // addresses for the same computer
 
-            return QueryHelpers.AddQueryString(fullUri.ToString(), new Dictionary<string, string>()
+            return QueryHelpers.AddQueryString(fullUri.ToString(), new Dictionary<string, string?>()
             {
                 { "token", HashToken(unhashedKey) },
                 { "expires", expirationTimestamp.ToString() }
@@ -65,7 +65,7 @@ namespace ThriveDevCenter.Server.Services
 
         protected void ThrowIfNotConfigured()
         {
-            if (Configured)
+            if (Configured && CDNBaseUrl != null && downloadKey != null)
                 return;
 
             string error = "The server storage is not configured properly";

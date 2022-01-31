@@ -69,7 +69,7 @@ else
         return base.SetParametersAsync(parameters);
     }
 
-    protected override Task<PagedResult<CLASignatureDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CLASignatureDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<CLASignatureDTO>>(
             QueryHelpers.AddQueryString("api/v1/CLA/signatures", requestParams));

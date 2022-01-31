@@ -36,7 +36,7 @@ namespace ThriveDevCenter.Server.Services
 
             lock (requestedPaths)
             {
-                if (requestedPaths.TryGetValue(path, out SemaphoreSlim existing))
+                if (requestedPaths.TryGetValue(path, out SemaphoreSlim? existing))
                     return existing;
 
                 var semaphore = new SemaphoreSlim(1, 1);

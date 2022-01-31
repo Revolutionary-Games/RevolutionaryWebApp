@@ -25,6 +25,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Models;
     using Services;
     using Shared;
+    using Shared.Converters;
     using Shared.Models;
     using Utilities;
 
@@ -32,8 +33,6 @@ namespace ThriveDevCenter.Server.Controllers
     [Route("api/v1/webhook/github")]
     public class GithubWebhookController : Controller
     {
-        private const string NoCommitHash = "0000000000000000000000000000000000000000";
-
         private readonly ILogger<GithubWebhookController> logger;
 
         /// <summary>
@@ -68,7 +67,7 @@ namespace ThriveDevCenter.Server.Controllers
             try
             {
                 data = JsonSerializer.Deserialize<GithubWebhookContent>(payload,
-                    new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? throw new NullDecodedJsonException();
 
                 if (data == null)
                     throw new Exception("deserialized value is null");
@@ -100,17 +99,26 @@ namespace ThriveDevCenter.Server.Controllers
                 // This is a push (commit)
                 logger.LogInformation("Received a push event for ref: {Ref}", data.Ref);
 
-                if (data.Deleted || data.After == NoCommitHash)
+                if (data.Deleted || data.After == AppInfo.NoCommitHash)
                 {
                     logger.LogInformation("Push was about a deleted thing");
                 }
                 else
                 {
-                    if (data.Before == NoCommitHash)
+                    if (data.Before == AppInfo.NoCommitHash)
                     {
                         logger.LogInformation(
                             "Received a push (probably a new branch) with no before set, setting to the after commit");
                         data.Before = data.After;
+                    }
+
+                    if (data.Repository == null)
+                    {
+                        throw new HttpResponseException()
+                        {
+                            Value = new BasicJSONErrorResult("Invalid request",
+                                "Repository is needed for this event type").ToString(),
+                        };
                     }
 
                     bool matched = false;
@@ -135,7 +143,7 @@ namespace ThriveDevCenter.Server.Controllers
                             Branch = GitRunHelpers.ParseRefBranch(data.Ref),
                             IsSafe = !GitRunHelpers.IsPullRequestRef(data.Ref),
                             PreviousCommit = data.Before,
-                            CommitMessage = data.HeadCommit?.Message ?? data.Commits.FirstOrDefault()?.Message,
+                            CommitMessage = data.HeadCommit?.Message ?? data.Commits?.FirstOrDefault()?.Message,
                             ParsedCommits = data.Commits,
                         };
 
@@ -157,6 +165,24 @@ namespace ThriveDevCenter.Server.Controllers
             else if (type == "pull_request")
             {
                 bool matched = false;
+
+                if (data.Repository == null)
+                {
+                    throw new HttpResponseException()
+                    {
+                        Value = new BasicJSONErrorResult("Invalid request",
+                            "Repository is needed for this event type").ToString(),
+                    };
+                }
+
+                if (data.PullRequest == null)
+                {
+                    throw new HttpResponseException()
+                    {
+                        Value = new BasicJSONErrorResult("Invalid request",
+                            "PullRequest data is needed for this event type").ToString(),
+                    };
+                }
 
                 jobClient.Enqueue<CheckPullRequestStatusJob>(x => x.Execute(data.Repository.FullName,
                     data.PullRequest.Number, data.PullRequest.Head.Sha, data.PullRequest.User.Login,
@@ -276,7 +302,7 @@ namespace ThriveDevCenter.Server.Controllers
 
     public class GithubWebhookContent
     {
-        public string Action { get; set; }
+        public string? Action { get; set; }
 
         [Required]
         [JsonPropertyName("hook_id")]
@@ -286,45 +312,45 @@ namespace ThriveDevCenter.Server.Controllers
 
         public bool Merged { get; set; }
 
-        public string Ref { get; set; }
+        public string? Ref { get; set; }
 
         [JsonPropertyName("ref_type")]
-        public string RefType { get; set; }
+        public string? RefType { get; set; }
 
         /// <summary>
         ///   Commit before Ref
         /// </summary>
-        public string Before { get; set; }
+        public string? Before { get; set; }
 
         /// <summary>
         ///   Commit on Ref after a push
         /// </summary>
-        public string After { get; set; }
+        public string? After { get; set; }
 
-        public List<GithubCommit> Commits { get; set; }
+        public List<GithubCommit>? Commits { get; set; }
 
         [JsonPropertyName("head_commit")]
-        public GithubCommit HeadCommit { get; set; }
+        public GithubCommit? HeadCommit { get; set; }
 
-        public GithubPusher Pusher { get; set; }
-
-        [Required]
-        public GithubHookInfo Hook { get; set; }
-
-        public GithubRepository Repository { get; set; }
-
-        public GithubOrganization Organization { get; set; }
+        public GithubPusher? Pusher { get; set; }
 
         [Required]
-        public GithubUserInfo Sender { get; set; }
+        public GithubHookInfo Hook { get; set; } = new();
+
+        public GithubRepository? Repository { get; set; }
+
+        public GithubOrganization? Organization { get; set; }
+
+        [Required]
+        public GithubUserInfo Sender { get; set; } = new();
 
         [JsonPropertyName("pull_request")]
-        public GithubPullRequest PullRequest { get; set; }
+        public GithubPullRequest? PullRequest { get; set; }
 
         public bool Deleted { get; set; }
 
         [JsonIgnore]
-        public bool IsClosedPullRequest => Deleted || PullRequest.State == "closed";
+        public bool IsClosedPullRequest => Deleted || PullRequest is { State: "closed" };
     }
 
     public class GithubCommit
@@ -332,86 +358,87 @@ namespace ThriveDevCenter.Server.Controllers
         /// <summary>
         ///   Commit hash
         /// </summary>
-        public string Id { get; set; }
+        [Required]
+        public string Id { get; set; } = string.Empty;
 
         [JsonPropertyName("tree_id")]
-        public string TreeId { get; set; }
+        public string? TreeId { get; set; }
 
-        public string Timestamp { get; set; }
+        public string? Timestamp { get; set; }
 
-        public string Message { get; set; }
+        public string? Message { get; set; }
 
-        public CommitAuthor Author { get; set; }
+        public CommitAuthor? Author { get; set; }
 
-        public CommitAuthor Committer { get; set; }
+        public CommitAuthor? Committer { get; set; }
 
         // The file change overview this commit has
-        public List<string> Added { get; set; }
-        public List<string> Removed { get; set; }
-        public List<string> Modified { get; set; }
+        public List<string>? Added { get; set; }
+        public List<string>? Removed { get; set; }
+        public List<string>? Modified { get; set; }
     }
 
     public class GithubPullRequest
     {
-        public string Url { get; set; }
+        public string? Url { get; set; }
         public long Id { get; set; }
 
         [JsonPropertyName("html_url")]
-        public string HtmlUrl { get; set; }
+        public string? HtmlUrl { get; set; }
 
         [Required]
         public long Number { get; set; }
 
         [Required]
-        public string State { get; set; }
+        public string State { get; set; } = string.Empty;
 
         public bool Locked { get; set; }
         public bool Merged { get; set; }
-        public string Title { get; set; }
+        public string? Title { get; set; }
 
         [Required]
-        public GithubUserInfo User { get; set; }
+        public GithubUserInfo User { get; set; } = new();
 
-        public string Body { get; set; }
+        public string? Body { get; set; }
 
         public bool Draft { get; set; }
 
         [JsonPropertyName("commits_url")]
-        public string CommitsUrl { get; set; }
+        public string? CommitsUrl { get; set; }
 
         [JsonPropertyName("comments_url")]
-        public string CommentsUrl { get; set; }
+        public string? CommentsUrl { get; set; }
 
         [JsonPropertyName("statuses_url")]
-        public string StatusesUrl { get; set; }
+        public string? StatusesUrl { get; set; }
 
         [Required]
-        public GithubRepoRef Head { get; set; }
+        public GithubRepoRef Head { get; set; } = new();
 
         [Required]
-        public GithubRepoRef Base { get; set; }
+        public GithubRepoRef Base { get; set; } = new();
 
         [JsonPropertyName("author_association")]
-        public string AuthorAssociation { get; set; }
+        public string? AuthorAssociation { get; set; }
     }
 
     public class CommitAuthor
     {
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public string Username { get; set; }
+        public string? Name { get; set; }
+        public string? Email { get; set; }
+        public string? Username { get; set; }
     }
 
     public class GithubPusher
     {
-        public string Name { get; set; }
-        public string Email { get; set; }
+        public string? Name { get; set; }
+        public string? Email { get; set; }
     }
 
     public class GithubHookInfo
     {
         [Required]
-        public string Type { get; set; }
+        public string Type { get; set; } = string.Empty;
 
         [Required]
         public long Id { get; set; }
@@ -423,33 +450,33 @@ namespace ThriveDevCenter.Server.Controllers
         public long Id { get; set; }
 
         [Required]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [JsonPropertyName("full_name")]
-        public string FullName { get; set; }
+        public string FullName { get; set; } = string.Empty;
 
         public bool Private { get; set; }
 
-        public GithubUserInfo Owner { get; set; }
+        public GithubUserInfo? Owner { get; set; }
 
         [JsonPropertyName("html_url")]
-        public string HtmlUrl { get; set; }
+        public string? HtmlUrl { get; set; }
 
         /// <summary>
         ///   The API url
         /// </summary>
-        public string Url { get; set; }
+        public string? Url { get; set; }
 
         public bool Fork { get; set; }
 
         [Required]
         [JsonPropertyName("clone_url")]
-        public string CloneUrl { get; set; }
+        public string CloneUrl { get; set; } = string.Empty;
 
         [Required]
         [JsonPropertyName("default_branch")]
-        public string DefaultBranch { get; set; }
+        public string DefaultBranch { get; set; } = string.Empty;
     }
 
     public class GithubOrganization
@@ -459,16 +486,17 @@ namespace ThriveDevCenter.Server.Controllers
     public class GithubRepoRef
     {
         [Required]
-        public string Label { get; set; }
+        public string Label { get; set; } = string.Empty;
 
         [Required]
-        public string Ref { get; set; }
+        public string Ref { get; set; } = string.Empty;
 
         [Required]
-        public string Sha { get; set; }
+        public string Sha { get; set; } = string.Empty;
 
-        public GithubUserInfo User { get; set; }
+        public GithubUserInfo? User { get; set; }
 
-        public GithubRepository Repo { get; set; }
+        [Required]
+        public GithubRepository Repo { get; set; } = new();
     }
 }

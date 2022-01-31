@@ -204,22 +204,22 @@
 
     private readonly ClientSideResourceStatus<ServerResourceStatus> clientSideResourceStatus = new();
 
-    private string message;
+    private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
 
-    private string createMessage;
+    private string? createMessage;
     private SiteNoticeType createMessageType;
 
     private bool showNewForm;
     private bool processingNewForm;
-    private string newIP;
-    private string newSSHKey;
+    private string? newIP;
+    private string? newSSHKey;
 
     private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newIP) && !string.IsNullOrEmpty(newSSHKey)
-        && IPAddress.TryParse(newIP, out IPAddress _);
+        && IPAddress.TryParse(newIP, out _);
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public IModalService Modal { get; set; } = null!;
 
     public ExternalServers() : base(new SortHelper("Id", SortDirection.Ascending))
     {
@@ -247,7 +247,7 @@
         await notificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<ExternalServerDTO>> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<ExternalServerDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
         return http.GetFromJsonAsync<PagedResult<ExternalServerDTO>>(
             QueryHelpers.AddQueryString("api/v1/ExternalServers", requestParams));
@@ -619,8 +619,8 @@
         {
             result = await http.PostAsJsonAsync("api/v1/ExternalServers", new ExternalServerDTO()
             {
-                PublicAddress = IPAddress.Parse(newIP),
-                SSHKeyFileName = newSSHKey,
+                PublicAddress = IPAddress.Parse(newIP!),
+                SSHKeyFileName = newSSHKey!,
             });
         }
         catch (HttpRequestException e)

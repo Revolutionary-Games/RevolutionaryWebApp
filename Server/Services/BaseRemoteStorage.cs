@@ -24,12 +24,14 @@ namespace ThriveDevCenter.Server.Services
 
     public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
-        private readonly AmazonS3Client s3Client;
+        private readonly AmazonS3Client? s3Client;
         private readonly string bucket;
 
         protected BaseRemoteStorage(string region, string endpoint, string accessKeyId, string secretAccessKey,
             string bucketName)
         {
+            bucket = bucketName;
+
             if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(bucketName))
             {
                 Configured = false;
@@ -42,7 +44,6 @@ namespace ThriveDevCenter.Server.Services
                 AuthenticationRegion = region
             });
 
-            bucket = bucketName;
             Configured = true;
         }
 
@@ -58,7 +59,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            return s3Client.GetPreSignedURL(new GetPreSignedUrlRequest()
+            return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest()
             {
                 BucketName = bucket,
                 Key = path,
@@ -71,7 +72,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var response = await s3Client.InitiateMultipartUploadAsync(new InitiateMultipartUploadRequest()
+            var response = await s3Client!.InitiateMultipartUploadAsync(new InitiateMultipartUploadRequest()
             {
                 BucketName = bucket,
                 Key = path,
@@ -88,7 +89,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            return s3Client.GetPreSignedURL(new GetPreSignedUrlRequest()
+            return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest()
             {
                 BucketName = bucket,
                 Key = path,
@@ -103,7 +104,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            await s3Client.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest()
+            await s3Client!.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest()
             {
                 BucketName = bucket,
                 Key = path,
@@ -116,7 +117,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            await s3Client.AbortMultipartUploadAsync(new AbortMultipartUploadRequest()
+            await s3Client!.AbortMultipartUploadAsync(new AbortMultipartUploadRequest()
             {
                 BucketName = bucket,
                 Key = path,
@@ -130,12 +131,12 @@ namespace ThriveDevCenter.Server.Services
 
             var parts = new List<PartDetail>();
 
-            string continueParts = null;
+            string? continueParts = null;
 
             ListPartsResponse response;
             do
             {
-                response = await s3Client.ListPartsAsync(new ListPartsRequest()
+                response = await s3Client!.ListPartsAsync(new ListPartsRequest()
                 {
                     BucketName = bucket,
                     Key = path,
@@ -157,14 +158,14 @@ namespace ThriveDevCenter.Server.Services
 
             var parts = new List<(string key, string uploadId)>();
 
-            string nextKeyMarker = null;
-            string nextUploadIdMarker = null;
+            string? nextKeyMarker = null;
+            string? nextUploadIdMarker = null;
 
             ListMultipartUploadsResponse response;
 
             do
             {
-                response = await s3Client.ListMultipartUploadsAsync(new ListMultipartUploadsRequest()
+                response = await s3Client!.ListMultipartUploadsAsync(new ListMultipartUploadsRequest()
                 {
                     BucketName = bucket,
                     KeyMarker = nextKeyMarker,
@@ -185,7 +186,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            return s3Client.PutObjectAsync(new PutObjectRequest()
+            return s3Client!.PutObjectAsync(new PutObjectRequest()
             {
                 BucketName = bucket,
                 Key = path,
@@ -198,7 +199,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            return s3Client.GetPreSignedURL(new GetPreSignedUrlRequest()
+            return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest()
             {
                 BucketName = bucket,
                 Key = path,
@@ -227,7 +228,7 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var data = await s3Client.GetObjectMetadataAsync(bucket, path);
+            var data = await s3Client!.GetObjectMetadataAsync(bucket, path);
 
             if (data.HttpStatusCode != HttpStatusCode.OK)
                 throw new Exception($"s3 object size get failed: {data.HttpStatusCode}");
@@ -237,12 +238,14 @@ namespace ThriveDevCenter.Server.Services
 
         public async Task MoveObject(string currentPath, string newPath)
         {
-            var copyResult = await s3Client.CopyObjectAsync(new CopyObjectRequest()
+            ThrowIfNotConfigured();
+
+            var copyResult = await s3Client!.CopyObjectAsync(new CopyObjectRequest()
             {
                 SourceBucket = bucket,
                 SourceKey = currentPath,
                 DestinationBucket = bucket,
-                DestinationKey = newPath
+                DestinationKey = newPath,
             });
 
             if (copyResult.HttpStatusCode != HttpStatusCode.OK)
@@ -258,10 +261,10 @@ namespace ThriveDevCenter.Server.Services
         {
             ThrowIfNotConfigured();
 
-            var result = await s3Client.GetObjectAsync(new GetObjectRequest()
+            var result = await s3Client!.GetObjectAsync(new GetObjectRequest()
             {
                 BucketName = bucket,
-                Key = path
+                Key = path,
             });
 
             if (result.HttpStatusCode != HttpStatusCode.OK)
@@ -272,10 +275,10 @@ namespace ThriveDevCenter.Server.Services
 
         public async Task DeleteObject(string path)
         {
-            var deleteResult = await s3Client.DeleteObjectAsync(new DeleteObjectRequest()
+            var deleteResult = await s3Client!.DeleteObjectAsync(new DeleteObjectRequest()
             {
                 BucketName = bucket,
-                Key = path
+                Key = path,
             });
 
             if (deleteResult.HttpStatusCode != HttpStatusCode.NoContent &&
@@ -375,6 +378,9 @@ namespace ThriveDevCenter.Server.Services
                 if (version.Version >= await database.StorageItemVersions
                         .Where(s => s.StorageItemId == version.StorageItemId).MaxAsync(s => s.Version))
                 {
+                    if (version.StorageItem == null)
+                        throw new NotLoadedModelNavigationException();
+
                     version.StorageItem.Size = file.Size;
                     version.StorageItem.BumpUpdatedAt();
                 }
@@ -389,7 +395,7 @@ namespace ThriveDevCenter.Server.Services
 
         protected void ThrowIfNotConfigured()
         {
-            if (!Configured)
+            if (!Configured || s3Client == null)
             {
                 throw new HttpResponseException()
                     { Status = StatusCodes.Status500InternalServerError, Value = "Remote storage is not configured" };

@@ -20,6 +20,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Microsoft.Extensions.Primitives;
     using Models;
     using Services;
+    using Shared.Converters;
     using Shared.Models;
     using Utilities;
 
@@ -55,6 +56,9 @@ namespace ThriveDevCenter.Server.Controllers
             var settings =
                 await database.PatreonSettings.FirstOrDefaultAsync(s => s.WebhookId == webhookId && s.Active);
 
+            if (settings == null)
+                return this.WorkingForbid("Invalid hook id");
+
             var verifiedPayload = await CheckSignature(settings);
             logger.LogTrace("Got patreon payload: {VerifiedPayload}", verifiedPayload);
 
@@ -63,9 +67,7 @@ namespace ThriveDevCenter.Server.Controllers
             try
             {
                 data = JsonSerializer.Deserialize<PatreonAPIObjectResponse>(verifiedPayload,
-                    new JsonSerializerOptions(JsonSerializerDefaults.Web));
-                if (data == null)
-                    throw new Exception("deserialized data is null");
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? throw new NullDecodedJsonException();
             }
             catch (Exception e)
             {
@@ -86,7 +88,15 @@ namespace ThriveDevCenter.Server.Controllers
                 };
             }
 
-            var patronHookData = pledge.Relationships.Patron.Data;
+            var patronHookData = pledge.Relationships?.Patron?.Data;
+
+            if (patronHookData == null)
+            {
+                throw new HttpResponseException()
+                {
+                    Value = new BasicJSONErrorResult("Bad data", "Associated patron data not included").ToString()
+                };
+            }
 
             var userData = data.FindIncludedObject(patronHookData.Id);
 
@@ -122,7 +132,8 @@ namespace ThriveDevCenter.Server.Controllers
                         // This was what the old code did, no clue why it would be necessary to unnecessarily
                         // look up the reward object...
                         // rewardId = data.FindIncludedObject(pledge.Relationships["reward"].Data.Id).Id;
-                        rewardId = pledge.Relationships.Reward.Data.Id;
+                        rewardId = pledge.Relationships?.Reward?.Data?.Id ??
+                            throw new Exception("Required relationship/property not included");
                     }
                     catch (Exception e)
                     {

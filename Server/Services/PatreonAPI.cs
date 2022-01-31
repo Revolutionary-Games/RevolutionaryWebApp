@@ -18,9 +18,9 @@ namespace ThriveDevCenter.Server.Services
     /// </summary>
     public class PatreonAPI : IPatreonAPI
     {
-        private readonly Lazy<HttpClient> client = new Lazy<HttpClient>();
-        private string clientId;
-        private string clientSecret;
+        private readonly Lazy<HttpClient> client = new();
+        private string? clientId;
+        private string? clientSecret;
 
         private HttpClient Client => client.Value;
 
@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Services
             clientSecret = secret;
         }
 
-        public void LoginAsUser(PatreonAPIBearerToken token)
+        public void LoginAsUser(PatreonAPIBearerToken? token)
         {
             client.Value.DefaultRequestHeaders.Authorization =
                 token != null ? new AuthenticationHeaderValue("Bearer", token.AccessToken) : null;
@@ -39,6 +39,9 @@ namespace ThriveDevCenter.Server.Services
         public async Task<PatreonAPIBearerToken> TurnCodeIntoTokens(string code,
             string redirectUri)
         {
+            if (clientId == null || clientSecret == null)
+                throw new InvalidOperationException("API has not been initialized");
+
             var content = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("code", code),
@@ -70,7 +73,7 @@ namespace ThriveDevCenter.Server.Services
         {
             var result = await Client.GetFromJsonAsync<PatreonAPIObjectResponse>(QueryHelpers.AddQueryString(
                 "https://www.patreon.com/api/oauth2/v2/identity",
-                new Dictionary<string, string>()
+                new Dictionary<string, string?>()
                 {
                     { "fields[user]", "email,full_name,vanity,url" }
                 }));
@@ -117,7 +120,7 @@ namespace ThriveDevCenter.Server.Services
 
     public class PatreonCreatorAPI
     {
-        private HttpClient client;
+        private readonly HttpClient client;
 
         public PatreonCreatorAPI(string patreonToken)
         {
@@ -161,7 +164,7 @@ namespace ThriveDevCenter.Server.Services
 
                     var patronRelationship = data.Relationships?.Patron;
 
-                    if (patronRelationship == null)
+                    if (patronRelationship?.Data == null)
                         throw new PatreonAPIDataException("Pledge relationship to patron doesn't exist");
 
                     var userData =
@@ -199,7 +202,7 @@ namespace ThriveDevCenter.Server.Services
                 }
 
                 // Pagination
-                if (response.Links != null && response.Links.TryGetValue("next", out string nextUrl))
+                if (response.Links != null && response.Links.TryGetValue("next", out string? nextUrl))
                 {
                     url = nextUrl;
                 }
@@ -215,9 +218,9 @@ namespace ThriveDevCenter.Server.Services
 
         public class PatronMemberInfo
         {
-            public PatreonObjectData Pledge { get; set; }
-            public PatreonObjectData User { get; set; }
-            public PatreonObjectData Reward { get; set; }
+            public PatreonObjectData? Pledge { get; set; }
+            public PatreonObjectData? User { get; set; }
+            public PatreonObjectData? Reward { get; set; }
         }
     }
 
@@ -232,28 +235,28 @@ namespace ThriveDevCenter.Server.Services
     {
         [Required]
         [JsonPropertyName("access_token")]
-        public string AccessToken { get; set; }
+        public string AccessToken { get; set; } = string.Empty;
 
         [JsonPropertyName("refresh_token")]
-        public string RefreshToken { get; set; }
+        public string? RefreshToken { get; set; }
 
         [JsonPropertyName("expires_in")]
         public long ExpiresIn { get; set; }
 
-        public string Scope { get; set; }
+        public string? Scope { get; set; }
 
         [Required]
         [JsonPropertyName("token_type")]
-        public string TokenType { get; set; }
+        public string TokenType { get; set; } = string.Empty;
     }
 
     public class PatreonAPIBaseResponse
     {
         public List<PatreonObjectData> Included { get; set; } = new();
-        public Dictionary<string, string> Links { get; set; } = new();
+        public Dictionary<string, string>? Links { get; set; } = new();
         public PatreonAPIMeta Meta { get; set; } = new();
 
-        public PatreonObjectData FindIncludedObject(string objectId, string neededType = null)
+        public PatreonObjectData? FindIncludedObject(string objectId, string? neededType = null)
         {
             foreach (var item in Included)
             {
@@ -278,48 +281,48 @@ namespace ThriveDevCenter.Server.Services
     public class PatreonAPIObjectResponse : PatreonAPIBaseResponse
     {
         [Required]
-        public PatreonObjectData Data { get; set; }
+        public PatreonObjectData Data { get; set; } = new();
     }
 
     public class PatreonAPIListResponse : PatreonAPIBaseResponse
     {
         [Required]
-        public List<PatreonObjectData> Data { get; set; }
+        public List<PatreonObjectData> Data { get; set; } = new();
     }
 
     public class PatreonObjectData
     {
         [Required]
-        public string Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         [Required]
-        public string Type { get; set; }
+        public string Type { get; set; } = string.Empty;
 
         public PatreonObjectAttributes Attributes { get; set; } = new();
 
-        public PatreonObjectRelationships Relationships { get; set; } = new();
+        public PatreonObjectRelationships? Relationships { get; set; } = new();
     }
 
     // The next two classes are split due to the data being non-uniform coming from patreon
     public class PatreonObjectAttributes
     {
-        public string Email { get; set; }
+        public string? Email { get; set; }
 
         [JsonPropertyName("full_name")]
-        public string FullName { get; set; }
+        public string? FullName { get; set; }
 
         [JsonPropertyName("first_name")]
-        public string FirstName { get; set; }
+        public string? FirstName { get; set; }
 
-        public string Vanity { get; set; }
+        public string? Vanity { get; set; }
 
         [JsonPropertyName("declined_since")]
-        public string DeclinedSince { get; set; }
+        public string? DeclinedSince { get; set; }
 
         [JsonPropertyName("amount_cents")]
         public int? AmountCents { get; set; }
 
-        public string Currency { get; set; }
+        public string? Currency { get; set; }
 
         [JsonPropertyName("pledge_cap_cents")]
         public int? PledgeCapCents { get; set; }
@@ -327,19 +330,19 @@ namespace ThriveDevCenter.Server.Services
 
     public class PatreonObjectRelationships
     {
-        public PatreonRelationshipInfo Patron { get; set; }
-        public PatreonRelationshipInfo Reward { get; set; }
+        public PatreonRelationshipInfo? Patron { get; set; }
+        public PatreonRelationshipInfo? Reward { get; set; }
 
-        public PatreonRelationshipInfo Creator { get; set; }
+        public PatreonRelationshipInfo? Creator { get; set; }
 
-        public PatreonObjectDataList Rewards { get; set; }
-        public PatreonObjectDataList Goals { get; set; }
+        public PatreonObjectDataList? Rewards { get; set; }
+        public PatreonObjectDataList? Goals { get; set; }
     }
 
     public class PatreonRelationshipInfo
     {
         [Required]
-        public PatreonObjectData Data { get; set; }
+        public PatreonObjectData? Data { get; set; }
 
         public Dictionary<string, string> Links { get; set; } = new();
     }
@@ -347,6 +350,6 @@ namespace ThriveDevCenter.Server.Services
     public class PatreonObjectDataList
     {
         [Required]
-        public List<PatreonObjectData> Data { get; set; }
+        public List<PatreonObjectData> Data { get; set; } = new();
     }
 }

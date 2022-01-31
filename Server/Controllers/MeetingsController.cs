@@ -91,7 +91,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting.EndedAt != null)
                 return BadRequest("This meeting has already ended");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             // Fail if already joined
             if (await GetMeetingMember(meeting.Id, user.Id) != null)
@@ -136,7 +136,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             // Only meeting owner and admins can view all members
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
                 return this.WorkingForbid("You don't have permission to view member list of this meeting");
@@ -169,7 +169,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return NotFound();
 
             // Only meeting owner sees all members, other people can only check their own info
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             if (meeting.OwnerId != user.Id && userId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
                 return this.WorkingForbid("You don't have permission to view other people's join status");
@@ -235,7 +235,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var member = await GetMeetingMember(meeting.Id, user.Id);
             if (member == null)
@@ -345,7 +345,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var member = await GetMeetingMember(meeting.Id, user.Id);
             if (member == null)
@@ -406,7 +406,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var poll = await database.MeetingPolls.FindAsync(id, pollId);
 
@@ -469,7 +469,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (await database.Meetings.FirstOrDefaultAsync(m => m.Name == request.Name) != null)
                 return BadRequest("A meeting with that name already exists");
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             var meeting = new Meeting()
             {
@@ -508,7 +508,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser();
+            var user = HttpContext.AuthenticatedUser()!;
 
             if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
                 return this.WorkingForbid("You don't have permission to end this meeting");
@@ -561,7 +561,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<Meeting> GetMeetingWithReadAccess(long id, AssociationResourceAccess access)
+        private async Task<Meeting?> GetMeetingWithReadAccess(long id, AssociationResourceAccess access)
         {
             var meeting = await database.Meetings.FindAsync(id);
 
@@ -572,13 +572,13 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private Task<MeetingMember> GetMeetingMember(long meetingId, long userId)
+        private Task<MeetingMember?> GetMeetingMember(long meetingId, long userId)
         {
             return database.MeetingMembers.FirstOrDefaultAsync(m => m.MeetingId == meetingId && m.UserId == userId);
         }
 
         [NonAction]
-        private Task<MeetingPollVotingRecord> GetPollVotingRecord(long meetingId, long pollId, long userId)
+        private Task<MeetingPollVotingRecord?> GetPollVotingRecord(long meetingId, long pollId, long userId)
         {
             return database.MeetingPollVotingRecords.FirstOrDefaultAsync(r =>
                 r.MeetingId == meetingId && r.PollId == pollId && r.UserId == userId);

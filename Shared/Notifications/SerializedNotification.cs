@@ -76,7 +76,9 @@ namespace ThriveDevCenter.Shared.Notifications
             if (reader.TokenType != JsonTokenType.StartObject)
                 throw new JsonException();
 
-            var result = (SerializedNotification)JsonSerializer.Deserialize(ref reader, type, options);
+            var result = (SerializedNotification?)JsonSerializer.Deserialize(ref reader, type, options);
+            if (result == null)
+                throw new JsonException();
 
             // Read the object end
             reader.Read();

@@ -75,8 +75,8 @@ namespace ThriveDevCenter.Server.Controllers
                 return StatusCode((int)HttpStatusCode.TooManyRequests, "Too many bulk emails have been sent recently");
             }
 
-            var user = HttpContext.AuthenticatedUser();
-            string replyTo = null;
+            var user = HttpContext.AuthenticatedUser()!;
+            string? replyTo = null;
 
             switch (request.ReplyMode)
             {
@@ -150,6 +150,9 @@ namespace ThriveDevCenter.Server.Controllers
             switch (request.RecipientsMode)
             {
                 case BulkEmailRecipientsMode.ManualList:
+                    if (request.ManualRecipients == null)
+                        throw new Exception("Manual recipients list is missing");
+
                     recipients = request.ManualRecipients.Split('\n').Select(r => r.Trim().TrimEnd(','))
                         .Where(r => !string.IsNullOrWhiteSpace(r));
                     break;
@@ -206,7 +209,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private void StartEmailSends(long bulkId, IEnumerable<string> recipients, string replyTo)
+        private void StartEmailSends(long bulkId, IEnumerable<string> recipients, string? replyTo)
         {
             var random = new Random();
 

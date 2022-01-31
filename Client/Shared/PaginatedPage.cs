@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Client.Shared
     ///   Base for paginated pages
     /// </summary>
     public abstract class PaginatedPage<T> : DataPage<T, PagedResult<T>>
-        where T : class, IIdentifiable
+        where T : class, IIdentifiable, new()
     {
         [Parameter]
         public int DefaultPageSize { get; set; } = 25;
@@ -72,6 +72,10 @@ namespace ThriveDevCenter.Client.Shared
 
         protected override async Task SingleItemUpdateReceived(T updatedItem)
         {
+            // Update arrived before we loaded our data
+            if (Data == null)
+                return;
+
             for (int i = 0; i < Data.Results.Length; ++i)
             {
                 if (Data.Results[i].Id == updatedItem.Id)

@@ -234,28 +234,24 @@
     private bool multiColumnView = true;
 
     private SiteNoticeType topStatusType = SiteNoticeType.Info;
-    private string topStatus;
+    private string? topStatus;
 
     private SiteNoticeType bottomStatusType = SiteNoticeType.Info;
-    private string bottomStatus;
+    private string? bottomStatus;
 
     private bool reprocessingFile;
 
     private bool fetchingDuplicates;
-    private List<long> duplicates;
+    private List<long>? duplicates;
     private bool showAllDuplicates;
 
     private bool fetchingLogs;
-    private string logs;
+    private string? logs;
 
     private bool fetchingCrashDump;
-    private string crashDump;
+    private string? crashDump;
 
-
-    [Parameter]
-    public string FileBrowserPath { get; set; }
-
-    protected override Task<CrashReportDTO> StartQuery()
+    protected override Task<CrashReportDTO?> StartQuery()
     {
         return http.GetFromJsonAsync<CrashReportDTO>($"api/v1/CrashReport/{Id}");
     }
@@ -400,7 +396,7 @@
 
     private Tuple<string, object> GetDescriptionSaveRequest(string newDescription)
     {
-        var result = (CrashReportDTO)Data.Clone();
+        var result = (CrashReportDTO)Data!.Clone();
         result.Description = newDescription;
 
         return new Tuple<string, object>($"api/v1/CrashReport/{Id}", result);
