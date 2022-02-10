@@ -93,6 +93,20 @@ namespace ThriveDevCenter.Server.Models
         [NotMapped]
         public string? StoreOrVersion => Store ?? Version;
 
+        public void UpdateProcessedDumpIfChanged(string newDump, string? primaryCallstack, string? condensedCallstack)
+        {
+            if (newDump == WholeCrashDump && PrimaryCallstack == primaryCallstack &&
+                CondensedCallstack == condensedCallstack)
+            {
+                return;
+            }
+
+            WholeCrashDump = newDump;
+            PrimaryCallstack = primaryCallstack;
+            CondensedCallstack = condensedCallstack;
+            this.BumpUpdatedAt();
+        }
+
         public CrashReportInfo GetInfo()
         {
             return new()

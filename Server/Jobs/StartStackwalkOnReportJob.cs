@@ -108,19 +108,13 @@ namespace ThriveDevCenter.Server.Jobs
             if (string.IsNullOrWhiteSpace(result))
                 result = "Resulting decoded crash dump is empty";
 
-            report.WholeCrashDump = result;
-            report.PrimaryCallstack = primaryCallstack;
-            report.CondensedCallstack = condensedCallstack;
-            report.BumpUpdatedAt();
+            report.UpdateProcessedDumpIfChanged(result, primaryCallstack, condensedCallstack);
 
             await database.SaveChangesWithConflictResolvingAsync(
                 conflictEntries =>
                 {
                     DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
-                    report.WholeCrashDump = result;
-                    report.PrimaryCallstack = primaryCallstack;
-                    report.CondensedCallstack = condensedCallstack;
-                    report.BumpUpdatedAt();
+                    report.UpdateProcessedDumpIfChanged(result, primaryCallstack, condensedCallstack);
                 }, cancellationToken);
 
             jobClient.Schedule<CheckCrashReportDuplicatesJob>(x => x.Execute(report.Id, CancellationToken.None),
