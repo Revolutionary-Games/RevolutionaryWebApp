@@ -39,6 +39,12 @@ else
     @if (shownFile != null)
     {
         <ItemSideBar Item="@shownFile" PreventClose="@ShouldShowUploaderOverlay" />
+
+        <DevCenterTitle>File @shownFile.Name</DevCenterTitle>
+    }
+    else
+    {
+        <DevCenterTitle>Files at "/@(FileBrowserPath ?? string.Empty)"</DevCenterTitle>
     }
 
     <div class="block-container" @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave">

@@ -72,6 +72,24 @@
         <br />
 
         <h4>Artifacts</h4>
+
+
+        @* TODO: would be pretty cool to change the favicon based on the job status *@
+        @if (Data.State == CIJobState.Finished)
+        {
+            @if (Data.Succeeded)
+            {
+                <DevCenterTitle>Succeeded @NameSuffix</DevCenterTitle>
+            }
+            else
+            {
+                <DevCenterTitle>FAILED @NameSuffix</DevCenterTitle>
+            }
+        }
+        else
+        {
+            <DevCenterTitle>Running @NameSuffix</DevCenterTitle>
+        }
     }
 </SingleResourceDisplayer>
 
@@ -85,6 +103,9 @@
 
     [Parameter]
     public long BuildId { get; set; }
+
+    private string NameSuffix => Data != null ? $"Job {Data.CiBuildId}-{Data.CiJobId} for {Data.ProjectName}" :
+        "Loading Job Info";
 
     protected override Task<CIJobDTO?> StartQuery()
     {

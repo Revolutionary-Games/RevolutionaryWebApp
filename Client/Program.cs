@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Client
     using Blazored.Modal;
     using BlazorPro.BlazorSize;
     using Microsoft.AspNetCore.Components;
+    using Microsoft.AspNetCore.Components.Web;
     using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.JSInterop;
@@ -26,6 +27,8 @@ namespace ThriveDevCenter.Client
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (!AppInfo.UsePrerendering)
                 builder.RootComponents.Add<App>("#app");
+
+            builder.RootComponents.Add<HeadOutlet>("head::after");
 
             builder.Services.AddModules(moduleHostBuilder =>
             {

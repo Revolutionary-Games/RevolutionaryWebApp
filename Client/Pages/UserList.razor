@@ -14,15 +14,15 @@
 
 <h3>Users</h3>
 
-@if (!string.IsNullOrEmpty(Error))
-{
-    <div class="alert alert-danger" role="alert">
-        @Error
-    </div>
-}
-else
-{
-    <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="true">
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                         OnPageChanged="async (e) => await ChangePage(e)"
                         OnSortChanged="async (column) => await ChangeSort(column)"
@@ -47,8 +47,10 @@ else
                 }
             }
         </PaginatedTable>
-    </AccessLimited>
-}
+    }
+
+    <DevCenterTitle>Users</DevCenterTitle>
+</AccessLimited>
 
 @code {
     private readonly List<TableColumn> columns = new()
