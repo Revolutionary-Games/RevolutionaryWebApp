@@ -252,11 +252,11 @@ namespace ThriveDevCenter.Server.Controllers
 
             symbol.BumpUpdatedAt();
 
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"DebugSymbol {symbol.Id} edited",
 
-                // TODO: there could be an extra info property where the description is stored
+                // TODO: there could be an extra info property where the description of the edit is stored
                 PerformedById = user.Id,
             });
 
