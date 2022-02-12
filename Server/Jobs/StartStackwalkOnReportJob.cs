@@ -9,7 +9,6 @@ namespace ThriveDevCenter.Server.Jobs
     using Microsoft.Extensions.Logging;
     using Models;
     using Services;
-    using Shared.Models;
     using Utilities;
 
     [DisableConcurrentExecution(1000)]

@@ -185,6 +185,34 @@
 
                     </AccessMissingContent>
                 </AccessLimited>
+
+                <StatusMessageShower Type="@emailStatusType" Message="@emailStatus" />
+
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Admin">
+
+                    @if (showReporterEmail)
+                    {
+                        <Button ButtonStyle="secondary" OnPressed="@(() => showReporterEmail = false)">
+                            Hide Reporter Email
+                        </Button>
+
+                        <p>@(reporterEmail)</p>
+                    }
+                    else
+                    {
+                        <Button ButtonStyle="secondary" Enabled="@(!fetchingEmail)" class="mr-2"
+                                Spinner="@fetchingEmail" OnPressed="@(async () => await FetchReporterEmail())">
+                            Show Reporter Email
+                        </Button>
+                    }
+
+                    @* If the email showing is changed to be developer only, this will still need to be admin only *@
+                    <Button ButtonStyle="danger" Enabled="@(!deletingEmail && !fetchingEmail)"
+                            Spinner="@deletingEmail" OnPressed="@(async () => await DeleteReporterEmail())">
+                        Delete Reporter Email
+                    </Button>
+
+                </AccessLimited>
             </div>
 
             <div class="@($"{ViewColumnClass()} overflow-auto")">
@@ -241,6 +269,9 @@
     private SiteNoticeType bottomStatusType = SiteNoticeType.Info;
     private string? bottomStatus;
 
+    private SiteNoticeType emailStatusType = SiteNoticeType.Info;
+    private string? emailStatus;
+
     private bool reprocessingFile;
 
     private bool fetchingDuplicates;
@@ -252,6 +283,11 @@
 
     private bool fetchingCrashDump;
     private string? crashDump;
+
+    private bool showReporterEmail;
+    private bool fetchingEmail;
+    private string reporterEmail = string.Empty;
+    private bool deletingEmail;
 
     protected override Task<CrashReportDTO?> StartQuery()
     {
@@ -273,6 +309,9 @@
         await notificationHandler.Register(this);
 
         var tasks = new List<Task> { FetchDuplicates() };
+
+        showReporterEmail = false;
+        fetchingEmail = false;
 
         if (currentUserInfo.IsDeveloper)
         {
@@ -422,5 +461,66 @@
             return "max-width: 900px;";
 
         return string.Empty;
+    }
+
+    private async Task FetchReporterEmail()
+    {
+        fetchingEmail = true;
+        emailStatus = null;
+        emailStatusType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            reporterEmail = await http.GetStringAsync($"api/v1/CrashReport/{Id}/reporterEmail");
+        }
+        catch (HttpRequestException e)
+        {
+            reporterEmail = "error";
+            bottomStatus = $"Network request failed: {e.Message}";
+        }
+
+        fetchingEmail = false;
+        showReporterEmail = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteReporterEmail()
+    {
+        deletingEmail = true;
+        emailStatus = null;
+        emailStatusType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/CrashReport/{Id}/reporterEmail");
+        }
+        catch (HttpRequestException e)
+        {
+            emailStatus = $"Network request failed: {e.Message}";
+            deletingEmail = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        deletingEmail = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            emailStatus = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            emailStatus = "Reporter email cleared";
+            showReporterEmail = false;
+            emailStatusType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }

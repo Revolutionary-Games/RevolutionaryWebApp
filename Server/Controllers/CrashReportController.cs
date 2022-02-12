@@ -181,7 +181,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"Report {report.Id} crash dump reprocessing requested",
-                PerformedById = HttpContext.AuthenticatedUser()!.Id,
+                PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
             });
 
             await database.SaveChangesAsync();
@@ -218,6 +218,58 @@ namespace ThriveDevCenter.Server.Controllers
             return results.Select(r => r.Id).ToList();
         }
 
+        // For now just admin access to the email
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpGet("{id:long}/reporterEmail")]
+        public async Task<ActionResult<string>> GetReporterEmail([Required] long id)
+        {
+            var report = await WithoutLogs(database.CrashReports).Where(r => r.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (report == null)
+                return NotFound();
+
+            return report.ReporterEmail ?? "No reporter email known";
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        [HttpDelete("{id:long}/reporterEmail")]
+        public async Task<IActionResult> ClearReporterEmail([Required] long id)
+        {
+            var report = await database.CrashReports.FindAsync(id);
+
+            if (report == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUserOrThrow();
+
+            if (report.ReporterEmail == null)
+                return Ok("Reporter email was not set");
+
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"Crash report {report.Id} reporter email cleared",
+
+                // TODO: there could be an extra info property where the description is stored
+                PerformedById = user.Id,
+            });
+
+            report.ReporterEmail = null;
+            report.BumpUpdatedAt();
+
+            await database.SaveChangesWithConflictResolvingAsync(
+                conflictEntries =>
+                {
+                    DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
+                    report.ReporterEmail = null;
+                    report.BumpUpdatedAt();
+                }, CancellationToken.None);
+
+            logger.LogInformation("Crash report {Id} reporter email cleared by {Email}", report.Id,
+                user.Email);
+            return Ok();
+        }
+
         [HttpPut("{id:long}")]
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
         public async Task<IActionResult> UpdateSingle([Required] long id, [Required] [FromBody] CrashReportDTO request)
@@ -227,7 +279,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (report == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser()!;
+            var user = HttpContext.AuthenticatedUserOrThrow();
 
             var (changes, description, fields) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(report, request);
 
@@ -271,7 +323,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (report == null)
                 return NotFound();
 
-            var user = HttpContext.AuthenticatedUser()!;
+            var user = HttpContext.AuthenticatedUserOrThrow();
 
             // And then delete the report itself, there may be a leftover dump delete job for the report but that will
             // only cause a warning
@@ -522,6 +574,7 @@ namespace ThriveDevCenter.Server.Controllers
                         DescriptionLastEdited = c.DescriptionLastEdited,
                         DescriptionLastEditedById = c.DescriptionLastEditedById,
                         DeleteKey = c.DeleteKey,
+                        ReporterEmail = c.ReporterEmail,
                     });
             }
 
@@ -547,6 +600,7 @@ namespace ThriveDevCenter.Server.Controllers
                     DescriptionLastEdited = c.DescriptionLastEdited,
                     DescriptionLastEditedById = c.DescriptionLastEditedById,
                     DeleteKey = c.DeleteKey,
+                    ReporterEmail = c.ReporterEmail,
                 });
         }
     }
