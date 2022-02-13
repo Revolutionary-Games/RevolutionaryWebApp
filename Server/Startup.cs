@@ -198,6 +198,8 @@ namespace ThriveDevCenter.Server
             services.AddScoped<ICLAExemptions, CLAExemptions>();
             services.AddScoped<IStackwalk, Stackwalk>();
             services.AddScoped<IStackwalkSymbolPreparer, StackwalkSymbolPreparer>();
+            services.AddScoped<BackupStorage>();
+            services.AddScoped<BackupHandler>();
 
             // Prefer the queue sender to not make operations wait for emails to be sent
             services.AddScoped<IMailSender, MailSender>();

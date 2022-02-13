@@ -126,4 +126,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class SessionListUpdated : ListUpdated<SessionDTO>
     {
     }
+
+    public class BackupListUpdated : ListUpdated<BackupDTO>
+    {
+    }
 }

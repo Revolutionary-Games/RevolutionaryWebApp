@@ -1,0 +1,337 @@
+@page "/admin/backup"
+@inject HttpClient http
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject ComponentUrlHelper urlHelper
+@inject NotificationHandler notificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<BackupListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.BackupDTO>
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <h3>Backups</h3>
+
+    <StatusMessageShower Message="@topStatusMessage" Type="@topStatusMessageType"/>
+
+    <div>
+        Status:
+        @if (fetchingBackupStatus)
+        {
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        }
+        else
+        {
+            if (backupsEnabled)
+            {
+                <span>Enabled</span>
+            }
+            else
+            {
+                <span class="badge badge-danger">Disabled</span>
+            }
+        }
+    </div>
+
+    <h4 class="mt-2">Existing Backups</h4>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async (e) => await ChangePage(e)"
+                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound"
+                        UseNonFixedColumns="@true">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        <td>@item.Name</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>
+                            <Button Enabled="@CanDelete(item)"
+                                    OnPressed="@(async () => await DownloadBackup(item.Id))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="primary"
+                                    class="btn-sm mr-1">
+                                Download
+                            </Button>
+                            <Button Enabled="@CanDelete(item)"
+                                    OnPressed="@(async () => await VerifyDeleteBackup(item))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="danger"
+                                    class="btn-sm">
+                                Delete
+                            </Button>
+                        </td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    }
+
+    <h4 class="mt-3">Actions</h4>
+
+    <StatusMessageShower Message="@bottomStatusMessage" Type="@bottomStatusMessageType" />
+
+    <Button Enabled="@(!creatingBackup && backupsEnabled)" Spinner="@creatingBackup" ButtonStyle="primary"
+            OnPressed="@(async () => await CreateBackup())">
+        Backup Now
+    </Button>
+
+    <p class="mt-1">
+        Manual backups should only be necessary to make when potentially doing dangerous things like updating the
+        database. Scheduled backups should be good enough for everything else. See the top of this page if they
+        are enabled.
+    </p>
+
+    <DevCenterTitle>Backups</DevCenterTitle>
+
+</AccessLimited>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Actions", false)
+    };
+
+    private readonly Dictionary<long, bool> processingItems = new();
+
+    private bool fetchingBackupStatus;
+    private bool backupsEnabled;
+    private string? topStatusMessage;
+    private SiteNoticeType topStatusMessageType = SiteNoticeType.Info;
+
+    private bool creatingBackup;
+    private string? bottomStatusMessage;
+    private SiteNoticeType bottomStatusMessageType = SiteNoticeType.Info;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    public Backups() : base(new SortHelper("CreatedAt", SortDirection.Descending))
+    {
+        DefaultPageSize = 100;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await notificationHandler.Register(this);
+        await base.OnInitializedAsync();
+        await GetBackupsEnabledStatus();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(navManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(BackupListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.BackupListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await notificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<BackupDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return http.GetFromJsonAsync<PagedResult<BackupDTO>>(
+            QueryHelpers.AddQueryString("api/v1/Backup", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private async Task GetBackupsEnabledStatus()
+    {
+        fetchingBackupStatus = true;
+        topStatusMessage = null;
+        topStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            backupsEnabled = await http.GetFromJsonAsync<bool>("api/v1/Backup/status");
+        }
+        catch (HttpRequestException e)
+        {
+            topStatusMessage = $"Network request failed: {e.Message}";
+            backupsEnabled = false;
+        }
+
+        fetchingBackupStatus = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool CanDelete(BackupDTO backup)
+    {
+        if (fetchingBackupStatus || !backupsEnabled)
+            return false;
+
+        return !IsProcessing(backup.Id);
+    }
+
+    private bool IsProcessing(long backupId)
+    {
+        return processingItems.GetValueOrDefault(backupId, false);
+    }
+
+    private async Task VerifyDeleteBackup(BackupDTO server)
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmDelete.Name), server.Name);
+
+        var modal = Modal.Show<ConfirmDelete>("Delete this backup?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await PerformDelete(server.Id);
+    }
+
+    private async Task PerformDelete(long backupId)
+    {
+        processingItems[backupId] = true;
+        topStatusMessage = null;
+        topStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.DeleteAsync($"api/v1/Backups/{backupId}");
+        }
+        catch (HttpRequestException e)
+        {
+            topStatusMessage = $"Network request failed: {e.Message}";
+            processingItems[backupId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingItems[backupId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            topStatusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            topStatusMessage = "Backup successfully deleted";
+            topStatusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DownloadBackup(long backupId)
+    {
+        processingItems[backupId] = true;
+        topStatusMessage = null;
+        topStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/Backups/{backupId}/download", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            topStatusMessage = $"Network request failed: {e.Message}";
+            processingItems[backupId] = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        processingItems[backupId] = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            topStatusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            topStatusMessage = "Download URL received, beginning download in one second...";
+            topStatusMessageType = SiteNoticeType.Info;
+            await InvokeAsync(StateHasChanged);
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            navManager.NavigateTo(content, true);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CreateBackup()
+    {
+        creatingBackup = true;
+        bottomStatusMessage = null;
+        bottomStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/Backups", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            bottomStatusMessage = $"Network request failed: {e.Message}";
+            creatingBackup = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        creatingBackup = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            bottomStatusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            bottomStatusMessage = "Backup has been started. It should complete in a few minutes.";
+            bottomStatusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

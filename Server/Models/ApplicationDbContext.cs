@@ -59,6 +59,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<CrashReport> CrashReports { get; set; } = null!;
         public DbSet<StackwalkTask> StackwalkTasks { get; set; } = null!;
         public DbSet<DebugSymbol> DebugSymbols { get; set; } = null!;
+        public DbSet<Backup> Backups { get; set; } = null!;
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save

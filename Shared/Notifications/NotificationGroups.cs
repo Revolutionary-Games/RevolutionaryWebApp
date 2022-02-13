@@ -74,6 +74,8 @@ namespace ThriveDevCenter.Shared.Notifications
 
         public const string SymbolListUpdated = "Symbol";
 
+        public const string BackupListUpdated = "Backup";
+
         /// <summary>
         ///   The client doesn't know their session ID so this is used as-is on the client but with a suffix on the
         ///   server side
