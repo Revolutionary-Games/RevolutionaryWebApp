@@ -37,8 +37,8 @@ namespace ThriveDevCenter.Server.Controllers
             this.notifications = notifications;
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         [HttpGet]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<PagedResult<UserInfo>> Get([Required] string sortColumn,
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
             [Required] [Range(1, 100)] int pageSize)
@@ -52,7 +52,7 @@ namespace ThriveDevCenter.Server.Controllers
             catch (ArgumentException e)
             {
                 logger.LogWarning("Invalid requested order: {@E}", e);
-                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+                throw new HttpResponseException { Value = "Invalid data selection or sort" };
             }
 
             var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -61,8 +61,8 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.ConvertResult(i => i.GetInfo(RecordAccessLevel.Admin));
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         [HttpGet("{id:long}")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         public async Task<ActionResult<UserInfo>> GetUser([Required] long id)
         {
             bool admin =
@@ -82,8 +82,9 @@ namespace ThriveDevCenter.Server.Controllers
 
         // TODO: should this be allowed for non-logged in users so that the uploader names in public folder items
         // could be shown?
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+
         [HttpPost("usernames")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
         {
             var users = await database.Users.Where(u => ids.Contains(u.Id))
@@ -108,8 +109,8 @@ namespace ThriveDevCenter.Server.Controllers
             return result;
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         [HttpPut("{id:long}/association")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<IActionResult> UpdateUserAssociationStatus([Required] long id,
             [Required] [FromBody] AssociationStatusUpdateForm request)
         {
@@ -153,8 +154,8 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         [HttpGet("{id:long}/sessions")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         public async Task<ActionResult<PagedResult<SessionDTO>>> GetUserSessions([Required] long id,
             [Required] string sortColumn,
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -192,8 +193,8 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.ConvertResult(i => i.GetDTO(i.Id == requestSession?.Id));
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         [HttpDelete("{id:long}/sessions")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteAllUserSessions([Required] long id)
         {
             bool admin =
@@ -236,8 +237,8 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         [HttpDelete("{id:long}/otherSessions")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteOtherUserSessions([Required] long id)
         {
             var user = await database.Users.FindAsync(id);
@@ -271,8 +272,8 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         [HttpDelete("{id:long}/sessions/{sessionId:long}")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
         public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteSpecificUserSession([Required] long id,
             [Required] long sessionId)
         {
