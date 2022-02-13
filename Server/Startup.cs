@@ -382,6 +382,7 @@ namespace ThriveDevCenter.Server
                 configurationSection["DeleteAbandonedInProgressCLASignatures"]);
             AddJobHelper<DeleteStackwalkToolResultsJob>(configurationSection["DeleteStackwalkToolResults"]);
             AddJobHelper<DeleteOldDisabledSymbolsJob>(configurationSection["DeleteOldDisabledSymbols"]);
+            AddJobHelper<CreateBackupJob>(configurationSection["CreateBackup"]);
 
             BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

@@ -3,8 +3,8 @@ namespace ThriveDevCenter.Client.Shared
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Components;
     using ThriveDevCenter.Shared;
-    using ThriveDevCenter.Shared.Converters;
     using ThriveDevCenter.Shared.Models;
+    using ThriveDevCenter.Shared.Utilities;
 
     public abstract class BaseFileBrowser<T> : PaginatedPage<T>
         where T : class, IIdentifiable, new()

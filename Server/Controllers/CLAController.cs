@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Controllers
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.IO;
     using System.Linq;
     using System.Text;
     using System.Threading;
@@ -655,8 +656,9 @@ namespace ThriveDevCenter.Server.Controllers
                 }, CancellationToken.None);
 
             // Upload the signature to remote storage
-            await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath, signedDocumentText,
-                AppInfo.MarkdownMimeType);
+            await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath,
+                new MemoryStream(Encoding.UTF8.GetBytes(signedDocumentText)),
+                AppInfo.MarkdownMimeType, CancellationToken.None);
 
             // Delete the in-progress signature
             database.InProgressClaSignatures.Remove(signature);

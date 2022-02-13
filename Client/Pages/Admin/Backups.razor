@@ -38,7 +38,7 @@
         }
     </div>
 
-    <h4 class="mt-2">Existing Backups</h4>
+    <h4 class="mt-3">Existing Backups</h4>
 
     @if (!string.IsNullOrEmpty(Error))
     {
@@ -92,7 +92,7 @@
         Backup Now
     </Button>
 
-    <p class="mt-1">
+    <p class="mt-2">
         Manual backups should only be necessary to make when potentially doing dangerous things like updating the
         database. Scheduled backups should be good enough for everything else. See the top of this page if they
         are enabled.
@@ -112,7 +112,7 @@
 
     private readonly Dictionary<long, bool> processingItems = new();
 
-    private bool fetchingBackupStatus;
+    private bool fetchingBackupStatus = true;
     private bool backupsEnabled;
     private string? topStatusMessage;
     private SiteNoticeType topStatusMessageType = SiteNoticeType.Info;
@@ -230,7 +230,7 @@
 
         try
         {
-            result = await http.DeleteAsync($"api/v1/Backups/{backupId}");
+            result = await http.DeleteAsync($"api/v1/Backup/{backupId}");
         }
         catch (HttpRequestException e)
         {
@@ -267,7 +267,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/Backups/{backupId}/download", new StringContent(string.Empty));
+            result = await http.PostAsync($"api/v1/Backup/{backupId}/download", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {
@@ -309,7 +309,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/Backups", new StringContent(string.Empty));
+            result = await http.PostAsync($"api/v1/Backup", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {

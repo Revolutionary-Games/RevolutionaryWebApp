@@ -5,10 +5,14 @@ namespace ThriveDevCenter.Server.Controllers;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Hangfire;
+using Jobs;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
@@ -23,13 +27,15 @@ public class BackupController : Controller
     private readonly ILogger<BackupController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly BackupHandler backupHandler;
+    private readonly IBackgroundJobClient jobClient;
 
     public BackupController(ILogger<BackupController> logger, NotificationsEnabledDb database,
-        BackupHandler backupHandler)
+        BackupHandler backupHandler, IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.database = database;
         this.backupHandler = backupHandler;
+        this.jobClient = jobClient;
     }
 
     [HttpGet]
@@ -131,6 +137,40 @@ public class BackupController : Controller
         logger.LogInformation("Backup {Name} deleted by {Email}", backup.Name, user.Email);
 
         await database.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    [HttpPost]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<string>> StartNew()
+    {
+        if (!IsConfigured())
+            return Problem("Backups not configured on the server");
+
+        var recentCutoff = DateTime.UtcNow - TimeSpan.FromDays(1);
+
+        var backups = await database.Backups.Where(b => b.CreatedAt > recentCutoff).CountAsync();
+
+        // TODO: there is a bit bigger than usual window for a timing exploit as we just queue the job and it won't
+        // check again how many recent backups there are
+
+        if (backups >= 5)
+            return BadRequest("There are too many recent backups");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        await database.AdminActions.AddAsync(new AdminAction()
+        {
+            Message = $"Manual backup triggered",
+            PerformedById = user.Id,
+        });
+
+        logger.LogInformation("New backup triggered by {Email}", user.Email);
+
+        await database.SaveChangesAsync();
+
+        jobClient.Enqueue<CreateBackupJob>(x => x.Execute(CancellationToken.None));
 
         return Ok();
     }

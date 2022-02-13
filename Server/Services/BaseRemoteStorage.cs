@@ -182,7 +182,7 @@ namespace ThriveDevCenter.Server.Services
             return parts;
         }
 
-        public Task UploadFile(string path, string data, string contentType)
+        public Task UploadText(string path, string data)
         {
             ThrowIfNotConfigured();
 
@@ -191,8 +191,20 @@ namespace ThriveDevCenter.Server.Services
                 BucketName = bucket,
                 Key = path,
                 ContentBody = data,
-                ContentType = contentType,
             });
+        }
+
+        public Task UploadFile(string path, Stream data, string contentType, CancellationToken cancellationToken)
+        {
+            ThrowIfNotConfigured();
+
+            return s3Client!.PutObjectAsync(new PutObjectRequest()
+            {
+                BucketName = bucket,
+                Key = path,
+                InputStream = data,
+                ContentType = contentType,
+            }, cancellationToken);
         }
 
         public string CreatePreSignedDownloadURL(string path, TimeSpan expiresIn)
@@ -284,6 +296,50 @@ namespace ThriveDevCenter.Server.Services
             if (deleteResult.HttpStatusCode != HttpStatusCode.NoContent &&
                 deleteResult.HttpStatusCode != HttpStatusCode.OK)
                 throw new Exception($"s3 object delete failed, status: {deleteResult.HttpStatusCode}");
+        }
+
+        public async Task<IEnumerable<string>> ListFirstThousandFiles(CancellationToken cancellationToken)
+        {
+            ThrowIfNotConfigured();
+
+            var response = await s3Client!.ListObjectsAsync(new ListObjectsRequest()
+            {
+                BucketName = bucket,
+            }, cancellationToken);
+
+            return response.S3Objects.Select(o => o.Key);
+        }
+
+        /// <summary>
+        ///   Lists all files in a bucket. Note that this uses the list V2 API and may not be supported
+        /// </summary>
+        /// <param name="cancellationToken">Can be used to cancel</param>
+        /// <returns>List of existing object paths</returns>
+        public async Task<IEnumerable<string>> ListAllFiles(CancellationToken cancellationToken)
+        {
+            ThrowIfNotConfigured();
+
+            var files = new List<string>();
+
+            string? nextContinuationToken = null;
+
+            ListObjectsV2Response response;
+
+            do
+            {
+                response = await s3Client!.ListObjectsV2Async(new ListObjectsV2Request()
+                {
+                    BucketName = bucket,
+                    ContinuationToken = nextContinuationToken,
+                }, cancellationToken);
+
+                files.AddRange(response.S3Objects.Select(o => o.Key));
+
+                nextContinuationToken = response.NextContinuationToken;
+            }
+            while (response.IsTruncated);
+
+            return files;
         }
 
         public async Task<string> ComputeSha256OfObject(string path)
@@ -408,7 +464,9 @@ namespace ThriveDevCenter.Server.Services
         bool Configured { get; }
         Task<bool> BucketExists();
         string CreatePresignedUploadURL(string path, TimeSpan expiresIn);
-        Task UploadFile(string path, string data, string contentType);
+        Task UploadText(string path, string data);
+        Task UploadFile(string path, Stream data, string contentType, CancellationToken cancellationToken);
+
         string CreatePreSignedDownloadURL(string path, TimeSpan expiresIn);
         string CreatePresignedPostURL(string path, string mimeType, TimeSpan expiresIn);
         Task<long> GetObjectSize(string path);

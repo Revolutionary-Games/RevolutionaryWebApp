@@ -51,7 +51,8 @@ buckets need the following kind of permissions:
       "Effect": "Allow",
       "Action": [
         "s3:ListMultipartUploadParts",
-        "s3:ListBucketMultipartUploads"
+        "s3:ListBucketMultipartUploads",
+        "s3:ListBucket"
       ],
       "Resource": [
         "arn:aws:s3:::bucket-name"
@@ -330,6 +331,21 @@ edit the client `.csproj` to include:
 ```
 
 Note that this increases the app download size but should help performance.
+
+### Backups
+
+Backups can be configured to be stored in S3. They will contain a
+database dump and redis data.
+
+For database dumping `pg_dump` needs to be installed.
+
+For redis, the user running ThriveDevCenter needs to be in the redis
+group or some other way read access needs to be arranged to the redis
+state file.
+
+```sh
+usermod -a -G redis thrivedevcenter
+```
 
 ## Maintenance
 

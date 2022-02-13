@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Converters
+namespace ThriveDevCenter.Shared.Utilities
 {
     using System.Linq;
 
