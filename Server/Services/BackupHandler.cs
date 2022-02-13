@@ -46,6 +46,7 @@ public class BackupHandler
         includeBlobs = Convert.ToBoolean(configuration["Backup:IncludeBlobs"]);
         backupsToKeep = Convert.ToInt32(configuration["Backup:BackupsToKeep"]);
         cleanBucket = Convert.ToBoolean(configuration["Backup:CleanBucketFromExtraFiles"]);
+        UseXZCompression = Convert.ToBoolean(configuration["Backup:UseXZCompression"]);
         redisPath = configuration["Backup:RedisPath"];
 
         // TODO: allow skipping redis
@@ -62,6 +63,8 @@ public class BackupHandler
     }
 
     public bool Configured { get; init; }
+
+    public bool UseXZCompression { get; init; }
 
     public string GetDownloadUrlForBackup(Backup backup, TimeSpan? expiresIn = null)
     {
@@ -85,7 +88,8 @@ public class BackupHandler
         ThrowIfNotConfigured();
 
         logger.LogInformation("Uploading backup {Name}", backup.Name);
-        return storage.UploadFile(backup.Name, File.OpenRead(backupFile), AppInfo.TarXZMimeType, cancellationToken);
+        return storage.UploadFile(backup.Name, File.OpenRead(backupFile),
+            UseXZCompression ? AppInfo.TarXZMimeType : AppInfo.TarGZMimeType, cancellationToken);
     }
 
     public async Task DeleteExcessBackups(ApplicationDbContext database, CancellationToken cancellationToken,
@@ -163,7 +167,7 @@ public class BackupHandler
             throw new Exception($"pg_dump failed with code {result.ExitCode}, output: {result.FullOutput}");
     }
 
-    public async Task CreateBackupTarXZFile(string backupFile, string databaseFileName,
+    public async Task CreateBackupTarFile(string backupFile, string databaseFileName,
         CancellationToken cancellationToken)
     {
         var tar = ExecutableFinder.Which("tar");
@@ -182,8 +186,11 @@ public class BackupHandler
             WorkingDirectory = PathParser.GetParentPath(backupFile),
         };
 
-        startInfo.ArgumentList.Add("-cJf");
+        startInfo.ArgumentList.Add("-cf");
         startInfo.ArgumentList.Add(backupFile);
+
+        startInfo.ArgumentList.Add(UseXZCompression ? "-J" : "-z");
+
         startInfo.ArgumentList.Add(databaseFileName);
 
         if (!string.IsNullOrEmpty(redisPath))

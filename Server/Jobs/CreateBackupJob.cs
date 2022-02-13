@@ -39,7 +39,7 @@ public class CreateBackupJob : IJob
             return;
         }
 
-        var backup = new Backup(Backup.CreateBackupName(), -1);
+        var backup = new Backup(Backup.CreateBackupName(backupHandler.UseXZCompression), -1);
         await database.Backups.AddAsync(backup, cancellationToken);
 
         var dbWrite = database.SaveChangesAsync(cancellationToken);
@@ -56,6 +56,8 @@ public class CreateBackupJob : IJob
 
             Directory.CreateDirectory(backupFolder);
 
+            var start = DateTime.UtcNow;
+
             logger.LogTrace("Dumping database");
             await backupHandler.DumpDatabaseToFile(databaseFile, cancellationToken);
 
@@ -63,11 +65,13 @@ public class CreateBackupJob : IJob
             logger.LogTrace("Creating tar from db and redis");
 
             // Full path is not used here to make the created tar file work better
-            await backupHandler.CreateBackupTarXZFile(backupFile, dbBackupFileName, cancellationToken);
+            await backupHandler.CreateBackupTarFile(backupFile, dbBackupFileName, cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
 
             backup.Size = new FileInfo(backupFile).Length;
+
+            logger.LogInformation("Backup file creation took {Duration}", DateTime.UtcNow - start);
 
             await backupHandler.UploadBackup(backup, backupFile, cancellationToken);
 

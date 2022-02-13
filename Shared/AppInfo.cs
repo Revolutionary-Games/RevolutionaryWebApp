@@ -38,6 +38,7 @@ namespace ThriveDevCenter.Shared
 
         public const string MarkdownMimeType = "text/markdown; charset=UTF-8";
         public const string TarXZMimeType = "application/x-xz";
+        public const string TarGZMimeType = "application/gzip";
 
         public const int APITokenByteCount = 34;
         public const int SsoNonceLength = 32;

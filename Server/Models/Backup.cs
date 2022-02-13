@@ -24,11 +24,11 @@ public class Backup : UpdateableModel, IUpdateNotifications
 
     public bool Uploaded { get; set; }
 
-    public static string CreateBackupName(DateTime? time = null)
+    public static string CreateBackupName(bool xz, DateTime? time = null)
     {
         time ??= DateTime.UtcNow;
 
-        return "ThriveDevCenter-Backup_" + time.Value.ToString("O") + ".tar.xz";
+        return "ThriveDevCenter-Backup_" + time.Value.ToString("O") + (xz ? ".tar.xz" : ".tar.gz");
     }
 
     public BackupDTO GetDTO()
