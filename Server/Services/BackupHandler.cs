@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Services;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -25,6 +26,7 @@ public class BackupHandler
     private readonly string? redisPath;
     private readonly bool includeBlobs;
     private readonly string? databaseConnectionString;
+    private readonly bool cleanBucket;
 
     public BackupHandler(ILogger<BackupHandler> logger, IConfiguration configuration, BackupStorage storage)
     {
@@ -43,6 +45,7 @@ public class BackupHandler
 
         includeBlobs = Convert.ToBoolean(configuration["Backup:IncludeBlobs"]);
         backupsToKeep = Convert.ToInt32(configuration["Backup:BackupsToKeep"]);
+        cleanBucket = Convert.ToBoolean(configuration["Backup:CleanBucketFromExtraFiles"]);
         redisPath = configuration["Backup:RedisPath"];
 
         // TODO: allow skipping redis
@@ -97,55 +100,16 @@ public class BackupHandler
         // Detect what items to remove
         var backupsThatShouldExist = allBackups.Take(backupsToKeep).ToDictionary(i => i.Name, i => i);
 
-        int deletedBackups = 0;
-        int deletedStorageItems = 0;
-
-        foreach (var backup in allBackups)
+        if (cleanBucket)
         {
-            if (backupsThatShouldExist.ContainsKey(backup.Name))
-                continue;
-
-            logger.LogInformation("Deleting backup {Name} to get under the limit of {BackupsToKeep}", backup.Name,
-                backupsToKeep);
-
-            database.Backups.Remove(backup);
-            ++deletedBackups;
-
-            if (deletedBackups >= maxBackupsToClear)
-                break;
+            await DeleteWithBucketCleaning(database, cancellationToken, maxBackupsToClear, allBackups,
+                backupsThatShouldExist);
         }
-
-        await database.SaveChangesAsync(cancellationToken);
-
-        var existing = await storage.ListAllFiles(cancellationToken);
-
-        foreach (var existingPath in existing)
+        else
         {
-            // Don't touch things if there's accidentally something else in the bucket
-            if (!existingPath.StartsWith("ThriveDevCenter"))
-                continue;
-
-            if (!backupsThatShouldExist.ContainsKey(existingPath))
-            {
-                logger.LogInformation("Backup path that");
-            }
-
-            logger.LogInformation(
-                "Deleting backup item {ExistingPath} from remote storage as it is no longer related to any backup",
-                existingPath);
-
-            await storage.DeleteObject(existingPath);
-            ++deletedStorageItems;
-
-            if (deletedStorageItems >= maxBackupsToClear)
-                break;
-
-            cancellationToken.ThrowIfCancellationRequested();
+            await DeleteJustKnownItems(database, cancellationToken, maxBackupsToClear, allBackups,
+                backupsThatShouldExist);
         }
-
-        logger.LogInformation(
-            "Finished deleting old backups. Deleted: {DeletedBackups} and {DeletedStorageItems} remote items",
-            deletedBackups, deletedStorageItems);
     }
 
     public async Task DumpDatabaseToFile(string databaseFile, CancellationToken cancellationToken)
@@ -237,5 +201,92 @@ public class BackupHandler
         {
             throw new InvalidOperationException("Backups are not configured");
         }
+    }
+
+    private async Task DeleteWithBucketCleaning(ApplicationDbContext database, CancellationToken cancellationToken,
+        int maxBackupsToClear, List<Backup> allBackups, Dictionary<string, Backup> backupsThatShouldExist)
+    {
+        logger.LogWarning("Backup bucket cleaning from extra files is not fully tested");
+
+        int deletedBackups = 0;
+        int deletedStorageItems = 0;
+
+        foreach (var backup in allBackups)
+        {
+            if (backupsThatShouldExist.ContainsKey(backup.Name))
+                continue;
+
+            logger.LogInformation("Deleting backup {Name} to get under the limit of {BackupsToKeep}", backup.Name,
+                backupsToKeep);
+
+            database.Backups.Remove(backup);
+            ++deletedBackups;
+
+            if (deletedBackups >= maxBackupsToClear)
+                break;
+        }
+
+        await database.SaveChangesAsync(cancellationToken);
+
+        var existing = await storage.ListAllFiles(cancellationToken);
+
+        foreach (var existingPath in existing)
+        {
+            // Don't touch things if there's accidentally something else in the bucket
+            if (!existingPath.StartsWith("ThriveDevCenter"))
+                continue;
+
+            if (!backupsThatShouldExist.ContainsKey(existingPath))
+            {
+                logger.LogInformation("Backup path that");
+            }
+
+            logger.LogInformation(
+                "Deleting backup item {ExistingPath} from remote storage as it is no longer related to any backup",
+                existingPath);
+
+            await storage.DeleteObject(existingPath);
+            ++deletedStorageItems;
+
+            if (deletedStorageItems >= maxBackupsToClear)
+                break;
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        logger.LogInformation(
+            "Finished deleting old backups. Deleted: {DeletedBackups} and {DeletedStorageItems} remote items",
+            deletedBackups, deletedStorageItems);
+    }
+
+    private async Task DeleteJustKnownItems(ApplicationDbContext database, CancellationToken cancellationToken,
+        int maxBackupsToClear, List<Backup> allBackups, Dictionary<string, Backup> backupsThatShouldExist)
+    {
+        int deletedBackups = 0;
+
+        foreach (var backup in allBackups)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            if (backupsThatShouldExist.ContainsKey(backup.Name))
+                continue;
+
+            logger.LogInformation("Deleting backup {Name} to get under the limit of {BackupsToKeep}", backup.Name,
+                backupsToKeep);
+
+            await DeleteRemoteBackupFile(backup);
+            database.Backups.Remove(backup);
+            ++deletedBackups;
+
+            if (deletedBackups >= maxBackupsToClear)
+                break;
+        }
+
+        // We have to save here to keep our info about what database items are deleted
+        // ReSharper disable once MethodSupportsCancellation
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Finished deleting old backups, deleted: {DeletedBackups}", deletedBackups);
     }
 }
