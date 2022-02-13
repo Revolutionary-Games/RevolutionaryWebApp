@@ -73,6 +73,9 @@ public class CreateBackupJob : IJob
 
             backup.Uploaded = true;
 
+            // Delete the backup tar as the name is unique and they'll fill the disk otherwise
+            File.Delete(backupFile);
+
             // TODO: should we delete backupFolder here?
         }
         finally
