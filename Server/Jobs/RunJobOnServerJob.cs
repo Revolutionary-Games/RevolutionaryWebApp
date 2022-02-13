@@ -268,7 +268,7 @@ namespace ThriveDevCenter.Server.Jobs
             env.Append("\"; export CI_IMAGE_FILENAME=\"");
             env.Append(BashEscape.EscapeForBash(imageFileName));
             env.Append("\"; export CI_CACHE_OPTIONS=\"");
-            env.Append(BashEscape.EscapeForBash(job.CacheSettingsJson));
+            env.Append(BashEscape.EscapeForBash(job.CacheSettingsJson ?? "{}"));
             env.Append("\"; export CI_SECRETS=\"");
             env.Append(BashEscape.EscapeForBash(JsonSerializer.Serialize(cleanedSecrets)));
             env.Append("\"; export CI_JOB_NAME=\"");

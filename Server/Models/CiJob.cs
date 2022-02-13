@@ -59,8 +59,7 @@ namespace ThriveDevCenter.Server.Models
         ///   This contains json serialized for of the cache settings for this build. This is sent to the CI executor
         ///   so that it can handle cache setup before cloning the repo.
         /// </summary>
-        [Required]
-        public string CacheSettingsJson { get; set; } = string.Empty;
+        public string? CacheSettingsJson { get; set; }
 
         /// <summary>
         ///   Stores permanently which server this job was ran on
