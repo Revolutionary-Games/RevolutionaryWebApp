@@ -1,12 +1,15 @@
 namespace ThriveDevCenter.Server.Models;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
+using Shared.Notifications;
+using Utilities;
 
 [Index(nameof(Name), IsUnique = true)]
-public class Backup : UpdateableModel
+public class Backup : UpdateableModel, IUpdateNotifications
 {
     public Backup(string name, long size)
     {
@@ -38,5 +41,14 @@ public class Backup : UpdateableModel
             Name = Name,
             Size = Size,
         };
+    }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return new Tuple<SerializedNotification, string>(new BackupListUpdated()
+        {
+            Type = entityState.ToChangeType(),
+            Item = GetDTO(),
+        }, NotificationGroups.BackupListUpdated);
     }
 }
