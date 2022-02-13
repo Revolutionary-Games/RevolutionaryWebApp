@@ -27,6 +27,7 @@ public class BackupHandler
     private readonly bool includeBlobs;
     private readonly string? databaseConnectionString;
     private readonly bool cleanBucket;
+    private readonly string? xzLevel;
 
     public BackupHandler(ILogger<BackupHandler> logger, IConfiguration configuration, BackupStorage storage)
     {
@@ -47,6 +48,7 @@ public class BackupHandler
         backupsToKeep = Convert.ToInt32(configuration["Backup:BackupsToKeep"]);
         cleanBucket = Convert.ToBoolean(configuration["Backup:CleanBucketFromExtraFiles"]);
         UseXZCompression = Convert.ToBoolean(configuration["Backup:UseXZCompression"]);
+        xzLevel = configuration["Backup:XZCompressionLevel"];
         redisPath = configuration["Backup:RedisPath"];
 
         // TODO: allow skipping redis
@@ -189,7 +191,18 @@ public class BackupHandler
         startInfo.ArgumentList.Add("-cf");
         startInfo.ArgumentList.Add(backupFile);
 
-        startInfo.ArgumentList.Add(UseXZCompression ? "-J" : "-z");
+        if (UseXZCompression)
+        {
+            startInfo.ArgumentList.Add("-J");
+
+            // This gives us more control over the compression ratio and how long backups take
+            if (!string.IsNullOrEmpty(xzLevel))
+                startInfo.Environment["XZ_OPT"] = $"-{xzLevel}";
+        }
+        else
+        {
+            startInfo.ArgumentList.Add("-z");
+        }
 
         startInfo.ArgumentList.Add(databaseFileName);
 
