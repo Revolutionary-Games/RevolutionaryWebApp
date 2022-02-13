@@ -63,6 +63,7 @@
                     <tr @key="item.Id">
                         <td>@item.Name</td>
                         <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.Size.BytesToMiB()</td>
                         <td>
                             <Button Enabled="@CanDelete(item)"
                                     OnPressed="@(async () => await DownloadBackup(item.Id))"
@@ -107,6 +108,7 @@
     {
         new TableColumn("Name", false),
         new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Size", false),
         new TableColumn("Actions", false)
     };
 
