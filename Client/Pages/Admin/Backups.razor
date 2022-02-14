@@ -38,6 +38,20 @@
         }
     </div>
 
+    <div>
+        Total size:
+        @if (fetchingTotalSize)
+        {
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        }
+        else
+        {
+            <span>@totalSize.BytesToMiB()</span>
+        }
+    </div>
+
     <h4 class="mt-3">Existing Backups</h4>
 
     @if (!string.IsNullOrEmpty(Error))
@@ -116,6 +130,8 @@
 
     private bool fetchingBackupStatus = true;
     private bool backupsEnabled;
+    private bool fetchingTotalSize = true;
+    private long totalSize;
     private string? topStatusMessage;
     private SiteNoticeType topStatusMessageType = SiteNoticeType.Info;
 
@@ -135,7 +151,8 @@
     {
         await notificationHandler.Register(this);
         await base.OnInitializedAsync();
-        await GetBackupsEnabledStatus();
+
+        await Task.WhenAll(GetBackupsEnabledStatus(), GetTotalSize());
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
@@ -190,6 +207,27 @@
         }
 
         fetchingBackupStatus = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task GetTotalSize()
+    {
+        fetchingTotalSize = true;
+        topStatusMessage = null;
+        topStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            totalSize = await http.GetFromJsonAsync<long>("api/v1/Backup/totalSize");
+        }
+        catch (HttpRequestException e)
+        {
+            topStatusMessage = $"Network request failed: {e.Message}";
+            totalSize = 0;
+        }
+
+        fetchingTotalSize = false;
         await InvokeAsync(StateHasChanged);
     }
 

@@ -68,6 +68,13 @@ public class BackupController : Controller
         return IsConfigured();
     }
 
+    [HttpGet("totalSize")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<long>> GetTotalSize()
+    {
+        return await database.Backups.Where(b => b.Size > 0).SumAsync(b => b.Size);
+    }
+
     [HttpPost("{id:long}/download")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<ActionResult<string>> GetDownloadLink([Required] long id)
