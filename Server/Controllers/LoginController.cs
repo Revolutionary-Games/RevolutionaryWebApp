@@ -220,7 +220,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("return/" + SsoTypePatreon)]
-        public async Task<IActionResult> SsoReturnPatreon([Required] string state, string code, string error)
+        public async Task<IActionResult> SsoReturnPatreon([Required] string state, string? code, string? error)
         {
             if (!PatreonConfigured)
                 return CreateResponseForDisabledOption();
@@ -495,7 +495,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [NonAction]
-        private async Task<IActionResult> HandlePatreonSsoReturn(string state, string code)
+        private async Task<IActionResult> HandlePatreonSsoReturn(string state, string? code)
         {
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
                 return GetInvalidSsoParametersResult();
