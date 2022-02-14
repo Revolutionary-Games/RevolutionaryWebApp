@@ -491,8 +491,17 @@ namespace ThriveDevCenter.Server.Controllers
 
                 if (file.StorageItemVersions.Max(s => s.Version) >= highestVersion)
                 {
-                    logger.LogError("Can't set hash for build {Id} as it wasn't correctly in token", build.Id);
-                    build.BuildZipHash = decodedToken.PlainFileHash ?? "missing hash when uploading";
+                    if (string.IsNullOrEmpty(decodedToken.PlainFileHash))
+                    {
+                        // TODO: make sure that this is now correct. This print was happening all the time
+                        // So I changed this to only be printed in the error case -hhyyrylainen
+                        logger.LogError("Can't set hash for build {Id} as it wasn't correctly in token", build.Id);
+                        build.BuildZipHash = "missing hash when uploading";
+                    }
+                    else
+                    {
+                        build.BuildZipHash = decodedToken.PlainFileHash;
+                    }
                 }
                 else
                 {
