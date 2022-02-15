@@ -28,14 +28,14 @@ else
                             ShowContentSpinner="@VisibleFetchInProgress"
                             Columns="@columns"
                             ShowNoContent="@NoItemsFound"
-                            ResponsiveType="table-responsive">
+                            UseNonFixedColumns="@true">
                 @if (Data != null)
                 {
                     @foreach (var item in Data.Results)
                     {
                         <tr @key="item.Id">
                             <td>@item.LfsOid</td>
-                            <td>@item.Size.BytesToMiB()</td>
+                            <td>@item.Size.BytesToMiB(3)</td>
                             <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
                         </tr>
                     }
