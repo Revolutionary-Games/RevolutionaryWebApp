@@ -93,6 +93,7 @@ else
         new TableColumn("LFS?", false),
     };
 
+    private bool registered;
     private DateTime? lastLoadedFileTree;
 
     [Parameter]
@@ -113,10 +114,9 @@ else
         AutoFetchDataOnInit = false;
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
-        await base.OnParametersSetAsync();
+        await base.OnInitializedAsync();
         await FetchData();
     }
 
@@ -180,6 +180,17 @@ else
     {
         await base.OnQuerySent(requestParams);
         await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    protected override async Task OnDataReceived()
+    {
+        await base.OnDataReceived();
+
+        if (!registered)
+        {
+            registered = true;
+            await notificationHandler.Register(this);
+        }
     }
 
     private string ApiDownloadLink(string name)
