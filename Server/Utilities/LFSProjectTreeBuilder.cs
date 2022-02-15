@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Server.Utilities
         public static async Task BuildFileTree(ILocalTempFileLocks tempFiles, ApplicationDbContext database,
             LfsProject project, CancellationToken cancellationToken)
         {
-            var semaphore = tempFiles.GetTempFilePath($"gitFileTrees/{project.Name}", out string tempPath);
+            var semaphore = tempFiles.GetTempFilePath($"gitFileTrees/{project.Slug}", out string tempPath);
 
             await semaphore.WaitAsync(TimeSpan.FromMinutes(10), cancellationToken);
 
