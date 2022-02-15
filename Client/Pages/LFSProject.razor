@@ -20,6 +20,7 @@
             <li><strong>Repository URL</strong>: <a href="@Data.RepoUrl">@Data.RepoUrl</a></li>
             <li><strong>Git LFS URL</strong>: @ComputeLfsURL()</li>
             <li><strong>Clone URL</strong>: @Data.CloneUrl</li>
+            <li><strong>File Tree Branch</strong>: @Data.BranchToBuildFileTreeFor</li>
             <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
             <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
 
@@ -27,6 +28,13 @@
                 <li><strong>Deleted</strong>: @Data.Deleted</li>
             </AccessLimited>
         </ul>
+
+        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Admin">
+
+            <LFSProjectEditor Data="@Data" />
+
+            <div class="mt-2"></div>
+        </AccessLimited>
 
         <AdminResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Name" Id="@Data.Id"
                                     DeleteURLBase="api/v1/LFSProject"

@@ -33,6 +33,30 @@ namespace ThriveDevCenter.Shared.Models
         public bool Deleted { get; set; }
 
         [Required]
+        [MaxLength(100)]
         public string BranchToBuildFileTreeFor { get; set; } = string.Empty;
+
+        public LFSProjectDTO Clone()
+        {
+            return new()
+            {
+                Id = Id,
+                CreatedAt = CreatedAt,
+                UpdatedAt = UpdatedAt,
+                Name = Name,
+                Slug = Slug,
+                Public = Public,
+                TotalObjectSize = TotalObjectSize,
+                TotalObjectCount = TotalObjectCount,
+                TotalSizeUpdated = TotalSizeUpdated,
+                FileTreeUpdated = FileTreeUpdated,
+                FileTreeCommit = FileTreeCommit,
+                RepoUrl = RepoUrl,
+                CloneUrl = CloneUrl,
+                LfsUrlSuffix = LfsUrlSuffix,
+                Deleted = Deleted,
+                BranchToBuildFileTreeFor = BranchToBuildFileTreeFor,
+            };
+        }
     }
 }

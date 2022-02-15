@@ -37,6 +37,7 @@ namespace ThriveDevCenter.Server.Models
         public string CloneUrl { get; set; } = string.Empty;
 
         [Required]
+        [UpdateFromClientRequest]
         public string BranchToBuildFileTreeFor { get; set; } = "master";
 
         [AllowSortingBy]

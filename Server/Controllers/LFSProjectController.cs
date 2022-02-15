@@ -156,8 +156,41 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
+        [HttpPut("{id:long}")]
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> UpdateLFSProject([Required] [FromBody] LFSProjectDTO request)
+        {
+            var item = await FindAndCheckAccess(request.Id);
+
+            if (item == null || item.Deleted)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser()!;
+
+            var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(item, request);
+
+            if (!changes)
+                return Ok();
+
+            item.BumpUpdatedAt();
+
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"LFS Project {item.Id} edited",
+
+                // TODO: there could be an extra info property where the description is stored
+                PerformedById = user.Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            logger.LogInformation("LFS project {Id} edited by {Email}, changes: {Description}", item.Id,
+                user.Email, description);
+            return Ok();
+        }
+
         [HttpPost]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         public async Task<ActionResult> CreateNew([Required] LFSProjectDTO projectInfo)
         {
             var project = new LfsProject()
@@ -166,7 +199,8 @@ namespace ThriveDevCenter.Server.Controllers
                 Slug = projectInfo.Slug,
                 Public = projectInfo.Public,
                 RepoUrl = projectInfo.RepoUrl,
-                CloneUrl = projectInfo.CloneUrl
+                CloneUrl = projectInfo.CloneUrl,
+                BranchToBuildFileTreeFor = projectInfo.BranchToBuildFileTreeFor,
             };
 
             var results = new List<ValidationResult>();

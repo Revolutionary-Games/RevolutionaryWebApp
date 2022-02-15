@@ -85,6 +85,11 @@ else
                 <input type="text" class="form-control" id="newLFSCloneURL" @bind="newCloneURL">
             </div>
 
+            <div class="form-group">
+                <label for="newBranchName">Main Branch Name</label>
+                <input type="text" class="form-control" id="newBranchName" @bind="newBranchName">
+            </div>
+
             <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
             <Button class="my-1" Enabled="@(!processingNewForm)" OnPressed="@CreateNew" Spinner="@processingNewForm">
                 Create
@@ -118,6 +123,7 @@ else
     private bool newPublic;
     private string? newRepoURL;
     private string? newCloneURL;
+    private string newBranchName = "master";
 
     public LFSList() : base(new SortHelper("Name", SortDirection.Ascending))
     {
@@ -183,6 +189,7 @@ else
             newPublic = true;
             newRepoURL = null;
             newCloneURL = null;
+            newBranchName = "master";
         }
 
         StateHasChanged();
@@ -214,7 +221,8 @@ else
                 Slug = newSlug,
                 RepoUrl = newRepoURL,
                 CloneUrl = newCloneURL,
-                Public = newPublic
+                Public = newPublic,
+                BranchToBuildFileTreeFor = newBranchName,
             });
         }
         catch (HttpRequestException e)
