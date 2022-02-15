@@ -205,7 +205,7 @@ else
 
     private string GitRepoUrl(string name)
     {
-        return $"{ProjectRepoURL}/tree/{ProjectBranch}/{CurrentPathSlashPrefix}{SlashIfPathNotEmpty}{name}";
+        return $"{ProjectRepoURL}/tree/{ProjectBranch}{CurrentPathSlashPrefix}{SlashIfPathNotEmpty}{name}";
     }
 
 }
