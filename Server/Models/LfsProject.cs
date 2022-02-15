@@ -40,7 +40,7 @@ namespace ThriveDevCenter.Server.Models
         public string BranchToBuildFileTreeFor { get; set; } = "master";
 
         [AllowSortingBy]
-        public int? TotalObjectSize { get; set; }
+        public long? TotalObjectSize { get; set; }
 
         public int? TotalObjectCount { get; set; }
         public DateTime? TotalSizeUpdated { get; set; }

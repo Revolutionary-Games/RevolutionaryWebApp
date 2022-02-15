@@ -370,6 +370,7 @@ namespace ThriveDevCenter.Server
             AddJobHelper<CheckAllSSOUsersJob>(configurationSection["CheckAllSSOUsers"]);
             AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
             AddJobHelper<RefreshLFSProjectFileTreesJob>(configurationSection["RefreshLFSFileTrees"]);
+            AddJobHelper<RefreshLFSObjectStatisticsJob>(configurationSection["RefreshLFSObjectStatistics"]);
             AddJobHelper<DetectStuckServersJob>(configurationSection["DetectStuckServers"]);
             AddJobHelper<DetectLeftOnServersJob>(configurationSection["DetectLeftOnServers"]);
             AddJobHelper<TerminateLongStoppedServersJob>(configurationSection["TerminateLongStoppedServers"]);

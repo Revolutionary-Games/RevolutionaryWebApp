@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Shared.Models
         public string Slug { get; set; } = string.Empty;
 
         public bool Public { get; set; }
-        public int TotalObjectSize { get; set; }
+        public long TotalObjectSize { get; set; }
         public int TotalObjectCount { get; set; }
         public DateTime? TotalSizeUpdated { get; set; }
         public DateTime? FileTreeUpdated { get; set; }

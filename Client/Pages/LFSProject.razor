@@ -75,7 +75,14 @@
         <hr />
         <h3>Statistics</h3>
         <table class="table table-bordered">
-            <caption>Statistics updated: @Data.TotalSizeUpdated?.ToLocalTime().ToString("G")</caption>
+            @if (Data.TotalSizeUpdated.HasValue)
+            {
+                <caption>Statistics updated: <RecentTimeShortener Time="@Data.TotalSizeUpdated.Value" /></caption>
+            }
+            else
+            {
+                <caption>Statistics have not been updated yet</caption>
+            }
             <tbody>
             <tr>
                 <th scope="row">Total size</th>
