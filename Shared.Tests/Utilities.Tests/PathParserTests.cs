@@ -12,4 +12,11 @@ public class PathParserTests
             PathParser.GetParentPath(
                 "/home/staging/tmp/backupWorkDir/ThriveDevCenter-Backup_2022-02-13T17:05:39.2980431Z.tar.xz"));
     }
+
+    [Fact]
+    public void PathParser_EmptyParentPath()
+    {
+        Assert.Equal("", PathParser.GetParentPath("/folder"));
+        Assert.Equal("", PathParser.GetParentPath("/"));
+    }
 }

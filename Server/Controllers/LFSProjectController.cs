@@ -8,10 +8,13 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Text.RegularExpressions;
+    using System.Threading;
     using System.Threading.Tasks;
     using Authorization;
     using BlazorPagination;
     using Filters;
+    using Hangfire;
+    using Jobs;
     using Microsoft.EntityFrameworkCore;
     using Models;
     using Shared;
@@ -24,12 +27,14 @@ namespace ThriveDevCenter.Server.Controllers
     {
         private readonly ILogger<LFSProjectController> logger;
         private readonly NotificationsEnabledDb database;
+        private readonly IBackgroundJobClient jobClient;
 
-        public LFSProjectController(ILogger<LFSProjectController> logger,
-            NotificationsEnabledDb database)
+        public LFSProjectController(ILogger<LFSProjectController> logger, NotificationsEnabledDb database,
+            IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.database = database;
+            this.jobClient = jobClient;
         }
 
         protected override ILogger Logger => logger;
@@ -53,7 +58,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 query = database.ProjectGitFiles.Where(p => p.LfsProjectId == item.Id && p.Path == path)
                     .ToAsyncEnumerable()
-                    .OrderByDescending(p => p.Ftype).ThenBy(sortColumn, sortDirection);
+                    .OrderByDescending(p => p.FType).ThenBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -81,6 +86,74 @@ namespace ThriveDevCenter.Server.Controllers
                 .OrderByDescending(l => l.Id).ToPagedResultAsync(page, pageSize);
 
             return objects.ConvertResult(i => i.GetDTO());
+        }
+
+        [HttpPost("{id:long}/refreshFileTree")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+        public async Task<IActionResult> RefreshFileTree([Required] long id)
+        {
+            var item = await FindAndCheckAccess(id);
+
+            if (item == null || item.Deleted)
+                return NotFound();
+
+            if (item.FileTreeUpdated != null && DateTime.UtcNow - item.FileTreeUpdated.Value < TimeSpan.FromMinutes(3))
+                return BadRequest("This file tree was refreshed very recently");
+
+            var user = HttpContext.AuthenticatedUserOrThrow();
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"LFS project file tree refresh requested for {item.Id}",
+                PerformedById = user.Id,
+            });
+
+            await database.SaveChangesAsync();
+
+            jobClient.Enqueue<RefreshLFSProjectFilesJob>(x => x.Execute(item.Id, CancellationToken.None));
+
+            logger.LogInformation("LFS project {Id} file tree refreshed by {Email}", item.Id, user.Email);
+            return Ok();
+        }
+
+        [HttpPost("{id:long}/rebuildFileTree")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+        public async Task<IActionResult> RebuildFileTree([Required] long id)
+        {
+            var item = await FindAndCheckAccess(id);
+
+            if (item == null || item.Deleted)
+                return NotFound();
+
+            if (item.FileTreeUpdated != null && DateTime.UtcNow - item.FileTreeUpdated.Value < TimeSpan.FromMinutes(3))
+                return BadRequest("This file tree was refreshed very recently");
+
+            var user = HttpContext.AuthenticatedUserOrThrow();
+
+            await database.Database.BeginTransactionAsync();
+
+            await database.AdminActions.AddAsync(new AdminAction()
+            {
+                Message = $"LFS project file tree rebuilt for {item.Id}",
+                PerformedById = user.Id,
+            });
+
+            // Delete all entries so that they can be rebuilt
+            var deleted =
+                await database.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM project_git_files WHERE lfs_project_id = {item.Id};");
+
+            item.FileTreeUpdated = null;
+            item.FileTreeCommit = null;
+
+            await database.SaveChangesAsync();
+            await database.Database.CommitTransactionAsync();
+
+            jobClient.Enqueue<RefreshLFSProjectFilesJob>(x => x.Execute(item.Id, CancellationToken.None));
+
+            logger.LogInformation("LFS project {Id} file tree recreated by {Email}, deleted entries: {Deleted}",
+                item.Id, user.Email, deleted);
+            return Ok();
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]

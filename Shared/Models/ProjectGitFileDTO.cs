@@ -10,7 +10,7 @@ namespace ThriveDevCenter.Shared.Models
         public int Size { get; set; }
 
         [Required]
-        public string Ftype { get; set; } = string.Empty;
+        public FileType FType { get; set; }
 
         public bool UsesLfsOid { get; set; }
     }

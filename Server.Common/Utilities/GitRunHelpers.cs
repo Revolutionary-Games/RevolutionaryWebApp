@@ -48,8 +48,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
         }
 
         public static async Task Checkout(string folder, string whatToCheckout, bool skipLFS,
-            CancellationToken cancellationToken,
-            bool force = false)
+            CancellationToken cancellationToken, bool force = false)
         {
             var startInfo = PrepareToRunGit(folder, skipLFS);
             startInfo.ArgumentList.Add("checkout");
@@ -63,6 +62,23 @@ namespace ThriveDevCenter.Server.Common.Utilities
             {
                 throw new Exception(
                     $"Failed to checkout in repo, process exited with error: {result.FullOutput}");
+            }
+        }
+
+        public static async Task Pull(string folder, bool skipLFS, CancellationToken cancellationToken,
+            bool force = false)
+        {
+            var startInfo = PrepareToRunGit(folder, skipLFS);
+            startInfo.ArgumentList.Add("pull");
+
+            if (force)
+                startInfo.ArgumentList.Add("--force");
+
+            var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
+            if (result.ExitCode != 0)
+            {
+                throw new Exception(
+                    $"Failed to pull in repo, process exited with error: {result.FullOutput}");
             }
         }
 
@@ -99,6 +115,22 @@ namespace ThriveDevCenter.Server.Common.Utilities
                 throw new Exception(
                     $"Failed to fetch (thing) in repo, process exited with error: {result.FullOutput}");
             }
+        }
+
+        public static async Task<string> GetCurrentCommit(string folder, CancellationToken cancellationToken)
+        {
+            var startInfo = PrepareToRunGit(folder, true);
+            startInfo.ArgumentList.Add("rev-parse");
+            startInfo.ArgumentList.Add("HEAD");
+
+            var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
+            if (result.ExitCode != 0)
+            {
+                throw new Exception(
+                    $"Failed to run rev-parse in repo, process exited with error: {result.FullOutput}");
+            }
+
+            return result.Output.Trim();
         }
 
         /// <summary>

@@ -31,5 +31,8 @@ namespace ThriveDevCenter.Shared.Models
         ///   Admins can view deleted items to restore them
         /// </summary>
         public bool Deleted { get; set; }
+
+        [Required]
+        public string BranchToBuildFileTreeFor { get; set; } = string.Empty;
     }
 }

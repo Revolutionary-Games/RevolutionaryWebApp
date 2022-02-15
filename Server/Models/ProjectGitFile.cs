@@ -5,8 +5,8 @@
     using Shared;
     using Shared.Models;
 
-    [Index(nameof(LfsProjectId), nameof(Name), nameof(Path), IsUnique = true)]
-    public class ProjectGitFile : UpdateableModel
+    [Index(nameof(LfsProjectId), nameof(Path), nameof(Name), IsUnique = true)]
+    public class ProjectGitFile : ModelWithCreationTime
     {
         [Required]
         [AllowSortingBy]
@@ -17,10 +17,9 @@
 
         [AllowSortingBy]
         public int? Size { get; set; } = -1;
-
-        // TODO: switch to an enum. There's already FileType
+        
         [AllowSortingBy]
-        public string Ftype { get; set; } = string.Empty;
+        public FileType FType { get; set; } = FileType.File;
 
         public string? LfsOid { get; set; }
 
@@ -34,7 +33,7 @@
                 Id = Id,
                 Name = Name,
                 Size = Size ?? 0,
-                Ftype = Ftype,
+                FType = FType,
                 UsesLfsOid = !string.IsNullOrEmpty(LfsOid)
             };
         }

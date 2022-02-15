@@ -31,9 +31,6 @@ namespace ThriveDevCenter.Shared
 
         public const string LocalStorageUserInfo = "LastPageLoadUser";
 
-        public const string ItemTypeFolder = "folder";
-        public const string ItemTypeFile = "file";
-
         public const string SoftDeleteAttribute = "Deleted";
 
         public const string MarkdownMimeType = "text/markdown; charset=UTF-8";

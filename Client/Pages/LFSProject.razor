@@ -38,20 +38,37 @@
         </p>
 
         <h3>Files</h3>
-        <p>
-            File tree generated at: @Data.FileTreeUpdated?.ToLocalTime().ToString("G") from commit:
-            @Data.FileTreeCommit
-        </p>
+
+        @if (Data.FileTreeUpdated.HasValue)
+        {
+            <p>
+                File tree generated at: <RecentTimeShortener Time="@Data.FileTreeUpdated.Value" /> from commit:
+                @Data.FileTreeCommit for branch @Data.BranchToBuildFileTreeFor
+            </p>
+        }
+        else
+        {
+            <p>
+                File tree not generated yet. It will be made from branch @Data.BranchToBuildFileTreeFor
+            </p>
+        }
 
         <LFSProjectFileBrowser BasePath="@($"lfs/{Data.Id}/")" RootFolderName="@Data.Name" ProjectId="@Data.Id"
-                               ProjectRepoURL="@Data.RepoUrl"
-                               FileBrowserPath="@FileBrowserPath"/>
+                               ProjectRepoURL="@Data.RepoUrl" FileBrowserPath="@FileBrowserPath"
+                               ProjectBranch="@Data.BranchToBuildFileTreeFor"/>
 
         <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
-            <p>TODO: reimplement these:</p>
-            <Button ButtonStyle="warning" Enabled="false">Refresh</Button>
+            <br />
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideMessage" />
+
+            <Button ButtonStyle="warning" Enabled="@(!processing)" Spinner="@processing" OnPressed="@RequestRefresh">
+                Refresh
+            </Button>
             <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Admin">
-                <Button class="mx-1" ButtonStyle="danger" Enabled="false">Rebuild</Button>
+                <Button class="mx-1" ButtonStyle="danger" Enabled="@(!processing && !rebuildPressed)"
+                        Spinner="@processing" OnPressed="@RequestRebuild">
+                    Rebuild
+                </Button>
             </AccessLimited>
         </AccessLimited>
 
@@ -79,6 +96,12 @@
 
 @code {
 
+    private bool processing;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool rebuildPressed;
+
     [Parameter]
     public string? FileBrowserPath { get; set; }
 
@@ -105,5 +128,89 @@
     private string ComputeLfsURL()
     {
         return new Uri(new Uri(navigationManager.BaseUri), Data!.LfsUrlSuffix).ToString();
+    }
+
+    private void HideMessage()
+    {
+        statusMessage = null;
+    }
+
+    private async Task RequestRefresh()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/LFSProject/{Id}/refreshFileTree", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Refresh request succeeded. File data should refresh within a few minutes.";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RequestRebuild()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await http.PostAsync($"api/v1/LFSProject/{Id}/rebuildFileTree", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Rebuild request succeeded. File data should disappear and then reappear " +
+                "within a few minutes.";
+            statusMessageType = SiteNoticeType.Primary;
+
+            rebuildPressed = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }

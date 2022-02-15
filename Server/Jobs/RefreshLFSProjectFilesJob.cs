@@ -31,8 +31,7 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            await LFSProjectTreeBuilder.BuildFileTree(localTempFileLocks, project, cancellationToken);
-            await database.SaveChangesAsync(cancellationToken);
+            await LFSProjectTreeBuilder.BuildFileTree(localTempFileLocks, database, project, cancellationToken);
         }
     }
 }

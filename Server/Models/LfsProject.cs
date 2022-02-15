@@ -36,6 +36,9 @@ namespace ThriveDevCenter.Server.Models
         [Required]
         public string CloneUrl { get; set; } = string.Empty;
 
+        [Required]
+        public string BranchToBuildFileTreeFor { get; set; } = "master";
+
         [AllowSortingBy]
         public int? TotalObjectSize { get; set; }
 
@@ -86,6 +89,7 @@ namespace ThriveDevCenter.Server.Models
                 UpdatedAt = UpdatedAt,
                 CreatedAt = CreatedAt,
                 LfsUrlSuffix = $"/api/v1/lfs/{Slug}",
+                BranchToBuildFileTreeFor = BranchToBuildFileTreeFor,
             };
         }
 

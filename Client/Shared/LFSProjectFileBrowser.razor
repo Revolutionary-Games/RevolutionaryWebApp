@@ -8,7 +8,7 @@
 @using ThriveDevCenter.Shared.Notifications
 @using ThriveDevCenter.Client.Services
 @using System.Threading
-@implements ThriveDevCenter.Client.Services.INotificationHandler<ProjectGitFileUpdated>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LFSProjectUpdated>
 @inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.ProjectGitFileDTO>
 
 <Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="@RootFolderName" />
@@ -37,7 +37,7 @@ else
                     continue;
 
                 <tr @key="item.Id">
-                    @if (item.Ftype == AppInfo.ItemTypeFolder)
+                    @if (item.FType == FileType.Folder)
                     {
                         <td>
                             <span class="oi oi-folder pl-1" aria-hidden="true"></span>
@@ -50,7 +50,7 @@ else
                     }
 
                     <th scope="row">
-                        @if (item.Ftype == AppInfo.ItemTypeFolder)
+                        @if (item.FType == FileType.Folder)
                         {
                             <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
                         }
@@ -64,7 +64,7 @@ else
                         }
                     </th>
 
-                    @if (item.Ftype == AppInfo.ItemTypeFolder)
+                    @if (item.FType == FileType.Folder)
                     {
                         <td>@("item".PrintCount(item.Size))</td>
                     }
@@ -93,6 +93,8 @@ else
         new TableColumn("LFS?", false),
     };
 
+    private DateTime? lastLoadedFileTree;
+
     [Parameter]
     [EditorRequired]
     public string ProjectRepoURL { get; set; } = null!;
@@ -100,6 +102,10 @@ else
     [Parameter]
     [EditorRequired]
     public long ProjectId { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public string ProjectBranch { get; set; } = null!;
 
     public LFSProjectFileBrowser()
     {
@@ -121,17 +127,24 @@ else
         return base.SetParametersAsync(parameters);
     }
 
-    public Task Handle(ProjectGitFileUpdated notification, CancellationToken cancellationToken)
+    public Task Handle(LFSProjectUpdated notification, CancellationToken cancellationToken)
     {
-        return HandleItemNotification(notification);
+        // As we don't know the file tree ID at first (as we don't load the parent data) we end up doing one
+        // unnecessary fetch when the parent data changes
+        if (notification.Item.FileTreeUpdated == lastLoadedFileTree)
+            return Task.CompletedTask;
+
+        lastLoadedFileTree = notification.Item.FileTreeUpdated;
+
+        WantsToFetchDataAgain = true;
+        return Task.CompletedTask;
     }
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        // TODO: implement notifications
-        /* groups.Add(NotificationGroups.LFSGitFileUpdated);
-        if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
-            groups.Add(NotificationGroups.PrivateLFSGitFile + Project.Id.ToString()); */
+        // We detect when we want to refresh by getting notifications about the parent project updating the file tree
+        // generated at field
+        groups.Add(NotificationGroups.LFSItemUpdatedPrefix + ProjectId);
     }
 
     public override async ValueTask DisposeAsync()
@@ -181,7 +194,7 @@ else
 
     private string GitRepoUrl(string name)
     {
-        return $"{ProjectRepoURL}/tree/master{CurrentPathSlashPrefix}{SlashIfPathNotEmpty}{name}";
+        return $"{ProjectRepoURL}/tree/{ProjectBranch}/{CurrentPathSlashPrefix}{SlashIfPathNotEmpty}{name}";
     }
 
 }

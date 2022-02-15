@@ -195,7 +195,10 @@ namespace ThriveDevCenter.Server.Models
                     .WithMany(p => p.LfsObjects).OnDelete(DeleteBehavior.Cascade);
             });
 
-            // modelBuilder.Entity<LfsProject>(entity => { });
+            modelBuilder.Entity<LfsProject>(entity =>
+            {
+                entity.Property(e => e.BranchToBuildFileTreeFor).HasDefaultValue("master");
+            });
 
             // modelBuilder.Entity<PatreonSettings>(entity => { });
 
