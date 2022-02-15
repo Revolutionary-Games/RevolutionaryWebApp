@@ -222,7 +222,12 @@ namespace ThriveDevCenter.Server.Utilities
                 {
                     if (lineType == "oid")
                     {
-                        oid = data;
+                        var oidParts = data.Split(':', 2);
+
+                        if (oidParts.Length == 2 && oidParts[0] == "sha256")
+                        {
+                            oid = oidParts[1];
+                        }
                     }
                     else if (lineType == "size")
                     {
