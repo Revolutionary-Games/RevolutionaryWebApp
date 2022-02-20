@@ -461,7 +461,10 @@ namespace CIExecutor
                     }
 
                     if (!cacheCopied)
-                        await QueueSendBasicMessage("No existing cache found to copy from");
+                    {
+                        await QueueSendBasicMessage(
+                            $"No existing cache found to copy from (last checked cache: {cacheCopyFromFolders.LastOrDefault()}");
+                    }
                 }
                 else
                 {
