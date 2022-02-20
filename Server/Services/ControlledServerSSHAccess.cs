@@ -25,6 +25,8 @@ namespace ThriveDevCenter.Server.Services
             Configured = true;
         }
 
+        public string SSHUsername => username;
+
         public void ConnectTo(string address)
         {
             if (!Configured)
@@ -37,5 +39,7 @@ namespace ThriveDevCenter.Server.Services
     public interface IControlledServerSSHAccess : IBaseSSHAccess
     {
         void ConnectTo(string address);
+
+        string SSHUsername { get; }
     }
 }

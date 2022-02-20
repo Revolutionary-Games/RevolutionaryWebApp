@@ -12,9 +12,6 @@ namespace ThriveDevCenter.Server.Jobs
 
     public class ProvisionControlledServerJob : BaseProvisionServerJob
     {
-        private const string ProvisioningCommand = GeneralProvisionCommandPart +
-            " && sudo chown -R centos:centos /executor_cache";
-
         private readonly IEC2Controller ec2Controller;
         private readonly IBackgroundJobClient jobClient;
         private readonly IControlledServerSSHAccess sshAccess;
@@ -52,7 +49,7 @@ namespace ThriveDevCenter.Server.Jobs
                     // We can now perform the provisioning
                     server.PublicAddress = EC2Controller.InstanceIP(status);
                     server.RunningSince = DateTime.UtcNow;
-                    await PerformProvisioningCommands(server, ProvisioningCommand);
+                    await PerformProvisioningCommands(server, GetProvisioningCommand(sshAccess.SSHUsername));
                 }
                 else
                 {
@@ -82,6 +79,11 @@ namespace ThriveDevCenter.Server.Jobs
 
             sshAccess.ConnectTo(server.PublicAddress.ToString());
             return sshAccess;
+        }
+
+        private string GetProvisioningCommand(string username)
+        {
+            return GeneralProvisionCommandPart + $" && sudo chown -R {username}:{username} /executor_cache";
         }
     }
 }

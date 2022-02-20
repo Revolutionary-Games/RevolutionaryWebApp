@@ -69,7 +69,8 @@ namespace CIExecutor
             Console.WriteLine("Parsing variables from env");
             this.websocketUrl = websocketUrl.Replace("https://", "wss://").Replace("http://", "ws://");
 
-            var home = Environment.GetEnvironmentVariable("HOME") ?? "/home/centos";
+            // TODO: detect the actual username as a fallback here
+            var home = Environment.GetEnvironmentVariable("HOME") ?? "/home/rocky";
 
             imageCacheFolder = Path.Join(home, "images");
             ciImageFile = Path.Join(imageCacheFolder, Environment.GetEnvironmentVariable("CI_IMAGE_FILENAME"));
