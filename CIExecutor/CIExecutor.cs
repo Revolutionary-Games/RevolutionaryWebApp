@@ -438,8 +438,11 @@ namespace CIExecutor
                 {
                     await QueueSendBasicMessage($"Cache folder doesn't exist yet ({currentBuildRootFolder})");
 
+                    bool cacheCopied = false;
+
                     foreach (var cachePath in cacheCopyFromFolders)
                     {
+                        Console.WriteLine($"Checking cache copy from folder: {cachePath}");
                         if (!Directory.Exists(cachePath))
                             continue;
 
@@ -452,7 +455,16 @@ namespace CIExecutor
                         }
 
                         await QueueSendBasicMessage($"Initializing cache with copy from: {cachePath}");
+                        cacheCopied = true;
+                        break;
                     }
+
+                    if (!cacheCopied)
+                        await QueueSendBasicMessage("No existing cache found to copy from");
+                }
+                else
+                {
+                    await QueueSendBasicMessage($"Base build folder already exists at {currentBuildRootFolder}");
                 }
             }
             catch (Exception e)
@@ -478,8 +490,8 @@ namespace CIExecutor
 
                 var folder = currentBuildRootFolder ?? throw new Exception("build root folder not set");
 
-                await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, folder, false,
-                    CancellationToken.None);
+                // LFS is not skipped here as SetupCaches is relied on to copy the master branch data as a base
+                await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, folder, false, CancellationToken.None);
 
                 // Fetch the ref
                 await QueueSendBasicMessage($"Fetching the ref: {ciRef}");
