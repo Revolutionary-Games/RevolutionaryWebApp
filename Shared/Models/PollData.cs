@@ -52,11 +52,6 @@ namespace ThriveDevCenter.Shared.Models
 
         public class PollChoice
         {
-            public PollChoice(string name)
-            {
-                Name = name;
-            }
-
             public PollChoice(int id, string name)
             {
                 Id = id;
