@@ -15,9 +15,9 @@ namespace ThriveDevCenter.Server.Jobs
     {
         private readonly TimeSpan serverMaintenanceInterval = TimeSpan.FromDays(30);
 
-        private readonly ApplicationDbContext database;
+        private readonly NotificationsEnabledDb database;
 
-        public ScheduleServerMaintenanceJob(ApplicationDbContext database)
+        public ScheduleServerMaintenanceJob(NotificationsEnabledDb database)
         {
             this.database = database;
         }
