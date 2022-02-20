@@ -35,7 +35,16 @@ else
                         @item.CiBuildId
                     </NavLink></th>
                     <td>@item.CommitHash</td>
-                    <td>@item.RemoteRef</td>
+                    <td>
+                        @if (ClickableRef)
+                        {
+                            <a href="@GenerateUrlForRef(item.RemoteRef)" target="_blank">@item.RemoteRef</a>
+                        }
+                        else
+                        {
+                            <span>@item.RemoteRef</span>
+                        }
+                    </td>
                     <td><RecentTimeShortener Time="@item.CreatedAt" /></td>
                     <td class="@(item.Status == BuildStatus.Failed || item.Status == BuildStatus.GoingToFail ?
                                    "bg-danger" : "")">
@@ -59,6 +68,16 @@ else
 
     [Parameter]
     public long ProjectId { get; set; }
+
+    [Parameter]
+    public CIProjectType ProjectType { get; set; }
+
+    // This is commented out as the compiler seems to incorrectly complain about this from CIProject.razor
+    // [EditorRequired]
+    [Parameter]
+    public string ProjectFullname { get; set; } = null!;
+
+    private bool ClickableRef => ProjectType == CIProjectType.Github;
 
     public CIBuildsList() : base(new SortHelper("CiBuildId", SortDirection.Descending))
     {
@@ -103,5 +122,25 @@ else
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
         await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private string GenerateUrlForRef(string refText)
+    {
+        switch (ProjectType)
+        {
+            case CIProjectType.Github:
+                if (refText.StartsWith("pull/"))
+                {
+                    var prIdentifier = refText.Replace("/head", "");
+                    return $"https://github.com/{ProjectFullname}/{prIdentifier}";
+                }
+                else
+                {
+                    var onlyBranch = refText.Replace("refs/heads/", "");
+                    return $"https://github.com/{ProjectFullname}/tree/{onlyBranch}";
+                }
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
     }
 }

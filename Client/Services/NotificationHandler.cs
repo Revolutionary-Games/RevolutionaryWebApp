@@ -474,6 +474,7 @@ namespace ThriveDevCenter.Client.Services
                 }
             }
 
+            // ReSharper disable once HeuristicUnreachableCode
             if (FullMessageLogging)
                 Console.WriteLine($"Wanted groups: {string.Join(' ', wantedGroups)}");
 
@@ -487,6 +488,7 @@ namespace ThriveDevCenter.Client.Services
             {
                 foreach (var group in groupsToLeave)
                 {
+                    // ReSharper disable once HeuristicUnreachableCode
                     if (FullMessageLogging)
                         Console.WriteLine("Leaving group: " + group);
 
@@ -496,6 +498,7 @@ namespace ThriveDevCenter.Client.Services
 
                 foreach (var group in groupsToJoin)
                 {
+                    // ReSharper disable once HeuristicUnreachableCode
                     if (FullMessageLogging)
                         Console.WriteLine("Joining group: " + group);
 
