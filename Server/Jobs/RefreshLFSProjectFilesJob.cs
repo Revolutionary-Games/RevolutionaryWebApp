@@ -31,7 +31,8 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            await LFSProjectTreeBuilder.BuildFileTree(localTempFileLocks, database, project, cancellationToken);
+            logger.LogInformation("Checking LFS file tree refresh for {Name}", project.Name);
+            await LFSProjectTreeBuilder.BuildFileTree(localTempFileLocks, database, project, logger, cancellationToken);
         }
     }
 }

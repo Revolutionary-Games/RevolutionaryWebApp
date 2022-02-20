@@ -8,6 +8,7 @@ namespace ThriveDevCenter.Server.Utilities
     using System.Threading.Tasks;
     using Common.Utilities;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Logging;
     using Models;
     using Services;
     using Shared.Models;
@@ -18,7 +19,7 @@ namespace ThriveDevCenter.Server.Utilities
         private const int MaximumLFSHeaderSize = 512;
 
         public static async Task BuildFileTree(ILocalTempFileLocks tempFiles, ApplicationDbContext database,
-            LfsProject project, CancellationToken cancellationToken)
+            LfsProject project, ILogger logger, CancellationToken cancellationToken)
         {
             var semaphore = tempFiles.GetTempFilePath($"gitFileTrees/{project.Slug}", out string tempPath);
 
@@ -45,7 +46,15 @@ namespace ThriveDevCenter.Server.Utilities
                 var newCommit = await GitRunHelpers.GetCurrentCommit(tempPath, cancellationToken);
 
                 if (newCommit == project.FileTreeCommit)
+                {
+                    logger.LogInformation("Commit is still the same ({FileTreeCommit}), skipping tree update " +
+                        "for {Id}",
+                        project.FileTreeCommit, project.Id);
                     return;
+                }
+
+                logger.LogInformation("New commit {NewCommit} to build file tree from (previous: {FileTreeCommit}) " +
+                    "for project {Id}", newCommit, project.FileTreeCommit, project.Id);
 
                 project.FileTreeCommit = newCommit;
 
