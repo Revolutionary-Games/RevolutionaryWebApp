@@ -130,7 +130,15 @@ namespace ThriveDevCenter.Server.Common.Utilities
                     $"Failed to run rev-parse in repo, process exited with error: {result.FullOutput}");
             }
 
-            return result.Output.Trim();
+            var resultText = result.Output.Trim();
+
+            if (string.IsNullOrEmpty(resultText))
+            {
+                throw new Exception(
+                    $"Failed to run rev-parse in repo, empty output. Error output (if any): {result.ErrorOut}");
+            }
+
+            return resultText;
         }
 
         /// <summary>
