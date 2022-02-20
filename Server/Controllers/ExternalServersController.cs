@@ -107,7 +107,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             // Don't allow duplicate IPs
             if (await database.ExternalServers.FirstOrDefaultAsync(s =>
-                s.PublicAddress != null && s.PublicAddress.Equals(request.PublicAddress)) != null)
+                    s.PublicAddress != null && s.PublicAddress.Equals(request.PublicAddress)) != null)
             {
                 return BadRequest("There is already a server configured with that IP address");
             }
@@ -337,7 +337,8 @@ namespace ThriveDevCenter.Server.Controllers
             server.BumpUpdatedAt();
             await database.SaveChangesAsync();
 
-            // TODO: job to do maintenance
+            // Start at least one server maintenance right away
+            jobClient.Enqueue<RunMarkedServerMaintenanceJob>(x => x.Execute(CancellationToken.None));
 
             return Ok();
         }
