@@ -22,6 +22,8 @@ namespace CIExecutor
 
     public class CIExecutor
     {
+        private const bool VerboseSectionFail = false;
+
         private const int TargetOutputSingleMessageSize = 2500;
         private const int QueueLargeThreshold = 3;
         private const string OutputSpecialCommandMarker = "#--@%-DevCenter-%@--";
@@ -935,7 +937,12 @@ namespace CIExecutor
 
                 command.Add("lastStatus=$?");
                 command.Add("if [ ! $lastStatus -eq 0 ]; then");
-                command.Add("echo Running this section failed");
+
+#pragma warning disable CS0162
+                if (VerboseSectionFail)
+                    command.Add("echo Running this section failed");
+#pragma warning restore CS0162
+
                 command.Add("overallStatus=1");
                 command.Add("fi");
                 command.Add($"echo \"{OutputSpecialCommandMarker} SectionEnd $lastStatus\"");
