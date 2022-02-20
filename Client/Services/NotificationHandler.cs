@@ -418,6 +418,7 @@ namespace ThriveDevCenter.Client.Services
 
         private async void OnUserInfoChanged(object? sender, UserInfo? info)
         {
+            // ReSharper disable once HeuristicUnreachableCode
             if (FullMessageLogging)
                 Console.WriteLine("Applying groups because we got user info change notification");
 
@@ -429,6 +430,7 @@ namespace ThriveDevCenter.Client.Services
             // Can't run this yet if we don't have user info. We'll receive a callback when user info is ready
             if (!userInfoReceiver.InfoReady)
             {
+                // ReSharper disable once HeuristicUnreachableCode
                 if (FullMessageLogging)
                     Console.WriteLine("User info not ready yet, can't check groups");
                 return;

@@ -951,6 +951,7 @@ namespace CIExecutor
                 command.Add("lastStatus=$?");
                 command.Add("if [ ! $lastStatus -eq 0 ]; then");
 
+                // ReSharper disable once HeuristicUnreachableCode
 #pragma warning disable CS0162
                 if (VerboseSectionFail)
                     command.Add("echo Running this section failed");
