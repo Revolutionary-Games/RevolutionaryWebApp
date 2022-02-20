@@ -49,6 +49,7 @@ public class RunMarkedServerMaintenanceJob : IJob
             await ec2Controller.TerminateInstance(server.InstanceId);
             server.Status = ServerStatus.Terminated;
             server.StatusLastChecked = DateTime.UtcNow;
+            server.LastMaintenance = DateTime.UtcNow;
             server.CleanUpQueued = false;
             server.WantsMaintenance = false;
             server.BumpUpdatedAt();
@@ -74,6 +75,8 @@ public class RunMarkedServerMaintenanceJob : IJob
             if (server.PublicAddress == null)
                 throw new InvalidOperationException("Server that wants maintenance has no public address set");
 
+            logger.LogInformation("Running maintenance commands on external server {Id}", server.Id);
+
             try
             {
                 serverSSHAccess.ConnectTo(server.PublicAddress.ToString(), server.SSHKeyFileName);
@@ -84,6 +87,8 @@ public class RunMarkedServerMaintenanceJob : IJob
                     throw new Exception($"Running commands through SSH failed: {command.Error}, {command.Result}");
                 }
 
+                // TODO: store this either as a log entry or as a new field on the server that can then be viewed
+                // in the admin UI
                 logger.LogInformation("Output for external server maintenance ({Id}): {Result}", server.Id,
                     command.Result);
 
@@ -97,6 +102,7 @@ public class RunMarkedServerMaintenanceJob : IJob
 
             server.Status = ServerStatus.Stopping;
             server.StatusLastChecked = DateTime.UtcNow;
+            server.LastMaintenance = DateTime.UtcNow;
             server.WantsMaintenance = false;
             server.BumpUpdatedAt();
 
