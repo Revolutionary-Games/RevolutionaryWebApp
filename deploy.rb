@@ -18,11 +18,12 @@ require_relative 'fix_boot_json_hashes'
 
 # TODO: make this possible to configure from the command line
 MODE = 'Release'
+NET_VERSION = 'net6.0'
 
-CLIENT_BUILT_WEBROOT = "Client/bin/#{MODE}/net6.0/publish/wwwroot/"
-SERVER_BUILT_BASE = "Server/bin/#{MODE}/net6.0/publish/"
-CI_EXECUTOR_BUILT_FILE = "CIExecutor/bin/#{MODE}/net6.0/linux-x64/publish/CIExecutor"
-CI_EXECUTOR_EXTRA_RESOURCES = ["CIExecutor/bin/#{MODE}/net6.0/linux-x64/" \
+CLIENT_BUILT_WEBROOT = "Client/bin/#{MODE}/#{NET_VERSION}/publish/wwwroot/"
+SERVER_BUILT_BASE = "Server/bin/#{MODE}/#{NET_VERSION}/publish/"
+CI_EXECUTOR_BUILT_FILE = "CIExecutor/bin/#{MODE}/#{NET_VERSION}/linux-x64/publish/CIExecutor"
+CI_EXECUTOR_EXTRA_RESOURCES = ["CIExecutor/bin/#{MODE}/#{NET_VERSION}/linux-x64/" \
                               'libMonoPosixHelper.so'].freeze
 
 OptionParser.new do |opts|
