@@ -117,28 +117,56 @@ namespace ThriveDevCenter.Server.Common.Utilities
             }
         }
 
-        public static async Task<string> GetCurrentCommit(string folder, CancellationToken cancellationToken)
+        /// <summary>
+        ///   Gets the current commit in a git repository in the long form
+        /// </summary>
+        /// <param name="folder">The repository folder</param>
+        /// <param name="cancellationToken">Cancellation token for the git process</param>
+        /// <param name="attempts">
+        ///   How many times to attempt getting the commit. This seems to spuriously fail with 0 exit code and
+        ///   no output so this parameter guards against that.
+        /// </param>
+        /// <returns>The current commit hash</returns>
+        /// <exception cref="Exception">If getting the commit hash fails</exception>
+        public static async Task<string> GetCurrentCommit(string folder, CancellationToken cancellationToken,
+            int attempts = 4)
         {
-            var startInfo = PrepareToRunGit(folder, true);
-            startInfo.ArgumentList.Add("rev-parse");
-            startInfo.ArgumentList.Add("HEAD");
-
-            var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
-            if (result.ExitCode != 0)
+            int i = 0;
+            while (true)
             {
-                throw new Exception(
-                    $"Failed to run rev-parse in repo, process exited with error: {result.FullOutput}");
+                if (i > 0)
+                    await Task.Delay(TimeSpan.FromSeconds(i), cancellationToken);
+
+                ++i;
+
+                var startInfo = PrepareToRunGit(folder, true);
+                startInfo.ArgumentList.Add("rev-parse");
+                startInfo.ArgumentList.Add("HEAD");
+
+                var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
+                if (result.ExitCode != 0)
+                {
+                    if (i < attempts)
+                        continue;
+
+                    throw new Exception(
+                        $"Failed to run rev-parse in repo, process exited with error: {result.FullOutput}");
+                }
+
+                var resultText = result.Output.Trim();
+
+                if (string.IsNullOrEmpty(resultText))
+                {
+                    if (i < attempts)
+                        continue;
+
+                    throw new Exception(
+                        $"Failed to run rev-parse in repo, empty output (code: {result.ExitCode}). " +
+                        $"Error output (if any): {result.ErrorOut}, normal output: {result.Output}");
+                }
+
+                return resultText;
             }
-
-            var resultText = result.Output.Trim();
-
-            if (string.IsNullOrEmpty(resultText))
-            {
-                throw new Exception(
-                    $"Failed to run rev-parse in repo, empty output. Error output (if any): {result.ErrorOut}");
-            }
-
-            return resultText;
         }
 
         /// <summary>
