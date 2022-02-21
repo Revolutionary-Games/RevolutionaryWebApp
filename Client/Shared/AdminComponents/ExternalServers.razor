@@ -93,7 +93,7 @@
                         @* TODO: firefox once again complains here about that relative now has an effect here *@
                         <tr @key="key" style="position: relative;">
                             <td colspan="@columns.Count" class="mb-2 expanded-box">
-                                <form class="form-inline mr-2">
+                                <form class="form-inline mr-2 mb-2">
                                     Update priority:
                                     <select class="custom-select ml-1" value="@item.Priority"
                                             @onchange="async args => await UpdatePriority(item, args)">
@@ -104,6 +104,10 @@
                                         }
                                     </select>
                                 </form>
+
+                                <span>
+                                    Last maintenance: <RecentTimeShortener Time="@item.LastMaintenance" />
+                                </span>
 
                                 <span class="float-right">
                                     @if (item.Status != ServerStatus.Stopped && item.Status != ServerStatus.Stopping)
