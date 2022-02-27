@@ -141,6 +141,9 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
                 var startInfo = PrepareToRunGit(folder, true);
                 startInfo.ArgumentList.Add("rev-parse");
+
+                // Try to force it being shown as a hash
+                startInfo.ArgumentList.Add("--verify");
                 startInfo.ArgumentList.Add("HEAD");
 
                 var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
@@ -162,6 +165,17 @@ namespace ThriveDevCenter.Server.Common.Utilities
 
                     throw new Exception(
                         $"Failed to run rev-parse in repo, empty output (code: {result.ExitCode}). " +
+                        $"Error output (if any): {result.ErrorOut}, normal output: {result.Output}");
+                }
+
+                // Looks like sometimes the result is truncated hash, try to detect that here and fail
+                if (resultText.Length < 20)
+                {
+                    if (i < attempts)
+                        continue;
+
+                    throw new Exception(
+                        $"Failed to run rev-parse in repo, output is not full hash length (code: {result.ExitCode}). " +
                         $"Error output (if any): {result.ErrorOut}, normal output: {result.Output}");
                 }
 
