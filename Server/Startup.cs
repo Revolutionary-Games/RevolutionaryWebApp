@@ -259,6 +259,12 @@ namespace ThriveDevCenter.Server
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
 
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers.Add("X-Frame-Options", "DENY");
+                await next();
+            });
+
             app.UseResponseCompression();
 
             app.UseIpRateLimiting();
