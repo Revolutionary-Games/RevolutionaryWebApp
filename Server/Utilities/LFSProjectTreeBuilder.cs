@@ -47,7 +47,7 @@ namespace ThriveDevCenter.Server.Utilities
 
                 if (newCommit == project.FileTreeCommit)
                 {
-                    logger.LogInformation("Commit is still the same ({FileTreeCommit}), skipping tree update " +
+                    logger.LogDebug("Commit is still the same ({FileTreeCommit}), skipping tree update " +
                         "for {Id}",
                         project.FileTreeCommit, project.Id);
                     return;
