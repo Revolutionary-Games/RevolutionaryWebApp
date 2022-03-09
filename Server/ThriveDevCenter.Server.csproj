@@ -10,7 +10,7 @@
     <PackageReference Include="AspNetCoreRateLimit" Version="4.0.1" />
     <PackageReference Include="AspNetCoreRateLimit.Redis" Version="1.0.0" />
     <PackageReference Include="AWSSDK.EC2" Version="3.7.60.3" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.8.4" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.8.5" />
     <PackageReference Include="Discord.Net" Version="3.4.0" />
     <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.28" />
