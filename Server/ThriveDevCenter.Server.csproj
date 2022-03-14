@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetCoreRateLimit" Version="4.0.1" />
+    <PackageReference Include="AspNetCoreRateLimit" Version="4.0.2" />
     <PackageReference Include="AspNetCoreRateLimit.Redis" Version="1.0.1" />
     <PackageReference Include="AWSSDK.EC2" Version="3.7.60.6" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.8.7" />
