@@ -25,6 +25,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Shared.Converters;
     using Shared.Forms;
     using Shared.Models;
+    using Shared.Utilities;
     using Utilities;
 
     [ApiController]
@@ -344,9 +345,13 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "Remote storage is not configured on the server"
+                    Value = "Remote storage is not configured on the server",
                 };
             }
+
+            // Disallow extensions with uppercase letters
+            if (PathParser.IsExtensionUppercase(request.Name))
+                return BadRequest("File extension can't contain uppercase characters");
 
             // TODO: maybe in the future we'll want to allow anonymous uploads to certain folders
             var user = HttpContext.AuthenticatedUserOrThrow();

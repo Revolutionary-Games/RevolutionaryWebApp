@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Shared.Utilities
 {
+    using System.IO;
     using System.Linq;
 
     public static class PathParser
@@ -9,6 +10,16 @@ namespace ThriveDevCenter.Shared.Utilities
             // TODO: there's probably a more elegant algorithm possible here
             var pathParts = path.Split('/');
             return string.Join('/', pathParts.Take(pathParts.Length - 1));
+        }
+
+        public static bool IsExtensionUppercase(string path)
+        {
+            var extension = Path.GetExtension(path);
+
+            if (string.IsNullOrEmpty(extension))
+                return false;
+
+            return extension != extension.ToLowerInvariant();
         }
     }
 }

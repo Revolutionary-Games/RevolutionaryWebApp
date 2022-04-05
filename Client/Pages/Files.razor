@@ -15,6 +15,7 @@
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Converters
 @using ThriveDevCenter.Shared.Forms
+@using ThriveDevCenter.Shared.Utilities
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
 @inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.StorageItemInfo>
 <h3>Files</h3>
@@ -723,6 +724,14 @@ else
             {
                 uploadErrors.Add($"File \"{toUpload.Name}\" is too large. Max size is: "+
                     $"{AppInfo.MaxGeneralFileStoreSize.BytesToMiB()}");
+                toUpload = null;
+                continue;
+            }
+
+            if (PathParser.IsExtensionUppercase(toUpload.Name))
+            {
+                uploadErrors.Add($"File \"{toUpload.Name}\" has uppercase characters in the extension, " +
+                    "this is not allowed");
                 toUpload = null;
                 continue;
             }
