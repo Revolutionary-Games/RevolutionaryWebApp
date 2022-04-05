@@ -196,6 +196,11 @@ namespace CIExecutor
                 Console.WriteLine("Got an exception when waiting for message read task: {0}", e);
             }
 
+            Console.WriteLine("Waiting 1s before shutting down");
+
+            // ReSharper disable once MethodSupportsCancellation
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
             Console.WriteLine("Closing socket");
 
             try
