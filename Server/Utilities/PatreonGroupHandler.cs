@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Server.Utilities
     public static class PatreonGroupHandler
     {
         public const string CommunityDevBuildGroup = "Supporter";
-        public const string CommunityVIPGroup = "VIP_Supporter";
+        public const string CommunityVIPGroup = "VIP_supporter";
 
         public enum RewardGroup
         {

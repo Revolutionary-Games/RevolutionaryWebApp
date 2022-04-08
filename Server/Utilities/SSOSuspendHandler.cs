@@ -131,7 +131,8 @@ namespace ThriveDevCenter.Server.Utilities
             {
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
-                    Message = "Suspending user due to sso login no longer being valid for this user",
+                    Message =
+                        $"Suspending user due to sso login ({user.SsoSource}) no longer being valid for this user",
                     TargetUserId = user.Id
                 }, cancellationToken);
 
