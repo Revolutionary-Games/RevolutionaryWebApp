@@ -133,10 +133,12 @@ namespace ThriveDevCenter.Server.Services
                 if (verifyUser)
                 {
                     // In some rare cases (like signup), we don't really care who is making the request
-                    if (principal.Claims.First(c => c.Type == "UserId").Value !=
-                        UserIdFromPotentiallyNull(requiredUser))
+                    var claimUserId = principal.Claims.First(c => c.Type == "UserId").Value;
+                    var requiredId = UserIdFromPotentiallyNull(requiredUser);
+                    if (claimUserId != requiredId)
                     {
-                        throw new ArgumentException("UserId contained in token doesn't match required user id");
+                        throw new ArgumentException($"UserId contained in token ({claimUserId}) doesn't " +
+                            $"match required user id ({requiredId})");
                     }
                 }
             }
