@@ -311,7 +311,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!csrfVerifier.IsValidCSRFToken(csrf, existingSession?.User))
             {
                 throw new HttpResponseException()
-                    { Value = "Invalid CSRF token. Please refresh and try logging in again" };
+                    { Value = "Invalid CSRF token. Please refresh the previous page and try logging in again" };
             }
 
             if (existingSession != null)
