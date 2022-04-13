@@ -89,6 +89,10 @@ namespace ThriveDevCenter.Server.Utilities
             // Create new files
             foreach (var entry in Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.AllDirectories))
             {
+                // Skip .git folder
+                if (entry.Contains(".git"))
+                    continue;
+
                 var justRepoPath = entry.Substring(folder.Length);
 
                 if (!justRepoPath.StartsWith('/'))
