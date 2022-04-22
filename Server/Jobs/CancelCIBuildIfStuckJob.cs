@@ -38,14 +38,14 @@ namespace ThriveDevCenter.Server.Jobs
 
             if (job == null)
             {
-                logger.LogError("Failed to check if a CI job is stuck, can't find the job");
+                logger.LogWarning("Failed to check if a CI job is stuck, can't find the job");
                 return;
             }
 
             if (job.State == CIJobState.Finished)
                 return;
 
-            logger.LogWarning(
+            logger.LogError(
                 "Detected CI job {CIProjectId}-{CIBuildId}-{CIJobId} as stuck running (total build time limit reached)",
                 ciProjectId, ciBuildId, ciJobId);
 
