@@ -196,11 +196,6 @@ namespace CIExecutor
                 Console.WriteLine("Got an exception when waiting for message read task: {0}", e);
             }
 
-            Console.WriteLine("Waiting 1s before shutting down");
-
-            // ReSharper disable once MethodSupportsCancellation
-            await Task.Delay(TimeSpan.FromSeconds(1));
-
             Console.WriteLine("Closing socket");
 
             try
@@ -233,6 +228,7 @@ namespace CIExecutor
             try
             {
                 protocolSocket = new RealTimeBuildMessageSocket(webSocket);
+                Console.WriteLine("Set protocol socket");
             }
             finally
             {
@@ -319,7 +315,7 @@ namespace CIExecutor
                     {
                         try
                         {
-                            protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(10));
+                            protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(30));
 
                             try
                             {
@@ -349,7 +345,7 @@ namespace CIExecutor
 
                 try
                 {
-                    protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(10));
+                    protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(30));
 
                     try
                     {
@@ -384,7 +380,9 @@ namespace CIExecutor
 
                 (RealTimeBuildMessage? message, bool closed) received;
 
-                protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(120));
+                bool lockFailed = false;
+
+                protocolSocketLock.AcquireReaderLock(TimeSpan.FromSeconds(1500));
                 try
                 {
                     if (protocolSocket == null)
@@ -407,8 +405,19 @@ namespace CIExecutor
                 }
                 finally
                 {
-                    protocolSocketLock.ReleaseReaderLock();
+                    try
+                    {
+                        protocolSocketLock.ReleaseReaderLock();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Failed to release socket reader lock: {0}", e);
+                        lockFailed = true;
+                    }
                 }
+
+                if (lockFailed)
+                    return;
 
                 if (received.closed)
                 {
