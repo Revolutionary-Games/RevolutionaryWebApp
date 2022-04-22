@@ -184,6 +184,11 @@ namespace CIExecutor
                 Console.WriteLine("Got an exception when waiting for message send task: {0}", e);
             }
 
+            Console.WriteLine("Waiting 1s before closing socket read");
+
+            // ReSharper disable once MethodSupportsCancellation
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
             cancelRead.Cancel();
 
             Console.WriteLine("Waiting for incoming messages");
