@@ -84,7 +84,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             await database.LogEntries.AddAsync(new LogEntry()
             {
-                Message = $"Deleted crash dump dump file for {report.Id}",
+                Message = $"Deleted crash dump file for {report.Id}",
             }, cancellationToken);
 
             report.DumpLocalFileName = null;
