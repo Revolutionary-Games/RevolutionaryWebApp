@@ -92,7 +92,7 @@ namespace ThriveDevCenter.Server.Services
                     AppInfo.RemoteStorageDownloadExpireTime), tempFile, cancellationToken);
 
                 File.Move(tempFile, finalPath);
-                logger.LogInformation("Downloaded symbol {Id}", symbol.Id);
+                logger.LogInformation("Downloaded symbol {Id} to {FinalPath}", symbol.Id, finalPath);
             }
 
             PruneExtraneousFiles(baseFolder, wantedSymbols);
