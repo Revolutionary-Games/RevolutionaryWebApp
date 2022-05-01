@@ -200,6 +200,7 @@ namespace ThriveDevCenter.Server
             services.AddScoped<IStackwalkSymbolPreparer, StackwalkSymbolPreparer>();
             services.AddScoped<BackupStorage>();
             services.AddScoped<BackupHandler>();
+            services.AddScoped<IFileDownloader, FileDownloader>();
 
             // Prefer the queue sender to not make operations wait for emails to be sent
             services.AddScoped<IMailSender, MailSender>();

@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Shared.Utilities
 
     public static class PathParser
     {
+        // TODO: should be safe to replace with Path.GetDirectoryName
         public static string GetParentPath(string path)
         {
             // TODO: there's probably a more elegant algorithm possible here

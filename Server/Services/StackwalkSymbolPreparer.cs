@@ -4,7 +4,6 @@ namespace ThriveDevCenter.Server.Services
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
@@ -20,15 +19,15 @@ namespace ThriveDevCenter.Server.Services
         private readonly ILogger<StackwalkSymbolPreparer> logger;
         private readonly ApplicationDbContext database;
         private readonly IGeneralRemoteDownloadUrls downloadUrls;
-
-        private readonly HttpClient httpClient = new();
+        private readonly IFileDownloader fileDownloader;
 
         public StackwalkSymbolPreparer(ILogger<StackwalkSymbolPreparer> logger, ApplicationDbContext database,
-            IGeneralRemoteDownloadUrls downloadUrls)
+            IGeneralRemoteDownloadUrls downloadUrls, IFileDownloader fileDownloader)
         {
             this.logger = logger;
             this.database = database;
             this.downloadUrls = downloadUrls;
+            this.fileDownloader = fileDownloader;
         }
 
         public async Task PrepareSymbolsInFolder(string baseFolder, CancellationToken cancellationToken)
@@ -89,28 +88,8 @@ namespace ThriveDevCenter.Server.Services
 
                 logger.LogInformation("Downloading missing debug symbol {RelativePath}", symbol.RelativePath);
 
-                var response = await httpClient.GetAsync(downloadUrls.CreateDownloadFor(version.StorageFile,
-                    AppInfo.RemoteStorageDownloadExpireTime), cancellationToken);
-
-                response.EnsureSuccessStatusCode();
-
-                var content = await response.Content.ReadAsStreamAsync(cancellationToken);
-
-                // Make sure the directory we want to write to exists
-                Directory.CreateDirectory(Path.GetDirectoryName(tempFile) ??
-                    throw new Exception("Failed to get parent folder for the symbol file to write"));
-
-                try
-                {
-                    await using var writer = File.OpenWrite(tempFile);
-                    await content.CopyToAsync(writer, cancellationToken);
-                }
-                catch (OperationCanceledException e)
-                {
-                    logger.LogWarning(e, "Write to symbol file canceled, attempting to delete temp file");
-                    File.Delete(tempFile);
-                    throw;
-                }
+                await fileDownloader.DownloadFile(downloadUrls.CreateDownloadFor(version.StorageFile,
+                    AppInfo.RemoteStorageDownloadExpireTime), tempFile, cancellationToken);
 
                 File.Move(tempFile, finalPath);
                 logger.LogInformation("Downloaded symbol {Id}", symbol.Id);
