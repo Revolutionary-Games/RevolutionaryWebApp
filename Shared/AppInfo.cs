@@ -139,6 +139,8 @@ namespace ThriveDevCenter.Shared
         public const int MinExternalServerPriority = -10;
         public const int MaxExternalServerPriority = 10;
 
+        public const int SshServerCommandAttempts = 3;
+
         public const int Major = 1;
         public const int Minor = 11;
 

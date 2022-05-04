@@ -301,7 +301,26 @@ namespace ThriveDevCenter.Server.Jobs
             int? detectedUsedPercentage = null;
 
             // Check server remaining disk space here
-            var diskSpaceResult = sshAccess.RunCommand(DiskUsageCheckCommand);
+            int attempts = 0;
+            BaseSSHAccess.CommandResult diskSpaceResult;
+            while (true)
+            {
+                try
+                {
+                    diskSpaceResult = sshAccess.RunCommand(DiskUsageCheckCommand);
+                    break;
+                }
+                catch (SshOperationTimeoutException e)
+                {
+                    Logger.LogInformation(e, "Disk space check command timed out");
+
+                    if (++attempts >= AppInfo.SshServerCommandAttempts)
+                    {
+                        Logger.LogError("Disk space check command over SSH ran out of attempts");
+                        throw;
+                    }
+                }
+            }
 
             if (!diskSpaceResult.Success || string.IsNullOrEmpty(diskSpaceResult.Result))
             {
