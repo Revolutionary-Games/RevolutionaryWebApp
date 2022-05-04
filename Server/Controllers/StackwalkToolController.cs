@@ -16,6 +16,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Models;
     using Services;
     using Shared;
+    using Shared.Models.Enums;
     using Utilities;
 
     [ApiController]
@@ -73,6 +74,10 @@ namespace ThriveDevCenter.Server.Controllers
                 DumpTempCategory = StackwalkTask.CrashDumpToolTempStorageFolderName,
                 DumpFileName = Guid.NewGuid() + ".dmp",
                 DeleteDumpAfterRunning = true,
+
+                // TODO: allow the user to specify this
+                // https://github.com/Revolutionary-Games/ThriveDevCenter/issues/247
+                StackwalkPlatform = ThrivePlatform.Windows,
             };
             await database.StackwalkTasks.AddAsync(task);
 

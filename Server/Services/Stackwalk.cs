@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Services
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net;
     using System.Net.Http;
@@ -8,8 +9,10 @@ namespace ThriveDevCenter.Server.Services
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.WebUtilities;
     using Microsoft.Extensions.Configuration;
     using Shared.Converters;
+    using Shared.Models.Enums;
 
     public class Stackwalk : IStackwalk
     {
@@ -40,21 +43,33 @@ namespace ThriveDevCenter.Server.Services
 
         public bool Configured { get; }
 
-        public Task<string> PerformBlockingStackwalk(string dumpFilePath, CancellationToken cancellationToken)
+        public Task<string> PerformBlockingStackwalk(string dumpFilePath, ThrivePlatform platform,
+            CancellationToken cancellationToken)
         {
-            return PerformBlockingStackwalk(File.OpenRead(dumpFilePath), cancellationToken);
+            return PerformBlockingStackwalk(File.OpenRead(dumpFilePath), platform, cancellationToken);
         }
 
-        public async Task<string> PerformBlockingStackwalk(Stream dumpContent, CancellationToken cancellationToken)
+        public async Task<string> PerformBlockingStackwalk(Stream dumpContent, ThrivePlatform platform,
+            CancellationToken cancellationToken)
         {
             ThrowIfNotConfigured();
 
-            var url = new Uri(serviceBaseUrl!, "api/v1");
+            string stackwalkMode;
+            switch (platform)
+            {
+                case ThrivePlatform.Windows:
+                    stackwalkMode = "mingw";
+                    break;
+                default:
+                    stackwalkMode = "normal";
+                    break;
+            }
+
+            var url = new Uri(serviceBaseUrl!,
+                QueryHelpers.AddQueryString("api/v1",
+                    new Dictionary<string, string?> { { "stackwalkType", stackwalkMode } }));
 
             using var form = new MultipartFormDataContent();
-
-            // TODO: implement special mode for windows dumps that were compiled with mingw
-            // form.Add(new StringContent("mingw"), "custom");
 
             form.Add(new StreamContent(dumpContent), "file", "file");
             var response = await httpClient.PostAsync(url, form, cancellationToken);
@@ -140,15 +155,18 @@ namespace ThriveDevCenter.Server.Services
     {
         bool Configured { get; }
 
-        Task<string> PerformBlockingStackwalk(string dumpFilePath, CancellationToken cancellationToken);
-        Task<string> PerformBlockingStackwalk(Stream dumpContent, CancellationToken cancellationToken);
+        Task<string> PerformBlockingStackwalk(string dumpFilePath, ThrivePlatform platform,
+            CancellationToken cancellationToken);
+
+        Task<string> PerformBlockingStackwalk(Stream dumpContent, ThrivePlatform platform,
+            CancellationToken cancellationToken);
 
         /// <summary>
         ///   Tries to find the primary (crashing thread) callstack from a stackwalk decoded crash dump
         /// </summary>
         /// <param name="decodedDump">
         ///   The stackwalk decoded output, for example from
-        ///   <see cref="PerformBlockingStackwalk(string, CancellationToken)"/>
+        ///   <see cref="PerformBlockingStackwalk(string, ThrivePlatform, CancellationToken)"/>
         /// </param>
         /// <param name="fallback">
         ///   If true then first few hundred characters are considered the primary callstack, if searching for it

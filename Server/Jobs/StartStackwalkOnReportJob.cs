@@ -88,7 +88,7 @@ namespace ThriveDevCenter.Server.Jobs
             var startTime = DateTime.UtcNow;
 
             // TODO: implement an async API in the stackwalk service and swap to using that here
-            var result = await stackwalk.PerformBlockingStackwalk(dump, cancellationToken);
+            var result = await stackwalk.PerformBlockingStackwalk(dump, report.Platform, cancellationToken);
             var primaryCallstack = stackwalk.FindPrimaryCallstack(result);
             var condensedCallstack = stackwalk.CondenseCallstack(primaryCallstack);
 

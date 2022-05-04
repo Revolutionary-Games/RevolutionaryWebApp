@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     using Microsoft.EntityFrameworkCore;
+    using Shared.Models.Enums;
     using Utilities;
 
     /// <summary>
@@ -40,10 +41,10 @@ namespace ThriveDevCenter.Server.Models
         public bool DeleteDumpAfterRunning { get; set; } = true;
 
         /// <summary>
-        ///   Will be used in the future once crash reports are processed through this
-        ///   TODO: starting to look like this won't be needed
+        ///   Platform needs to be known to use the right stackwalk for the platform
         /// </summary>
-        public string? SpecialWalkType { get; set; }
+        [Required]
+        public ThrivePlatform StackwalkPlatform { get; set; } = ThrivePlatform.Windows;
 
         public string? Result { get; set; }
 

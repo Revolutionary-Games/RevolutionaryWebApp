@@ -84,7 +84,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             try
             {
-                result = await stackwalk.PerformBlockingStackwalk(dump, cancellationToken);
+                result = await stackwalk.PerformBlockingStackwalk(dump, task.StackwalkPlatform, cancellationToken);
                 task.Succeeded = true;
             }
             catch (Exception e)
