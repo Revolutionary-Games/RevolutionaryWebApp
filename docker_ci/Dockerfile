@@ -1,11 +1,14 @@
 FROM fedora:35
 ENV DOTNET_VERSION "6.0"
 
-RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && curl https://packages.microsoft.com/config/rhel/7/prod.repo | tee /etc/yum.repos.d/microsoft.repo
+RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc
 
-RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} ruby \
-    postgresql-server postgresql-contrib redis git powershell \
-    glibc-locale-source glibc-langpack-en langpacks-en && dnf clean all
+# Powershell needs to be installed separately to not mess with the normal sdk install
+RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} ruby chromium \
+    postgresql-server redis git \
+    glibc-locale-source glibc-langpack-en langpacks-en && \
+    curl https://packages.microsoft.com/config/rhel/7/prod.repo | \
+    tee /etc/yum.repos.d/microsoft.repo && dnf install -y powershell && dnf clean all
 
 # This seems to fail anyway for some reason
 RUN LANG=en_GB.UTF8 localedef --verbose --force -i en_GB -f UTF-8 en_GB.UTF-8 || true
