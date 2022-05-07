@@ -206,6 +206,7 @@ namespace ThriveDevCenter.Server.Models
                     info.Suspended = Suspended ?? false;
                     info.SuspendedReason = SuspendedReason;
                     info.SuspendedManually = SuspendedManually ?? false;
+                    info.Restricted = Restricted;
 
                     // And also add all the private stuff on top
                     goto case RecordAccessLevel.Private;

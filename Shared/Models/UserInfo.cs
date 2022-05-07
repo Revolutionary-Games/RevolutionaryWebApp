@@ -7,6 +7,7 @@ namespace ThriveDevCenter.Shared.Models
     {
         [Required]
         public string Name { get; set; } = string.Empty;
+
         public string? Email { get; set; }
 
         public bool Local { get; set; }
@@ -14,6 +15,8 @@ namespace ThriveDevCenter.Shared.Models
 
         public bool Developer { get; set; }
         public bool Admin { get; set; }
+
+        public bool Restricted { get; set; }
 
         /// <summary>
         ///   Precomputed access level from the server
