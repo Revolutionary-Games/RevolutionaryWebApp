@@ -11,4 +11,5 @@ obj
 /.idea/.idea.ThriveDevCenter/.idea/dataSources/
 /.idea/.idea.ThriveDevCenter/.idea/dataSources.local.xml
 tmp/*
-/docker*
+/docker_appsettings.Production.json
+/docker_nginx.conf
