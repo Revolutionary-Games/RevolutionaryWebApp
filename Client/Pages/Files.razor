@@ -218,7 +218,17 @@ else
                     <li><strong>Special</strong>: @parsedFolderInfo.Special</li>
                     <li><strong>Parent</strong>: @(parsedFolderInfo.ParentId?.ToString() ?? "root")</li>
                     <li><strong>Size</strong>: @parsedFolderInfo.Size</li>
-                    <li><strong>Owned by</strong>: @(parsedFolderInfo.OwnerId?.ToString() ?? "system")</li>
+                    <li>
+                        <strong>Owned by</strong>:
+                        @if (parsedFolderInfo.OwnerId == null)
+                        {
+                            <span>system</span>
+                        }
+                        else
+                        {
+                            <UsernameDisplayer UserId="@parsedFolderInfo.OwnerId"/>
+                        }
+                    </li>
                     <li><strong>Allow Parentless</strong>: @parsedFolderInfo.AllowParentless</li>
                 </ul>
 

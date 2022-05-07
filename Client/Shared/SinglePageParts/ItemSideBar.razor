@@ -97,8 +97,17 @@
     <div>Write: @Item.WriteAccess.ToUserReadableString() </div>
 
     <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.RestrictedUser">
-        @* TODO: fetch username *@
-        <div>Owner: @Item.OwnerId </div>
+        <div>
+            Owner:
+            @if (Item.OwnerId == null)
+            {
+                <span>system</span>
+            }
+            else
+            {
+                <UsernameDisplayer UserId="@Item.OwnerId"/>
+            }
+        </div>
     </AccessLimited>
 
     <div>Parent folder: @Item.ParentId</div>
