@@ -3,7 +3,7 @@ ENV DOTNET_VERSION "6.0"
 
 RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && curl https://packages.microsoft.com/config/rhel/7/prod.repo | tee /etc/yum.repos.d/microsoft.repo
 
-RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} ruby chromium \
+RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} ruby \
     postgresql-server postgresql-contrib redis git powershell \
     glibc-locale-source glibc-langpack-en langpacks-en && dnf clean all
 

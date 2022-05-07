@@ -2,7 +2,7 @@ version: 1
 
 jobs:
   test:
-    image: thrive/devcenter-ci:v1
+    image: thrive/devcenter-ci:v2
     cache:
       loadFrom:
         - v1-{Branch}-build
