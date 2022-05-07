@@ -9,6 +9,7 @@ jobs:
       writeTo: v1-{Branch}-build
       system:
         /root/.nuget: v1-nuget
+        /root/.cache/ms-playwright: v1-playwright
     steps:
       - run:
            command: dotnet restore
