@@ -919,11 +919,11 @@ namespace CIExecutor
                         $"point to \"{systemCacheEntry.Value}\"'");
 
                     var cacheTarget = Path.Join(sharedCacheFolder, systemCacheEntry.Value);
-                    var parentFolder = Path.GetDirectoryName(systemCacheEntry.Value);
+                    var linkParentFolder = Path.GetDirectoryName(systemCacheEntry.Key);
 
                     command.Add($"rm -rf '{systemCacheEntry.Key}'");
                     command.Add($"mkdir -p '{cacheTarget}'");
-                    command.Add($"mkdir -p '{parentFolder}'");
+                    command.Add($"mkdir -p '{linkParentFolder}'");
                     command.Add($"ln -sf '{cacheTarget}' '{systemCacheEntry.Key}' || " +
                         "{ echo \"Couldn't link system cache folder\"; exit 1; }");
                     command.Add("echo 'Finished system cache folder linking'");
