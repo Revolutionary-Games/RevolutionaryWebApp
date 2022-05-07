@@ -221,10 +221,12 @@ And in the AutomatedUITests folder:
 dotnet user-secrets set IntegrationTestConnection 'User ID=thrivedevcenter_test;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter_test;Integrated Security=true;Pooling=true;'
 ```
 
-### Selenium
+### Test browsers
 
-For selenium to work you need to have Chrome / Chromium installed.
-
+After building the solutions, you need to install the needed playwrigth browsers using:
+```
+pwsh AutomatedUITests/bin/Debug/net6.0/playwright.ps1 install
+```
 
 ### Running the tests
 

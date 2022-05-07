@@ -1,39 +1,66 @@
 namespace AutomatedUITests.Fixtures
 {
     using System;
-    using OpenQA.Selenium;
-    using OpenQA.Selenium.Chrome;
-    using OpenQA.Selenium.Support.UI;
-    using Utilities;
+    using System.Threading.Tasks;
+    using Microsoft.Playwright;
 
     public class WebDriverFixture : IDisposable
     {
-        private const int SiteLoadMaxWaitTime = 20;
         private static readonly bool Headless = true;
+
+        private readonly IPlaywright playwright;
+        private readonly Task<IBrowser> browser;
 
         public WebDriverFixture()
         {
-            var options = new ChromeOptions();
+            playwright = Playwright.CreateAsync().Result;
 
-            if (Headless)
-                options.AddArgument("--headless");
+            var options = new BrowserTypeLaunchOptions()
+            {
+                Headless = Headless,
+            };
 
-            Driver = new ChromeDriver(options);
+            browser = playwright.Chromium.LaunchAsync(options);
         }
 
-        public IWebDriver Driver { get; }
+        private IBrowser Browser => browser.Result;
 
-        public void WaitUntilBlazorIsLoaded()
+        public async Task<IPage> NewPage(Uri address)
         {
-            // Wait until the app is loaded and the main "page" body div has appeared
-            var wait = new WebDriverWait(Driver, TimeSpan.FromSeconds(SiteLoadMaxWaitTime));
-            wait.Until((d) => ElementHelpers.ElementExists(d, ".page"));
+            var page = await Browser.NewPageAsync();
+            await page.GotoAsync(address.ToString());
+            return page;
         }
 
-        public void Dispose()
+        /// <summary>
+        ///   Waits until the app is loaded and the main "page" body div has appeared
+        /// </summary>
+        /// <param name="page">The page to use</param>
+        public async Task WaitUntilBlazorIsLoaded(IPage page)
         {
-            Driver.Quit();
-            Driver.Dispose();
+            var mainContentLocator = page.Locator(".page");
+            await mainContentLocator.WaitForAsync();
+        }
+
+        public async Task WaitUntilSpinnersGoAway(IPage page)
+        {
+            var mainContentLocator = page.Locator(".spinner-border");
+
+            var start = DateTime.Now;
+
+            while (await mainContentLocator.CountAsync() > 0)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(50));
+
+                if (DateTime.Now - start > TimeSpan.FromSeconds(30))
+                    throw new Exception("Spinner did not disappear within time limit");
+            }
+        }
+
+        public async void Dispose()
+        {
+            await Browser.DisposeAsync();
+            playwright.Dispose();
         }
     }
 }

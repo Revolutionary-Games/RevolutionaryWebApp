@@ -2,8 +2,7 @@ namespace AutomatedUITests.Tests
 {
     using System;
     using Fixtures;
-    using OpenQA.Selenium;
-    using OpenQA.Selenium.Support.UI;
+    using Microsoft.Playwright;
     using ThriveDevCenter.Server;
     using Utilities;
     using Xunit;
@@ -20,51 +19,49 @@ namespace AutomatedUITests.Tests
         }
 
         [Fact]
-        public void Navigation_MainPageLoadsAndCanNavigate()
+        public async void Navigation_MainPageLoadsAndCanNavigate()
         {
             var root = server.RootUri;
 
-            driver.Driver.Navigate().GoToUrl(root);
+            var page = await driver.NewPage(root);
 
-            driver.WaitUntilBlazorIsLoaded();
+            await driver.WaitUntilBlazorIsLoaded(page);
 
             // Main page
-            Assert.Equal("ThriveDevCenter", driver.Driver.FindElement(By.CssSelector(".content h1")).Text);
+            Assert.Equal("ThriveDevCenter", await page.TextContentAsync(".content h1"));
 
             // About page
-            driver.Driver.FindElement(By.CssSelector("#topAboutLink")).Click();
+            await page.ClickAsync("#topAboutLink");
 
-            Assert.Equal("About", driver.Driver.FindElement(By.CssSelector(".content h3")).Text);
+            Assert.Equal("About", await page.TextContentAsync(".content h3"));
 
             // DevBuilds
-            driver.Driver.FindElement(By.CssSelector("#leftDevBuildButton")).Click();
+            await page.ClickAsync("#leftDevBuildButton");
 
             // Files
-            driver.Driver.FindElement(By.CssSelector("#leftFilesButton")).Click();
+            await page.ClickAsync("#leftFilesButton");
 
             // Git LFS
-            driver.Driver.FindElement(By.CssSelector("#leftLFSButton")).Click();
+            await page.ClickAsync("#leftLFSButton");
 
-            // Wait until the spinner goes away
-            var wait = new WebDriverWait(driver.Driver, TimeSpan.FromSeconds(10));
-            wait.Until((d) => ElementHelpers.ElementDoesNotExist(d, "spinner-border"));
+            await driver.WaitUntilSpinnersGoAway(page);
 
             // When not an admin this button is not visible
-            Assert.Empty(driver.Driver.FindElements(By.CssSelector("#leftUsersButton")));
+            Assert.Empty(await page.QuerySelectorAllAsync("#leftUsersButton"));
 
             // Login page
-            driver.Driver.FindElement(By.CssSelector("#userWidgetLoginLink")).Click();
+            await page.ClickAsync("#userWidgetLoginLink");
 
-            Assert.Equal("Login", driver.Driver.FindElement(By.CssSelector(".content h3")).Text);
+            Assert.Equal("Login", await page.TextContentAsync(".content h3"));
 
-            // Wait until the spinner goes away
-            wait = new WebDriverWait(driver.Driver, TimeSpan.FromSeconds(10));
-            wait.Until((d) => ElementHelpers.ElementDoesNotExist(d, "spinner-border"));
+            await driver.WaitUntilSpinnersGoAway(page);
 
             // Login button and the fields for local login exist
-            driver.Driver.FindElement(By.CssSelector("#localLoginButton"));
-            driver.Driver.FindElement(By.CssSelector("input[type=email]")).SendKeys("test@example.com");
-            driver.Driver.FindElement(By.CssSelector("input[type=password]"));
+
+            Assert.NotNull(await page.QuerySelectorAsync("#localLoginButton"));
+
+            await page.FillAsync("input[type=email]", "test@example.com");
+            Assert.NotNull(await page.QuerySelectorAsync("input[type=password]"));
         }
     }
 }
