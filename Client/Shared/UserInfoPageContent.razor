@@ -51,24 +51,30 @@
 </ul>
 
 <h4>Launcher Links</h4>
-<p>
-    You can link up to @AppInfo.DefaultMaxLauncherLinks Thrive Launchers to your account to access dev center features
-    from the launcher. By linking a launcher you can access devbuilds. Linking the launcher to your account is meant
-    for your personally use only. Please do not share your account.
-</p>
 
-<LauncherLinkList UserId="@User.Id" />
+<AccessLimited RequiredAccess="UserAccessLevel.User">
+    <p>
+        You can link up to @AppInfo.DefaultMaxLauncherLinks Thrive Launchers to your account to access dev center
+        features from the launcher. By linking a launcher you can access devbuilds. Linking the launcher to your
+        account is meant for your personally use only. Please do not share your account.
+    </p>
+
+    <LauncherLinkList UserId="@User.Id" />
+</AccessLimited>
 
 <StatusMessageShower Message="@linkResult" Type="@linkResultType" OnClosed="@HideLinkResult" />
 
 <div>
-    @if (LookingAtSelf)
-    {
-        <Button class="mb-2" ButtonStyle="success" Enabled="@(!gettingLauncherLinkCode)"
-                Spinner="@gettingLauncherLinkCode" OnPressed="@StartLauncherLink">
-            Link Launcher
-        </Button>
-    }
+    <AccessLimited RequiredAccess="UserAccessLevel.User">
+        @if (LookingAtSelf)
+        {
+            <Button class="mb-2" ButtonStyle="success" Enabled="@(!gettingLauncherLinkCode)"
+                    Spinner="@gettingLauncherLinkCode" OnPressed="@StartLauncherLink">
+                Link Launcher
+            </Button>
+        }
+    </AccessLimited>
+
     <Button class="mx-1 mb-2" ButtonStyle="danger" Enabled="@(!clearingAllLinks)" Spinner="@clearingAllLinks"
             OnPressed="@ClearLauncherLinksOnUser">
         Unlink All Launchers
