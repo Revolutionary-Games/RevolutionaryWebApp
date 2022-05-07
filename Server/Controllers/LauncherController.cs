@@ -364,7 +364,17 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Value = new BasicJSONErrorResult("Invalid code",
-                        "Invalid authorization code or it has expired").ToString()
+                        "Invalid authorization code or it has expired").ToString(),
+                };
+            }
+
+            if (!user.HasAccessLevel(UserAccessLevel.User))
+            {
+                throw new HttpResponseException()
+                {
+                    Status = StatusCodes.Status403Forbidden,
+                    Value = new BasicJSONErrorResult("Restricted account",
+                        "Your account is not allowed to create launcher links").ToString()
                 };
             }
 

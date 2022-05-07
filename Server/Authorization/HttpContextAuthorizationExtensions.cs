@@ -19,8 +19,7 @@ namespace ThriveDevCenter.Server.Authorization
         ///   Variant that returns also information if user login details were not provided at all
         /// </summary>
         public static AuthenticationResult HasAuthenticatedUserWithAccessExtended(this HttpContext context,
-            UserAccessLevel requiredAccess,
-            AuthenticationScopeRestriction? requiredRestriction)
+            UserAccessLevel requiredAccess, AuthenticationScopeRestriction? requiredRestriction)
         {
             // Non-logged in is always allowed (even if scope restrictions don't match as in that case the user could
             // just not authenticate at all to have access, so preventing that seems a bit silly)
@@ -87,7 +86,7 @@ namespace ThriveDevCenter.Server.Authorization
         public static AuthenticationScopeRestriction AuthenticatedUserRestriction(this HttpContext context)
         {
             if (!context.Items.TryGetValue("AuthenticatedUserScopeRestriction",
-                out object? restrictionRaw) || restrictionRaw == null)
+                    out object? restrictionRaw) || restrictionRaw == null)
                 throw new InvalidOperationException("authentication scope restriction was not set");
 
             return (AuthenticationScopeRestriction)restrictionRaw;

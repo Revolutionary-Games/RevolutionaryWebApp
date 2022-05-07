@@ -68,7 +68,7 @@ namespace ThriveDevCenter.Server.Controllers
                 if (wantedVersion == null || latestUploaded == null || wantedVersion.Id != latestUploaded.Id)
                 {
                     // Non-latest uploaded file, need access
-                    if (user == null || !user.HasAccessLevel(UserAccessLevel.User))
+                    if (user == null || !user.HasAccessLevel(UserAccessLevel.RestrictedUser))
                         return this.WorkingForbid("You need to login to access non-latest versions of files.");
                 }
 

@@ -415,6 +415,14 @@ namespace ThriveDevCenter.Server.Hubs
                 return CheckFolderContentsAccess(user, UserAccessLevel.NotLoggedIn, item);
             }
 
+            if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix))
+            {
+                if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
+                    return false;
+
+                return CheckFolderContentsAccess(user, UserAccessLevel.RestrictedUser, item);
+            }
+
             if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedUserPrefix))
             {
                 if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))

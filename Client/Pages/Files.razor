@@ -180,7 +180,7 @@ else
         Upload
     </Button>
 
-    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.User">
+    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.RestrictedUser">
 
         @if (!showNewFolderCreate)
         {
@@ -378,6 +378,8 @@ else
         // Folder content change listening
         groups.Add(NotificationGroups.FolderContentsUpdatedPublicPrefix + folderId);
 
+        if (currentAccessLevel.HasAccess(UserAccessLevel.RestrictedUser))
+            groups.Add(NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix + folderId);
         if (currentAccessLevel.HasAccess(UserAccessLevel.User))
             groups.Add(NotificationGroups.FolderContentsUpdatedUserPrefix + folderId);
         if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
@@ -783,7 +785,7 @@ else
                 ParentFolder = parentFolder?.Id,
 
                 // TODO: allow configuring these
-                ReadAccess =  parentFolder?.ReadAccess ?? FileAccess.Developer,
+                ReadAccess = parentFolder?.ReadAccess ?? FileAccess.Developer,
                 WriteAccess = parentFolder?.WriteAccess ?? FileAccess.OwnerOrAdmin,
             });
 

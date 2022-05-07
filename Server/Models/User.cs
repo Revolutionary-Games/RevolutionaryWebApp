@@ -23,12 +23,15 @@ namespace ThriveDevCenter.Server.Models
         [AllowSortingBy]
         public string? SsoSource { get; set; }
 
-        // TODO: combine these to a single enum field (replace these 2 properties with UserAccessLevel)
+        // TODO: combine these to a single enum field (replace these 3 properties with UserAccessLevel)
         [AllowSortingBy]
         public bool? Developer { get; set; } = false;
 
         [AllowSortingBy]
         public bool? Admin { get; set; } = false;
+
+        [AllowSortingBy]
+        public bool Restricted { get; set; }
 
         public bool AssociationMember { get; set; }
         public bool BoardMember { get; set; }
@@ -151,16 +154,18 @@ namespace ThriveDevCenter.Server.Models
 
         public UserAccessLevel ComputeAccessLevel()
         {
+            // Suspended user has no access
+            if (Suspended == true)
+                return UserAccessLevel.NotLoggedIn;
+
             if (Admin == true)
                 return UserAccessLevel.Admin;
             if (Developer == true)
                 return UserAccessLevel.Developer;
+            if (Restricted)
+                return UserAccessLevel.RestrictedUser;
 
-            // Suspended user has no access
-            if (Suspended != true)
-                return UserAccessLevel.User;
-
-            return UserAccessLevel.NotLoggedIn;
+            return UserAccessLevel.User;
         }
 
         public AssociationResourceAccess ComputeAssociationAccessLevel()
@@ -169,6 +174,11 @@ namespace ThriveDevCenter.Server.Models
             {
                 if (Developer == true)
                     return AssociationResourceAccess.Developers;
+
+                // Restricted user created for non-association person. Shouldn't happen but let's handle it this way
+                // if it does
+                if (Restricted)
+                    return AssociationResourceAccess.Public;
 
                 return AssociationResourceAccess.Users;
             }

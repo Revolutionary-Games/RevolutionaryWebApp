@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
 {
     using System;
     using Server.Models;
+    using Shared.Models;
 
     public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
     {
@@ -11,6 +12,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
         private static readonly Guid StaticSessionId1 = Guid.NewGuid();
         private static readonly Guid StaticSessionId2 = Guid.NewGuid();
         private static readonly Guid StaticSessionId3 = Guid.NewGuid();
+        private static readonly Guid StaticSessionId4 = Guid.NewGuid();
 
         public SimpleFewUsersDatabase() : base("SimpleFewUsersDatabase")
         {
@@ -27,6 +29,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
         public Guid SessionId1 => StaticSessionId1;
         public Guid SessionId2 => StaticSessionId2;
         public Guid SessionId3 => StaticSessionId3;
+        public Guid SessionId4 => StaticSessionId4;
 
         protected sealed override void Seed()
         {
@@ -79,6 +82,26 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 Id = SessionId3,
                 User = user3
             });
+
+            var user4 = new User
+            {
+                Id = 4,
+                Email = "test4@example.com",
+                Name = "test4",
+                Local = true,
+                Restricted = true,
+            };
+
+            Database.Users.Add(user4);
+
+            Database.Sessions.Add(new Session
+            {
+                Id = SessionId4,
+                User = user4
+            });
+
+            if (user4.ComputeAccessLevel() != UserAccessLevel.RestrictedUser)
+                throw new Exception("Unexpected access level for user 4");
 
             Database.SaveChanges();
         }

@@ -7,10 +7,11 @@ namespace ThriveDevCenter.Shared.Models
     /// </summary>
     public enum UserAccessLevel
     {
-        NotLoggedIn,
-        User,
-        Developer,
-        Admin
+        NotLoggedIn = 0,
+        RestrictedUser = 1,
+        User = 2,
+        Developer = 3,
+        Admin = 4,
     }
 
     public static class UserAccessLevelHelpers
@@ -19,6 +20,7 @@ namespace ThriveDevCenter.Shared.Models
         {
             switch (level)
             {
+                case UserAccessLevel.RestrictedUser:
                 case UserAccessLevel.User:
                 case UserAccessLevel.Admin:
                 case UserAccessLevel.Developer:
@@ -50,8 +52,11 @@ namespace ThriveDevCenter.Shared.Models
                 case UserAccessLevel.NotLoggedIn:
                     // All possible currentAccess values are acceptable here
                     return true;
-                case UserAccessLevel.User:
+                case UserAccessLevel.RestrictedUser:
                     return currentAccess != UserAccessLevel.NotLoggedIn;
+                case UserAccessLevel.User:
+                    return currentAccess != UserAccessLevel.NotLoggedIn &&
+                        currentAccess != UserAccessLevel.RestrictedUser;
                 case UserAccessLevel.Developer:
                     return currentAccess == UserAccessLevel.Developer || currentAccess == UserAccessLevel.Admin;
                 case UserAccessLevel.Admin:

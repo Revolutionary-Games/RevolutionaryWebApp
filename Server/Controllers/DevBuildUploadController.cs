@@ -219,7 +219,7 @@ namespace ThriveDevCenter.Server.Controllers
                         Ftype = FileType.File,
                         Special = true,
                         ReadAccess = FileAccess.User,
-                        WriteAccess = FileAccess.Nobody
+                        WriteAccess = FileAccess.Nobody,
                     };
 
                     await database.StorageItems.AddAsync(storageItem);
@@ -353,7 +353,7 @@ namespace ThriveDevCenter.Server.Controllers
                         Ftype = FileType.File,
                         Special = true,
                         ReadAccess = FileAccess.User,
-                        WriteAccess = FileAccess.Nobody
+                        WriteAccess = FileAccess.Nobody,
                     };
 
                     dehydrated = new DehydratedObject()

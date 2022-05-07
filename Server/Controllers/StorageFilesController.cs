@@ -169,7 +169,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("createFolder")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<IActionResult> CreateFolder([Required] [FromBody] CreateFolderForm request)
         {
             if (!CheckNewItemName(request.Name, out var badRequest))
@@ -247,7 +247,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("{id:long}/versions")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<PagedResult<StorageItemVersionInfo>>> GetVersions([Required] long id,
             [Required] string sortColumn, [Required] SortDirection sortDirection,
             [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
@@ -276,7 +276,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPut("{id:long}/edit")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<IActionResult> EditItem([Required] long id,
             [Required] [FromBody] StorageItemDTO newData)
         {
@@ -333,7 +333,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("startUpload")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<UploadFileResponse>> StartFileUpload(
             [Required] [FromBody] UploadFileRequestForm request)
         {

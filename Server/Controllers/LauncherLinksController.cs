@@ -64,7 +64,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpDelete("{userId:long}")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<IActionResult> DeleteAllLinks([Required] long userId)
         {
             var performingUser = HttpContext.AuthenticatedUser()!;
@@ -108,7 +108,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpDelete("{userId:long}/{linkId:long}")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<IActionResult> DeleteSpecificLink([Required] long userId, [Required] long linkId)
         {
             var performingUser = HttpContext.AuthenticatedUser()!;

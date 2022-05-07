@@ -254,6 +254,7 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.UserName).HasColumnName("name");
 
                 entity.Property(e => e.Suspended).HasDefaultValue(false);
+                entity.Property(e => e.Restricted).HasDefaultValue(false);
 
                 entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
 

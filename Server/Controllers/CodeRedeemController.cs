@@ -26,7 +26,7 @@ namespace ThriveDevCenter.Server.Controllers
             this.database = database;
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpPost]
         public async Task<IActionResult> Redeem([Required] RedeemCodeData data)
         {

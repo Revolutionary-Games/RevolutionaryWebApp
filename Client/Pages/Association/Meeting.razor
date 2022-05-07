@@ -36,7 +36,7 @@
 
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
-        <AccessLimited RequiredAccess="UserAccessLevel.User" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredAccess="UserAccessLevel.RestrictedUser" AutoRedirectIfNotLoggedIn="@false">
             @if (!isMemberRetrieved)
             {
                 <div class="spinner-border text-primary" role="status">

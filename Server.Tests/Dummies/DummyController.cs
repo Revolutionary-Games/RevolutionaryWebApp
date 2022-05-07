@@ -32,6 +32,18 @@ namespace ThriveDevCenter.Server.Tests.Dummies
             return user.GetInfo(RecordAccessLevel.Private);
         }
 
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+        [HttpGet("restrictedUser")]
+        public UserInfo GetRestricted()
+        {
+            var user = (User?)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
+
+            if (user == null || !user.HasAccessLevel(UserAccessLevel.RestrictedUser))
+                throw new InvalidOperationException("user not retrieved or doesn't have access level");
+
+            return user.GetInfo(RecordAccessLevel.Private);
+        }
+
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
         [HttpGet("developer")]
         public UserInfo GetDeveloper()

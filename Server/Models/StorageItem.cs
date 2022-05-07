@@ -271,37 +271,48 @@ namespace ThriveDevCenter.Server.Models
 
             string? parent = ParentId != null ? ParentId.ToString() : "root";
 
-            if (ReadAccess == FileAccess.Public)
+            switch (ReadAccess)
             {
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
-                {
-                    Type = type,
-                    Item = info
-                }, NotificationGroups.FolderContentsUpdatedPublicPrefix + parent);
-            }
-            else if (ReadAccess == FileAccess.User)
-            {
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
-                {
-                    Type = type,
-                    Item = info
-                }, NotificationGroups.FolderContentsUpdatedUserPrefix + parent);
-            }
-            else if (ReadAccess == FileAccess.Developer)
-            {
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
-                {
-                    Type = type,
-                    Item = info
-                }, NotificationGroups.FolderContentsUpdatedDeveloperPrefix + parent);
-            }
-            else if (ReadAccess == FileAccess.OwnerOrAdmin)
-            {
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
-                {
-                    Type = type,
-                    Item = info
-                }, NotificationGroups.FolderContentsUpdatedOwnerPrefix + parent);
+                case FileAccess.Public:
+                    yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                    {
+                        Type = type,
+                        Item = info
+                    }, NotificationGroups.FolderContentsUpdatedPublicPrefix + parent);
+
+                    break;
+                case FileAccess.RestrictedUser:
+                    yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                    {
+                        Type = type,
+                        Item = info
+                    }, NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix + parent);
+
+                    break;
+                case FileAccess.User:
+                    yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                    {
+                        Type = type,
+                        Item = info
+                    }, NotificationGroups.FolderContentsUpdatedUserPrefix + parent);
+
+                    break;
+                case FileAccess.Developer:
+                    yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                    {
+                        Type = type,
+                        Item = info
+                    }, NotificationGroups.FolderContentsUpdatedDeveloperPrefix + parent);
+
+                    break;
+                case FileAccess.OwnerOrAdmin:
+                    yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                    {
+                        Type = type,
+                        Item = info
+                    }, NotificationGroups.FolderContentsUpdatedOwnerPrefix + parent);
+
+                    break;
             }
 
             yield return new Tuple<SerializedNotification, string>(new StorageItemUpdated()

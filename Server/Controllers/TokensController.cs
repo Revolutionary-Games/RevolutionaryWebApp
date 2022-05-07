@@ -24,21 +24,21 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("api/self")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public ActionResult<string> GetOwnAPIToken()
         {
             return HttpContext.AuthenticatedUser()!.ApiToken ?? "none";
         }
 
         [HttpGet("lfs/self")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public ActionResult<string> GetOwnLFSToken()
         {
             return HttpContext.AuthenticatedUser()!.LfsToken ?? "none";
         }
 
         [HttpDelete("api/self")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<IActionResult> DeleteOwnAPIToken()
         {
             // We must re-fetch this data to get it from our db context for updating it
@@ -61,7 +61,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpDelete("lfs/self")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<IActionResult> DeleteOwnLFSToken()
         {
             // We must re-fetch this data to get it from our db context for updating it
@@ -84,7 +84,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("api/self")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<string>> CreateOwnAPIToken()
         {
             // We must re-fetch this data to get it from our db context for updating it
@@ -107,7 +107,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpPost("lfs/self")]
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<string>> CreateOwnLFSToken()
         {
             // We must re-fetch this data to get it from our db context for updating it

@@ -117,7 +117,7 @@
 
                 <pre>@Data.Description</pre>
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.User">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.RestrictedUser">
                     <AuthorizedContent>
                         @if (Data.DescriptionLastEdited.HasValue)
                         {

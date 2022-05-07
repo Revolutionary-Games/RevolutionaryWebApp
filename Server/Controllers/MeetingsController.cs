@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Controllers
             return meeting.GetDTO();
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpPost("{id:long}/join")]
         public async Task<IActionResult> JoinMeeting([Required] long id)
         {
@@ -123,7 +123,7 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpGet("{id:long}/members")]
         public async Task<ActionResult<PagedResult<MeetingMemberInfo>>> GetMembers([Required] long id,
             [Required] string sortColumn, [Required] SortDirection sortDirection,
@@ -158,7 +158,7 @@ namespace ThriveDevCenter.Server.Controllers
             return objects.ConvertResult(i => i.GetInfo());
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpGet("{id:long}/members/{userId:long}")]
         public async Task<ActionResult<MeetingMemberDTO>> GetMember([Required] long id, [Required] long userId)
         {
@@ -181,7 +181,7 @@ namespace ThriveDevCenter.Server.Controllers
             return member.GetDTO();
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpGet("{id:long}/polls")]
         public async Task<ActionResult<List<MeetingPollDTO>>> GetPolls([Required] long id,
             [Required] string sortColumn, [Required] SortDirection sortDirection)
@@ -207,7 +207,7 @@ namespace ThriveDevCenter.Server.Controllers
             return await query.Select(p => p.GetDTO()).ToListAsync();
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpPost("{id:long}/polls/{pollId:long}/vote")]
         public async Task<ActionResult<List<MeetingPollDTO>>> VoteInPoll([Required] long id,
             [Required] long pollId, [Required] [FromBody] PollVoteData request)
@@ -293,7 +293,7 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpPost("{id:long}/polls")]
         public async Task<IActionResult> CreatePoll([Required] long id, [Required] [FromBody] MeetingPollDTO request)
         {
@@ -396,7 +396,7 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpPost("{id:long}/polls/{pollId:long}/recompute")]
         public async Task<IActionResult> RefreshPollResults([Required] long id, [Required] long pollId)
         {
@@ -431,7 +431,7 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpPost]
         public async Task<IActionResult> CreateNew([Required] [FromBody] MeetingDTO request)
         {
@@ -498,7 +498,7 @@ namespace ThriveDevCenter.Server.Controllers
             return Ok();
         }
 
-        [AuthorizeRoleFilter]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpPost("{id:long}/end")]
         public async Task<IActionResult> EndMeeting([Required] long id)
         {

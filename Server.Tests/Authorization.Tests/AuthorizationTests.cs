@@ -65,7 +65,11 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
                 })
                 .StartAsync();
 
-            var response = await host.GetTestClient().GetAsync("/dummy/user");
+            var response = await host.GetTestClient().GetAsync("/dummy/restrictedUser");
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            response = await host.GetTestClient().GetAsync("/dummy/user");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
@@ -134,10 +138,18 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             Assert.NotNull(user2);
             var user3 = await database.Users.FindAsync(3L);
             Assert.NotNull(user3);
+            var user4 = await database.Users.FindAsync(4L);
+            Assert.NotNull(user4);
 
             var csrfMock = new Mock<ITokenVerifier>();
-            csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, It.IsNotNull<User>(), true))
-                .Returns(true);
+            csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user1, true))
+                .Returns(true).Verifiable();
+            csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user2, true))
+                .Returns(true).Verifiable();
+            csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user3, true))
+                .Returns(true).Verifiable();
+            csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user4, true))
+                .Returns(true).Verifiable();
 
             using var server = new TestServer(new WebHostBuilder()
                 .ConfigureServices(services =>
@@ -181,6 +193,14 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             Assert.NotNull(resultUser);
             Assert.Equal(user1!.Id, resultUser!.Id);
             Assert.Equal(user1.Email, resultUser.Email);
+
+            requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/restrictedUser").ToString());
+            requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+            requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
+
+            response = await requestBuilder.GetAsync();
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
             requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
@@ -260,10 +280,42 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
+            // User 4 requests
+            requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/user").ToString());
+            requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}");
+            requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
+
+            response = await requestBuilder.GetAsync();
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+            requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/restrictedUser").ToString());
+            requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}");
+            requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
+
+            response = await requestBuilder.GetAsync();
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
+            requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}");
+            requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
+
+            response = await requestBuilder.GetAsync();
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+            requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/admin").ToString());
+            requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}");
+            requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
+
+            response = await requestBuilder.GetAsync();
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
             // Check that all the users got passed correctly csrf checking
-            csrfMock.Verify(csrf => csrf.IsValidCSRFToken(csrfValue, user1, true));
-            csrfMock.Verify(csrf => csrf.IsValidCSRFToken(csrfValue, user2, true));
-            csrfMock.Verify(csrf => csrf.IsValidCSRFToken(csrfValue, user3, true));
+            csrfMock.Verify();
+            csrfMock.VerifyNoOtherCalls();
         }
     }
 }

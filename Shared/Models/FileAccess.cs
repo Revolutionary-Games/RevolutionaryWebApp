@@ -5,7 +5,8 @@ namespace ThriveDevCenter.Shared.Models
     public enum FileAccess
     {
         Public = 0,
-        User,
+        RestrictedUser = 1,
+        User = 2,
         Developer,
         OwnerOrAdmin,
 
@@ -42,12 +43,16 @@ namespace ThriveDevCenter.Shared.Models
 
             if (userAccess == UserAccessLevel.Developer)
             {
-                return access == FileAccess.User || access == FileAccess.Developer;
+                return access == FileAccess.User || access == FileAccess.RestrictedUser ||
+                    access == FileAccess.Developer;
             }
-            else
+
+            if (userAccess == UserAccessLevel.RestrictedUser)
             {
-                return access == FileAccess.User;
+                return access == FileAccess.RestrictedUser;
             }
+
+            return access == FileAccess.User || access == FileAccess.RestrictedUser;
         }
 
         public static string ToUserReadableString(this FileAccess access)
@@ -56,6 +61,8 @@ namespace ThriveDevCenter.Shared.Models
             {
                 case FileAccess.Public:
                     return "public";
+                case FileAccess.RestrictedUser:
+                    return "restricted users";
                 case FileAccess.User:
                     return "users";
                 case FileAccess.Developer:
@@ -75,6 +82,17 @@ namespace ThriveDevCenter.Shared.Models
             {
                 case "public":
                     return FileAccess.Public;
+                case "restricted user":
+                case "restricted users":
+                case "restrictedUser":
+                case "restrictedUsers":
+                // ReSharper disable StringLiteralTypo
+                case "restricteduser":
+                case "restrictedusers":
+                case "ruser":
+                case "rusers":
+                    // ReSharper restore StringLiteralTypo
+                    return FileAccess.RestrictedUser;
                 case "users":
                 case "user":
                     return FileAccess.User;
