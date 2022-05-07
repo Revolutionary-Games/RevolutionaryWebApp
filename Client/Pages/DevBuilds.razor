@@ -11,12 +11,15 @@
 <p>
     DevBuilds are preview versions of Thrive with new features and fixes that have been done after the previous release.
 </p>
-
-<LoggedInContent>
-    <NotLoggedIn>
+<AccessLimited RequiredAccess="UserAccessLevel.User" AutoRedirectIfNotLoggedIn="@false">
+    <AccessMissingContent>
         <a href="@navigation.GetLinkToLogin("Login to view DevBuilds")">Login to view builds</a>
-    </NotLoggedIn>
-    <LoggedIn>
+
+        <LoggedInContent>
+            <div>Your account does not have access to DevBuilds</div>
+        </LoggedInContent>
+    </AccessMissingContent>
+    <AuthorizedContent>
         <h4>Build of the Day (BOTD)</h4>
         <DevBuildList BuildType="@DevBuildSearchType.BOTD" DefaultPageSize="70" />
 
@@ -34,8 +37,8 @@
             true, when a Thrive developer has verified the build.
         </p>
         <DevBuildList BuildType="@DevBuildSearchType.Anonymous" DefaultPageSize="20" />
-    </LoggedIn>
-</LoggedInContent>
+    </AuthorizedContent>
+</AccessLimited>
 
 <DevCenterTitle>DevBuilds</DevCenterTitle>
 
