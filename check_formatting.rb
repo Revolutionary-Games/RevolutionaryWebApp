@@ -115,7 +115,7 @@ end
 def includes_changes_to(type)
   return false if @includes.nil?
 
-  @includes.each  do |file|
+  @includes.each do |file|
     return true if file.end_with? type
   end
 
@@ -249,7 +249,20 @@ def run_files
   exit 2
 end
 
+def skip_jetbrains?
+  if @includes && !includes_changes_to('.cs')
+    OUTPUT_MUTEX.synchronize do
+      info 'No changes to be checked for .cs files'
+    end
+    return true
+  end
+
+  false
+end
+
 def run_inspect_code
+  return if skip_jetbrains?
+
   install_dotnet_tools
 
   params = ['dotnet', 'tool', 'run', 'jb', 'inspectcode', 'ThriveDevCenter.sln',
@@ -297,6 +310,9 @@ end
 
 def run_cleanup_code
   puts "NOTE: cleanup currently doesn't run correctly for razor files"
+
+  return if skip_jetbrains?
+
   install_dotnet_tools
 
   old_diff = runOpen3CaptureOutput 'git', '-c', 'core.safecrlf=false', 'diff', '--stat'
