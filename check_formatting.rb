@@ -19,8 +19,13 @@ DEFAULT_CHECKS = VALID_CHECKS
 JET_BRAINS_CACHE = '.jetbrains-cache'
 ONLY_FILE_LIST = 'files_to_check.txt'
 
-EXCLUDE_INSPECT_FILES = ['Client/wwwroot/css/bootstrap/bootstrap.min.css',
-                         'Client/wwwroot/css/open-iconic/font/css/open-iconic-bootstrap.min.css']
+EXCLUDE_INSPECT_FILES = [
+  'Client/wwwroot/css/bootstrap/bootstrap.min.css',
+  'Client/wwwroot/css/open-iconic/font/css/open-iconic-bootstrap.min.css'
+].freeze
+
+# Extra warnings to ignore in inspections that I couldn't figure out how to suppress normally
+FORCE_IGNORED_INSPECTIONS = ['CSharpErrors', 'Html.PathError'].freeze
 
 OUTPUT_MUTEX = Mutex.new
 TOOL_RESTORE_MUTEX = Mutex.new
@@ -271,6 +276,8 @@ def run_inspect_code
     type = issue_types[issue['TypeId']]
 
     next if type['Severity'] == 'SUGGESTION'
+
+    next if FORCE_IGNORED_INSPECTIONS.include? issue['TypeId']
 
     issues_found = true
 

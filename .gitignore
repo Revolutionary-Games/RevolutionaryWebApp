@@ -15,3 +15,4 @@ tmp/*
 /docker_nginx.conf
 .jetbrains-cache
 /inspect_results.xml
+*.tar.xz

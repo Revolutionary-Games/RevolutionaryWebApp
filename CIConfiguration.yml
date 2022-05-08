@@ -45,5 +45,8 @@ jobs:
       - run:
           command: dotnet restore
       - run:
-          name: Code checks
-          command: ruby check_formatting.rb
+          name: Build with warnings
+          command: ruby check_formatting.rb -c compile
+      - run:
+          name: Jetbrains inspectcode
+          command: ruby check_formatting.rb -c inspectcode
