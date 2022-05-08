@@ -1,5 +1,5 @@
 @page "/deleteReport/{Key}"
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models
 @using System.Text.Json
@@ -86,7 +86,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/CrashReport/checkDeleteKey", Key);
+            result = await Http.PostAsJsonAsync("api/v1/CrashReport/checkDeleteKey", Key);
         }
         catch (HttpRequestException e)
         {
@@ -130,7 +130,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/CrashReport/useDeleteKey", Key);
+            result = await Http.PostAsJsonAsync("api/v1/CrashReport/useDeleteKey", Key);
         }
         catch (HttpRequestException e)
         {

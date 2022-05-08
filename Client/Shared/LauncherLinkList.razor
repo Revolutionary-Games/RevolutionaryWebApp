@@ -1,5 +1,5 @@
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -87,7 +87,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -104,12 +104,12 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<LauncherLinkDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<LauncherLinkDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<LauncherLinkDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LauncherLinks/{UserId}", requestParams));
     }
 

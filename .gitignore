@@ -13,3 +13,5 @@ obj
 tmp/*
 /docker_appsettings.Production.json
 /docker_nginx.conf
+.jetbrains-cache
+/inspect_results.xml

@@ -1,6 +1,6 @@
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject IClipboard clipboard
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IClipboard Clipboard
 @using ThriveDevCenter.Shared.Models
 @using System.IO
 @using TextCopy
@@ -180,12 +180,12 @@
             return;
 
         // Navigate to the parent path, as that should close the file showing
-        navManager.NavigateTo(PathParser.GetParentPath(navManager.Uri));
+        NavManager.NavigateTo(PathParser.GetParentPath(NavManager.Uri));
     }
 
     private string GetDownloadURL(int version = -1)
     {
-        return new Uri(new Uri(navManager.BaseUri), $"api/v1/download/{Item.Id}").ToString();
+        return new Uri(new Uri(NavManager.BaseUri), $"api/v1/download/{Item.Id}").ToString();
     }
 
     private async Task DownloadTextFile()
@@ -199,7 +199,7 @@
 
         try
         {
-            result = await http.GetAsync(GetDownloadURL());
+            result = await Http.GetAsync(GetDownloadURL());
         }
         catch (HttpRequestException e)
         {
@@ -229,7 +229,7 @@
         linkCopied = false;
         await InvokeAsync(StateHasChanged);
 
-        await clipboard.SetTextAsync(GetDownloadURL());
+        await Clipboard.SetTextAsync(GetDownloadURL());
 
         linkCopied = true;
         await InvokeAsync(StateHasChanged);

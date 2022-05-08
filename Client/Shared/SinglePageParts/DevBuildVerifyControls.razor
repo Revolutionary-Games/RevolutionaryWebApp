@@ -1,4 +1,4 @@
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Client.Pages
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models
@@ -168,7 +168,7 @@ else
 
         try
         {
-            result = await http.PostAsync($"api/v1/DevBuilds/{Data.Id}/verify?siblingsAsWell={siblings}",
+            result = await Http.PostAsync($"api/v1/DevBuilds/{Data.Id}/verify?siblingsAsWell={siblings}",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -208,7 +208,7 @@ else
 
         try
         {
-            result = await http.DeleteAsync($"api/v1/DevBuilds/{Data.Id}/verify?siblingsAsWell={siblings}");
+            result = await Http.DeleteAsync($"api/v1/DevBuilds/{Data.Id}/verify?siblingsAsWell={siblings}");
         }
         catch (HttpRequestException e)
         {

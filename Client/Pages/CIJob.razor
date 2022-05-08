@@ -1,7 +1,7 @@
 @page "/ci/{ProjectId:long}/build/{BuildId:long}/jobs/{Id:long}"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
-@inject NavigationManager navigationManager
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject NavigationManager NavigationManager
 @inherits SingleResourcePage<CIJobDTO, CIJobUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -109,7 +109,7 @@
 
     protected override Task<CIJobDTO?> StartQuery()
     {
-        return http.GetFromJsonAsync<CIJobDTO>($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{Id}",
+        return Http.GetFromJsonAsync<CIJobDTO>($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{Id}",
             HttpClientHelpers.GetOptionsWithSerializers());
     }
 
@@ -121,12 +121,12 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task OnFirstDataReceived()
     {
-        return notificationHandler.Register(this);
+        return NotificationHandler.Register(this);
     }
 
     private async void CancelJob()
@@ -140,7 +140,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/CIBuildManagement/{ProjectId}/{BuildId}/jobs/{Id}/cancel",
+            result = await Http.PostAsync($"api/v1/CIBuildManagement/{ProjectId}/{BuildId}/jobs/{Id}/cancel",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)

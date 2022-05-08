@@ -1,5 +1,5 @@
 @using System.Net
-@inject HttpClient http
+@inject HttpClient Http
 
 @if (loading)
 {
@@ -24,7 +24,7 @@ else
 
         try
         {
-            result = await http.GetAsync("api/v1/Mail");
+            result = await Http.GetAsync("api/v1/Mail");
         }
         catch (HttpRequestException e)
         {

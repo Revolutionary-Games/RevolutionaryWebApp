@@ -6,9 +6,9 @@
 @using System.Text.Json
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Converters
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject ComponentUrlHelper urlHelper
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ComponentUrlHelper URLHelper
 <h3>Email Verification</h3>
 
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
@@ -36,7 +36,7 @@
     {
         await base.OnInitializedAsync();
 
-        this.SetParametersFromQueryString(navManager);
+        this.SetParametersFromQueryString(NavManager);
 
         await VerifyToken();
     }
@@ -60,7 +60,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/EmailVerification", new EmailVerificationFinishForm()
+            result = await Http.PostAsJsonAsync("api/v1/EmailVerification", new EmailVerificationFinishForm()
             {
                 Token = Token,
             });
@@ -119,6 +119,6 @@
     private async Task PerformRedirect(string target)
     {
         await Task.Delay(TimeSpan.FromSeconds(5));
-        navManager.NavigateTo(target);
+        NavManager.NavigateTo(target);
     }
 }

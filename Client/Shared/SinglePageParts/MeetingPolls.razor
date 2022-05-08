@@ -1,5 +1,5 @@
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -106,7 +106,9 @@ else
                 }
 
                 @* TODO: implement manually closing polls *@
+                @* ReSharper disable CSharpWarnings::CS0162 *@
                 <Button Enabled="@(false && item.ClosedAt == null)" ButtonStyle="warning">Close Now</Button>
+                @* ReSharper restore CSharpWarnings::CS0162 *@
                 <Button Enabled="@(item.ClosedAt != null && !IsRunningPollAction(item.PollId))"
                         Spinner="@IsRunningPollAction(item.PollId)"
                         ButtonStyle="secondary" class="ml-1" OnPressed="@(() => RecomputePollResults(item))">
@@ -226,7 +228,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -243,12 +245,12 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<List<MeetingPollDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<List<MeetingPollDTO>>(
+        return Http.GetFromJsonAsync<List<MeetingPollDTO>>(
             QueryHelpers.AddQueryString($"api/v1/Meetings/{MeetingId}/polls", requestParams));
     }
 
@@ -323,7 +325,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls", newPollDTOData);
+            result = await Http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls", newPollDTOData);
         }
         catch (HttpRequestException e)
         {
@@ -364,7 +366,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/vote",
+            result = await Http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/vote",
                 new PollVoteData()
             {
                 SelectedOptions = pollChoices[item.PollId].Item1.AsEnumerable()
@@ -410,7 +412,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/recompute",
+            result = await Http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/recompute",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)

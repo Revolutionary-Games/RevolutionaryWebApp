@@ -283,6 +283,18 @@ Provide the password used in the previous step if prompted.
 And now follow the instructions in the "Getting an admin account"
 section.
 
+## Code checks
+
+The code checks script depends on ruby and a few gems you need to install:
+```sh
+gem install os colorize json parallel nokogiri
+```
+
+After those are installed you can run the check locally:
+```
+ruby check_formatting.rb
+```
+
 ## Deploying
 
 First prepare the server to deploy with all the software.

@@ -1,8 +1,8 @@
 @{
     #pragma warning disable 108,114 // invalid warning for razor override
 }
-@inject CurrentUserInfo currentUserInfo
-@inject HttpClient http
+@inject CurrentUserInfo CurrentUserInfo
+@inject HttpClient Http
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Client.Services
@@ -202,7 +202,7 @@ else
         }
     }
 
-    private bool LookingAtSelf => currentUserInfo.InfoReady && currentUserInfo.Email ==
+    private bool LookingAtSelf => CurrentUserInfo.InfoReady && CurrentUserInfo.Email ==
         User.Email;
 
     private async void ClearTokensOnUser()
@@ -216,7 +216,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/Tokens/clear", new ForceClearTokensForm()
+            result = await Http.PostAsJsonAsync("api/v1/Tokens/clear", new ForceClearTokensForm()
             {
                 TargetUserId = User.Id
             });
@@ -257,7 +257,7 @@ else
 
         try
         {
-            result = await http.DeleteAsync($"api/v1/LauncherLinks/{User.Id}");
+            result = await Http.DeleteAsync($"api/v1/LauncherLinks/{User.Id}");
         }
         catch (HttpRequestException e)
         {
@@ -299,7 +299,7 @@ else
 
         try
         {
-            result = await http.PostAsync($"api/v1/LauncherLinks", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/LauncherLinks", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {

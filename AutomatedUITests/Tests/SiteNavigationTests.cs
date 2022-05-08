@@ -1,10 +1,7 @@
 namespace AutomatedUITests.Tests
 {
-    using System;
     using Fixtures;
-    using Microsoft.Playwright;
     using ThriveDevCenter.Server;
-    using Utilities;
     using Xunit;
 
     public class SiteNavigationTests : IClassFixture<WebHostServerFixture<Startup>>, IClassFixture<WebDriverFixture>

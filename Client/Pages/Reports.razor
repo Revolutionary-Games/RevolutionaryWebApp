@@ -1,9 +1,9 @@
 @page "/reports"
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject IJSRuntime js
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -94,13 +94,13 @@ else
         DefaultPageSize = 50;
     }
 
-    [QueryStringParameterAttribute]
+    [QueryStringParameter]
     private bool SearchDuplicates { get; set; } = true;
 
-    [QueryStringParameterAttribute]
+    [QueryStringParameter]
     private bool SearchClosed { get; set; } = true;
 
-    [QueryStringParameterAttribute]
+    [QueryStringParameter]
     private string? SearchText { get; set; }
 
     private bool CanSearch => string.IsNullOrEmpty(SearchText) ||
@@ -108,13 +108,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        this.SetParametersFromQueryString(navManager);
+        this.SetParametersFromQueryString(NavManager);
 
         return base.SetParametersAsync(parameters);
     }
@@ -135,7 +135,7 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Dictionary<string, string> CreatePageRequestParams()
@@ -167,12 +167,12 @@ else
 
     protected override Task<PagedResult<CrashReportInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<CrashReportInfo>>(
+        return Http.GetFromJsonAsync<PagedResult<CrashReportInfo>>(
             QueryHelpers.AddQueryString("api/v1/CrashReport", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
-        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 }

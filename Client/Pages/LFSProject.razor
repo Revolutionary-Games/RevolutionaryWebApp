@@ -1,7 +1,7 @@
 @page "/lfs/{Id:long}/{*FileBrowserPath}"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
-@inject NavigationManager navigationManager
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject NavigationManager NavigationManager
 @inherits SingleResourcePage<LFSProjectDTO, LFSProjectUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
@@ -122,7 +122,7 @@
 
     protected override Task<LFSProjectDTO?> StartQuery()
     {
-        return http.GetFromJsonAsync<LFSProjectDTO>($"api/v1/LFSProject/{Id}");
+        return Http.GetFromJsonAsync<LFSProjectDTO>($"api/v1/LFSProject/{Id}");
     }
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
@@ -132,17 +132,17 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task OnFirstDataReceived()
     {
-        return notificationHandler.Register(this);
+        return NotificationHandler.Register(this);
     }
 
     private string ComputeLfsURL()
     {
-        return new Uri(new Uri(navigationManager.BaseUri), Data!.LfsUrlSuffix).ToString();
+        return new Uri(new Uri(NavigationManager.BaseUri), Data!.LfsUrlSuffix).ToString();
     }
 
     private void HideMessage()
@@ -161,7 +161,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/LFSProject/{Id}/refreshFileTree", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/LFSProject/{Id}/refreshFileTree", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {
@@ -199,7 +199,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/LFSProject/{Id}/rebuildFileTree", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/LFSProject/{Id}/rebuildFileTree", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {

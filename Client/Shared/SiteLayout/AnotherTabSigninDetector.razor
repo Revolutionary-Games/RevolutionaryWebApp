@@ -2,10 +2,10 @@
 @using ThriveDevCenter.Client.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared
-@inject NavigationManager navManager
-@inject Blazored.LocalStorage.ILocalStorageService localStorage
-@inject ICSRFTokenReader initialUserData
-@inject NotificationHandler notificationHandler
+@inject NavigationManager NavManager
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject ICSRFTokenReader InitialUserData
+@inject NotificationHandler NotificationHandler
 @implements IDisposable
 
 @if (error)
@@ -20,7 +20,7 @@
 {
     <div class="alert alert-danger" role="alert">
         You have signed in or out in another tab. The site will not function correctly until you
-        <a href="#" class="alert-link" @onclick="navManager.ForceReload" @onclick:preventDefault="true">reload</a>.
+        <a href="#" class="alert-link" @onclick="NavManager.ForceReload" @onclick:preventDefault="true">reload</a>.
     </div>
 }
 
@@ -56,7 +56,7 @@
 
         try
         {
-            updatedInfo = await localStorage.GetItemAsync<LocalStorageUserInfo>(AppInfo.LocalStorageUserInfo);
+            updatedInfo = await LocalStorage.GetItemAsync<LocalStorageUserInfo>(AppInfo.LocalStorageUserInfo);
         }
         catch (Exception e)
         {
@@ -71,17 +71,17 @@
         if (updatedInfo == null)
             return;
 
-        if (updatedInfo.LastSignedInUserId == initialUserData.InitialUserId)
+        if (updatedInfo.LastSignedInUserId == InitialUserData.InitialUserId)
             return;
 
         // Detected a change, we can stop trying to look for them
         timer?.Stop();
         signinDetected = true;
 
-        Console.WriteLine($"Detected change of the logged in user, our page load: '{initialUserData.InitialUserId}' "
+        Console.WriteLine($"Detected change of the logged in user, our page load: '{InitialUserData.InitialUserId}' "
             + $"!= new from local storage: '{updatedInfo.LastSignedInUserId}'");
 
         await InvokeAsync(StateHasChanged);
-        await InvokeAsync(notificationHandler.OnRequireStoppingConnection);
+        await InvokeAsync(NotificationHandler.OnRequireStoppingConnection);
     }
 }

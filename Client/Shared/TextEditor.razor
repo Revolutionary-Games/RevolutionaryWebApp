@@ -1,4 +1,4 @@
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared
 
 @if (showForm)
@@ -137,7 +137,7 @@ else
 
         try
         {
-            result = await http.PutAsJsonAsync(url, data);
+            result = await Http.PutAsJsonAsync(url, data);
         }
         catch (HttpRequestException e)
         {

@@ -1,6 +1,6 @@
 @page "/symbols"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -108,7 +108,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -125,12 +125,12 @@
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<DebugSymbolDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<DebugSymbolDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<DebugSymbolDTO>>(
             QueryHelpers.AddQueryString("api/v1/DebugSymbol", requestParams));
     }
 
@@ -153,7 +153,7 @@
 
         try
         {
-            result = await http.PutAsJsonAsync($"api/v1/DebugSymbol/{symbol.Id}", data);
+            result = await Http.PutAsJsonAsync($"api/v1/DebugSymbol/{symbol.Id}", data);
         }
         catch (HttpRequestException e)
         {

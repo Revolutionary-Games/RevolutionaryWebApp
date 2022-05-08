@@ -10,8 +10,11 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
         {
             byte[] salt = { 1, 2, 3, 4, 5, 6, 7, 8 };
 
+            // Hashed string has nonsense in it
+            // ReSharper disable StringLiteralTypo
             Assert.Equal("AQIDBAUGBwg=:9CtRsYKuet+gr6NRVnrIjd37nKwH1sTCEI3kdt8i5N0oJF+n1JUR3Idy2SuU1+zi",
                 Passwords.CreateSaltedPasswordHash("test1234", salt));
+            // ReSharper enable StringLiteralTypo
         }
 
         [Fact]

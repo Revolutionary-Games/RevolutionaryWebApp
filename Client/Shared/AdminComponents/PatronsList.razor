@@ -1,8 +1,8 @@
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject IJSRuntime js
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -66,7 +66,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -84,12 +84,12 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<PatronDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<PatronDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<PatronDTO>>(
             QueryHelpers.AddQueryString("api/v1/Patrons", requestParams));
     }
 }

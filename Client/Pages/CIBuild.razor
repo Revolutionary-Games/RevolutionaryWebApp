@@ -1,7 +1,7 @@
 @page "/ci/{ProjectId:long}/build/{Id:long}"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
-@inject NavigationManager navigationManager
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject NavigationManager NavigationManager
 @inherits SingleResourcePage<CIBuildDTO, CIBuildUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -102,7 +102,7 @@
 
     protected override Task<CIBuildDTO?> StartQuery()
     {
-        return http.GetFromJsonAsync<CIBuildDTO>($"api/v1/CIProject/{ProjectId}/builds/{Id}");
+        return Http.GetFromJsonAsync<CIBuildDTO>($"api/v1/CIProject/{ProjectId}/builds/{Id}");
     }
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
@@ -113,12 +113,12 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task OnFirstDataReceived()
     {
-        return notificationHandler.Register(this);
+        return NotificationHandler.Register(this);
     }
 
     private async void RerunBuild(bool all)
@@ -133,7 +133,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/CIBuildManagement/{ProjectId}/{Id}/rerun?onlyFailed={!all}",
+            result = await Http.PostAsync($"api/v1/CIBuildManagement/{ProjectId}/{Id}/rerun?onlyFailed={!all}",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)

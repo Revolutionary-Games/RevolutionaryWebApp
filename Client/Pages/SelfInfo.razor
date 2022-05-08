@@ -2,13 +2,13 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models
-@inject CurrentUserInfo currentUserInfo
-@inject HttpClient http
+@inject CurrentUserInfo CurrentUserInfo
+@inject HttpClient Http
 
 <h3>Your Profile</h3>
 
 <AccessLimited RequiredAccess="@UserAccessLevel.RestrictedUser">
-    <UserInfoPageContent User="@currentUserInfo.Info" />
+    <UserInfoPageContent User="@CurrentUserInfo.Info" />
 
     <br />
     <hr />
@@ -67,7 +67,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/CodeRedeem", new RedeemCodeData()
+            result = await Http.PostAsJsonAsync("api/v1/CodeRedeem", new RedeemCodeData()
             {
                 Code = codeRedeem!
             });

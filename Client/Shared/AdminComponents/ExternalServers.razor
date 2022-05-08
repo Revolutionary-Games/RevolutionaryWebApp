@@ -1,6 +1,6 @@
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -231,7 +231,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -248,12 +248,12 @@
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<ExternalServerDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<ExternalServerDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<ExternalServerDTO>>(
             QueryHelpers.AddQueryString("api/v1/ExternalServers", requestParams));
     }
 
@@ -273,7 +273,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/queueMaintenance",
+            result = await Http.PostAsync($"api/v1/ExternalServers/{serverId}/queueMaintenance",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -374,7 +374,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/reProvision",
+            result = await Http.PostAsync($"api/v1/ExternalServers/{serverId}/reProvision",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -412,7 +412,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/reboot",
+            result = await Http.PostAsync($"api/v1/ExternalServers/{serverId}/reboot",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -450,7 +450,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/queueCleanUp",
+            result = await Http.PostAsync($"api/v1/ExternalServers/{serverId}/queueCleanUp",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -488,7 +488,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/offline?offline={offline}",
+            result = await Http.PostAsync($"api/v1/ExternalServers/{serverId}/offline?offline={offline}",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -526,7 +526,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ExternalServers/{serverId}/refreshStatus",
+            result = await Http.PostAsync($"api/v1/ExternalServers/{serverId}/refreshStatus",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -564,7 +564,7 @@
 
         try
         {
-            result = await http.DeleteAsync($"api/v1/ExternalServers/{serverId}");
+            result = await Http.DeleteAsync($"api/v1/ExternalServers/{serverId}");
         }
         catch (HttpRequestException e)
         {
@@ -621,7 +621,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/ExternalServers", new ExternalServerDTO()
+            result = await Http.PostAsJsonAsync("api/v1/ExternalServers", new ExternalServerDTO()
             {
                 PublicAddress = IPAddress.Parse(newIP!),
                 SSHKeyFileName = newSSHKey!,
@@ -676,7 +676,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync($"api/v1/ExternalServers/{server.Id}/priority",
+            result = await Http.PostAsJsonAsync($"api/v1/ExternalServers/{server.Id}/priority",
                 Convert.ToInt32(args.Value).ToString(CultureInfo.InvariantCulture));
         }
         catch (HttpRequestException e)

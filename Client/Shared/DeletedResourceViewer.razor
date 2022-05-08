@@ -1,4 +1,4 @@
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
 @using System.ComponentModel
@@ -110,7 +110,7 @@
 
     protected override Task<PagedResult<SoftDeletedResource>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<SoftDeletedResource>>(
+        return Http.GetFromJsonAsync<PagedResult<SoftDeletedResource>>(
             QueryHelpers.AddQueryString(FetchListEndpoint, requestParams));
     }
 
@@ -140,7 +140,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync(restoreUrl, new Dictionary<string, long>()
+            result = await Http.PostAsJsonAsync(restoreUrl, new Dictionary<string, long>()
             {
                 { "Id", resourceId }
             });

@@ -1,8 +1,8 @@
 @page "/reports/{Id:long}"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
-@inject NavigationManager navigationManager
-@inject CurrentUserInfo currentUserInfo
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject NavigationManager NavigationManager
+@inject CurrentUserInfo CurrentUserInfo
 @inherits SingleResourcePage<CrashReportDTO, CrashReportUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -178,7 +178,7 @@
 
                         <p>
                             Only Thrive developers can view logs.
-                            <NavLink href="@navigationManager.GetLinkToLogin("Only developers can view logs")">
+                            <NavLink href="@NavigationManager.GetLinkToLogin("Only developers can view logs")">
                                 Login
                             </NavLink>
                         </p>
@@ -291,7 +291,7 @@
 
     protected override Task<CrashReportDTO?> StartQuery()
     {
-        return http.GetFromJsonAsync<CrashReportDTO>($"api/v1/CrashReport/{Id}");
+        return Http.GetFromJsonAsync<CrashReportDTO>($"api/v1/CrashReport/{Id}");
     }
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
@@ -301,19 +301,19 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override async Task OnFirstDataReceived()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
 
         var tasks = new List<Task> { FetchDuplicates() };
 
         showReporterEmail = false;
         fetchingEmail = false;
 
-        if (currentUserInfo.IsDeveloper)
+        if (CurrentUserInfo.IsDeveloper)
         {
             tasks.Add(FetchLogs());
             tasks.Add(FetchCrashDump());
@@ -331,7 +331,7 @@
 
         try
         {
-            duplicates = await http.GetFromJsonAsync<List<long>>($"api/v1/CrashReport/{Id}/duplicates");
+            duplicates = await Http.GetFromJsonAsync<List<long>>($"api/v1/CrashReport/{Id}/duplicates");
         }
         catch (Exception e)
         {
@@ -354,7 +354,7 @@
 
         try
         {
-            logs = await http.GetStringAsync($"api/v1/CrashReport/{Id}/logs");
+            logs = await Http.GetStringAsync($"api/v1/CrashReport/{Id}/logs");
         }
         catch (Exception e)
         {
@@ -377,7 +377,7 @@
 
         try
         {
-            crashDump = await http.GetStringAsync($"api/v1/CrashReport/{Id}/decodedDump");
+            crashDump = await Http.GetStringAsync($"api/v1/CrashReport/{Id}/decodedDump");
         }
         catch (Exception e)
         {
@@ -402,7 +402,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/CrashReport/{Id}/reprocess", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/CrashReport/{Id}/reprocess", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {
@@ -472,7 +472,7 @@
 
         try
         {
-            reporterEmail = await http.GetStringAsync($"api/v1/CrashReport/{Id}/reporterEmail");
+            reporterEmail = await Http.GetStringAsync($"api/v1/CrashReport/{Id}/reporterEmail");
         }
         catch (HttpRequestException e)
         {
@@ -496,7 +496,7 @@
 
         try
         {
-            result = await http.DeleteAsync($"api/v1/CrashReport/{Id}/reporterEmail");
+            result = await Http.DeleteAsync($"api/v1/CrashReport/{Id}/reporterEmail");
         }
         catch (HttpRequestException e)
         {

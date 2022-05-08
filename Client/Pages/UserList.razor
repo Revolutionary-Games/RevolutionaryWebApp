@@ -1,9 +1,9 @@
 @page "/users"
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject IJSRuntime js
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -71,13 +71,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        this.SetParametersFromQueryString(navManager);
+        this.SetParametersFromQueryString(NavManager);
 
         return base.SetParametersAsync(parameters);
     }
@@ -98,18 +98,18 @@
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<UserInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<UserInfo>>(
+        return Http.GetFromJsonAsync<PagedResult<UserInfo>>(
             QueryHelpers.AddQueryString("api/v1/UserManagement", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
-        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
 }

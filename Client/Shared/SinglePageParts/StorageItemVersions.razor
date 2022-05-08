@@ -1,6 +1,6 @@
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -67,7 +67,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -85,12 +85,12 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<StorageItemVersionInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<StorageItemVersionInfo>>(
+        return Http.GetFromJsonAsync<PagedResult<StorageItemVersionInfo>>(
             QueryHelpers.AddQueryString($"api/v1/Files/{StorageItemId}/versions", requestParams));
     }
 
@@ -98,7 +98,7 @@ else
     {
         var urlParams = new Dictionary<string, string> { ["version"] = version.ToString() };
 
-        return QueryHelpers.AddQueryString(new Uri(new Uri(navManager.BaseUri),
+        return QueryHelpers.AddQueryString(new Uri(new Uri(NavManager.BaseUri),
             $"api/v1/download/{StorageItemId}").ToString(), urlParams);
     }
 }

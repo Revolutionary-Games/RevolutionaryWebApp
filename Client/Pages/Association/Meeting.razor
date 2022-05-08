@@ -1,8 +1,8 @@
 @page "/association/meetings/{Id:long}"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
-@inject NavigationManager navigationManager
-@inject CurrentUserInfo currentUserInfo
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject NavigationManager NavigationManager
+@inject CurrentUserInfo CurrentUserInfo
 @inherits SingleResourcePage<MeetingDTO, MeetingUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -92,14 +92,14 @@
     private bool joiningOrLeavingMeeting;
     private bool processingAction;
 
-    private bool CanControl => Data != null && (Data.OwnerId == currentUserInfo.Info?.Id || currentUserInfo.IsAdmin);
+    private bool CanControl => Data != null && (Data.OwnerId == CurrentUserInfo.Info?.Id || CurrentUserInfo.IsAdmin);
     private bool IsEnded => Data is {EndedAt: { } };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
 
-        if (currentUserInfo.LoggedIn && !isMemberRetrieved && !retrievingMembershipInfo)
+        if (CurrentUserInfo.LoggedIn && !isMemberRetrieved && !retrievingMembershipInfo)
         {
             await RetrieveMembershipInfo();
         }
@@ -107,7 +107,7 @@
 
     protected override Task<MeetingDTO?> StartQuery()
     {
-        return http.GetFromJsonAsync<MeetingDTO>($"api/v1/Meetings/{Id}",
+        return Http.GetFromJsonAsync<MeetingDTO>($"api/v1/Meetings/{Id}",
             HttpClientHelpers.GetOptionsWithSerializers());
     }
 
@@ -118,12 +118,12 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task OnFirstDataReceived()
     {
-        return notificationHandler.Register(this);
+        return NotificationHandler.Register(this);
     }
 
     private async Task RetrieveMembershipInfo()
@@ -137,8 +137,8 @@
 
         try
         {
-            result = await http.GetFromJsonAsync<MeetingMemberDTO>(
-                $"api/v1/Meetings/{Id}/members/{currentUserInfo.Info!.Id}");
+            result = await Http.GetFromJsonAsync<MeetingMemberDTO>(
+                $"api/v1/Meetings/{Id}/members/{CurrentUserInfo.Info!.Id}");
         }
         catch (HttpRequestException e)
         {
@@ -175,7 +175,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/Meetings/{Id}/join", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/Meetings/{Id}/join", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {
@@ -217,7 +217,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/Meetings/{Id}/end", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/Meetings/{Id}/end", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {

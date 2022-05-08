@@ -1,4 +1,4 @@
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
 
@@ -80,7 +80,7 @@ else
 
         try
         {
-            result = await http.PutAsJsonAsync($"api/v1/LFSProject/{Data.Id}", editedData);
+            result = await Http.PutAsJsonAsync($"api/v1/LFSProject/{Data.Id}", editedData);
         }
         catch (HttpRequestException e)
         {

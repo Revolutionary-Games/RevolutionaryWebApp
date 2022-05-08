@@ -1,4 +1,4 @@
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Forms
@@ -110,7 +110,7 @@ else
 
         try
         {
-            result = await http.PutAsJsonAsync($"api/v1/DevBuilds/{Data.Id}", new DevBuildUpdateForm()
+            result = await Http.PutAsJsonAsync($"api/v1/DevBuilds/{Data.Id}", new DevBuildUpdateForm()
             {
                 Description = string.IsNullOrEmpty(description) ? null : description,
             });

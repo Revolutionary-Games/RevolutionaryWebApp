@@ -1,5 +1,5 @@
-@inject HttpClient http
-@inject IJSRuntime js
+@inject HttpClient Http
+@inject IJSRuntime JS
 @inherits SingleResourcePage<IList<string>>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared.Converters
@@ -72,7 +72,7 @@
 
         // Scroll to last existing output line
         // TODO: only scroll when scroll is at the end already
-        await js.InvokeVoidAsync("scrollToElement", LastElementId, false);
+        await JS.InvokeVoidAsync("scrollToElement", LastElementId, false);
     }
 
     protected override async Task<IList<string>?> StartQuery()
@@ -80,7 +80,7 @@
         if (RealtimeOutput != null)
             return new List<string>();
 
-        var data = await http.GetFromJsonAsync<CIJobOutputSectionDTO>(
+        var data = await Http.GetFromJsonAsync<CIJobOutputSectionDTO>(
             $"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{JobId}/output/{Id}");
 
         return data?.Output.Split('\n');

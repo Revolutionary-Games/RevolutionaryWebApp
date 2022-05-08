@@ -1,8 +1,8 @@
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject IJSRuntime js
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -64,20 +64,20 @@ else
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        this.SetParametersFromQueryString(navManager);
+        this.SetParametersFromQueryString(NavManager);
 
         return base.SetParametersAsync(parameters);
     }
 
     protected override Task<PagedResult<CLASignatureDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<CLASignatureDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<CLASignatureDTO>>(
             QueryHelpers.AddQueryString("api/v1/CLA/signatures", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
-        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
 }

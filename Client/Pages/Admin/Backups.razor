@@ -1,9 +1,9 @@
 @page "/admin/backup"
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject IJSRuntime js
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -149,7 +149,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
 
         await Task.WhenAll(GetBackupsEnabledStatus(), GetTotalSize());
@@ -157,7 +157,7 @@
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        this.SetParametersFromQueryString(navManager);
+        this.SetParametersFromQueryString(NavManager);
 
         return base.SetParametersAsync(parameters);
     }
@@ -175,18 +175,18 @@
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<BackupDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<BackupDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<BackupDTO>>(
             QueryHelpers.AddQueryString("api/v1/Backup", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
-        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
     private async Task GetBackupsEnabledStatus()
@@ -198,7 +198,7 @@
 
         try
         {
-            backupsEnabled = await http.GetFromJsonAsync<bool>("api/v1/Backup/status");
+            backupsEnabled = await Http.GetFromJsonAsync<bool>("api/v1/Backup/status");
         }
         catch (HttpRequestException e)
         {
@@ -219,7 +219,7 @@
 
         try
         {
-            totalSize = await http.GetFromJsonAsync<long>("api/v1/Backup/totalSize");
+            totalSize = await Http.GetFromJsonAsync<long>("api/v1/Backup/totalSize");
         }
         catch (HttpRequestException e)
         {
@@ -270,7 +270,7 @@
 
         try
         {
-            result = await http.DeleteAsync($"api/v1/Backup/{backupId}");
+            result = await Http.DeleteAsync($"api/v1/Backup/{backupId}");
         }
         catch (HttpRequestException e)
         {
@@ -307,7 +307,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/Backup/{backupId}/download", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/Backup/{backupId}/download", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {
@@ -332,7 +332,7 @@
             await InvokeAsync(StateHasChanged);
 
             await Task.Delay(TimeSpan.FromSeconds(1));
-            navManager.NavigateTo(content, true);
+            NavManager.NavigateTo(content, true);
         }
 
         await InvokeAsync(StateHasChanged);
@@ -349,7 +349,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/Backup", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/Backup", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {

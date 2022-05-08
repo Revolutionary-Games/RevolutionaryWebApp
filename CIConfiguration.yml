@@ -15,7 +15,7 @@ jobs:
            command: dotnet restore
       - run:
           name: Build
-          command: dotnet build /warnaserror
+          command: dotnet build
       - run:
           name: Setup UI test browsers
           command: pwsh AutomatedUITests/bin/Debug/net6.0/playwright.ps1 install
@@ -25,3 +25,25 @@ jobs:
       - run:
           name: Test
           command: dotnet test
+  lint:
+    image: thrive/devcenter-ci:v2
+    cache:
+      loadFrom:
+        - v1-{Branch}-build
+      writeTo: v1-{Branch}-build
+      system:
+        /root/.nuget: v1-nuget
+    steps:
+      - run:
+          name: Build list of changed files
+          # Remove the cat here once artifact uploads is done:
+          command: |
+            git diff-tree --no-commit-id --name-only -r HEAD..origin/$CI_DEFAULT_BRANCH > files_to_check.txt
+            git diff-tree --no-commit-id --name-only -r HEAD..$CI_EARLIER_COMMIT >> files_to_check.txt
+            echo Changed files:
+            cat files_to_check.txt
+      - run:
+          command: dotnet restore
+      - run:
+          name: Code checks
+          command: ruby check_formatting.rb

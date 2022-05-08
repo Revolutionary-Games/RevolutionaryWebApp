@@ -1,5 +1,5 @@
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -128,7 +128,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -145,12 +145,12 @@
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<ControlledServerDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<ControlledServerDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<ControlledServerDTO>>(
             QueryHelpers.AddQueryString("api/v1/ControlledServers", requestParams));
     }
 
@@ -193,7 +193,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/terminate",
+            result = await Http.PostAsync($"api/v1/ControlledServers/{serverId}/terminate",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -271,7 +271,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/start",
+            result = await Http.PostAsync($"api/v1/ControlledServers/{serverId}/start",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -309,7 +309,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/stop",
+            result = await Http.PostAsync($"api/v1/ControlledServers/{serverId}/stop",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -347,7 +347,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/queueCleanUp",
+            result = await Http.PostAsync($"api/v1/ControlledServers/{serverId}/queueCleanUp",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -385,7 +385,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/{serverId}/refreshStatus",
+            result = await Http.PostAsync($"api/v1/ControlledServers/{serverId}/refreshStatus",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -423,7 +423,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/refreshStatuses",
+            result = await Http.PostAsync($"api/v1/ControlledServers/refreshStatuses",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
@@ -461,7 +461,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/ControlledServers/removeTerminated",
+            result = await Http.PostAsync($"api/v1/ControlledServers/removeTerminated",
                 new StringContent(string.Empty));
         }
         catch (HttpRequestException e)

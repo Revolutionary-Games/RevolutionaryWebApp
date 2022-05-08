@@ -1,7 +1,7 @@
 @page "/ci/{Id:long}"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
-@inject NavigationManager navigationManager
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject NavigationManager NavigationManager
 @inherits SingleResourcePage<CIProjectDTO, CIProjectUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -67,7 +67,7 @@
 
     protected override Task<CIProjectDTO?> StartQuery()
     {
-        return http.GetFromJsonAsync<CIProjectDTO>($"api/v1/CIProject/{Id}");
+        return Http.GetFromJsonAsync<CIProjectDTO>($"api/v1/CIProject/{Id}");
     }
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
@@ -77,12 +77,12 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task OnFirstDataReceived()
     {
-        return notificationHandler.Register(this);
+        return NotificationHandler.Register(this);
     }
 
     private void ToggleSecrets()

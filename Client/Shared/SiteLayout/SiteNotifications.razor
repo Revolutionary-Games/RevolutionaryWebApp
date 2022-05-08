@@ -1,7 +1,7 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared
-@inject NavigationManager navManager
-@inject NotificationHandler notificationHandler
+@inject NavigationManager NavManager
+@inject NotificationHandler NotificationHandler
 @implements IDisposable
 
 @if (!string.IsNullOrEmpty(notification))
@@ -15,7 +15,7 @@
     </div>
 }
 
-@if (notificationHandler.VersionMisMatch)
+@if (NotificationHandler.VersionMisMatch)
 {
     <div class="alert alert-danger" role="alert">
         This version of the app is outdated please
@@ -23,12 +23,12 @@
     </div>
 }
 
-@if (notificationHandler.ConnectionLost)
+@if (NotificationHandler.ConnectionLost)
 {
     <div class="alert alert-warning" role="alert">
         Connection to the server has been lost.
 
-        @if (!notificationHandler.ConnectionPermanentlyLost)
+        @if (!NotificationHandler.ConnectionPermanentlyLost)
         {
             <span class="spinner-border spinner-border-sm text-secondary m-1" role="status"></span>
             <span>Reconnecting...</span>
@@ -45,24 +45,24 @@
     protected override Task OnInitializedAsync()
     {
         // Register for changes
-        notificationHandler.OnVersionMismatch += OnVersionMismatch;
-        notificationHandler.OnConnectionStatusChanged += OnConnectionChanged;
-        notificationHandler.OnConnectionRetryModeChanged += OnConnectionChanged;
-        notificationHandler.OnSiteNoticeReceived += OnSiteNotice;
+        NotificationHandler.OnVersionMismatch += OnVersionMismatch;
+        NotificationHandler.OnConnectionStatusChanged += OnConnectionChanged;
+        NotificationHandler.OnConnectionRetryModeChanged += OnConnectionChanged;
+        NotificationHandler.OnSiteNoticeReceived += OnSiteNotice;
 
         // And read initial status
-        notification = notificationHandler.CurrentNotice;
-        currentNoticeType = notificationHandler.CurrentNoticeType;
+        notification = NotificationHandler.CurrentNotice;
+        currentNoticeType = NotificationHandler.CurrentNoticeType;
 
         return Task.CompletedTask;
     }
 
     public void Dispose()
     {
-        notificationHandler.OnVersionMismatch -= OnVersionMismatch;
-        notificationHandler.OnConnectionStatusChanged -= OnConnectionChanged;
-        notificationHandler.OnConnectionRetryModeChanged -= OnConnectionChanged;
-        notificationHandler.OnSiteNoticeReceived -= OnSiteNotice;
+        NotificationHandler.OnVersionMismatch -= OnVersionMismatch;
+        NotificationHandler.OnConnectionStatusChanged -= OnConnectionChanged;
+        NotificationHandler.OnConnectionRetryModeChanged -= OnConnectionChanged;
+        NotificationHandler.OnSiteNoticeReceived -= OnSiteNotice;
     }
 
     private async void OnVersionMismatch(object sender, EventArgs e)
@@ -96,7 +96,7 @@
     // Rider wants to keep complaining about direct call to NavManager.ForceReload so...
     private void ForceReloadHack()
     {
-        navManager.ForceReload();
+        NavManager.ForceReload();
     }
 
 }

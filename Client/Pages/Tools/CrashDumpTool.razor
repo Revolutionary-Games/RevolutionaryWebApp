@@ -1,5 +1,5 @@
 @page "/tools/crashDump"
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared
 @using System.Text.Json
 @using ThriveDevCenter.Client.Utilities
@@ -120,7 +120,7 @@ else
 
         try
         {
-            result = await http.PostAsync("api/v1/StackwalkTool/submit", requestContent);
+            result = await Http.PostAsync("api/v1/StackwalkTool/submit", requestContent);
         }
         catch (HttpRequestException e)
         {

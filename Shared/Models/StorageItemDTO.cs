@@ -7,6 +7,8 @@ namespace ThriveDevCenter.Shared.Models
         [Required]
         public string Name { get; set; } = string.Empty;
 
+        // TODO: rename this to "FileType"
+        // ReSharper disable once IdentifierTypo
         public FileType Ftype { get; set; }
         public bool Special { get; set; }
         public long? Size { get; set; }
@@ -22,6 +24,8 @@ namespace ThriveDevCenter.Shared.Models
         [Required]
         public string Name { get; set; } = string.Empty;
 
+        // TODO: rename this to "FileType"
+        // ReSharper disable once IdentifierTypo
         public FileType Ftype { get; set; }
         public long? Size { get; set; }
         public FileAccess ReadAccess { get; set; }

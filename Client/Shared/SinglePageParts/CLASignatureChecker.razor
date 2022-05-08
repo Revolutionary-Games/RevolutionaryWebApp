@@ -2,7 +2,7 @@
 @using System.Net
 @using ThriveDevCenter.Shared.Forms
 @using ThriveDevCenter.Shared.Models
-@inject HttpClient http
+@inject HttpClient Http
 <h3>Check if CLA signature Exists</h3>
 
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
@@ -90,7 +90,7 @@
 
         try
         {
-            data = await http.GetFromJsonAsync<List<CLASignatureSearchResult>>(
+            data = await Http.GetFromJsonAsync<List<CLASignatureSearchResult>>(
                 QueryHelpers.AddQueryString($"api/v1/CLA/{CLAId}/search", queryParameters));
         }
         catch (Exception e)

@@ -1,6 +1,6 @@
 @page "/admin/github"
 @using ThriveDevCenter.Shared.Models
-@inject NavigationManager navManager
+@inject NavigationManager NavManager
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Github Configuration</h3>
@@ -20,5 +20,5 @@
 
 @code {
 
-    private string GithubWebhookURL => new Uri(new Uri(navManager.Uri), "/api/v1/webhook/github").ToString();
+    private string GithubWebhookURL => new Uri(new Uri(NavManager.Uri), "/api/v1/webhook/github").ToString();
 }

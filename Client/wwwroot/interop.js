@@ -119,7 +119,7 @@ function reportFormFileChunksUploaded(fileName) {
 }
 
 function performPut(url, type, body) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _) => {
         fetch(url, {
             method: 'PUT',
             headers: {
@@ -130,9 +130,9 @@ function performPut(url, type, body) {
             if (!response.ok) {
                 response.text().then(text => {
                     resolve("Invalid response from server (" + response.status + "): " + text);
-                }).catch(error => {
+                }).catch(_ => {
                     resolve("Invalid response from server (" + response.status + "): (failed to read body)");
-                })
+                });
             } else {
                 resolve();
             }

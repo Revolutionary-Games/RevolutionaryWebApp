@@ -1,5 +1,5 @@
-@inject HttpClient http
-@inject NavigationManager navManager
+@inject HttpClient Http
+@inject NavigationManager NavManager
 @inherits SingleResourcePage<List<long>>
 
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
@@ -21,7 +21,7 @@
 
     protected override Task<List<long>?> StartQuery()
     {
-        return http.GetFromJsonAsync<List<long>>($"api/v1/DevBuilds/{Id}/siblings");
+        return Http.GetFromJsonAsync<List<long>>($"api/v1/DevBuilds/{Id}/siblings");
     }
 
 }

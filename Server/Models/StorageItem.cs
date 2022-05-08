@@ -26,6 +26,8 @@ namespace ThriveDevCenter.Server.Models
         public string Name { get; set; } = string.Empty;
 
         // TODO: change to required
+        // TODO: rename this to "FileType"
+        // ReSharper disable once IdentifierTypo
         public FileType Ftype { get; set; }
         public bool Special { get; set; } = false;
 

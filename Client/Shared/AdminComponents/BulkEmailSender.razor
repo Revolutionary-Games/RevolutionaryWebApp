@@ -1,4 +1,4 @@
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared.Models.Enums
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Forms
@@ -124,7 +124,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/BulkEmail", request);
+            result = await Http.PostAsJsonAsync("api/v1/BulkEmail", request);
         }
         catch (HttpRequestException e)
         {

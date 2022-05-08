@@ -1,5 +1,5 @@
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -103,7 +103,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -120,12 +120,12 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<CLAInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<CLAInfo>>(
+        return Http.GetFromJsonAsync<PagedResult<CLAInfo>>(
             QueryHelpers.AddQueryString("api/v1/CLA", requestParams));
     }
 
@@ -159,7 +159,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/CLA", new CLADTO()
+            result = await Http.PostAsJsonAsync("api/v1/CLA", new CLADTO()
             {
                 RawMarkdown = newText!,
                 Active = newActive,

@@ -1,4 +1,4 @@
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
 @inherits SimpleResourceFetcher<ThriveDevCenter.Shared.Models.DevBuildsStatisticsDTO>
@@ -25,7 +25,7 @@
 
     protected override Task<DevBuildsStatisticsDTO?> StartQuery()
     {
-        return http.GetFromJsonAsync<DevBuildsStatisticsDTO>("api/v1/DevBuilds");
+        return Http.GetFromJsonAsync<DevBuildsStatisticsDTO>("api/v1/DevBuilds");
     }
 
 }

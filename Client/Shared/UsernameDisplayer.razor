@@ -1,5 +1,5 @@
 @using ThriveDevCenter.Client.Services
-@inject UsernameRetriever usernameRetriever
+@inject UsernameRetriever UsernameRetriever
 
 @if (username != null)
 {
@@ -49,6 +49,6 @@ else
             return;
         }
 
-        username = await usernameRetriever.GetUsername(id.Value);
+        username = await UsernameRetriever.GetUsername(id.Value);
     }
 }

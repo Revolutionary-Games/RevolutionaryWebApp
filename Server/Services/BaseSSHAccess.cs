@@ -6,15 +6,15 @@ namespace ThriveDevCenter.Server.Services
 
     public class BaseSSHAccess : IDisposable, IBaseSSHAccess
     {
-        protected SshClient? client { get; set; }
+        protected SshClient? Client { get; set; }
         public bool Configured { get; protected set; }
 
         public CommandResult RunCommand(string commandStr)
         {
-            if (client == null)
+            if (Client == null)
                 throw new InvalidOperationException("No connection is open");
 
-            using var command = client.CreateCommand(commandStr);
+            using var command = Client.CreateCommand(commandStr);
 
             command.CommandTimeout = TimeSpan.FromMinutes(10);
             var result = command.Execute();
@@ -54,23 +54,23 @@ namespace ThriveDevCenter.Server.Services
 
         public void Dispose()
         {
-            client?.Dispose();
+            Client?.Dispose();
         }
 
         protected void StartNewConnection(string address, string username, PrivateKeyAuthenticationMethod auth)
         {
-            client?.Dispose();
+            Client?.Dispose();
 
             var connectionInfo = new ConnectionInfo(address, username, auth)
             {
                 Timeout = TimeSpan.FromSeconds(10)
             };
 
-            client = new SshClient(connectionInfo);
+            Client = new SshClient(connectionInfo);
 
             // TODO: is there a way to verify the other side fingerprint?
 
-            client.Connect();
+            Client.Connect();
         }
 
         protected void ThrowIfNotConfigured()

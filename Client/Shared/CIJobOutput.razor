@@ -1,7 +1,7 @@
-@inject HttpClient http
-@inject IJSRuntime js
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -82,7 +82,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
+        await NotificationHandler.Register((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
         await base.OnInitializedAsync();
     }
 
@@ -157,19 +157,19 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
+        await NotificationHandler.Unregister((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
     }
 
     protected override Task<List<CIJobOutputSectionInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<List<CIJobOutputSectionInfo>>(
+        return Http.GetFromJsonAsync<List<CIJobOutputSectionInfo>>(
             QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{JobId}/output",
                 requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
-        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
     private string ClassForStatus(CIJobSectionStatus status)

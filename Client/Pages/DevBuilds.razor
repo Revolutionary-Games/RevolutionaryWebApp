@@ -1,6 +1,6 @@
 @page "/builds"
 @using ThriveDevCenter.Shared.Models
-@inject NavigationManager navigation
+@inject NavigationManager Navigation
 
 <DevBuildOverallStatistics />
 
@@ -13,7 +13,7 @@
 </p>
 <AccessLimited RequiredAccess="UserAccessLevel.User" AutoRedirectIfNotLoggedIn="@false">
     <AccessMissingContent>
-        <a href="@navigation.GetLinkToLogin("Login to view DevBuilds")">Login to view builds</a>
+        <a href="@Navigation.GetLinkToLogin("Login to view DevBuilds")">Login to view builds</a>
 
         <LoggedInContent>
             <div>Your account does not have access to DevBuilds</div>

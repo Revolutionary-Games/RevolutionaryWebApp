@@ -1,5 +1,5 @@
 @page "/admin/accessKeys"
-@inject HttpClient http
+@inject HttpClient Http
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
 
@@ -89,7 +89,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/AccessKey", new AccessKeyDTO()
+            result = await Http.PostAsJsonAsync("api/v1/AccessKey", new AccessKeyDTO()
             {
                 Description = newDescription!,
                 KeyType = newKeyType

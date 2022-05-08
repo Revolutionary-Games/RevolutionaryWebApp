@@ -1,7 +1,7 @@
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -77,7 +77,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
@@ -86,7 +86,7 @@ else
         await base.SetParametersAsync(parameters);
 
         if (UseQueryParams)
-            this.SetParametersFromQueryString(navManager);
+            this.SetParametersFromQueryString(NavManager);
 
         if (Data == null)
             await FetchData();
@@ -105,19 +105,19 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<DevBuildDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<DevBuildDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<DevBuildDTO>>(
             QueryHelpers.AddQueryString("api/v1/DevBuilds/list", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
         if(UseQueryParams)
-            await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+            await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
     protected override Dictionary<string, string> CreatePageRequestParams()

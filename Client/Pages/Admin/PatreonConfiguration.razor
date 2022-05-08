@@ -1,5 +1,5 @@
 @page "/admin/patreon"
-@inject NavigationManager navManager
+@inject NavigationManager NavManager
 @using ThriveDevCenter.Shared.Models
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
@@ -23,6 +23,6 @@
 
     private void RedirectToCreditsDownload()
     {
-        navManager.NavigateTo("/api/v1/download/patreonCredits", true);
+        NavManager.NavigateTo("/api/v1/download/patreonCredits", true);
     }
 }

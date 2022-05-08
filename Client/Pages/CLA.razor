@@ -1,7 +1,7 @@
 @page "/cla"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
-@inject NavigationManager navigationManager
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject NavigationManager NavigationManager
 @inherits SingleResourcePage<CLADTO, CLAUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -99,7 +99,7 @@
 
         try
         {
-            var data = await http.GetFromJsonAsync<CLADTO>("api/v1/CLA/active");
+            var data = await Http.GetFromJsonAsync<CLADTO>("api/v1/CLA/active");
             dataFetched = true;
             return data;
         }
@@ -124,12 +124,12 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task OnFirstDataReceived()
     {
-        return notificationHandler.Register(this);
+        return NotificationHandler.Register(this);
     }
 
     private async Task StartSigning()
@@ -143,7 +143,7 @@
 
         try
         {
-            result = await http.PostAsync($"api/v1/CLA/startSigning?id={Data!.Id}", new StringContent(string.Empty));
+            result = await Http.PostAsync($"api/v1/CLA/startSigning?id={Data!.Id}", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {
@@ -181,7 +181,7 @@
                     throw new Exception("server didn't provide next path");
 
                 // Swap to the sign in progress page
-                navigationManager.NavigateTo(data.NextPath, data.SessionStarted);
+                NavigationManager.NavigateTo(data.NextPath, data.SessionStarted);
             }
             catch (Exception e)
             {

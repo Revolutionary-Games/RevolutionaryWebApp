@@ -14,6 +14,8 @@ namespace ThriveDevCenter.Client.Services
 
     public class UsernameRetriever
     {
+        // Seems like this may be useful in the future at some point
+        // ReSharper disable once NotAccessedField.Local
         private readonly CurrentUserInfo userInfo;
         private readonly HttpClient http;
 

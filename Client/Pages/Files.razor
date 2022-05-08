@@ -1,10 +1,10 @@
 @page "/files/{*FileBrowserPath}"
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject IJSRuntime js
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
-@inject CurrentUserInfo currentUserInfo
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared.Notifications
@@ -30,9 +30,9 @@
         @Error
     </div>
 
-    @if (!currentUserInfo.LoggedIn)
+    @if (!CurrentUserInfo.LoggedIn)
     {
-        <NavLink href="@navManager.GetLinkToLogin()">Login Here</NavLink>
+        <NavLink href="@NavManager.GetLinkToLogin()">Login Here</NavLink>
     }
 }
 else
@@ -233,7 +233,7 @@ else
                 </ul>
 
                 @if (!parsedFolderInfo.Special && parsedFolderInfo.WriteAccess.IsAccessibleTo(
-                    currentUserInfo.AccessLevel, currentUserInfo.Info!.Id, parsedFolderInfo.OwnerId))
+                    CurrentUserInfo.AccessLevel, CurrentUserInfo.Info!.Id, parsedFolderInfo.OwnerId))
                 {
                     <StorageItemFolderEditor Data="@parsedFolderInfo" />
                 }
@@ -352,14 +352,14 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnParametersSetAsync();
         await ParseCurrentPath();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        this.SetParametersFromQueryString(navManager);
+        this.SetParametersFromQueryString(NavManager);
 
         return base.SetParametersAsync(parameters);
     }
@@ -395,7 +395,7 @@ else
         if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
             groups.Add(NotificationGroups.FolderContentsUpdatedDeveloperPrefix + folderId);
         if (currentAccessLevel.HasAccess(UserAccessLevel.Admin) || (parsedFolderInfo?.OwnerId != null &&
-            currentUserInfo?.Info?.Id == parsedFolderInfo.OwnerId))
+            CurrentUserInfo?.Info?.Id == parsedFolderInfo.OwnerId))
         {
             groups.Add(NotificationGroups.FolderContentsUpdatedOwnerPrefix + folderId);
         }
@@ -404,7 +404,7 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -414,7 +414,7 @@ else
         if (!EqualityComparer<ElementReference>.Default.Equals(dropArea,
             default))
         {
-            await js.InvokeVoidAsync("registerFileDropArea", dropArea, "filesToUploadSelection");
+            await JS.InvokeVoidAsync("registerFileDropArea", dropArea, "filesToUploadSelection");
         }
     }
 
@@ -436,14 +436,14 @@ else
 
     protected override Task<PagedResult<StorageItemInfo>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<StorageItemInfo>>(
+        return Http.GetFromJsonAsync<PagedResult<StorageItemInfo>>(
             QueryHelpers.AddQueryString($"api/v1/Files/folderContents", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
         await base.OnQuerySent(requestParams);
-        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
     private async Task ParseCurrentPath()
@@ -462,7 +462,7 @@ else
 
         try
         {
-            result = await http.GetAsync(QueryHelpers.AddQueryString(
+            result = await Http.GetAsync(QueryHelpers.AddQueryString(
                 "api/v1/Files/itemFromPath","path", NonNullPath));
         }
         catch (HttpRequestException e)
@@ -506,7 +506,7 @@ else
 
                 VisibleFetchInProgress = true;
 
-                await notificationHandler.NotifyWantedGroupsChanged();
+                await NotificationHandler.NotifyWantedGroupsChanged();
                 await DetectWriteAccessToFolder();
                 await FetchData();
             }
@@ -524,12 +524,12 @@ else
         if (parsedFolderId == null)
         {
             // Only admins can write to the root folder
-            newWritable = currentUserInfo.AccessLevel.HasAccess(UserAccessLevel.Admin);
+            newWritable = CurrentUserInfo.AccessLevel.HasAccess(UserAccessLevel.Admin);
         }
         else
         {
-            newWritable = parsedFolderInfo!.WriteAccess.IsAccessibleTo(currentUserInfo.AccessLevel,
-                currentUserInfo.Info?.Id, parsedFolderInfo.OwnerId);
+            newWritable = parsedFolderInfo!.WriteAccess.IsAccessibleTo(CurrentUserInfo.AccessLevel,
+                CurrentUserInfo.Info?.Id, parsedFolderInfo.OwnerId);
         }
 
         if (newWritable != folderIsWritable)
@@ -580,7 +580,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/Files/createFolder", new CreateFolderForm()
+            result = await Http.PostAsJsonAsync("api/v1/Files/createFolder", new CreateFolderForm()
             {
                 Name = newFolderName!,
                 ParentFolder = parsedFolderId,
@@ -669,7 +669,7 @@ else
                 filesToBeUploaded.Add(args.File);
             }
 
-            await js.InvokeVoidAsync("storeFileInputFilesForLaterUse", "filesToUploadSelection");
+            await JS.InvokeVoidAsync("storeFileInputFilesForLaterUse", "filesToUploadSelection");
         }
         catch (Exception e)
         {
@@ -783,7 +783,7 @@ else
 
     private async Task<UploadFileResponse> GetFileUploadUrl(IBrowserFile file, StorageItemDTO? parentFolder)
     {
-        var result = await http.PostAsJsonAsync("api/v1/Files/startUpload",
+        var result = await Http.PostAsJsonAsync("api/v1/Files/startUpload",
             new UploadFileRequestForm()
             {
                 Name = file.Name,
@@ -837,7 +837,7 @@ else
 
     private ValueTask<string> UploadSinglePartFile(string fileName, string url)
     {
-        return js.InvokeAsync<string>("putFormFile", fileName, url);
+        return JS.InvokeAsync<string>("putFormFile", fileName, url);
     }
 
     private void UpdateCurrentChunkMessage()
@@ -906,7 +906,7 @@ else
 
         try
         {
-            await js.InvokeVoidAsync("reportFormFileChunksUploaded", fileName);
+            await JS.InvokeVoidAsync("reportFormFileChunksUploaded", fileName);
         }
         catch (Exception e)
         {
@@ -933,7 +933,7 @@ else
 
             try
             {
-                var result = await http.PostAsJsonAsync("api/v1/Files/moreChunks",
+                var result = await Http.PostAsJsonAsync("api/v1/Files/moreChunks",
                     new MoreChunksRequestForm { Token = moreChunksToken });
 
                 var content = await result.Content.ReadAsStringAsync();
@@ -975,7 +975,7 @@ else
         foreach (var chunk in chunks)
         {
             uploaded = true;
-            var error = await js.InvokeAsync<string?>("putFormFileChunk", fileName, chunk.UploadURL,
+            var error = await JS.InvokeAsync<string?>("putFormFileChunk", fileName, chunk.UploadURL,
                 chunk.Offset, chunk.Length);
 
             if (error != null)
@@ -999,7 +999,7 @@ else
 
     private async Task ReportFileUploadComplete(UploadFileResponse info)
     {
-        var result = await http.PostAsJsonAsync("api/v1/Files/finishUpload", info);
+        var result = await Http.PostAsJsonAsync("api/v1/Files/finishUpload", info);
 
         var content = await result.Content.ReadAsStringAsync();
 

@@ -1,6 +1,6 @@
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Forms
-@inject HttpClient http
+@inject HttpClient Http
 <h4>Send a Test Email</h4>
 
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
@@ -36,7 +36,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/Mail/test", new EmailTestRequestForm
+            result = await Http.PostAsJsonAsync("api/v1/Mail/test", new EmailTestRequestForm
             {
                 Recipient = recipient!,
             });

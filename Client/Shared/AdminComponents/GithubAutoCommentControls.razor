@@ -1,8 +1,8 @@
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject IJSRuntime js
-@inject ComponentUrlHelper urlHelper
-@inject NotificationHandler notificationHandler
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
@@ -205,13 +205,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        this.SetParametersFromQueryString(navManager);
+        this.SetParametersFromQueryString(NavManager);
 
         return base.SetParametersAsync(parameters);
     }
@@ -229,18 +229,18 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task<PagedResult<GithubAutoCommentDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return http.GetFromJsonAsync<PagedResult<GithubAutoCommentDTO>>(
+        return Http.GetFromJsonAsync<PagedResult<GithubAutoCommentDTO>>(
             QueryHelpers.AddQueryString("api/v1/GithubConfiguration/autoComments", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
-        await urlHelper.UpdateUrlHistoryIfChanged(requestParams);
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
     private bool IsProcessing(long commentId)
@@ -280,7 +280,7 @@ else
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/GithubConfiguration/autoComments", new GithubAutoCommentDTO()
+            result = await Http.PostAsJsonAsync("api/v1/GithubConfiguration/autoComments", new GithubAutoCommentDTO()
             {
                 Repository = newRepoName,
                 Enabled = newEnabled,
@@ -344,7 +344,7 @@ else
 
         try
         {
-            result = await http.DeleteAsync($"api/v1/GithubConfiguration/autoComments/{commentId}");
+            result = await Http.DeleteAsync($"api/v1/GithubConfiguration/autoComments/{commentId}");
         }
         catch (HttpRequestException e)
         {
@@ -384,7 +384,7 @@ else
 
         try
         {
-            result = await http.PutAsJsonAsync($"api/v1/GithubConfiguration/autoComments/{comment.Id}", comment);
+            result = await Http.PutAsJsonAsync($"api/v1/GithubConfiguration/autoComments/{comment.Id}", comment);
         }
         catch (HttpRequestException e)
         {

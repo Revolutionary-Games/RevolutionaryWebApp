@@ -1,6 +1,6 @@
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
-@inject HttpClient http
+@inject HttpClient Http
 
 <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
 
@@ -108,7 +108,7 @@
 
         try
         {
-            result = await http.DeleteAsync(DeleteURL);
+            result = await Http.DeleteAsync(DeleteURL);
         }
         catch (HttpRequestException e)
         {
@@ -145,7 +145,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync(RestoreURL, new Dictionary<string,long>()
+            result = await Http.PostAsJsonAsync(RestoreURL, new Dictionary<string,long>()
             {
                 {"Id", Id}
             });

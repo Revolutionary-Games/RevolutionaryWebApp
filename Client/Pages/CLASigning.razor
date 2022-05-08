@@ -1,8 +1,8 @@
 @page "/cla/sign"
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject NotificationHandler notificationHandler
-@inject CurrentUserInfo currentUserInfo
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Client.Services
@@ -153,9 +153,9 @@
                         <li><strong>Your Guardian's Name</strong>: @Data.GuardianName</li>
                     }
 
-                    @if (currentUserInfo.LoggedIn)
+                    @if (CurrentUserInfo.LoggedIn)
                     {
-                        <li><strong>You Are Logged In As</strong>: @currentUserInfo.Username</li>
+                        <li><strong>You Are Logged In As</strong>: @CurrentUserInfo.Username</li>
                     }
                     else
                     {
@@ -312,12 +312,12 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override async Task<InProgressClaSignatureDTO?> StartQuery()
     {
-        var data = await http.GetFromJsonAsync<InProgressClaSignatureDTO>("api/v1/CLA/activeSigning");
+        var data = await Http.GetFromJsonAsync<InProgressClaSignatureDTO>("api/v1/CLA/activeSigning");
 
         UpdateStepForReceivedData(data);
 
@@ -336,7 +336,7 @@
     protected override async Task OnFirstDataReceived()
     {
         await base.OnFirstDataReceived();
-        await notificationHandler.Register(this);
+        await NotificationHandler.Register(this);
     }
 
     private void UpdateStepForReceivedData(InProgressClaSignatureDTO? data)
@@ -388,7 +388,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/EmailVerification/start/cla",
+            result = await Http.PostAsJsonAsync("api/v1/EmailVerification/start/cla",
                 new EmailVerificationRequestForm
             {
                 Email = Data!.Email!,
@@ -434,7 +434,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/OAuth/start/github/cla", new StringContent(string.Empty));
+            result = await Http.PostAsJsonAsync("api/v1/OAuth/start/github/cla", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {
@@ -467,7 +467,7 @@
 
             if (data != null)
             {
-                navManager.NavigateTo(data.RedirectTo);
+                NavManager.NavigateTo(data.RedirectTo);
             }
         }
 
@@ -488,7 +488,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/CLA/activeSigning", Data);
+            result = await Http.PostAsJsonAsync("api/v1/CLA/activeSigning", Data);
         }
         catch (HttpRequestException e)
         {
@@ -538,7 +538,7 @@
 
         try
         {
-            result = await http.DeleteAsync("api/v1/CLA/activeSigning");
+            result = await Http.DeleteAsync("api/v1/CLA/activeSigning");
         }
         catch (HttpRequestException e)
         {
@@ -563,7 +563,7 @@
             await InvokeAsync(StateHasChanged);
 
             await Task.Delay(TimeSpan.FromSeconds(5));
-            navManager.NavigateTo("/cla");
+            NavManager.NavigateTo("/cla");
         }
 
         await InvokeAsync(StateHasChanged);
@@ -615,7 +615,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/CLA/finishSigning", Data);
+            result = await Http.PostAsJsonAsync("api/v1/CLA/finishSigning", Data);
         }
         catch (HttpRequestException e)
         {

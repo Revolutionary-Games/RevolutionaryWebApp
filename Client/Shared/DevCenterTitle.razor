@@ -1,10 +1,13 @@
 <PageTitle>@ChildContent - ThriveDevCenter</PageTitle>
 
 @code {
+
     /// <summary>
     ///   The title to show
     /// </summary>
     [Parameter]
-    [EditorRequired]
+    // This is commented out as jetbrains seems to complain about this unnecessarily
+    // [EditorRequired]
     public RenderFragment? ChildContent { get; set; }
+
 }

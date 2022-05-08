@@ -1,9 +1,9 @@
 @page "/Login"
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
-@inject HttpClient http
-@inject NavigationManager navManager
-@inject ICSRFTokenReader csrf
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ICSRFTokenReader CSRF
 
 <h3>Login</h3>
 
@@ -44,7 +44,7 @@ else
             if (!option.Local)
             {
                 <form method="post" action="/LoginController/start">
-                    <input type="hidden" name="CSRF" value="@csrf.Token" />
+                    <input type="hidden" name="CSRF" value="@CSRF.Token" />
                     <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
                     <input type="hidden" name="SsoType" value="@option.InternalName" />
                     <Button class="my-1" type="submit" Enabled="@option.Active">
@@ -59,7 +59,7 @@ else
                     // Form for local login (which is active)
                     <form method="post" action="/LoginController/login" class="login-form">
                         <div class="form-group">
-                            <input type="hidden" name="CSRF" value="@csrf.Token" />
+                            <input type="hidden" name="CSRF" value="@CSRF.Token" />
                             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
                             <input type="email" class="form-control" name="Email"
                                    aria-describedby="emailHelp" placeholder="email" @bind="email" @bind:event="oninput">
@@ -109,9 +109,9 @@ else
     {
         await base.OnInitializedAsync();
 
-        this.SetParametersFromQueryString(navManager);
+        this.SetParametersFromQueryString(NavManager);
 
-        options = await http.GetFromJsonAsync<LoginOptions>("LoginController");
+        options = await Http.GetFromJsonAsync<LoginOptions>("LoginController");
     }
 
 }

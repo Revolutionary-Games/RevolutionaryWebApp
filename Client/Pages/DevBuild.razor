@@ -1,8 +1,8 @@
 @page "/builds/{Id:long}"
-@inject HttpClient http
-@inject NotificationHandler notificationHandler
-@inject NavigationManager navigationManager
-@inject CurrentUserInfo currentUserInfo
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject NavigationManager NavigationManager
+@inject CurrentUserInfo CurrentUserInfo
 @inherits SingleResourcePage<DevBuildDTO, DevBuildUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
@@ -64,7 +64,7 @@
                             OnPressed="@MakeBOTD">
                         Make Build of the Day
                     </Button>
-                } else if (currentUserInfo.IsAdmin)
+                } else if (CurrentUserInfo.IsAdmin)
                 {
                     <Button Enabled="@(!processing)" ButtonStyle="warning" class="mb-2" Spinner="@processing"
                             OnPressed="@RemoveBOTDStatus">
@@ -102,7 +102,7 @@
 
     protected override Task<DevBuildDTO?> StartQuery()
     {
-        return http.GetFromJsonAsync<DevBuildDTO>($"api/v1/DevBuilds/{Id}");
+        return Http.GetFromJsonAsync<DevBuildDTO>($"api/v1/DevBuilds/{Id}");
     }
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
@@ -112,12 +112,12 @@
 
     public async ValueTask DisposeAsync()
     {
-        await notificationHandler.Unregister(this);
+        await NotificationHandler.Unregister(this);
     }
 
     protected override Task OnFirstDataReceived()
     {
-        return notificationHandler.Register(this);
+        return NotificationHandler.Register(this);
     }
 
     private void HideStatusMessage()
@@ -136,7 +136,7 @@
 
         try
         {
-            result = await http.PostAsJsonAsync("api/v1/DevBuilds/botd", Id);
+            result = await Http.PostAsJsonAsync("api/v1/DevBuilds/botd", Id);
         }
         catch (HttpRequestException e)
         {
@@ -174,7 +174,7 @@
 
         try
         {
-            result = await http.DeleteAsync("api/v1/DevBuilds/botd");
+            result = await Http.DeleteAsync("api/v1/DevBuilds/botd");
         }
         catch (HttpRequestException e)
         {

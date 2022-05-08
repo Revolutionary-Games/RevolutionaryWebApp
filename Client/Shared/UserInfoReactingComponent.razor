@@ -1,6 +1,6 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
-@inject CurrentUserInfo currentUserInfo
+@inject CurrentUserInfo CurrentUserInfo
 
 @code {
     // Base for all component types that want to react to user info changes
@@ -9,12 +9,12 @@
     {
         base.OnInitialized();
 
-        currentUserInfo.OnUserInfoChanged += OnUserInfoChanged;
+        CurrentUserInfo.OnUserInfoChanged += OnUserInfoChanged;
     }
 
     public void Dispose()
     {
-        currentUserInfo.OnUserInfoChanged -= OnUserInfoChanged;
+        CurrentUserInfo.OnUserInfoChanged -= OnUserInfoChanged;
     }
 
     protected virtual async void OnUserInfoChanged(object? sender, UserInfo? newInfo)
