@@ -2,7 +2,7 @@ version: 1
 
 jobs:
   test:
-    image: thrive/devcenter-ci:v2
+    image: thrive/devcenter-ci:v3
     cache:
       loadFrom:
         - v1-{Branch}-build
@@ -26,7 +26,7 @@ jobs:
           name: Test
           command: dotnet test
   lint:
-    image: thrive/devcenter-ci:v2
+    image: thrive/devcenter-ci:v3
     cache:
       loadFrom:
         - v1-{Branch}-build
