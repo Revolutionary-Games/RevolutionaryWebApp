@@ -85,6 +85,7 @@ namespace ThriveDevCenter.Server.Authorization
             }
 
             return await database.Sessions.WhereHashed(nameof(Session.Id), sessionId).Include(s => s.User)
+                .ThenInclude(u => u!.AssociationMember)
                 .ToAsyncEnumerable().FirstOrDefaultAsync(s => s.Id == parsed);
         }
 

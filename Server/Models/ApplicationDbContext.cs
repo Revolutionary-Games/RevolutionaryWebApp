@@ -60,6 +60,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<StackwalkTask> StackwalkTasks { get; set; } = null!;
         public DbSet<DebugSymbol> DebugSymbols { get; set; } = null!;
         public DbSet<Backup> Backups { get; set; } = null!;
+        public DbSet<AssociationMember> AssociationMembers { get; set; } = null!;
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -257,10 +258,6 @@ namespace ThriveDevCenter.Server.Models
                 entity.Property(e => e.Restricted).HasDefaultValue(false);
 
                 entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
-
-                entity.Property(e => e.AssociationMember).HasDefaultValue(false);
-                entity.Property(e => e.BoardMember).HasDefaultValue(false);
-                entity.Property(e => e.HasBeenBoardMember).HasDefaultValue(false);
             });
 
             modelBuilder.Entity<Session>(entity =>
@@ -472,6 +469,11 @@ namespace ThriveDevCenter.Server.Models
             {
                 entity.HasOne(d => d.StoredInItem).WithMany(p => p.DebugSymbols).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(d => d.CreatedBy).WithMany(p => p.CreatedDebugSymbols).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<AssociationMember>(entity =>
+            {
+                entity.HasOne(a => a.User).WithOne(e => e.AssociationMember).OnDelete(DeleteBehavior.SetNull);
             });
         }
 

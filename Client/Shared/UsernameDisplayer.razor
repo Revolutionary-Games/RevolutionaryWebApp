@@ -3,8 +3,16 @@
 
 @if (username != null)
 {
-    @* TODO: link to the user page? (but only if the id is valid) *@
-    <span>@username</span>
+    @if (ShowNavLink && UserId != null)
+    {
+        <NavLink href="@($"users/{UserId}")">@username</NavLink>
+    }
+    else
+    {
+        <span>
+            @username
+        </span>
+    }
 }
 else
 {
@@ -19,6 +27,9 @@ else
 
     [Parameter]
     public long? UserId { get; set; }
+
+    [Parameter]
+    public bool ShowNavLink { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

@@ -1,0 +1,75 @@
+@page "/association/members/{Id:long}"
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inherits SingleResourcePage<AssociationMemberDTO, AssociationMemberUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+        @if (Data != null)
+        {
+            <h3>Association Member @Data.Id</h3>
+
+            <p>Note: looking at this page leaves a log trail each time.</p>
+
+            <ul>
+                <li><strong>First Name(s)</strong>: @Data.FirstNames</li>
+                <li><strong>Last Name</strong>: @Data.LastName</li>
+                <li><strong>Email</strong>: @Data.Email</li>
+                <li><strong>Country</strong>: @Data.CountryOfResidence</li>
+                <li><strong>City</strong>: @Data.CityOfResidence</li>
+                <li><strong>Board Member?</strong>: @Data.BoardMember</li>
+                <li><strong>Has Been A Board Member?</strong>: @Data.HasBeenBoardMember</li>
+                <li><strong>Thrive Developer?</strong>: @Data.IsThriveDeveloper</li>
+                <li>
+                    <strong>Account</strong>:
+                    @if (Data.UserId != null)
+                    {
+                        <UsernameDisplayer UserId="@Data.UserId" ShowNavLink="@true" />
+                    }
+                    else
+                    {
+                        <span>No account</span>
+                    }
+                </li>
+                <li><strong>Joined Date</strong>: @Data.JoinDate.ToString("D")</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+            </ul>
+
+            <AdminResourceDeleteButtons Deleted="@false" UsesSoftDelete="@false" Name="@Data.Email" Id="@Data.Id"
+                                        DeleteURLBase="api/v1/AssociationMember"
+                                        DeletePromptTitle="Delete this AssociationMember?" />
+
+            @* TODO: edit *@
+
+            <DevCenterTitle>Association Member @Data.Id</DevCenterTitle>
+        }
+    </SingleResourceDisplayer>
+
+</AccessLimited>
+
+@code {
+    protected override Task<AssociationMemberDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<AssociationMemberDTO>($"api/v1/AssociationMember/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CIProjectUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return NotificationHandler.Register(this);
+    }
+}

@@ -56,4 +56,11 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CrashReportUpdated : ModelUpdated<CrashReportDTO>
     {
     }
+
+    /// <summary>
+    ///   Dummy as needed as base class parameter, not currently sent, see the AssociationMember class for why
+    /// </summary>
+    public class AssociationMemberUpdated : ModelUpdated<AssociationMemberDTO>
+    {
+    }
 }

@@ -4,6 +4,7 @@ namespace ThriveDevCenter.Server.Controllers
 {
     using System.Threading.Tasks;
     using Authorization;
+    using Hangfire;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Models;
@@ -19,14 +20,16 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly IRegistrationStatus configuration;
         private readonly ITokenVerifier csrfVerifier;
         private readonly NotificationsEnabledDb database;
+        private readonly IBackgroundJobClient jobClient;
 
         public RegistrationController(ILogger<RegistrationController> logger, IRegistrationStatus configuration,
-            ITokenVerifier csrfVerifier, NotificationsEnabledDb database)
+            ITokenVerifier csrfVerifier, NotificationsEnabledDb database, IBackgroundJobClient jobClient)
         {
             this.logger = logger;
             this.configuration = configuration;
             this.csrfVerifier = csrfVerifier;
             this.database = database;
+            this.jobClient = jobClient;
         }
 
         /// <summary>
@@ -68,6 +71,7 @@ namespace ThriveDevCenter.Server.Controllers
             };
 
             await database.Users.AddAsync(user);
+            Models.User.OnNewUserCreated(user, jobClient);
             await database.SaveChangesAsync();
 
             logger.LogInformation("New user registered {Name} ({Email})", request.Name, request.Email);

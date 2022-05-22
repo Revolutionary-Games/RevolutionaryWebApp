@@ -50,7 +50,8 @@ namespace ThriveDevCenter.Server.Authorization
 
             if (foundToken && !string.IsNullOrEmpty(queryToken[0]))
             {
-                var user = await database.Users.WhereHashed(nameof(User.ApiToken), queryToken[0]).AsAsyncEnumerable()
+                var user = await database.Users.WhereHashed(nameof(User.ApiToken), queryToken[0])
+                    .Include(u => u.AssociationMember).AsAsyncEnumerable()
                     .FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
 
                 if (user != null && user.Suspended != true)
@@ -102,7 +103,7 @@ namespace ThriveDevCenter.Server.Authorization
                 return AuthMethodResult.Error;
             }
 
-            var user = await database.Users.WhereHashed(nameof(User.ApiToken), apiToken).AsAsyncEnumerable()
+            var user = await database.Users.WhereHashed(nameof(User.ApiToken), apiToken).Include(u => u.AssociationMember).AsAsyncEnumerable()
                 .FirstOrDefaultAsync(u => u.ApiToken == apiToken);
 
             if (user != null && user.Suspended != true)

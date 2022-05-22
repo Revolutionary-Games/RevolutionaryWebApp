@@ -11,6 +11,7 @@ namespace ThriveDevCenter.Server.Controllers
     using System.Threading.Tasks;
     using Authorization;
     using Filters;
+    using Hangfire;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.WebUtilities;
     using Microsoft.EntityFrameworkCore;
@@ -37,18 +38,21 @@ namespace ThriveDevCenter.Server.Controllers
         private readonly ITokenVerifier csrfVerifier;
         private readonly RedirectVerifier redirectVerifier;
         private readonly IPatreonAPI patreonAPI;
+        private readonly IBackgroundJobClient jobClient;
 
         private readonly bool useSecureCookies;
         private readonly bool localLoginEnabled;
 
         public LoginController(ILogger<LoginController> logger, NotificationsEnabledDb database,
             IConfiguration configuration, ITokenVerifier csrfVerifier,
-            RedirectVerifier redirectVerifier, IPatreonAPI patreonAPI) : base(logger, database)
+            RedirectVerifier redirectVerifier, IPatreonAPI patreonAPI, IBackgroundJobClient jobClient) : base(logger,
+            database)
         {
             this.configuration = configuration;
             this.csrfVerifier = csrfVerifier;
             this.redirectVerifier = redirectVerifier;
             this.patreonAPI = patreonAPI;
+            this.jobClient = jobClient;
 
             useSecureCookies = Convert.ToBoolean(configuration["Login:SecureCookies"]);
 
@@ -612,6 +616,7 @@ namespace ThriveDevCenter.Server.Controllers
                 };
 
                 await Database.Users.AddAsync(user);
+                Models.User.OnNewUserCreated(user, jobClient);
             }
             else if (user.Local)
             {

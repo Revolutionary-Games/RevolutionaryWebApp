@@ -260,7 +260,7 @@ namespace ThriveDevCenter.Server.Controllers
             // Voting power is doubled if person is or has been a board member (as defined in the association rules)
             float votingPower = 1;
 
-            if (user.HasBeenBoardMember)
+            if (user.AssociationMember?.HasBeenBoardMember == true)
                 votingPower = 2;
 
             // These should execute within a single transaction so only one of these can't get through

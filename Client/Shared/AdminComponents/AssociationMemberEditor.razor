@@ -1,0 +1,133 @@
+@inject HttpClient Http
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared
+
+@if (showForm)
+{
+    <EditForm EditContext="@editContext" OnValidSubmit="@Save">
+        <DataAnnotationsValidator />
+        <div class="form-row">
+            <div class="form-group">
+                <label for="@($"editFirstNames-{@Data.Id}")">First name(s)</label>
+                <CustomInputText class="form-control" id="@($"editFirstNames-{@Data.Id}")"
+                                 @bind-Value="editedData!.FirstNames" placeholder="First names"
+                                 DisplayName="First name(s)"/>
+            </div>
+
+            @* TODO: all the other field edits *@
+
+            <div class="form-row">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" type="checkbox" id="@($"editIsBoardMember-{@Data.Id}")"
+                                   @bind="editedData!.BoardMember"/>
+                    <label class="form-check-label" for="@($"editIsBoardMember-{@Data.Id}")">
+                        Association Board Member
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" type="checkbox" id="@($"editHasBeenBoardMember-{@Data.Id}")"
+                                   @bind="editedData!.HasBeenBoardMember"/>
+                    <label class="form-check-label" for="@($"editHasBeenBoardMember-{@Data.Id}")">
+                        Has Been a Board Member
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+        <ValidationSummary />
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+        <Button class="my-1 mr-1" Enabled="@(!processing)" type="submit" Spinner="@processing"
+                ButtonStyle="primary">
+            Save
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@Cancel">
+            Cancel
+        </Button>
+    </EditForm>
+}
+else
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
+
+    <Button Enabled="@true" ButtonStyle="secondary" OnPressed="@ShowForm">Edit</Button>
+}
+
+@code {
+
+    private bool showForm;
+    private bool processing;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private EditContext editContext = null!;
+
+    private AssociationMemberDTO? editedData;
+
+    [Parameter]
+    [EditorRequired]
+    public AssociationMemberDTO Data { get; set; } = null!;
+
+    private void ShowForm()
+    {
+        editedData = Data.Clone();
+
+        statusMessage = null;
+        showForm = true;
+
+        editContext = new(editedData);
+    }
+
+    private void Cancel()
+    {
+        showForm = false;
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private async Task Save()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PutAsJsonAsync($"api/v1/AssociationMember/{Data.Id}", editedData);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Changes saved";
+            statusMessageType = SiteNoticeType.Primary;
+            showForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

@@ -130,4 +130,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class BackupListUpdated : ListUpdated<BackupDTO>
     {
     }
+
+    public class AssociationMemberListUpdated : ListUpdated<AssociationMemberInfo>
+    {
+    }
 }

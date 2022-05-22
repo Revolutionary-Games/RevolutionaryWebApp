@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 {
     using System.Threading.Tasks;
     using Dummies;
+    using Hangfire;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using Moq;
@@ -37,6 +38,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         public async Task Get_ReturnsRegistrationEnabledStatus()
         {
             var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+            var jobClientMock = new Mock<IBackgroundJobClient>();
 
             await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
@@ -44,7 +46,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             {
                 RegistrationEnabled = true,
                 RegistrationCode = "abc123"
-            }, Mock.Of<ITokenVerifier>(), database);
+            }, Mock.Of<ITokenVerifier>(), database, jobClientMock.Object);
 
             var result = controller.Get();
 
@@ -57,13 +59,14 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         public async Task Get_ReturnsRegistrationDisabledStatus()
         {
             var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+            var jobClientMock = new Mock<IBackgroundJobClient>();
 
             await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
             var controller = new RegistrationController(logger, new DummyRegistrationStatus()
             {
                 RegistrationEnabled = false
-            }, Mock.Of<ITokenVerifier>(), database);
+            }, Mock.Of<ITokenVerifier>(), database, jobClientMock.Object);
 
             var result = controller.Get();
 
@@ -82,10 +85,12 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
                 .Returns(false).Verifiable();
 
             var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+            var jobClientMock = new Mock<IBackgroundJobClient>();
 
             await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
-            var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database);
+            var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database,
+                jobClientMock.Object);
 
             var result = await controller.Post(new RegistrationFormData()
             {
@@ -109,11 +114,12 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
                 .Returns(true).Verifiable();
 
             var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+            var jobClientMock = new Mock<IBackgroundJobClient>();
 
             await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
             var controller = new RegistrationController(logger, dummyRegistrationStatus,
-                csrfMock.Object, database);
+                csrfMock.Object, database, jobClientMock.Object);
 
             var result = await controller.Post(new RegistrationFormData()
             {
@@ -138,6 +144,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, null, false))
                 .Returns(true).Verifiable();
             var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+            var jobClientMock = new Mock<IBackgroundJobClient>();
 
             notificationsMock
                 .Setup(notifications => notifications.OnChangesDetected(EntityState.Added,
@@ -145,7 +152,8 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
-            var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database);
+            var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database,
+                jobClientMock.Object);
 
             var result = await controller.Post(new RegistrationFormData()
             {
