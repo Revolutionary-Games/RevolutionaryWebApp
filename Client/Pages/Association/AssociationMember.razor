@@ -60,7 +60,7 @@
 
     public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.CIProjectUpdatedPrefix + Id);
+        // groups.Add(NotificationGroups.AssociationMemberUpdatedPrefix + Id);
     }
 
     public async ValueTask DisposeAsync()

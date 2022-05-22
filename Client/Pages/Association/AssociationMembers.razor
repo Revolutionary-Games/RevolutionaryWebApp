@@ -53,6 +53,22 @@
         </PaginatedTable>
     }
 
+    <div>
+        Total members:
+        @if (totalMembers == null)
+        {
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <span>@totalMembers</span>
+        }
+    </div>
+
     <hr />
 
     @if (!showNewForm)
@@ -66,58 +82,92 @@
 
     @if (showNewForm)
     {
-        @* TODO: fix for making association members *@
-        <form>
+        <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
+            <DataAnnotationsValidator />
+
             <div class="form-row">
                 <div class="form-group col-md-6">
-                    <label for="newCIProjectName">Project Name</label>
-                    <input type="text" class="form-control" id="newCIProjectName" @bind="newName"
-                           @bind:event="oninput">
+                    <label for="newFirstNames">First Name(s)</label>
+                    <CustomInputText class="form-control" id="newFirstNames"
+                                     @bind-Value="newData!.FirstNames" placeholder="First names"
+                                     DisplayName="First Name(s)" />
                 </div>
                 <div class="form-group col-md-6">
-                    <label for="newCIFullRepoName">Full Repository Name</label>
-                    <input type="text" class="form-control" id="newCIFullRepoName" @bind="newFullRepoName"
-                           placeholder="Owner/RepoName">
+                    <label for="newLastNames">Last Name</label>
+                    <CustomInputText class="form-control" id="newLastNames"
+                                     @bind-Value="newData!.LastName" placeholder="Last name"/>
                 </div>
             </div>
+
+            <div class="form-group">
+                <label for="newEmail">Email (can't be changed later)</label>
+                <CustomInputText class="form-control" id="newEmail"
+                                 @bind-Value="newData!.Email" placeholder="Email"/>
+            </div>
+
             <div class="form-row">
-                <div class="form-group col-12">
+                <div class="form-group col-md-8">
+                    <label for="newCity">City of Residence</label>
+                    <CustomInputText class="form-control" id="newCity"
+                                     @bind-Value="newData!.CityOfResidence" placeholder="City of Residence"
+                                     DisplayName="City of Residence" />
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="newCountry">Country (and state if USA)</label>
+                    <CustomInputText class="form-control" id="newCountry"
+                                     @bind-Value="newData!.CountryOfResidence" placeholder="Country"
+                                     DisplayName="Country" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="newJoinDate">Join Date</label>
+                    <InputDate class="form-control" id="newJoinDate" @bind-Value="newData!.JoinDate"/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-4">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="newCIProjectPublic" @bind="newPublic">
-                        <label class="form-check-label" for="newCIProjectPublic">Visible to non-developers?</label>
+                        <InputCheckbox class="form-check-input" type="checkbox" id="newIsBoardMember"
+                                       @bind-Value="newData!.BoardMember" />
+                        <label class="form-check-label" for="newIsBoardMember">
+                            Association Board Member
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group col-md-4">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" type="checkbox" id="newHasBeenBoardMember"
+                                       @bind-Value="newData!.HasBeenBoardMember" />
+                        <label class="form-check-label" for="newHasBeenBoardMember">
+                            Has Been a Board Member
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group col-md-4">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" type="checkbox" id="newThriveDeveloper"
+                                       @bind-Value="newData!.IsThriveDeveloper" />
+                        <label class="form-check-label" for="newThriveDeveloper">
+                            Is a Thrive Developer
+                        </label>
                     </div>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group col-12">
-                    <label for="newCIProjectCloneURL">Clone URL</label>
-                    <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
-                </div>
-            </div>
 
-            <div class="form-row">
-                <div class="form-group col-md-6">
-                    <label class="mr-1" for="newCIProjectType">Type</label>
-                    <select class="custom-select" id="newCIProjectType" @bind="newProjectType">
-                        @foreach (var name in Enum.GetNames<CIProjectType>())
-                        {
-                            <option value="@name">@name</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group col-md-6">
-                    <label for="newCIProjectDefaultBranch">Default Branch Name</label>
-                    <input type="text" class="form-control" id="newCIProjectDefaultBranch" @bind="newDefaultBranch">
-                </div>
-            </div>
+            <ValidationSummary />
 
             <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-            <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+            <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit" Spinner="@processingNewForm">
                 Create
             </Button>
-        </form>
+            <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+                Cancel
+            </Button>
+        </EditForm>
     }
-
 
     <DevCenterTitle>Association Members</DevCenterTitle>
 </AccessLimited>
@@ -134,18 +184,16 @@ private readonly List<TableColumn> columns = new()
     private string? createMessage;
     private SiteNoticeType createMessageType;
 
+    private string? totalMembers;
+
     private bool showNewForm;
     private bool processingNewForm;
-    private string? newName;
-    private string? newFullRepoName;
-    private bool newPublic;
-    private string? newCloneURL;
-    private CIProjectType newProjectType;
-    private string? newDefaultBranch;
 
-    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newName);
+    private EditContext editContext = null!;
 
-    public AssociationMembers() : base(new SortHelper("Email", SortDirection.Ascending))
+    private AssociationMemberDTO? newData;
+
+    public AssociationMembers() : base(new SortHelper("JoinDate", SortDirection.Descending))
     {
     }
 
@@ -153,6 +201,7 @@ private readonly List<TableColumn> columns = new()
     {
         await NotificationHandler.Register(this);
         await base.OnInitializedAsync();
+        await FetchTotalCount();
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
@@ -200,13 +249,12 @@ private readonly List<TableColumn> columns = new()
             showNewForm = true;
             createMessage = null;
 
-            // Reset form status
-            newName = null;
-            newFullRepoName = null;
-            newPublic = true;
-            newCloneURL = null;
-            newProjectType = CIProjectType.Github;
-            newDefaultBranch = "master";
+            newData = new AssociationMemberDTO()
+            {
+                JoinDate = DateTime.Now,
+            };
+
+            editContext = new(newData);
         }
 
         StateHasChanged();
@@ -215,14 +263,6 @@ private readonly List<TableColumn> columns = new()
     private async void CreateNew()
     {
         createMessageType = SiteNoticeType.Danger;
-
-        if (newFullRepoName == null || newCloneURL == null || newDefaultBranch == null)
-        {
-            createMessage = "Full repo name, clone URL, and default branch are required";
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-
         processingNewForm = true;
         createMessage = null;
         await InvokeAsync(StateHasChanged);
@@ -231,15 +271,10 @@ private readonly List<TableColumn> columns = new()
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/AssociationMember", new CIProjectDTO()
-            {
-                Name = newName!,
-                RepositoryFullName = newFullRepoName,
-                Public = newPublic,
-                RepositoryCloneUrl = newCloneURL,
-                ProjectType = newProjectType,
-                DefaultBranch = newDefaultBranch,
-            });
+            var dataToSend = newData!.Clone();
+            dataToSend.JoinDate = dataToSend.JoinDate.ToUniversalTime();
+
+            result = await Http.PostAsJsonAsync("api/v1/AssociationMember", dataToSend);
         }
         catch (HttpRequestException e)
         {
@@ -259,11 +294,26 @@ private readonly List<TableColumn> columns = new()
         }
         else
         {
-            createMessage = "New CI project created";
+            createMessage = "New Association Member created";
             createMessageType = SiteNoticeType.Info;
 
             // Stop showing the form
             showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task FetchTotalCount()
+    {
+        try
+        {
+            var count = await Http.GetFromJsonAsync<long>("api/v1/AssociationMember/total");
+            totalMembers = count.ToString();
+        }
+        catch (HttpRequestException e)
+        {
+            totalMembers = $"Network request failed: {e.Message}";
         }
 
         await InvokeAsync(StateHasChanged);

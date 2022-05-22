@@ -5,7 +5,6 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Security.Principal;
     using System.Threading;
-    using System.Threading.Tasks;
     using Hangfire;
     using Jobs;
     using Microsoft.AspNetCore.Identity;

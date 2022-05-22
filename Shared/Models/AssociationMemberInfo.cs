@@ -9,7 +9,7 @@ public class AssociationMemberInfo : ClientSideTimedModel
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    public DateOnly JoinDate { get; set; }
+    public DateTime JoinDate { get; set; }
 
     public long? UserId { get; set; }
     public bool BoardMember { get; set; }

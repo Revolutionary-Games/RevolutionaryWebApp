@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using ModelVerifiers;
 
 public class AssociationMemberDTO : ClientSideTimedModel
 {
@@ -18,7 +19,7 @@ public class AssociationMemberDTO : ClientSideTimedModel
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    public DateOnly JoinDate { get; set; }
+    public DateTime JoinDate { get; set; }
 
     [Required]
     [MaxLength(500)]
@@ -30,7 +31,12 @@ public class AssociationMemberDTO : ClientSideTimedModel
 
     public long? UserId { get; set; }
     public bool BoardMember { get; set; }
+
+    [DisallowIf(ThisMatches = "false", OtherProperty = nameof(BoardMember), IfOtherMatchesValue = "true",
+        ErrorMessage = "If currently a board member must have also been one in the past")]
+    [DisallowIfEnabled]
     public bool HasBeenBoardMember { get; set; }
+
     public bool IsThriveDeveloper { get; set; }
 
     public AssociationMemberDTO Clone()

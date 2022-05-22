@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Controllers;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
@@ -115,6 +116,35 @@ public class AssociationMemberController : Controller
         return Ok();
     }
 
+    [HttpDelete("{id:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> DeleteMember([Required] long id)
+    {
+        var member = await database.AssociationMembers.FindAsync(id);
+
+        if (member == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUser()!;
+
+        database.AssociationMembers.Remove(member);
+
+        await database.AdminActions.AddAsync(new AdminAction()
+        {
+            Message = $"Association member {member.Id} ({member.Email}) deleted",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        // The DTO is serialized here as date only instances are not supported
+        logger.LogInformation("Association member {Id} deleted by {Email}, full data: {Data}", member.Id,
+            user.Email, JsonSerializer.Serialize(member.GetDTO()));
+
+        jobClient.Enqueue<CheckAssociationStatusForUserJob>(x => x.Execute(member.Email, CancellationToken.None));
+        return Ok();
+    }
+
     [HttpPost]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<IActionResult> CreateMember([Required] [FromBody] AssociationMemberDTO request)
@@ -124,15 +154,21 @@ public class AssociationMemberController : Controller
         if (member != null)
             return BadRequest("Email already in use");
 
+        // TODO: switch this to a model validation
+        if (!request.Email.Contains("@"))
+            return BadRequest("Email doesn't contain @");
+
         var user = HttpContext.AuthenticatedUser()!;
 
-        member = new AssociationMember(request.FirstNames, request.LastName, request.Email, request.JoinDate,
+        member = new AssociationMember(request.FirstNames, request.LastName, request.Email,
+            DateOnly.FromDateTime(request.JoinDate),
             request.CountryOfResidence, request.CityOfResidence)
         {
             BoardMember = request.BoardMember,
             IsThriveDeveloper = request.IsThriveDeveloper,
             HasBeenBoardMember = request.HasBeenBoardMember,
         };
+        await database.AssociationMembers.AddAsync(member);
 
         await database.AdminActions.AddAsync(new AdminAction()
         {

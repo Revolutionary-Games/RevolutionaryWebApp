@@ -74,7 +74,7 @@ public class AssociationMember : UpdateableModel, IUpdateNotifications
             FirstNames = FirstNames,
             LastName = LastName,
             Email = Email,
-            JoinDate = JoinDate,
+            JoinDate = JoinDate.ToDateTime(new TimeOnly(0, 0)),
             CountryOfResidence = CountryOfResidence,
             CityOfResidence = CityOfResidence,
             UserId = UserId,
@@ -92,7 +92,7 @@ public class AssociationMember : UpdateableModel, IUpdateNotifications
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
             Email = Email,
-            JoinDate = JoinDate,
+            JoinDate = JoinDate.ToDateTime(new TimeOnly(0, 0)),
             UserId = UserId,
             BoardMember = BoardMember,
         };
