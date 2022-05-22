@@ -38,6 +38,8 @@ public class AssociationMember : UpdateableModel, IUpdateNotifications
 
     [Required]
     [AllowSortingBy]
+    [UpdateFromClientRequest]
+    [ConvertWithWhenUpdatingFromClient(nameof(DateTimeToDateOnly))]
     public DateOnly JoinDate { get; set; }
 
     [Required]
@@ -63,6 +65,11 @@ public class AssociationMember : UpdateableModel, IUpdateNotifications
 
     [UpdateFromClientRequest]
     public bool IsThriveDeveloper { get; set; }
+
+    public static DateOnly DateTimeToDateOnly(DateTime value)
+    {
+        return DateOnly.FromDateTime(value);
+    }
 
     public AssociationMemberDTO GetDTO()
     {

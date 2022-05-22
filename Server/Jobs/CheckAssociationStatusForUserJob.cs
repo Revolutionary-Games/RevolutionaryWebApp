@@ -33,7 +33,7 @@ public class CheckAssociationStatusForUserJob
             associationMember = await database.AssociationMembers.Where(a => a.Email == email).Include(a => a.User)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (associationMember != null)
+            if (associationMember is { UserId: { } })
             {
                 logger.LogInformation("Removing link to now missing email from association member {Id}",
                     associationMember.Id);

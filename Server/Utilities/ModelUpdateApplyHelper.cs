@@ -59,11 +59,28 @@ namespace ThriveDevCenter.Server.Utilities
                 stringBuilder.Append("changed \"");
                 stringBuilder.Append(property.Name);
                 stringBuilder.Append("\" from: ");
-                stringBuilder.Append(JsonSerializer.Serialize(oldValue));
+                stringBuilder.Append(ToUserReadableString(oldValue));
                 stringBuilder.Append(" to new value: ");
-                stringBuilder.Append(JsonSerializer.Serialize(newValue));
+                stringBuilder.Append(ToUserReadableString(newValue));
 
                 changes = true;
+
+                // Convert if specified with an attribute
+                var converterAttribute = property.GetCustomAttribute<ConvertWithWhenUpdatingFromClientAttribute>();
+
+                if (converterAttribute != null)
+                {
+                    var converter = modelType.GetMethod(converterAttribute.ConverterMethodName,
+                        BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                    if (converter == null)
+                    {
+                        throw new Exception(
+                            $"Converter method ({converterAttribute.ConverterMethodName}) for new value not found");
+                    }
+
+                    newValue = converter.Invoke(null, new[] { newValue });
+                }
 
                 property.SetValue(model, newValue);
             }
@@ -77,6 +94,20 @@ namespace ThriveDevCenter.Server.Utilities
                 return (false, null, null);
 
             return (true, stringBuilder.ToString(), changedFields);
+        }
+
+        private static string ToUserReadableString(object? value)
+        {
+            if (value == null)
+                return "null";
+
+            // TODO: clean up this
+            if (value is DateOnly dateOnly)
+            {
+                return dateOnly.ToString("o");
+            }
+
+            return JsonSerializer.Serialize(value);
         }
     }
 }
