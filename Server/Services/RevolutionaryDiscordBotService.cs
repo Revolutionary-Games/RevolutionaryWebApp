@@ -169,35 +169,52 @@ public class RevolutionaryDiscordBotService
                 await guild.CreateApplicationCommandAsync(BuildLanguageCommand().Build());
                 await guild.CreateApplicationCommandAsync(BuildWikiCommand().Build());
             }
-            catch (HttpException exception)
+            catch (HttpException e)
             {
-                logger.LogError(exception, "Failed to register one or more guild commands");
+                logger.LogError(e, "Failed to register one or more guild commands");
             }
         }
 
-        // TODO: uncomment
-        // try
-        // {
-        //     // TODO: only call the command building once for each command as recommended
-        //     await client.CreateGlobalApplicationCommandAsync(BuildProgressCommand().Build());
-        // }
-        // catch (HttpException exception)
-        // {
-        //     logger.LogError(exception, "Failed to register progress command");
-        // }
+        // If commands are changed the version numbers here *must* be updated
+        bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 1);
 
-        /*commandBuilder = new SlashCommandBuilder()
-            .WithName("help")
-            .WithDescription("Displays help for this bot");
+        if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 1))
+            changes = true;
+        if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 1))
+            changes = true;
+
+        if (changes)
+        {
+            logger.LogInformation("Global commands have been updated, saving info to database");
+            await database.SaveChangesAsync();
+        }
+    }
+
+    private async Task<bool> RegisterGlobalCommandIfRequired(SlashCommandBuilder builder, int version)
+    {
+        if (client == null)
+            throw new InvalidOperationException("Discord client not initialized");
+
+        // Only call global command registration when necessary
+        var key = GlobalDiscordBotCommand.GenerateKey(builder.Name, version);
+
+        if (await database.GlobalDiscordBotCommands.FindAsync(key) != null)
+            return false;
+
+        await database.GlobalDiscordBotCommands.AddAsync(new GlobalDiscordBotCommand(key));
 
         try
         {
-            await client!.CreateGlobalApplicationCommandAsync(commandBuilder.Build());
+            await client.CreateGlobalApplicationCommandAsync(BuildProgressCommand().Build());
         }
-        catch (HttpException exception)
+        catch (HttpException e)
         {
-            logger.LogError(exception, "Failed to register help command");
-        }*/
+            logger.LogError(e, "Failed to register global command {Key}", key);
+            return false;
+        }
+
+        logger.LogInformation("Registered global Discord command {Key}", key);
+        return true;
     }
 
     private async Task SlashCommandHandler(SocketSlashCommand command)
@@ -493,7 +510,7 @@ public class RevolutionaryDiscordBotService
             page = (string)pageOption.Value;
 
             // Convert spaces to underscores to make the links work
-            // TODO: somehow also fix capitalization
+            // TODO: somehow also fix capitalization or implement using the wiki search to find almost matching pages
             page = page.Replace(' ', '_');
         }
 

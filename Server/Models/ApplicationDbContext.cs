@@ -61,6 +61,7 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<DebugSymbol> DebugSymbols { get; set; } = null!;
         public DbSet<Backup> Backups { get; set; } = null!;
         public DbSet<AssociationMember> AssociationMembers { get; set; } = null!;
+        public DbSet<GlobalDiscordBotCommand> GlobalDiscordBotCommands { get; set; } = null!;
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
