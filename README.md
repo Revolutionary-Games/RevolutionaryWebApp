@@ -301,7 +301,7 @@ First prepare the server to deploy with all the software.
 
 For Rocky linux / Fedora you can install things with:
 ```sh
-dnf install aspnetcore-runtime-6.0 git postgresql-server redis nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget
+dnf install aspnetcore-runtime-6.0 git postgresql-server redis nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget fontconfig-devel
 ```
 Note that some packages are optional but better for a full production setup.
 

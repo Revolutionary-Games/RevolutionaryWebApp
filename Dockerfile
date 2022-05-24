@@ -41,8 +41,8 @@ CMD ["nginx"]
 FROM fedora:35 as application
 ENV DOTNET_VERSION "6.0"
 
-RUN dnf install -y --setopt=deltarpm=false aspnetcore-runtime-${DOTNET_VERSION} postgresql && \
-    dnf clean all
+RUN dnf install -y --setopt=deltarpm=false aspnetcore-runtime-${DOTNET_VERSION} postgresql \
+    fontconfig-devel && dnf clean all
 
 RUN useradd thrivedevcenter -m
 
