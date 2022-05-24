@@ -22,6 +22,7 @@ namespace AutomatedUITests.Fixtures
             }
 
             var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(connectionString)
+                .UseSnakeCaseNamingConvention()
                 .Options;
 
             Database = new ApplicationDbContext(options);

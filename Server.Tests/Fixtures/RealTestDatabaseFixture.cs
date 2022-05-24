@@ -20,6 +20,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
             }
 
             var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(connectionString)
+                .UseSnakeCaseNamingConvention()
                 .Options;
 
             Database = new ApplicationDbContext(options);
@@ -44,7 +45,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 Id = 1,
                 Email = "test@example.com",
                 Name = "test",
-                Local = true
+                Local = true,
             };
 
             Database.Users.Add(user1);
@@ -52,7 +53,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
             Database.Sessions.Add(new Session
             {
                 Id = SessionId1,
-                User = user1
+                User = user1,
             });
 
             var user2 = new User
@@ -61,7 +62,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 Email = "test2@example.com",
                 Name = "test2",
                 Local = true,
-                Developer = true
+                Developer = true,
             };
 
             Database.Users.Add(user2);
@@ -69,7 +70,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
             Database.Sessions.Add(new Session
             {
                 Id = SessionId2,
-                User = user2
+                User = user2,
             });
 
             var user3 = new User
@@ -78,7 +79,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 Email = "test3@example.com",
                 Name = "test3",
                 Local = true,
-                Admin = true
+                Admin = true,
             };
 
             Database.Users.Add(user3);
@@ -86,7 +87,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
             Database.Sessions.Add(new Session
             {
                 Id = SessionId3,
-                User = user3
+                User = user3,
             });
         }
 

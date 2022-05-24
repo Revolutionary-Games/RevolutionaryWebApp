@@ -265,6 +265,7 @@ namespace ThriveDevCenter.Server
 
                     var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                         .UseNpgsql(Configuration.GetConnectionString("WebApiConnection"))
+                        .UseSnakeCaseNamingConvention()
                         .Options;
 
                     var db = new ApplicationDbContext(options);
