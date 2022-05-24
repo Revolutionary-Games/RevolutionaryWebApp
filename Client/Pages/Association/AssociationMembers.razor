@@ -271,10 +271,7 @@ private readonly List<TableColumn> columns = new()
 
         try
         {
-            var dataToSend = newData!.Clone();
-            dataToSend.JoinDate = dataToSend.JoinDate.ToUniversalTime();
-
-            result = await Http.PostAsJsonAsync("api/v1/AssociationMember", dataToSend);
+            result = await Http.PostAsJsonAsync("api/v1/AssociationMember", newData!);
         }
         catch (HttpRequestException e)
         {

@@ -110,7 +110,6 @@ else
     private void ShowForm()
     {
         editedData = Data.Clone();
-        editedData.JoinDate = editedData.JoinDate.ToLocalTime();
 
         statusMessage = null;
         showForm = true;
@@ -140,7 +139,7 @@ else
         try
         {
             var dataToSend = editedData!.Clone();
-            dataToSend.JoinDate = dataToSend.JoinDate.ToUniversalTime();
+            dataToSend.JoinDate = dataToSend.JoinDate;
 
             result = await Http.PutAsJsonAsync($"api/v1/AssociationMember/{Data.Id}", editedData);
         }
