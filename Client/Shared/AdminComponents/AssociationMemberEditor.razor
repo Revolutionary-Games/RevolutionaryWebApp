@@ -23,7 +23,7 @@
 
         <div class="form-row">
             <div class="form-group col-md-8">
-                <label for="@($"editCity-{Data.Id}")">City of Residence</label>
+                <label for="@($"editCity-{Data.Id}")">City of Residence (and state code if USA)</label>
                 <CustomInputText class="form-control" id="@($"editCity-{Data.Id}")"
                                  @bind-Value="editedData!.CityOfResidence" placeholder="City of Residence"
                                  DisplayName="City of Residence" />
