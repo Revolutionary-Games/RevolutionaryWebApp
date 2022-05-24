@@ -24,6 +24,7 @@ namespace ThriveDevCenter.Server
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Net.Http.Headers;
     using Models;
     using Modulight.Modules.Hosting;
     using Services;
@@ -180,6 +181,16 @@ namespace ThriveDevCenter.Server
                 options.Filters.Add(new HttpResponseExceptionFilter());
             });
 
+            services.AddHttpClient();
+            services.AddHttpClient("github", httpClient =>
+            {
+                httpClient.BaseAddress = new Uri("https://api.github.com/");
+                httpClient.DefaultRequestHeaders.Add(
+                    HeaderNames.Accept, "application/vnd.github.v3+json");
+                httpClient.DefaultRequestHeaders.Add(
+                    HeaderNames.UserAgent, "HttpRequestsSample");
+            });
+
             services.AddSingleton<IRegistrationStatus, RegistrationStatus>();
             services.AddSingleton<ITokenGenerator, TokenGenerator>();
             services.AddSingleton<ITokenVerifier, TokenVerifier>();
@@ -230,6 +241,10 @@ namespace ThriveDevCenter.Server
 
             // Make dynamic rate limit configuration available
             services.AddSingleton<IRateLimitConfiguration, CustomRateLimitConfiguration>();
+
+            // Always running discord bot in the background (only runs if configured in app settings)
+            services.AddScoped<RevolutionaryDiscordBotService>();
+            services.AddHostedService<BotServiceRunner>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

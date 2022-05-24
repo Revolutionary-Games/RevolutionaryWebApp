@@ -247,4 +247,39 @@ namespace ThriveDevCenter.Server.Services
 
         public string Visibility { get; set; } = "private";
     }
+
+    public class GithubMilestone
+    {
+        [Required]
+        public long Id { get; set; }
+
+        [Required]
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; } = string.Empty;
+
+        [Required]
+        public string State { get; set; } = "open";
+
+        [Required]
+        public string Title { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        public GithubUserInfo? Creator { get; set; }
+
+        [JsonPropertyName("open_issues")]
+        public long OpenIssues { get; set; }
+
+        [JsonPropertyName("closed_issues")]
+        public long ClosedIssues { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("updated_at")]
+        public DateTime UpdatedAt { get; set; }
+
+        [JsonPropertyName("due_on")]
+        public DateTime? DueOn { get; set; }
+    }
 }

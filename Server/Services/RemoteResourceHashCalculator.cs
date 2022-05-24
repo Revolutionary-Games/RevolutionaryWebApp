@@ -9,9 +9,15 @@ namespace ThriveDevCenter.Server.Services
 
     public class RemoteResourceHashCalculator : IRemoteResourceHashCalculator
     {
+        private readonly IHttpClientFactory httpClientFactory;
         private readonly TimeSpan refreshInterval = TimeSpan.FromHours(8);
 
         private readonly Dictionary<string, (string hash, DateTime created)> sha256Hashes = new();
+
+        public RemoteResourceHashCalculator(IHttpClientFactory httpClientFactory)
+        {
+            this.httpClientFactory = httpClientFactory;
+        }
 
         public async Task<string> Sha256(string url, CancellationToken cancellationToken)
         {
@@ -37,7 +43,7 @@ namespace ThriveDevCenter.Server.Services
 
         private async Task<string> ComputeSha256Of(Uri url, CancellationToken cancellationToken)
         {
-            var client = new HttpClient();
+            var client = httpClientFactory.CreateClient();
             var response = await client.GetAsync(url, cancellationToken);
 
             return Convert.ToHexString(await SHA256.Create()

@@ -30,6 +30,7 @@
   "Logging": {
     "LogLevel": {
       "Default": "Information",
+      "System.Net.Http.HttpClient": "Information",
       "Microsoft": "Warning",
       "Microsoft.Hosting.Lifetime": "Information",
       "Microsoft.AspNetCore.SignalR": "Information",
