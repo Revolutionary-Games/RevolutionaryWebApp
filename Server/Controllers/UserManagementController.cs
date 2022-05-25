@@ -46,7 +46,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.Users.OrderBy(sortColumn, sortDirection, new[] { "UserName" });
+                query = database.Users.AsNoTracking().OrderBy(sortColumn, sortDirection, new[] { "UserName" });
             }
             catch (ArgumentException e)
             {
@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Controllers
             bool admin =
                 HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
 
-            var user = await database.Users.Where(u => u.Id == id).Include(u => u.AssociationMember)
+            var user = await database.Users.AsNoTracking().Where(u => u.Id == id).Include(u => u.AssociationMember)
                 .FirstOrDefaultAsync();
 
             if (user == null)
@@ -135,7 +135,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.Sessions.Where(s => s.UserId == id).OrderBy(sortColumn, sortDirection);
+                query = database.Sessions.AsNoTracking().Where(s => s.UserId == id).OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
