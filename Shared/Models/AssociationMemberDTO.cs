@@ -8,14 +8,16 @@ public class AssociationMemberDTO : ClientSideTimedModel
 {
     [Required]
     [MaxLength(500)]
+    [NoTrailingOrPrecedingSpace]
     public string FirstNames { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(500)]
+    [NoTrailingOrPrecedingSpace]
     public string LastName { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(AppInfo.MaxEmailLength, MinimumLength = AppInfo.MinEmailLength)]
+    [Email]
     public string Email { get; set; } = string.Empty;
 
     [Required]

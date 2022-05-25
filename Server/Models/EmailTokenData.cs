@@ -1,24 +1,23 @@
-namespace ThriveDevCenter.Server.Models
+namespace ThriveDevCenter.Server.Models;
+
+using System.ComponentModel.DataAnnotations;
+using Shared.ModelVerifiers;
+
+public class EmailTokenData
 {
-    using System.ComponentModel.DataAnnotations;
-    using Shared;
+    [Required]
+    [Email]
+    public string SentToEmail { get; set; } = string.Empty;
 
-    public class EmailTokenData
-    {
-        [Required]
-        [StringLength(AppInfo.MaxEmailLength, MinimumLength = 3)]
-        public string SentToEmail { get; set; } = string.Empty;
+    [Required]
+    public EmailVerificationType Type { get; set; }
 
-        [Required]
-        public EmailVerificationType Type { get; set; }
+    [Required]
+    [StringLength(1024, MinimumLength = 3)]
+    public string VerifiedResourceId { get; set; } = string.Empty;
+}
 
-        [Required]
-        [StringLength(1024, MinimumLength = 3)]
-        public string VerifiedResourceId { get; set; } = string.Empty;
-    }
-
-    public enum EmailVerificationType
-    {
-        CLA,
-    }
+public enum EmailVerificationType
+{
+    CLA,
 }
