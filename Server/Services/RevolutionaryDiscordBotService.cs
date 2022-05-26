@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
 using Shared.Converters;
+using Shared.Models;
 using Shared.Utilities;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -62,6 +63,7 @@ public class RevolutionaryDiscordBotService
     private readonly Uri wikiDefaultPreviewImage;
     private readonly Uri progressFontUrl;
     private readonly Uri progressImageUrl;
+    private readonly Uri releaseStatsApiUrl;
 
     private DiscordSocketClient? client;
 
@@ -89,6 +91,8 @@ public class RevolutionaryDiscordBotService
             new Uri(configuration["Discord:RevolutionaryBot:WikiDefaultPreviewImage"]);
         progressFontUrl = configuration.BaseUrlRelative("Discord:RevolutionaryBot:ProgressFont");
         progressImageUrl = configuration.BaseUrlRelative("Discord:RevolutionaryBot:ProgressBackgroundImage");
+
+        releaseStatsApiUrl = configuration.BaseUrlRelative("/api/v1/ReleaseStats");
 
         if (string.IsNullOrEmpty(botToken))
             return;
@@ -229,6 +233,9 @@ public class RevolutionaryDiscordBotService
                 break;
             case "wiki":
                 await HandleWikiCommand(command);
+                break;
+            case "releases":
+                await HandleReleasesCommand(command);
                 break;
             default:
                 await command.RespondAsync("Unknown command! Type `/` to see available commands");
@@ -611,6 +618,128 @@ public class RevolutionaryDiscordBotService
             .WithDescription(
                 "Get a summary of a Thrive wiki page.")
             .AddOption("page-title", ApplicationCommandOptionType.String, "The version to display progress for", true);
+    }
+
+    private async Task HandleReleasesCommand(SocketSlashCommand command)
+    {
+        if (!await CheckCanRunAgain(command))
+            return;
+
+        await command.DeferAsync();
+
+#pragma warning disable CS4014 // we don't want to hold up the command processing
+        PerformSlowReleasesPart(command);
+#pragma warning restore CS4014
+    }
+
+    private async Task PerformSlowReleasesPart(SocketSlashCommand command)
+    {
+        var httpClient = httpClientFactory.CreateClient();
+
+        List<RepoReleaseStats> stats;
+
+        try
+        {
+            stats = await httpClient.GetFromJsonAsync<List<RepoReleaseStats>>(releaseStatsApiUrl) ??
+                throw new NullDecodedJsonException();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to connect to the release stats API");
+            await command.ModifyOriginalResponseAsync(properties =>
+                properties.Content = "Failed to read release stats API data");
+            return;
+        }
+
+        var embeds = new List<EmbedBuilder>();
+
+        foreach (var repoStats in stats)
+        {
+            // Max of 10 for now. The Discord API probably allows 20 but I couldn't find a constant for that
+            if (embeds.Count >= 10)
+                break;
+
+            var embedBuilder = new EmbedBuilder().WithTitle(repoStats.Repository)
+                .WithUrl($"https://github.com/{repoStats.Repository}")
+                .WithFooter($"Total releases: {repoStats.TotalReleases}");
+
+            if (repoStats.LatestRelease != null && repoStats.LatestReleaseTime != null)
+            {
+                embedBuilder.AddField(fieldBuilder =>
+                {
+                    fieldBuilder.Name = "Latest release";
+                    fieldBuilder.Value = $"{repoStats.LatestRelease} on {repoStats.LatestReleaseTime.Value:YYYY-MM-dd}";
+                });
+                embedBuilder.AddField(fieldBuilder =>
+                {
+                    fieldBuilder.Name = "Downloads";
+                    fieldBuilder.Value = repoStats.LatestDownloads;
+                });
+                embedBuilder.AddField(fieldBuilder =>
+                {
+                    fieldBuilder.Name = "Downloads per day";
+                    fieldBuilder.Value = repoStats.LatestDownloadsPerDay;
+                });
+                embedBuilder.AddField(fieldBuilder =>
+                {
+                    fieldBuilder.Name = "Linux/General downloads";
+                    fieldBuilder.Value = repoStats.LatestLinuxDownloads;
+                });
+                embedBuilder.AddField(fieldBuilder =>
+                {
+                    fieldBuilder.Name = "Windows downloads";
+                    fieldBuilder.Value = repoStats.LatestWindowsDownloads;
+                });
+                embedBuilder.AddField(fieldBuilder =>
+                {
+                    fieldBuilder.Name = "Mac downloads";
+                    fieldBuilder.Value = repoStats.LatestMacDownloads;
+                });
+            }
+
+            embedBuilder.AddField(fieldBuilder =>
+            {
+                fieldBuilder.Name = "All time total downloads";
+                fieldBuilder.Value = repoStats.TotalDownloads;
+            });
+            embedBuilder.AddField(fieldBuilder =>
+            {
+                fieldBuilder.Name = "Total Linux/General downloads";
+                fieldBuilder.Value = repoStats.TotalLinuxDownloads;
+            });
+            embedBuilder.AddField(fieldBuilder =>
+            {
+                fieldBuilder.Name = "Total Windows downloads";
+                fieldBuilder.Value = repoStats.TotalWindowsDownloads;
+            });
+            embedBuilder.AddField(fieldBuilder =>
+            {
+                fieldBuilder.Name = "Total Mac downloads";
+                fieldBuilder.Value = repoStats.TotalMacDownloads;
+            });
+
+            // TODO: a nice colour
+            // .WithColor(new Color(182, 9, 9))
+
+            // TODO: include last modified time from the response (in a header) if people ask this too often
+            // and it shows the cached data multiple times
+            // embedBuilder.WithTimestamp(updatedTime.Value);
+
+            embeds.Add(embedBuilder);
+        }
+
+        await command.ModifyOriginalResponseAsync(properties =>
+        {
+            properties.Content = string.Empty;
+            properties.Embeds = embeds.Select(e => e.Build()).ToArray();
+        });
+    }
+
+    private SlashCommandBuilder BuildReleasesCommand()
+    {
+        return new SlashCommandBuilder()
+            .WithName("releases")
+            .WithDescription("Get download statistics and latest release for Thrive.");
     }
 
     private Task Log(LogMessage message)
