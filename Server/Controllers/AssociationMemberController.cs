@@ -157,13 +157,6 @@ public class AssociationMemberController : Controller
         if (member != null)
             return BadRequest("Email already in use");
 
-        // TODO: switch this to a model validation
-        if (!request.Email.Contains("@"))
-            return BadRequest("Email doesn't contain @");
-
-        if (request.Email.Trim() != request.Email)
-            return BadRequest("Email has trailing or preceding whitespace");
-
         var user = HttpContext.AuthenticatedUser()!;
 
         member = new AssociationMember(request.FirstNames, request.LastName, request.Email,
