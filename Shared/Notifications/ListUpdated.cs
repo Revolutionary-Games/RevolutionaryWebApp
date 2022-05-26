@@ -134,4 +134,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class AssociationMemberListUpdated : ListUpdated<AssociationMemberInfo>
     {
     }
+
+    public class RepoForReleaseStatsListUpdated : ListUpdated<RepoForReleaseStatsDTO>
+    {
+    }
 }

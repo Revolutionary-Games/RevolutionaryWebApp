@@ -10,6 +10,8 @@ using System.Text.RegularExpressions;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
 public class IsRegexAttribute : RequiredAttribute
 {
+    public bool AllowBlank { get; set; }
+
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         // Allow null values
@@ -26,6 +28,9 @@ public class IsRegexAttribute : RequiredAttribute
 
         if (asString.Length < 1)
         {
+            if (AllowBlank)
+                return ValidationResult.Success;
+
             return new ValidationResult(
                 ErrorMessage ??
                 $"The {validationContext.DisplayName} field is blank (and not null) and as regex would match anything.",

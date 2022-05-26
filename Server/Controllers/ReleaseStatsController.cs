@@ -43,7 +43,8 @@ public class ReleaseStatsController : Controller
     [ResponseCache(Duration = 900)]
     public async Task<ActionResult<List<RepoReleaseStats>>> Get()
     {
-        var configs = await database.ReposForReleaseStats.AsNoTracking().Where(r => r.ShowInAll).ToListAsync();
+        var configs = await database.ReposForReleaseStats.AsNoTracking().OrderBy(r => r.QualifiedName)
+            .Where(r => r.ShowInAll).ToListAsync();
 
         var result = new List<RepoReleaseStats>();
 
@@ -64,6 +65,8 @@ public class ReleaseStatsController : Controller
     [ResponseCache(Duration = 900, VaryByQueryKeys = new[] { "name" })]
     public async Task<ActionResult<RepoReleaseStats>> GetSingle([Required] string name)
     {
+        name = name.Replace(":", "/");
+
         var config = await database.ReposForReleaseStats.FindAsync(name);
 
         if (config == null)
@@ -77,7 +80,7 @@ public class ReleaseStatsController : Controller
         return await FetchReleaseStats(config.QualifiedName, regex);
     }
 
-    [HttpGet]
+    [HttpGet("config")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<PagedResult<RepoForReleaseStatsDTO>> GetConfiguration([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -104,6 +107,8 @@ public class ReleaseStatsController : Controller
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<ActionResult<RepoForReleaseStatsDTO>> GetSingleConfig([Required] string name)
     {
+        name = name.Replace(":", "/");
+
         var config = await database.ReposForReleaseStats.FindAsync(name);
 
         if (config == null)
@@ -112,10 +117,15 @@ public class ReleaseStatsController : Controller
         return config.GetDTO();
     }
 
-    [HttpPost]
+    [HttpPost("config")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<IActionResult> Create([Required] [FromBody] RepoForReleaseStatsDTO request)
     {
+        // Convert blank regex to null, this is due to how the input forms work on the client, so this makes that
+        // not need a workaround
+        if (string.IsNullOrEmpty(request.IgnoreDownloads))
+            request.IgnoreDownloads = null;
+
         var config = await database.ReposForReleaseStats.FindAsync(request.QualifiedName);
 
         if (config != null)
@@ -147,6 +157,8 @@ public class ReleaseStatsController : Controller
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<IActionResult> Delete([Required] string name)
     {
+        name = name.Replace(":", "/");
+
         var config = await database.ReposForReleaseStats.FindAsync(name);
 
         if (config == null)
@@ -202,11 +214,18 @@ public class ReleaseStatsController : Controller
                 ref totalMacDownloads);
         }
 
+        result.TotalDownloads = totalDownloads;
+        result.TotalLinuxDownloads = totalLinuxDownloads;
+        result.TotalWindowsDownloads = totalWindowsDownloads;
+        result.TotalMacDownloads = totalMacDownloads;
+        result.TotalReleases = releases.Count;
+
         var latestRelease = releases.MaxBy(r => r.PublishedAt);
 
         if (latestRelease != null)
         {
             result.LatestRelease = latestRelease.Name;
+            result.LatestReleaseTime = latestRelease.PublishedAt;
 
             long total = 0;
             long linux = 0;
@@ -214,23 +233,24 @@ public class ReleaseStatsController : Controller
             long mac = 0;
             CountReleaseDownloadStats(latestRelease, ignoreDownloads, ref total, ref linux, ref windows, ref mac);
 
-            result.LatestDownloads = totalDownloads;
-            result.LatestLinuxDownloads = totalLinuxDownloads;
-            result.LatestWindowsDownloads = totalWindowsDownloads;
-            result.LatestMacDownloads = totalMacDownloads;
+            result.LatestDownloads = total;
+            result.LatestLinuxDownloads = linux;
+            result.LatestWindowsDownloads = windows;
+            result.LatestMacDownloads = mac;
+
+            var elapsedDays = (int)Math.Floor((DateTime.UtcNow - result.LatestReleaseTime.Value).TotalDays);
+
+            if (elapsedDays < 1)
+                elapsedDays = 1;
+
+            result.LatestDownloadsPerDay = total / elapsedDays;
         }
 
-        result.TotalDownloads = totalDownloads;
-        result.TotalLinuxDownloads = totalLinuxDownloads;
-        result.TotalWindowsDownloads = totalWindowsDownloads;
-        result.TotalMacDownloads = totalMacDownloads;
-        result.TotalReleases = releases.Count;
         return result;
     }
 
     private void CountReleaseDownloadStats(GithubRelease release, Regex? ignoreDownloads, ref long total,
-        ref long linux, ref long windows,
-        ref long mac)
+        ref long linux, ref long windows, ref long mac)
     {
         foreach (var asset in release.Assets)
         {
@@ -240,11 +260,12 @@ public class ReleaseStatsController : Controller
 
             total += asset.DownloadCount;
 
-            if (assetName.Contains("mac"))
+            if (assetName.Contains("mac") || assetName.Contains(".dmg"))
             {
                 mac += asset.DownloadCount;
             }
-            else if (assetName.Contains("windows") || (assetName.Contains("win") && !assetName.Contains("linux")))
+            else if (assetName.Contains("windows") || assetName.Contains(".exe") ||
+                     (assetName.Contains("win") && !assetName.Contains("linux")))
             {
                 windows += asset.DownloadCount;
             }

@@ -316,7 +316,8 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task VerifyDeleteServer(ExternalServerDTO comment)
+    // TODO: use this
+    private async Task VerifyDeleteComment(GithubAutoCommentDTO comment)
     {
         var parameters = new ModalParameters();
         parameters.Add(nameof(ConfirmDelete.Name), $"Auto comment {comment.Id}");
@@ -420,6 +421,5 @@ else
     private class AutoCommentResourceStatus : DeletedResourceStatus
     {
         public bool Expanded { get; set; }
-        public bool Processing { get; set; }
     }
 }

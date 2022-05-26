@@ -45,10 +45,30 @@ public class IsRegexAttributeTests
         Assert.NotNull(errors[0].ErrorMessage);
         Assert.Contains(nameof(Model1.Regex), errors[0].MemberNames);
     }
-    
+
+    [Fact]
+    public void IsRegex_AllowsBlankInSpecificMode()
+    {
+        var model = new Model2()
+        {
+            Regex = string.Empty,
+        };
+
+        var errors = new List<ValidationResult>();
+
+        Assert.True(Validator.TryValidateObject(model, new ValidationContext(model), errors));
+        Assert.Empty(errors);
+    }
+
     private class Model1
     {
         [IsRegex]
+        public string? Regex { get; set; }
+    }
+
+    private class Model2
+    {
+        [IsRegex(AllowBlank = true)]
         public string? Regex { get; set; }
     }
 }

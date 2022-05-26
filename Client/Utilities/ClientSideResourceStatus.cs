@@ -40,5 +40,10 @@ namespace ThriveDevCenter.Client.Utilities
     public class DeletedResourceStatus : IDeletedResourceStatus
     {
         public bool Deleted { get; set; }
+
+        /// <summary>
+        ///   Set to true when the delete is being processed
+        /// </summary>
+        public bool Processing { get; set; }
     }
 }

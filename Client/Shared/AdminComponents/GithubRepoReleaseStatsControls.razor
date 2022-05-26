@@ -1,0 +1,286 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Converters
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
+@implements ThriveDevCenter.Client.Services.INotificationHandler<RepoForReleaseStatsListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.RepoForReleaseStatsDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <StatusMessageShower Message="@message" Type="@messageType" />
+
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (clientSideResourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                <tr @key="item.QualifiedName">
+                    <th scope="row">@item.QualifiedName</th>
+                    <td>@item.IgnoreDownloads</td>
+                    <td>@item.ShownInAll</td>
+                    <td>
+                        <Button OnPressed="@(async () => await VerifyDeleteStatsRepo(item))"
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
+                            Delete
+                        </Button>
+                    </td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
+        <DataAnnotationsValidator />
+
+        <div class="form-row">
+            <div class="form-group col-md-8">
+                <label for="newFullyQualifiedName">Qualified Repository Name (format: Owner/Repo-Name)</label>
+                <CustomInputText class="form-control" id="newFullyQualifiedName"
+                                 @bind-Value="newData!.QualifiedName" placeholder="Owner/Repo-Name" />
+            </div>
+            <div class="form-group col-md-4">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" type="checkbox" id="newShownInAll"
+                                   @bind-Value="newData!.ShownInAll" />
+                    <label class="form-check-label" for="newShownInAll">
+                        Show By Default In All Stats
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="newIgnoreDownloads">Regex to ignore specific release files in download stats</label>
+                <CustomInputText class="form-control" id="newIgnoreDownloads" @bind-Value="newData!.IgnoreDownloads"
+                                 placeholder="Ignored downloads regex (optional)"/>
+            </div>
+        </div>
+
+        <ValidationSummary />
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit" Spinner="@processingNewForm">
+            Create
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+            Cancel
+        </Button>
+    </EditForm>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("QualifiedName", true),
+        new TableColumn("Ignore Downloads", false),
+        new TableColumn("ShowInAll", true),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> clientSideResourceStatus = new();
+
+    private string? message;
+    private SiteNoticeType messageType;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+
+    private EditContext editContext = null!;
+
+    private RepoForReleaseStatsDTO? newData;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    public GithubRepoReleaseStatsControls() : base(new SortHelper("QualifiedName", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(RepoForReleaseStatsListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.RepoForReleaseStatsListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<RepoForReleaseStatsDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<RepoForReleaseStatsDTO>>(
+            QueryHelpers.AddQueryString("api/v1/ReleaseStats/config", requestParams));
+    }
+
+    private bool IsProcessing(long commentId)
+    {
+        return clientSideResourceStatus.GetStatus(commentId).Processing;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            newData = new RepoForReleaseStatsDTO()
+            {
+                ShownInAll = true,
+            };
+
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/ReleaseStats/config", newData);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New repo for release stats created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task VerifyDeleteStatsRepo(RepoForReleaseStatsDTO statsRepo)
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmDelete.Name), $"Repo to get release stats from {statsRepo.QualifiedName}");
+
+        var modal = Modal.Show<ConfirmDelete>("Delete repo for release stats?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await DeleteStatsRepo(statsRepo);
+    }
+
+    private async Task DeleteStatsRepo(RepoForReleaseStatsDTO statsRepo)
+    {
+        var status = clientSideResourceStatus.GetStatus(statsRepo.Id);
+
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/ReleaseStats/config/{statsRepo.QualifiedName.Replace('/', ':')}");
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Repo for release stats deleted";
+            messageType = SiteNoticeType.Warning;
+            clientSideResourceStatus.SetDeletedStatus(statsRepo.Id);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

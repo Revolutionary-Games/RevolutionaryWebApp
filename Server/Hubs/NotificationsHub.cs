@@ -245,6 +245,7 @@ namespace ThriveDevCenter.Server.Hubs
                 case NotificationGroups.SentBulkEmailListUpdated:
                 case NotificationGroups.BackupListUpdated:
                 case NotificationGroups.AssociationMemberListUpdated:
+                case NotificationGroups.RepoForReleaseStatsListUpdated:
                     return RequireAccessLevel(UserAccessLevel.Admin, user);
                 case NotificationGroups.PrivateLFSUpdated:
                 case NotificationGroups.PrivateCIProjectUpdated:

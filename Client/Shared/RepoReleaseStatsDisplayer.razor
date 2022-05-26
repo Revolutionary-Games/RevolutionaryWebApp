@@ -1,0 +1,52 @@
+@inject HttpClient Http
+@using ThriveDevCenter.Shared.Models
+@inherits SimpleResourceFetcher<List<RepoReleaseStats>>
+<h4>Release Statistics</h4>
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)" ShowDataWithError="@false">
+    @if (Data != null)
+    {
+        foreach (var repoReleaseStats in Data)
+        {
+            <div @key="repoReleaseStats.Repository">
+
+                @if (repoReleaseStats.LatestRelease != null)
+                {
+                    <div>
+                        <strong>@repoReleaseStats.Repository</strong> latest release:
+                        @repoReleaseStats.LatestRelease published on
+                        @repoReleaseStats.LatestReleaseTime?.ToLocalTime().ToString("D") with
+                        @repoReleaseStats.LatestDownloads downloads, @repoReleaseStats.LatestDownloadsPerDay/day
+                        (Linux/General: @repoReleaseStats.LatestLinuxDownloads,
+                        Windows: @repoReleaseStats.LatestWindowsDownloads, Mac: @repoReleaseStats.LatestMacDownloads)
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        No latest release for <strong>@repoReleaseStats.Repository</strong>
+                    </div>
+                }
+
+                <div>
+                    All time downloads: @repoReleaseStats.TotalDownloads
+                    (Linux/General: @repoReleaseStats.TotalLinuxDownloads,
+                    Windows: @repoReleaseStats.TotalWindowsDownloads, Mac: @repoReleaseStats.TotalMacDownloads)
+                    Total releases: @repoReleaseStats.TotalReleases
+                </div>
+
+                <br />
+            </div>
+        }
+    }
+</SingleResourceDisplayer>
+
+
+@code {
+
+    protected override Task<List<RepoReleaseStats>?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<List<RepoReleaseStats>>("api/v1/ReleaseStats");
+    }
+
+}
