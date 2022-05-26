@@ -69,6 +69,8 @@ public class IsRegexAttributeTests
     private class Model2
     {
         [IsRegex(AllowBlank = true)]
+        // Read by the property
+        // ReSharper disable once UnusedAutoPropertyAccessor.Local
         public string? Regex { get; set; }
     }
 }
