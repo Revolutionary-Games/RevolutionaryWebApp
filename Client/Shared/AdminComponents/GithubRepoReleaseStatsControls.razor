@@ -105,9 +105,9 @@ else
 @code {
     private readonly List<TableColumn> columns = new()
     {
-        new TableColumn("QualifiedName", true),
+        new TableColumn("Repo Full Name", true, "QualifiedName"),
         new TableColumn("Ignore Downloads", false),
-        new TableColumn("ShowInAll", true),
+        new TableColumn("Show in Default View", true, "ShowInAll"),
         new TableColumn("Actions", false),
     };
 

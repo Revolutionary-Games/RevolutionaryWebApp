@@ -24,5 +24,4 @@ public class RepoReleaseStats
     public long TotalLinuxDownloads { get; set; }
     public long TotalWindowsDownloads { get; set; }
     public long TotalMacDownloads { get; set; }
-
 }
