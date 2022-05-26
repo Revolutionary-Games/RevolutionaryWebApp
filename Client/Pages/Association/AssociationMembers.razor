@@ -99,10 +99,12 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="newEmail">Email (can't be changed later)</label>
-                <CustomInputText class="form-control" id="newEmail"
-                                 @bind-Value="newData!.Email" placeholder="Email"/>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="newEmail">Email (can't be changed later)</label>
+                    <CustomInputText class="form-control" id="newEmail"
+                                     @bind-Value="newData!.Email" placeholder="Email"/>
+                </div>
             </div>
 
             <div class="form-row">
@@ -254,7 +256,7 @@ private readonly List<TableColumn> columns = new()
                 JoinDate = DateTime.Now,
             };
 
-            editContext = new(newData);
+            editContext = new EditContext(newData);
         }
 
         StateHasChanged();
