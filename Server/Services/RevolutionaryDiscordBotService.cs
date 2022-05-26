@@ -92,7 +92,7 @@ public class RevolutionaryDiscordBotService
         progressFontUrl = configuration.BaseUrlRelative("Discord:RevolutionaryBot:ProgressFont");
         progressImageUrl = configuration.BaseUrlRelative("Discord:RevolutionaryBot:ProgressBackgroundImage");
 
-        releaseStatsApiUrl = configuration.BaseUrlRelative("/api/v1/ReleaseStats");
+        releaseStatsApiUrl = new Uri(configuration.GetBaseUrl(), "/api/v1/ReleaseStats");
 
         if (string.IsNullOrEmpty(botToken))
             return;
@@ -172,6 +172,7 @@ public class RevolutionaryDiscordBotService
                 await guild.CreateApplicationCommandAsync(BuildProgressCommand().Build());
                 await guild.CreateApplicationCommandAsync(BuildLanguageCommand().Build());
                 await guild.CreateApplicationCommandAsync(BuildWikiCommand().Build());
+                await guild.CreateApplicationCommandAsync(BuildReleasesCommand().Build());
             }
             catch (HttpException e)
             {
@@ -185,6 +186,8 @@ public class RevolutionaryDiscordBotService
         if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 1))
             changes = true;
         if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 1))
+            changes = true;
+        if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 1))
             changes = true;
 
         if (changes)
@@ -668,7 +671,7 @@ public class RevolutionaryDiscordBotService
                 embedBuilder.AddField(fieldBuilder =>
                 {
                     fieldBuilder.Name = "Latest release";
-                    fieldBuilder.Value = $"{repoStats.LatestRelease} on {repoStats.LatestReleaseTime.Value:YYYY-MM-dd}";
+                    fieldBuilder.Value = $"{repoStats.LatestRelease} on {repoStats.LatestReleaseTime.Value:yyyy-MM-dd}";
                 });
                 embedBuilder.AddField(fieldBuilder =>
                 {
@@ -684,16 +687,19 @@ public class RevolutionaryDiscordBotService
                 {
                     fieldBuilder.Name = "Linux/General downloads";
                     fieldBuilder.Value = repoStats.LatestLinuxDownloads;
+                    fieldBuilder.IsInline = true;
                 });
                 embedBuilder.AddField(fieldBuilder =>
                 {
-                    fieldBuilder.Name = "Windows downloads";
+                    fieldBuilder.Name = "Windows";
                     fieldBuilder.Value = repoStats.LatestWindowsDownloads;
+                    fieldBuilder.IsInline = true;
                 });
                 embedBuilder.AddField(fieldBuilder =>
                 {
-                    fieldBuilder.Name = "Mac downloads";
+                    fieldBuilder.Name = "Mac";
                     fieldBuilder.Value = repoStats.LatestMacDownloads;
+                    fieldBuilder.IsInline = true;
                 });
             }
 
@@ -706,16 +712,19 @@ public class RevolutionaryDiscordBotService
             {
                 fieldBuilder.Name = "Total Linux/General downloads";
                 fieldBuilder.Value = repoStats.TotalLinuxDownloads;
+                fieldBuilder.IsInline = true;
             });
             embedBuilder.AddField(fieldBuilder =>
             {
-                fieldBuilder.Name = "Total Windows downloads";
+                fieldBuilder.Name = "Windows";
                 fieldBuilder.Value = repoStats.TotalWindowsDownloads;
+                fieldBuilder.IsInline = true;
             });
             embedBuilder.AddField(fieldBuilder =>
             {
-                fieldBuilder.Name = "Total Mac downloads";
+                fieldBuilder.Name = "Mac";
                 fieldBuilder.Value = repoStats.TotalMacDownloads;
+                fieldBuilder.IsInline = true;
             });
 
             // TODO: a nice colour
