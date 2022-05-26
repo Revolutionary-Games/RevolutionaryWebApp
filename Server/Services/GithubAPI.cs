@@ -282,4 +282,80 @@ namespace ThriveDevCenter.Server.Services
         [JsonPropertyName("due_on")]
         public DateTime? DueOn { get; set; }
     }
+
+    public class GithubAsset
+    {
+        [Required]
+        public long Id { get; set; }
+
+        [Required]
+        [JsonPropertyName("browser_download_url")]
+        public string BrowserDownloadUrl { get; set; } = string.Empty;
+
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public string Label { get; set; } = string.Empty;
+
+        [Required]
+        public string State { get; set; } = string.Empty;
+
+        [Required]
+        [JsonPropertyName("content_type")]
+        public string ContentType { get; set; } = string.Empty;
+
+        [Required]
+        public long Size { get; set; }
+
+        [Required]
+        [JsonPropertyName("download_count")]
+        public long DownloadCount { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("updated_at")]
+        public DateTime UpdatedAt { get; set; }
+
+        public GithubUserInfo? Uploader { get; set; }
+    }
+
+    public class GithubRelease
+    {
+        [Required]
+        public long Id { get; set; }
+
+        [Required]
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; } = string.Empty;
+
+        [Required]
+        [JsonPropertyName("assets_url")]
+        public string AssetsUrl { get; set; } = string.Empty;
+
+        [Required]
+        [JsonPropertyName("tag_name")]
+        public string TagName { get; set; } = "open";
+
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public string Body { get; set; } = string.Empty;
+
+        public bool Draft { get; set; }
+        public bool Prerelease { get; set; }
+
+        public GithubUserInfo? Author { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("published_at")]
+        public DateTime PublishedAt { get; set; }
+
+        [Required]
+        public List<GithubAsset> Assets { get; set; } = new();
+    }
 }
