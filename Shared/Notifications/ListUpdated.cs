@@ -138,4 +138,12 @@ namespace ThriveDevCenter.Shared.Notifications
     public class RepoForReleaseStatsListUpdated : ListUpdated<RepoForReleaseStatsDTO>
     {
     }
+
+    public class FeedListUpdated : ListUpdated<FeedDTO>
+    {
+    }
+
+    public class CombinedFeedListUpdated : ListUpdated<CombinedFeedDTO>
+    {
+    }
 }
