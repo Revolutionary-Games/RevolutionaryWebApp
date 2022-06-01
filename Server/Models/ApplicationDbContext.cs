@@ -63,6 +63,10 @@ namespace ThriveDevCenter.Server.Models
         public DbSet<AssociationMember> AssociationMembers { get; set; } = null!;
         public DbSet<GlobalDiscordBotCommand> GlobalDiscordBotCommands { get; set; } = null!;
         public DbSet<RepoForReleaseStats> ReposForReleaseStats { get; set; } = null!;
+        public DbSet<Feed> Feeds { get; set; } = null!;
+        public DbSet<FeedDiscordWebhook> FeedDiscordWebhooks { get; set; } = null!;
+        public DbSet<SeenFeedItem> SeenFeedItems { get; set; } = null!;
+        public DbSet<CombinedFeed> CombinedFeeds { get; set; } = null!;
 
         /// <summary>
         ///   If non-null this will be used to send model update notifications on save
@@ -468,7 +472,28 @@ namespace ThriveDevCenter.Server.Models
 
             modelBuilder.Entity<AssociationMember>(entity =>
             {
-                entity.HasOne(a => a.User).WithOne(e => e.AssociationMember).OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(d => d.User).WithOne(p => p.AssociationMember).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<Feed>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+            });
+
+            modelBuilder.Entity<FeedDiscordWebhook>(entity =>
+            {
+                entity.HasOne(d => d.Feed).WithMany(p => p.DiscordWebhooks).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<SeenFeedItem>(entity =>
+            {
+                entity.HasOne(d => d.Feed).WithMany(p => p.SeenFeedItems).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CombinedFeed>(entity =>
+            {
+                entity.UseXminAsConcurrencyToken();
+                entity.HasMany(d => d.CombinedFromFeeds).WithMany(p => p.CombinedInto);
             });
         }
 

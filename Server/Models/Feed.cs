@@ -23,9 +23,10 @@ using SmartFormat;
 ///   RSS feed to download from an external source
 /// </summary>
 [Index(nameof(Name), IsUnique = true)]
-public class Feed : UpdateableModel, ISoftDeletable, IUpdateNotifications, IDTOCreator<FeedDTO>
+[Index(nameof(ContentUpdatedAt))]
+public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<FeedDTO>
 {
-    public Feed(string url, string name, TimeSpan pollInterval)
+    public Feed(string url, string name, TimeSpan pollInterval) : base(name)
     {
         Url = url;
         Name = name;
@@ -35,26 +36,8 @@ public class Feed : UpdateableModel, ISoftDeletable, IUpdateNotifications, IDTOC
     [Required]
     public string Url { get; set; }
 
-    /// <summary>
-    ///   Name of the feed. Used as a file name in URL paths for retrieving this feed's content
-    /// </summary>
-    [Required]
-    public string Name { get; set; }
-
     [Required]
     public TimeSpan PollInterval { get; set; }
-
-    /// <summary>
-    ///   Max items to show in the feed results
-    /// </summary>
-    public int MaxItems { get; set; } = int.MaxValue;
-
-    /// <summary>
-    ///   Max length of an item in the feed, too long items will be truncated
-    /// </summary>
-    public int MaxItemLength { get; set; } = int.MaxValue;
-
-    public string? LatestContent { get; set; }
 
     /// <summary>
     ///   If set to non-empty value a HTML mapped version of the feed data is available when queried with
@@ -73,7 +56,10 @@ public class Feed : UpdateableModel, ISoftDeletable, IUpdateNotifications, IDTOC
     /// </summary>
     public string? HtmlLatestContent { get; set; }
 
-    public DateTime? ContentUpdatedAt { get; set; }
+    /// <summary>
+    ///   Max length of an item in the feed, too long items will be truncated
+    /// </summary>
+    public int MaxItemLength { get; set; } = int.MaxValue;
 
     public string? PreprocessingActionsRaw;
 
@@ -95,7 +81,7 @@ public class Feed : UpdateableModel, ISoftDeletable, IUpdateNotifications, IDTOC
 
     public ICollection<FeedDiscordWebhook> DiscordWebhooks { get; set; } = new HashSet<FeedDiscordWebhook>();
 
-    public ICollection<FeedDiscordWebhook> CombinedInto { get; set; } = new HashSet<FeedDiscordWebhook>();
+    public ICollection<CombinedFeed> CombinedInto { get; set; } = new HashSet<CombinedFeed>();
 
     public FeedDTO GetDTO()
     {
@@ -113,26 +99,26 @@ public class Feed : UpdateableModel, ISoftDeletable, IUpdateNotifications, IDTOC
             LatestContentLength = LatestContent?.Length,
             ContentUpdatedAt = ContentUpdatedAt,
             PreprocessingActions = PreprocessingActions,
+            HtmlFeedItemEntryTemplate = HtmlFeedItemEntryTemplate,
+            HtmlFeedVersionSuffix = HtmlFeedVersionSuffix,
         };
     }
 
     /// <summary>
-    ///   Processes raw feed content into this and stores it in <see cref="LatestContent"/> if the final content
-    ///   changed
+    ///   Just parses content for this feed and does nothing else
     /// </summary>
-    /// <param name="rawContent">
-    ///   The raw retrieved content. Should not be the error content if a feed returned non success status code.
-    /// </param>
-    /// <returns>List of feed items</returns>
-    public IEnumerable<ParsedFeedItem> ProcessContent(string rawContent)
+    /// <param name="rawContent">The feed content</param>
+    /// <param name="modifiedDocument">Way to get out the processed feed data</param>
+    /// <returns>Parsed items</returns>
+    public List<ParsedFeedItem> ParseContent(string rawContent, out XDocument modifiedDocument)
     {
         var feedItems = new List<ParsedFeedItem>();
 
-        var document = XDocument.Parse(rawContent);
+        modifiedDocument = XDocument.Parse(rawContent);
 
         var preprocessingActions = PreprocessingActions;
 
-        foreach (var entry in document.Descendants().Where(e => e.Name.LocalName == "entry"))
+        foreach (var entry in modifiedDocument.Descendants().Where(e => e.Name.LocalName == "entry"))
         {
             if (preprocessingActions is { Count: > 0 })
                 RunPreprocessingActions(entry, preprocessingActions);
@@ -162,6 +148,7 @@ public class Feed : UpdateableModel, ISoftDeletable, IUpdateNotifications, IDTOC
                 Summary = EnsureNoDangerousContentMaybeNull(
                     entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "summary")?.Value ??
                     entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "content")?.Value),
+                OriginalFeed = Name,
             };
 
             var published = entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "published")?.Value;
@@ -181,6 +168,21 @@ public class Feed : UpdateableModel, ISoftDeletable, IUpdateNotifications, IDTOC
             if (feedItems.Count >= MaxItems)
                 break;
         }
+
+        return feedItems;
+    }
+
+    /// <summary>
+    ///   Processes raw feed content into this and stores it in <see cref="FeedBase.LatestContent"/> if the final content
+    ///   changed
+    /// </summary>
+    /// <param name="rawContent">
+    ///   The raw retrieved content. Should not be the error content if a feed returned non success status code.
+    /// </param>
+    /// <returns>List of feed items</returns>
+    public IEnumerable<ParsedFeedItem> ProcessContent(string rawContent)
+    {
+        var feedItems = ParseContent(rawContent, out var document);
 
         // Write the clean document back out
         using var stream = new MemoryStream();
@@ -281,20 +283,7 @@ public class Feed : UpdateableModel, ISoftDeletable, IUpdateNotifications, IDTOC
 
         foreach (var item in items)
         {
-            var data = new
-            {
-                item.Id,
-                Author = HttpUtility.HtmlEncode(item.Author),
-                AuthorFirstWord = HttpUtility.HtmlEncode(item.Author.Split(' ').First()),
-                item.Link,
-                Title = HttpUtility.HtmlEncode(item.Title),
-                item.Summary,
-                item.PublishedAt,
-                FeedName = HttpUtility.HtmlEncode(Name),
-                OriginalFeedName = HttpUtility.HtmlEncode(Name),
-            };
-
-            builder.Append(Smart.Format(template, data));
+            builder.Append(Smart.Format(template, item.GetFormatterData(Name)));
         }
 
         return builder.ToString();
@@ -331,4 +320,22 @@ public class ParsedFeedItem
     public string Author { get; set; }
 
     public DateTime PublishedAt { get; set; }
+
+    public string? OriginalFeed { get; set; }
+
+    public object GetFormatterData(string currentFeed)
+    {
+        return new
+        {
+            Id,
+            Link,
+            Title = HttpUtility.HtmlEncode(Title),
+            Summary,
+            PublishedAt,
+            Author = HttpUtility.HtmlEncode(Author),
+            AuthorFirstWord = HttpUtility.HtmlEncode(Author.Split(' ').First()),
+            FeedName = HttpUtility.HtmlEncode(currentFeed),
+            OriginalFeedName = HttpUtility.HtmlEncode(OriginalFeed),
+        };
+    }
 }

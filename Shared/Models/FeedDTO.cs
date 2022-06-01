@@ -28,4 +28,10 @@ public class FeedDTO : ClientSideTimedModel
 
     [MaxLength(50)]
     public List<FeedPreprocessingAction>? PreprocessingActions { get; set; }
+
+    [StringLength(5000, MinimumLength = 1)]
+    public string? HtmlFeedItemEntryTemplate { get; set; } = string.Empty;
+
+    [StringLength(50, MinimumLength = 2)]
+    public string? HtmlFeedVersionSuffix { get; set; }
 }

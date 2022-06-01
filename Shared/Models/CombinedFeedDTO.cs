@@ -15,4 +15,8 @@ public class CombinedFeedDTO : ClientSideTimedModel
     [MaxLength(10)]
     [MinLength(2)]
     public List<long> CombinedFromFeeds { get; set; } = new();
+
+    [Required]
+    [StringLength(5000, MinimumLength = 1)]
+    public string HtmlFeedItemEntryTemplate { get; set; } = string.Empty;
 }

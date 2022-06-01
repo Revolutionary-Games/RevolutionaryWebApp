@@ -4,30 +4,50 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 using Shared.Notifications;
+using SmartFormat;
 
 /// <summary>
 ///   Feed combined from multiple
 /// </summary>
 [Index(nameof(Name), IsUnique = true)]
-public class CombinedFeed : UpdateableModel, IUpdateNotifications
+public class CombinedFeed : FeedBase, IUpdateNotifications
 {
-    public CombinedFeed(string name)
+    public CombinedFeed(string name, string htmlFeedItemEntryTemplate) : base(name)
     {
-        Name = name;
+        HtmlFeedItemEntryTemplate = htmlFeedItemEntryTemplate;
     }
 
-    /// <summary>
-    ///   Name of the combined feed. Needs to be made sure doesn't conflict with <see cref="Feed.Name"/>
-    /// </summary>
     [Required]
-    public string Name { get; set; }
-
-    public int MaxItems { get; set; } = int.MaxValue;
+    public string HtmlFeedItemEntryTemplate { get; set; }
 
     public ICollection<Feed> CombinedFromFeeds { get; set; } = new HashSet<Feed>();
+
+    public void ProcessContent(IEnumerable<Feed> dataSources)
+    {
+        var allItems = dataSources.SelectMany(s =>
+                s.ParseContent(s.LatestContent ?? throw new ArgumentException("feed doesn't have latest content"),
+                    out _))
+            .OrderByDescending(i => i.PublishedAt).Take(MaxItems);
+
+        var builder = new StringBuilder();
+
+        foreach (var item in allItems)
+        {
+            builder.Append(Smart.Format(HtmlFeedItemEntryTemplate, item.GetFormatterData(Name)));
+        }
+
+        var newContent = builder.ToString();
+
+        if (newContent != LatestContent)
+        {
+            ContentUpdatedAt = DateTime.UtcNow;
+            LatestContent = newContent;
+        }
+    }
 
     public CombinedFeedDTO GetDTO()
     {
@@ -39,6 +59,7 @@ public class CombinedFeed : UpdateableModel, IUpdateNotifications
             Name = Name,
             MaxItems = MaxItems,
             CombinedFromFeeds = CombinedFromFeeds.Select(f => f.Id).ToList(),
+            HtmlFeedItemEntryTemplate = HtmlFeedItemEntryTemplate,
         };
     }
 

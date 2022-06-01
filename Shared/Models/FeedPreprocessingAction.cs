@@ -3,6 +3,10 @@ namespace ThriveDevCenter.Shared.Models;
 using System.Text.Json.Serialization;
 using ModelVerifiers;
 
+/// <summary>
+///   Action to process a fetched feed with before saving or creating feed items. Note that the actions should be able
+///   to run multiple times when used in feeds that are combined into combined feeds.
+/// </summary>
 public class FeedPreprocessingAction
 {
     [JsonConstructor]
