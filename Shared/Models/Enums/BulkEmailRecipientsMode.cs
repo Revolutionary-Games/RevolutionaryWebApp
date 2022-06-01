@@ -5,5 +5,6 @@ namespace ThriveDevCenter.Shared.Models.Enums
         ManualList,
         DevCenterUsers,
         DevCenterDevelopers,
+        AssociationMembers,
     }
 }

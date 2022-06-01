@@ -6,5 +6,6 @@ namespace ThriveDevCenter.Shared.Models.Enums
         DevCenterUsers,
         DevCenterDevelopers,
         CLASigned,
+        AssociationMembers,
     }
 }

@@ -49,7 +49,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = database.SentBulkEmails.OrderBy(sortColumn, sortDirection);
+                query = database.SentBulkEmails.AsNoTracking().OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -87,7 +87,7 @@ namespace ThriveDevCenter.Server.Controllers
                     // We don't set a reply to so just the plain sender address is who gets the replies
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    return BadRequest("Invalid reply mode");
             }
 
             var recipientsList = await ComputeRecipientsList(request);
@@ -99,6 +99,11 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     return BadRequest($"A recipient doesn't appear to be valid email address: {recipient}");
                 }
+            }
+
+            if (recipientsList.Count < 1)
+            {
+                return BadRequest("No recipients were left after taking ignores into account");
             }
 
             var bulkModel = new SentBulkEmail()
@@ -147,6 +152,10 @@ namespace ThriveDevCenter.Server.Controllers
                 new(() => database.Users.Where(u => u.Developer == true).Select(u => u.Email)
                     .ToListAsync());
 
+            Lazy<Task<List<string>>> associationMembers =
+                new(() => database.AssociationMembers.Select(a => a.Email)
+                    .ToListAsync());
+
             switch (request.RecipientsMode)
             {
                 case BulkEmailRecipientsMode.ManualList:
@@ -161,6 +170,9 @@ namespace ThriveDevCenter.Server.Controllers
                     break;
                 case BulkEmailRecipientsMode.DevCenterDevelopers:
                     recipients = await devCenterDevelopers.Value;
+                    break;
+                case BulkEmailRecipientsMode.AssociationMembers:
+                    recipients = await associationMembers.Value;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -180,6 +192,13 @@ namespace ThriveDevCenter.Server.Controllers
                 case BulkEmailIgnoreMode.DevCenterDevelopers:
                 {
                     var ignoreData = new HashSet<string>(await devCenterDevelopers.Value);
+                    recipients = recipients.Where(r => !ignoreData.Contains(r));
+                    break;
+                }
+
+                case BulkEmailIgnoreMode.AssociationMembers:
+                {
+                    var ignoreData = new HashSet<string>(await associationMembers.Value);
                     recipients = recipients.Where(r => !ignoreData.Contains(r));
                     break;
                 }
