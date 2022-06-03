@@ -81,7 +81,7 @@ namespace ThriveDevCenter.Server.Controllers
             switch (request.ReplyMode)
             {
                 case BulkEmailReplyToMode.SendingUser:
-                    replyTo = user.Email;
+                    replyTo = $"{user.NameOrEmail} <{user.Email}>";
                     break;
                 case BulkEmailReplyToMode.DevCenterSendingAddress:
                     // We don't set a reply to so just the plain sender address is who gets the replies
