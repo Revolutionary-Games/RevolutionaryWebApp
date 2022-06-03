@@ -40,6 +40,8 @@ namespace ThriveDevCenter.Server.Controllers
         protected override ILogger Logger => logger;
         protected override DbSet<LfsProject> Entities => database.LfsProjects;
 
+        protected override UserAccessLevel RequiredViewAccessLevel => UserAccessLevel.NotLoggedIn;
+
         [HttpGet("{id:long}/files")]
         public async Task<ActionResult<PagedResult<ProjectGitFileDTO>>> GetProjectFiles([Required] long id,
             [Required] string path,

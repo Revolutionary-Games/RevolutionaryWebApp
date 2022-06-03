@@ -18,13 +18,14 @@ using Shared.Converters;
 using Shared.Models;
 using Shared.Notifications;
 using SmartFormat;
+using Utilities;
 
 /// <summary>
 ///   RSS feed to download from an external source
 /// </summary>
 [Index(nameof(Name), IsUnique = true)]
 [Index(nameof(ContentUpdatedAt))]
-public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<FeedDTO>
+public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<FeedDTO>, IInfoCreator<FeedInfo>
 {
     public Feed(string url, string name, TimeSpan pollInterval) : base(name)
     {
@@ -34,21 +35,31 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
     }
 
     [Required]
+    [UpdateFromClientRequest]
     public string Url { get; set; }
 
     [Required]
+    [UpdateFromClientRequest]
     public TimeSpan PollInterval { get; set; }
+
+    /// <summary>
+    ///   If specified overrides the cache time passed to readers of this feed data
+    /// </summary>
+    [UpdateFromClientRequest]
+    public TimeSpan? CacheTime { get; set; }
 
     /// <summary>
     ///   If set to non-empty value a HTML mapped version of the feed data is available when queried with
     ///   <see cref="HtmlFeedVersionSuffix"/>
     /// </summary>
+    [UpdateFromClientRequest]
     public string? HtmlFeedItemEntryTemplate { get; set; }
 
     /// <summary>
     ///   The Html version suffix, if empty then the default is html and to get the raw version another .suffix
     ///   needs to be used.
     /// </summary>
+    [UpdateFromClientRequest]
     public string? HtmlFeedVersionSuffix { get; set; }
 
     /// <summary>
@@ -59,11 +70,13 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
     /// <summary>
     ///   Max length of an item in the feed, too long items will be truncated
     /// </summary>
+    [UpdateFromClientRequest]
     public int MaxItemLength { get; set; } = int.MaxValue;
 
     public string? PreprocessingActionsRaw;
 
     [NotMapped]
+    [UpdateFromClientRequest]
     public List<FeedPreprocessingAction>? PreprocessingActions
     {
         get => PreprocessingActionsRaw != null ?
@@ -83,6 +96,24 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
 
     public ICollection<CombinedFeed> CombinedInto { get; set; } = new HashSet<CombinedFeed>();
 
+    public FeedInfo GetInfo()
+    {
+        return new()
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Deleted = Deleted,
+            Url = Url,
+            Name = Name,
+            PollInterval = PollInterval,
+            CacheTime = CacheTime,
+            ContentUpdatedAt = ContentUpdatedAt,
+            PreprocessingActionsCount = PreprocessingActions?.Count ?? 0,
+            HasHtmlFeedItemEntryTemplate = !string.IsNullOrEmpty(HtmlFeedItemEntryTemplate),
+        };
+    }
+
     public FeedDTO GetDTO()
     {
         return new()
@@ -94,6 +125,7 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
             Url = Url,
             Name = Name,
             PollInterval = PollInterval,
+            CacheTime = CacheTime,
             MaxItems = MaxItems,
             MaxItemLength = MaxItemLength,
             LatestContentLength = LatestContent?.Length,

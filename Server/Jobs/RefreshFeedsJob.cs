@@ -33,7 +33,7 @@ public class RefreshFeedsJob : IJob
         var now = DateTime.UtcNow;
         var feedsToRefresh = await database.Feeds.Include(f => f.DiscordWebhooks).Include(f => f.CombinedInto)
             .ThenInclude(c => c.CombinedFromFeeds)
-            .Where(f => f.ContentUpdatedAt == null || now - f.ContentUpdatedAt > f.PollInterval)
+            .Where(f => !f.Deleted && (f.ContentUpdatedAt == null || now - f.ContentUpdatedAt > f.PollInterval))
             .ToListAsync(cancellationToken);
 
         if (feedsToRefresh.Count < 1)

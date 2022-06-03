@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Utilities
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Reflection;
     using System.Text;
     using System.Text.Json;
@@ -48,8 +49,15 @@ namespace ThriveDevCenter.Server.Utilities
                 if (oldValue == newValue)
                     continue;
 
-                if (oldValue != null && newValue != null && oldValue.Equals(newValue))
-                    continue;
+                if (oldValue != null && newValue != null)
+                {
+                    if (oldValue.Equals(newValue))
+                        continue;
+
+                    if (oldValue is IEnumerable<object> oldEnumerable &&
+                        newValue is IEnumerable<object> newEnumerable && oldEnumerable.SequenceEqual(newEnumerable))
+                        continue;
+                }
 
                 changedFields.Add(property.Name);
 

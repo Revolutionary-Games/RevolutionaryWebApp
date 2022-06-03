@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using Utilities;
 
 public abstract class FeedBase : UpdateableModel
 {
@@ -16,11 +17,13 @@ public abstract class FeedBase : UpdateableModel
     ///   duplicates that prevent retrieving some feeds.
     /// </summary>
     [Required]
+    [UpdateFromClientRequest]
     public string Name { get; set; }
 
     /// <summary>
     ///   Max items to show in the feed results
     /// </summary>
+    [UpdateFromClientRequest]
     public int MaxItems { get; set; } = int.MaxValue;
 
     public string? LatestContent { get; set; }

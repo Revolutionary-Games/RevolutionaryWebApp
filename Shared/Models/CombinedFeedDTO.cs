@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Shared.Models;
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -9,6 +10,7 @@ public class CombinedFeedDTO : ClientSideTimedModel
     [StringLength(100, MinimumLength = 1)]
     public string Name { get; set; } = string.Empty;
 
+    [Range(1, int.MaxValue)]
     public int MaxItems { get; set; }
 
     [Required]
@@ -16,7 +18,15 @@ public class CombinedFeedDTO : ClientSideTimedModel
     [MinLength(2)]
     public List<long> CombinedFromFeeds { get; set; } = new();
 
+    /// <summary>
+    ///   Lists feeds by name that are deleted that this depends on and won't get new data
+    /// </summary>
+    public List<string>? DeletedCombinedFromFeeds { get; set; }
+
     [Required]
     [StringLength(5000, MinimumLength = 1)]
     public string HtmlFeedItemEntryTemplate { get; set; } = string.Empty;
+
+    [Required]
+    public TimeSpan CacheTime { get; set; }
 }

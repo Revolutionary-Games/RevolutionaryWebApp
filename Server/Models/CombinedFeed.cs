@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 using Shared.Notifications;
 using SmartFormat;
+using Utilities;
 
 /// <summary>
 ///   Feed combined from multiple
@@ -22,7 +23,12 @@ public class CombinedFeed : FeedBase, IUpdateNotifications
     }
 
     [Required]
+    [UpdateFromClientRequest]
     public string HtmlFeedItemEntryTemplate { get; set; }
+
+    [Required]
+    [UpdateFromClientRequest]
+    public TimeSpan CacheTime { get; set; }
 
     public ICollection<Feed> CombinedFromFeeds { get; set; } = new HashSet<Feed>();
 
@@ -59,7 +65,9 @@ public class CombinedFeed : FeedBase, IUpdateNotifications
             Name = Name,
             MaxItems = MaxItems,
             CombinedFromFeeds = CombinedFromFeeds.Select(f => f.Id).ToList(),
+            DeletedCombinedFromFeeds = CombinedFromFeeds.Where(f => f.Deleted).Select(f => f.Name).ToList(),
             HtmlFeedItemEntryTemplate = HtmlFeedItemEntryTemplate,
+            CacheTime = CacheTime,
         };
     }
 

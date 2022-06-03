@@ -25,11 +25,16 @@ namespace ThriveDevCenter.Server.Controllers
         protected abstract ILogger Logger { get; }
         protected abstract DbSet<TModel> Entities { get; }
 
+        protected abstract UserAccessLevel RequiredViewAccessLevel { get; }
+
         [HttpGet]
-        public async Task<PagedResult<TInfo>> Get([Required] string sortColumn,
+        public async Task<ActionResult<PagedResult<TInfo>>> Get([Required] string sortColumn,
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
             [Required] [Range(1, 50)] int pageSize, bool deleted = false)
         {
+            if(!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel, AuthenticationScopeRestriction.None))
+                return Forbid();
+
             // Only admins can view deleted items
             if (deleted &&
                 !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
@@ -42,7 +47,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = Entities.Where(p => p.Deleted == deleted).OrderBy(sortColumn, sortDirection);
+                query = Entities.AsNoTracking().Where(p => p.Deleted == deleted).OrderBy(sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -58,6 +63,9 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpGet("{id:long}")]
         public async Task<ActionResult<TDTO>> GetSingle([Required] long id)
         {
+            if(!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel, AuthenticationScopeRestriction.None))
+                return Forbid();
+
             var item = await FindAndCheckAccess(id);
 
             if (item == null)
@@ -75,7 +83,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         [HttpDelete("{id:long}")]
-        public async Task<ActionResult> DeleteProject([Required] long id)
+        public async Task<ActionResult> DeleteResource([Required] long id)
         {
             var item = await FindAndCheckAccess(id);
 
@@ -93,7 +101,7 @@ namespace ThriveDevCenter.Server.Controllers
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         [HttpPost("{id:long}/restore")]
-        public async Task<ActionResult> RestoreProject([Required] long id)
+        public async Task<ActionResult> RestoreResource([Required] long id)
         {
             var item = await FindAndCheckAccess(id);
 

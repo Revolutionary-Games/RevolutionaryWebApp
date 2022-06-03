@@ -36,6 +36,8 @@ namespace ThriveDevCenter.Server.Controllers
         protected override ILogger Logger => logger;
         protected override DbSet<CiProject> Entities => database.CiProjects;
 
+        protected override UserAccessLevel RequiredViewAccessLevel => UserAccessLevel.NotLoggedIn;
+
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
         [HttpPost]
         public async Task<ActionResult> CreateNew([Required] CIProjectDTO projectInfo)

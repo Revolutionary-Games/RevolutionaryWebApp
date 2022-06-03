@@ -19,10 +19,14 @@ public class FeedDTO : ClientSideTimedModel
     public string Name { get; set; } = string.Empty;
 
     public TimeSpan PollInterval { get; set; }
+    public TimeSpan? CacheTime { get; set; }
 
+    [Range(1, int.MaxValue)]
     public int MaxItems { get; set; }
 
+    [Range(1, int.MaxValue)]
     public int MaxItemLength { get; set; }
+
     public int? LatestContentLength { get; set; }
     public DateTime? ContentUpdatedAt { get; set; }
 
