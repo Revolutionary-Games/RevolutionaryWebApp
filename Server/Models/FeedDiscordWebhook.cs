@@ -1,6 +1,5 @@
 namespace ThriveDevCenter.Server.Models;
 
-using System.ComponentModel.DataAnnotations;
 using SmartFormat;
 
 /// <summary>
@@ -8,17 +7,14 @@ using SmartFormat;
 /// </summary>
 public class FeedDiscordWebhook
 {
-    public FeedDiscordWebhook(Feed feed, string webhookUrl)
+    public FeedDiscordWebhook(long feedId, string webhookUrl)
     {
-        FeedId = feed.Id;
-        Feed = feed;
+        FeedId = feedId;
         WebhookUrl = webhookUrl;
     }
 
-    [Key]
     public long FeedId { get; set; }
 
-    [Key]
     public string WebhookUrl { get; set; }
 
     /// <summary>
@@ -26,7 +22,7 @@ public class FeedDiscordWebhook
     /// </summary>
     public string? CustomItemFormat { get; set; }
 
-    public Feed Feed { get; set; }
+    public Feed Feed { get; set; } = null!;
 
     public string GetMessage(ParsedFeedItem feedItem, string? overrideFeedName = null)
     {

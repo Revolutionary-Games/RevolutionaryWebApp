@@ -478,16 +478,18 @@ namespace ThriveDevCenter.Server.Models
             modelBuilder.Entity<Feed>(entity =>
             {
                 entity.UseXminAsConcurrencyToken();
+                entity.HasMany(p => p.SeenFeedItems).WithOne(d => d.Feed).OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(p => p.DiscordWebhooks).WithOne(d => d.Feed).OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<FeedDiscordWebhook>(entity =>
             {
-                entity.HasOne(d => d.Feed).WithMany(p => p.DiscordWebhooks).OnDelete(DeleteBehavior.Cascade);
+                entity.HasKey(nameof(FeedDiscordWebhook.FeedId), nameof(FeedDiscordWebhook.WebhookUrl));
             });
 
             modelBuilder.Entity<SeenFeedItem>(entity =>
             {
-                entity.HasOne(d => d.Feed).WithMany(p => p.SeenFeedItems).OnDelete(DeleteBehavior.Cascade);
+                entity.HasKey(nameof(SeenFeedItem.FeedId), nameof(SeenFeedItem.ItemIdentifier));
             });
 
             modelBuilder.Entity<CombinedFeed>(entity =>
