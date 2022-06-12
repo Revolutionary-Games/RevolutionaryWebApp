@@ -7,7 +7,8 @@
         <div class="form-group col-md-12">
             <label for="@($"combinedFeedFormName-{ControlIdSuffix}")">Name</label>
             <CustomInputText class="form-control" id="@($"combinedFeedFormName-{ControlIdSuffix}")"
-                             @bind-Value="EditedData.Name" placeholder="Feed name (filename)"/>
+                             @bind-Value="EditedData.Name"
+                             placeholder="Feed name (filename when clients request from us)" />
         </div>
     </div>
 
@@ -18,7 +19,6 @@
             </label>
             <InputSelect class="form-control" id="@($"combinedFeedFormCacheTime-{ControlIdSuffix}")"
                          @bind-Value="EditedData.CacheTime">
-                <option value="null">None (default)</option>
                 <option value="@TimeSpan.FromMinutes(1)">1 minute</option>
                 <option value="@TimeSpan.FromMinutes(2)">2 minutes</option>
                 <option value="@TimeSpan.FromMinutes(3)">3 minutes</option>
@@ -40,7 +40,9 @@
         </div>
     </div>
 
-    <p>Combined from feeds:</p>
+    <div class="form-row">
+        <p>Combined from feeds:</p>
+    </div>
 
     @* TODO: we need to load the available feeds data before we can show this *@
     <ul>
@@ -57,9 +59,10 @@
 
     @* TODO: implement the control to pick the feeds *@
 
-    @*<Button class="mb-2" OnPressed="@AddCurrentlyPickedFeed">
+    @*<Button class="mb-2" OnPressed="@AddCurrentlyPickedFeed">*@
+    <Button class="mb-2" Enabled="@false">
         Add
-    </Button>*@
+    </Button>
 
     @if (EditedData.DeletedCombinedFromFeeds is {Count: > 0})
     {

@@ -38,6 +38,21 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         if (!CheckPollIntervalParameters(request, out var badRequest))
             return badRequest!;
 
+        if (string.IsNullOrWhiteSpace(request.HtmlFeedItemEntryTemplate))
+            request.HtmlFeedItemEntryTemplate = null;
+
+        if (string.IsNullOrWhiteSpace(request.HtmlFeedVersionSuffix))
+            request.HtmlFeedVersionSuffix = null;
+
+        if (request.HtmlFeedVersionSuffix != null)
+        {
+            if (request.HtmlFeedItemEntryTemplate == null)
+                return BadRequest("HTML template is required when HTML suffix is specified");
+
+            if (request.HtmlFeedVersionSuffix.Length < 2)
+                return BadRequest("HTML suffix needs to be at least 2 characters");
+        }
+
         var feed = new Feed(request.Url, request.Name, request.PollInterval)
         {
             HtmlFeedItemEntryTemplate = request.HtmlFeedItemEntryTemplate,

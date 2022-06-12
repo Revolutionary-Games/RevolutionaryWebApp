@@ -7,7 +7,8 @@
         <div class="form-group col-md-12">
             <label for="@($"feedFormName-{ControlIdSuffix}")">Name</label>
             <CustomInputText class="form-control" id="@($"feedFormName-{ControlIdSuffix}")"
-                             @bind-Value="EditedData.Name" placeholder="Feed name (filename)"/>
+                             @bind-Value="EditedData.Name"
+                             placeholder="Feed name (filename when clients request from us)" />
         </div>
     </div>
 
@@ -40,9 +41,9 @@
             <label for="@($"feedFormCacheTime-{ControlIdSuffix}")">
                 Cache Time (passed to Clients reading this from us)
             </label>
-            <InputSelect class="form-control" id="@($"feedFormCacheTime-{ControlIdSuffix}")"
+            <InputSelect TValue="TimeSpan?" class="form-control" id="@($"feedFormCacheTime-{ControlIdSuffix}")"
                          @bind-Value="EditedData.CacheTime">
-                <option value="null">None (default)</option>
+                <option value="">None (default)</option>
                 <option value="@TimeSpan.FromMinutes(1)">1 minute</option>
                 <option value="@TimeSpan.FromMinutes(2)">2 minutes</option>
                 <option value="@TimeSpan.FromMinutes(3)">3 minutes</option>
@@ -70,30 +71,36 @@
     </div>
 
     @{
-        int preprocessIndex = 0;
+        int preprocessItemNumber = 0;
     }
 
-    <p>Preprocessing actions:</p>
+    <div class="form-row">
+        <p>Preprocessing actions:</p>
+    </div>
 
-    @foreach (var preprocessingAction in EditedData.PreprocessingActions ?? new List<FeedPreprocessingAction>())
-    {
-        <div class="form-row">
-            <p>
-                Preprocessing action #@preprocessIndex replaces "@preprocessingAction.ToFind" with
+    <ul>
+        @foreach (var preprocessingAction in EditedData.PreprocessingActions ?? new List<FeedPreprocessingAction>())
+        {
+            ++preprocessItemNumber;
+
+            <li>
+                <span>
+                Preprocessing action #@preprocessItemNumber replaces "@preprocessingAction.ToFind" with
                 "@preprocessingAction.Replacer" in @preprocessingAction.Target
-            </p>
-            <Button ButtonStyle="warning" class="mb-2"
-                    OnPressed="@(() => RemovePreprocessingAction(preprocessingAction))">
-                Delete
-            </Button>
-        </div>
 
-        ++preprocessIndex;
-    }
+                <Button ButtonStyle="warning" class="mb-2" Small="@true"
+                        OnPressed="@(() => RemovePreprocessingAction(preprocessingAction))">
+                    Delete
+                </Button>
+                </span>
+            </li>
+        }
+    </ul>
 
     <Button class="mb-2" OnPressed="@StartCreatePreprocessingAction">
         New
     </Button>
+
 
     <div class="form-row">
         <div class="form-group col-md-12">

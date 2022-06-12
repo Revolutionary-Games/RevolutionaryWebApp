@@ -89,93 +89,13 @@ else
 
 @if (showNewForm)
 {
-    <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
-        <DataAnnotationsValidator />
-
-        <div class="form-row">
-            <div class="form-group col-md-6">
-                <label for="newFirstNames">First Name(s)</label>
-                <CustomInputText class="form-control" id="newFirstNames"
-                                 @bind-Value="newData!.FirstNames" placeholder="First names"
-                                 DisplayName="First Name(s)" />
-            </div>
-            <div class="form-group col-md-6">
-                <label for="newLastNames">Last Name</label>
-                <CustomInputText class="form-control" id="newLastNames"
-                                 @bind-Value="newData!.LastName" placeholder="Last name"/>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="newEmail">Email (can't be changed later)</label>
-                <CustomInputText class="form-control" id="newEmail"
-                                 @bind-Value="newData!.Email" placeholder="Email"/>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group col-md-8">
-                <label for="newCity">City of Residence (and state code if USA)</label>
-                <CustomInputText class="form-control" id="newCity"
-                                 @bind-Value="newData!.CityOfResidence" placeholder="City of Residence"
-                                 DisplayName="City of Residence" />
-            </div>
-            <div class="form-group col-md-4">
-                <label for="newCountry">Country</label>
-                <CustomInputText class="form-control" id="newCountry"
-                                 @bind-Value="newData!.CountryOfResidence" placeholder="Country"
-                                 DisplayName="Country" />
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="newJoinDate">Join Date</label>
-                <InputDate class="form-control" id="newJoinDate" @bind-Value="newData!.JoinDate"/>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group col-md-4">
-                <div class="form-check">
-                    <InputCheckbox class="form-check-input" type="checkbox" id="newIsBoardMember"
-                                   @bind-Value="newData!.BoardMember" />
-                    <label class="form-check-label" for="newIsBoardMember">
-                        Association Board Member
-                    </label>
-                </div>
-            </div>
-            <div class="form-group col-md-4">
-                <div class="form-check">
-                    <InputCheckbox class="form-check-input" type="checkbox" id="newHasBeenBoardMember"
-                                   @bind-Value="newData!.HasBeenBoardMember" />
-                    <label class="form-check-label" for="newHasBeenBoardMember">
-                        Has Been a Board Member
-                    </label>
-                </div>
-            </div>
-            <div class="form-group col-md-4">
-                <div class="form-check">
-                    <InputCheckbox class="form-check-input" type="checkbox" id="newThriveDeveloper"
-                                   @bind-Value="newData!.IsThriveDeveloper" />
-                    <label class="form-check-label" for="newThriveDeveloper">
-                        Is a Thrive Developer
-                    </label>
-                </div>
-            </div>
-        </div>
-
-        <ValidationSummary />
-
-        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-        <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit" Spinner="@processingNewForm">
-            Create
-        </Button>
+    <CombinedFeedDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
+                  ControlIdSuffix="-new" StatusMessage="@createMessage"
+                  StatusMessageType="@createMessageType" OnValidSubmit="@CreateNew" OverrideSaveText="Create">
         <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
             Cancel
         </Button>
-    </EditForm>
+    </CombinedFeedDataForm>
 }
 
 @code {
@@ -200,7 +120,7 @@ private readonly List<TableColumn> columns = new()
 
     private EditContext editContext = null!;
 
-    private AssociationMemberDTO? newData;
+    private CombinedFeedDTO? newData;
 
     public CombinedFeeds() : base(new SortHelper("Id", SortDirection.Ascending))
     {
@@ -263,9 +183,10 @@ private readonly List<TableColumn> columns = new()
             showNewForm = true;
             createMessage = null;
 
-            newData = new AssociationMemberDTO()
+            newData = new CombinedFeedDTO()
             {
-                JoinDate = DateTime.Now,
+                MaxItems = 30,
+                CacheTime = TimeSpan.FromMinutes(5),
             };
 
             editContext = new EditContext(newData);
