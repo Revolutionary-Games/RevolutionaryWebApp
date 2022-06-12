@@ -27,6 +27,11 @@ namespace ThriveDevCenter.Client.Utilities
 
             return statuses[resourceId].Deleted;
         }
+
+        public bool HashStatus(long resourceId)
+        {
+            return statuses.ContainsKey(resourceId);
+        }
     }
 
     public interface IDeletedResourceStatus

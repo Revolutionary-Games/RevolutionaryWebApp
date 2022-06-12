@@ -203,9 +203,6 @@
         new TableColumn("Actions", false)
     };
 
-    // TODO: merge this usage with the one in ServerResourceStatus
-    private readonly Dictionary<long, bool> processingItems = new();
-
     private readonly ClientSideResourceStatus<ServerResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
@@ -259,12 +256,20 @@
 
     private bool IsProcessing(long serverId)
     {
-        return processingItems.GetValueOrDefault(serverId, false);
+        if (!clientSideResourceStatus.HashStatus(serverId))
+            return false;
+
+        return clientSideResourceStatus.GetStatus(serverId).Processing;
+    }
+
+    private void SetProcessingStatus(long serverId, bool processing)
+    {
+        clientSideResourceStatus.GetStatus(serverId).Processing = processing;
     }
 
     private async Task QueueMaintenance(long serverId)
     {
-        processingItems[serverId] = true;
+        clientSideResourceStatus.GetStatus(serverId).Processing = true;
         message = null;
         messageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -279,12 +284,12 @@
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            processingItems[serverId] = false;
+            clientSideResourceStatus.GetStatus(serverId).Processing = false;
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processingItems[serverId] = false;
+        SetProcessingStatus(serverId, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -365,7 +370,7 @@
 
     private async Task QueueReProvision(long serverId)
     {
-        processingItems[serverId] = true;
+        SetProcessingStatus(serverId, true);
         message = null;
         messageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -380,12 +385,12 @@
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            processingItems[serverId] = false;
+            SetProcessingStatus(serverId, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processingItems[serverId] = false;
+        SetProcessingStatus(serverId, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -403,7 +408,7 @@
 
     private async Task PerformReboot(long serverId)
     {
-        processingItems[serverId] = true;
+        SetProcessingStatus(serverId, true);
         message = null;
         messageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -418,12 +423,12 @@
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            processingItems[serverId] = false;
+            SetProcessingStatus(serverId, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processingItems[serverId] = false;
+        SetProcessingStatus(serverId, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -441,7 +446,7 @@
 
     private async Task QueueCleanUp(long serverId)
     {
-        processingItems[serverId] = true;
+        SetProcessingStatus(serverId, true);
         message = null;
         messageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -456,12 +461,12 @@
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            processingItems[serverId] = false;
+            SetProcessingStatus(serverId, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processingItems[serverId] = false;
+        SetProcessingStatus(serverId, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -479,7 +484,7 @@
 
     private async Task SetManualStatus(long serverId, bool offline)
     {
-        processingItems[serverId] = true;
+        SetProcessingStatus(serverId, true);
         message = null;
         messageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -494,12 +499,12 @@
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            processingItems[serverId] = false;
+            SetProcessingStatus(serverId, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processingItems[serverId] = false;
+        SetProcessingStatus(serverId, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -517,7 +522,7 @@
 
     private async Task RefreshStatus(long serverId)
     {
-        processingItems[serverId] = true;
+        SetProcessingStatus(serverId, true);
         message = null;
         messageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -532,12 +537,12 @@
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            processingItems[serverId] = false;
+            SetProcessingStatus(serverId, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processingItems[serverId] = false;
+        SetProcessingStatus(serverId, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -555,7 +560,7 @@
 
     private async Task DeleteServer(long serverId)
     {
-        processingItems[serverId] = true;
+        SetProcessingStatus(serverId, true);
         message = null;
         messageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -569,12 +574,12 @@
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            processingItems[serverId] = false;
+            SetProcessingStatus(serverId, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processingItems[serverId] = false;
+        SetProcessingStatus(serverId, false);
 
         if (!result.IsSuccessStatusCode)
         {
