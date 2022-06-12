@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using Shared;
 using Utilities;
 
 public abstract class FeedBase : UpdateableModel
@@ -18,6 +19,7 @@ public abstract class FeedBase : UpdateableModel
     /// </summary>
     [Required]
     [UpdateFromClientRequest]
+    [AllowSortingBy]
     public string Name { get; set; }
 
     /// <summary>

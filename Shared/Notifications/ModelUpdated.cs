@@ -63,4 +63,12 @@ namespace ThriveDevCenter.Shared.Notifications
     public class AssociationMemberUpdated : ModelUpdated<AssociationMemberDTO>
     {
     }
+
+    public class FeedUpdated : ModelUpdated<FeedDTO>
+    {
+    }
+
+    public class CombinedFeedUpdated : ModelUpdated<CombinedFeedDTO>
+    {
+    }
 }

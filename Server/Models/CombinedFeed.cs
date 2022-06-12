@@ -55,6 +55,21 @@ public class CombinedFeed : FeedBase, IUpdateNotifications
         }
     }
 
+    public CombinedFeedInfo GetInfo()
+    {
+        return new()
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Name = Name,
+            MaxItems = MaxItems,
+            CombinedFromFeedsCount = CombinedFromFeeds.Select(f => f.Id).Count(),
+            DeletedCombinedFromFeedsCount = CombinedFromFeeds.Where(f => f.Deleted).Select(f => f.Name).Count(),
+            CacheTime = CacheTime,
+        };
+    }
+
     public CombinedFeedDTO GetDTO()
     {
         return new()
@@ -74,7 +89,10 @@ public class CombinedFeed : FeedBase, IUpdateNotifications
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return new Tuple<SerializedNotification, string>(
-            new CombinedFeedListUpdated() { Item = GetDTO() },
+            new CombinedFeedListUpdated() { Item = GetInfo() },
             NotificationGroups.CombinedFeedListUpdated);
+
+        yield return new Tuple<SerializedNotification, string>(
+            new CombinedFeedUpdated() { Item = GetDTO() }, NotificationGroups.CombinedFeedUpdatedPrefix + Id);
     }
 }

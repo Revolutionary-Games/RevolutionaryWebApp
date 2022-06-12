@@ -248,8 +248,11 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
         if (entityState != EntityState.Modified || !Deleted)
         {
             yield return new Tuple<SerializedNotification, string>(
-                new FeedListUpdated() { Item = GetDTO() }, NotificationGroups.FeedListUpdated);
+                new FeedListUpdated() { Item = GetInfo() }, NotificationGroups.FeedListUpdated);
         }
+
+        yield return new Tuple<SerializedNotification, string>(
+            new FeedUpdated() { Item = GetDTO() }, NotificationGroups.FeedUpdatedPrefix + Id);
     }
 
     private static void RunPreprocessingActions(XElement feedEntry, IEnumerable<FeedPreprocessingAction> actions)

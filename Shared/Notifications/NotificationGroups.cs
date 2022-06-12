@@ -82,7 +82,9 @@ namespace ThriveDevCenter.Shared.Notifications
         public const string RepoForReleaseStatsListUpdated = "RepoReleaseStats";
 
         public const string FeedListUpdated = "Feeds";
+        public const string FeedUpdatedPrefix = "SFeed_";
         public const string CombinedFeedListUpdated = "CombinedFeeds";
+        public const string CombinedFeedUpdatedPrefix = "SCombinedFeed_";
 
         /// <summary>
         ///   The client doesn't know their session ID so this is used as-is on the client but with a suffix on the

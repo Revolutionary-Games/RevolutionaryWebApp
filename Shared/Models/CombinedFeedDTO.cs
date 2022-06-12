@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 public class CombinedFeedDTO : ClientSideTimedModel
 {
@@ -29,4 +30,20 @@ public class CombinedFeedDTO : ClientSideTimedModel
 
     [Required]
     public TimeSpan CacheTime { get; set; }
+
+    public CombinedFeedDTO Clone()
+    {
+        return new CombinedFeedDTO()
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Name = Name,
+            MaxItems = MaxItems,
+            CombinedFromFeeds = CombinedFromFeeds.ToList(),
+            DeletedCombinedFromFeeds = DeletedCombinedFromFeeds?.ToList(),
+            HtmlFeedItemEntryTemplate = HtmlFeedItemEntryTemplate,
+            CacheTime = CacheTime,
+        };
+    }
 }

@@ -139,11 +139,11 @@ namespace ThriveDevCenter.Shared.Notifications
     {
     }
 
-    public class FeedListUpdated : ListUpdated<FeedDTO>
+    public class FeedListUpdated : ListUpdated<FeedInfo>
     {
     }
 
-    public class CombinedFeedListUpdated : ListUpdated<CombinedFeedDTO>
+    public class CombinedFeedListUpdated : ListUpdated<CombinedFeedInfo>
     {
     }
 }

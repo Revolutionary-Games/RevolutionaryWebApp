@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using ModelVerifiers;
 
 public class FeedDTO : ClientSideTimedModel
@@ -38,4 +39,26 @@ public class FeedDTO : ClientSideTimedModel
 
     [StringLength(50, MinimumLength = 2)]
     public string? HtmlFeedVersionSuffix { get; set; }
+
+    public FeedDTO Clone()
+    {
+        return new FeedDTO()
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Deleted = Deleted,
+            Url = Url,
+            Name = Name,
+            PollInterval = PollInterval,
+            CacheTime = CacheTime,
+            MaxItems = MaxItems,
+            MaxItemLength = MaxItemLength,
+            LatestContentLength = LatestContentLength,
+            ContentUpdatedAt = ContentUpdatedAt,
+            PreprocessingActions = PreprocessingActions?.ToList(),
+            HtmlFeedItemEntryTemplate = HtmlFeedItemEntryTemplate,
+            HtmlFeedVersionSuffix = HtmlFeedVersionSuffix,
+        };
+    }
 }

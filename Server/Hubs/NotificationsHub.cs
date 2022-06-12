@@ -508,6 +508,22 @@ namespace ThriveDevCenter.Server.Hubs
                 return item!.Public;
             }
 
+            if (groupName.StartsWith(NotificationGroups.FeedUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.Feeds, out _))
+                    return false;
+
+                return RequireAccessLevel(UserAccessLevel.Admin, user);
+            }
+
+            if (groupName.StartsWith(NotificationGroups.CombinedFeedUpdatedPrefix))
+            {
+                if (!GetTargetModelFromGroup(groupName, database.CombinedFeeds, out _))
+                    return false;
+
+                return RequireAccessLevel(UserAccessLevel.Admin, user);
+            }
+
             // Only admins see this
             if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo))
                 return RequireAccessLevel(UserAccessLevel.Admin, user);
