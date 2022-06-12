@@ -382,7 +382,7 @@ Current translation status:
 <span class=""custom-feed-title""><span class=""custom-feed-title-main"">
 <a class=""custom-feed-title-link"" href=""https://github.com/Revolutionary-Games/Thrive/compare/improve_chemoreceptor_visuals"">User2 created a branch improve_chemoreceptor_visuals in Revolutionary-Games/Thrive</a>
 </span><span class=""custom-feed-by""> by
-<span class=""custom-feed-author"">User2</span></span><span class=""custom-feed-at""> at <span class=""custom-feed-time"">2022-29-05 15.12</span></span>
+<span class=""custom-feed-author"">User2</span></span><span class=""custom-feed-at""> at <span class=""custom-feed-time"">2022-29-05 12.12</span></span>
 </span><br><span class=""custom-feed-content""><div class=""git-branch""><div class=""body"">
 <!-- create -->
 <div class=""d-flex flex-items-baseline border-bottom color-border-muted py-3"">

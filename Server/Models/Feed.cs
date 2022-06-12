@@ -185,9 +185,9 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
 
             var published = entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "published")?.Value;
 
-            if (published != null && DateTime.TryParse(published, out DateTime parsedTime))
+            if (published != null && DateTime.TryParse(published, out var parsedTime))
             {
-                parsed.PublishedAt = parsedTime;
+                parsed.PublishedAt = parsedTime.ToUniversalTime();
             }
 
             if (parsed.Summary != null && parsed.Summary.Length > MaxItemLength)
