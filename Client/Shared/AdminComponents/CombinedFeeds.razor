@@ -1,0 +1,322 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<CombinedFeedListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.CombinedFeedInfo>
+
+<h3>Combined Feeds</h3>
+
+<p>
+    Combined feeds combine multiple normal feeds into a single HTML resource that can be read.
+    These are an utility to combine multiple feeds for feed consumers that can only read a single feed.
+</p>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (clientSideResourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                var status = clientSideResourceStatus.GetStatus(item.Id);
+
+                <tr @key="item.Id">
+                    <th scope="row" @onclick="() => ToggleDetails(item)" class="clickable">
+                        @if (status.Expanded)
+                        {
+                            <span class="oi oi-chevron-top"></span>
+                        }
+                        else
+                        {
+                            <span class="oi oi-chevron-right"></span>
+                        }
+                        <span class="ml-1">@item.Id</span>
+                    </th>
+                    <td>@item.Name</td>
+                    <td>
+                        Combined from @("feed".Pluralize(item.CombinedFromFeedsCount))
+                        @if (item.DeletedCombinedFromFeedsCount > 0)
+                        {
+                            <span>
+                                This combines a one or more deleted feeds (@item.DeletedCombinedFromFeedsCount)!
+                                That data will not be updated, this should be fixed!
+                            </span>
+                        }
+                    </td>
+                    <td>@item.CacheTime</td>
+                    <td>@item.MaxItems</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                </tr>
+
+                @if (status.Expanded)
+                {
+                    <CombinedFeedEditor Id="@item.Id" ColumnSpan="@columns.Count" />
+                }
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
+        <DataAnnotationsValidator />
+
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="newFirstNames">First Name(s)</label>
+                <CustomInputText class="form-control" id="newFirstNames"
+                                 @bind-Value="newData!.FirstNames" placeholder="First names"
+                                 DisplayName="First Name(s)" />
+            </div>
+            <div class="form-group col-md-6">
+                <label for="newLastNames">Last Name</label>
+                <CustomInputText class="form-control" id="newLastNames"
+                                 @bind-Value="newData!.LastName" placeholder="Last name"/>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="newEmail">Email (can't be changed later)</label>
+                <CustomInputText class="form-control" id="newEmail"
+                                 @bind-Value="newData!.Email" placeholder="Email"/>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-8">
+                <label for="newCity">City of Residence (and state code if USA)</label>
+                <CustomInputText class="form-control" id="newCity"
+                                 @bind-Value="newData!.CityOfResidence" placeholder="City of Residence"
+                                 DisplayName="City of Residence" />
+            </div>
+            <div class="form-group col-md-4">
+                <label for="newCountry">Country</label>
+                <CustomInputText class="form-control" id="newCountry"
+                                 @bind-Value="newData!.CountryOfResidence" placeholder="Country"
+                                 DisplayName="Country" />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="newJoinDate">Join Date</label>
+                <InputDate class="form-control" id="newJoinDate" @bind-Value="newData!.JoinDate"/>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" type="checkbox" id="newIsBoardMember"
+                                   @bind-Value="newData!.BoardMember" />
+                    <label class="form-check-label" for="newIsBoardMember">
+                        Association Board Member
+                    </label>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" type="checkbox" id="newHasBeenBoardMember"
+                                   @bind-Value="newData!.HasBeenBoardMember" />
+                    <label class="form-check-label" for="newHasBeenBoardMember">
+                        Has Been a Board Member
+                    </label>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" type="checkbox" id="newThriveDeveloper"
+                                   @bind-Value="newData!.IsThriveDeveloper" />
+                    <label class="form-check-label" for="newThriveDeveloper">
+                        Is a Thrive Developer
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <ValidationSummary />
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit" Spinner="@processingNewForm">
+            Create
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+            Cancel
+        </Button>
+    </EditForm>
+}
+
+@code {
+private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Name", true),
+        new TableColumn("Combined From", false),
+        new TableColumn("Client Cache Time", false),
+        new TableColumn("Max Items", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+    };
+
+    private readonly ClientSideResourceStatus<FeedResourceStatus> clientSideResourceStatus = new();
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+
+    private EditContext editContext = null!;
+
+    private AssociationMemberDTO? newData;
+
+    public CombinedFeeds() : base(new SortHelper("Id", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(CombinedFeedListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.AssociationMemberListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<CombinedFeedInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<CombinedFeedInfo>>(
+            QueryHelpers.AddQueryString("api/v1/CombinedFeed", requestParams));
+    }
+
+    private bool IsProcessing(long feedId)
+    {
+        if (!clientSideResourceStatus.HashStatus(feedId))
+            return false;
+
+        return clientSideResourceStatus.GetStatus(feedId).Processing;
+    }
+
+    private void SetProcessingStatus(long feedId, bool processing)
+    {
+        clientSideResourceStatus.GetStatus(feedId).Processing = processing;
+    }
+
+    private void ToggleDetails(CombinedFeedInfo item)
+    {
+        clientSideResourceStatus.GetStatus(item.Id).Expanded = true;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            newData = new AssociationMemberDTO()
+            {
+                JoinDate = DateTime.Now,
+            };
+
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/CombinedFeed", newData!);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New CombinedFeed created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private class FeedResourceStatus : DeletedResourceStatus
+    {
+        public bool Expanded { get; set; }
+    }
+}

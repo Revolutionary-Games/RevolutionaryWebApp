@@ -1,0 +1,258 @@
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<FeedListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.FeedInfo>
+
+<h3>Feeds</h3>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    @*<StatusMessageShower Message="@message" Type="@messageType" />*@
+
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="@true">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (clientSideResourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                var status = clientSideResourceStatus.GetStatus(item.Id);
+
+                <tr @key="item.Id">
+                    <th scope="row" @onclick="() => ToggleDetails(item)" class="clickable">
+                        @if (status.Expanded)
+                        {
+                            <span class="oi oi-chevron-top"></span>
+                        }
+                        else
+                        {
+                            <span class="oi oi-chevron-right"></span>
+                        }
+                        <span class="ml-1">@item.Id</span>
+                    </th>
+                    <td>@item.Name</td>
+                    <td>@item.Url</td>
+                    <td>
+                        @(item.ContentUpdatedAt != null ?
+                            item.ContentUpdatedAt.Value.ToLocalTime().ToString("G") : string.Empty)
+                    </td>
+                    <td>@item.PollInterval</td>
+                    <td>@item.HasHtmlFeedItemEntryTemplate</td>
+                    <td>@item.CacheTime</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                </tr>
+
+                @if (status.Expanded)
+                {
+                    <FeedEditor Id="@item.Id" ColumnSpan="@columns.Count" />
+                }
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <FeedDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
+                  ControlIdSuffix="-new" StatusMessage="@createMessage"
+                  StatusMessageType="@createMessageType" OnValidSubmit="@CreateNew" OverrideSaveText="Create">
+        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+            Cancel
+        </Button>
+    </FeedDataForm>
+}
+
+<DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/FeedConfiguration?deleted=true"
+    RestoreEndpoint="api/v1/FeedConfiguration/{0}/restore" />
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Name", true),
+        new TableColumn("Url", false),
+        new TableColumn("Content Updated", false),
+        new TableColumn("Poll Interval", false),
+        new TableColumn("HTML?", false),
+        new TableColumn("Client Cache Time", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+    };
+
+    private readonly ClientSideResourceStatus<FeedResourceStatus> clientSideResourceStatus = new();
+
+    // TODO: implement button to force refresh a feed and use these for it
+    /*
+    private string? message;
+    private SiteNoticeType messageType;
+    */
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+
+    private EditContext editContext = null!;
+
+    private FeedDTO? newData;
+
+    public Feeds() : base(new SortHelper("Id", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(FeedListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.AssociationMemberListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<FeedInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<FeedInfo>>(
+            QueryHelpers.AddQueryString("api/v1/FeedConfiguration", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private bool IsProcessing(long feedId)
+    {
+        if (!clientSideResourceStatus.HashStatus(feedId))
+            return false;
+
+        return clientSideResourceStatus.GetStatus(feedId).Processing;
+    }
+
+    private void SetProcessingStatus(long feedId, bool processing)
+    {
+        clientSideResourceStatus.GetStatus(feedId).Processing = processing;
+    }
+
+    private void ToggleDetails(FeedInfo item)
+    {
+        clientSideResourceStatus.GetStatus(item.Id).Expanded = true;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            newData = new FeedDTO();
+
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/FeedConfiguration", newData!);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New Feed created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private class FeedResourceStatus : DeletedResourceStatus
+    {
+        public bool Expanded { get; set; }
+    }
+}

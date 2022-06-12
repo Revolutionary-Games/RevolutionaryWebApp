@@ -1,0 +1,209 @@
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+<EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
+    <DataAnnotationsValidator />
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"feedFormName-{ControlIdSuffix}")">Name</label>
+            <CustomInputText class="form-control" id="@($"feedFormName-{ControlIdSuffix}")"
+                             @bind-Value="EditedData.Name" placeholder="Feed name (filename)"/>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"feedFormUrl-{ControlIdSuffix}")">Feed Url To Retrieve Data From</label>
+            <CustomInputText class="form-control" id="@($"feedFormUrl-{ControlIdSuffix}")"
+                             @bind-Value="EditedData.Url" placeholder="Url"/>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-lg-6">
+            <label for="@($"feedFormPollInterval-{ControlIdSuffix}")">Poll Interval</label>
+
+            <InputSelect class="form-control" id="@($"feedFormPollInterval-{ControlIdSuffix}")"
+                         @bind-Value="EditedData.PollInterval">
+                <option value="@TimeSpan.FromMinutes(1)">1 minute</option>
+                <option value="@TimeSpan.FromMinutes(2)">2 minutes</option>
+                <option value="@TimeSpan.FromMinutes(3)">3 minutes</option>
+                <option value="@TimeSpan.FromMinutes(5)">5 minutes</option>
+                <option value="@TimeSpan.FromMinutes(10)">10 minutes</option>
+                <option value="@TimeSpan.FromMinutes(15)">15 minutes</option>
+                <option value="@TimeSpan.FromMinutes(20)">20 minutes</option>
+                <option value="@TimeSpan.FromMinutes(30)">30 minutes</option>
+                <option value="@TimeSpan.FromMinutes(60)">60 minutes</option>
+            </InputSelect>
+        </div>
+        <div class="form-group col-lg-6">
+            <label for="@($"feedFormCacheTime-{ControlIdSuffix}")">
+                Cache Time (passed to Clients reading this from us)
+            </label>
+            <InputSelect class="form-control" id="@($"feedFormCacheTime-{ControlIdSuffix}")"
+                         @bind-Value="EditedData.CacheTime">
+                <option value="null">None (default)</option>
+                <option value="@TimeSpan.FromMinutes(1)">1 minute</option>
+                <option value="@TimeSpan.FromMinutes(2)">2 minutes</option>
+                <option value="@TimeSpan.FromMinutes(3)">3 minutes</option>
+                <option value="@TimeSpan.FromMinutes(5)">5 minutes</option>
+                <option value="@TimeSpan.FromMinutes(10)">10 minutes</option>
+                <option value="@TimeSpan.FromMinutes(15)">15 minutes</option>
+                <option value="@TimeSpan.FromMinutes(20)">20 minutes</option>
+                <option value="@TimeSpan.FromMinutes(30)">30 minutes</option>
+                <option value="@TimeSpan.FromMinutes(60)">60 minutes</option>
+            </InputSelect>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label for="@($"feedFormMaxItems-{ControlIdSuffix}")">Max Items To Show</label>
+            <InputNumber class="form-control" id="@($"feedFormMaxItems-{ControlIdSuffix}")"
+                         @bind-Value="EditedData.MaxItems" />
+        </div>
+        <div class="form-group col-md-6">
+            <label for="@($"feedFormMaxItemLength-{ControlIdSuffix}")">Max Item Length</label>
+            <InputNumber class="form-control" id="@($"feedFormMaxItemLength-{ControlIdSuffix}")"
+                         @bind-Value="EditedData.MaxItemLength" />
+        </div>
+    </div>
+
+    @{
+        int preprocessIndex = 0;
+    }
+
+    <p>Preprocessing actions:</p>
+
+    @foreach (var preprocessingAction in EditedData.PreprocessingActions ?? new List<FeedPreprocessingAction>())
+    {
+        <div class="form-row">
+            <p>
+                Preprocessing action #@preprocessIndex replaces "@preprocessingAction.ToFind" with
+                "@preprocessingAction.Replacer" in @preprocessingAction.Target
+            </p>
+            <Button ButtonStyle="warning" class="mb-2"
+                    OnPressed="@(() => RemovePreprocessingAction(preprocessingAction))">
+                Delete
+            </Button>
+        </div>
+
+        ++preprocessIndex;
+    }
+
+    <Button class="mb-2" OnPressed="@StartCreatePreprocessingAction">
+        New
+    </Button>
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"feedFormHtmlTemplate-{ControlIdSuffix}")">
+                HTML Template to Transform Items to Show in HTML Form
+            </label>
+            <CustomInputTextArea class="form-control" id="@($"feedFormHtmlTemplate-{ControlIdSuffix}")"
+                @bind-Value="EditedData.HtmlFeedItemEntryTemplate" placeholder="HTML feed conversion template text"/>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"feedFormHtmlSuffix-{ControlIdSuffix}")">
+                Suffix For The Feed Name To Get The HTML Templated Version
+            </label>
+            <CustomInputText class="form-control" id="@($"feedFormHtmlSuffix-{ControlIdSuffix}")"
+                @bind-Value="EditedData.HtmlFeedVersionSuffix" placeholder="HTML suffix (leave empty to disable)" />
+        </div>
+    </div>
+
+    <ValidationSummary />
+
+    <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
+    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+        @if (string.IsNullOrEmpty(OverrideSaveText))
+        {
+            <span>Save Changes</span>
+        }
+        else
+        {
+            <span>@OverrideSaveText</span>
+        }
+    </Button>
+
+
+    @ChildContent
+</EditForm>
+
+@code {
+    [Parameter]
+    // ReSharper disable InconsistentNaming
+    public string? @class { get; set; }
+
+#pragma warning disable CS8618
+    [Parameter]
+    [EditorRequired]
+    public EditContext EditContext { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public FeedDTO EditedData { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public string ControlIdSuffix { get; set; }
+
+#pragma warning restore CS8618
+
+    [Parameter]
+    public string? StatusMessage { get; set; }
+
+    [Parameter]
+    public bool Processing { get; set; }
+
+    [Parameter]
+    public SiteNoticeType StatusMessageType { get; set; } = SiteNoticeType.Danger;
+
+    [Parameter]
+    [EditorRequired]
+    public EventCallback OnValidSubmit { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? OverrideSaveText { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    private async Task StartCreatePreprocessingAction()
+    {
+        var parameters = new ModalParameters();
+
+        var modal = Modal.Show<CreatePreprocessingAction>("Create preprocessing action", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        EditedData.PreprocessingActions ??= new List<FeedPreprocessingAction>();
+
+        EditedData.PreprocessingActions.Add((FeedPreprocessingAction)result.Data);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RemovePreprocessingAction(FeedPreprocessingAction preprocessingAction)
+    {
+        if (EditedData.PreprocessingActions == null)
+            return;
+
+        if (EditedData.PreprocessingActions.Remove(preprocessingAction))
+        {
+            // Set to null if it is empty
+            if (EditedData.PreprocessingActions.Count < 1)
+                EditedData.PreprocessingActions = null;
+        }
+    }
+
+}

@@ -1,0 +1,77 @@
+@using ThriveDevCenter.Shared.Models
+<BootstrapModal OnCancel="@Cancel">
+    <div class="modal-body">
+        <EditForm EditContext="@editContext" OnValidSubmit="@Confirm">
+            <DataAnnotationsValidator />
+
+            <div class="form-row">
+                <div class="form-group col-md-12">
+                    <label for="newFeedPreprocessingTarget">Feed Item Section To Run In</label>
+                    <InputSelect class="form-control" id="newFeedPreprocessingTarget"
+                                 @bind-Value="createdAction.Target">
+                        @foreach (var name in Enum.GetNames<PreprocessingActionTarget>())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-12">
+                    <label for="newFeedPreprocessingToFind">Look For</label>
+                    <CustomInputText class="form-control" id="newFeedPreprocessingToFind"
+                                     @bind-Value="createdAction.ToFind" placeholder="Text to find (regex)"/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-12">
+                    <label for="newFeedPreprocessingReplacer">Replace With</label>
+                    <CustomInputText class="form-control" id="newFeedPreprocessingReplacer"
+                                     @bind-Value="createdAction.Replacer" placeholder="Replace text with"/>
+                </div>
+            </div>
+
+            <ValidationSummary />
+        </EditForm>
+    </div>
+    <div class="modal-footer">
+        <Button class="mr-1" ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+        <Button class="mr-1" ButtonStyle="primary" OnPressed="@TryConfirm">Create</Button>
+    </div>
+</BootstrapModal>
+
+@code {
+
+    private readonly FeedPreprocessingAction createdAction = new(PreprocessingActionTarget.Title, string.Empty, string.Empty);
+
+    private EditContext editContext = null!;
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        editContext = new EditContext(createdAction);
+    }
+
+    private void TryConfirm()
+    {
+        if(editContext.Validate())
+            Confirm();
+    }
+
+    private void Confirm()
+    {
+        ModalInstance.CloseAsync(ModalResult.Ok(createdAction));
+    }
+
+    private void Cancel()
+    {
+        ModalInstance.CloseAsync(ModalResult.Cancel());
+    }
+
+}

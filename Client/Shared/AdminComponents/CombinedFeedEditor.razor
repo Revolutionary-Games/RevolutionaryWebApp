@@ -1,0 +1,136 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inherits SingleResourcePage<CombinedFeedDTO, CombinedFeedUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+@* TODO: firefox once again complains here about that relative now has an effect here *@
+<tr @key="ElementIdPrefix" style="position: relative;">
+    <td colspan="@ColumnSpan" class="mb-2 expanded-box">
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                <CombinedFeedDataForm class="form-inline" EditContext="@editContext" EditedData="@editedData"
+                              ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage" Processing="@processing"
+                              StatusMessageType="@statusMessageType" OnValidSubmit="@Save"/>
+
+                <span class="float-right">
+                    <AdminResourceDeleteButtons Deleted="@false" Name="@Data.Name" Id="@Data.Id"
+                                                UsesSoftDelete="@false" DeleteURLBase="api/v1/CombinedFeed"
+                                                DeletePromptTitle="Delete this Feed Combined?" />
+                </span>
+
+                @if (processing)
+                {
+                    <div class="overlay">
+                        <div class="d-flex justify-content-center align-items-center"
+                             style="height: 100%;">
+                            <div class="spinner-border text-light" role="status">
+                                <span class="sr-only">Processing...</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </SingleResourceDisplayer>
+    </td>
+</tr>
+
+@code {
+    private bool processing;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private EditContext editContext = null!;
+
+    private CombinedFeedDTO? editedData;
+
+    [Parameter]
+    [EditorRequired]
+    public int ColumnSpan { get; set; }
+
+    private string ElementIdPrefix => $"{Id}-combinedFeedDetails";
+
+    protected override Task<CombinedFeedDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<CombinedFeedDTO>($"api/v1/CombinedFeed/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CombinedFeedUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override async Task OnFirstDataReceived()
+    {
+        await NotificationHandler.Register(this);
+
+        OnStartEdit();
+    }
+
+    private void OnStartEdit()
+    {
+        if (Data == null)
+            return;
+
+        editedData = Data.Clone();
+
+        statusMessage = null;
+
+        editContext = new(editedData);
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private async Task Save()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            // We don't want to handle the complexity so deleted feeds will be pruned when a combined feed is saved
+            editedData!.DeletedCombinedFromFeeds = null;
+
+            result = await Http.PutAsJsonAsync($"api/v1/CombinedFeed/{Data!.Id}", editedData);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Changes saved.";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

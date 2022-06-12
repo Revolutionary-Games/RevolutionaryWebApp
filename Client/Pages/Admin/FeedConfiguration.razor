@@ -1,0 +1,25 @@
+@page "/admin/feeds"
+@using ThriveDevCenter.Shared.Models
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+
+    <h3>Feed Configuration</h3>
+
+    <p>
+        Feeds are RSS feeds that the DevCenter reads and makes available, and allows further processing and
+        webhooks on new data to be triggered.
+    </p>
+
+    <Feeds />
+
+    <br />
+
+    <CombinedFeeds />
+
+    <DevCenterTitle>Feed Configuration</DevCenterTitle>
+
+</AccessLimited>
+
+@code {
+
+}

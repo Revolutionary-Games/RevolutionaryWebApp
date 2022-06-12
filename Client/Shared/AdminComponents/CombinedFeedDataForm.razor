@@ -1,0 +1,157 @@
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+<EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
+    <DataAnnotationsValidator />
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"combinedFeedFormName-{ControlIdSuffix}")">Name</label>
+            <CustomInputText class="form-control" id="@($"combinedFeedFormName-{ControlIdSuffix}")"
+                             @bind-Value="EditedData.Name" placeholder="Feed name (filename)"/>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"combinedFeedFormCacheTime-{ControlIdSuffix}")">
+                Cache Time (passed to Clients reading this from us)
+            </label>
+            <InputSelect class="form-control" id="@($"combinedFeedFormCacheTime-{ControlIdSuffix}")"
+                         @bind-Value="EditedData.CacheTime">
+                <option value="null">None (default)</option>
+                <option value="@TimeSpan.FromMinutes(1)">1 minute</option>
+                <option value="@TimeSpan.FromMinutes(2)">2 minutes</option>
+                <option value="@TimeSpan.FromMinutes(3)">3 minutes</option>
+                <option value="@TimeSpan.FromMinutes(5)">5 minutes</option>
+                <option value="@TimeSpan.FromMinutes(10)">10 minutes</option>
+                <option value="@TimeSpan.FromMinutes(15)">15 minutes</option>
+                <option value="@TimeSpan.FromMinutes(20)">20 minutes</option>
+                <option value="@TimeSpan.FromMinutes(30)">30 minutes</option>
+                <option value="@TimeSpan.FromMinutes(60)">60 minutes</option>
+            </InputSelect>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"combinedFeedFormMaxItems-{ControlIdSuffix}")">Max Items To Pick From Feeds</label>
+            <InputNumber class="form-control" id="@($"combinedFeedFormMaxItems-{ControlIdSuffix}")"
+                         @bind-Value="EditedData.MaxItems" />
+        </div>
+    </div>
+
+    <p>Combined from feeds:</p>
+
+    @* TODO: we need to load the available feeds data before we can show this *@
+    <ul>
+        @foreach (var feed in EditedData.CombinedFromFeeds)
+        {
+            <li>
+                <span class="mr-1">@feed</span>
+                <Button ButtonStyle="warning" OnPressed="@(() => RemoveFeed(feed))">
+                    Delete
+                </Button>
+            </li>
+        }
+    </ul>
+
+    @* TODO: implement the control to pick the feeds *@
+
+    @*<Button class="mb-2" OnPressed="@AddCurrentlyPickedFeed">
+        Add
+    </Button>*@
+
+    @if (EditedData.DeletedCombinedFromFeeds is {Count: > 0})
+    {
+        <p>
+            This depended on the following deleted feeds
+            (saving will remove these, please re-add these above or undelete the feeds before saving):
+        </p>
+
+        <ul>
+            @foreach (var item in EditedData.DeletedCombinedFromFeeds)
+            {
+                <li>@item</li>
+            }
+        </ul>
+    }
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"combinedFeedFormHtmlTemplate-{ControlIdSuffix}")">
+                HTML Template For Items (required)
+            </label>
+            <CustomInputTextArea class="form-control" id="@($"combinedFeedFormHtmlTemplate-{ControlIdSuffix}")"
+                @bind-Value="EditedData.HtmlFeedItemEntryTemplate" placeholder="HTML feed conversion template text"/>
+        </div>
+    </div>
+
+    <ValidationSummary />
+
+    <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
+    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+        @if (string.IsNullOrEmpty(OverrideSaveText))
+        {
+            <span>Save Changes</span>
+        }
+        else
+        {
+            <span>@OverrideSaveText</span>
+        }
+    </Button>
+
+
+    @ChildContent
+</EditForm>
+
+@code {
+    [Parameter]
+    // ReSharper disable InconsistentNaming
+    public string? @class { get; set; }
+
+#pragma warning disable CS8618
+    [Parameter]
+    [EditorRequired]
+    public EditContext EditContext { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public CombinedFeedDTO EditedData { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public string ControlIdSuffix { get; set; }
+
+#pragma warning restore CS8618
+
+    [Parameter]
+    public string? StatusMessage { get; set; }
+
+    [Parameter]
+    public bool Processing { get; set; }
+
+    [Parameter]
+    public SiteNoticeType StatusMessageType { get; set; } = SiteNoticeType.Danger;
+
+    [Parameter]
+    [EditorRequired]
+    public EventCallback OnValidSubmit { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? OverrideSaveText { get; set; }
+
+
+    private void AddFeed(long feedId)
+    {
+        EditedData.CombinedFromFeeds.Add(feedId);
+    }
+
+    private void RemoveFeed(long feedId)
+    {
+        EditedData.CombinedFromFeeds.Remove(feedId);
+    }
+
+}

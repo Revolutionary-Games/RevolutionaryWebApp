@@ -1,0 +1,137 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inherits SingleResourcePage<FeedDTO, FeedUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+@* TODO: firefox once again complains here about that relative now has an effect here *@
+<tr @key="ElementIdPrefix" style="position: relative;">
+    <td colspan="@ColumnSpan" class="mb-2 expanded-box">
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                <FeedDataForm class="form-inline" EditContext="@editContext" EditedData="@editedData"
+                              ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage" Processing="@processing"
+                              StatusMessageType="@statusMessageType" OnValidSubmit="@Save"/>
+
+                <div>
+                    TODO: discord webhooks
+                </div>
+
+                <span class="float-right">
+                    <AdminResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Name" Id="@Data.Id"
+                                                DeleteURLBase="api/v1/FeedConfiguration"
+                                                DeletePromptTitle="Delete this Feed?" />
+                </span>
+
+                @if (processing)
+                {
+                    <div class="overlay">
+                        <div class="d-flex justify-content-center align-items-center"
+                             style="height: 100%;">
+                            <div class="spinner-border text-light" role="status">
+                                <span class="sr-only">Processing...</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </SingleResourceDisplayer>
+    </td>
+</tr>
+
+@code {
+    private bool processing;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private EditContext editContext = null!;
+
+    private FeedDTO? editedData;
+
+    [Parameter]
+    [EditorRequired]
+    public int ColumnSpan { get; set; }
+
+    private string ElementIdPrefix => $"{Id}-feedDetails";
+
+    protected override Task<FeedDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<FeedDTO>($"api/v1/FeedConfiguration/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.FeedUpdatedPrefix + Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override async Task OnFirstDataReceived()
+    {
+        await NotificationHandler.Register(this);
+
+        OnStartEdit();
+    }
+
+    private void OnStartEdit()
+    {
+        if (Data == null)
+            return;
+
+        editedData = Data.Clone();
+
+        statusMessage = null;
+
+        editContext = new(editedData);
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private async Task Save()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PutAsJsonAsync($"api/v1/FeedConfiguration/{Data!.Id}", editedData);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Changes saved.";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}
