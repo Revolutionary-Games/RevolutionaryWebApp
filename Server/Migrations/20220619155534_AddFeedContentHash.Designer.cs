@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ThriveDevCenter.Server.Models;
@@ -12,9 +13,10 @@ using ThriveDevCenter.Server.Models;
 namespace ThriveDevCenter.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class WebApiContextModelSnapshot : ModelSnapshot
+    [Migration("20220619155534_AddFeedContentHash")]
+    partial class AddFeedContentHash
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1445,10 +1447,6 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Property<TimeSpan>("PollInterval")
                         .HasColumnType("interval")
                         .HasColumnName("poll_interval");
-
-                    b.Property<string>("PreprocessingActionsRaw")
-                        .HasColumnType("text")
-                        .HasColumnName("preprocessing_actions_raw");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

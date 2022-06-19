@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 
+[DisableConcurrentExecution(500)]
 public class RefreshFeedsJob : IJob
 {
     private readonly ILogger<RefreshFeedsJob> logger;
@@ -32,7 +33,7 @@ public class RefreshFeedsJob : IJob
         // Detect feeds needing refreshing
         var now = DateTime.UtcNow;
         var feedsToRefresh = await database.Feeds.Include(f => f.DiscordWebhooks).Include(f => f.CombinedInto)
-            .ThenInclude(c => c.CombinedFromFeeds)
+            .ThenInclude(c => c.CombinedFromFeeds).AsSplitQuery()
             .Where(f => !f.Deleted && (f.ContentUpdatedAt == null || now - f.ContentUpdatedAt > f.PollInterval))
             .ToListAsync(cancellationToken);
 
@@ -52,12 +53,12 @@ public class RefreshFeedsJob : IJob
             var response = await client.GetAsync(feed.Url, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            var previousContent = feed.ContentUpdatedAt;
+            var previousContent = feed.LatestContentHash;
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
             var items = feed.ProcessContent(content).ToList();
 
-            if (previousContent == feed.ContentUpdatedAt)
+            if (previousContent == feed.LatestContentHash)
             {
                 // Feed data has not changed
                 continue;
@@ -73,6 +74,15 @@ public class RefreshFeedsJob : IJob
                 combinedToRefresh.Add(combinedFeed);
             }
 
+            // Filter out items that have already been processed
+            var ids = items.Select(i => i.Id).ToList();
+            var alreadyProcessedItems = await database.SeenFeedItems.Where(i => ids.Contains(i.ItemIdentifier))
+                .Select(i => i.ItemIdentifier).ToListAsync(cancellationToken);
+            items = items.Where(i => !alreadyProcessedItems.Contains(i.Id)).ToList();
+
+            if (items.Count < 1)
+                continue;
+
             // Fire webhooks
             foreach (var webhook in feed.DiscordWebhooks)
             {
@@ -83,7 +93,14 @@ public class RefreshFeedsJob : IJob
                         x.Execute(webhook.WebhookUrl, message, CancellationToken.None));
                 }
             }
+
+            // Save to database the items we have processed now. We don't want to cancel here as the webhooks are
+            // already on their way.
+            // ReSharper disable once MethodSupportsCancellation
+            await database.SeenFeedItems.AddRangeAsync(items.Select(i => new SeenFeedItem(feed.Id, i.Id)));
         }
+
+        logger.LogInformation("Refreshed {Count} feeds", feedsToRefresh.Count);
 
         // Detect combined feeds that need to be updated
         if (!cancellationToken.IsCancellationRequested)

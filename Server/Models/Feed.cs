@@ -73,7 +73,7 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
     [UpdateFromClientRequest]
     public int MaxItemLength { get; set; } = int.MaxValue;
 
-    public string? PreprocessingActionsRaw;
+    public string? PreprocessingActionsRaw { get; set; }
 
     [NotMapped]
     [UpdateFromClientRequest]
@@ -89,6 +89,11 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
     }
 
     public bool Deleted { get; set; }
+
+    /// <summary>
+    ///   Hash of the latest feed items to detect when the actual feed content has changed
+    /// </summary>
+    public int LatestContentHash { get; set; }
 
     public ICollection<SeenFeedItem> SeenFeedItems { get; set; } = new HashSet<SeenFeedItem>();
 
@@ -205,8 +210,8 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
     }
 
     /// <summary>
-    ///   Processes raw feed content into this and stores it in <see cref="FeedBase.LatestContent"/> if the final content
-    ///   changed
+    ///   Processes raw feed content into this and stores it in <see cref="FeedBase.LatestContent"/> if the final
+    ///   content (hash) changed
     /// </summary>
     /// <param name="rawContent">
     ///   The raw retrieved content. Should not be the error content if a feed returned non success status code.
@@ -215,6 +220,13 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
     public IEnumerable<ParsedFeedItem> ProcessContent(string rawContent)
     {
         var feedItems = ParseContent(rawContent, out var document);
+
+        int newContentHash = feedItems.Count * 4483;
+
+        foreach (var item in feedItems)
+        {
+            newContentHash ^= item.GetHashCode();
+        }
 
         // Write the clean document back out
         using var stream = new MemoryStream();
@@ -230,10 +242,11 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
         var finalContent = reader.ReadToEnd();
 
         // Detect if the document changed and update our data
-        if (finalContent != LatestContent)
+        if (newContentHash != LatestContentHash)
         {
             LatestContent = finalContent;
             ContentUpdatedAt = DateTime.UtcNow;
+            LatestContentHash = newContentHash;
 
             UpdateHtmlFeedContent(feedItems);
         }
@@ -248,14 +261,15 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
         if (entityState != EntityState.Modified || !Deleted)
         {
             yield return new Tuple<SerializedNotification, string>(
-                new FeedListUpdated() { Item = GetInfo() }, NotificationGroups.FeedListUpdated);
+                new FeedListUpdated() { Type = entityState.ToChangeType(), Item = GetInfo() },
+                NotificationGroups.FeedListUpdated);
         }
 
         yield return new Tuple<SerializedNotification, string>(
             new FeedUpdated() { Item = GetDTO() }, NotificationGroups.FeedUpdatedPrefix + Id);
     }
 
-    private static void RunPreprocessingActions(XElement feedEntry, IEnumerable<FeedPreprocessingAction> actions)
+    private static void RunPreprocessingActions(XContainer feedEntry, IEnumerable<FeedPreprocessingAction> actions)
     {
         var regexTimeout = TimeSpan.FromSeconds(5);
 
@@ -372,5 +386,10 @@ public class ParsedFeedItem
             FeedName = HttpUtility.HtmlEncode(currentFeed),
             OriginalFeedName = HttpUtility.HtmlEncode(OriginalFeed),
         };
+    }
+
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode() ^ Title.GetHashCode() ^ Author.GetHashCode() ^ PublishedAt.GetHashCode();
     }
 }

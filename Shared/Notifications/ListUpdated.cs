@@ -146,4 +146,8 @@ namespace ThriveDevCenter.Shared.Notifications
     public class CombinedFeedListUpdated : ListUpdated<CombinedFeedInfo>
     {
     }
+
+    public class FeedDiscordWebhookListUpdated : ListUpdated<FeedDiscordWebhookDTO>
+    {
+    }
 }

@@ -26,9 +26,9 @@ namespace ThriveDevCenter.Client.Services
         private readonly ICSRFTokenReader csrfTokenReader;
         private readonly Dictionary<Type, List<(IGroupListener, Func<SerializedNotification, Task>)>> handlers = new();
 
-        private readonly SemaphoreSlim groupJoinSemaphore = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim groupJoinSemaphore = new(1, 1);
 
-        private readonly NotificationJsonConverter converter = new NotificationJsonConverter();
+        private readonly NotificationJsonConverter converter = new();
 
         private readonly HashSet<string> currentlyJoinedGroups = new();
         private HubConnection? hubConnection;

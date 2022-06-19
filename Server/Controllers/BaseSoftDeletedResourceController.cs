@@ -32,7 +32,8 @@ namespace ThriveDevCenter.Server.Controllers
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
             [Required] [Range(1, 50)] int pageSize, bool deleted = false)
         {
-            if(!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel, AuthenticationScopeRestriction.None))
+            if (!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel,
+                    AuthenticationScopeRestriction.None))
                 return Forbid();
 
             // Only admins can view deleted items
@@ -47,7 +48,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             try
             {
-                query = Entities.AsNoTracking().Where(p => p.Deleted == deleted).OrderBy(sortColumn, sortDirection);
+                query = GetEntitiesForJustInfo(deleted, sortColumn, sortDirection);
             }
             catch (ArgumentException e)
             {
@@ -63,7 +64,8 @@ namespace ThriveDevCenter.Server.Controllers
         [HttpGet("{id:long}")]
         public async Task<ActionResult<TDTO>> GetSingle([Required] long id)
         {
-            if(!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel, AuthenticationScopeRestriction.None))
+            if (!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel,
+                    AuthenticationScopeRestriction.None))
                 return Forbid();
 
             var item = await FindAndCheckAccess(id);
@@ -137,5 +139,15 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         protected abstract Task SaveResourceChanges(TModel resource);
+
+        /// <summary>
+        ///   Entities meant for just fetching the info. Should skip large DB fields and call AsNoTracking
+        /// </summary>
+        [NonAction]
+        protected virtual IQueryable<TModel> GetEntitiesForJustInfo(bool deleted, string sortColumn,
+            SortDirection sortDirection)
+        {
+            return Entities.AsNoTracking().Where(i => i.Deleted == deleted).OrderBy(sortColumn, sortDirection);
+        }
     }
 }

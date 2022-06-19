@@ -7,9 +7,12 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Authorization;
+using BlazorPagination;
+using Filters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
+using Shared;
 using Shared.Models;
 using Utilities;
 
@@ -35,6 +38,9 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<ActionResult> CreateNew([Required] FeedDTO request)
     {
+        if (request.Deleted)
+            return BadRequest("Can't create in deleted state");
+
         if (!CheckPollIntervalParameters(request, out var badRequest))
             return badRequest!;
 
@@ -55,6 +61,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
         var feed = new Feed(request.Url, request.Name, request.PollInterval)
         {
+            CacheTime = request.CacheTime,
             HtmlFeedItemEntryTemplate = request.HtmlFeedItemEntryTemplate,
             HtmlFeedVersionSuffix = request.HtmlFeedVersionSuffix,
             MaxItemLength = request.MaxItemLength,
@@ -69,6 +76,8 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         if (await ConflictsWithExistingNames(feed))
             return BadRequest("Feed name is already in-use");
 
+        feed.Id = (await Entities.MaxAsync(f => (long?)f.Id) ?? 0) + 1;
+
         var action = new AdminAction()
         {
             Message = $"New Feed created, url: {feed.Url}, name: {feed.Name}",
@@ -80,7 +89,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
         await database.SaveChangesAsync();
 
-        return Created($"/admin/feeds/{feed.Id}", feed.GetDTO());
+        return Created("/admin/feeds", feed.GetDTO());
     }
 
     [HttpPut("{id:long}")]
@@ -122,6 +131,118 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         logger.LogInformation("Feed {Id} edited by {Email}, changes: {Description}", item.Id,
             user.Email, description);
         return Ok();
+    }
+
+    [HttpGet("{id:long}/discordWebhook")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<PagedResult<FeedDiscordWebhookDTO>>> FeedWebhooks([Required] long id,
+        [Required] string sortColumn, [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 50)] int pageSize)
+    {
+        var item = await FindAndCheckAccess(id);
+
+        if (item == null)
+            return NotFound();
+
+        IQueryable<FeedDiscordWebhook> query;
+
+        try
+        {
+            query = database.FeedDiscordWebhooks.Where(w => w.FeedId == id).OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            Logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+        }
+
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetDTO());
+    }
+
+    [HttpPost("{id:long}/discordWebhook")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<FeedDiscordWebhookDTO>> CreateFeedWebhook([Required] long id,
+        [Required] [FromBody] FeedDiscordWebhookDTO request)
+    {
+        var parentFeed = await FindAndCheckAccess(id);
+
+        if (parentFeed == null || parentFeed.Deleted)
+            return NotFound();
+
+        var webhook = new FeedDiscordWebhook(parentFeed.Id, request.WebhookUrl)
+        {
+            CustomItemFormat = request.CustomItemFormat,
+        };
+
+        if (await database.FeedDiscordWebhooks.Where(w => w.FeedId == id).OrderBy(w => w.WebhookUrl)
+                .FirstOrDefaultAsync(w => w.WebhookUrl == webhook.WebhookUrl) != null)
+        {
+            return BadRequest("That webhook is already configured for this feed");
+        }
+
+        var action = new AdminAction()
+        {
+            Message = $"New Feed webhook created, feed: {id}, url: {webhook.WebhookUrl}",
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id
+        };
+
+        await database.FeedDiscordWebhooks.AddAsync(webhook);
+        await database.AdminActions.AddAsync(action);
+
+        await database.SaveChangesAsync();
+
+        return Created("/admin/feeds", webhook.GetDTO());
+    }
+
+    // TODO: update webhook endpoint
+
+    [HttpDelete("{id:long}/discordWebhook/{webhookUrl}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> DeleteFeedWebhook([Required] long id, [Required] string webhookUrl)
+    {
+        var item = await database.FeedDiscordWebhooks.FirstOrDefaultAsync(w =>
+            w.FeedId == id && w.WebhookUrl == webhookUrl);
+
+        if (item == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        var action = new AdminAction()
+        {
+            Message = $"Feed ({id}) webhook deleted",
+            PerformedById = user.Id,
+        };
+
+        logger.LogInformation(
+            "Feed {Id} webhook to {WebhookUrl} deleted by: {Email}, custom content was: {CustomItemFormat}",
+            id, item.WebhookUrl, user.Email, item.CustomItemFormat);
+
+        database.FeedDiscordWebhooks.Remove(item);
+        await database.AdminActions.AddAsync(action);
+
+        await database.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    [NonAction]
+    protected override IQueryable<Feed> GetEntitiesForJustInfo(bool deleted, string sortColumn,
+        SortDirection sortDirection)
+    {
+        return database.Feeds.AsNoTracking().Where(f => f.Deleted == deleted).OrderBy(sortColumn, sortDirection).Select(
+            s => new Feed(s.Url, s.Name, s.PollInterval)
+            {
+                Id = s.Id,
+                CacheTime = s.CacheTime,
+                ContentUpdatedAt = s.ContentUpdatedAt,
+                PreprocessingActionsRaw = s.PreprocessingActionsRaw,
+                HtmlFeedVersionSuffix = s.HtmlFeedVersionSuffix,
+                HtmlFeedItemEntryTemplate = s.HtmlFeedItemEntryTemplate,
+                Deleted = s.Deleted,
+            });
     }
 
     [NonAction]

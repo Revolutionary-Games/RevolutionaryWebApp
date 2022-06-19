@@ -89,7 +89,7 @@ public class CombinedFeed : FeedBase, IUpdateNotifications
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return new Tuple<SerializedNotification, string>(
-            new CombinedFeedListUpdated() { Item = GetInfo() },
+            new CombinedFeedListUpdated() { Type = entityState.ToChangeType(), Item = GetInfo() },
             NotificationGroups.CombinedFeedListUpdated);
 
         yield return new Tuple<SerializedNotification, string>(

@@ -13,7 +13,7 @@
         <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
             @if (Data != null)
             {
-                <FeedDataForm class="form-inline" EditContext="@editContext" EditedData="@editedData"
+                <FeedDataForm EditContext="@editContext" EditedData="@editedData"
                               ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage" Processing="@processing"
                               StatusMessageType="@statusMessageType" OnValidSubmit="@Save"/>
 

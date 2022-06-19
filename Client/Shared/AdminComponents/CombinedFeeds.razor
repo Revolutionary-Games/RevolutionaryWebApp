@@ -139,7 +139,7 @@ private readonly List<TableColumn> columns = new()
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.AssociationMemberListUpdated);
+        groups.Add(NotificationGroups.CombinedFeedListUpdated);
     }
 
     public override async ValueTask DisposeAsync()
@@ -169,7 +169,8 @@ private readonly List<TableColumn> columns = new()
 
     private void ToggleDetails(CombinedFeedInfo item)
     {
-        clientSideResourceStatus.GetStatus(item.Id).Expanded = true;
+        var status = clientSideResourceStatus.GetStatus(item.Id);
+        status.Expanded = !status.Expanded;
     }
 
     private void ToggleCreateNew()
