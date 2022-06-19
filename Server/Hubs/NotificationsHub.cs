@@ -508,7 +508,8 @@ namespace ThriveDevCenter.Server.Hubs
                 return item!.Public;
             }
 
-            if (groupName.StartsWith(NotificationGroups.FeedUpdatedPrefix))
+            if (groupName.StartsWith(NotificationGroups.FeedUpdatedPrefix) ||
+                groupName.StartsWith(NotificationGroups.FeedDiscordWebhookListUpdatedPrefix))
             {
                 if (!GetTargetModelFromGroup(groupName, database.Feeds, out _))
                     return false;

@@ -1,0 +1,207 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<FeedDiscordWebhookListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.FeedDiscordWebhookDTO>
+
+<h3>Discord Webhooks</h3>
+
+<p>
+    Fire Webhooks to Discord whenever new content is found.
+</p>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async (e) => await ChangePage(e)"
+                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="@true">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (clientSideResourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                <tr @key="item.Id">
+                    <td>@item.FeedId</td>
+                    <td>@item.WebhookUrl</td>
+                    <td>@string.IsNullOrEmpty(item.CustomItemFormat)</td>
+                    <td>TODO: delete button</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <span>TODO: new form</span>
+
+
+    @*<CombinedFeedDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
+                  ControlIdSuffix="-new" StatusMessage="@createMessage"
+                  StatusMessageType="@createMessageType" OnValidSubmit="@CreateNew" OverrideSaveText="Create">
+        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+            Cancel
+        </Button>
+    </CombinedFeedDataForm>*@
+}
+
+@code {
+private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Feed Id", false),
+        new TableColumn("Webhook Url", true, "WebhookUrl"),
+        new TableColumn("Has Custom Item Format?", false),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> clientSideResourceStatus = new();
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+
+    private EditContext editContext = null!;
+
+    private FeedDiscordWebhookDTO? newData;
+
+    public FeedDiscordWebhooks() : base(new SortHelper("WebhookUrl", SortDirection.Descending))
+    {
+    }
+
+    [Parameter]
+    [EditorRequired]
+    public long FeedId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(FeedDiscordWebhookListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.FeedDiscordWebhookListUpdatedPrefix + FeedId);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<FeedDiscordWebhookDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<FeedDiscordWebhookDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/FeedConfiguration/{FeedId}/discordWebhook", requestParams));
+    }
+
+    private bool IsProcessing(long feedId)
+    {
+        if (!clientSideResourceStatus.HashStatus(feedId))
+            return false;
+
+        return clientSideResourceStatus.GetStatus(feedId).Processing;
+    }
+
+    private void SetProcessingStatus(long feedId, bool processing)
+    {
+        clientSideResourceStatus.GetStatus(feedId).Processing = processing;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            newData = new FeedDiscordWebhookDTO()
+            {
+                FeedId = FeedId,
+            };
+
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/FeedConfiguration/{FeedId}/discordWebhook", newData!);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New Discord webhook created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}
