@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -131,6 +132,15 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         logger.LogInformation("Feed {Id} edited by {Email}, changes: {Description}", item.Id,
             user.Email, description);
         return Ok();
+    }
+
+    [HttpGet("availableForCombine")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<List<FeedInfo>>> AvailableForCombine()
+    {
+        var data = await GetEntitiesForJustInfo(false, "Id", SortDirection.Ascending).Take(1000).ToListAsync();
+
+        return data.Select(f => f.GetInfo()).ToList();
     }
 
     [HttpGet("{id:long}/discordWebhook")]

@@ -1,3 +1,4 @@
+@inject HttpClient Http
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models
 <EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
@@ -44,25 +45,57 @@
         <p>Combined from feeds:</p>
     </div>
 
-    @* TODO: we need to load the available feeds data before we can show this *@
-    <ul>
-        @foreach (var feed in EditedData.CombinedFromFeeds)
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+    @if (fetching)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    }
+    else
+    {
+        <ul>
+            @foreach (var feed in EditedData.CombinedFromFeeds)
+            {
+                <li>
+                    <span class="mr-1">@FindFeedName(feed) (@feed)</span>
+                    <Button ButtonStyle="warning" OnPressed="@(() => RemoveFeed(feed))">
+                        Delete
+                    </Button>
+                </li>
+            }
+        </ul>
+
+        if (availableFeedsForCombine is not {Count: >= 1 })
         {
-            <li>
-                <span class="mr-1">@feed</span>
-                <Button ButtonStyle="warning" OnPressed="@(() => RemoveFeed(feed))">
-                    Delete
-                </Button>
-            </li>
+            <div>Could not fetch available feeds</div>
         }
-    </ul>
+        else if(HasAnyFeedToAdd())
+        {
+            <div class="form-row">
+                <div class="form-group col-md-12">
+                    <label for="addNewCombined">Pick feed to add:</label>
+                    <select class="custom-select" id="addNewCombined" @onchange="FeedToAddChanged"
+                            value="@(currentlyPickedFeedToAdd?.ToString() ?? string.Empty)">
+                        <option value=""></option>
+                        @foreach (var feed in availableFeedsForCombine.Where(f => !IsAlreadyAdded(f.Id)))
+                        {
+                            <option value="@feed.Id">@feed.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <Button class="mb-2" Enabled="@(currentlyPickedFeedToAdd != null)"
+                        OnPressed="@AddCurrentlyPickedFeed">
+                    Add
+                </Button>
+            </div>
 
-    @* TODO: implement the control to pick the feeds *@
-
-    @*<Button class="mb-2" OnPressed="@AddCurrentlyPickedFeed">*@
-    <Button class="mb-2" Enabled="@false">
-        Add
-    </Button>
+            <br />
+        }
+    }
 
     @if (EditedData.DeletedCombinedFromFeeds is {Count: > 0})
     {
@@ -108,6 +141,13 @@
 </EditForm>
 
 @code {
+    private bool fetching = true;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private List<FeedInfo>? availableFeedsForCombine;
+    private long? currentlyPickedFeedToAdd;
+
     [Parameter]
     // ReSharper disable InconsistentNaming
     public string? @class { get; set; }
@@ -146,6 +186,11 @@
     [Parameter]
     public string? OverrideSaveText { get; set; }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await FetchAvailableFeeds();
+    }
 
     private void AddFeed(long feedId)
     {
@@ -157,4 +202,87 @@
         EditedData.CombinedFromFeeds.Remove(feedId);
     }
 
+    private async Task FetchAvailableFeeds()
+    {
+        statusMessageType = SiteNoticeType.Danger;
+        fetching = true;
+        statusMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            availableFeedsForCombine =
+                await Http.GetFromJsonAsync<List<FeedInfo>>("api/v1/FeedConfiguration/availableForCombine");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            fetching = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        fetching = false;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool HasAnyFeedToAdd()
+    {
+        if (availableFeedsForCombine == null)
+            return false;
+
+        return availableFeedsForCombine.Any(f => !IsAlreadyAdded(f.Id));
+    }
+
+    private bool IsAlreadyAdded(long feedId)
+    {
+        if (availableFeedsForCombine == null)
+            return false;
+
+        foreach (var feed in EditedData.CombinedFromFeeds)
+        {
+            if (feed == feedId)
+                return true;
+        }
+
+        return false;
+    }
+
+    private string FindFeedName(long id)
+    {
+        if (availableFeedsForCombine == null)
+            return "Error: names not loaded";
+
+        foreach (var feed in availableFeedsForCombine)
+        {
+            if (feed.Id == id)
+                return feed.Name;
+        }
+
+        return "Unknown feed";
+    }
+
+    private void FeedToAddChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+
+        if (string.IsNullOrEmpty(value))
+        {
+            currentlyPickedFeedToAdd = null;
+        }
+        else
+        {
+            currentlyPickedFeedToAdd = long.Parse(value);
+        }
+    }
+
+    private void AddCurrentlyPickedFeed()
+    {
+        if (currentlyPickedFeedToAdd == null)
+            return;
+
+        AddFeed(currentlyPickedFeedToAdd.Value);
+        currentlyPickedFeedToAdd = null;
+    }
 }

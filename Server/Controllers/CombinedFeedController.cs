@@ -71,6 +71,8 @@ public class CombinedFeedController : Controller
         var feed = new CombinedFeed(request.Name, request.HtmlFeedItemEntryTemplate)
         {
             CombinedFromFeeds = combinedFrom,
+            MaxItems = request.MaxItems,
+            CacheTime = request.CacheTime,
         };
 
         if (await ConflictsWithExistingNames(feed))
@@ -216,10 +218,10 @@ public class CombinedFeedController : Controller
     [NonAction]
     private async Task<bool> ConflictsWithExistingNames(CombinedFeed feed)
     {
-        if (await database.Feeds.Where(f => f.Id != feed.Id).AnyAsync(f => f.Name == feed.Name) ||
-            await database.Feeds.Where(f => f.Id != feed.Id && f.HtmlFeedVersionSuffix != null)
+        if (await database.Feeds.AnyAsync(f => f.Name == feed.Name) ||
+            await database.Feeds.Where(f => f.HtmlFeedVersionSuffix != null)
                 .AnyAsync(f => f.Name + f.HtmlFeedVersionSuffix! == feed.Name) ||
-            await database.CombinedFeeds.AnyAsync(c => c.Name == feed.Name))
+            await database.CombinedFeeds.Where(f => f.Id != feed.Id).AnyAsync(c => c.Name == feed.Name))
         {
             return true;
         }
