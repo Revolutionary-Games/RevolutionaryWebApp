@@ -155,6 +155,11 @@ namespace ThriveDevCenter.Shared
         public const int MaxDebugSymbolOfferBatch = 50;
 
         /// <summary>
+        ///   Maximum size of our normal caches combined across all controllers (in bytes)
+        /// </summary>
+        public const int MaxNormalCacheSize = 150 * MEBIBYTE;
+
+        /// <summary>
         ///   The interval in seconds that a session use is updated to the database
         /// </summary>
         public static readonly TimeSpan LastUsedSessionAccuracy = TimeSpan.FromSeconds(60);

@@ -7,9 +7,11 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Net.Http.Headers;
 using Models;
+using Services;
 using Utilities;
 
 [ApiController]
@@ -18,11 +20,13 @@ public class FeedController : Controller
 {
     private readonly IConfiguration configuration;
     private readonly ApplicationDbContext database;
+    private readonly CustomMemoryCache cache;
 
-    public FeedController(IConfiguration configuration, ApplicationDbContext database)
+    public FeedController(IConfiguration configuration, ApplicationDbContext database, CustomMemoryCache cache)
     {
         this.configuration = configuration;
         this.database = database;
+        this.cache = cache;
     }
 
     // Redirect some common things feed's readers might attempt to access
@@ -42,9 +46,32 @@ public class FeedController : Controller
     }
 
     [HttpGet("{name}")]
-    [ResponseCache(VaryByQueryKeys = new[] { "name" })]
     public async Task<ActionResult<string>> GetFeed([Required] string name)
     {
+        if (name.Length > 200)
+            return BadRequest("Too long name in request");
+
+        var headers = HttpContext.Response.GetTypedHeaders();
+
+        var cacheKey = $"feed/{name}";
+
+        // As we have dynamic expire times, we can't use the normal response caching here
+        if (cache.Cache.TryGetValue(cacheKey, out object rawCacheEntry) && rawCacheEntry is CacheEntry cacheEntry)
+        {
+            headers.CacheControl = new CacheControlHeaderValue()
+            {
+                MaxAge = cacheEntry.ClientCacheTime,
+                Public = true,
+            };
+
+            if (!cacheEntry.Success || cacheEntry.Content == null)
+                return NotFound("No such feed");
+
+            headers.Date = cacheEntry.ContentTime;
+
+            return cacheEntry.Content;
+        }
+
         TimeSpan? cacheTime = null;
         string? content = null;
 
@@ -52,8 +79,6 @@ public class FeedController : Controller
         var feed = await database.Feeds.AsNoTracking().FirstOrDefaultAsync(f =>
             !f.Deleted && (f.Name == name ||
                 (f.HtmlFeedVersionSuffix != null && f.Name + f.HtmlFeedVersionSuffix == name)));
-
-        var headers = HttpContext.Response.GetTypedHeaders();
 
         if (feed != null)
         {
@@ -72,7 +97,7 @@ public class FeedController : Controller
                 cacheTime = feed.CacheTime ?? feed.PollInterval;
 
                 if (feed.ContentUpdatedAt != null)
-                    headers.ETag = new EntityTagHeaderValue(feed.ContentUpdatedAt.Value.ToString("R"));
+                    headers.Date = feed.ContentUpdatedAt.Value;
             }
         }
         else
@@ -89,7 +114,7 @@ public class FeedController : Controller
                     cacheTime = combined.CacheTime;
 
                     if (combined.ContentUpdatedAt != null)
-                        headers.ETag = new EntityTagHeaderValue(combined.ContentUpdatedAt.Value.ToString("R"));
+                        headers.Date = combined.ContentUpdatedAt.Value;
                 }
             }
         }
@@ -103,9 +128,33 @@ public class FeedController : Controller
             Public = true,
         };
 
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(cacheTime.Value).SetSize((content?.Length ?? 0) + cacheKey.Length);
+
+        cache.Cache.Set(cacheKey, new CacheEntry(content, headers.Date, cacheTime.Value, content != null),
+            cacheEntryOptions);
+
         if (content == null)
+        {
             return NotFound("No such feed");
+        }
 
         return content;
+    }
+
+    private class CacheEntry
+    {
+        public readonly string? Content;
+        public readonly DateTimeOffset? ContentTime;
+        public readonly TimeSpan ClientCacheTime;
+        public readonly bool Success;
+
+        public CacheEntry(string? content, DateTimeOffset? contentTime, TimeSpan clientCacheTime, bool success)
+        {
+            Content = content;
+            ContentTime = contentTime;
+            ClientCacheTime = clientCacheTime;
+            Success = success;
+        }
     }
 }

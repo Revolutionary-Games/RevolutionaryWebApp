@@ -86,6 +86,10 @@ namespace ThriveDevCenter.Server
             // Used for rate limit storage (when not using redis)
             services.AddMemoryCache();
 
+            // Our custom cache where we limit the total size, used only by our controllers we can make use this cache
+            // properly
+            services.AddSingleton<CustomMemoryCache>();
+
             services.AddModules(moduleHostBuilder =>
             {
                 // moduleHostBuilder.AddMarkdownModule();
