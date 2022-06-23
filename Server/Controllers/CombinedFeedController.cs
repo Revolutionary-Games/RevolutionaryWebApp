@@ -32,7 +32,7 @@ public class CombinedFeedController : Controller
 
     [HttpGet]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-    public async Task<PagedResult<CombinedFeedDTO>> Get([Required] string sortColumn,
+    public async Task<PagedResult<CombinedFeedInfo>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
     {
@@ -50,7 +50,7 @@ public class CombinedFeedController : Controller
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
 
-        return objects.ConvertResult(i => i.GetDTO());
+        return objects.ConvertResult(i => i.GetInfo());
     }
 
     [HttpPost()]

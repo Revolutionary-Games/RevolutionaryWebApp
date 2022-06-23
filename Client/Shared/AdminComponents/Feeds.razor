@@ -52,11 +52,13 @@ else
                         }
                         <span class="ml-1">@item.Id</span>
                     </th>
-                    <td>@item.Name</td>
+                    <td><a href="@($"/api/v1/feed/{item.Name}")" target="_blank">@item.Name</a></td>
                     <td>@item.Url</td>
                     <td>
-                        @(item.ContentUpdatedAt != null ?
-                            item.ContentUpdatedAt.Value.ToLocalTime().ToString("G") : string.Empty)
+                        @if (item.ContentUpdatedAt != null)
+                        {
+                            <RecentTimeShortener Time="@item.ContentUpdatedAt.Value" IncludeSeconds="@true" />
+                        }
                     </td>
                     <td>@item.PollInterval</td>
                     <td>@item.HasHtmlFeedItemEntryTemplate</td>

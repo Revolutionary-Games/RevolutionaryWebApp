@@ -55,7 +55,13 @@ else
                     </th>
                     <td>@item.Name</td>
                     <td>
-                        Combined from @("feed".Pluralize(item.CombinedFromFeedsCount))
+                        @if (item.ContentUpdatedAt != null)
+                        {
+                            <RecentTimeShortener Time="@item.ContentUpdatedAt.Value" IncludeSeconds="@true" />
+                        }
+                    </td>
+                    <td>
+                        Combined from @("feed".PrintCount(item.CombinedFromFeedsCount))
                         @if (item.DeletedCombinedFromFeedsCount > 0)
                         {
                             <span>
@@ -104,6 +110,7 @@ private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Id", true),
         new TableColumn("Name", true),
+        new TableColumn("Content Updated", false),
         new TableColumn("Combined From", false),
         new TableColumn("Client Cache Time", false),
         new TableColumn("Max Items", false),
