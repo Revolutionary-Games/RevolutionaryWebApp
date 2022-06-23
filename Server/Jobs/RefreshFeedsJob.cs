@@ -37,9 +37,6 @@ public class RefreshFeedsJob : IJob
             .Where(f => !f.Deleted && (f.ContentUpdatedAt == null || now - f.ContentUpdatedAt > f.PollInterval))
             .ToListAsync(cancellationToken);
 
-        if (feedsToRefresh.Count < 1)
-            return;
-
         var client = httpClientFactory.CreateClient();
 
         var combinedToRefresh = new List<CombinedFeed>();
@@ -146,6 +143,10 @@ public class RefreshFeedsJob : IJob
 
             combinedToRefresh.AddRange(needingRefresh);
         }
+
+        // Don't run the db save or try to process if there's nothing to do
+        if (feedsToRefresh.Count < 1 && combinedToRefresh.Count < 1)
+            return;
 
         // Update combined feeds that need to be updated
         if (!cancellationToken.IsCancellationRequested)
