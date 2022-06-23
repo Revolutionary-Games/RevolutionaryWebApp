@@ -155,55 +155,15 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
 
         var preprocessingActions = PreprocessingActions;
 
-        foreach (var entry in modifiedDocument.Descendants().Where(e => e.Name.LocalName == "entry"))
+        // Github style feed
+        LookForFeedItemsInXMLTree(modifiedDocument.Descendants().Where(e => e.Name.LocalName == "entry"), feedItems,
+            preprocessingActions);
+
+        // Discourse style feed
+        if (feedItems.Count < 1)
         {
-            if (preprocessingActions is { Count: > 0 })
-                RunPreprocessingActions(entry, preprocessingActions);
-
-            var id = entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "id")?.Value;
-
-            // Can't handle entries with no id
-            if (id == null)
-                continue;
-
-            var link = entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "link")?.Attribute("href")?.Value ??
-                "Link is missing";
-            var title = entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "title")?.Value ?? "Unknown title";
-
-            var authorNode = entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "author");
-
-            if (authorNode is { HasElements: true })
-            {
-                authorNode = authorNode.Descendants().FirstOrDefault(e => e.Name.LocalName == "name");
-            }
-
-            var author = authorNode?.Value ?? "Unknown author";
-
-            var parsed = new ParsedFeedItem(id, EnsureNoDangerousContent(link), EnsureNoDangerousContent(title),
-                EnsureNoDangerousContent(author))
-            {
-                Summary = EnsureNoDangerousContentMaybeNull(
-                    entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "summary")?.Value ??
-                    entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "content")?.Value),
-                OriginalFeed = Name,
-            };
-
-            var published = entry.Descendants().FirstOrDefault(p => p.Name.LocalName == "published")?.Value;
-
-            if (published != null && DateTime.TryParse(published, out var parsedTime))
-            {
-                parsed.PublishedAt = parsedTime.ToUniversalTime();
-            }
-
-            if (parsed.Summary != null && parsed.Summary.Length > MaxItemLength)
-            {
-                parsed.Summary = parsed.Summary.Truncate(MaxItemLength);
-            }
-
-            feedItems.Add(parsed);
-
-            if (feedItems.Count >= MaxItems)
-                break;
+            LookForFeedItemsInXMLTree(modifiedDocument.Descendants().Where(e => e.Name.LocalName == "item"), feedItems,
+                preprocessingActions);
         }
 
         return feedItems;
@@ -228,28 +188,31 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
             newContentHash ^= item.GetHashCode();
         }
 
+        // Detect if the document changed and update our data only in that case (or if we have no data)
+        if (newContentHash == LatestContentHash && LatestContent != null)
+        {
+            return feedItems;
+        }
+
         // Write the clean document back out
         using var stream = new MemoryStream();
-        using var writer = XmlWriter.Create(stream, new XmlWriterSettings()
-        {
-            Encoding = Encoding.UTF8,
-            Indent = false,
-        });
-        document.WriteTo(writer);
+
+        // For some reason XMLWriter fails in writing out the Discourse feed data...
+        using var writer = new StreamWriter(stream, Encoding.UTF8);
+        document.Save(writer, SaveOptions.DisableFormatting);
 
         stream.Position = 0;
         var reader = new StreamReader(stream, Encoding.UTF8);
         var finalContent = reader.ReadToEnd();
 
-        // Detect if the document changed and update our data
-        if (newContentHash != LatestContentHash)
-        {
-            LatestContent = finalContent;
-            ContentUpdatedAt = DateTime.UtcNow;
-            LatestContentHash = newContentHash;
+        if (string.IsNullOrWhiteSpace(finalContent))
+            throw new Exception("XML writer failed to write anything");
 
-            UpdateHtmlFeedContent(feedItems);
-        }
+        LatestContent = finalContent;
+        ContentUpdatedAt = DateTime.UtcNow;
+        LatestContentHash = newContentHash;
+
+        UpdateHtmlFeedContent(feedItems);
 
         return feedItems;
     }
@@ -295,6 +258,14 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
                         RegexOptions.IgnoreCase, regexTimeout);
                 }
 
+                content = feedEntry.Descendants().FirstOrDefault(e => e.Name.LocalName == "description");
+
+                if (content != null)
+                {
+                    content.Value = Regex.Replace(content.Value, action.ToFind, action.Replacer,
+                        RegexOptions.IgnoreCase, regexTimeout);
+                }
+
                 content = feedEntry.Descendants().FirstOrDefault(e => e.Name.LocalName == "summary");
 
                 if (content != null)
@@ -324,6 +295,76 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
             return null;
 
         return content.Replace("<script>", "&lt;script&gt;");
+    }
+
+    private void LookForFeedItemsInXMLTree(IEnumerable<XElement> elements,
+        List<ParsedFeedItem> parsedFeedItems, List<FeedPreprocessingAction>? preprocessingActions)
+    {
+        if (parsedFeedItems.Count >= MaxItems)
+            return;
+
+        foreach (var element in elements)
+        {
+            if (preprocessingActions is { Count: > 0 })
+                RunPreprocessingActions(element, preprocessingActions);
+
+            var id = element.Descendants().FirstOrDefault(p => p.Name.LocalName is "id" or "guid")
+                ?.Value;
+
+            // Can't handle entries with no id
+            if (id == null)
+                continue;
+
+            var link = "Link is missing";
+
+            var linkElement = element.Descendants().FirstOrDefault(p => p.Name.LocalName == "link");
+
+            if (linkElement != null)
+            {
+                link = linkElement.Attribute("href")?.Value ?? linkElement.Value;
+            }
+
+            var title = element.Descendants().FirstOrDefault(p => p.Name.LocalName == "title")?.Value ??
+                "Unknown title";
+
+            var authorNode = element.Descendants()
+                .FirstOrDefault(p => p.Name.LocalName == "author" || p.Name.LocalName.Contains("creator"));
+
+            if (authorNode is { HasElements: true })
+            {
+                authorNode = authorNode.Descendants().FirstOrDefault(e => e.Name.LocalName == "name");
+            }
+
+            var author = authorNode?.Value ?? "Unknown author";
+
+            var parsed = new ParsedFeedItem(id, EnsureNoDangerousContent(link), EnsureNoDangerousContent(title),
+                EnsureNoDangerousContent(author))
+            {
+                Summary = EnsureNoDangerousContentMaybeNull(
+                    element.Descendants().FirstOrDefault(p => p.Name.LocalName == "summary")?.Value ??
+                    element.Descendants().FirstOrDefault(p => p.Name.LocalName == "description")?.Value ??
+                    element.Descendants().FirstOrDefault(p => p.Name.LocalName == "content")?.Value),
+                OriginalFeed = Name,
+            };
+
+            var published = element.Descendants().FirstOrDefault(p => p.Name.LocalName is "published" or "pubDate")
+                ?.Value;
+
+            if (published != null && DateTime.TryParse(published, out var parsedTime))
+            {
+                parsed.PublishedAt = parsedTime.ToUniversalTime();
+            }
+
+            if (parsed.Summary != null && parsed.Summary.Length > MaxItemLength)
+            {
+                parsed.Summary = parsed.Summary.Truncate(MaxItemLength);
+            }
+
+            parsedFeedItems.Add(parsed);
+
+            if (parsedFeedItems.Count >= MaxItems)
+                break;
+        }
     }
 
     private string CreateHtmlFeedContent(IEnumerable<ParsedFeedItem> items, string template)
