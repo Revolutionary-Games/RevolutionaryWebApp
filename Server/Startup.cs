@@ -9,6 +9,7 @@ namespace ThriveDevCenter.Server
     using Authorization;
     using Controllers;
     using Filters;
+    using Formatters;
     using Hangfire;
     using Hangfire.PostgreSql;
     using Hubs;
@@ -112,14 +113,15 @@ namespace ThriveDevCenter.Server
             // Caching used for expensive API endpoints
             services.AddResponseCaching(options => { options.UseCaseSensitivePaths = true; });
 
-            services.AddControllersWithViews().AddJsonOptions(_ =>
-            {
-                // Custom serializers for now also need to be configured in NotificationHelpers.ReceiveNotification
-                // As well as in the Client project
+            services.AddControllersWithViews(options => { options.OutputFormatters.Add(new HtmlTextFormatter()); })
+                .AddJsonOptions(_ =>
+                {
+                    // Custom serializers for now also need to be configured in NotificationHelpers.ReceiveNotification
+                    // As well as in the Client project
 
-                // This doesn't seem to do anything... So manual deserialize on client needs case insensitive mode on
-                // options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            });
+                    // This doesn't seem to do anything... So manual deserialize on client needs case insensitive mode on
+                    // options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                });
 
             services.AddRazorPages();
 

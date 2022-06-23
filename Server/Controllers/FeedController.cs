@@ -5,6 +5,7 @@ namespace ThriveDevCenter.Server.Controllers;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+using AngleSharp.Io;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -67,6 +68,8 @@ public class FeedController : Controller
             if (!cacheEntry.Success || cacheEntry.Content == null)
                 return NotFound("No such feed");
 
+            headers.ContentType = cacheEntry.ContentType;
+
             headers.Date = cacheEntry.ContentTime;
 
             return cacheEntry.Content;
@@ -90,6 +93,7 @@ public class FeedController : Controller
             {
                 // Html content wanted
                 content = feed.HtmlLatestContent;
+                headers.ContentType = MediaTypeHeaderValue.Parse(MimeTypeNames.Html);
             }
 
             if (content != null)
@@ -112,6 +116,7 @@ public class FeedController : Controller
                 if (content != null)
                 {
                     cacheTime = combined.CacheTime;
+                    headers.ContentType = MediaTypeHeaderValue.Parse(MimeTypeNames.Html);
 
                     if (combined.ContentUpdatedAt != null)
                         headers.Date = combined.ContentUpdatedAt.Value;
@@ -131,7 +136,8 @@ public class FeedController : Controller
         var cacheEntryOptions = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(cacheTime.Value).SetSize((content?.Length ?? 0) + cacheKey.Length);
 
-        cache.Cache.Set(cacheKey, new CacheEntry(content, headers.Date, cacheTime.Value, content != null),
+        cache.Cache.Set(cacheKey,
+            new CacheEntry(content, headers.ContentType, headers.Date, cacheTime.Value, content != null),
             cacheEntryOptions);
 
         if (content == null)
@@ -145,13 +151,16 @@ public class FeedController : Controller
     private class CacheEntry
     {
         public readonly string? Content;
+        public readonly MediaTypeHeaderValue? ContentType;
         public readonly DateTimeOffset? ContentTime;
         public readonly TimeSpan ClientCacheTime;
         public readonly bool Success;
 
-        public CacheEntry(string? content, DateTimeOffset? contentTime, TimeSpan clientCacheTime, bool success)
+        public CacheEntry(string? content, MediaTypeHeaderValue? contentType, DateTimeOffset? contentTime,
+            TimeSpan clientCacheTime, bool success)
         {
             Content = content;
+            ContentType = contentType;
             ContentTime = contentTime;
             ClientCacheTime = clientCacheTime;
             Success = success;
