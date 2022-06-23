@@ -18,4 +18,5 @@ public class FeedInfo : ClientSideTimedModel
     public DateTime? ContentUpdatedAt { get; set; }
     public int PreprocessingActionsCount { get; set; }
     public bool HasHtmlFeedItemEntryTemplate { get; set; }
+    public string? HtmlFeedVersionSuffix { get; set; }
 }

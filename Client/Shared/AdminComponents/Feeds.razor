@@ -61,7 +61,12 @@ else
                         }
                     </td>
                     <td>@item.PollInterval</td>
-                    <td>@item.HasHtmlFeedItemEntryTemplate</td>
+                    <td>
+						@if (item.HasHtmlFeedItemEntryTemplate)
+						{
+						    <a href="@($"/api/v1/feed/{item.Name}{item.HtmlFeedVersionSuffix}")" target="_blank">Yes</a>
+						}
+					</td>
                     <td>@item.CacheTime</td>
                     <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
                     <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>

@@ -115,6 +115,7 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
             ContentUpdatedAt = ContentUpdatedAt,
             PreprocessingActionsCount = PreprocessingActions?.Count ?? 0,
             HasHtmlFeedItemEntryTemplate = !string.IsNullOrEmpty(HtmlFeedItemEntryTemplate),
+            HtmlFeedVersionSuffix = HtmlFeedVersionSuffix,
         };
     }
 

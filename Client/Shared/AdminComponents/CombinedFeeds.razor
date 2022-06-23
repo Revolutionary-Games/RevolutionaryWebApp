@@ -53,7 +53,7 @@ else
                         }
                         <span class="ml-1">@item.Id</span>
                     </th>
-                    <td>@item.Name</td>
+                    <td><a href="@($"/api/v1/feed/{item.Name}")" target="_blank">@item.Name</a></td>
                     <td>
                         @if (item.ContentUpdatedAt != null)
                         {
