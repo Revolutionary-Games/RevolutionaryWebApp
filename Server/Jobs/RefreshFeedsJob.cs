@@ -50,13 +50,23 @@ public class RefreshFeedsJob : IJob
             if (cancellationToken.IsCancellationRequested)
                 break;
 
-            var response = await client.GetAsync(feed.Url, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            int previousContent;
+            List<ParsedFeedItem> items;
+            try
+            {
+                var response = await client.GetAsync(feed.Url, cancellationToken);
+                response.EnsureSuccessStatusCode();
 
-            var previousContent = feed.LatestContentHash;
+                previousContent = feed.LatestContentHash;
 
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var items = feed.ProcessContent(content).ToList();
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                items = feed.ProcessContent(content).ToList();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to fetch or process feed {Name} ({Id})", feed.Name, feed.Id);
+                continue;
+            }
 
             if (previousContent == feed.LatestContentHash)
             {
@@ -71,7 +81,8 @@ public class RefreshFeedsJob : IJob
 
             foreach (var combinedFeed in feed.CombinedInto)
             {
-                combinedToRefresh.Add(combinedFeed);
+                if (!combinedToRefresh.Contains(combinedFeed))
+                    combinedToRefresh.Add(combinedFeed);
             }
 
             // Filter out items that have already been processed
@@ -102,10 +113,44 @@ public class RefreshFeedsJob : IJob
 
         logger.LogInformation("Refreshed {Count} feeds", feedsToRefresh.Count);
 
-        // Detect combined feeds that need to be updated
+        // Refresh combined feeds that didn't have anything yet or are much older than what they consist of
         if (!cancellationToken.IsCancellationRequested)
         {
-            foreach (var combinedFeed in combinedToRefresh.DistinctBy(c => c.Id))
+            var outdatedThreshold = TimeSpan.FromHours(1);
+
+            var existingIds = combinedToRefresh.Select(c => c.Id).ToHashSet();
+
+            List<CombinedFeed> needingRefresh;
+
+            try
+            {
+                needingRefresh = await database.CombinedFeeds.Where(c => !existingIds.Contains(c.Id))
+                    .Include(c => c.CombinedFromFeeds).Where(c =>
+                        c.ContentUpdatedAt == null || c.CombinedFromFeeds.Any(f =>
+                            f.ContentUpdatedAt != null && f.ContentUpdatedAt - c.ContentUpdatedAt > outdatedThreshold))
+                    .ToListAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                logger.LogInformation("Getting outdated combined feeds, canceled");
+                needingRefresh = new List<CombinedFeed>();
+            }
+
+            foreach (var combinedFeed in needingRefresh)
+            {
+                logger.LogInformation(
+                    "Combined feed {Name} has no content or is much more outdated than the feeds " +
+                    "it consists of, updating",
+                    combinedFeed.Name);
+            }
+
+            combinedToRefresh.AddRange(needingRefresh);
+        }
+
+        // Update combined feeds that need to be updated
+        if (!cancellationToken.IsCancellationRequested)
+        {
+            foreach (var combinedFeed in combinedToRefresh)
             {
                 logger.LogInformation("Updating combined feed {Name}", combinedFeed.Name);
 
