@@ -68,6 +68,8 @@ public class RefreshFeedsJob : IJob
             if (previousContent == feed.LatestContentHash)
             {
                 // Feed data has not changed
+                logger.LogDebug("Data for feed {Name} has not changed from {LatestContentHash}", feed.Name,
+                    feed.LatestContentHash);
                 continue;
             }
 
@@ -108,7 +110,8 @@ public class RefreshFeedsJob : IJob
             await database.SeenFeedItems.AddRangeAsync(items.Select(i => new SeenFeedItem(feed.Id, i.Id)));
         }
 
-        logger.LogInformation("Refreshed {Count} feeds", feedsToRefresh.Count);
+        if (feedsToRefresh.Count > 0)
+            logger.LogInformation("Refreshed {Count} feeds", feedsToRefresh.Count);
 
         // Refresh combined feeds that didn't have anything yet or are much older than what they consist of
         if (!cancellationToken.IsCancellationRequested)

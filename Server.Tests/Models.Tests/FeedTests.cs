@@ -10,7 +10,7 @@ using Xunit;
 
 public class FeedTests
 {
-    private const string TestGithubFeedContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
+    public const string TestGithubFeedContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <feed xmlns=""http://www.w3.org/2005/Atom"" xmlns:media=""http://search.yahoo.com/mrss/"" xml:lang=""en-US"">
   <id>tag:github.com,2008:/organizations/Revolutionary-Games/user</id>
   <link type=""text/html"" rel=""alternate"" href=""https://github.com/organizations/Revolutionary-Games/user""/>
@@ -326,6 +326,36 @@ Current translation status:
   </entry>
 </feed>";
 
+    public const string TestDiscourseFeedContent = @"<?xml version=""1.0"" encoding=""UTF-8"" ?>
+<rss xmlns:discourse=""http://www.discourse.org/"" xmlns:atom=""http://www.w3.org/2005/Atom"" xmlns:dc=""http://purl.org/dc/elements/1.1/"" version=""2.0"">
+  <channel>
+    <title>Announcements - Thrive Community Forum</title>
+    <link>https://community.revolutionarygamesstudio.com/c/announcements/5</link>
+    <description>Topics in the 'Announcements' category This category is for announcements from the development team (devblogs, new releases).</description>
+    <lastBuildDate>Sat, 30 Apr 2022 17:10:02 +0000</lastBuildDate>
+    <atom:link href=""https://community.revolutionarygamesstudio.com/c/announcements/5.rss"" rel=""self"" type=""application/rss+xml""/>
+    <item>
+      <title>Progress Update 04/30/2022 | Patch 0.5.8.1</title>
+      <dc:creator><![CDATA[system]]></dc:creator>
+      <category>Announcements</category>
+      <description><![CDATA[
+            <p><small>			<a href=""https://revolutionarygamesstudio.com/progress-update-04-30-2022-patch-0-5-8-1/"" class=""inline-onebox"">Progress Update 04/30/2022 | Patch 0.5.8.1 - Revolutionary Games Studio</a><br>
+</small><br>Update 0.5.8.1 is now out, and introduces a good amount of performance improvements, among other things. We hope that this significantly improves the enjoyability of Thrive, and look forward to hearing any feedback on the changes. This week we focused on performance, and the causes behind it. We eventually discovered that the spawn system was…</p>
+            <p><small>2 posts - 1 participant</small></p>
+            <p><a href=""https://community.revolutionarygamesstudio.com/t/progress-update-04-30-2022-patch-0-5-8-1/4722"">Read full topic</a></p>
+          ]]></description>
+      <link>https://community.revolutionarygamesstudio.com/t/progress-update-04-30-2022-patch-0-5-8-1/4722</link>
+      <pubDate>Sat, 30 Apr 2022 17:10:02 +0000</pubDate>
+      <discourse:topicPinned>No</discourse:topicPinned>
+      <discourse:topicClosed>No</discourse:topicClosed>
+      <discourse:topicArchived>No</discourse:topicArchived>
+      <guid isPermaLink=""false"">community.revolutionarygamesstudio.com-topic-4722</guid>
+      <source url=""https://community.revolutionarygamesstudio.com/t/progress-update-04-30-2022-patch-0-5-8-1/4722.rss"">Progress Update 04/30/2022 | Patch 0.5.8.1</source>
+    </item>
+  </channel>
+</rss>
+";
+
     private const string RemapToHtmlInput = @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <feed xmlns=""http://www.w3.org/2005/Atom"" xmlns:media=""http://search.yahoo.com/mrss/"" xml:lang=""en-US"">
   <id>tag:github.com,2008:/organizations/Revolutionary-Games/user</id>
@@ -414,36 +444,6 @@ Current translation status:
 </div>
 </div></div><br><a class=""custom-feed-item-url"" href=""https://github.com/Revolutionary-Games/Thrive/compare/improve_chemoreceptor_visuals"">Read it here</a></span></div>
 </div>";
-
-    private const string TestDiscourseFeedContent = @"<?xml version=""1.0"" encoding=""UTF-8"" ?>
-<rss xmlns:discourse=""http://www.discourse.org/"" xmlns:atom=""http://www.w3.org/2005/Atom"" xmlns:dc=""http://purl.org/dc/elements/1.1/"" version=""2.0"">
-  <channel>
-    <title>Announcements - Thrive Community Forum</title>
-    <link>https://community.revolutionarygamesstudio.com/c/announcements/5</link>
-    <description>Topics in the 'Announcements' category This category is for announcements from the development team (devblogs, new releases).</description>
-    <lastBuildDate>Sat, 30 Apr 2022 17:10:02 +0000</lastBuildDate>
-    <atom:link href=""https://community.revolutionarygamesstudio.com/c/announcements/5.rss"" rel=""self"" type=""application/rss+xml""/>
-    <item>
-      <title>Progress Update 04/30/2022 | Patch 0.5.8.1</title>
-      <dc:creator><![CDATA[system]]></dc:creator>
-      <category>Announcements</category>
-      <description><![CDATA[
-            <p><small>			<a href=""https://revolutionarygamesstudio.com/progress-update-04-30-2022-patch-0-5-8-1/"" class=""inline-onebox"">Progress Update 04/30/2022 | Patch 0.5.8.1 - Revolutionary Games Studio</a><br>
-</small><br>Update 0.5.8.1 is now out, and introduces a good amount of performance improvements, among other things. We hope that this significantly improves the enjoyability of Thrive, and look forward to hearing any feedback on the changes. This week we focused on performance, and the causes behind it. We eventually discovered that the spawn system was…</p>
-            <p><small>2 posts - 1 participant</small></p>
-            <p><a href=""https://community.revolutionarygamesstudio.com/t/progress-update-04-30-2022-patch-0-5-8-1/4722"">Read full topic</a></p>
-          ]]></description>
-      <link>https://community.revolutionarygamesstudio.com/t/progress-update-04-30-2022-patch-0-5-8-1/4722</link>
-      <pubDate>Sat, 30 Apr 2022 17:10:02 +0000</pubDate>
-      <discourse:topicPinned>No</discourse:topicPinned>
-      <discourse:topicClosed>No</discourse:topicClosed>
-      <discourse:topicArchived>No</discourse:topicArchived>
-      <guid isPermaLink=""false"">community.revolutionarygamesstudio.com-topic-4722</guid>
-      <source url=""https://community.revolutionarygamesstudio.com/t/progress-update-04-30-2022-patch-0-5-8-1/4722.rss"">Progress Update 04/30/2022 | Patch 0.5.8.1</source>
-    </item>
-  </channel>
-</rss>
-";
 
     [Fact]
     public static void Feed_TitleReplaceTextParts()

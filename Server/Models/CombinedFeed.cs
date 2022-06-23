@@ -35,7 +35,7 @@ public class CombinedFeed : FeedBase, IUpdateNotifications
     public void ProcessContent(IEnumerable<Feed> dataSources)
     {
         // Skip deleted feeds that have no content (in case someone managed to make such a thing)
-        var allItems = dataSources.Where(s => !s.Deleted && string.IsNullOrEmpty(s.LatestContent)).SelectMany(s =>
+        var allItems = dataSources.Where(s => !(s.Deleted && string.IsNullOrEmpty(s.LatestContent))).SelectMany(s =>
                 s.ParseContent(s.LatestContent ?? throw new ArgumentException("feed doesn't have latest content"),
                     out _))
             .OrderByDescending(i => i.PublishedAt).Take(MaxItems);
