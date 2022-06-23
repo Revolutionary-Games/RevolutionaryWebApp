@@ -35,7 +35,7 @@ else
         {
             @foreach (var item in Data.Results)
             {
-                if (clientSideResourceStatus.IsDeleted(item.Id))
+                if (clientSideResourceStatus.IsDeleted(item.Id) || item.Deleted)
                     continue;
 
                 var status = clientSideResourceStatus.GetStatus(item.Id);

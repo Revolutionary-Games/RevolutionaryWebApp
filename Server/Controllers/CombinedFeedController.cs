@@ -40,8 +40,7 @@ public class CombinedFeedController : Controller
 
         try
         {
-            // TODO: check if using include here is a good idea as this may need to load a ton of data
-            query = database.CombinedFeeds.Include(f => f.CombinedFromFeeds).OrderBy(sortColumn, sortDirection);
+            query = GetEntitiesForJustInfo(sortColumn, sortDirection);
         }
         catch (ArgumentException e)
         {
@@ -227,5 +226,21 @@ public class CombinedFeedController : Controller
         }
 
         return false;
+    }
+
+    [NonAction]
+    private IQueryable<CombinedFeed> GetEntitiesForJustInfo(string sortColumn, SortDirection sortDirection)
+    {
+        // TODO: check if using include here is a good idea as this may need to load a ton of data
+        return database.CombinedFeeds.AsNoTracking().Include(f => f.CombinedFromFeeds)
+            .OrderBy(sortColumn, sortDirection).Select(
+                s => new CombinedFeed(s.Name, s.HtmlFeedItemEntryTemplate)
+                {
+                    Id = s.Id,
+                    CacheTime = s.CacheTime,
+                    ContentUpdatedAt = s.ContentUpdatedAt,
+                    HtmlFeedItemEntryTemplate = s.HtmlFeedItemEntryTemplate,
+                    CombinedFromFeeds = s.CombinedFromFeeds,
+                });
     }
 }
