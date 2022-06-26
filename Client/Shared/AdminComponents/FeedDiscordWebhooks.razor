@@ -6,6 +6,7 @@
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
+@using System.Text
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FeedDiscordWebhookListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.FeedDiscordWebhookDTO>
 
@@ -23,6 +24,8 @@
 }
 else
 {
+    <StatusMessageShower Message="@message" Type="@messageType" />
+
     <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                     OnPageChanged="async (e) => await ChangePage(e)"
                     OnSortChanged="async (column) => await ChangeSort(column)"
@@ -42,7 +45,13 @@ else
                     <td>@item.FeedId</td>
                     <td>@item.WebhookUrl</td>
                     <td>@string.IsNullOrEmpty(item.CustomItemFormat)</td>
-                    <td>TODO: delete button</td>
+                    <td>
+                        <Button Enabled="@(!IsProcessing(item.Id))"
+                                OnPressed="@(async () => await VerifyDelete(item))"
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
+                            Delete
+                        </Button>
+                    </td>
                 </tr>
             }
         }
@@ -60,16 +69,37 @@ else
 
 @if (showNewForm)
 {
-    <span>TODO: new form</span>
+    <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
+        <DataAnnotationsValidator />
 
+        <div class="form-row">
+            <div class="form-group col-md-12">
+                <label for="@($"newDiscordItemUrl-{FeedId}")">Discord Webhook URL</label>
+                <CustomInputText class="form-control" id="@($"newDiscordItemUrl-{FeedId}")"
+                                 @bind-Value="newData!.WebhookUrl" placeholder="URL to post the webhook to" />
+            </div>
+        </div>
 
-    @*<CombinedFeedDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
-                  ControlIdSuffix="-new" StatusMessage="@createMessage"
-                  StatusMessageType="@createMessageType" OnValidSubmit="@CreateNew" OverrideSaveText="Create">
-        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
-            Cancel
+        <div class="form-row">
+            <div class="form-group col-md-12">
+                <label for="@($"newDiscordItemFormat-{FeedId}")">Custom message template (optional)</label>
+                <CustomInputText class="form-control" id="@($"newDiscordItemFormat-{FeedId}")"
+                                 @bind-Value="newData!.CustomItemFormat"
+                                 placeholder="Custom message template (leave blank for default)" />
+            </div>
+        </div>
+
+        <ValidationSummary />
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit"
+                Spinner="@processingNewForm" ButtonStyle="primary">
+            Create
         </Button>
-    </CombinedFeedDataForm>*@
+        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+           Cancel
+        </Button>
+    </EditForm>
 }
 
 @code {
@@ -82,6 +112,9 @@ private readonly List<TableColumn> columns = new()
     };
 
     private readonly ClientSideResourceStatus<DeletedResourceStatus> clientSideResourceStatus = new();
+
+    private string? message;
+    private SiteNoticeType messageType;
 
     private string? createMessage;
     private SiteNoticeType createMessageType;
@@ -100,6 +133,9 @@ private readonly List<TableColumn> columns = new()
     [Parameter]
     [EditorRequired]
     public long FeedId { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -175,7 +211,7 @@ private readonly List<TableColumn> columns = new()
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/FeedConfiguration/{FeedId}/discordWebhook", newData!);
+            result = await Http.PostAsJsonAsync($"api/v1/FeedConfiguration/{FeedId}/discordWebhook", newData!);
         }
         catch (HttpRequestException e)
         {
@@ -200,6 +236,64 @@ private readonly List<TableColumn> columns = new()
 
             // Stop showing the form
             showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task VerifyDelete(FeedDiscordWebhookDTO webhook)
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmDelete.Name), $"Webhook to {webhook.WebhookUrl}");
+
+        var modal = Modal.Show<ConfirmDelete>("Delete this webhook?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await PerformDelete(webhook.Id, webhook.WebhookUrl);
+    }
+
+    private async Task PerformDelete(long localId, string webhookUrl)
+    {
+        messageType = SiteNoticeType.Danger;
+        message = null;
+        SetProcessingStatus(localId, true);
+        await InvokeAsync(StateHasChanged);
+
+        // Because the url will contain non-valid characters, we need to encode it
+        var encodedUrl = Convert.ToBase64String(Encoding.UTF8.GetBytes(webhookUrl));
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/FeedConfiguration/{FeedId}/discordWebhook/{encodedUrl}");
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(localId, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(localId, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = $"Discord webhook ({webhookUrl}) deleted";
+            messageType = SiteNoticeType.Warning;
+
+            clientSideResourceStatus.GetStatus(localId).Deleted = true;
         }
 
         await InvokeAsync(StateHasChanged);

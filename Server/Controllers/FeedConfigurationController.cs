@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
@@ -181,12 +182,15 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         if (parentFeed == null || parentFeed.Deleted)
             return NotFound();
 
+        if (string.IsNullOrWhiteSpace(request.CustomItemFormat))
+            request.CustomItemFormat = null;
+
         var webhook = new FeedDiscordWebhook(parentFeed.Id, request.WebhookUrl)
         {
             CustomItemFormat = request.CustomItemFormat,
         };
 
-        if (await database.FeedDiscordWebhooks.Where(w => w.FeedId == id).OrderBy(w => w.WebhookUrl)
+        if (await database.FeedDiscordWebhooks.Where(w => w.FeedId == id)
                 .FirstOrDefaultAsync(w => w.WebhookUrl == webhook.WebhookUrl) != null)
         {
             return BadRequest("That webhook is already configured for this feed");
@@ -210,8 +214,10 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
     [HttpDelete("{id:long}/discordWebhook/{webhookUrl}")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-    public async Task<IActionResult> DeleteFeedWebhook([Required] long id, [Required] string webhookUrl)
+    public async Task<IActionResult> DeleteFeedWebhook([Required] long id, [Required] [MaxLength(500)] string webhookUrl)
     {
+        webhookUrl = Encoding.UTF8.GetString(Convert.FromBase64String(webhookUrl));
+
         var item = await database.FeedDiscordWebhooks.FirstOrDefaultAsync(w =>
             w.FeedId == id && w.WebhookUrl == webhookUrl);
 

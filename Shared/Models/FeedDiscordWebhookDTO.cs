@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using ModelVerifiers;
 
 public class FeedDiscordWebhookDTO : IIdentifiable
@@ -16,6 +17,7 @@ public class FeedDiscordWebhookDTO : IIdentifiable
     [MaxLength(4000)]
     public string? CustomItemFormat { get; set; }
 
+    [JsonIgnore]
     public long Id
     {
         get => FeedId ^ WebhookUrl.GetHashCode();
