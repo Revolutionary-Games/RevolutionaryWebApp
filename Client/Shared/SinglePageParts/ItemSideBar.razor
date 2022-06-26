@@ -5,8 +5,6 @@
 @using System.IO
 @using TextCopy
 @using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Converters
-@using ThriveDevCenter.Shared.Forms
 @using ThriveDevCenter.Shared.Utilities
 
 <div class="item-sidebar">
@@ -185,7 +183,18 @@
 
     private string GetDownloadURL(int version = -1)
     {
-        return new Uri(new Uri(NavManager.BaseUri), $"api/v1/download/{Item.Id}").ToString();
+        string relative;
+
+        if (version >= 0)
+        {
+            relative = $"api/v1/download/{Item.Id}?version={version}";
+        }
+        else
+        {
+            relative = $"api/v1/download/{Item.Id}";
+        }
+
+        return new Uri(new Uri(NavManager.BaseUri), relative).ToString();
     }
 
     private async Task DownloadTextFile()
