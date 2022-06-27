@@ -198,8 +198,10 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
         using var stream = new MemoryStream();
 
         // For some reason XMLWriter fails in writing out the Discourse feed data...
+        // Might now work with the flush here
         using var writer = new StreamWriter(stream, Encoding.UTF8);
         document.Save(writer, SaveOptions.DisableFormatting);
+        writer.Flush();
 
         stream.Position = 0;
         var reader = new StreamReader(stream, Encoding.UTF8);
@@ -357,7 +359,15 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
 
             if (parsed.Summary != null && parsed.Summary.Length > MaxItemLength)
             {
-                parsed.Summary = parsed.Summary.Truncate(MaxItemLength);
+                // Maybe this kind of heuristic will be good enough here...
+                if (parsed.Summary.Contains("</"))
+                {
+                    parsed.Summary = parsed.Summary.HtmlTruncate(MaxItemLength);
+                }
+                else
+                {
+                    parsed.Summary = parsed.Summary.Truncate(MaxItemLength);
+                }
             }
 
             parsedFeedItems.Add(parsed);
