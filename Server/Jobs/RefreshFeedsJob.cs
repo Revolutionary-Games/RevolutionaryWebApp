@@ -187,6 +187,9 @@ public class RefreshFeedsJob : IJob
                 // TODO: check that the combined from objects here are the same ones as that get updated above
                 combinedFeed.ProcessContent(combinedFeed.CombinedFromFeeds);
 
+                // See the TODO comment above as to why we need to update this
+                combinedFeed.ContentUpdatedAt = DateTime.UtcNow;
+
                 if (cancellationToken.IsCancellationRequested)
                     break;
             }
