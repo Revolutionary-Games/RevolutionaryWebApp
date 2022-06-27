@@ -120,6 +120,9 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
         item.BumpUpdatedAt();
 
+        // Reset content time to allow the content to regenerate
+        item.ContentUpdatedAt = null;
+
         await database.AdminActions.AddAsync(new AdminAction()
         {
             Message = $"Feed {item.Id} edited",

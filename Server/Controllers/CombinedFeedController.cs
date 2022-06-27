@@ -146,6 +146,9 @@ public class CombinedFeedController : Controller
 
         feed.BumpUpdatedAt();
 
+        // Reset content time to allow the content to regenerate
+        feed.ContentUpdatedAt = null;
+
         await database.AdminActions.AddAsync(new AdminAction()
         {
             Message = $"Combined feed {feed.Id} edited",
