@@ -34,7 +34,7 @@ public class RefreshFeedsJob : IJob
         var now = DateTime.UtcNow;
         var feedsToRefresh = await database.Feeds.Include(f => f.DiscordWebhooks).Include(f => f.CombinedInto)
             .ThenInclude(c => c.CombinedFromFeeds).AsSplitQuery()
-            .Where(f => !f.Deleted && (f.ContentUpdatedAt == null || now - f.ContentUpdatedAt > f.PollInterval))
+            .Where(f => !f.Deleted && (f.ContentUpdatedAt == null || now - f.ContentUpdatedAt.Value > f.PollInterval))
             .ToListAsync(cancellationToken);
 
         var client = httpClientFactory.CreateClient();
@@ -46,6 +46,20 @@ public class RefreshFeedsJob : IJob
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
+
+            var elapsed = feed.ContentUpdatedAt != null ? (now - feed.ContentUpdatedAt.Value).ToString() : "unknown";
+
+            if (feed.ContentUpdatedAt != null && now - feed.ContentUpdatedAt.Value < feed.PollInterval)
+            {
+                logger.LogWarning(
+                    "Feed {Name} was returned from DB too early (refresh time not passed yet). Elapsed: {Elapsed}",
+                    feed.Name, elapsed);
+                continue;
+            }
+
+            logger.LogDebug(
+                "Refreshing feed {Name} as it was last updated {Elapsed} ago, poll interval is: {PollInterval}",
+                feed.Name, elapsed, feed.PollInterval);
 
             int previousContent;
             List<ParsedFeedItem> items;
@@ -70,6 +84,11 @@ public class RefreshFeedsJob : IJob
                 // Feed data has not changed
                 logger.LogDebug("Data for feed {Name} has not changed from {LatestContentHash}", feed.Name,
                     feed.LatestContentHash);
+
+                // We still need to update the content time otherwise this check will run constantly
+                // TODO: add a separate field for showing when the data was actually changed
+                feed.ContentUpdatedAt = DateTime.UtcNow;
+
                 continue;
             }
 
