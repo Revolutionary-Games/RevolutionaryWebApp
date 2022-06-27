@@ -7,6 +7,7 @@
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
 @using System.Text
+@using ThriveDevCenter.Shared.Converters
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FeedDiscordWebhookListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.FeedDiscordWebhookDTO>
 
@@ -44,7 +45,12 @@ else
                 <tr @key="item.Id">
                     <td>@item.FeedId</td>
                     <td>@item.WebhookUrl</td>
-                    <td>@string.IsNullOrEmpty(item.CustomItemFormat)</td>
+                    <td>
+                        @if (item.CustomItemFormat != null)
+                        {
+                            <span>@item.CustomItemFormat.Truncate()</span>
+                        }
+                    </td>
                     <td>
                         <Button Enabled="@(!IsProcessing(item.Id))"
                                 OnPressed="@(async () => await VerifyDelete(item))"
@@ -107,7 +113,7 @@ private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Feed Id", false),
         new TableColumn("Webhook Url", true, "WebhookUrl"),
-        new TableColumn("Has Custom Item Format?", false),
+        new TableColumn("Custom Item Format", false),
         new TableColumn("Actions", false),
     };
 
