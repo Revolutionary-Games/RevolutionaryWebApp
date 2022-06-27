@@ -191,7 +191,9 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
         // Detect if the document changed and update our data only in that case (or if we have no data)
         if (newContentHash == LatestContentHash && LatestContent != null)
         {
-            return feedItems;
+            // If we are a html feed with no html content, we should process that
+            if (string.IsNullOrEmpty(HtmlFeedVersionSuffix) || HtmlLatestContent != null)
+                return feedItems;
         }
 
         // Write the clean document back out
