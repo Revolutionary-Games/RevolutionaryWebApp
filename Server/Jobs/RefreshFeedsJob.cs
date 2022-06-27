@@ -136,8 +136,7 @@ public class RefreshFeedsJob : IJob
             await database.SeenFeedItems.AddRangeAsync(items.Select(i => new SeenFeedItem(feed.Id, i.Id)));
         }
 
-        if (feedsToRefresh.Count > 0)
-            logger.LogInformation("Refreshed {Count} feeds", feedsToRefresh.Count);
+        logger.LogDebug("Refreshed {Count} feeds", feedsToRefresh.Count);
 
         // Refresh combined feeds that didn't have anything yet or are much older than what they consist of
         if (!cancellationToken.IsCancellationRequested)
