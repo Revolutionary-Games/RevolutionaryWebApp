@@ -14,6 +14,12 @@ using Models;
 [DisableConcurrentExecution(500)]
 public class RefreshFeedsJob : IJob
 {
+    /// <summary>
+    ///   Time used to process feeds a bit early if we would be pretty late in the future in processing them.
+    ///   Also helps in bundling processing into bigger batches.
+    /// </summary>
+    private static readonly TimeSpan BundleProcessMargin = TimeSpan.FromSeconds(5);
+
     private readonly ILogger<RefreshFeedsJob> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IHttpClientFactory httpClientFactory;
@@ -31,7 +37,7 @@ public class RefreshFeedsJob : IJob
     public async Task Execute(CancellationToken cancellationToken)
     {
         // Detect feeds needing refreshing
-        var now = DateTime.UtcNow;
+        var now = DateTime.UtcNow + BundleProcessMargin;
         var feedsToRefresh = await database.Feeds.Include(f => f.DiscordWebhooks).Include(f => f.CombinedInto)
             .ThenInclude(c => c.CombinedFromFeeds).AsSplitQuery()
             .Where(f => !f.Deleted && (f.ContentUpdatedAt == null || now - f.ContentUpdatedAt.Value > f.PollInterval))
@@ -92,7 +98,8 @@ public class RefreshFeedsJob : IJob
                 continue;
             }
 
-            logger.LogInformation("New content for feed {Name}", feed.Name);
+            logger.LogInformation("New content for feed {Name}, content hash: {LatestContentHash}", feed.Name,
+                feed.LatestContentHash);
 
             if (cancellationToken.IsCancellationRequested)
                 break;
