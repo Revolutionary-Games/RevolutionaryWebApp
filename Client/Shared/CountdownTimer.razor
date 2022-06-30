@@ -1,0 +1,63 @@
+@using System.Timers
+@using ThriveDevCenter.Shared.Converters
+@implements IDisposable
+<span>@TimeLeft</span>
+
+@code {
+    private readonly Timer secondTimer;
+
+    /// <summary>
+    ///   If set overrides current time as the time from to show the time until <see cref="EndTime"/>
+    /// </summary>
+    [Parameter]
+    public DateTime? OverrideCurrentTime { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public DateTime EndTime { get; set; }
+
+    private string TimeLeft
+    {
+        get
+        {
+            var compare = OverrideCurrentTime ?? DateTime.UtcNow;
+
+            var left = EndTime - compare;
+
+            if (left < TimeSpan.Zero)
+                return "0s";
+
+            return left.ToShortForm();
+        }
+    }
+
+    public CountdownTimer()
+    {
+        secondTimer = new Timer(1)
+        {
+            Enabled = false,
+        };
+        secondTimer.Elapsed += TimeToReRender;
+    }
+
+    public void Dispose()
+    {
+        secondTimer.Dispose();
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Enable re-render timer if the time has not elapsed yet
+        var compare = OverrideCurrentTime ?? DateTime.UtcNow;
+        var left = EndTime - compare;
+
+        secondTimer.Enabled = left > TimeSpan.Zero;
+    }
+
+    private async void TimeToReRender(object? sender, ElapsedEventArgs elapsedEventArgs)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+}
