@@ -34,6 +34,11 @@ public class AssociationMemberDTO : ClientSideTimedModel
     public long? UserId { get; set; }
     public bool BoardMember { get; set; }
 
+    [DisallowIf(ThisMatches = "true", OtherProperty = nameof(BoardMember), IfOtherMatchesValue = "false",
+        ErrorMessage = "If currently the president, must also be a board member")]
+    [DisallowIfEnabled]
+    public bool CurrentPresident { get; set; }
+
     [DisallowIf(ThisMatches = "false", OtherProperty = nameof(BoardMember), IfOtherMatchesValue = "true",
         ErrorMessage = "If currently a board member must have also been one in the past")]
     [DisallowIfEnabled]
@@ -56,6 +61,7 @@ public class AssociationMemberDTO : ClientSideTimedModel
             CityOfResidence = CityOfResidence,
             UserId = UserId,
             BoardMember = BoardMember,
+            CurrentPresident = CurrentPresident,
             HasBeenBoardMember = HasBeenBoardMember,
             IsThriveDeveloper = IsThriveDeveloper,
         };

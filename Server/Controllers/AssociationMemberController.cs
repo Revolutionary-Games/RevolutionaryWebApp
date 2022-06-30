@@ -100,6 +100,9 @@ public class AssociationMemberController : Controller
         if (!changes)
             return Ok();
 
+        if (await ConflictsWithCurrentPresident(member.Id))
+            return BadRequest("There can only be one association president at once");
+
         member.BumpUpdatedAt();
 
         await database.AdminActions.AddAsync(new AdminAction()
@@ -114,6 +117,14 @@ public class AssociationMemberController : Controller
 
         logger.LogInformation("Association member {Id} edited by {Email}, changes: {Description}", member.Id,
             user.Email, description);
+
+        if (member.CurrentPresident)
+        {
+            // We don't create permanent log here as I'm too lazy to check if the changed fields include the president
+            // field
+            logger.LogInformation("Association member {Id} ({Email}) is the current president", member.Id,
+                member.Email);
+        }
 
         jobClient.Enqueue<CheckAssociationStatusForUserJob>(x => x.Execute(member.Email, CancellationToken.None));
         return Ok();
@@ -157,6 +168,9 @@ public class AssociationMemberController : Controller
         if (member != null)
             return BadRequest("Email already in use");
 
+        if (await ConflictsWithCurrentPresident(-1))
+            return BadRequest("There can only be one association president at once");
+
         var user = HttpContext.AuthenticatedUser()!;
 
         member = new AssociationMember(request.FirstNames, request.LastName, request.Email,
@@ -164,6 +178,7 @@ public class AssociationMemberController : Controller
             request.CountryOfResidence, request.CityOfResidence)
         {
             BoardMember = request.BoardMember,
+            CurrentPresident = request.CurrentPresident,
             IsThriveDeveloper = request.IsThriveDeveloper,
             HasBeenBoardMember = request.HasBeenBoardMember,
         };
@@ -171,7 +186,9 @@ public class AssociationMemberController : Controller
 
         await database.AdminActions.AddAsync(new AdminAction()
         {
-            Message = $"New association member {member.Email} created",
+            Message = member.CurrentPresident ?
+                $"New association president {member.Email} created" :
+                $"New association member {member.Email} created",
             PerformedById = user.Id,
         });
 
@@ -180,7 +197,24 @@ public class AssociationMemberController : Controller
         logger.LogInformation("Association member {Id} ({Email}) created by {Email2}", member.Id, member.Email,
             user.Email);
 
+        if (member.CurrentPresident)
+        {
+            logger.LogInformation("Association member {Id} ({Email}) is the current president", member.Id,
+                member.Email);
+        }
+
         jobClient.Enqueue<CheckAssociationStatusForUserJob>(x => x.Execute(member.Email, CancellationToken.None));
         return Ok();
+    }
+
+    [NonAction]
+    public async Task<bool> ConflictsWithCurrentPresident(long editedUser)
+    {
+        var currentPresident = await database.AssociationMembers.FirstOrDefaultAsync(a => a.CurrentPresident);
+
+        if (currentPresident == null)
+            return false;
+
+        return currentPresident.Id != editedUser;
     }
 }

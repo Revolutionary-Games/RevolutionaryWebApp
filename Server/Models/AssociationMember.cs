@@ -61,6 +61,9 @@ public class AssociationMember : UpdateableModel, IUpdateNotifications
     public bool BoardMember { get; set; }
 
     [UpdateFromClientRequest]
+    public bool CurrentPresident { get; set; }
+
+    [UpdateFromClientRequest]
     public bool HasBeenBoardMember { get; set; }
 
     [UpdateFromClientRequest]
@@ -86,6 +89,7 @@ public class AssociationMember : UpdateableModel, IUpdateNotifications
             CityOfResidence = CityOfResidence,
             UserId = UserId,
             BoardMember = BoardMember,
+            CurrentPresident = CurrentPresident,
             HasBeenBoardMember = HasBeenBoardMember,
             IsThriveDeveloper = IsThriveDeveloper,
         };

@@ -44,7 +44,7 @@
         </div>
 
         <div class="form-row">
-            <div class="form-group col-md-4">
+            <div class="form-group col-md-3">
                 <div class="form-check">
                     <InputCheckbox class="form-check-input" type="checkbox" id="@($"editIsBoardMember-{Data.Id}")"
                                    @bind-Value="editedData!.BoardMember" />
@@ -53,7 +53,16 @@
                     </label>
                 </div>
             </div>
-            <div class="form-group col-md-4">
+            <div class="form-group col-md-3">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" type="checkbox" id="@($"editIsPresident-{Data.Id}")"
+                                   @bind-Value="editedData!.CurrentPresident" />
+                    <label class="form-check-label" for="@($"editIsPresident-{Data.Id}")">
+                        Current Association President
+                    </label>
+                </div>
+            </div>
+            <div class="form-group col-md-3">
                 <div class="form-check">
                     <InputCheckbox class="form-check-input" type="checkbox" id="@($"editHasBeenBoardMember-{Data.Id}")"
                                    @bind-Value="editedData!.HasBeenBoardMember" />
@@ -62,7 +71,7 @@
                     </label>
                 </div>
             </div>
-            <div class="form-group col-md-4">
+            <div class="form-group col-md-3">
                 <div class="form-check">
                     <InputCheckbox class="form-check-input" type="checkbox" id="@($"editThriveDeveloper-{Data.Id}")"
                                    @bind-Value="editedData!.IsThriveDeveloper" />
