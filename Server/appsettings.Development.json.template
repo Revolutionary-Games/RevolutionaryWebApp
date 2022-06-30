@@ -27,6 +27,11 @@
     "StackwalkService": "http://localhost:9090/",
     "StackwalkSymbolFolder": put/a/folder/here
   },
+  "Tasks": {
+    "CronJobs": {
+      "RefreshFeeds": "00/10 * * * ?"
+    }
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
