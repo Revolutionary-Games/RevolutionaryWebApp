@@ -70,7 +70,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
             Assert.NotNull(resultData);
             Assert.NotNull(resultData!.Results);
             Assert.Null(resultData.TiebreakInFavourOf);
-            Assert.Equal(7.833333333333333, resultData.TotalVotes);
+            Assert.Equal(7.833333333333334, resultData.TotalVotes);
 
             Assert.Equal(3, resultData.Results.Count);
 
