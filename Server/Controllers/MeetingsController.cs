@@ -249,9 +249,28 @@ namespace ThriveDevCenter.Server.Controllers
             if (poll.ClosedAt != null)
                 return BadRequest("The poll is closed");
 
-            // TODO: add configuration for polls that allow empty votes
-            if (request.SelectedOptions.Count < 1)
-                return BadRequest("You need to select at least one option");
+            var parsedData = poll.ParsedData;
+
+            if (parsedData.WeightedChoices != null)
+            {
+                if (request.SelectedOptions.Count < 1 && !parsedData.WeightedChoices.CanSelectNone)
+                    return BadRequest("You need to select at least one option");
+            }
+            else if (parsedData.MultipleChoiceOption != null)
+            {
+                var min = parsedData.MultipleChoiceOption.MinimumSelections;
+                var max = parsedData.MultipleChoiceOption.MaximumSelections;
+                if (request.SelectedOptions.Count < min || request.SelectedOptions.Count > max)
+                    return BadRequest($"This poll requires you to select between {min} to {max} options");
+            }
+            else if (parsedData.SingleChoiceOption != null)
+            {
+                if (request.SelectedOptions.Count > 1)
+                    return BadRequest("This poll allows only a single option to be selected");
+
+                if (request.SelectedOptions.Count < 1 && parsedData.SingleChoiceOption.CanSelectNone != true)
+                    return BadRequest("You must select at least one option");
+            }
 
             // Fail if already voted
             if (await GetPollVotingRecord(meeting.Id, poll.PollId, user.Id) != null)
@@ -263,7 +282,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (user.AssociationMember?.HasBeenBoardMember == true)
                 votingPower = 2;
 
-            // These should execute within a single transaction so only one of these can't get through
+            // These should execute within a single transaction so only one of these can get through
             var votingRecord = new MeetingPollVotingRecord()
             {
                 MeetingId = meeting.Id,
@@ -280,7 +299,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 // TODO: when this is a board meeting the president's vote is the deciding factor.
                 // In a meeting the chairman's vote resolves a tiebreak (this is currently assumed)
-                IsTiebreaker = user.Id == meeting.OwnerId,
+                IsTiebreaker = user.Id == meeting.ChairmanId,
             };
 
             await database.MeetingPollVotingRecords.AddAsync(votingRecord);
@@ -336,7 +355,21 @@ namespace ThriveDevCenter.Server.Controllers
 
             if (parsedData.WeightedChoices != null)
             {
+                if (parsedData.MultipleChoiceOption != null || parsedData.SingleChoiceOption != null)
+                    return BadRequest("Bad poll with multiple types set");
+
                 // Weighted type poll
+                throw new NotImplementedException();
+            }
+            else if (parsedData.MultipleChoiceOption != null)
+            {
+                if (parsedData.WeightedChoices != null || parsedData.SingleChoiceOption != null)
+                    return BadRequest("Bad poll with multiple types set");
+            }
+            else if (parsedData.SingleChoiceOption != null)
+            {
+                if (parsedData.MultipleChoiceOption != null || parsedData.WeightedChoices != null)
+                    return BadRequest("Bad poll with multiple types set");
             }
 
             var access = GetCurrentUserAccess();
@@ -359,7 +392,8 @@ namespace ThriveDevCenter.Server.Controllers
                 return BadRequest("Poll can't auto-close in less than a minute");
             }
 
-            // TODO: check that there isn't a poll with the same title already
+            if (await database.MeetingPolls.FirstOrDefaultAsync(p => p.Title == request.Title) != null)
+                return BadRequest("A poll with that title already exists");
 
             var previousPollId = await database.MeetingPolls.Where(p => p.MeetingId == meeting.Id)
                 .MaxAsync(p => (long?)p.PollId) ?? 0;
@@ -432,20 +466,53 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+        [HttpPost("{id:long}/polls/{pollId:long}/close")]
+        public async Task<IActionResult> ClosePoll([Required] long id, [Required] long pollId)
+        {
+            var access = GetCurrentUserAccess();
+            var meeting = await GetMeetingWithReadAccess(id, access);
+
+            if (meeting == null)
+                return NotFound();
+
+            var user = HttpContext.AuthenticatedUser()!;
+
+            var poll = await database.MeetingPolls.FindAsync(id, pollId);
+
+            if (poll == null)
+                return NotFound();
+
+            if (poll.ClosedAt != null)
+                return BadRequest("The poll is already closed");
+
+            if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+                return this.WorkingForbid("You don't have permission to close polls in this meeting");
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Poll ({poll.PollId}) closed early in meeting ({meeting.Id}), title: {poll.Title}",
+                PerformedById = user.Id,
+            });
+
+            poll.ClosedAt = DateTime.UtcNow;
+            poll.ManuallyClosedById = user.Id;
+            await database.SaveChangesAsync();
+
+            jobClient.Enqueue<ComputePollResultsJob>(x => x.Execute(poll.MeetingId, poll.PollId,
+                CancellationToken.None));
+
+            logger.LogInformation("User {Email} has closed a poll {Id} early in meeting {Id2} at {UtcNow}", user.Email,
+                poll.PollId, id, DateTime.UtcNow);
+
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         [HttpPost]
         public async Task<IActionResult> CreateNew([Required] [FromBody] MeetingDTO request)
         {
             if (request.ReadAccess > request.JoinAccess)
                 return BadRequest("Read access must not be higher than join access");
-
-            if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 3 || request.Name.Length > 100)
-                return BadRequest("Meeting name must be between 3 and 100 characters");
-
-            if (string.IsNullOrWhiteSpace(request.Description) || request.Description.Length < 3 ||
-                request.Description.Length > 10000)
-            {
-                return BadRequest("Description must be between 3 and 10000 characters");
-            }
 
             if (request.ExpectedDuration != null && (request.ExpectedDuration.Value < TimeSpan.FromMinutes(1) ||
                     request.ExpectedDuration.Value > TimeSpan.FromMinutes(650)))
@@ -469,7 +536,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (await database.Meetings.FirstOrDefaultAsync(m => m.Name == request.Name) != null)
                 return BadRequest("A meeting with that name already exists");
 
-            var user = HttpContext.AuthenticatedUser()!;
+            var user = HttpContext.AuthenticatedUserOrThrow();
 
             var meeting = new Meeting()
             {
@@ -480,7 +547,8 @@ namespace ThriveDevCenter.Server.Controllers
                 JoinGracePeriod = request.JoinGracePeriod,
                 StartsAt = request.StartsAt,
                 ExpectedDuration = request.ExpectedDuration,
-                OwnerId = user.Id
+                OwnerId = user.Id,
+                ChairmanId = user.Id,
             };
 
             await database.Meetings.AddAsync(meeting);
@@ -494,6 +562,46 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             logger.LogInformation("New meeting ({Id}) created by {Email}", meeting.Id, user.Email);
+
+            return Ok();
+        }
+
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+        [HttpPost("{id:long}/chairman")]
+        public async Task<IActionResult> SetMeetingChairman([Required] long id,
+            [Required] [FromBody] long newChairmanId)
+        {
+            var access = GetCurrentUserAccess();
+            var meeting = await GetMeetingWithReadAccess(id, access);
+
+            if (meeting == null)
+                return NotFound();
+
+            var newChairman = await database.Users.FindAsync(newChairmanId);
+
+            if (newChairman == null)
+                return BadRequest("Target user to make chairman of meeting not found");
+
+            var user = HttpContext.AuthenticatedUserOrThrow();
+
+            if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+                return this.WorkingForbid("You don't have permission to modify this meeting");
+
+            if (meeting.EndedAt != null)
+                return BadRequest("The meeting has already been ended");
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Meeting ({meeting.Id}) has now {newChairman.NameOrEmail} ({newChairmanId}) as the chairman",
+                PerformedById = user.Id,
+            });
+
+            meeting.ChairmanId = newChairman.Id;
+            meeting.BumpUpdatedAt();
+
+            await database.SaveChangesAsync();
+            logger.LogInformation("Meeting {Id} now has {Email1} as chairman, set by {Email2}", meeting.Id,
+                newChairman.Email, user.Email);
 
             return Ok();
         }
@@ -541,6 +649,7 @@ namespace ThriveDevCenter.Server.Controllers
             });
 
             meeting.EndedAt = DateTime.UtcNow;
+            meeting.BumpUpdatedAt();
 
             await database.SaveChangesAsync();
             logger.LogInformation("Meeting {Id} has been ended by {Email}", meeting.Id, user.Email);
