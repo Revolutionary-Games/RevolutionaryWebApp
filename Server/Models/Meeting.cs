@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Server.Models
         public string? Minutes { get; set; }
 
         [Required]
-        public string Description { get; set; }  = string.Empty;
+        public string Description { get; set; } = string.Empty;
 
         [AllowSortingBy]
         public DateTime StartsAt { get; set; }
@@ -42,6 +42,9 @@ namespace ThriveDevCenter.Server.Models
 
         public long? OwnerId { get; set; }
         public User? Owner { get; set; }
+
+        public long? ChairmanId { get; set; }
+        public User? Chairman { get; set; }
 
         public long? SecretaryId { get; set; }
         public User? Secretary { get; set; }
@@ -72,6 +75,7 @@ namespace ThriveDevCenter.Server.Models
                 ReadOnly = ReadOnly,
                 OwnerId = OwnerId,
                 SecretaryId = SecretaryId,
+                ChairmanId = ChairmanId,
             };
         }
 

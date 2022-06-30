@@ -24,8 +24,10 @@ namespace ThriveDevCenter.Shared.Models
         {
             // TODO: implement this option
             [Required]
-            public bool CanSelectNone { get; set; }
+            public bool CanSelectNone { get; set; } = false;
         }
+
+        public SingleChoice? SingleChoiceOption { get; set; }
 
         /// <summary>
         ///   The poll voter can only select one choice. The choice is given voting power of the user
@@ -35,6 +37,8 @@ namespace ThriveDevCenter.Shared.Models
             [Required]
             public bool CanSelectNone { get; set; }
         }
+
+        public MultipleChoice? MultipleChoiceOption { get; set; }
 
         /// <summary>
         ///   The poll voter can select one or more choices (up to a limit). All of the choices is given a

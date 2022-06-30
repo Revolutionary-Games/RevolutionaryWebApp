@@ -135,6 +135,8 @@ namespace ThriveDevCenter.Server.Models
 
         public ICollection<Meeting> SecretaryOfMeetings { get; set; } = new HashSet<Meeting>();
 
+        public ICollection<Meeting> ChairmanOfMeetings { get; set; } = new HashSet<Meeting>();
+
         public ICollection<MeetingMember> MemberOfMeetings { get; set; } = new HashSet<MeetingMember>();
 
         public ICollection<MeetingPollVotingRecord> VotedInPollsRecords { get; set; } =
@@ -145,6 +147,8 @@ namespace ThriveDevCenter.Server.Models
         public ICollection<CrashReport> LastEditedCrashReportDescriptions { get; set; } = new HashSet<CrashReport>();
 
         public ICollection<DebugSymbol> CreatedDebugSymbols { get; set; } = new HashSet<DebugSymbol>();
+
+        public ICollection<MeetingPoll> ManuallyClosedPolls { get; set; } = new HashSet<MeetingPoll>();
 
         public AssociationMember? AssociationMember { get; set; }
 

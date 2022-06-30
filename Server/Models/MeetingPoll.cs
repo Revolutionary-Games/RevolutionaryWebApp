@@ -50,12 +50,16 @@ namespace ThriveDevCenter.Server.Models
 
         public DateTime? AutoCloseAt { get; set; }
 
+        public long? ManuallyClosedById { get; set; }
+
         public Meeting? Meeting { get; set; }
 
         public ICollection<MeetingPollVotingRecord> VotingRecords { get; set; } =
             new HashSet<MeetingPollVotingRecord>();
 
         public ICollection<MeetingPollVote> Votes { get; set; } = new HashSet<MeetingPollVote>();
+
+        public User? ManuallyClosedBy { get; set; }
 
         [NotMapped]
         public bool Open => ClosedAt == null;
@@ -100,6 +104,7 @@ namespace ThriveDevCenter.Server.Models
                 CreatedAt = CreatedAt,
                 ClosedAt = ClosedAt,
                 AutoCloseAt = AutoCloseAt,
+                ManuallyClosedById = ManuallyClosedById,
             };
         }
 

@@ -388,6 +388,8 @@ namespace ThriveDevCenter.Server.Models
                     .WithMany(p => p.OwnerOfMeetings).OnDelete(DeleteBehavior.SetNull);
                 entity.HasOne(d => d.Secretary)
                     .WithMany(p => p.SecretaryOfMeetings).OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(d => d.Chairman)
+                    .WithMany(p => p.ChairmanOfMeetings).OnDelete(DeleteBehavior.SetNull);
                 entity.HasMany(p => p.MeetingMembers)
                     .WithOne(d => d.Meeting).OnDelete(DeleteBehavior.Cascade);
             });
@@ -415,6 +417,9 @@ namespace ThriveDevCenter.Server.Models
                 entity.HasMany(p => p.VotingRecords)
                     .WithOne(d => d.Poll).OnDelete(DeleteBehavior.Cascade)
                     .HasForeignKey(nameof(MeetingPollVotingRecord.MeetingId), nameof(MeetingPollVotingRecord.PollId));
+
+                entity.HasOne(p => p.ManuallyClosedBy)
+                    .WithMany(d => d.ManuallyClosedPolls).OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<MeetingPollVote>(entity =>

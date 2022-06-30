@@ -26,6 +26,7 @@ namespace ThriveDevCenter.Shared.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? ClosedAt { get; set; }
         public DateTime? AutoCloseAt { get; set; }
+        public long? ManuallyClosedById { get; set; }
 
         [JsonIgnore]
         public long Id => (PollId << 48) + MeetingId;
