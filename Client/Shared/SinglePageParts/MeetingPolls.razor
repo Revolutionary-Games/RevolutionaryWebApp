@@ -1,14 +1,17 @@
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
+@inject IJSRuntime JS
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
+@using System.Timers
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Forms
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared.Models.Enums
 @implements ThriveDevCenter.Client.Services.INotificationHandler<MeetingPollListUpdated>
+@implements IDisposable
 @inherits ListDataPage<ThriveDevCenter.Shared.Models.MeetingPollDTO>
 
 @if (!string.IsNullOrEmpty(Error))
@@ -25,23 +28,25 @@ else
     {
         @foreach (var item in Data)
         {
-            var closeTime = item.AutoCloseAt.HasValue ? item.AutoCloseAt.Value.ToLocalTime().ToString("G") :
-                string.Empty;
-
             <div @key="item.PollId" class="mb-3">
                 <h4>
-                    Poll: @item.Title @(item.AutoCloseAt.HasValue && item.ClosedAt == null ?
-                                          $@"Closes at: {closeTime}" : "")
+                    Poll: @item.Title
+                    @if (item.AutoCloseAt.HasValue && item.ClosedAt == null)
+                    {
+                        <span class="@($"badge {CountdownTimerBadgeClass(item)} ml-2")">
+                            <CountdownTimer EndTime="@item.AutoCloseAt.Value" /> left
+                        </span>
+                    }
                 </h4>
 
                 @if (!string.IsNullOrEmpty(item.PollResults))
                 {
                     var choiceData = GetOrSetupPollData(item);
 
-                    @* TODO: cache this json parsing *@
-                    var resultData = item.ParsedResults!;
+                    var resultData = GetParsedResultsWithCache(item);
 
                     <div>
+                        @* TODO: grab a graphs library and make nice result graphs *@
                         Results:
                         <ol>
                             @foreach (var result in resultData.Results)
@@ -53,19 +58,21 @@ else
 
                     @if (resultData.TiebreakInFavourOf != null)
                     {
-                        <div>
+                        <p>
                             Tiebreak has been decided in favour of:
                             @choiceData.Item2.Choices[resultData.TiebreakInFavourOf.Value].Name
-                        </div>
+                        </p>
                     }
 
                     <div>
                         Total votes: @resultData.TotalVotes
                     </div>
 
-                    <p>Results computed at: @(item.PollResultsCreatedAt?.ToLocalTime().ToString("G"))</p>
+                    <p>
+                        Results computed at: @(item.PollResultsCreatedAt?.ToLocalTime().ToString("G")).
+                        Poll's tiebreak type: @item.TiebreakType
+                    </p>
                 }
-
 
                 @if (item.ClosedAt == null)
                 {
@@ -74,46 +81,119 @@ else
                     <p>Choices:</p>
 
                     <form>
-                        @* TODO: implement other poll types than weighted choices *@
-                        <div>
-                            Rank one or more choices, 1 being your most preferred, and highest number
-                            your least preferred.
-                        </div>
-
-                        @foreach (var choice in data.Item2.Choices)
+                        @if (data.Item2.WeightedChoices != null)
                         {
-                            var elementId = $"poll{item.PollId}Choice{choice.Key}";
+                            var renderCount = GetNextRenderCount(item);
 
-                            <div class="form-row">
-                                <div class="form-group col-12">
-                                    <label for="@elementId">@choice.Value.Name</label>
-                                    <input type="number" min="1" max="@data.Item2.Choices.Count" step="1"
-                                           class="form-control" id="@elementId"
-                                           @bind="data.Item1[choice.Key].ChoiceNumber">
-                                </div>
+                            <div>
+                                Rank one or more choices according to your preference, 1 being your most preferred,
+                                and highest number your least preferred. More preference numbers to select become
+                                available as you set your most preferred choices.
                             </div>
+
+                            @* Don't apply reordering here based on what is the first choice as that's very confusing *@
+                            @foreach (var choice in data.Item2.Choices)
+                            {
+                                var elementId = WeightedChoicePollElementId(item, choice.Key, renderCount);
+
+                                <div class="form-row">
+                                    <div class="form-group col-12">
+                                        <label for="@elementId">@choice.Value.Name</label>
+                                        <select @key="elementId" class="custom-select" id="@elementId"
+                                                value="@data.Item1[choice.Key].ChoiceNumber"
+                                                @onchange="e => UpdatePollChoiceRank(
+                                                choice.Value, e, item, data.Item1)">
+                                            <option value="">No preference</option>
+                                            @foreach (var number in GetPossibleWeightedChoiceNumbers(data.Item1))
+                                            {
+                                                <option value="@number">@(number).</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else if (data.Item2.MultipleChoiceOption != null)
+                        {
+                            @foreach (var choice in data.Item2.Choices)
+                            {
+                                var elementId = $"poll{item.PollId}Choice{choice.Key}";
+
+                                <div class="form-row">
+                                    <div class="form-group col-12">
+                                        <label for="@elementId">@choice.Value.Name</label>
+                                        <input type="checkbox" id="@elementId"
+                                               checked="@(data.Item1[choice.Key].ChoiceNumber != null)"
+                                               @onchange="e => MultipleChoiceButtonChanged(choice.Value, e,
+                                                data.Item1)" />
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else if (data.Item2.SingleChoiceOption != null)
+                        {
+                            @foreach (var choice in data.Item2.Choices)
+                            {
+                                var elementId = $"poll{item.PollId}Choice{choice.Key}";
+
+                                <div class="form-row">
+                                    <div class="form-group col-12">
+                                        <input type="radio" id="@elementId"
+                                               checked="@(data.Item1[choice.Key].ChoiceNumber != null)"
+                                               @onchange="e => SingleChoiceButtonChanged(choice.Value, e,
+                                                data.Item1)" />
+                                        <label for="@elementId">@choice.Value.Name</label>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div>Error: unknown poll type to vote in</div>
                         }
 
-                        <Button Enabled="@(!processing)" Spinner="@processing" ButtonStyle="primary" class="mb-1"
+                        <p>Tiebreak type for this poll is: @item.TiebreakType</p>
+
+                        @if (AlreadyVotedIn(item))
+                        {
+                            <p>You have already voted in this poll</p>
+                        }
+
+                        <Button Enabled="@(!IsRunningPollAction(item) && !AlreadyVotedIn(item))"
+                                Spinner="@IsRunningPollAction(item)" ButtonStyle="primary" class="mb-1 mr-1"
                                 OnPressed="@(() => SendVotes(item))">
                             Vote
+                        </Button>
+
+                        <Button Enabled="@(!IsRunningPollAction(item) && !AlreadyVotedIn(item))"
+                                ButtonStyle="warning" class="mb-1" OnPressed="@(() => ClearVotes(item))">
+                            Clear Votes
                         </Button>
                     </form>
                 }
                 else
                 {
                     <p>This poll closed at @item.ClosedAt.Value.ToLocalTime().ToString("G")</p>
+
+                    @if (item.AutoCloseAt == null)
+                    {
+                        <p>This poll was manually closed by <UsernameDisplayer UserId="@item.ManuallyClosedById"/></p>
+                    }
                 }
 
-                @* TODO: implement manually closing polls *@
-                @* ReSharper disable CSharpWarnings::CS0162 *@
-                <Button Enabled="@(false && item.ClosedAt == null)" ButtonStyle="warning">Close Now</Button>
-                @* ReSharper restore CSharpWarnings::CS0162 *@
-                <Button Enabled="@(item.ClosedAt != null && !IsRunningPollAction(item.PollId))"
-                        Spinner="@IsRunningPollAction(item.PollId)"
-                        ButtonStyle="secondary" class="ml-1" OnPressed="@(() => RecomputePollResults(item))">
-                    Recompute Results
-                </Button>
+                @if (CanEdit)
+                {
+                    <Button Enabled="@(item.ClosedAt == null && !IsRunningPollAction(item))"
+                            Spinner="@IsRunningPollAction(item)"
+                            ButtonStyle="danger" class="mr-1" OnPressed="@(() => ClosePoll(item))">
+                        Close Now
+                    </Button>
+                    <Button Enabled="@(item.ClosedAt != null && !IsRunningPollAction(item))"
+                            Spinner="@IsRunningPollAction(item)"
+                            ButtonStyle="secondary" OnPressed="@(() => RecomputePollResults(item))">
+                        Recompute Results
+                    </Button>
+                }
             </div>
         }
     }
@@ -123,14 +203,21 @@ else
     @if (!showNewForm)
     {
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+
+        <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.WeightedChoice))"
+                Enabled="@CanEdit">
+            New Weighted Choice (election)
+        </Button>
+        <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.MultipleChoice))"
+                Enabled="@CanEdit">
+            New Multiple Choice
+        </Button>
+        <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.SingleChoice))"
+                Enabled="@CanEdit">
+            New Single Choice
+        </Button>
     }
-
-    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew"
-            Enabled="@(!processingNewForm && CanEdit)">
-        New
-    </Button>
-
-    @if (showNewForm)
+    else
     {
         <form>
             <div class="form-row">
@@ -180,26 +267,58 @@ else
             }
 
             <div class="form-row">
-                <Button class="mb-2" Enabled="@(!processingNewForm)" OnPressed="@AddNewChoice">
+                <Button class="mb-3" Enabled="@(!processingNewForm)" OnPressed="@AddNewChoice">
                     Add Choice
                 </Button>
             </div>
 
+            @if (newPollData.MultipleChoiceOption != null)
+            {
+                <div class="form-group col-md-6">
+                    <label class="mr-1" for="newMinChoices">Minimum Number of Options Voters Can Choose</label>
+                    <input type="number" min="0" max="@(newPollData.Choices.Count - 1)" step="1"
+                           class="form-control" id="newMinChoices"
+                           @bind="newPollData.MultipleChoiceOption.MinimumSelections">
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label class="mr-1" for="newMaxChoices">Maximum Number Of Options</label>
+                    <input type="number" min="1" max="@newPollData.Choices.Count" step="1"
+                           class="form-control" id="newMaxChoices"
+                           @bind="newPollData.MultipleChoiceOption.MaximumSelections">
+                </div>
+            }
+            else if (newPollData.WeightedChoices != null)
+            {
+                <div class="form-group col-md-12">
+                    <label class="mr-1" for="newAllowEmpty">Can Votes Be Empty?</label>
+                    <input type="checkbox" id="newAllowEmpty"
+                           @bind="newPollData.WeightedChoices.CanSelectNone">
+                </div>
+            }
+            else if (newPollData.SingleChoiceOption != null)
+            {
+                <div class="form-group col-md-12">
+                    <label class="mr-1" for="newAllowEmpty">Can Votes Be Empty?</label>
+                    <input type="checkbox" id="newAllowEmpty"
+                           @bind="newPollData.SingleChoiceOption.CanSelectNone">
+                </div>
+            }
+
             <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-            <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+            <Button class="my-1 mr-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
                 Create
+            </Button>
+            <Button class="my-1" OnPressed="@HideNewForm" ButtonStyle="secondary">
+                Cancel
             </Button>
         </form>
     }
 }
 
-<hr />
-
 @code {
-
-    private readonly Dictionary<long, Tuple<Dictionary<int, VoteData>, PollData>> pollChoices = new ();
-    private readonly Dictionary<long, bool> pollsWithActiveAction = new ();
-    private bool processing;
+    private readonly ClientSideResourceStatus<PollResourceStatus> clientSideResourceStatus = new();
+    private readonly System.Timers.Timer secondTimer;
 
     private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
@@ -222,8 +341,22 @@ else
     private bool CanCreateNew => !processingNewForm &&
         !string.IsNullOrEmpty(newPollDTOData.Title) && newPollData.Choices.Count > 1;
 
+    private enum NewPollType
+    {
+        WeightedChoice,
+        SingleChoice,
+        MultipleChoice,
+    }
+
     public MeetingPolls() : base(new SortHelper("PollId", SortDirection.Ascending))
     {
+        secondTimer = new System.Timers.Timer(1000);
+        secondTimer.Elapsed += CheckActivePollsTimer;
+    }
+
+    public void Dispose()
+    {
+        secondTimer.Dispose();
     }
 
     protected override async Task OnInitializedAsync()
@@ -254,6 +387,12 @@ else
             QueryHelpers.AddQueryString($"api/v1/Meetings/{MeetingId}/polls", requestParams));
     }
 
+    protected override Task OnDataReceived()
+    {
+        secondTimer.Start();
+        return base.OnDataReceived();
+    }
+
     private void SetStatusMessage(string message, SiteNoticeType noticeType)
     {
         statusMessage = message;
@@ -261,36 +400,60 @@ else
         StateHasChanged();
     }
 
-    private void ToggleCreateNew()
+    private void HideNewForm()
     {
-        if (showNewForm)
-        {
-            showNewForm = false;
-        }
-        else
-        {
-            showNewForm = true;
-            createMessage = null;
+        showNewForm = false;
+    }
 
-            newAutoCloseInMinutes = 3;
-            newPollDTOData = new MeetingPollDTO()
-            {
-                MeetingId = MeetingId,
-                TiebreakType = VotingTiebreakType.Random,
-            };
+    private void ShowNewForm(NewPollType newPollType)
+    {
+        showNewForm = true;
+        createMessage = null;
 
-            newPollData = new PollData()
+        newAutoCloseInMinutes = 5;
+        newPollDTOData = new MeetingPollDTO()
+        {
+            MeetingId = MeetingId,
+            // In association general meetings normal votes have the chairman as the tiebreak
+            // This can be manually still edited as the poll type doesn't necessarily tell what is voted on, nor
+            // if this is a general meeting or perhaps a board meeting
+            TiebreakType = VotingTiebreakType.Chairman,
+        };
+
+        newPollData = new PollData()
+        {
+            Choices = new Dictionary<int, PollData.PollChoice>()
             {
-                Choices = new Dictionary<int, PollData.PollChoice>()
+                { 1, new PollData.PollChoice(1, "Choice 1") },
+                { 2, new PollData.PollChoice(2, "Choice 2") },
+            },
+        };
+
+        switch (newPollType)
+        {
+            case NewPollType.WeightedChoice:
+                newPollData.WeightedChoices = new PollData.WeightedChoicesList();
+
+                // In elections, which are usually where the weighted choice is used, random chance is the tiebreak
+                newPollDTOData.TiebreakType = VotingTiebreakType.Random;
+
+                break;
+            case NewPollType.SingleChoice:
+                newPollData.SingleChoiceOption = new PollData.SingleChoice()
                 {
-                    {1, new PollData.PollChoice(1, "Choice 1")},
-                    {2, new PollData.PollChoice(2, "Choice 2")},
-                },
-                WeightedChoices = new PollData.WeightedChoicesList(),
-            };
+                    CanSelectNone = false,
+                };
+                break;
+            case NewPollType.MultipleChoice:
+                newPollData.MultipleChoiceOption = new PollData.MultipleChoice()
+                {
+                    MinimumSelections = 1,
+                    MaximumSelections = 2,
+                };
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(newPollType), newPollType, null);
         }
-
-        StateHasChanged();
     }
 
     private void AddNewChoice()
@@ -356,7 +519,7 @@ else
 
     private async Task SendVotes(MeetingPollDTO item)
     {
-        processing = true;
+        SetProcessingStatus(item, true);
         // TODO: add own message holder here
         createMessage = null;
         createMessageType = SiteNoticeType.Danger;
@@ -369,7 +532,7 @@ else
             result = await Http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/vote",
                 new PollVoteData()
             {
-                SelectedOptions = pollChoices[item.PollId].Item1.AsEnumerable()
+                SelectedOptions = GetStatus(item).PollChoices!.Item1.AsEnumerable()
                     .Where(t => t.Value.ChoiceNumber != null)
                     .OrderBy(t => t.Value.ChoiceNumber)
                     .Select(t => t.Key).ToList(),
@@ -378,12 +541,12 @@ else
         catch (HttpRequestException e)
         {
             createMessage = $"Network request failed: {e.Message}";
-            processing = false;
+            SetProcessingStatus(item, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processing = false;
+        SetProcessingStatus(item, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -395,14 +558,24 @@ else
         {
             createMessage = "Votes sent";
             createMessageType = SiteNoticeType.Info;
+
+            GetStatus(item).AlreadyVoted = true;
         }
 
         await InvokeAsync(StateHasChanged);
     }
 
+    private void ClearVotes(MeetingPollDTO item)
+    {
+        foreach (var vote in GetStatus(item).PollChoices!.Item1.Values)
+        {
+            vote.ChoiceNumber = null;
+        }
+    }
+
     private async void RecomputePollResults(MeetingPollDTO item)
     {
-        pollsWithActiveAction[item.PollId] = true;
+        SetProcessingStatus(item, true);
         // TODO: use same message holder as sending votes when that gets its own message
         createMessage = null;
         createMessageType = SiteNoticeType.Danger;
@@ -418,12 +591,12 @@ else
         catch (HttpRequestException e)
         {
             createMessage = $"Network request failed: {e.Message}";
-            pollsWithActiveAction[item.PollId] = false;
+            SetProcessingStatus(item, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        pollsWithActiveAction[item.PollId] = false;
+        SetProcessingStatus(item, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -440,29 +613,191 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
+    private async void ClosePoll(MeetingPollDTO item)
+    {
+        // TODO: see the comment in RecomputePollResults
+        SetProcessingStatus(item, true);
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/close",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            SetProcessingStatus(item, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(item, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "Poll closed";
+            createMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
     private Tuple<Dictionary<int, VoteData>, PollData> GetOrSetupPollData(MeetingPollDTO item)
     {
-        if (!pollChoices.TryGetValue(item.PollId, out var data))
+        var status = GetStatus(item);
+
+        if (status.PollChoices == null)
         {
-            data = new Tuple<Dictionary<int, VoteData>, PollData>(new Dictionary<int, VoteData>(),
+            var data = new Tuple<Dictionary<int, VoteData>, PollData>(new Dictionary<int, VoteData>(),
                 item.ParsedData);
             foreach (var choice in data.Item2.Choices)
             {
                 data.Item1[choice.Key] = new VoteData();
             }
 
-            pollChoices[item.PollId] = data;
+            status.PollChoices = data;
         }
 
-        return data;
+        return status.PollChoices;
     }
 
-    private bool IsRunningPollAction(long pollId)
+    private void UpdatePollChoiceRank(PollData.PollChoice choice, ChangeEventArgs e,
+        MeetingPollDTO poll, Dictionary<int, VoteData> voteData)
     {
-        if (!pollsWithActiveAction.TryGetValue(pollId, out bool running))
+        var value = e.Value?.ToString();
+
+        int? targetValue;
+
+        if (string.IsNullOrEmpty(value))
+        {
+            targetValue = null;
+        }
+        else
+        {
+            targetValue = int.Parse(value);
+
+            if (targetValue < 1)
+                throw new Exception("new order number can't be less than 1");
+        }
+
+        // Don't do anything if the value didn't change
+        if (targetValue == voteData[choice.Id].ChoiceNumber)
+            return;
+
+        if (targetValue == null)
+        {
+            voteData[choice.Id].ChoiceNumber = null;
+        }
+        else
+        {
+            // Increment values that would become duplicates
+            foreach (var entry in voteData)
+            {
+                if (entry.Key == choice.Id)
+                    continue;
+
+                var otherVote = entry.Value;
+                if (otherVote.ChoiceNumber == null)
+                    continue;
+
+                if (otherVote.ChoiceNumber >= targetValue)
+                {
+                    otherVote.ChoiceNumber = otherVote.ChoiceNumber.Value + 1;
+                }
+            }
+
+            voteData[choice.Id].ChoiceNumber = targetValue;
+        }
+
+        PreventGapsInSelectedWeightedChoices(poll, voteData);
+    }
+
+    private void PreventGapsInSelectedWeightedChoices(MeetingPollDTO poll, Dictionary<int, VoteData> voteData)
+    {
+        // Make sure the numbers have no gaps by redoing them
+        int nextValue = 0;
+
+        foreach (var entry in voteData.Where(t => t.Value.ChoiceNumber != null).OrderBy(t => t.Value.ChoiceNumber!))
+        {
+            entry.Value.ChoiceNumber = ++nextValue;
+        }
+
+        StateHasChanged();
+
+        if (voteData.Values.Where(v => v.ChoiceNumber != null).GroupBy(v => v.ChoiceNumber).Any(g => g.Count() > 1))
+        {
+            Console.Error.WriteLine("Vote adjusting caused duplicate choice numbers");
+            
+            statusMessage = "Error in processing vote preference numbers";
+            createMessageType = SiteNoticeType.Danger;
+        }
+    }
+
+    /// <summary>
+    ///   We don't want to always show a ton of numbers to pick from, so we show just the numbers in use, plus one
+    /// </summary>
+    private IEnumerable<int> GetPossibleWeightedChoiceNumbers(Dictionary<int, VoteData> voteData)
+    {
+        return Enumerable.Range(1, 1 + voteData.Count(e => e.Value.ChoiceNumber != null));
+    }
+
+    private void SingleChoiceButtonChanged(PollData.PollChoice choice, ChangeEventArgs e,
+        Dictionary<int, VoteData> voteData)
+    {
+        bool selected = (string?)e.Value == "on";
+
+        if (!selected)
+            return;
+
+        // Unset all options except the one selected
+        foreach (var entry in voteData)
+        {
+            if (entry.Key == choice.Id)
+            {
+                entry.Value.ChoiceNumber = selected ? 1 : null;
+            }
+            else
+            {
+                entry.Value.ChoiceNumber = null;
+            }
+        }
+    }
+
+    private void MultipleChoiceButtonChanged(PollData.PollChoice choice, ChangeEventArgs e,
+        Dictionary<int, VoteData> voteData)
+    {
+        bool selected = (bool?)e.Value ?? false;
+
+        // Set the changed vote to the wanted state
+        voteData[choice.Id].ChoiceNumber = selected ? 1 : null;
+    }
+
+    /// <summary>
+    ///   Gets status for a poll. This is a helper method as id vs pollId confusion caused a problem so this is here
+    ///   to reduce the chance of that kind of problem.
+    /// </summary>
+    private PollResourceStatus GetStatus(MeetingPollDTO poll)
+    {
+        return clientSideResourceStatus.GetStatus(poll.Id);
+    }
+
+    private bool IsRunningPollAction(MeetingPollDTO poll)
+    {
+        if (!clientSideResourceStatus.HasStatus(poll.Id))
             return false;
 
-        return running;
+        return GetStatus(poll).Processing;
     }
 
     private class VoteData
@@ -470,4 +805,118 @@ else
         public int? ChoiceNumber;
     }
 
+    private bool AlreadyVotedIn(MeetingPollDTO poll)
+    {
+        return GetStatus(poll).AlreadyVoted;
+    }
+
+    private void SetProcessingStatus(MeetingPollDTO poll, bool processingPoll)
+    {
+        GetStatus(poll).Processing = processingPoll;
+    }
+
+    private int GetNextRenderCount(MeetingPollDTO poll)
+    {
+        return ++GetStatus(poll).RenderCount;
+    }
+
+    private PollResultData GetParsedResultsWithCache(MeetingPollDTO poll)
+    {
+        var status = GetStatus(poll);
+
+        if (status.RawData == poll.PollResults)
+        {
+            return status.ParsedData ?? throw new Exception("Poll results to read doesn't exist yet");
+        }
+
+        status.ParsedData = poll.ParsedResults ?? throw new Exception("Parsed results is null");
+        status.RawData = poll.PollResults;
+        return status.ParsedData;
+    }
+
+    private string CountdownTimerBadgeClass(MeetingPollDTO poll)
+    {
+        var remaining = poll.AutoCloseAt - DateTime.UtcNow;
+
+        if (AlreadyVotedIn(poll))
+        {
+            return "badge-success";
+        }
+
+        if (remaining > TimeSpan.FromMinutes(5))
+        {
+            return "badge-secondary";
+        }
+
+        if (remaining > TimeSpan.FromMinutes(1))
+        {
+            return "badge-warning";
+        }
+
+        return "badge-danger";
+    }
+
+    private void CheckActivePollsTimer(object? sender, ElapsedEventArgs e)
+    {
+        // Detect if any polls crossed the one minute remaining threshold, and update our state in that case
+        if (Data == null || Data.Count < 1)
+            return;
+
+        bool changed = false;
+        var now = DateTime.UtcNow;
+
+        foreach (var poll in Data)
+        {
+            if (poll.ClosedAt == null && poll.AutoCloseAt != null)
+            {
+                var state = GetStatus(poll);
+
+                if (state.BelowOneMinute)
+                    continue;
+
+                var remaining = poll.AutoCloseAt.Value - now;
+
+                if (remaining < TimeSpan.FromMinutes(1))
+                {
+                    state.BelowOneMinute = true;
+                    changed = true;
+                }
+
+                if (state.BelowFiveMinutes)
+                    continue;
+
+                if (remaining < TimeSpan.FromMinutes(5))
+                {
+                    state.BelowFiveMinutes = true;
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed)
+            InvokeAsync(StateHasChanged);
+    }
+
+    private string WeightedChoicePollElementId(MeetingPollDTO poll, int option, int renderCount)
+    {
+        return $"poll{poll.PollId}_Choice{option}_RCount_{renderCount}";
+    }
+
+    private class PollResourceStatus : DeletedResourceStatus
+    {
+        public string? RawData;
+        public PollResultData? ParsedData;
+
+        public bool AlreadyVoted;
+
+        public Tuple<Dictionary<int, VoteData>, PollData>? PollChoices;
+
+        public bool BelowOneMinute;
+        public bool BelowFiveMinutes;
+
+        /// <summary>
+        ///   Used to workaround a blazor bug with selects getting stuck with old values to make unique keys
+        /// </summary>
+        public int RenderCount;
+    }
 }

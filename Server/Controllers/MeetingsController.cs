@@ -272,6 +272,16 @@ namespace ThriveDevCenter.Server.Controllers
                     return BadRequest("You must select at least one option");
             }
 
+            long? president = null;
+
+            switch (poll.TiebreakType)
+            {
+                case VotingTiebreakType.President:
+                    // Fetch this data here before checking if the vote is a duplicate
+                    president = await GetAssociationPresidentUserId();
+                    break;
+            }
+
             // Fail if already voted
             if (await GetPollVotingRecord(meeting.Id, poll.PollId, user.Id) != null)
                 return BadRequest("You have already voted in this poll");
@@ -296,11 +306,23 @@ namespace ThriveDevCenter.Server.Controllers
                 PollId = poll.PollId,
                 VotingPower = votingPower,
                 ParsedVoteContent = request,
-
-                // TODO: when this is a board meeting the president's vote is the deciding factor.
-                // In a meeting the chairman's vote resolves a tiebreak (this is currently assumed)
-                IsTiebreaker = user.Id == meeting.ChairmanId,
             };
+
+            switch (poll.TiebreakType)
+            {
+                case VotingTiebreakType.Random:
+                    // Don't store tiebreak data when it is not needed
+                    break;
+                case VotingTiebreakType.Chairman:
+                    vote.IsTiebreaker = user.Id == meeting.ChairmanId;
+                    break;
+                case VotingTiebreakType.President:
+                    // Association's current president is the tiebreaker
+                    vote.IsTiebreaker = user.Id == president;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
 
             await database.MeetingPollVotingRecords.AddAsync(votingRecord);
             await database.MeetingPollVotes.AddAsync(vote);
@@ -357,9 +379,6 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 if (parsedData.MultipleChoiceOption != null || parsedData.SingleChoiceOption != null)
                     return BadRequest("Bad poll with multiple types set");
-
-                // Weighted type poll
-                throw new NotImplementedException();
             }
             else if (parsedData.MultipleChoiceOption != null)
             {
@@ -387,10 +406,8 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
                 return this.WorkingForbid("You don't have permission to create polls in this meeting");
 
-            if (request.AutoCloseAt < DateTime.UtcNow + TimeSpan.FromMinutes(1))
-            {
-                return BadRequest("Poll can't auto-close in less than a minute");
-            }
+            if (request.AutoCloseAt < DateTime.UtcNow + TimeSpan.FromSeconds(100))
+                return BadRequest("Poll can't auto-close in less than 100 seconds");
 
             if (await database.MeetingPolls.FirstOrDefaultAsync(p => p.Title == request.Title) != null)
                 return BadRequest("A poll with that title already exists");
@@ -456,12 +473,20 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
                 return this.WorkingForbid("You don't have permission to recompute polls in this meeting");
 
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+            {
+                Message = $"Poll in meeting ({meeting.Id}) with title: {poll.Title} has been recomputed. " +
+                    "Note that random value used for tiebreak will be recomputed and may change the result.",
+                PerformedById = user.Id,
+            });
+
             jobClient.Enqueue<ComputePollResultsJob>(x => x.Execute(poll.MeetingId, poll.PollId,
                 CancellationToken.None));
 
             logger.LogInformation("User {Email} has queued recompute for poll {Id} at {UtcNow}", user.Email,
                 poll.PollId, DateTime.UtcNow);
 
+            await database.SaveChangesAsync();
             return Ok();
         }
 
@@ -694,6 +719,13 @@ namespace ThriveDevCenter.Server.Controllers
         {
             return database.MeetingPollVotingRecords.FirstOrDefaultAsync(r =>
                 r.MeetingId == meetingId && r.PollId == pollId && r.UserId == userId);
+        }
+
+        [NonAction]
+        private Task<long?> GetAssociationPresidentUserId()
+        {
+            return database.AssociationMembers.Where(a => a.CurrentPresident).Select(a => a.UserId)
+                .FirstOrDefaultAsync();
         }
     }
 }
