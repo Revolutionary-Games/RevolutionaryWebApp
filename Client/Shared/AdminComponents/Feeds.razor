@@ -182,7 +182,7 @@ else
 
     private bool IsProcessing(long feedId)
     {
-        if (!clientSideResourceStatus.HashStatus(feedId))
+        if (!clientSideResourceStatus.HasStatus(feedId))
             return false;
 
         return clientSideResourceStatus.GetStatus(feedId).Processing;

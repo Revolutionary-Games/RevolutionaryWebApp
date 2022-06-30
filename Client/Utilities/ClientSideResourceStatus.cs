@@ -9,10 +9,13 @@ namespace ThriveDevCenter.Client.Utilities
 
         public T GetStatus(long resourceId)
         {
-            if (!statuses.ContainsKey(resourceId))
-                statuses[resourceId] = new T();
+            lock (statuses)
+            {
+                if (!statuses.ContainsKey(resourceId))
+                    statuses[resourceId] = new T();
 
-            return statuses[resourceId];
+                return statuses[resourceId];
+            }
         }
 
         public void SetDeletedStatus(long resourceId)
@@ -28,7 +31,7 @@ namespace ThriveDevCenter.Client.Utilities
             return statuses[resourceId].Deleted;
         }
 
-        public bool HashStatus(long resourceId)
+        public bool HasStatus(long resourceId)
         {
             return statuses.ContainsKey(resourceId);
         }

@@ -256,7 +256,7 @@
 
     private bool IsProcessing(long serverId)
     {
-        if (!clientSideResourceStatus.HashStatus(serverId))
+        if (!clientSideResourceStatus.HasStatus(serverId))
             return false;
 
         return clientSideResourceStatus.GetStatus(serverId).Processing;
