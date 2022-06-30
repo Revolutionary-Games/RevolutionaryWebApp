@@ -590,6 +590,9 @@ namespace ThriveDevCenter.Server.Controllers
             if (meeting.EndedAt != null)
                 return BadRequest("The meeting has already been ended");
 
+            if (meeting.ChairmanId == newChairman.Id)
+                return Ok("Meeting already has the specified user as chairman");
+
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"Meeting ({meeting.Id}) has now {newChairman.NameOrEmail} ({newChairmanId}) as the chairman",

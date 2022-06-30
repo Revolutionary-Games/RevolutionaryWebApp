@@ -62,6 +62,8 @@ namespace ThriveDevCenter.Shared
         public const int MinUsernameLength = 2;
         public const int MaxUsernameLength = 100;
 
+        public const int MinNameLengthToLookFor = 2;
+
         public const int MaximumTokenLength = 10000;
 
         public const int MinimumReportTextSearchLength = 3;

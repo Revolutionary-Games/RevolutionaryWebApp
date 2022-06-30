@@ -61,7 +61,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpGet("{id:long}")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<UserInfo>> GetUser([Required] long id)
         {
             bool admin =
@@ -84,7 +84,7 @@ namespace ThriveDevCenter.Server.Controllers
         // could be shown?
 
         [HttpPost("usernames")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
         {
             var users = await database.Users.Where(u => ids.Contains(u.Id))
@@ -109,8 +109,25 @@ namespace ThriveDevCenter.Server.Controllers
             return result;
         }
 
+        [HttpPost("pickUser")]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+        public async Task<ActionResult<Dictionary<long, string>>> FindUserToPick(
+            [Required]
+            [StringLength(300, MinimumLength = AppInfo.MinNameLengthToLookFor)]
+            [FromBody]
+            string partialName)
+        {
+            // TODO: case insensitive matching
+            // TODO: fuzzy matching
+            var users = await database.Users
+                .Where(u => u.UserName == null ? u.Email.Contains(partialName) : u.UserName.Contains(partialName))
+                .Select(u => new Tuple<long, string>(u.Id, u.UserName)).ToListAsync();
+
+            return users.ToDictionary(t => t.Item1, t => t.Item2);
+        }
+
         [HttpGet("{id:long}/sessions")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<PagedResult<SessionDTO>>> GetUserSessions([Required] long id,
             [Required] string sortColumn,
             [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -149,7 +166,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpDelete("{id:long}/sessions")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteAllUserSessions([Required] long id)
         {
             bool admin =
@@ -193,7 +210,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpDelete("{id:long}/otherSessions")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteOtherUserSessions([Required] long id)
         {
             var user = await database.Users.FindAsync(id);
@@ -228,7 +245,7 @@ namespace ThriveDevCenter.Server.Controllers
         }
 
         [HttpDelete("{id:long}/sessions/{sessionId:long}")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.User)]
+        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
         public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteSpecificUserSession([Required] long id,
             [Required] long sessionId)
         {

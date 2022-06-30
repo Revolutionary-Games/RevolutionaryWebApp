@@ -1,0 +1,211 @@
+@inject HttpClient Http
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Client.Utilities
+@using System.Text.Json
+@using System.Timers
+@using ThriveDevCenter.Shared.Converters
+@implements IDisposable
+
+<div>
+    <form class="form-inline">
+        <input type="text" class="form-control flex-fill mr-1" value="@searchTerm" @oninput="OnTextChanged"
+               placeholder="Username..." />
+
+        <Button ButtonStyle="primary" type="submit" Spinner="@fetching" OnPressed="@RefreshSearch"
+                Enabled="@(!fetching && CanSearch)">
+            Search
+        </Button>
+    </form>
+
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+
+    @if (fetching)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    }
+    else if (string.IsNullOrEmpty(lastFetchedWith))
+    {
+        <p>Search by username to pick a user</p>
+
+        @if (Selected != null)
+        {
+            <div>Already selected user by id: @Selected</div>
+        }
+    }
+    else if (lastFetchedWith.Length < AppInfo.MinNameLengthToLookFor)
+    {
+        <p>Please type more characters to search</p>
+
+        @if (Selected != null)
+        {
+            <div>Already selected user by id: @Selected</div>
+        }
+    }
+    else if (usersToPickFrom is {Count: > 0 })
+    {
+        <div class="mt-2 mb-1 ml-1">Pick user:</div>
+        <ul class="mb-2">
+            @foreach (var entry in usersToPickFrom.OrderBy(t => t.Value))
+            {
+                <input type="radio" checked="@(Selected == entry.Key)" class="mr-1"
+                       @onchange="async e => await OnRadioButtonPressed(e, entry.Key)" />
+                <span @onclick="async _ => await OnUserPicked(entry.Key)" class="clickable">
+                    @entry.Value
+                </span>
+            }
+        </ul>
+
+        @if (Selected != null && usersToPickFrom.All(t => t.Key != Selected))
+        {
+            <div>Already selected user by id: @Selected</div>
+        }
+    }
+    else
+    {
+        <p>No users found</p>
+
+        @if (Selected != null)
+        {
+            <div>Already selected user by id: @Selected</div>
+        }
+    }
+</div>
+
+@code {
+    private readonly Timer pauseInTypingTimer;
+
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool fetching;
+
+    private string lastFetchedWith = string.Empty;
+
+    private string searchTerm = string.Empty;
+
+    private Dictionary<long, string>? usersToPickFrom;
+
+    private bool textChanged;
+
+    [Parameter]
+    public long? Selected { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public EventCallback<long> OnSelected { get; set; }
+
+    private bool CanSearch => !string.IsNullOrEmpty(searchTerm) && searchTerm.Length >= AppInfo.MinNameLengthToLookFor;
+
+    public UserPicker()
+    {
+        pauseInTypingTimer = new Timer(500)
+        {
+            Enabled = false,
+        };
+        pauseInTypingTimer.Elapsed += TimerElapsed;
+    }
+
+    public void Dispose()
+    {
+        pauseInTypingTimer.Dispose();
+    }
+
+    private async Task OnRadioButtonPressed(ChangeEventArgs e, long userId)
+    {
+        if ((string?)e.Value == "on")
+        {
+            await OnUserPicked(userId);
+        }
+    }
+
+    private Task OnUserPicked(long user)
+    {
+        return OnSelected.InvokeAsync(user);
+    }
+
+    private void OnTextChanged(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString() ?? string.Empty;
+
+        if (newValue == searchTerm)
+            return;
+
+        searchTerm = newValue;
+        textChanged = true;
+
+        pauseInTypingTimer.Enabled = true;
+    }
+
+    private void TimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        if (textChanged)
+        {
+            textChanged = false;
+        }
+        else if(lastFetchedWith != searchTerm && !fetching)
+        {
+            RefreshSearch();
+            pauseInTypingTimer.Enabled = false;
+        }
+    }
+
+    private async void RefreshSearch()
+    {
+        // Skip if we already searched with the current string
+        if (lastFetchedWith == searchTerm)
+            return;
+
+        if (!CanSearch)
+        {
+            lastFetchedWith = searchTerm;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        fetching = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        lastFetchedWith = searchTerm;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/UserManagement/pickUser", lastFetchedWith);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            fetching = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        fetching = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            try
+            {
+                usersToPickFrom = JsonSerializer.Deserialize<Dictionary<long, string>>(content,
+                    HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
+            }
+            catch (Exception e)
+            {
+                statusMessage = $"Parsing server response failed: {e}";
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

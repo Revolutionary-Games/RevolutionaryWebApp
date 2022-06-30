@@ -1,7 +1,6 @@
 @page "/association/meetings/{Id:long}"
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@inject NavigationManager NavigationManager
 @inject CurrentUserInfo CurrentUserInfo
 @inherits SingleResourcePage<MeetingDTO, MeetingUpdated>
 @using ThriveDevCenter.Shared.Models
@@ -24,17 +23,47 @@
             <li><strong>Expected Duration</strong>: @Data.ExpectedDuration</li>
             <li><strong>Joinable By</strong>: @Data.JoinAccess</li>
             <li><strong>Visible To</strong>: @Data.ReadAccess</li>
-            <li><strong>Owner</strong>: @Data.OwnerId</li>
+            <li><strong>Owner</strong>: <UsernameDisplayer UserId="@Data.OwnerId"/></li>
+            <li><strong>Chairman</strong>: <UsernameDisplayer UserId="@Data.ChairmanId"/></li>
             <li><strong>Join Grace Period After Start</strong>: @Data.JoinGracePeriod</li>
             <li><strong>Read Only</strong>: @Data.ReadOnly</li>
+            @* TODO: implement *@
             <li><strong>Secretary</strong>: @Data.SecretaryId</li>
         </ul>
+
+        @if (CanControl)
+        {
+            @if (!showChairmanChanger)
+            {
+                <Button Enabled="@(!IsEnded && !processingAction)" ButtonStyle="warning" class="mb-1"
+                        Spinner="@processingAction" OnPressed="@ToggleShowChairmanChanger">
+                    Change Chairman
+                </Button>
+            }
+            else
+            {
+                <UserPicker Selected="@newChairman" OnSelected="@OnNewChairmanPicked" />
+
+                <Button Enabled="@(!IsEnded && !processingAction && newChairman != null)"
+                        ButtonStyle="warning" class="mb-1 mr-1" Spinner="@processingAction"
+                        OnPressed="@SetNewChairman">
+                    Change Chairman
+                </Button>
+
+                <Button Enabled="@(!processingAction)" ButtonStyle="secondary" class="mb-1"
+                        OnPressed="@ToggleShowChairmanChanger">
+                    Cancel
+                </Button>
+            }
+
+            <br />
+        }
 
         <h3>Description</h3>
 
         <p>@Data.Description</p>
 
-        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@ClearStatusMessage"/>
 
         <AccessLimited RequiredAccess="UserAccessLevel.RestrictedUser" AutoRedirectIfNotLoggedIn="@false">
             @if (!isMemberRetrieved)
@@ -65,10 +94,16 @@
 
         <MeetingPolls MeetingId="@Id" CanEdit="@(CanControl && !IsEnded)" />
 
+        <hr />
+
         <h3>Minutes</h3>
         <p>@Data.Minutes</p>
 
+        @* TODO: implement editing and approving these *@
+
         <h3>Members</h3>
+
+        @* TODO: show a list of members *@
 
         <h3>Actions</h3>
 
@@ -85,12 +120,15 @@
     private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-    private bool isMemberRetrieved = false;
+    private bool isMemberRetrieved;
     private bool retrievingMembershipInfo;
     private bool isMember;
 
     private bool joiningOrLeavingMeeting;
     private bool processingAction;
+
+    private bool showChairmanChanger;
+    private long? newChairman;
 
     private bool CanControl => Data != null && (Data.OwnerId == CurrentUserInfo.Info?.Id || CurrentUserInfo.IsAdmin);
     private bool IsEnded => Data is {EndedAt: { } };
@@ -243,5 +281,74 @@
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleShowChairmanChanger()
+    {
+        showChairmanChanger = !showChairmanChanger;
+
+        if (!showChairmanChanger)
+        {
+            newChairman = null;
+        }
+    }
+
+    private void OnNewChairmanPicked(long user)
+    {
+        newChairman = user;
+        StateHasChanged();
+    }
+
+    private async void SetNewChairman()
+    {
+        statusMessageType = SiteNoticeType.Danger;
+
+        if (newChairman == null)
+        {
+            statusMessage = "No new chairman picked";
+            return;
+        }
+
+        processingAction = true;
+        statusMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync($"api/v1/Meetings/{Id}/chairman",
+                newChairman.Value);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingAction = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingAction = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Meeting chairman has been changed";
+            statusMessageType = SiteNoticeType.Info;
+
+            showChairmanChanger = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearStatusMessage()
+    {
+        statusMessage = null;
     }
 }
