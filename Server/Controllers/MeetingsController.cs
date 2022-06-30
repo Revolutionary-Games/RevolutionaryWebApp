@@ -384,6 +384,12 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 if (parsedData.WeightedChoices != null || parsedData.SingleChoiceOption != null)
                     return BadRequest("Bad poll with multiple types set");
+
+                if (parsedData.MultipleChoiceOption.MinimumSelections >
+                    parsedData.MultipleChoiceOption.MaximumSelections)
+                {
+                    return BadRequest("Minimum selections can't be higher than max selections");
+                }
             }
             else if (parsedData.SingleChoiceOption != null)
             {
