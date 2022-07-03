@@ -154,9 +154,9 @@ public class MeetingPoll : IUpdateNotifications
 
         PollResultData results = new()
         {
-            Results = countedVotes.AsEnumerable().Select(pair => new Tuple<int, double>(pair.Key, pair.Value))
+            Results = countedVotes.AsEnumerable().Select(pair => new PollResultData.ChoiceVotes(pair.Key, pair.Value))
                 .OrderByDescending(tuple => tuple.Item2).ToList(),
-            TotalVotes = totalVotes
+            TotalVotes = totalVotes,
         };
 
         const double epsilon = 0.00001;

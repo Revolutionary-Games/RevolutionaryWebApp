@@ -322,5 +322,28 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
             Assert.Equal(3, resultData.Results[2].Item1);
             Assert.Equal(3, resultData.Results[2].Item2);
         }
+
+        [Fact]
+        public void Poll_ParsingResultDataWorks()
+        {
+            var poll = new MeetingPoll()
+            {
+                ClosedAt = DateTime.UtcNow,
+                PollResults =
+                    @"{""Results"":[{""Item1"":1,""Item2"":5},{""Item1"":2,""Item2"":1}],""TotalVotes"":6,""TiebreakInFavourOf"":null}",
+            };
+
+            var results = poll.ParsedResults;
+
+            Assert.NotNull(results);
+            Assert.Equal(2, results!.Results.Count);
+
+            var dto = poll.GetDTO();
+
+            results = dto.ParsedResults;
+
+            Assert.NotNull(results);
+            Assert.Equal(2, results!.Results.Count);
+        }
     }
 }

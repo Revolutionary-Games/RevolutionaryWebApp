@@ -51,7 +51,7 @@ else
                         <ol>
                             @foreach (var result in resultData.Results)
                             {
-                                <li><strong>@choiceData.Item2.Choices[result.Item1].Name:</strong> @result.Item2</li>
+                                <li><strong>@choiceData.Item2.Choices[result.ChoiceId].Name:</strong> @result.Votes</li>
                             }
                         </ol>
                     </div>
@@ -845,7 +845,22 @@ else
             return status.ParsedData ?? throw new Exception("Poll results to read doesn't exist yet");
         }
 
-        status.ParsedData = poll.ParsedResults ?? throw new Exception("Parsed results is null");
+        try
+        {
+            status.ParsedData = poll.ParsedResults ?? throw new Exception("Parsed results is null");
+        }
+        catch (Exception e)
+        {
+            createMessage = $"Failed to parse results of poll {poll.Title}, it will show incorrect results!";
+            createMessageType = SiteNoticeType.Danger;
+
+            Console.Error.WriteLine($"Error parsing poll results for poll ({poll.MeetingId}-{poll.PollId}): {e}");
+            status.ParsedData = new PollResultData()
+            {
+                Results = new List<PollResultData.ChoiceVotes>() { new(1, 0) },
+            };
+        }
+
         status.RawData = poll.PollResults;
         return status.ParsedData;
     }
