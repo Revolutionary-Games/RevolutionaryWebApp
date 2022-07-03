@@ -526,6 +526,7 @@ namespace ThriveDevCenter.Server.Controllers
             });
 
             poll.ClosedAt = DateTime.UtcNow;
+            poll.AutoCloseAt = null;
             poll.ManuallyClosedById = user.Id;
             await database.SaveChangesAsync();
 

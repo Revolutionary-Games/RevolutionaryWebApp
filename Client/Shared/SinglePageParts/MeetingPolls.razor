@@ -184,7 +184,7 @@ else
                 {
                     <p>This poll closed at @item.ClosedAt.Value.ToLocalTime().ToString("G")</p>
 
-                    @if (item.AutoCloseAt == null)
+                    @if (item.AutoCloseAt == null || item.ManuallyClosedById != null)
                     {
                         <p>This poll was manually closed by <UsernameDisplayer UserId="@item.ManuallyClosedById"/></p>
                     }
