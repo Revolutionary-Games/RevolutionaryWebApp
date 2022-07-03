@@ -85,7 +85,7 @@ else
                         {
                             var renderCount = GetNextRenderCount(item);
 
-                            <div>
+                            <div class="mb-1">
                                 Rank one or more choices according to your preference, 1 being your most preferred,
                                 and highest number your least preferred. More preference numbers to select become
                                 available as you set your most preferred choices.
@@ -115,6 +115,11 @@ else
                         }
                         else if (data.Item2.MultipleChoiceOption != null)
                         {
+                            <div class="mb-1">
+                                Select @data.Item2.MultipleChoiceOption.MinimumSelections to
+                                @data.Item2.MultipleChoiceOption.MaximumSelections options below.
+                            </div>
+
                             @foreach (var choice in data.Item2.Choices)
                             {
                                 var elementId = $"poll{item.PollId}Choice{choice.Key}";
@@ -132,6 +137,10 @@ else
                         }
                         else if (data.Item2.SingleChoiceOption != null)
                         {
+                            <div class="mb-1">
+                                Select your preferred choice below.
+                            </div>
+
                             @foreach (var choice in data.Item2.Choices)
                             {
                                 var elementId = $"poll{item.PollId}Choice{choice.Key}";
@@ -535,6 +544,7 @@ else
                 SelectedOptions = GetStatus(item).PollChoices!.Item1.AsEnumerable()
                     .Where(t => t.Value.ChoiceNumber != null)
                     .OrderBy(t => t.Value.ChoiceNumber)
+                    .ThenBy(t => t.Key)
                     .Select(t => t.Key).ToList(),
             });
         }
@@ -780,6 +790,9 @@ else
         bool selected = (bool?)e.Value ?? false;
 
         // Set the changed vote to the wanted state
+
+        // TODO: set the numbers sequentially so that the first selected option is the lowest number so that tiebreaker
+        // votes pick the winning option more naturally
         voteData[choice.Id].ChoiceNumber = selected ? 1 : null;
     }
 
