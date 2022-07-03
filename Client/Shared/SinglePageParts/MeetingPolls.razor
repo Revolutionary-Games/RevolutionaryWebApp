@@ -355,9 +355,6 @@ else
         WeightedChoice,
         SingleChoice,
         MultipleChoice,
-
-        // This exists just to quiet a code check about unreachable code
-        Invalid,
     }
 
     public MeetingPolls() : base(new SortHelper("PollId", SortDirection.Ascending))
@@ -463,8 +460,6 @@ else
                     MaximumSelections = 2,
                 };
                 break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(newPollType), newPollType, null);
         }
     }
 
