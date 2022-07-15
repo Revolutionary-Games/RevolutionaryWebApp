@@ -290,11 +290,18 @@ public class RevolutionaryDiscordBotService
 
         if (version == null)
         {
-            milestone = milestones.MaxBy(m => m.DueOn);
+            milestone = milestones.Where(m => m.State == "open" && m.DueOn != null).MinBy(m => m.DueOn);
+
+            milestone ??= milestones.Where(m => m.State == "open").MinBy(m => m.CreatedAt);
         }
         else
         {
-            milestone = milestones.OrderByDescending(m => m.DueOn).FirstOrDefault(m => m.Title.Contains(version));
+            // First exact or ends with match
+            milestone = milestones.FirstOrDefault(m => m.Title.Equals(version)) ??
+                milestones.FirstOrDefault(m => m.Title.EndsWith(version));
+
+            // Then just a simple contains in sorted order
+            milestone ??= milestones.OrderByDescending(m => m.DueOn).FirstOrDefault(m => m.Title.Contains(version));
         }
 
         if (milestone == null)
