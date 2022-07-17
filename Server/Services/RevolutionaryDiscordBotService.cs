@@ -181,13 +181,13 @@ public class RevolutionaryDiscordBotService
         }
 
         // If commands are changed the version numbers here *must* be updated
-        bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 1);
+        bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 2);
 
-        if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 1))
+        if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 2))
             changes = true;
-        if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 1))
+        if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 2))
             changes = true;
-        if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 1))
+        if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 2))
             changes = true;
 
         if (changes)
@@ -212,7 +212,7 @@ public class RevolutionaryDiscordBotService
 
         try
         {
-            await client.CreateGlobalApplicationCommandAsync(BuildProgressCommand().Build());
+            await client.CreateGlobalApplicationCommandAsync(builder.Build());
         }
         catch (HttpException e)
         {
