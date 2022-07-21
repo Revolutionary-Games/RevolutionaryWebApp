@@ -43,5 +43,21 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
 
             // ReSharper restore StringLiteralTypo
         }
+
+        [Fact]
+        public void Stackwalk_NoFramesCondenseWorks()
+        {
+            var stackwalk = new Stackwalk(new ConfigurationBuilder().Build());
+
+            // ReSharper disable StringLiteralTypo
+            var result = stackwalk.CondenseCallstack(@"Thread 25 (crashed)
+ <no frames>
+");
+
+            Assert.Equal(@" <no frames>
+", result);
+
+            // ReSharper restore StringLiteralTypo
+        }
     }
 }

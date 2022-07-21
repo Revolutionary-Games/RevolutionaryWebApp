@@ -23,6 +23,7 @@ namespace ThriveDevCenter.Server.Services
             new(@"Thread\s+\d+\s+\(crashed\).*", RegexOptions.IgnoreCase);
 
         private static readonly Regex StackFrameStartRegex = new(@"^\s*\d+\s+.*");
+        private static readonly Regex NoFramesRegex = new(@"^\s*<no\s+frames>.*");
 
         private readonly HttpClient httpClient;
         private readonly Uri? serviceBaseUrl;
@@ -134,6 +135,14 @@ namespace ThriveDevCenter.Server.Services
 
             foreach (var line in callstack.Split('\n'))
             {
+                if (NoFramesRegex.IsMatch(line))
+                {
+                    // No frames reported for this callstack, just copy the current line and end
+                    builder.Append(line);
+                    builder.Append('\n');
+                    break;
+                }
+
                 if (!StackFrameStartRegex.IsMatch(line))
                     continue;
 
