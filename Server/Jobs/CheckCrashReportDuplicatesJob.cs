@@ -61,6 +61,15 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
+            // Don't detect reports that have no valid callstack as duplicates
+            if (report.CondensedCallstack.Contains("<no frames>"))
+            {
+                logger.LogWarning(
+                    "Report {ReportId} doesn't have detected callstack frames, skipping duplicate check",
+                    reportId);
+                return;
+            }
+
             // TODO: should this use the first 75% of the stack lines to find duplicates (but at least 3)?
 
             // TODO: if this is a public report, it should not become a duplicate of a private report
