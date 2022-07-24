@@ -34,6 +34,7 @@ else
                 <tr @key="item.Id">
                     <th scope="row"><NavLink href="@($"builds/{item.Id}")">@item.Id</NavLink></th>
                     <td>@item.BuildHash</td>
+                    <td>@item.Branch.Truncate()</td>
                     <td>@item.Platform</td>
                     <td>@item.Verified</td>
                     <td>@item.Score</td>
@@ -54,6 +55,7 @@ else
     {
         new TableColumn("ID", true, "Id"),
         new TableColumn("Commit", false),
+        new TableColumn("Branch", false),
         new TableColumn("Platform", true),
         new TableColumn("Verified", false),
         new TableColumn("Score", false),
