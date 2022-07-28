@@ -44,6 +44,9 @@ public class RevolutionaryDiscordBotService
     private static readonly TimeSpan
         CommandIntervalBeforeRunningAgain = TimeSpan.FromSeconds(SecondsBetweenSameCommand);
 
+    private static readonly TimeSpan
+        DisconnectedTimeBeforeAssumePermanentFailure = TimeSpan.FromMinutes(8);
+
     private readonly ILogger<RevolutionaryDiscordBotService> logger;
     private readonly IHttpClientFactory httpClientFactory;
     private readonly ApplicationDbContext database;
@@ -73,6 +76,8 @@ public class RevolutionaryDiscordBotService
 
     private DisposableTimedResourceCache<Image>? overallTranslationStatus;
     private DisposableTimedResourceCache<Image>? translationProgress;
+
+    private DateTime? disconnectedSince;
 
     public RevolutionaryDiscordBotService(ILogger<RevolutionaryDiscordBotService> logger, IConfiguration configuration,
         IHttpClientFactory httpClientFactory, ApplicationDbContext database)
@@ -115,20 +120,98 @@ public class RevolutionaryDiscordBotService
 
         SetupCachedResourceFetching();
 
-        // Then start the Discord bot part to make sure our resources are setup before the first callbacks from it
-        logger.LogInformation("Revolutionary Bot for Discord is starting");
-        client = new DiscordSocketClient();
-        client.Log += Log;
-        client.Ready += ClientReady;
-        client.SlashCommandExecuted += SlashCommandHandler;
+        // This loop is here to allow us to recreate the client if it entirely fails to connect
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            disconnectedSince = DateTime.UtcNow;
 
-        await client.LoginAsync(TokenType.Bot, botToken);
-        await client.StartAsync();
+            logger.LogInformation("Revolutionary Bot for Discord is starting");
+            client = new DiscordSocketClient();
+            client.Log += Log;
+            client.Ready += ClientReady;
+            client.SlashCommandExecuted += SlashCommandHandler;
+            client.Connected += OnConnected;
+            client.Disconnected += OnDisconnected;
 
-        // Wait until we are stopped
-        await Task.Delay(-1, stoppingToken);
+            await client.LoginAsync(TokenType.Bot, botToken);
+            await client.StartAsync();
 
-        await client.StopAsync();
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                // Wait until we are stopped (or we need to restart the client)
+                await Task.Delay(DisconnectedTimeBeforeAssumePermanentFailure, stoppingToken);
+
+                if (disconnectedSince != null && !stoppingToken.IsCancellationRequested)
+                {
+                    TimeSpan failureTime;
+                    try
+                    {
+                        failureTime = DateTime.UtcNow - disconnectedSince.Value;
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogWarning(e, "Failed to get time since bot disconnect");
+                        continue;
+                    }
+
+                    if (failureTime > DisconnectedTimeBeforeAssumePermanentFailure)
+                    {
+                        logger.LogError(
+                            "Discord bot has been in disconnected state for {FailureTime}, force recreating client",
+                            failureTime);
+
+                        var oldClient = client;
+
+                        // Run this cleanup in the background in case this is permanently stuck
+                        async void CleanupOldClient()
+                        {
+                            logger.LogInformation("Trying to stop old failed discord client");
+                            try
+                            {
+                                await oldClient.StopAsync();
+                                await oldClient.DisposeAsync();
+                                logger.LogInformation("Old discord client stopped");
+                            }
+                            catch (Exception e)
+                            {
+                                logger.LogWarning(e, "Old discord client stop failure");
+                            }
+                        }
+
+                        var stopTask = new Task(CleanupOldClient);
+
+                        stopTask.Start();
+
+                        client = null;
+                        break;
+                    }
+                }
+            }
+
+            if (client != null)
+                await client.StopAsync();
+        }
+    }
+
+    private Task OnConnected()
+    {
+        logger.LogTrace("We are now connected to Discord");
+        disconnectedSince = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OnDisconnected(Exception arg)
+    {
+        if (disconnectedSince != null)
+            return Task.CompletedTask;
+
+        logger.LogInformation(
+            "We got disconnected from Discord, we'll wait {WaitTime} before force recreating the client",
+            DisconnectedTimeBeforeAssumePermanentFailure);
+
+        disconnectedSince = DateTime.UtcNow;
+
+        return Task.CompletedTask;
     }
 
     private void SetupCachedResourceFetching()
