@@ -57,7 +57,7 @@ namespace ThriveDevCenter.Shared.Tests.Notifications.Tests
 
             Assert.IsType<LFSListUpdated>(deserialized);
 
-            var casted = (LFSListUpdated)deserialized!;
+            var casted = (LFSListUpdated)deserialized;
 
             Assert.Equal(original.Type, casted.Type);
 

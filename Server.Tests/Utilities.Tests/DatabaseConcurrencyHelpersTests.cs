@@ -40,9 +40,9 @@ namespace ThriveDevCenter.Server.Tests.Utilities.Tests
 
             var item1Instance2 = await database.CrashReports.FindAsync(item1.Id);
             Assert.NotNull(item1Instance2);
-            Assert.Equal(item1.Id, item1Instance2!.Id);
+            Assert.Equal(item1.Id, item1Instance2.Id);
 
-            Assert.NotEqual(item1.Description, UpdatedDescription);
+            Assert.NotEqual(UpdatedDescription, item1.Description);
             Assert.Equal(item1.Description, item1Instance2.Description);
             item1Instance2.Description = UpdatedDescription;
             Assert.NotNull(item1Instance2.DumpLocalFileName);
