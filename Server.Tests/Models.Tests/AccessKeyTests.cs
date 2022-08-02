@@ -29,7 +29,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
 
             Assert.NotNull(deserialized);
 
-            Assert.Equal(key.Id, deserialized!.Id);
+            Assert.Equal(key.Id, deserialized.Id);
             Assert.Equal(key.Description, deserialized.Description);
             Assert.Equal(key.HashedKeyCode, deserialized.HashedKeyCode);
             Assert.Equal(key.KeyCode, deserialized.KeyCode);

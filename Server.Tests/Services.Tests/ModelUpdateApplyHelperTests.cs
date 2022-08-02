@@ -37,7 +37,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             Assert.True(changes);
             Assert.NotNull(description);
             Assert.NotEmpty(description);
-            Assert.False(description!.StartsWith(","));
+            Assert.False(description.StartsWith(","));
             Assert.NotNull(fields);
             Assert.Contains(nameof(Model.SomeField), fields);
             Assert.DoesNotContain(nameof(Model.Id), fields);
@@ -112,6 +112,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
 
         private class Model
         {
+            // ReSharper disable once PropertyCanBeMadeInitOnly.Local
             public long Id { get; set; } = 1;
 
             [UpdateFromClientRequest]

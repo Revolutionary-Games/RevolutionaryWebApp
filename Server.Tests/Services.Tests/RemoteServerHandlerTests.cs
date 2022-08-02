@@ -72,7 +72,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var server = await database.ControlledServers.FirstOrDefaultAsync();
 
             Assert.NotNull(server);
-            Assert.Equal(NewInstanceId, server!.InstanceId);
+            Assert.Equal(NewInstanceId, server.InstanceId);
             Assert.Equal(ServerStatus.Provisioning, server.Status);
 
             ec2Mock.Verify();

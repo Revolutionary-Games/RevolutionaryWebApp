@@ -191,7 +191,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             var resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
 
             Assert.NotNull(resultUser);
-            Assert.Equal(user1!.Id, resultUser!.Id);
+            Assert.Equal(user1.Id, resultUser.Id);
             Assert.Equal(user1.Email, resultUser.Email);
 
             requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/restrictedUser").ToString());
@@ -230,7 +230,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
 
             Assert.NotNull(resultUser);
-            Assert.Equal(user2!.Id, resultUser!.Id);
+            Assert.Equal(user2.Id, resultUser.Id);
             Assert.Equal(user2.Email, resultUser.Email);
 
             requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
@@ -261,7 +261,7 @@ namespace ThriveDevCenter.Server.Tests.Authorization.Tests
             resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
 
             Assert.NotNull(resultUser);
-            Assert.Equal(user3!.Id, resultUser!.Id);
+            Assert.Equal(user3.Id, resultUser.Id);
             Assert.Equal(user3.Email, resultUser.Email);
 
             requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());

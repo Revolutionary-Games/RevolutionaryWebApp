@@ -40,7 +40,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.NotNull(data);
             Assert.Single(data);
-            Assert.Equal(fixture.CLA2Signature1Email, data![0].Email);
+            Assert.Equal(fixture.CLA2Signature1Email, data[0].Email);
             Assert.Null(data[0].GithubAccount);
             Assert.Equal(fixture.CLA2Signature1DeveloperUsername, data[0].DeveloperUsername);
 
@@ -50,7 +50,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.NotNull(data);
             Assert.Single(data);
-            Assert.Equal(fixture.CLA2Signature2Email, data![0].Email);
+            Assert.Equal(fixture.CLA2Signature2Email, data[0].Email);
             Assert.Null(data[0].GithubAccount);
             Assert.Null(data[0].DeveloperUsername);
         }
@@ -71,7 +71,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.NotNull(data);
             Assert.Single(data);
-            Assert.Equal(fixture.CLA2Signature1Github, data![0].GithubAccount);
+            Assert.Equal(fixture.CLA2Signature1Github, data[0].GithubAccount);
             Assert.Null(data[0].Email);
             Assert.Equal(fixture.CLA2Signature1DeveloperUsername, data[0].DeveloperUsername);
 
@@ -81,7 +81,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.NotNull(data);
             Assert.Single(data);
-            Assert.Equal(fixture.CLA2Signature2Github, data![0].GithubAccount);
+            Assert.Equal(fixture.CLA2Signature2Github, data[0].GithubAccount);
             Assert.Null(data[0].Email);
             Assert.Null(data[0].DeveloperUsername);
         }
@@ -103,7 +103,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.NotNull(data);
             Assert.Single(data);
-            Assert.Equal(fixture.CLA2Signature1Email, data![0].Email);
+            Assert.Equal(fixture.CLA2Signature1Email, data[0].Email);
             Assert.Equal(fixture.CLA2Signature1Github, data[0].GithubAccount);
             Assert.Equal(fixture.CLA2Signature1DeveloperUsername, data[0].DeveloperUsername);
 
@@ -114,7 +114,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.NotNull(data);
             Assert.Single(data);
-            Assert.Equal(fixture.CLA2Signature2Email, data![0].Email);
+            Assert.Equal(fixture.CLA2Signature2Email, data[0].Email);
             Assert.Equal(fixture.CLA2Signature2Github, data[0].GithubAccount);
             Assert.Null(data[0].DeveloperUsername);
         }
@@ -161,7 +161,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.NotNull(data);
             Assert.Single(data);
-            Assert.Equal(fixture.CLA2Signature1Email, data![0].Email);
+            Assert.Equal(fixture.CLA2Signature1Email, data[0].Email);
             Assert.Equal(fixture.CLA2Signature1Github, data[0].GithubAccount);
             Assert.Equal(fixture.CLA2Signature1DeveloperUsername, data[0].DeveloperUsername);
 
@@ -173,7 +173,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             Assert.NotNull(data);
             Assert.Single(data);
-            Assert.Equal(fixture.CLA2Signature2Email, data![0].Email);
+            Assert.Equal(fixture.CLA2Signature2Email, data[0].Email);
             Assert.Equal(fixture.CLA2Signature2Github, data[0].GithubAccount);
             Assert.Null(data[0].DeveloperUsername);
         }

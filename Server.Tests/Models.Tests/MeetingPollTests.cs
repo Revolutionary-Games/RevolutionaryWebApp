@@ -68,7 +68,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
             var resultData = poll.ParsedResults;
 
             Assert.NotNull(resultData);
-            Assert.NotNull(resultData!.Results);
+            Assert.NotNull(resultData.Results);
             Assert.Null(resultData.TiebreakInFavourOf);
             Assert.Equal(7.833333333333334, resultData.TotalVotes);
 
@@ -146,7 +146,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
             var resultData = poll.ParsedResults;
 
             Assert.NotNull(resultData);
-            Assert.NotNull(resultData!.Results);
+            Assert.NotNull(resultData.Results);
             Assert.Null(resultData.TiebreakInFavourOf);
             Assert.Equal(6, resultData.TotalVotes);
 
@@ -227,7 +227,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
             var resultData = poll.ParsedResults;
 
             Assert.NotNull(resultData);
-            Assert.NotNull(resultData!.Results);
+            Assert.NotNull(resultData.Results);
             Assert.Null(resultData.TiebreakInFavourOf);
             Assert.Equal(6, resultData.TotalVotes);
 
@@ -305,7 +305,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
             var resultData = poll.ParsedResults;
 
             Assert.NotNull(resultData);
-            Assert.NotNull(resultData!.Results);
+            Assert.NotNull(resultData.Results);
             Assert.Null(resultData.TiebreakInFavourOf);
             Assert.Equal(10, resultData.TotalVotes);
 
@@ -336,14 +336,14 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
             var results = poll.ParsedResults;
 
             Assert.NotNull(results);
-            Assert.Equal(2, results!.Results.Count);
+            Assert.Equal(2, results.Results.Count);
 
             var dto = poll.GetDTO();
 
             results = dto.ParsedResults;
 
             Assert.NotNull(results);
-            Assert.Equal(2, results!.Results.Count);
+            Assert.Equal(2, results.Results.Count);
         }
     }
 }

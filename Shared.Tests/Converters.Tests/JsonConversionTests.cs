@@ -19,7 +19,7 @@ public class JsonConversionTests
 
         var received1 = JsonSerializer.Deserialize<Model>(JsonSerializer.Serialize(original1));
         Assert.NotNull(received1);
-        Assert.Equal(original1.Data, received1!.Data);
+        Assert.Equal(original1.Data, received1.Data);
 
         Assert.True(Validator.TryValidateObject(received1, new ValidationContext(received1), errors));
         Assert.Empty(errors);
@@ -28,7 +28,7 @@ public class JsonConversionTests
 
         var received2 = JsonSerializer.Deserialize<Model>(JsonSerializer.Serialize(original2));
         Assert.NotNull(received2);
-        Assert.Equal(original2.Data, received2!.Data);
+        Assert.Equal(original2.Data, received2.Data);
 
         Assert.False(Validator.TryValidateObject(received2, new ValidationContext(received2), errors));
         Assert.NotEmpty(errors);
@@ -38,7 +38,7 @@ public class JsonConversionTests
         var received3 = JsonSerializer.Deserialize<Model>("{}");
         Assert.NotNull(received3);
 
-        Assert.False(Validator.TryValidateObject(received3!, new ValidationContext(received3!), errors));
+        Assert.False(Validator.TryValidateObject(received3, new ValidationContext(received3), errors));
         Assert.NotEmpty(errors);
     }
 
@@ -49,7 +49,7 @@ public class JsonConversionTests
         Assert.NotNull(deserialized);
 
         // This shouldn't be null in the optimal world, but that is how this performs now
-        Assert.Null(deserialized!.Data);
+        Assert.Null(deserialized.Data);
 
         // At least validation fails
         var errors = new List<ValidationResult>();
@@ -60,7 +60,7 @@ public class JsonConversionTests
         var deserialized2 = JsonSerializer.Deserialize<WorstModel>("{}");
         Assert.NotNull(deserialized2);
 
-        Assert.Null(deserialized2!.Data);
+        Assert.Null(deserialized2.Data);
 
         Assert.False(Validator.TryValidateObject(deserialized2, new ValidationContext(deserialized2), errors));
         Assert.NotEmpty(errors);

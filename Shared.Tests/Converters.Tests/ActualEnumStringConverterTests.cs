@@ -44,7 +44,7 @@ namespace ThriveDevCenter.Shared.Tests.Converters.Tests
         {
             var deserialized = JsonSerializer.Deserialize<Container>($"{{\"Value\":\"{value}\"}}");
             Assert.NotNull(deserialized);
-            Assert.Equal(expected, deserialized!.Value);
+            Assert.Equal(expected, deserialized.Value);
         }
 
         [Theory]
@@ -62,7 +62,7 @@ namespace ThriveDevCenter.Shared.Tests.Converters.Tests
             var deserialized = JsonSerializer.Deserialize<Container>(serialized);
 
             Assert.NotNull(deserialized);
-            Assert.Equal(value, deserialized!.Value);
+            Assert.Equal(value, deserialized.Value);
         }
 
         private class Container
