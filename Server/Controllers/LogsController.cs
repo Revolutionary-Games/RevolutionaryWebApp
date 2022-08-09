@@ -1,101 +1,100 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace ThriveDevCenter.Server.Controllers
+namespace ThriveDevCenter.Server.Controllers;
+
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+using Authorization;
+using BlazorPagination;
+using Filters;
+using Microsoft.Extensions.Logging;
+using Models;
+using Shared;
+using Shared.Models;
+using Utilities;
+
+[ApiController]
+[Route("api/v1/[controller]")]
+public class LogsController : Controller
 {
-    using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using Authorization;
-    using BlazorPagination;
-    using Filters;
-    using Microsoft.Extensions.Logging;
-    using Models;
-    using Shared;
-    using Shared.Models;
-    using Utilities;
+    private readonly ILogger<LogsController> logger;
+    private readonly ApplicationDbContext database;
 
-    [ApiController]
-    [Route("api/v1/[controller]")]
-    public class LogsController : Controller
+    public LogsController(ILogger<LogsController> logger,
+        ApplicationDbContext database)
     {
-        private readonly ILogger<LogsController> logger;
-        private readonly ApplicationDbContext database;
+        this.logger = logger;
+        this.database = database;
+    }
 
-        public LogsController(ILogger<LogsController> logger,
-            ApplicationDbContext database)
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [HttpGet("logs")]
+    public async Task<PagedResult<LogEntryDTO>> GetLogs([Required] string sortColumn,
+        [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+        [Required] [Range(1, 1000)] int pageSize)
+    {
+        IQueryable<LogEntry> query;
+
+        try
         {
-            this.logger = logger;
-            this.database = database;
+            query = database.LogEntries.OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        [HttpGet("logs")]
-        public async Task<PagedResult<LogEntryDTO>> GetLogs([Required] string sortColumn,
-            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-            [Required] [Range(1, 1000)] int pageSize)
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetDTO());
+    }
+
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [HttpGet("adminActions")]
+    public async Task<PagedResult<AdminActionDTO>> GetAdminActions([Required] string sortColumn,
+        [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+        [Required] [Range(1, 1000)] int pageSize)
+    {
+        IQueryable<AdminAction> query;
+
+        try
         {
-            IQueryable<LogEntry> query;
-
-            try
-            {
-                query = database.LogEntries.OrderBy(sortColumn, sortDirection);
-            }
-            catch (ArgumentException e)
-            {
-                logger.LogWarning("Invalid requested order: {@E}", e);
-                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
-            }
-
-            var objects = await query.ToPagedResultAsync(page, pageSize);
-
-            return objects.ConvertResult(i => i.GetDTO());
+            query = database.AdminActions.OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        [HttpGet("adminActions")]
-        public async Task<PagedResult<AdminActionDTO>> GetAdminActions([Required] string sortColumn,
-            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-            [Required] [Range(1, 1000)] int pageSize)
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetDTO());
+    }
+
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [HttpGet("actions")]
+    public async Task<PagedResult<ActionLogEntryDTO>> GetActions([Required] string sortColumn,
+        [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+        [Required] [Range(1, 1000)] int pageSize)
+    {
+        IQueryable<ActionLogEntry> query;
+
+        try
         {
-            IQueryable<AdminAction> query;
-
-            try
-            {
-                query = database.AdminActions.OrderBy(sortColumn, sortDirection);
-            }
-            catch (ArgumentException e)
-            {
-                logger.LogWarning("Invalid requested order: {@E}", e);
-                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
-            }
-
-            var objects = await query.ToPagedResultAsync(page, pageSize);
-
-            return objects.ConvertResult(i => i.GetDTO());
+            query = database.ActionLogEntries.OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        [HttpGet("actions")]
-        public async Task<PagedResult<ActionLogEntryDTO>> GetActions([Required] string sortColumn,
-            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-            [Required] [Range(1, 1000)] int pageSize)
-        {
-            IQueryable<ActionLogEntry> query;
+        var objects = await query.ToPagedResultAsync(page, pageSize);
 
-            try
-            {
-                query = database.ActionLogEntries.OrderBy(sortColumn, sortDirection);
-            }
-            catch (ArgumentException e)
-            {
-                logger.LogWarning("Invalid requested order: {@E}", e);
-                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
-            }
-
-            var objects = await query.ToPagedResultAsync(page, pageSize);
-
-            return objects.ConvertResult(i => i.GetDTO());
-        }
+        return objects.ConvertResult(i => i.GetDTO());
     }
 }

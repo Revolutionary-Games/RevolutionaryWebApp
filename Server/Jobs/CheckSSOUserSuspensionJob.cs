@@ -1,43 +1,42 @@
-namespace ThriveDevCenter.Server.Jobs
+namespace ThriveDevCenter.Server.Jobs;
+
+using System.Threading;
+using System.Threading.Tasks;
+using Hangfire;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Models;
+using Services;
+using Utilities;
+
+[DisableConcurrentExecution(300)]
+public class CheckSSOUserSuspensionJob
 {
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Hangfire;
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Logging;
-    using Models;
-    using Services;
-    using Utilities;
+    private readonly ILogger<CheckSSOUserSuspensionJob> logger;
+    private readonly ApplicationDbContext database;
+    private readonly CommunityForumAPI communityAPI;
+    private readonly DevForumAPI devForumAPI;
 
-    [DisableConcurrentExecution(300)]
-    public class CheckSSOUserSuspensionJob
+    public CheckSSOUserSuspensionJob(ILogger<CheckSSOUserSuspensionJob> logger, ApplicationDbContext database,
+        CommunityForumAPI communityAPI, DevForumAPI devForumAPI)
     {
-        private readonly ILogger<CheckSSOUserSuspensionJob> logger;
-        private readonly ApplicationDbContext database;
-        private readonly CommunityForumAPI communityAPI;
-        private readonly DevForumAPI devForumAPI;
+        this.logger = logger;
+        this.database = database;
+        this.communityAPI = communityAPI;
+        this.devForumAPI = devForumAPI;
+    }
 
-        public CheckSSOUserSuspensionJob(ILogger<CheckSSOUserSuspensionJob> logger, ApplicationDbContext database,
-            CommunityForumAPI communityAPI, DevForumAPI devForumAPI)
+    public async Task Execute(string email, CancellationToken cancellationToken)
+    {
+        var user = await database.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+
+        if (user == null)
         {
-            this.logger = logger;
-            this.database = database;
-            this.communityAPI = communityAPI;
-            this.devForumAPI = devForumAPI;
+            logger.LogInformation("User to check SSO suspend status for doesn't exist, skipping job");
+            return;
         }
 
-        public async Task Execute(string email, CancellationToken cancellationToken)
-        {
-            var user = await database.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
-
-            if (user == null)
-            {
-                logger.LogInformation("User to check SSO suspend status for doesn't exist, skipping job");
-                return;
-            }
-
-            if (await SSOSuspendHandler.CheckUser(user, database, communityAPI, devForumAPI, logger, cancellationToken))
-                await database.SaveChangesAsync(cancellationToken);
-        }
+        if (await SSOSuspendHandler.CheckUser(user, database, communityAPI, devForumAPI, logger, cancellationToken))
+            await database.SaveChangesAsync(cancellationToken);
     }
 }

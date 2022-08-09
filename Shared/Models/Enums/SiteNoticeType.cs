@@ -1,47 +1,46 @@
-namespace ThriveDevCenter.Shared
+namespace ThriveDevCenter.Shared;
+
+using System;
+
+/// <summary>
+///   Notice types that can be used with bootstrap
+/// </summary>
+public enum SiteNoticeType
 {
-    using System;
+    Primary,
+    Secondary,
+    Success,
+    Danger,
+    Warning,
+    Info,
+    Light,
+    Dark,
+}
 
-    /// <summary>
-    ///   Notice types that can be used with bootstrap
-    /// </summary>
-    public enum SiteNoticeType
+public static class SiteNoticeTypeHelper
+{
+    public static string AlertClass(this SiteNoticeType type)
     {
-        Primary,
-        Secondary,
-        Success,
-        Danger,
-        Warning,
-        Info,
-        Light,
-        Dark,
-    }
-
-    public static class SiteNoticeTypeHelper
-    {
-        public static string AlertClass(this SiteNoticeType type)
+        switch (type)
         {
-            switch (type)
-            {
-                case SiteNoticeType.Primary:
-                    return "alert-primary";
-                case SiteNoticeType.Secondary:
-                    return "alert-secondary";
-                case SiteNoticeType.Success:
-                    return "alert-success";
-                case SiteNoticeType.Danger:
-                    return "alert-danger";
-                case SiteNoticeType.Warning:
-                    return "alert-warning";
-                case SiteNoticeType.Info:
-                    return "alert-info";
-                case SiteNoticeType.Light:
-                    return "alert-light";
-                case SiteNoticeType.Dark:
-                    return "alert-dark";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-            }
+            case SiteNoticeType.Primary:
+                return "alert-primary";
+            case SiteNoticeType.Secondary:
+                return "alert-secondary";
+            case SiteNoticeType.Success:
+                return "alert-success";
+            case SiteNoticeType.Danger:
+                return "alert-danger";
+            case SiteNoticeType.Warning:
+                return "alert-warning";
+            case SiteNoticeType.Info:
+                return "alert-info";
+            case SiteNoticeType.Light:
+                return "alert-light";
+            case SiteNoticeType.Dark:
+                return "alert-dark";
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
     }
 }

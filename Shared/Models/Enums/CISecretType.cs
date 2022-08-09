@@ -1,9 +1,8 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum CISecretType
 {
-    public enum CISecretType
-    {
-        SafeOnly,
-        UnsafeOnly,
-        All,
-    }
+    SafeOnly,
+    UnsafeOnly,
+    All,
 }

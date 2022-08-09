@@ -1,7 +1,6 @@
-namespace AutomatedUITests.Utilities
+namespace AutomatedUITests.Utilities;
+
+public static class ManualTestServerInstance
 {
-    public static class ManualTestServerInstance
-    {
-        public const string BaseUrl = "http://localhost:5001";
-    }
+    public const string BaseUrl = "http://localhost:5001";
 }

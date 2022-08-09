@@ -1,37 +1,36 @@
-namespace ThriveDevCenter.Server.Models
+namespace ThriveDevCenter.Server.Models;
+
+using System;
+using System.ComponentModel.DataAnnotations;
+using Shared;
+using Shared.Models;
+
+/// <summary>
+///   Important automated (non-messed) with log messages
+/// </summary>
+public class LogEntry : BaseModel
 {
-    using System;
-    using System.ComponentModel.DataAnnotations;
-    using Shared;
-    using Shared.Models;
+    [Required]
+    public string Message { get; set; } = string.Empty;
+
+    [AllowSortingBy]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    ///   Important automated (non-messed) with log messages
+    ///   The user targeted in this entry (maybe null). This is implicitly indexed
     /// </summary>
-    public class LogEntry : BaseModel
+    [AllowSortingBy]
+    public long? TargetUserId { get; set; }
+    public User? TargetUser { get; set; }
+
+    public LogEntryDTO GetDTO()
     {
-        [Required]
-        public string Message { get; set; } = string.Empty;
-
-        [AllowSortingBy]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        ///   The user targeted in this entry (maybe null). This is implicitly indexed
-        /// </summary>
-        [AllowSortingBy]
-        public long? TargetUserId { get; set; }
-        public User? TargetUser { get; set; }
-
-        public LogEntryDTO GetDTO()
+        return new()
         {
-            return new()
-            {
-                Id = Id,
-                Message = Message,
-                CreatedAt = CreatedAt,
-                TargetUserId = TargetUserId,
-            };
-        }
+            Id = Id,
+            Message = Message,
+            CreatedAt = CreatedAt,
+            TargetUserId = TargetUserId,
+        };
     }
 }

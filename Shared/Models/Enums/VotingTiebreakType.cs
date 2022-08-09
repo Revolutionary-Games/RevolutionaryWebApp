@@ -1,9 +1,8 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum VotingTiebreakType
 {
-    public enum VotingTiebreakType
-    {
-        Random,
-        Chairman,
-        President,
-    }
+    Random,
+    Chairman,
+    President,
 }

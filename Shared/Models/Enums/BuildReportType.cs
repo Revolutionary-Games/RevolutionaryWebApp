@@ -1,10 +1,9 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum BuildReportType
 {
-    public enum BuildReportType
-    {
-        Never,
-        Always,
-        OnFailure,
-        OnSuccess,
-    }
+    Never,
+    Always,
+    OnFailure,
+    OnSuccess,
 }

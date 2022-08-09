@@ -1,8 +1,7 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+public enum FileType
 {
-    public enum FileType
-    {
-        File = 0,
-        Folder,
-    }
+    File = 0,
+    Folder,
 }

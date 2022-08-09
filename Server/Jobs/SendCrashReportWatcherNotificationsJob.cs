@@ -1,22 +1,21 @@
-namespace ThriveDevCenter.Server.Jobs
+namespace ThriveDevCenter.Server.Jobs;
+
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+public class SendCrashReportWatcherNotificationsJob
 {
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Extensions.Logging;
+    private readonly ILogger<SendCrashReportWatcherNotificationsJob> logger;
 
-    public class SendCrashReportWatcherNotificationsJob
+    public SendCrashReportWatcherNotificationsJob(ILogger<SendCrashReportWatcherNotificationsJob> logger)
     {
-        private readonly ILogger<SendCrashReportWatcherNotificationsJob> logger;
+        this.logger = logger;
+    }
 
-        public SendCrashReportWatcherNotificationsJob(ILogger<SendCrashReportWatcherNotificationsJob> logger)
-        {
-            this.logger = logger;
-        }
-
-        public Task Execute(long reportId, string whatChanged, CancellationToken cancellationToken)
-        {
-            logger.LogInformation("TODO: implement email notifications for crash reports");
-            return Task.CompletedTask;
-        }
+    public Task Execute(long reportId, string whatChanged, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("TODO: implement email notifications for crash reports");
+        return Task.CompletedTask;
     }
 }

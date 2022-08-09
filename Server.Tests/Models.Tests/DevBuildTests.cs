@@ -1,67 +1,66 @@
-namespace ThriveDevCenter.Server.Tests.Models.Tests
+namespace ThriveDevCenter.Server.Tests.Models.Tests;
+
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
+using Fixtures;
+using Server.Models;
+using Xunit;
+
+public class DevBuildTests : IClassFixture<EmptyDatabaseFixture>
 {
-    using System.Collections.Generic;
-    using System.ComponentModel.DataAnnotations;
-    using System.Threading.Tasks;
-    using Fixtures;
-    using Server.Models;
-    using Xunit;
+    private readonly EmptyDatabaseFixture fixture;
 
-    public class DevBuildTests : IClassFixture<EmptyDatabaseFixture>
+    public DevBuildTests(EmptyDatabaseFixture fixture)
     {
-        private readonly EmptyDatabaseFixture fixture;
+        this.fixture = fixture;
+    }
 
-        public DevBuildTests(EmptyDatabaseFixture fixture)
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public void DevBuildVerification_FailsToSetBOTDWithoutDescription(string description)
+    {
+        var build = new DevBuild()
         {
-            this.fixture = fixture;
-        }
+            BuildHash = "123445",
+            BuildZipHash = "aabababa",
+            Branch = "master",
+            Platform = "Linux/X11",
+            BuildOfTheDay = true,
+            Description = description,
+        };
 
-        [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        [InlineData("   ")]
-        [InlineData("\t")]
-        public void DevBuildVerification_FailsToSetBOTDWithoutDescription(string description)
+        List<ValidationResult> result = new List<ValidationResult>();
+        var valid = Validator.TryValidateObject(build, new ValidationContext(build), result);
+
+        Assert.False(valid);
+        Assert.NotEmpty(result);
+    }
+
+    [Fact]
+    public async Task DevBuildVerification_CanValidateAndSaveCorrectBOTD()
+    {
+        var build = new DevBuild()
         {
-            var build = new DevBuild()
-            {
-                BuildHash = "123445",
-                BuildZipHash = "aabababa",
-                Branch = "master",
-                Platform = "Linux/X11",
-                BuildOfTheDay = true,
-                Description = description,
-            };
+            BuildHash = "123445",
+            BuildZipHash = "aabababa",
+            Branch = "master",
+            Platform = "Linux/X11",
+            BuildOfTheDay = true,
+            Description = "A cool description",
+        };
 
-            List<ValidationResult> result = new List<ValidationResult>();
-            var valid = Validator.TryValidateObject(build, new ValidationContext(build), result);
+        List<ValidationResult> result = new List<ValidationResult>();
+        var valid = Validator.TryValidateObject(build, new ValidationContext(build), result);
 
-            Assert.False(valid);
-            Assert.NotEmpty(result);
-        }
+        Assert.True(valid);
+        Assert.Empty(result);
 
-        [Fact]
-        public async Task DevBuildVerification_CanValidateAndSaveCorrectBOTD()
-        {
-            var build = new DevBuild()
-            {
-                BuildHash = "123445",
-                BuildZipHash = "aabababa",
-                Branch = "master",
-                Platform = "Linux/X11",
-                BuildOfTheDay = true,
-                Description = "A cool description",
-            };
+        await fixture.Database.DevBuilds.AddAsync(build);
 
-            List<ValidationResult> result = new List<ValidationResult>();
-            var valid = Validator.TryValidateObject(build, new ValidationContext(build), result);
-
-            Assert.True(valid);
-            Assert.Empty(result);
-
-            await fixture.Database.DevBuilds.AddAsync(build);
-
-            await fixture.Database.SaveChangesAsync();
-        }
+        await fixture.Database.SaveChangesAsync();
     }
 }

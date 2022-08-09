@@ -1,58 +1,57 @@
-namespace ThriveDevCenter.Server.Jobs
+namespace ThriveDevCenter.Server.Jobs;
+
+using System.Threading;
+using System.Threading.Tasks;
+using Hangfire;
+using Microsoft.Extensions.Logging;
+using Models;
+using Services;
+
+[DisableConcurrentExecution(60)]
+public class SetCLAGithubCommitStatusJob
 {
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Hangfire;
-    using Microsoft.Extensions.Logging;
-    using Models;
-    using Services;
+    private readonly ILogger<SetCLAGithubCommitStatusJob> logger;
+    private readonly NotificationsEnabledDb database;
+    private readonly IGithubCommitStatusReporter statusReporter;
 
-    [DisableConcurrentExecution(60)]
-    public class SetCLAGithubCommitStatusJob
+    public SetCLAGithubCommitStatusJob(ILogger<SetCLAGithubCommitStatusJob> logger, NotificationsEnabledDb database,
+        IGithubCommitStatusReporter statusReporter)
     {
-        private readonly ILogger<SetCLAGithubCommitStatusJob> logger;
-        private readonly NotificationsEnabledDb database;
-        private readonly IGithubCommitStatusReporter statusReporter;
+        this.logger = logger;
+        this.database = database;
+        this.statusReporter = statusReporter;
+    }
 
-        public SetCLAGithubCommitStatusJob(ILogger<SetCLAGithubCommitStatusJob> logger, NotificationsEnabledDb database,
-            IGithubCommitStatusReporter statusReporter)
+    public async Task Execute(long pullRequestId, CancellationToken cancellationToken)
+    {
+        var pullRequest =
+            await database.GithubPullRequests.FindAsync(new object[] { pullRequestId }, cancellationToken);
+
+        if (pullRequest == null)
         {
-            this.logger = logger;
-            this.database = database;
-            this.statusReporter = statusReporter;
+            logger.LogError("No pull request with ID {PullRequestId} found to set CLA commit status ",
+                pullRequestId);
+            return;
         }
 
-        public async Task Execute(long pullRequestId, CancellationToken cancellationToken)
+        var status = GithubAPI.CommitStatus.Pending;
+        var message = "CLA status unknown";
+
+        if (pullRequest.ClaSigned == true)
         {
-            var pullRequest =
-                await database.GithubPullRequests.FindAsync(new object[] { pullRequestId }, cancellationToken);
+            status = GithubAPI.CommitStatus.Success;
+            message = "CLA is signed";
+        }
+        else if (pullRequest.ClaSigned == false)
+        {
+            status = GithubAPI.CommitStatus.Failure;
+            message = "CLA signature missing";
+        }
 
-            if (pullRequest == null)
-            {
-                logger.LogError("No pull request with ID {PullRequestId} found to set CLA commit status ",
-                    pullRequestId);
-                return;
-            }
-
-            var status = GithubAPI.CommitStatus.Pending;
-            var message = "CLA status unknown";
-
-            if (pullRequest.ClaSigned == true)
-            {
-                status = GithubAPI.CommitStatus.Success;
-                message = "CLA is signed";
-            }
-            else if (pullRequest.ClaSigned == false)
-            {
-                status = GithubAPI.CommitStatus.Failure;
-                message = "CLA signature missing";
-            }
-
-            if (!await statusReporter.SetCommitStatus(pullRequest.Repository, pullRequest.LatestCommit,
+        if (!await statusReporter.SetCommitStatus(pullRequest.Repository, pullRequest.LatestCommit,
                 status, statusReporter.CreateStatusUrlForCLA(), message, "CLA"))
-            {
-                logger.LogError("Failed to set commit status for CLA on PR: {PullRequestId}", pullRequestId);
-            }
+        {
+            logger.LogError("Failed to set commit status for CLA on PR: {PullRequestId}", pullRequestId);
         }
     }
 }

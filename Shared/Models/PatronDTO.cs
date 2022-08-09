@@ -1,23 +1,22 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System.ComponentModel.DataAnnotations;
+
+public class PatronDTO : ClientSideTimedModel
 {
-    using System.ComponentModel.DataAnnotations;
+    [Required]
+    public string Email { get; set; } = string.Empty;
 
-    public class PatronDTO : ClientSideTimedModel
-    {
-        [Required]
-        public string Email { get; set; } = string.Empty;
+    public string? EmailAlias { get; set; }
 
-        public string? EmailAlias { get; set; }
+    [Required]
+    public string Username { get; set; } = string.Empty;
 
-        [Required]
-        public string Username { get; set; } = string.Empty;
+    public int PledgeAmountCents { get; set; }
 
-        public int PledgeAmountCents { get; set; }
+    [Required]
+    public string RewardId { get; set; } = string.Empty;
 
-        [Required]
-        public string RewardId { get; set; } = string.Empty;
-
-        public bool HasForumAccount { get; set; }
-        public bool Suspended { get; set; }
-    }
+    public bool HasForumAccount { get; set; }
+    public bool Suspended { get; set; }
 }

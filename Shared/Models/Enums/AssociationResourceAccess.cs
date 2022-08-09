@@ -1,11 +1,10 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum AssociationResourceAccess
 {
-    public enum AssociationResourceAccess
-    {
-        Public,
-        Users,
-        Developers,
-        AssociationMembers,
-        BoardMembers,
-    }
+    Public,
+    Users,
+    Developers,
+    AssociationMembers,
+    BoardMembers,
 }

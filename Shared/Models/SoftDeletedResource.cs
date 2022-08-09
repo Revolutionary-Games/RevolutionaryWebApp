@@ -1,13 +1,12 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System;
+using System.ComponentModel.DataAnnotations;
+
+public class SoftDeletedResource : ClientSideModel
 {
-    using System;
-    using System.ComponentModel.DataAnnotations;
+    [Required]
+    public string Name { get; set; } = string.Empty;
 
-    public class SoftDeletedResource : ClientSideModel
-    {
-        [Required]
-        public string Name { get; set; } = string.Empty;
-
-        public DateTime UpdatedAt { get; set; }
-    }
+    public DateTime UpdatedAt { get; set; }
 }

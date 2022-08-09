@@ -1,12 +1,11 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System.ComponentModel.DataAnnotations;
+
+public class LfsObjectDTO : ClientSideTimedModel
 {
-    using System.ComponentModel.DataAnnotations;
+    [Required]
+    public string LfsOid { get; set; } = string.Empty;
 
-    public class LfsObjectDTO : ClientSideTimedModel
-    {
-        [Required]
-        public string LfsOid { get; set; } = string.Empty;
-
-        public long Size { get; set; }
-    }
+    public long Size { get; set; }
 }

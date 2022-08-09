@@ -1,33 +1,32 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+public class LoginOptions
 {
-    using System.Collections.Generic;
-    using System.ComponentModel.DataAnnotations;
+    [Required]
+    public List<LoginCategory> Categories { get; set; } = new();
+}
 
-    public class LoginOptions
-    {
-        [Required]
-        public List<LoginCategory> Categories { get; set; } = new();
-    }
+public class LoginCategory
+{
+    [Required]
+    public string Name { get; set; } = string.Empty;
 
-    public class LoginCategory
-    {
-        [Required]
-        public string Name { get; set; } = string.Empty;
+    [Required]
+    public List<LoginOption> Options { get; set; } = new();
+}
 
-        [Required]
-        public List<LoginOption> Options { get; set; } = new();
-    }
+public class LoginOption
+{
+    [Required]
+    public string ReadableName { get; set; } = string.Empty;
 
-    public class LoginOption
-    {
-        [Required]
-        public string ReadableName { get; set; } = string.Empty;
+    [Required]
+    public string InternalName { get; set; } = string.Empty;
 
-        [Required]
-        public string InternalName { get; set; } = string.Empty;
+    public bool Active { get; set; } = true;
 
-        public bool Active { get; set; } = true;
-
-        public bool Local { get; set; }
-    }
+    public bool Local { get; set; }
 }

@@ -1,153 +1,152 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace ThriveDevCenter.Server.Controllers
+namespace ThriveDevCenter.Server.Controllers;
+
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+using Authorization;
+using BlazorPagination;
+using Filters;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Models.Interfaces;
+using Shared;
+using Shared.Models;
+using Utilities;
+
+public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : Controller
+    where TModel : class, ISoftDeletable, IDTOCreator<TDTO>, IInfoCreator<TInfo>
+    where TInfo : class
+    where TDTO : class
 {
-    using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using Authorization;
-    using BlazorPagination;
-    using Filters;
-    using Microsoft.AspNetCore.Http;
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Logging;
-    using Models.Interfaces;
-    using Shared;
-    using Shared.Models;
-    using Utilities;
+    protected abstract ILogger Logger { get; }
+    protected abstract DbSet<TModel> Entities { get; }
 
-    public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : Controller
-        where TModel : class, ISoftDeletable, IDTOCreator<TDTO>, IInfoCreator<TInfo>
-        where TInfo : class
-        where TDTO : class
+    protected abstract UserAccessLevel RequiredViewAccessLevel { get; }
+
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<TInfo>>> Get([Required] string sortColumn,
+        [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+        [Required] [Range(1, 50)] int pageSize, bool deleted = false)
     {
-        protected abstract ILogger Logger { get; }
-        protected abstract DbSet<TModel> Entities { get; }
+        if (!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel,
+                AuthenticationScopeRestriction.None))
+            return Forbid();
 
-        protected abstract UserAccessLevel RequiredViewAccessLevel { get; }
-
-        [HttpGet]
-        public async Task<ActionResult<PagedResult<TInfo>>> Get([Required] string sortColumn,
-            [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-            [Required] [Range(1, 50)] int pageSize, bool deleted = false)
+        // Only admins can view deleted items
+        if (deleted &&
+            !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
         {
-            if (!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel,
-                    AuthenticationScopeRestriction.None))
-                return Forbid();
-
-            // Only admins can view deleted items
-            if (deleted &&
-                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
-            {
-                throw new HttpResponseException()
-                    { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
-            }
-
-            IQueryable<TModel> query;
-
-            try
-            {
-                query = GetEntitiesForJustInfo(deleted, sortColumn, sortDirection);
-            }
-            catch (ArgumentException e)
-            {
-                Logger.LogWarning("Invalid requested order: {@E}", e);
-                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
-            }
-
-            var objects = await query.ToPagedResultAsync(page, pageSize);
-
-            return objects.ConvertResult(i => i.GetInfo());
+            throw new HttpResponseException()
+                { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
         }
 
-        [HttpGet("{id:long}")]
-        public async Task<ActionResult<TDTO>> GetSingle([Required] long id)
+        IQueryable<TModel> query;
+
+        try
         {
-            if (!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel,
-                    AuthenticationScopeRestriction.None))
-                return Forbid();
-
-            var item = await FindAndCheckAccess(id);
-
-            if (item == null)
-                return NotFound();
-
-            // Only admins can view deleted items
-            if (item.Deleted &&
-                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
-            {
-                return NotFound();
-            }
-
-            return item.GetDTO();
+            query = GetEntitiesForJustInfo(deleted, sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            Logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        [HttpDelete("{id:long}")]
-        public async Task<ActionResult> DeleteResource([Required] long id)
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetInfo());
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<TDTO>> GetSingle([Required] long id)
+    {
+        if (!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel,
+                AuthenticationScopeRestriction.None))
+            return Forbid();
+
+        var item = await FindAndCheckAccess(id);
+
+        if (item == null)
+            return NotFound();
+
+        // Only admins can view deleted items
+        if (item.Deleted &&
+            !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
         {
-            var item = await FindAndCheckAccess(id);
-
-            if (item == null)
-                return NotFound();
-
-            if (item.Deleted)
-                return BadRequest("Resource is already deleted");
-
-            item.Deleted = true;
-            await SaveResourceChanges(item);
-
-            return Ok();
+            return NotFound();
         }
 
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        [HttpPost("{id:long}/restore")]
-        public async Task<ActionResult> RestoreResource([Required] long id)
-        {
-            var item = await FindAndCheckAccess(id);
+        return item.GetDTO();
+    }
 
-            if (item == null)
-                return NotFound();
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [HttpDelete("{id:long}")]
+    public async Task<ActionResult> DeleteResource([Required] long id)
+    {
+        var item = await FindAndCheckAccess(id);
 
-            if (!item.Deleted)
-                return BadRequest("Resource is not deleted");
+        if (item == null)
+            return NotFound();
 
-            item.Deleted = false;
-            await SaveResourceChanges(item);
+        if (item.Deleted)
+            return BadRequest("Resource is already deleted");
 
-            return Ok();
-        }
+        item.Deleted = true;
+        await SaveResourceChanges(item);
 
-        [NonAction]
-        protected async Task<TModel?> FindAndCheckAccess(long id)
-        {
-            var resource = await Entities.FindAsync(id);
+        return Ok();
+    }
 
-            if (resource == null)
-                return null;
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [HttpPost("{id:long}/restore")]
+    public async Task<ActionResult> RestoreResource([Required] long id)
+    {
+        var item = await FindAndCheckAccess(id);
 
-            if (!CheckExtraAccess(resource))
-                return null;
+        if (item == null)
+            return NotFound();
 
-            return resource;
-        }
+        if (!item.Deleted)
+            return BadRequest("Resource is not deleted");
 
-        protected virtual bool CheckExtraAccess(TModel resource)
-        {
-            return true;
-        }
+        item.Deleted = false;
+        await SaveResourceChanges(item);
 
-        protected abstract Task SaveResourceChanges(TModel resource);
+        return Ok();
+    }
 
-        /// <summary>
-        ///   Entities meant for just fetching the info. Should skip large DB fields and call AsNoTracking
-        /// </summary>
-        [NonAction]
-        protected virtual IQueryable<TModel> GetEntitiesForJustInfo(bool deleted, string sortColumn,
-            SortDirection sortDirection)
-        {
-            return Entities.AsNoTracking().Where(i => i.Deleted == deleted).OrderBy(sortColumn, sortDirection);
-        }
+    [NonAction]
+    protected async Task<TModel?> FindAndCheckAccess(long id)
+    {
+        var resource = await Entities.FindAsync(id);
+
+        if (resource == null)
+            return null;
+
+        if (!CheckExtraAccess(resource))
+            return null;
+
+        return resource;
+    }
+
+    protected virtual bool CheckExtraAccess(TModel resource)
+    {
+        return true;
+    }
+
+    protected abstract Task SaveResourceChanges(TModel resource);
+
+    /// <summary>
+    ///   Entities meant for just fetching the info. Should skip large DB fields and call AsNoTracking
+    /// </summary>
+    [NonAction]
+    protected virtual IQueryable<TModel> GetEntitiesForJustInfo(bool deleted, string sortColumn,
+        SortDirection sortDirection)
+    {
+        return Entities.AsNoTracking().Where(i => i.Deleted == deleted).OrderBy(sortColumn, sortDirection);
     }
 }

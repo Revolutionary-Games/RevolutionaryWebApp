@@ -1,22 +1,21 @@
-namespace ThriveDevCenter.Server.Services
+namespace ThriveDevCenter.Server.Services;
+
+using AspNetCoreRateLimit;
+using Microsoft.Extensions.Options;
+
+public class CustomRateLimitConfiguration : RateLimitConfiguration
 {
-    using AspNetCoreRateLimit;
-    using Microsoft.Extensions.Options;
-
-    public class CustomRateLimitConfiguration : RateLimitConfiguration
+    public CustomRateLimitConfiguration(IOptions<IpRateLimitOptions> ipOptions,
+        IOptions<ClientRateLimitOptions> clientOptions) : base(ipOptions, clientOptions)
     {
-        public CustomRateLimitConfiguration(IOptions<IpRateLimitOptions> ipOptions,
-            IOptions<ClientRateLimitOptions> clientOptions) : base(ipOptions, clientOptions)
-        {
-        }
+    }
 
-        public override void RegisterResolvers()
-        {
-            base.RegisterResolvers();
+    public override void RegisterResolvers()
+    {
+        base.RegisterResolvers();
 
-            // TODO: check the request context to get the user id for per-user limiting?
+        // TODO: check the request context to get the user id for per-user limiting?
 
-            IpResolvers.Add(new IpConnectionResolveContributor());
-        }
+        IpResolvers.Add(new IpConnectionResolveContributor());
     }
 }

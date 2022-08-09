@@ -1,37 +1,36 @@
-namespace ThriveDevCenter.Server.Models
+namespace ThriveDevCenter.Server.Models;
+
+using System;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using Shared;
+using Shared.Models;
+
+/// <summary>
+///   A logged user performed action
+/// </summary>
+[Index(nameof(PerformedById))]
+public class ActionLogEntry : BaseModel
 {
-    using System;
-    using System.ComponentModel.DataAnnotations;
-    using Microsoft.EntityFrameworkCore;
-    using Shared;
-    using Shared.Models;
+    [Required]
+    public string Message { get; set; } = string.Empty;
 
-    /// <summary>
-    ///   A logged user performed action
-    /// </summary>
-    [Index(nameof(PerformedById))]
-    public class ActionLogEntry : BaseModel
+    [AllowSortingBy]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [AllowSortingBy]
+    public long? PerformedById { get; set; }
+
+    public User? PerformedBy { get; set; }
+
+    public ActionLogEntryDTO GetDTO()
     {
-        [Required]
-        public string Message { get; set; } = string.Empty;
-
-        [AllowSortingBy]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        [AllowSortingBy]
-        public long? PerformedById { get; set; }
-
-        public User? PerformedBy { get; set; }
-
-        public ActionLogEntryDTO GetDTO()
+        return new()
         {
-            return new()
-            {
-                Id = Id,
-                Message = Message,
-                CreatedAt = CreatedAt,
-                PerformedById = PerformedById,
-            };
-        }
+            Id = Id,
+            Message = Message,
+            CreatedAt = CreatedAt,
+            PerformedById = PerformedById,
+        };
     }
 }

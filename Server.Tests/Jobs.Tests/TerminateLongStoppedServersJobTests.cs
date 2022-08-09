@@ -1,98 +1,97 @@
-namespace ThriveDevCenter.Server.Tests.Jobs.Tests
+namespace ThriveDevCenter.Server.Tests.Jobs.Tests;
+
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Moq;
+using Server.Jobs;
+using Server.Models;
+using Server.Services;
+using Shared.Models;
+using Utilities;
+using Xunit;
+using Xunit.Abstractions;
+
+public class TerminateLongStoppedServersJobTests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Configuration;
-    using Moq;
-    using Server.Jobs;
-    using Server.Models;
-    using Server.Services;
-    using Shared.Models;
-    using Utilities;
-    using Xunit;
-    using Xunit.Abstractions;
+    private const string Server1InstanceId = "id-1231245";
+    private const string Server2InstanceId = "id-6789012";
+    private const string Server3InstanceId = "id-3333012";
 
-    public class TerminateLongStoppedServersJobTests
+    private readonly XunitLogger<TerminateLongStoppedServersJob> logger;
+
+    public TerminateLongStoppedServersJobTests(ITestOutputHelper output)
     {
-        private const string Server1InstanceId = "id-1231245";
-        private const string Server2InstanceId = "id-6789012";
-        private const string Server3InstanceId = "id-3333012";
+        logger = new XunitLogger<TerminateLongStoppedServersJob>(output);
+    }
 
-        private readonly XunitLogger<TerminateLongStoppedServersJob> logger;
+    [Fact]
+    public async Task TerminateStoppedServers_TerminatesLongStoppedServers()
+    {
+        var ec2Mock = new Mock<IEC2Controller>();
+        ec2Mock.Setup(ec2 => ec2.TerminateInstance(Server1InstanceId)).Returns(Task.CompletedTask).Verifiable();
+        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
-        public TerminateLongStoppedServersJobTests(ITestOutputHelper output)
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new KeyValuePair<string, string>[]
         {
-            logger = new XunitLogger<TerminateLongStoppedServersJob>(output);
-        }
+            new("CI:TerminateStoppedServersDelayHours", "24"),
+        }).Build();
 
-        [Fact]
-        public async Task TerminateStoppedServers_TerminatesLongStoppedServers()
+        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+
+        await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase("TerminateLongStoppedServersTerminates")
+            .Options, notificationsMock.Object);
+
+        var server1 = new ControlledServer()
         {
-            var ec2Mock = new Mock<IEC2Controller>();
-            ec2Mock.Setup(ec2 => ec2.TerminateInstance(Server1InstanceId)).Returns(Task.CompletedTask).Verifiable();
-            ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+            Status = ServerStatus.Stopped,
+            InstanceId = Server1InstanceId,
+            UpdatedAt = DateTime.UtcNow - TimeSpan.FromDays(10),
+        };
 
-            var config = new ConfigurationBuilder().AddInMemoryCollection(new KeyValuePair<string, string>[]
-            {
-                new("CI:TerminateStoppedServersDelayHours", "24"),
-            }).Build();
+        await database.ControlledServers.AddAsync(server1);
 
-            var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var server2 = new ControlledServer()
+        {
+            Status = ServerStatus.Stopped,
+            InstanceId = Server2InstanceId,
+            UpdatedAt = DateTime.UtcNow,
+        };
 
-            await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase("TerminateLongStoppedServersTerminates")
-                .Options, notificationsMock.Object);
+        await database.ControlledServers.AddAsync(server2);
 
-            var server1 = new ControlledServer()
-            {
-                Status = ServerStatus.Stopped,
-                InstanceId = Server1InstanceId,
-                UpdatedAt = DateTime.UtcNow - TimeSpan.FromDays(10),
-            };
+        var server3 = new ControlledServer()
+        {
+            Status = ServerStatus.Running,
+            InstanceId = Server3InstanceId,
+            UpdatedAt = DateTime.UtcNow - TimeSpan.FromDays(10),
+        };
 
-            await database.ControlledServers.AddAsync(server1);
+        await database.ControlledServers.AddAsync(server3);
+        await database.SaveChangesAsync();
 
-            var server2 = new ControlledServer()
-            {
-                Status = ServerStatus.Stopped,
-                InstanceId = Server2InstanceId,
-                UpdatedAt = DateTime.UtcNow,
-            };
+        Assert.Equal(ServerStatus.Stopped, server1.Status);
+        Assert.Equal(ServerStatus.Stopped, server2.Status);
+        Assert.Equal(ServerStatus.Running, server3.Status);
 
-            await database.ControlledServers.AddAsync(server2);
+        await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock.Object).Execute(CancellationToken
+            .None);
 
-            var server3 = new ControlledServer()
-            {
-                Status = ServerStatus.Running,
-                InstanceId = Server3InstanceId,
-                UpdatedAt = DateTime.UtcNow - TimeSpan.FromDays(10),
-            };
+        Assert.Equal(ServerStatus.Terminated, server1.Status);
+        Assert.Equal(ServerStatus.Stopped, server2.Status);
+        Assert.Equal(ServerStatus.Running, server3.Status);
 
-            await database.ControlledServers.AddAsync(server3);
-            await database.SaveChangesAsync();
+        await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock.Object).Execute(CancellationToken
+            .None);
 
-            Assert.Equal(ServerStatus.Stopped, server1.Status);
-            Assert.Equal(ServerStatus.Stopped, server2.Status);
-            Assert.Equal(ServerStatus.Running, server3.Status);
+        Assert.Equal(ServerStatus.Terminated, server1.Status);
+        Assert.Equal(ServerStatus.Stopped, server2.Status);
+        Assert.Equal(ServerStatus.Running, server3.Status);
 
-            await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock.Object).Execute(CancellationToken
-                .None);
-
-            Assert.Equal(ServerStatus.Terminated, server1.Status);
-            Assert.Equal(ServerStatus.Stopped, server2.Status);
-            Assert.Equal(ServerStatus.Running, server3.Status);
-
-            await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock.Object).Execute(CancellationToken
-                .None);
-
-            Assert.Equal(ServerStatus.Terminated, server1.Status);
-            Assert.Equal(ServerStatus.Stopped, server2.Status);
-            Assert.Equal(ServerStatus.Running, server3.Status);
-
-            ec2Mock.Verify();
-        }
+        ec2Mock.Verify();
     }
 }

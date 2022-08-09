@@ -1,8 +1,7 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+public enum ServerReservationType
 {
-    public enum ServerReservationType
-    {
-        None,
-        CIJob,
-    }
+    None,
+    CIJob,
 }

@@ -1,25 +1,24 @@
-namespace ThriveDevCenter.Server.Jobs
+namespace ThriveDevCenter.Server.Jobs;
+
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Services;
+
+public class SendSingleQueuedEmailJob
 {
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Extensions.Logging;
-    using Services;
+    private readonly ILogger<SendSingleQueuedEmailJob> logger;
+    private readonly IMailSender mailSender;
 
-    public class SendSingleQueuedEmailJob
+    public SendSingleQueuedEmailJob(ILogger<SendSingleQueuedEmailJob> logger, IMailSender mailSender)
     {
-       private readonly ILogger<SendSingleQueuedEmailJob> logger;
-       private readonly IMailSender mailSender;
+        this.logger = logger;
+        this.mailSender = mailSender;
+    }
 
-       public SendSingleQueuedEmailJob(ILogger<SendSingleQueuedEmailJob> logger, IMailSender mailSender)
-       {
-           this.logger = logger;
-           this.mailSender = mailSender;
-       }
-
-        public async Task Execute(MailRequest mailRequest, CancellationToken cancellationToken)
-        {
-            await mailSender.SendEmail(mailRequest, cancellationToken);
-            logger.LogInformation("Sent queued email to {Recipient}", mailRequest.Recipient);
-        }
+    public async Task Execute(MailRequest mailRequest, CancellationToken cancellationToken)
+    {
+        await mailSender.SendEmail(mailRequest, cancellationToken);
+        logger.LogInformation("Sent queued email to {Recipient}", mailRequest.Recipient);
     }
 }

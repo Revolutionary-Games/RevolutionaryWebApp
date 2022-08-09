@@ -1,30 +1,29 @@
-namespace ThriveDevCenter.Server.Jobs
+namespace ThriveDevCenter.Server.Jobs;
+
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Hangfire;
+using Microsoft.EntityFrameworkCore;
+using Models;
+
+public class QueueRecomputeHashIfNeededJob : IJob
 {
-    using System.Linq;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Hangfire;
-    using Microsoft.EntityFrameworkCore;
-    using Models;
+    private readonly ApplicationDbContext database;
 
-    public class QueueRecomputeHashIfNeededJob : IJob
+    public QueueRecomputeHashIfNeededJob(ApplicationDbContext database)
     {
-        private readonly ApplicationDbContext database;
+        this.database = database;
+    }
 
-        public QueueRecomputeHashIfNeededJob(ApplicationDbContext database)
+    public async Task Execute(CancellationToken cancellationToken)
+    {
+        bool needToRun = await database.Users.Where(u => u.LfsToken != null && u.HashedLfsToken == null)
+            .AnyAsync(cancellationToken);
+
+        if (needToRun)
         {
-            this.database = database;
-        }
-
-        public async Task Execute(CancellationToken cancellationToken)
-        {
-            bool needToRun = await database.Users.Where(u => u.LfsToken != null && u.HashedLfsToken == null)
-                .AnyAsync(cancellationToken);
-
-            if (needToRun)
-            {
-                BackgroundJob.Enqueue<RecomputeHashedColumns>(x => x.Execute(CancellationToken.None));
-            }
+            BackgroundJob.Enqueue<RecomputeHashedColumns>(x => x.Execute(CancellationToken.None));
         }
     }
 }

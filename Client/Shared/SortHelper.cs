@@ -1,68 +1,67 @@
-namespace ThriveDevCenter.Client.Shared
+namespace ThriveDevCenter.Client.Shared;
+
+using System;
+using ThriveDevCenter.Shared;
+
+public class SortHelper
 {
-    using System;
-    using ThriveDevCenter.Shared;
+    public string SortColumn;
+    public SortDirection Direction;
 
-    public class SortHelper
+    private readonly SortDirection defaultDirection;
+
+    public SortHelper(string column, SortDirection direction)
     {
-        public string SortColumn;
-        public SortDirection Direction;
+        SortColumn = column;
+        Direction = direction;
+        defaultDirection = direction;
+    }
 
-        private readonly SortDirection defaultDirection;
-
-        public SortHelper(string column, SortDirection direction)
+    /// <summary>
+    ///   Handle when a column was clicked
+    /// </summary>
+    /// <param name="column">The new (or current sort column)</param>
+    /// <returns>True when the sort column was changed, false otherwise.</returns>
+    public bool ColumnClick(string column)
+    {
+        if (SortColumn == column)
         {
-            SortColumn = column;
-            Direction = direction;
-            defaultDirection = direction;
-        }
-
-        /// <summary>
-        ///   Handle when a column was clicked
-        /// </summary>
-        /// <param name="column">The new (or current sort column)</param>
-        /// <returns>True when the sort column was changed, false otherwise.</returns>
-        public bool ColumnClick(string column)
-        {
-            if (SortColumn == column)
+            // Toggle direction
+            if (Direction == SortDirection.Ascending)
             {
-                // Toggle direction
-                if (Direction == SortDirection.Ascending)
-                {
-                    Direction = SortDirection.Descending;
-                }
-                else
-                {
-                    Direction = SortDirection.Ascending;
-                }
-
-                return false;
+                Direction = SortDirection.Descending;
+            }
+            else
+            {
+                Direction = SortDirection.Ascending;
             }
 
-            SortColumn = column;
-            Direction = defaultDirection;
-            return true;
+            return false;
         }
 
-        /// <summary>
-        ///   Returns a css class for showing sort direction in a table
-        /// </summary>
-        /// <param name="currentColumn">The current column in the table</param>
-        /// <returns>The CSS class</returns>
-        public string SortClass(string currentColumn)
-        {
-            if (SortColumn != currentColumn)
-                return string.Empty;
+        SortColumn = column;
+        Direction = defaultDirection;
+        return true;
+    }
 
-            switch (Direction)
-            {
-                case SortDirection.Ascending:
-                    return "oi oi-sort-ascending";
-                case SortDirection.Descending:
-                    return "oi oi-sort-descending";
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+    /// <summary>
+    ///   Returns a css class for showing sort direction in a table
+    /// </summary>
+    /// <param name="currentColumn">The current column in the table</param>
+    /// <returns>The CSS class</returns>
+    public string SortClass(string currentColumn)
+    {
+        if (SortColumn != currentColumn)
+            return string.Empty;
+
+        switch (Direction)
+        {
+            case SortDirection.Ascending:
+                return "oi oi-sort-ascending";
+            case SortDirection.Descending:
+                return "oi oi-sort-descending";
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 }

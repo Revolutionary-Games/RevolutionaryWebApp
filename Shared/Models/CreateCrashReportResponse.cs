@@ -1,16 +1,15 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
+public class CreateCrashReportResponse
 {
-    using System.ComponentModel.DataAnnotations;
-    using System.Text.Json.Serialization;
+    [Required]
+    [JsonPropertyName("createdId")]
+    public long CreatedId { get; set; }
 
-    public class CreateCrashReportResponse
-    {
-        [Required]
-        [JsonPropertyName("createdId")]
-        public long CreatedId { get; set; }
-
-        [Required]
-        [JsonPropertyName("deleteKey")]
-        public string DeleteKey { get; set; } = string.Empty;
-    }
+    [Required]
+    [JsonPropertyName("deleteKey")]
+    public string DeleteKey { get; set; } = string.Empty;
 }

@@ -1,121 +1,120 @@
-namespace ThriveDevCenter.Server.Utilities
+namespace ThriveDevCenter.Server.Utilities;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
+
+public static class ModelUpdateApplyHelper
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using System.Text;
-    using System.Text.Json;
-
-    public static class ModelUpdateApplyHelper
+    public static (bool changes, string? changeDescription, List<string>? changedFields)
+        ApplyUpdateRequestToModel<T, TRequest>(T model, TRequest updateRequest)
+        where T : class
+        where TRequest : class
     {
-        public static (bool changes, string? changeDescription, List<string>? changedFields)
-            ApplyUpdateRequestToModel<T, TRequest>(T model, TRequest updateRequest)
-            where T : class
-            where TRequest : class
+        var changedFields = new List<string>();
+        var stringBuilder = new StringBuilder(200);
+        bool changes = false;
+
+        var modelType = model.GetType();
+        var requestType = updateRequest.GetType();
+
+        bool foundAttribute = false;
+
+        foreach (var property in modelType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            var changedFields = new List<string>();
-            var stringBuilder = new StringBuilder(200);
-            bool changes = false;
+            var attribute = property.GetCustomAttribute<UpdateFromClientRequestAttribute>();
 
-            var modelType = model.GetType();
-            var requestType = updateRequest.GetType();
+            if (attribute == null)
+                continue;
 
-            bool foundAttribute = false;
+            foundAttribute = true;
 
-            foreach (var property in modelType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            var requestName = attribute.RequestPropertyName ?? property.Name;
+
+            var requestProperty = requestType.GetProperty(requestName,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            if (requestProperty == null)
             {
-                var attribute = property.GetCustomAttribute<UpdateFromClientRequestAttribute>();
+                throw new Exception(
+                    $"Invalid property ({requestName}) specified that doesn't exist in request model");
+            }
 
-                if (attribute == null)
+            var oldValue = property.GetValue(model);
+            var newValue = requestProperty.GetValue(updateRequest);
+
+            if (oldValue == newValue)
+                continue;
+
+            if (oldValue != null && newValue != null)
+            {
+                if (oldValue.Equals(newValue))
                     continue;
 
-                foundAttribute = true;
+                if (oldValue is IEnumerable<object> oldEnumerable &&
+                    newValue is IEnumerable<object> newEnumerable && oldEnumerable.SequenceEqual(newEnumerable))
+                    continue;
+            }
 
-                var requestName = attribute.RequestPropertyName ?? property.Name;
+            changedFields.Add(property.Name);
 
-                var requestProperty = requestType.GetProperty(requestName,
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (changes)
+                stringBuilder.Append(", ");
 
-                if (requestProperty == null)
+            stringBuilder.Append("changed \"");
+            stringBuilder.Append(property.Name);
+            stringBuilder.Append("\" from: ");
+            stringBuilder.Append(ToUserReadableString(oldValue));
+            stringBuilder.Append(" to new value: ");
+            stringBuilder.Append(ToUserReadableString(newValue));
+
+            changes = true;
+
+            // Convert if specified with an attribute
+            var converterAttribute = property.GetCustomAttribute<ConvertWithWhenUpdatingFromClientAttribute>();
+
+            if (converterAttribute != null)
+            {
+                var converter = modelType.GetMethod(converterAttribute.ConverterMethodName,
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                if (converter == null)
                 {
                     throw new Exception(
-                        $"Invalid property ({requestName}) specified that doesn't exist in request model");
+                        $"Converter method ({converterAttribute.ConverterMethodName}) for new value not found");
                 }
 
-                var oldValue = property.GetValue(model);
-                var newValue = requestProperty.GetValue(updateRequest);
-
-                if (oldValue == newValue)
-                    continue;
-
-                if (oldValue != null && newValue != null)
-                {
-                    if (oldValue.Equals(newValue))
-                        continue;
-
-                    if (oldValue is IEnumerable<object> oldEnumerable &&
-                        newValue is IEnumerable<object> newEnumerable && oldEnumerable.SequenceEqual(newEnumerable))
-                        continue;
-                }
-
-                changedFields.Add(property.Name);
-
-                if (changes)
-                    stringBuilder.Append(", ");
-
-                stringBuilder.Append("changed \"");
-                stringBuilder.Append(property.Name);
-                stringBuilder.Append("\" from: ");
-                stringBuilder.Append(ToUserReadableString(oldValue));
-                stringBuilder.Append(" to new value: ");
-                stringBuilder.Append(ToUserReadableString(newValue));
-
-                changes = true;
-
-                // Convert if specified with an attribute
-                var converterAttribute = property.GetCustomAttribute<ConvertWithWhenUpdatingFromClientAttribute>();
-
-                if (converterAttribute != null)
-                {
-                    var converter = modelType.GetMethod(converterAttribute.ConverterMethodName,
-                        BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-
-                    if (converter == null)
-                    {
-                        throw new Exception(
-                            $"Converter method ({converterAttribute.ConverterMethodName}) for new value not found");
-                    }
-
-                    newValue = converter.Invoke(null, new[] { newValue });
-                }
-
-                property.SetValue(model, newValue);
+                newValue = converter.Invoke(null, new[] { newValue });
             }
 
-            if (!foundAttribute)
-            {
-                throw new ArgumentException("Model has no attributes marked as updateable");
-            }
-
-            if (!changes)
-                return (false, null, null);
-
-            return (true, stringBuilder.ToString(), changedFields);
+            property.SetValue(model, newValue);
         }
 
-        private static string ToUserReadableString(object? value)
+        if (!foundAttribute)
         {
-            if (value == null)
-                return "null";
-
-            // TODO: clean up this
-            if (value is DateOnly dateOnly)
-            {
-                return dateOnly.ToString("o");
-            }
-
-            return JsonSerializer.Serialize(value);
+            throw new ArgumentException("Model has no attributes marked as updateable");
         }
+
+        if (!changes)
+            return (false, null, null);
+
+        return (true, stringBuilder.ToString(), changedFields);
+    }
+
+    private static string ToUserReadableString(object? value)
+    {
+        if (value == null)
+            return "null";
+
+        // TODO: clean up this
+        if (value is DateOnly dateOnly)
+        {
+            return dateOnly.ToString("o");
+        }
+
+        return JsonSerializer.Serialize(value);
     }
 }

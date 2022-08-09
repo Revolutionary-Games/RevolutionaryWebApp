@@ -1,23 +1,22 @@
-namespace ThriveDevCenter.Shared.Notifications
+namespace ThriveDevCenter.Shared.Notifications;
+
+/// <summary>
+///  Specifies what happened in a list change notification
+/// </summary>
+public enum ListItemChangeType
 {
     /// <summary>
-    ///  Specifies what happened in a list change notification
+    ///   An item's properties were updated
     /// </summary>
-    public enum ListItemChangeType
-    {
-        /// <summary>
-        ///   An item's properties were updated
-        /// </summary>
-        ItemUpdated,
+    ItemUpdated,
 
-        /// <summary>
-        ///   An item was deleted
-        /// </summary>
-        ItemDeleted,
+    /// <summary>
+    ///   An item was deleted
+    /// </summary>
+    ItemDeleted,
 
-        /// <summary>
-        ///   A new item was added
-        /// </summary>
-        ItemAdded,
-    }
+    /// <summary>
+    ///   A new item was added
+    /// </summary>
+    ItemAdded,
 }

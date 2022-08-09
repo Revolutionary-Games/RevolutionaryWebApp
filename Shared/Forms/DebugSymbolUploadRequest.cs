@@ -1,14 +1,13 @@
-namespace ThriveDevCenter.Shared.Forms
+namespace ThriveDevCenter.Shared.Forms;
+
+using System.ComponentModel.DataAnnotations;
+
+public class DebugSymbolUploadRequest
 {
-    using System.ComponentModel.DataAnnotations;
+    [Required]
+    [StringLength(120, MinimumLength = 3)]
+    public string SymbolPath { get; set; } = string.Empty;
 
-    public class DebugSymbolUploadRequest
-    {
-        [Required]
-        [StringLength(120, MinimumLength = 3)]
-        public string SymbolPath { get; set; } = string.Empty;
-
-        [Range(1, AppInfo.MaxDebugSymbolSize)]
-        public long Size { get; set; }
-    }
+    [Range(1, AppInfo.MaxDebugSymbolSize)]
+    public long Size { get; set; }
 }

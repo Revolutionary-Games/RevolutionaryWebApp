@@ -1,7 +1,6 @@
-namespace ThriveDevCenter.Server.Models.Interfaces
+namespace ThriveDevCenter.Server.Models.Interfaces;
+
+public interface ISoftDeletable
 {
-    public interface ISoftDeletable
-    {
-        bool Deleted { get; set; }
-    }
+    bool Deleted { get; set; }
 }

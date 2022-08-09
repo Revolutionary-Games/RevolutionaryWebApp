@@ -1,27 +1,26 @@
-namespace ThriveDevCenter.Client.Services
+namespace ThriveDevCenter.Client.Services;
+
+using System.Threading.Tasks;
+using Microsoft.JSInterop;
+
+public class StaticHomePageNotice
 {
-    using System.Threading.Tasks;
-    using Microsoft.JSInterop;
+    private readonly IJSRuntime jsRuntime;
+    private bool fetched;
+    private string? value;
 
-    public class StaticHomePageNotice
+    public StaticHomePageNotice(IJSRuntime jsRuntime)
     {
-        private readonly IJSRuntime jsRuntime;
-        private bool fetched;
-        private string? value;
+        this.jsRuntime = jsRuntime;
+    }
 
-        public StaticHomePageNotice(IJSRuntime jsRuntime)
-        {
-            this.jsRuntime = jsRuntime;
-        }
-
-        public async Task<string?> ReadNotice()
-        {
-            if (fetched)
-                return value;
-
-            value = await jsRuntime.InvokeAsync<string>("getStaticHomePageNotice");
-            fetched = true;
+    public async Task<string?> ReadNotice()
+    {
+        if (fetched)
             return value;
-        }
+
+        value = await jsRuntime.InvokeAsync<string>("getStaticHomePageNotice");
+        fetched = true;
+        return value;
     }
 }

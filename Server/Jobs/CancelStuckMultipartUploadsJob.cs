@@ -1,111 +1,110 @@
-namespace ThriveDevCenter.Server.Jobs
+namespace ThriveDevCenter.Server.Jobs;
+
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Hangfire;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Models;
+using Services;
+using Shared;
+
+public class CancelStuckMultipartUploadsJob : IJob
 {
-    using System;
-    using System.Linq;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Hangfire;
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Logging;
-    using Models;
-    using Services;
-    using Shared;
+    private readonly ILogger<CancelStuckMultipartUploadsJob> logger;
+    private readonly ApplicationDbContext database;
+    private readonly GeneralRemoteStorage remoteStorage;
+    private readonly IBackgroundJobClient jobClient;
 
-    public class CancelStuckMultipartUploadsJob : IJob
+    public CancelStuckMultipartUploadsJob(ILogger<CancelStuckMultipartUploadsJob> logger,
+        ApplicationDbContext database, GeneralRemoteStorage remoteStorage, IBackgroundJobClient jobClient)
     {
-        private readonly ILogger<CancelStuckMultipartUploadsJob> logger;
-        private readonly ApplicationDbContext database;
-        private readonly GeneralRemoteStorage remoteStorage;
-        private readonly IBackgroundJobClient jobClient;
+        this.logger = logger;
+        this.database = database;
+        this.remoteStorage = remoteStorage;
+        this.jobClient = jobClient;
+    }
 
-        public CancelStuckMultipartUploadsJob(ILogger<CancelStuckMultipartUploadsJob> logger,
-            ApplicationDbContext database, GeneralRemoteStorage remoteStorage, IBackgroundJobClient jobClient)
+    public async Task Execute(CancellationToken cancellationToken)
+    {
+        await DetectOldNonFinishedRecords(cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!remoteStorage.Configured)
         {
-            this.logger = logger;
-            this.database = database;
-            this.remoteStorage = remoteStorage;
-            this.jobClient = jobClient;
+            logger.LogInformation(
+                "Skipping trying to detect multipart uploads we don't know of as remote storage " +
+                "is not configured");
+            return;
         }
 
-        public async Task Execute(CancellationToken cancellationToken)
+        await QueryAndCancelMultipartUploadsFromRemoteStorage(cancellationToken);
+    }
+
+    /// <summary>
+    ///   There may be old DB records that are not cleared out. This looks for them and queues a job to remove them
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    private async Task DetectOldNonFinishedRecords(CancellationToken cancellationToken)
+    {
+        var cutoff = DateTime.UtcNow - AppInfo.OldMultipartUploadThreshold;
+
+        var items = await database.InProgressMultipartUploads.Where(i => i.UpdatedAt < cutoff && !i.Finished)
+            .ToListAsync(cancellationToken);
+
+        if (items.Count < 1)
+            return;
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (var item in items)
         {
-            await DetectOldNonFinishedRecords(cancellationToken);
+            logger.LogError(
+                "Found old multipart upload data ({Id}) that has not finished or canceled, queueing a job to abort it",
+                item.Id);
 
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!remoteStorage.Configured)
-            {
-                logger.LogInformation(
-                    "Skipping trying to detect multipart uploads we don't know of as remote storage " +
-                    "is not configured");
-                return;
-            }
-
-            await QueryAndCancelMultipartUploadsFromRemoteStorage(cancellationToken);
+            jobClient.Schedule<DeleteNonFinishedMultipartUploadJob>(
+                x => x.Execute(item.UploadId, CancellationToken.None),
+                AppInfo.MultipartUploadTotalAllowedTime + TimeSpan.FromHours(2));
         }
+    }
 
-        /// <summary>
-        ///   There may be old DB records that are not cleared out. This looks for them and queues a job to remove them
-        /// </summary>
-        /// <param name="cancellationToken"></param>
-        private async Task DetectOldNonFinishedRecords(CancellationToken cancellationToken)
+    private async Task QueryAndCancelMultipartUploadsFromRemoteStorage(CancellationToken cancellationToken)
+    {
+        var activeUploads = await database.InProgressMultipartUploads.Where(i => !i.Finished)
+            .ToListAsync(cancellationToken);
+
+        var uploads = await remoteStorage.ListMultipartUploads(cancellationToken);
+
+        // Find uploads that don't match any active ones, those we want to cancel
+        foreach (var upload in uploads)
         {
-            var cutoff = DateTime.UtcNow - AppInfo.OldMultipartUploadThreshold;
+            bool match = false;
 
-            var items = await database.InProgressMultipartUploads.Where(i => i.UpdatedAt < cutoff && !i.Finished)
-                .ToListAsync(cancellationToken);
-
-            if (items.Count < 1)
-                return;
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            foreach (var item in items)
+            foreach (var activeUpload in activeUploads)
             {
-                logger.LogError(
-                    "Found old multipart upload data ({Id}) that has not finished or canceled, queueing a job to abort it",
-                    item.Id);
-
-                jobClient.Schedule<DeleteNonFinishedMultipartUploadJob>(
-                    x => x.Execute(item.UploadId, CancellationToken.None),
-                    AppInfo.MultipartUploadTotalAllowedTime + TimeSpan.FromHours(2));
-            }
-        }
-
-        private async Task QueryAndCancelMultipartUploadsFromRemoteStorage(CancellationToken cancellationToken)
-        {
-            var activeUploads = await database.InProgressMultipartUploads.Where(i => !i.Finished)
-                .ToListAsync(cancellationToken);
-
-            var uploads = await remoteStorage.ListMultipartUploads(cancellationToken);
-
-            // Find uploads that don't match any active ones, those we want to cancel
-            foreach (var upload in uploads)
-            {
-                bool match = false;
-
-                foreach (var activeUpload in activeUploads)
+                if (activeUpload.Path == upload.key && activeUpload.UploadId == upload.uploadId)
                 {
-                    if (activeUpload.Path == upload.key && activeUpload.UploadId == upload.uploadId)
-                    {
-                        match = true;
-                        break;
-                    }
+                    match = true;
+                    break;
                 }
-
-                if (match)
-                    continue;
-
-                logger.LogError("Detected multipart upload that we have no record of {UploadId} for path: {Key}"
-                    + " will attempt to terminate it",
-                    upload.uploadId, upload.key);
-
-                await remoteStorage.AbortMultipartUpload(upload.key, upload.uploadId);
-
-                jobClient.Schedule<MakeSureNoMultipartPartsExistJob>(
-                    x => x.Execute(upload.uploadId, upload.key, CancellationToken.None),
-                    TimeSpan.FromDays(1));
             }
+
+            if (match)
+                continue;
+
+            logger.LogError("Detected multipart upload that we have no record of {UploadId} for path: {Key}"
+                + " will attempt to terminate it",
+                upload.uploadId, upload.key);
+
+            await remoteStorage.AbortMultipartUpload(upload.key, upload.uploadId);
+
+            jobClient.Schedule<MakeSureNoMultipartPartsExistJob>(
+                x => x.Execute(upload.uploadId, upload.key, CancellationToken.None),
+                TimeSpan.FromDays(1));
         }
     }
 }

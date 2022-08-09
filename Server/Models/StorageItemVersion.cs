@@ -1,90 +1,89 @@
 ﻿using System;
 
-namespace ThriveDevCenter.Server.Models
+namespace ThriveDevCenter.Server.Models;
+
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Shared;
+using Shared.Models;
+using Utilities;
+
+[Index(nameof(StorageFileId))]
+[Index(new[] { nameof(StorageItemId), nameof(Version) }, IsUnique = true)]
+public class StorageItemVersion : UpdateableModel
 {
-    using System.Threading.Tasks;
-    using Microsoft.EntityFrameworkCore;
-    using Shared;
-    using Shared.Models;
-    using Utilities;
+    [AllowSortingBy]
+    public int Version { get; set; } = 1;
 
-    [Index(nameof(StorageFileId))]
-    [Index(new[] { nameof(StorageItemId), nameof(Version) }, IsUnique = true)]
-    public class StorageItemVersion : UpdateableModel
+    public long StorageItemId { get; set; }
+    public StorageItem? StorageItem { get; set; }
+
+    public long StorageFileId { get; set; }
+    public StorageFile? StorageFile { get; set; }
+
+    [AllowSortingBy]
+    public bool Keep { get; set; } = false;
+
+    [AllowSortingBy]
+    public bool Protected { get; set; } = false;
+
+    [AllowSortingBy]
+    public bool Uploading { get; set; } = true;
+
+    public async Task<string> ComputeStoragePath(ApplicationDbContext database)
     {
-        [AllowSortingBy]
-        public int Version { get; set; } = 1;
+        if (StorageItem == null)
+            throw new NotLoadedModelNavigationException();
 
-        public long StorageItemId { get; set; }
-        public StorageItem? StorageItem { get; set; }
+        string parentPath = string.Empty;
 
-        public long StorageFileId { get; set; }
-        public StorageFile? StorageFile { get; set; }
-
-        [AllowSortingBy]
-        public bool Keep { get; set; } = false;
-
-        [AllowSortingBy]
-        public bool Protected { get; set; } = false;
-
-        [AllowSortingBy]
-        public bool Uploading { get; set; } = true;
-
-        public async Task<string> ComputeStoragePath(ApplicationDbContext database)
+        if (StorageItem.ParentId != null)
         {
-            if (StorageItem == null)
-                throw new NotLoadedModelNavigationException();
+            var parent = StorageItem.Parent;
 
-            string parentPath = string.Empty;
-
-            if (StorageItem.ParentId != null)
+            if (parent == null)
             {
-                var parent = StorageItem.Parent;
+                parent = await database.StorageItems.FindAsync(StorageItem.ParentId);
 
                 if (parent == null)
-                {
-                    parent = await database.StorageItems.FindAsync(StorageItem.ParentId);
-
-                    if (parent == null)
-                        throw new NullReferenceException("failed to get the StorageItem parent for path calculation");
-                }
-
-                parentPath = await parent.ComputeStoragePath(database) + '/';
+                    throw new NullReferenceException("failed to get the StorageItem parent for path calculation");
             }
 
-            return $"{parentPath}{Version}/{StorageItem.Name}";
+            parentPath = await parent.ComputeStoragePath(database) + '/';
         }
 
-        public async Task<StorageFile> CreateStorageFile(ApplicationDbContext database, DateTime uploadExpiresAt,
-            long size)
+        return $"{parentPath}{Version}/{StorageItem.Name}";
+    }
+
+    public async Task<StorageFile> CreateStorageFile(ApplicationDbContext database, DateTime uploadExpiresAt,
+        long size)
+    {
+        var file = new StorageFile()
         {
-            var file = new StorageFile()
-            {
-                StoragePath = await ComputeStoragePath(database),
-                Size = size,
-                Uploading = true,
-                UploadExpires = uploadExpiresAt + TimeSpan.FromSeconds(1),
-            };
+            StoragePath = await ComputeStoragePath(database),
+            Size = size,
+            Uploading = true,
+            UploadExpires = uploadExpiresAt + TimeSpan.FromSeconds(1),
+        };
 
-            StorageFile = file;
+        StorageFile = file;
 
-            await database.StorageFiles.AddAsync(file);
-            return file;
-        }
+        await database.StorageFiles.AddAsync(file);
+        return file;
+    }
 
-        public StorageItemVersionInfo GetInfo()
+    public StorageItemVersionInfo GetInfo()
+    {
+        return new()
         {
-            return new()
-            {
-                Id = Id,
-                Version = Version,
-                Keep = Keep,
-                Protected = Protected,
-                Uploading = Uploading,
-                Size = StorageFile?.Size,
-                CreatedAt = CreatedAt,
-                UpdatedAt = UpdatedAt,
-            };
-        }
+            Id = Id,
+            Version = Version,
+            Keep = Keep,
+            Protected = Protected,
+            Uploading = Uploading,
+            Size = StorageFile?.Size,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+        };
     }
 }

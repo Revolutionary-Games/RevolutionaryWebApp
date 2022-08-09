@@ -1,18 +1,18 @@
-namespace ThriveDevCenter.Server.Tests.Services.Tests
+namespace ThriveDevCenter.Server.Tests.Services.Tests;
+
+using Microsoft.Extensions.Configuration;
+using Server.Services;
+using Xunit;
+
+public class StackwalkTests
 {
-    using Microsoft.Extensions.Configuration;
-    using Server.Services;
-    using Xunit;
-
-    public class StackwalkTests
+    [Fact]
+    public void Stackwalk_CallstackCondenseWorks()
     {
-        [Fact]
-        public void Stackwalk_CallstackCondenseWorks()
-        {
-            var stackwalk = new Stackwalk(new ConfigurationBuilder().Build());
+        var stackwalk = new Stackwalk(new ConfigurationBuilder().Build());
 
-            // ReSharper disable StringLiteralTypo
-            var result = stackwalk.CondenseCallstack(@"Thread 0 (crashed)
+        // ReSharper disable StringLiteralTypo
+        var result = stackwalk.CondenseCallstack(@"Thread 0 (crashed)
  0  Thrive + 0x922fd6
     rax = 0x0000000000000000   rdx = 0x000000000016c7f0
     rcx = 0x0000000000000ad9   rbx = 0x00007ffdf248fe80
@@ -35,29 +35,28 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
     Found by: stack scanning
 ");
 
-            Assert.Equal(@" 0  Thrive + 0x922fd6
+        Assert.Equal(@" 0  Thrive + 0x922fd6
  1  Thrive + 0x5f830e
  2  ld-linux-x86-64.so.2 + 0xaa00
  3  Thrive + 0x1b80c10
 ", result);
 
-            // ReSharper restore StringLiteralTypo
-        }
+        // ReSharper restore StringLiteralTypo
+    }
 
-        [Fact]
-        public void Stackwalk_NoFramesCondenseWorks()
-        {
-            var stackwalk = new Stackwalk(new ConfigurationBuilder().Build());
+    [Fact]
+    public void Stackwalk_NoFramesCondenseWorks()
+    {
+        var stackwalk = new Stackwalk(new ConfigurationBuilder().Build());
 
-            // ReSharper disable StringLiteralTypo
-            var result = stackwalk.CondenseCallstack(@"Thread 25 (crashed)
+        // ReSharper disable StringLiteralTypo
+        var result = stackwalk.CondenseCallstack(@"Thread 25 (crashed)
  <no frames>
 ");
 
-            Assert.Equal(@" <no frames>
+        Assert.Equal(@" <no frames>
 ", result);
 
-            // ReSharper restore StringLiteralTypo
-        }
+        // ReSharper restore StringLiteralTypo
     }
 }

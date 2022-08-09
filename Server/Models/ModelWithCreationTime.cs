@@ -1,11 +1,10 @@
-namespace ThriveDevCenter.Server.Models
-{
-    using System;
-    using Shared;
+namespace ThriveDevCenter.Server.Models;
 
-    public class ModelWithCreationTime : BaseModel
-    {
-        [AllowSortingBy]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    }
+using System;
+using Shared;
+
+public class ModelWithCreationTime : BaseModel
+{
+    [AllowSortingBy]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

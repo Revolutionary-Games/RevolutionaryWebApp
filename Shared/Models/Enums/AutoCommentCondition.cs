@@ -1,10 +1,9 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum AutoCommentCondition
 {
-    public enum AutoCommentCondition
-    {
-        Always,
-        OnceOnPullRequest,
-        IfCLANotSigned,
-        IfCLABecomesInvalid,
-    }
+    Always,
+    OnceOnPullRequest,
+    IfCLANotSigned,
+    IfCLABecomesInvalid,
 }

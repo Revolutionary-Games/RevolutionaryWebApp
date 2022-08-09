@@ -1,12 +1,11 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System.ComponentModel.DataAnnotations;
+
+public class UserToken
 {
-    using System.ComponentModel.DataAnnotations;
+    [Required]
+    public string CSRF { get; set; } = string.Empty;
 
-    public class UserToken
-    {
-        [Required]
-        public string CSRF { get; set; } = string.Empty;
-
-        public UserInfo? User { get; set; }
-    }
+    public UserInfo? User { get; set; }
 }

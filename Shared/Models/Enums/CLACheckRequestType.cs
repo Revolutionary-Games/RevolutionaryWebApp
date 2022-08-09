@@ -1,8 +1,7 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum CLACheckRequestType
 {
-    public enum CLACheckRequestType
-    {
-        Email,
-        GithubUsername,
-    }
+    Email,
+    GithubUsername,
 }

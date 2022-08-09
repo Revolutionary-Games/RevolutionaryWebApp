@@ -1,12 +1,11 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+public enum ServerStatus
 {
-    public enum ServerStatus
-    {
-        Provisioning,
-        WaitingForStartup,
-        Running,
-        Stopping,
-        Stopped,
-        Terminated,
-    }
+    Provisioning,
+    WaitingForStartup,
+    Running,
+    Stopping,
+    Stopped,
+    Terminated,
 }

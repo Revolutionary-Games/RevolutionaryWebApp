@@ -1,24 +1,23 @@
-namespace ThriveDevCenter.Client.Services
+namespace ThriveDevCenter.Client.Services;
+
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using ThriveDevCenter.Shared.Models;
+using ThriveDevCenter.Shared.Notifications;
+
+public interface INotificationHandler<in T> : IGroupListener
+    where T : SerializedNotification
 {
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using ThriveDevCenter.Shared.Models;
-    using ThriveDevCenter.Shared.Notifications;
+    Task Handle(T notification, CancellationToken cancellationToken);
+}
 
-    public interface INotificationHandler<in T> : IGroupListener
-        where T : SerializedNotification
-    {
-        Task Handle(T notification, CancellationToken cancellationToken);
-    }
-
-    public interface IGroupListener
-    {
-        /// <summary>
-        ///   Gets the groups that this component wants to listen to. Groups are defined in NotificationGroups.cs
-        /// </summary>
-        /// <param name="currentAccessLevel">The current access there is to the system</param>
-        /// <param name="groups">This is where the groups should be added</param>
-        void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
-    }
+public interface IGroupListener
+{
+    /// <summary>
+    ///   Gets the groups that this component wants to listen to. Groups are defined in NotificationGroups.cs
+    /// </summary>
+    /// <param name="currentAccessLevel">The current access there is to the system</param>
+    /// <param name="groups">This is where the groups should be added</param>
+    void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
 }

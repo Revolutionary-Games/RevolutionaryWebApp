@@ -1,126 +1,125 @@
-namespace ThriveDevCenter.Server.Tests.Fixtures
+namespace ThriveDevCenter.Server.Tests.Fixtures;
+
+using System.Collections.Generic;
+using Server.Models;
+using Shared.Models;
+using Shared.Models.Enums;
+
+public class CIProjectTestDatabaseData
 {
-    using System.Collections.Generic;
-    using Server.Models;
-    using Shared.Models;
-    using Shared.Models.Enums;
+    public static long CIProjectId => 5;
+    public static long CIBuildId => 2;
+    public static string TestImageStoragePath => "test/image/path.tar.xz";
 
-    public class CIProjectTestDatabaseData
+    public static void Seed(ApplicationDbContext database)
     {
-        public static long CIProjectId => 5;
-        public static long CIBuildId => 2;
-        public static string TestImageStoragePath => "test/image/path.tar.xz";
-
-        public static void Seed(ApplicationDbContext database)
+        var project = new CiProject()
         {
-            var project = new CiProject()
+            Id = CIProjectId,
+            Name = "Test Project",
+            RepositoryFullName = "test/Repo",
+            RepositoryCloneUrl = "https://example.com/repo.git",
+            ProjectType = CIProjectType.Github,
+            CiBuilds = new List<CiBuild>()
             {
-                Id = CIProjectId,
-                Name = "Test Project",
-                RepositoryFullName = "test/Repo",
-                RepositoryCloneUrl = "https://example.com/repo.git",
-                ProjectType = CIProjectType.Github,
-                CiBuilds = new List<CiBuild>()
+                new()
                 {
-                    new()
-                    {
-                        CiProjectId = CIProjectId,
-                        CiBuildId = CIBuildId,
-                        Branch = "master",
-                        CommitHash = "deadbeef",
-                        CommitMessage = "stuff",
-                        RemoteRef = "refs/heads/master",
-                        IsSafe = true,
-                        PreviousCommit = "aabb",
-                        Commits = "[]",
-                    },
+                    CiProjectId = CIProjectId,
+                    CiBuildId = CIBuildId,
+                    Branch = "master",
+                    CommitHash = "deadbeef",
+                    CommitMessage = "stuff",
+                    RemoteRef = "refs/heads/master",
+                    IsSafe = true,
+                    PreviousCommit = "aabb",
+                    Commits = "[]",
                 },
-                CiSecrets = new List<CiSecret>()
+            },
+            CiSecrets = new List<CiSecret>()
+            {
+                new()
                 {
-                    new()
-                    {
-                        CiProjectId = CIProjectId,
-                        CiSecretId = 1,
-                        SecretContent = "This is a secret",
-                        SecretName = "BUILD_SECRET",
-                        UsedForBuildTypes = CISecretType.SafeOnly,
-                    },
+                    CiProjectId = CIProjectId,
+                    CiSecretId = 1,
+                    SecretContent = "This is a secret",
+                    SecretName = "BUILD_SECRET",
+                    UsedForBuildTypes = CISecretType.SafeOnly,
                 },
-            };
+            },
+        };
 
-            database.CiProjects.Add(project);
+        database.CiProjects.Add(project);
 
-            // Build image used by the job(s)
-            var imageFile = new StorageFile()
+        // Build image used by the job(s)
+        var imageFile = new StorageFile()
+        {
+            StoragePath = TestImageStoragePath,
+            Size = 123,
+            Uploading = false,
+        };
+
+        var imageVersion = new StorageItemVersion()
+        {
+            Uploading = false,
+            StorageFile = imageFile,
+        };
+        imageFile.StorageItemVersions = new List<StorageItemVersion>() { imageVersion };
+
+        var ciImageFile = new StorageItem()
+        {
+            Name = new CiJob { Image = "test:v1" }.GetImageFileName(),
+            Ftype = FileType.File,
+            WriteAccess = FileAccess.Nobody,
+            Special = true,
+            StorageItemVersions = new List<StorageItemVersion>()
             {
-                StoragePath = TestImageStoragePath,
-                Size = 123,
-                Uploading = false,
-            };
+                imageVersion,
+            },
+        };
+        imageVersion.StorageItem = ciImageFile;
 
-            var imageVersion = new StorageItemVersion()
+        var testFolder = new StorageItem()
+        {
+            Name = "test",
+            Ftype = FileType.Folder,
+            Children = new List<StorageItem>()
             {
-                Uploading = false,
-                StorageFile = imageFile,
-            };
-            imageFile.StorageItemVersions = new List<StorageItemVersion>() { imageVersion };
+                ciImageFile,
+            },
+        };
+        ciImageFile.Parent = testFolder;
 
-            var ciImageFile = new StorageItem()
+        var imagesFolder = new StorageItem()
+        {
+            Name = "Images",
+            Ftype = FileType.Folder,
+            Children = new List<StorageItem>()
             {
-                Name = new CiJob { Image = "test:v1" }.GetImageFileName(),
-                Ftype = FileType.File,
-                WriteAccess = FileAccess.Nobody,
-                Special = true,
-                StorageItemVersions = new List<StorageItemVersion>()
-                {
-                    imageVersion,
-                },
-            };
-            imageVersion.StorageItem = ciImageFile;
+                testFolder,
+            },
+        };
+        testFolder.Parent = imagesFolder;
 
-            var testFolder = new StorageItem()
+        var ciFolder = new StorageItem()
+        {
+            Name = "CI",
+            AllowParentless = true,
+            Ftype = FileType.Folder,
+            Children = new List<StorageItem>()
             {
-                Name = "test",
-                Ftype = FileType.Folder,
-                Children = new List<StorageItem>()
-                {
-                    ciImageFile,
-                },
-            };
-            ciImageFile.Parent = testFolder;
+                imagesFolder,
+            },
+        };
+        imagesFolder.Parent = ciFolder;
 
-            var imagesFolder = new StorageItem()
-            {
-                Name = "Images",
-                Ftype = FileType.Folder,
-                Children = new List<StorageItem>()
-                {
-                    testFolder,
-                },
-            };
-            testFolder.Parent = imagesFolder;
+        database.StorageFiles.Add(imageFile);
+        database.StorageItemVersions.Add(imageVersion);
+        database.StorageItems.Add(ciImageFile);
+        database.StorageItems.Add(ciImageFile);
+        database.StorageItems.Add(testFolder);
+        database.StorageItems.Add(imagesFolder);
+        database.StorageItems.Add(ciFolder);
 
-            var ciFolder = new StorageItem()
-            {
-                Name = "CI",
-                AllowParentless = true,
-                Ftype = FileType.Folder,
-                Children = new List<StorageItem>()
-                {
-                    imagesFolder,
-                },
-            };
-            imagesFolder.Parent = ciFolder;
-
-            database.StorageFiles.Add(imageFile);
-            database.StorageItemVersions.Add(imageVersion);
-            database.StorageItems.Add(ciImageFile);
-            database.StorageItems.Add(ciImageFile);
-            database.StorageItems.Add(testFolder);
-            database.StorageItems.Add(imagesFolder);
-            database.StorageItems.Add(ciFolder);
-
-            database.SaveChanges();
-        }
+        database.SaveChanges();
     }
 }

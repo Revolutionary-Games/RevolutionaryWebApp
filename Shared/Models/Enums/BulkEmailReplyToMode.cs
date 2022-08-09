@@ -1,8 +1,7 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum BulkEmailReplyToMode
 {
-    public enum BulkEmailReplyToMode
-    {
-        SendingUser,
-        DevCenterSendingAddress,
-    }
+    SendingUser,
+    DevCenterSendingAddress,
 }

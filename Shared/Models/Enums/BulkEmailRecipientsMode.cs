@@ -1,10 +1,9 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum BulkEmailRecipientsMode
 {
-    public enum BulkEmailRecipientsMode
-    {
-        ManualList,
-        DevCenterUsers,
-        DevCenterDevelopers,
-        AssociationMembers,
-    }
+    ManualList,
+    DevCenterUsers,
+    DevCenterDevelopers,
+    AssociationMembers,
 }

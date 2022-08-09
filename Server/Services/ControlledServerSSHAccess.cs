@@ -1,45 +1,44 @@
-namespace ThriveDevCenter.Server.Services
+namespace ThriveDevCenter.Server.Services;
+
+using System;
+using Microsoft.Extensions.Configuration;
+using Renci.SshNet;
+
+public class ControlledServerSSHAccess : BaseSSHAccess, IControlledServerSSHAccess
 {
-    using System;
-    using Microsoft.Extensions.Configuration;
-    using Renci.SshNet;
+    private readonly PrivateKeyAuthenticationMethod? keyAuth;
+    private readonly string username;
 
-    public class ControlledServerSSHAccess : BaseSSHAccess, IControlledServerSSHAccess
+    public ControlledServerSSHAccess(IConfiguration configuration)
     {
-        private readonly PrivateKeyAuthenticationMethod? keyAuth;
-        private readonly string username;
+        var keyFile = configuration["CI:SSHKeyFile"];
+        username = configuration["CI:SSHUsername"];
 
-        public ControlledServerSSHAccess(IConfiguration configuration)
+        if (string.IsNullOrEmpty(keyFile) || string.IsNullOrEmpty(username))
         {
-            var keyFile = configuration["CI:SSHKeyFile"];
-            username = configuration["CI:SSHUsername"];
-
-            if (string.IsNullOrEmpty(keyFile) || string.IsNullOrEmpty(username))
-            {
-                Configured = false;
-                return;
-            }
-
-            keyAuth = new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(keyFile));
-
-            Configured = true;
+            Configured = false;
+            return;
         }
 
-        public string SSHUsername => username;
+        keyAuth = new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(keyFile));
 
-        public void ConnectTo(string address)
-        {
-            if (!Configured)
-                throw new Exception("Not configured");
-
-            StartNewConnection(address, username, keyAuth!);
-        }
+        Configured = true;
     }
 
-    public interface IControlledServerSSHAccess : IBaseSSHAccess
+    public string SSHUsername => username;
+
+    public void ConnectTo(string address)
     {
-        void ConnectTo(string address);
+        if (!Configured)
+            throw new Exception("Not configured");
 
-        string SSHUsername { get; }
+        StartNewConnection(address, username, keyAuth!);
     }
+}
+
+public interface IControlledServerSSHAccess : IBaseSSHAccess
+{
+    void ConnectTo(string address);
+
+    string SSHUsername { get; }
 }

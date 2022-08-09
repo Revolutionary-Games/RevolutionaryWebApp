@@ -1,10 +1,9 @@
-namespace ThriveDevCenter.Shared.Models
-{
-    using System.ComponentModel.DataAnnotations;
+namespace ThriveDevCenter.Shared.Models;
 
-    public class JSONWrappedRedirect
-    {
-        [Required]
-        public string RedirectTo { get; set; } = string.Empty;
-    }
+using System.ComponentModel.DataAnnotations;
+
+public class JSONWrappedRedirect
+{
+    [Required]
+    public string RedirectTo { get; set; } = string.Empty;
 }

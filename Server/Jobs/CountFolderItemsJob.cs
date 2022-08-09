@@ -1,30 +1,29 @@
-namespace ThriveDevCenter.Server.Jobs
+namespace ThriveDevCenter.Server.Jobs;
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Models;
+
+public class CountFolderItemsJob
 {
-    using System;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.EntityFrameworkCore;
-    using Models;
+    private readonly ApplicationDbContext database;
 
-    public class CountFolderItemsJob
+    public CountFolderItemsJob(ApplicationDbContext database)
     {
-        private readonly ApplicationDbContext database;
+        this.database = database;
+    }
 
-        public CountFolderItemsJob(ApplicationDbContext database)
-        {
-            this.database = database;
-        }
+    public async Task Execute(long folderId, CancellationToken cancellationToken)
+    {
+        var folder = await database.StorageItems.FindAsync(folderId);
 
-        public async Task Execute(long folderId, CancellationToken cancellationToken)
-        {
-            var folder = await database.StorageItems.FindAsync(folderId);
+        if (folder == null)
+            throw new NullReferenceException("couldn't find folder to count items in");
 
-            if (folder == null)
-                throw new NullReferenceException("couldn't find folder to count items in");
+        folder.Size = await database.StorageItems.CountAsync(i => i.ParentId == folder.Id, cancellationToken);
 
-            folder.Size = await database.StorageItems.CountAsync(i => i.ParentId == folder.Id, cancellationToken);
-
-            await database.SaveChangesAsync(cancellationToken);
-        }
+        await database.SaveChangesAsync(cancellationToken);
     }
 }

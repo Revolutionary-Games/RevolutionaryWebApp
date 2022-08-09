@@ -1,18 +1,17 @@
-namespace ThriveDevCenter.Server.Services
+namespace ThriveDevCenter.Server.Services;
+
+using Microsoft.Extensions.Configuration;
+
+public class StaticHomePageNotice
 {
-    using Microsoft.Extensions.Configuration;
+    private readonly string text;
 
-    public class StaticHomePageNotice
+    public StaticHomePageNotice(IConfiguration configuration)
     {
-        private readonly string text;
-
-        public StaticHomePageNotice(IConfiguration configuration)
-        {
-            text = configuration["StaticSiteHomePageNotice"];
-        }
-
-        public bool Enabled => !string.IsNullOrEmpty(text);
-
-        public string Text => text;
+        text = configuration["StaticSiteHomePageNotice"];
     }
+
+    public bool Enabled => !string.IsNullOrEmpty(text);
+
+    public string Text => text;
 }

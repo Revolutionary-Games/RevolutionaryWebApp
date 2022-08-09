@@ -1,78 +1,77 @@
-namespace ThriveDevCenter.Client.Shared
+namespace ThriveDevCenter.Client.Shared;
+
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using ThriveDevCenter.Shared;
+using ThriveDevCenter.Shared.Models;
+using ThriveDevCenter.Shared.Utilities;
+
+public abstract class BaseFileBrowser<T> : PaginatedPage<T>
+    where T : class, IIdentifiable, new()
 {
-    using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Components;
-    using ThriveDevCenter.Shared;
-    using ThriveDevCenter.Shared.Models;
-    using ThriveDevCenter.Shared.Utilities;
+    [Parameter]
+    public string? FileBrowserPath { get; set; }
 
-    public abstract class BaseFileBrowser<T> : PaginatedPage<T>
-        where T : class, IIdentifiable, new()
+    [Parameter]
+    [EditorRequired]
+    public string BasePath { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public string RootFolderName { get; set; } = null!;
+
+    protected BaseFileBrowser() : base(new SortHelper("Name", SortDirection.Ascending))
     {
-        [Parameter]
-        public string? FileBrowserPath { get; set; }
+        DefaultPageSize = 100;
+    }
 
-        [Parameter]
-        [EditorRequired]
-        public string BasePath { get; set; } = null!;
+    /// <summary>
+    ///   When true reacts to parameters changing by querying the server again
+    /// </summary>
+    public bool ReactToParameterChange { get; protected set; }
 
-        [Parameter]
-        [EditorRequired]
-        public string RootFolderName { get; set; } = null!;
+    public bool AutoSetReactToParameterChangeAfterDataReceived { get; protected set; } = true;
 
-        protected BaseFileBrowser() : base(new SortHelper("Name", SortDirection.Ascending))
+    protected string NonNullPath => FileBrowserPath ?? string.Empty;
+
+    protected string CurrentPathSlashPrefix => "/" + NonNullPath;
+
+    protected string SlashIfPathNotEmpty => string.IsNullOrEmpty(FileBrowserPath) ? string.Empty : "/";
+
+    /// <summary>
+    ///   Creates a link to navigate to sub folder
+    /// </summary>
+    /// <param name="name">Name of the sub folder</param>
+    /// <param name="skipLastPart">
+    ///   If true the last component of FileBrowserPath is ignored. Used when the last part can be a file
+    /// </param>
+    /// <returns>A navigation link URL</returns>
+    protected string FolderLink(string name, bool skipLastPart = false)
+    {
+        var browserPath = NonNullPath;
+
+        if (skipLastPart && browserPath.Contains('/'))
         {
-            DefaultPageSize = 100;
+            browserPath = PathParser.GetParentPath(browserPath);
         }
 
-        /// <summary>
-        ///   When true reacts to parameters changing by querying the server again
-        /// </summary>
-        public bool ReactToParameterChange { get; protected set; }
+        var slash = string.IsNullOrEmpty(browserPath) ? string.Empty : "/";
 
-        public bool AutoSetReactToParameterChangeAfterDataReceived { get; protected set; } = true;
+        return $"{BasePath}{browserPath}{slash}{name}";
+    }
 
-        protected string NonNullPath => FileBrowserPath ?? string.Empty;
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
 
-        protected string CurrentPathSlashPrefix => "/" + NonNullPath;
+        if (ReactToParameterChange)
+            await FetchData();
+    }
 
-        protected string SlashIfPathNotEmpty => string.IsNullOrEmpty(FileBrowserPath) ? string.Empty : "/";
-
-        /// <summary>
-        ///   Creates a link to navigate to sub folder
-        /// </summary>
-        /// <param name="name">Name of the sub folder</param>
-        /// <param name="skipLastPart">
-        ///   If true the last component of FileBrowserPath is ignored. Used when the last part can be a file
-        /// </param>
-        /// <returns>A navigation link URL</returns>
-        protected string FolderLink(string name, bool skipLastPart = false)
-        {
-            var browserPath = NonNullPath;
-
-            if (skipLastPart && browserPath.Contains('/'))
-            {
-                browserPath = PathParser.GetParentPath(browserPath);
-            }
-
-            var slash = string.IsNullOrEmpty(browserPath) ? string.Empty : "/";
-
-            return $"{BasePath}{browserPath}{slash}{name}";
-        }
-
-        protected override async Task OnParametersSetAsync()
-        {
-            await base.OnParametersSetAsync();
-
-            if (ReactToParameterChange)
-                await FetchData();
-        }
-
-        protected override Task OnDataReceived()
-        {
-            if(AutoSetReactToParameterChangeAfterDataReceived)
-                ReactToParameterChange = true;
-            return base.OnDataReceived();
-        }
+    protected override Task OnDataReceived()
+    {
+        if(AutoSetReactToParameterChangeAfterDataReceived)
+            ReactToParameterChange = true;
+        return base.OnDataReceived();
     }
 }

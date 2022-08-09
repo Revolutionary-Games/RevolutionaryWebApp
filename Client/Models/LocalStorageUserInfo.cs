@@ -1,7 +1,6 @@
-namespace ThriveDevCenter.Client.Models
+namespace ThriveDevCenter.Client.Models;
+
+public class LocalStorageUserInfo
 {
-    public class LocalStorageUserInfo
-    {
-        public long? LastSignedInUserId { get; set; }
-    }
+    public long? LastSignedInUserId { get; set; }
 }

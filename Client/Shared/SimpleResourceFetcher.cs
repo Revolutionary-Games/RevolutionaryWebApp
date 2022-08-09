@@ -1,71 +1,70 @@
-namespace ThriveDevCenter.Client.Shared
+namespace ThriveDevCenter.Client.Shared;
+
+using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+
+public abstract class SimpleResourceFetcher<T> : ComponentBase
+    where T : class
 {
-    using System;
-    using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Components;
+    protected bool DataReceived;
 
-    public abstract class SimpleResourceFetcher<T> : ComponentBase
-        where T : class
+    /// <summary>
+    ///   Contains any errors encountered when fetching the data
+    /// </summary>
+    public string? Error { get; protected set; }
+
+    public bool Loading { get; protected set; } = true;
+
+    public T? Data { get; protected set; }
+
+    protected override async Task OnInitializedAsync()
     {
-        protected bool DataReceived;
+        await base.OnInitializedAsync();
 
-        /// <summary>
-        ///   Contains any errors encountered when fetching the data
-        /// </summary>
-        public string? Error { get; protected set; }
+        Loading = true;
+        await FetchData();
+    }
 
-        public bool Loading { get; protected set; } = true;
+    protected virtual async Task FetchData()
+    {
+        var query = StartQuery();
 
-        public T? Data { get; protected set; }
-
-        protected override async Task OnInitializedAsync()
+        try
         {
-            await base.OnInitializedAsync();
-
-            Loading = true;
-            await FetchData();
+            Data = await query;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error getting simple resource: {e}");
+            Error = $"Error fetching data: {e.Message}";
         }
 
-        protected virtual async Task FetchData()
+        Loading = false;
+
+        if (Data != null)
         {
-            var query = StartQuery();
-
-            try
+            if (!DataReceived)
             {
-                Data = await query;
+                await OnFirstDataReceived();
+                DataReceived = true;
             }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error getting simple resource: {e}");
-                Error = $"Error fetching data: {e.Message}";
-            }
-
-            Loading = false;
-
-            if (Data != null)
-            {
-                if (!DataReceived)
-                {
-                    await OnFirstDataReceived();
-                    DataReceived = true;
-                }
-            }
-
-            await InvokeAsync(StateHasChanged);
         }
 
-        /// <summary>
-        ///   Starts the actual query to fetch data from the server
-        /// </summary>
-        protected abstract Task<T?> StartQuery();
+        await InvokeAsync(StateHasChanged);
+    }
 
-        /// <summary>
-        ///   Useful for registering to receive notifications about data updates. This is done this way to avoid trying
-        ///   to register for non-existent object's updates
-        /// </summary>
-        protected virtual Task OnFirstDataReceived()
-        {
-            return Task.CompletedTask;
-        }
+    /// <summary>
+    ///   Starts the actual query to fetch data from the server
+    /// </summary>
+    protected abstract Task<T?> StartQuery();
+
+    /// <summary>
+    ///   Useful for registering to receive notifications about data updates. This is done this way to avoid trying
+    ///   to register for non-existent object's updates
+    /// </summary>
+    protected virtual Task OnFirstDataReceived()
+    {
+        return Task.CompletedTask;
     }
 }

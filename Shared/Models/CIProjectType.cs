@@ -1,7 +1,6 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+public enum CIProjectType
 {
-    public enum CIProjectType
-    {
-        Github,
-    }
+    Github,
 }

@@ -1,10 +1,9 @@
-namespace ThriveDevCenter.Shared.Models
-{
-    using System;
+namespace ThriveDevCenter.Shared.Models;
 
-    public class CLAInfo : ClientSideModel
-    {
-        public DateTime CreatedAt { get; set; }
-        public bool Active { get; set; }
-    }
+using System;
+
+public class CLAInfo : ClientSideModel
+{
+    public DateTime CreatedAt { get; set; }
+    public bool Active { get; set; }
 }

@@ -1,13 +1,12 @@
-namespace ThriveDevCenter.Shared.Models
-{
-    public class DevBuildDTO : DevBuildLauncherDTO
-    {
-    }
+namespace ThriveDevCenter.Shared.Models;
 
-    public enum DevBuildSearchType
-    {
-        BOTD,
-        NonAnonymous,
-        Anonymous,
-    }
+public class DevBuildDTO : DevBuildLauncherDTO
+{
+}
+
+public enum DevBuildSearchType
+{
+    BOTD,
+    NonAnonymous,
+    Anonymous,
 }

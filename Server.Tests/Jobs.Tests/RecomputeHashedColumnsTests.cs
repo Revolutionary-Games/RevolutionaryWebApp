@@ -1,62 +1,61 @@
-namespace ThriveDevCenter.Server.Tests.Jobs.Tests
+namespace ThriveDevCenter.Server.Tests.Jobs.Tests;
+
+using System.Threading.Tasks;
+using Fixtures;
+using Microsoft.EntityFrameworkCore;
+using Server.Jobs;
+using Server.Models;
+using Server.Utilities;
+using Utilities;
+using Xunit;
+using Xunit.Abstractions;
+
+public class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestDatabaseFixture>
 {
-    using System.Threading.Tasks;
-    using Fixtures;
-    using Microsoft.EntityFrameworkCore;
-    using Server.Jobs;
-    using Server.Models;
-    using Server.Utilities;
-    using Utilities;
-    using Xunit;
-    using Xunit.Abstractions;
+    private readonly XunitLogger<RecomputeHashedColumns> logger;
+    private readonly RealUnitTestDatabaseFixture fixture;
 
-    public class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestDatabaseFixture>
+    public RecomputeHashedColumnsTests(RealUnitTestDatabaseFixture fixture, ITestOutputHelper output)
     {
-        private readonly XunitLogger<RecomputeHashedColumns> logger;
-        private readonly RealUnitTestDatabaseFixture fixture;
+        this.fixture = fixture;
+        logger = new XunitLogger<RecomputeHashedColumns>(output);
+    }
 
-        public RecomputeHashedColumnsTests(RealUnitTestDatabaseFixture fixture, ITestOutputHelper output)
+    [Fact]
+    public async Task RecomputeHashedColumns_ComputesSessionIdHash()
+    {
+        var database = fixture.Database;
+        await using var transaction = await database.Database.BeginTransactionAsync();
+
+        var created = new Session()
         {
-            this.fixture = fixture;
-            logger = new XunitLogger<RecomputeHashedColumns>(output);
-        }
+            SsoNonce = "5123",
+        };
 
-        [Fact]
-        public async Task RecomputeHashedColumns_ComputesSessionIdHash()
-        {
-            var database = fixture.Database;
-            await using var transaction = await database.Database.BeginTransactionAsync();
+        // It should be impossible to create a session with no hash, so we use raw SQL to insert it
+        // It seems impossible to split the interpolated string here into multiple lines...
+        var changes =
+            await database.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO sessions (id, session_version, last_used, sso_nonce) VALUES ({created.Id}, 1, {created.LastUsed}, {created.SsoNonce});");
 
-            var created = new Session()
-            {
-                SsoNonce = "5123",
-            };
+        Assert.Equal(1, changes);
 
-            // It should be impossible to create a session with no hash, so we use raw SQL to insert it
-            // It seems impossible to split the interpolated string here into multiple lines...
-            var changes =
-                await database.Database.ExecuteSqlInterpolatedAsync(
-                    $"INSERT INTO sessions (id, session_version, last_used, sso_nonce) VALUES ({created.Id}, 1, {created.LastUsed}, {created.SsoNonce});");
+        created.ComputeHashedLookUpValues();
+        Assert.Equal(SelectByHashedProperty.HashForDatabaseValue(created.Id.ToString()), created.HashedId);
 
-            Assert.Equal(1, changes);
+        // Run the job
+        var job = new RecomputeHashedColumns(logger, database);
+        await job.Execute(default);
 
-            created.ComputeHashedLookUpValues();
-            Assert.Equal(SelectByHashedProperty.HashForDatabaseValue(created.Id.ToString()), created.HashedId);
+        var retrieved = await database.Sessions
+            .FromSqlInterpolated($"SELECT * FROM sessions WHERE id = {created.Id}").FirstOrDefaultAsync();
+        Assert.NotNull(retrieved);
 
-            // Run the job
-            var job = new RecomputeHashedColumns(logger, database);
-            await job.Execute(default);
+        Assert.Equal(created.HashedId, retrieved.HashedId);
+        Assert.Equal(created.SsoNonce, retrieved.SsoNonce);
 
-            var retrieved = await database.Sessions
-                .FromSqlInterpolated($"SELECT * FROM sessions WHERE id = {created.Id}").FirstOrDefaultAsync();
-            Assert.NotNull(retrieved);
-
-            Assert.Equal(created.HashedId, retrieved.HashedId);
-            Assert.Equal(created.SsoNonce, retrieved.SsoNonce);
-
-            Assert.Null(await database.Sessions
-                .FromSqlInterpolated($"SELECT * FROM sessions WHERE id = {created.Id} AND hashed_id IS NULL")
-                .FirstOrDefaultAsync());
-        }
+        Assert.Null(await database.Sessions
+            .FromSqlInterpolated($"SELECT * FROM sessions WHERE id = {created.Id} AND hashed_id IS NULL")
+            .FirstOrDefaultAsync());
     }
 }

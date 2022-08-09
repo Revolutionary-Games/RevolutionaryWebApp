@@ -1,43 +1,42 @@
-namespace ThriveDevCenter.Server.Models
+namespace ThriveDevCenter.Server.Models;
+
+using System;
+using Shared;
+using Shared.Models;
+
+public class MeetingMember
 {
-    using System;
-    using Shared;
-    using Shared.Models;
+    public long MeetingId { get; set; }
 
-    public class MeetingMember
+    [AllowSortingBy]
+    public long UserId { get; set; }
+
+    [AllowSortingBy]
+    public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
+
+    public bool CanReviewMinutes { get; set; }
+
+    public Meeting? Meeting { get; set; }
+    public User? User { get; set; }
+
+    public MeetingMemberDTO GetDTO()
     {
-        public long MeetingId { get; set; }
-
-        [AllowSortingBy]
-        public long UserId { get; set; }
-
-        [AllowSortingBy]
-        public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
-
-        public bool CanReviewMinutes { get; set; }
-
-        public Meeting? Meeting { get; set; }
-        public User? User { get; set; }
-
-        public MeetingMemberDTO GetDTO()
+        return new()
         {
-            return new()
-            {
-                MeetingId = MeetingId,
-                UserId = UserId,
-                JoinedAt = JoinedAt,
-                CanReviewMinutes = CanReviewMinutes,
-            };
-        }
+            MeetingId = MeetingId,
+            UserId = UserId,
+            JoinedAt = JoinedAt,
+            CanReviewMinutes = CanReviewMinutes,
+        };
+    }
 
-        public MeetingMemberInfo GetInfo()
+    public MeetingMemberInfo GetInfo()
+    {
+        return new()
         {
-            return new()
-            {
-                MeetingId = MeetingId,
-                UserId = UserId,
-                JoinedAt = JoinedAt,
-            };
-        }
+            MeetingId = MeetingId,
+            UserId = UserId,
+            JoinedAt = JoinedAt,
+        };
     }
 }

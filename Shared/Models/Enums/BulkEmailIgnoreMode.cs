@@ -1,11 +1,10 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum BulkEmailIgnoreMode
 {
-    public enum BulkEmailIgnoreMode
-    {
-        Nobody,
-        DevCenterUsers,
-        DevCenterDevelopers,
-        CLASigned,
-        AssociationMembers,
-    }
+    Nobody,
+    DevCenterUsers,
+    DevCenterDevelopers,
+    CLASigned,
+    AssociationMembers,
 }

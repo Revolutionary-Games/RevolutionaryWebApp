@@ -1,9 +1,8 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum ThrivePlatform
 {
-    public enum ThrivePlatform
-    {
-        Linux,
-        Windows,
-        Mac,
-    }
+    Linux,
+    Windows,
+    Mac,
 }

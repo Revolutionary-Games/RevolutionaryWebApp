@@ -1,23 +1,22 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System;
+
+public interface ITimestampedModel : IIdentifiable, ITimestamped
 {
-    using System;
+}
 
-    public interface ITimestampedModel : IIdentifiable, ITimestamped
+public interface ITimestamped
+{
+    DateTime CreatedAt { get; }
+
+    DateTime UpdatedAt { get; set; }
+}
+
+public static class TimestampedModelHelpers
+{
+    public static void BumpUpdatedAt(this ITimestampedModel entity)
     {
-    }
-
-    public interface ITimestamped
-    {
-        DateTime CreatedAt { get; }
-
-        DateTime UpdatedAt { get; set; }
-    }
-
-    public static class TimestampedModelHelpers
-    {
-        public static void BumpUpdatedAt(this ITimestampedModel entity)
-        {
-            entity.UpdatedAt = DateTime.UtcNow;
-        }
+        entity.UpdatedAt = DateTime.UtcNow;
     }
 }

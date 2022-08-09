@@ -1,8 +1,7 @@
-namespace ThriveDevCenter.Shared
+namespace ThriveDevCenter.Shared;
+
+public enum SortDirection
 {
-    public enum SortDirection
-    {
-        Ascending = 1,
-        Descending = -1,
-    }
+    Ascending = 1,
+    Descending = -1,
 }

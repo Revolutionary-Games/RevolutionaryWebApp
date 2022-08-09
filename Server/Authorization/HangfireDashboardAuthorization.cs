@@ -1,49 +1,48 @@
-namespace ThriveDevCenter.Server.Authorization
+namespace ThriveDevCenter.Server.Authorization;
+
+using System.Net;
+using Hangfire.Dashboard;
+using Microsoft.Extensions.Logging;
+using Models;
+using Shared;
+using Shared.Models;
+
+public class HangfireDashboardAuthorization : IDashboardAuthorizationFilter
 {
-    using System.Net;
-    using Hangfire.Dashboard;
-    using Microsoft.Extensions.Logging;
-    using Models;
-    using Shared;
-    using Shared.Models;
+    private readonly ILogger<HangfireDashboardAuthorization> logger;
 
-    public class HangfireDashboardAuthorization : IDashboardAuthorizationFilter
+    public HangfireDashboardAuthorization(ILogger<HangfireDashboardAuthorization> logger)
     {
-        private readonly ILogger<HangfireDashboardAuthorization> logger;
+        this.logger = logger;
+    }
 
-        public HangfireDashboardAuthorization(ILogger<HangfireDashboardAuthorization> logger)
+    public bool Authorize(DashboardContext context)
+    {
+        var http = context.GetHttpContext();
+        var remoteAddress = http.Connection.RemoteIpAddress;
+
+        // Separate authentication handler should have already set user for us
+        if (!http.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? userRaw) || userRaw == null)
         {
-            this.logger = logger;
+            OnFailure(remoteAddress);
+            return false;
         }
 
-        public bool Authorize(DashboardContext context)
+        var user = userRaw as User;
+
+        if (user == null || user.Suspended == true || !user.HasAccessLevel(UserAccessLevel.Admin))
         {
-            var http = context.GetHttpContext();
-            var remoteAddress = http.Connection.RemoteIpAddress;
-
-            // Separate authentication handler should have already set user for us
-            if (!http.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? userRaw) || userRaw == null)
-            {
-                OnFailure(remoteAddress);
-                return false;
-            }
-
-            var user = userRaw as User;
-
-            if (user == null || user.Suspended == true || !user.HasAccessLevel(UserAccessLevel.Admin))
-            {
-                OnFailure(remoteAddress);
-                return false;
-            }
-
-            return true;
+            OnFailure(remoteAddress);
+            return false;
         }
 
-        private void OnFailure(IPAddress? remoteIpdAddress)
-        {
-            logger.LogWarning(
-                "Client from {RemoteIpAddress} tried to access hangfire dashboard without authorization",
-                remoteIpdAddress);
-        }
+        return true;
+    }
+
+    private void OnFailure(IPAddress? remoteIpdAddress)
+    {
+        logger.LogWarning(
+            "Client from {RemoteIpAddress} tried to access hangfire dashboard without authorization",
+            remoteIpdAddress);
     }
 }

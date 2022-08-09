@@ -1,9 +1,8 @@
-namespace ThriveDevCenter.Shared.Models.Enums
+namespace ThriveDevCenter.Shared.Models.Enums;
+
+public enum ReportState
 {
-    public enum ReportState
-    {
-        Open,
-        Closed,
-        Duplicate,
-    }
+    Open,
+    Closed,
+    Duplicate,
 }

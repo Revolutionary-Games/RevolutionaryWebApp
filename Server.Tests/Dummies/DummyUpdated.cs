@@ -1,9 +1,8 @@
-namespace ThriveDevCenter.Server.Tests.Dummies
-{
-    using Shared.Notifications;
+namespace ThriveDevCenter.Server.Tests.Dummies;
 
-    public class DummyUpdated : SerializedNotification
-    {
-        public const string UpdateGroup = "DummyUpdateGroup";
-    }
+using Shared.Notifications;
+
+public class DummyUpdated : SerializedNotification
+{
+    public const string UpdateGroup = "DummyUpdateGroup";
 }

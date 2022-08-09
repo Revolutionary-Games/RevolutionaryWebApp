@@ -1,57 +1,56 @@
-namespace ThriveDevCenter.Client.Utilities
+namespace ThriveDevCenter.Client.Utilities;
+
+using System.Collections.Generic;
+
+public class ClientSideResourceStatus<T>
+    where T : class, IDeletedResourceStatus, new()
 {
-    using System.Collections.Generic;
+    private readonly Dictionary<long, T> statuses = new();
 
-    public class ClientSideResourceStatus<T>
-        where T : class, IDeletedResourceStatus, new()
+    public T GetStatus(long resourceId)
     {
-        private readonly Dictionary<long, T> statuses = new();
-
-        public T GetStatus(long resourceId)
-        {
-            lock (statuses)
-            {
-                if (!statuses.ContainsKey(resourceId))
-                    statuses[resourceId] = new T();
-
-                return statuses[resourceId];
-            }
-        }
-
-        public void SetDeletedStatus(long resourceId)
-        {
-            GetStatus(resourceId).Deleted = true;
-        }
-
-        public bool IsDeleted(long resourceId)
+        lock (statuses)
         {
             if (!statuses.ContainsKey(resourceId))
-                return false;
+                statuses[resourceId] = new T();
 
-            return statuses[resourceId].Deleted;
-        }
-
-        public bool HasStatus(long resourceId)
-        {
-            return statuses.ContainsKey(resourceId);
+            return statuses[resourceId];
         }
     }
 
-    public interface IDeletedResourceStatus
+    public void SetDeletedStatus(long resourceId)
     {
-        /// <summary>
-        ///   This is used to pretend that an item is deleted before we get the server re-fetch of data done
-        /// </summary>
-        public bool Deleted { get; set; }
+        GetStatus(resourceId).Deleted = true;
     }
 
-    public class DeletedResourceStatus : IDeletedResourceStatus
+    public bool IsDeleted(long resourceId)
     {
-        public bool Deleted { get; set; }
+        if (!statuses.ContainsKey(resourceId))
+            return false;
 
-        /// <summary>
-        ///   Set to true when the delete is being processed
-        /// </summary>
-        public bool Processing { get; set; }
+        return statuses[resourceId].Deleted;
     }
+
+    public bool HasStatus(long resourceId)
+    {
+        return statuses.ContainsKey(resourceId);
+    }
+}
+
+public interface IDeletedResourceStatus
+{
+    /// <summary>
+    ///   This is used to pretend that an item is deleted before we get the server re-fetch of data done
+    /// </summary>
+    public bool Deleted { get; set; }
+}
+
+public class DeletedResourceStatus : IDeletedResourceStatus
+{
+    public bool Deleted { get; set; }
+
+    /// <summary>
+    ///   Set to true when the delete is being processed
+    /// </summary>
+    public bool Processing { get; set; }
 }

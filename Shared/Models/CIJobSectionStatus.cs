@@ -1,9 +1,8 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+public enum CIJobSectionStatus
 {
-    public enum CIJobSectionStatus
-    {
-        Running,
-        Succeeded,
-        Failed,
-    }
+    Running,
+    Succeeded,
+    Failed,
 }

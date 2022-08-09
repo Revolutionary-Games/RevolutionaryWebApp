@@ -1,33 +1,32 @@
-namespace ThriveDevCenter.Client.Services
+namespace ThriveDevCenter.Client.Services;
+
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.JSInterop;
+
+public class ComponentUrlHelper
 {
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Components;
-    using Microsoft.AspNetCore.WebUtilities;
-    using Microsoft.JSInterop;
+    private readonly IJSRuntime jsRuntime;
+    private readonly NavigationManager navigationManager;
 
-    public class ComponentUrlHelper
+    public ComponentUrlHelper(IJSRuntime jsRuntime, NavigationManager navigationManager)
     {
-        private readonly IJSRuntime jsRuntime;
-        private readonly NavigationManager navigationManager;
+        this.jsRuntime = jsRuntime;
+        this.navigationManager = navigationManager;
+    }
 
-        public ComponentUrlHelper(IJSRuntime jsRuntime, NavigationManager navigationManager)
-        {
-            this.jsRuntime = jsRuntime;
-            this.navigationManager = navigationManager;
-        }
+    public async Task UpdateUrlHistoryIfChanged(Dictionary<string, string> newQueryParams)
+    {
+        var targetUri = QueryHelpers.AddQueryString(navigationManager.Uri.Split("?")[0], newQueryParams);
 
-        public async Task UpdateUrlHistoryIfChanged(Dictionary<string, string> newQueryParams)
-        {
-            var targetUri = QueryHelpers.AddQueryString(navigationManager.Uri.Split("?")[0], newQueryParams);
+        // Need to ask the current url from javascript as navigationManager.Uri sometimes returns
+        // the *new* url somehow
+        var currentUrl = await jsRuntime.InvokeAsync<string>("getCurrentURL");
 
-            // Need to ask the current url from javascript as navigationManager.Uri sometimes returns
-            // the *new* url somehow
-            var currentUrl = await jsRuntime.InvokeAsync<string>("getCurrentURL");
-
-            // Add new history entry if the uri would change
-            if (targetUri != currentUrl)
-                await jsRuntime.InvokeVoidAsync("addToHistory", targetUri);
-        }
+        // Add new history entry if the uri would change
+        if (targetUri != currentUrl)
+            await jsRuntime.InvokeVoidAsync("addToHistory", targetUri);
     }
 }

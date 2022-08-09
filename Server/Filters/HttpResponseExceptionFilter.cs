@@ -1,36 +1,35 @@
-namespace ThriveDevCenter.Server.Filters
+namespace ThriveDevCenter.Server.Filters;
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Formatters;
+
+public class HttpResponseExceptionFilter : IActionFilter, IOrderedFilter
 {
-    using Microsoft.AspNetCore.Mvc;
-    using Microsoft.AspNetCore.Mvc.Filters;
-    using Microsoft.AspNetCore.Mvc.Formatters;
+    public int Order => int.MaxValue - 10;
 
-    public class HttpResponseExceptionFilter : IActionFilter, IOrderedFilter
+    public void OnActionExecuting(ActionExecutingContext context) { }
+
+    public void OnActionExecuted(ActionExecutedContext context)
     {
-        public int Order => int.MaxValue - 10;
+        if (context.Exception is not HttpResponseException exception)
+            return;
 
-        public void OnActionExecuting(ActionExecutingContext context) { }
-
-        public void OnActionExecuted(ActionExecutedContext context)
+        var result = new ObjectResult(exception.Value)
         {
-            if (context.Exception is not HttpResponseException exception)
-                return;
+            StatusCode = exception.Status,
+        };
 
-            var result = new ObjectResult(exception.Value)
+        if (!string.IsNullOrEmpty(exception.ContentType))
+        {
+            result.ContentTypes = new MediaTypeCollection()
             {
-                StatusCode = exception.Status,
+                exception.ContentType,
             };
-
-            if (!string.IsNullOrEmpty(exception.ContentType))
-            {
-                result.ContentTypes = new MediaTypeCollection()
-                {
-                    exception.ContentType,
-                };
-            }
-
-            context.Result = result;
-
-            context.ExceptionHandled = true;
         }
+
+        context.Result = result;
+
+        context.ExceptionHandled = true;
     }
 }

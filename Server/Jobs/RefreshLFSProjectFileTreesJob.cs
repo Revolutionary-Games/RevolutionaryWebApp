@@ -1,33 +1,32 @@
-namespace ThriveDevCenter.Server.Jobs
+namespace ThriveDevCenter.Server.Jobs;
+
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Hangfire;
+using Microsoft.EntityFrameworkCore;
+using Models;
+
+/// <summary>
+///   Scheduled job to queue refreshes for all non-deleted lfs project's file trees
+/// </summary>
+public class RefreshLFSProjectFileTreesJob : IJob
 {
-    using System.Linq;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Hangfire;
-    using Microsoft.EntityFrameworkCore;
-    using Models;
+    private readonly ApplicationDbContext database;
+    private readonly IBackgroundJobClient jobClient;
 
-    /// <summary>
-    ///   Scheduled job to queue refreshes for all non-deleted lfs project's file trees
-    /// </summary>
-    public class RefreshLFSProjectFileTreesJob : IJob
+    public RefreshLFSProjectFileTreesJob(ApplicationDbContext database, IBackgroundJobClient jobClient)
     {
-        private readonly ApplicationDbContext database;
-        private readonly IBackgroundJobClient jobClient;
+        this.database = database;
+        this.jobClient = jobClient;
+    }
 
-        public RefreshLFSProjectFileTreesJob(ApplicationDbContext database, IBackgroundJobClient jobClient)
+    public async Task Execute(CancellationToken cancellationToken)
+    {
+        foreach (var id in await database.LfsProjects.Where(p => p.Deleted != true).Select(p => p.Id)
+                     .ToListAsync(cancellationToken))
         {
-            this.database = database;
-            this.jobClient = jobClient;
-        }
-
-        public async Task Execute(CancellationToken cancellationToken)
-        {
-            foreach (var id in await database.LfsProjects.Where(p => p.Deleted != true).Select(p => p.Id)
-                .ToListAsync(cancellationToken))
-            {
-                jobClient.Enqueue<RefreshLFSProjectFilesJob>(x => x.Execute(id, CancellationToken.None));
-            }
+            jobClient.Enqueue<RefreshLFSProjectFilesJob>(x => x.Execute(id, CancellationToken.None));
         }
     }
 }

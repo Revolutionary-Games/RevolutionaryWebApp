@@ -1,39 +1,38 @@
-namespace ThriveDevCenter.Server.Tests.Fixtures
+namespace ThriveDevCenter.Server.Tests.Fixtures;
+
+using Microsoft.Extensions.Configuration;
+
+public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
 {
-    using Microsoft.Extensions.Configuration;
+    private static readonly object Lock = new object();
+    private static bool databaseInitialized;
 
-    public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
+    public RealUnitTestDatabaseFixture() : base(GetConnectionString())
     {
-        private static readonly object Lock = new object();
-        private static bool databaseInitialized;
-
-        public RealUnitTestDatabaseFixture() : base(GetConnectionString())
+        lock (Lock)
         {
-            lock (Lock)
+            if (!databaseInitialized)
             {
-                if (!databaseInitialized)
-                {
-                    Seed();
-                    databaseInitialized = true;
-                }
+                Seed();
+                databaseInitialized = true;
             }
         }
+    }
 
-        private static string GetConnectionString()
-        {
-            var configuration = new ConfigurationBuilder()
-                .AddUserSecrets<RealUnitTestDatabaseFixture>().Build();
+    private static string GetConnectionString()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets<RealUnitTestDatabaseFixture>().Build();
 
-            return configuration["UnitTestConnection"];
-        }
+        return configuration["UnitTestConnection"];
+    }
 
-        protected override void Seed()
-        {
-            RecreateDb();
+    protected override void Seed()
+    {
+        RecreateDb();
 
-            InsertBasicUsers();
+        InsertBasicUsers();
 
-            Database.SaveChanges();
-        }
+        Database.SaveChanges();
     }
 }

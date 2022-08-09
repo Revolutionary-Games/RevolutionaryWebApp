@@ -1,115 +1,114 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System;
+
+public enum FileAccess
 {
-    using System;
+    Public = 0,
+    RestrictedUser = 1,
+    User = 2,
+    Developer,
+    OwnerOrAdmin,
 
-    public enum FileAccess
+    /// <summary>
+    ///   Only system access
+    /// </summary>
+    Nobody,
+}
+
+public static class FileAccessHelpers
+{
+    public static bool IsAccessibleTo(this FileAccess access, UserAccessLevel? userAccess, long? userId,
+        long? objectOwnerId)
     {
-        Public = 0,
-        RestrictedUser = 1,
-        User = 2,
-        Developer,
-        OwnerOrAdmin,
+        // Everyone has access to public
+        if (access == FileAccess.Public)
+            return true;
 
-        /// <summary>
-        ///   Only system access
-        /// </summary>
-        Nobody,
+        // This is done to make it easier to call this method
+        userAccess ??= UserAccessLevel.NotLoggedIn;
+
+        // Unauthenticated users can only view public items
+        // False is returned here as public access was checked above
+        if (userId == null || userAccess == UserAccessLevel.NotLoggedIn)
+            return false;
+
+        // Admins can access anything not system-only
+        if (userAccess == UserAccessLevel.Admin)
+            return access != FileAccess.Nobody;
+
+        // Object owner access
+        if (objectOwnerId != null && userId == objectOwnerId)
+            return access != FileAccess.Nobody;
+
+        if (userAccess == UserAccessLevel.Developer)
+        {
+            return access is FileAccess.User or FileAccess.RestrictedUser or FileAccess.Developer;
+        }
+
+        if (userAccess == UserAccessLevel.RestrictedUser)
+        {
+            return access == FileAccess.RestrictedUser;
+        }
+
+        return access is FileAccess.User or FileAccess.RestrictedUser;
     }
 
-    public static class FileAccessHelpers
+    public static string ToUserReadableString(this FileAccess access)
     {
-        public static bool IsAccessibleTo(this FileAccess access, UserAccessLevel? userAccess, long? userId,
-            long? objectOwnerId)
+        switch (access)
         {
-            // Everyone has access to public
-            if (access == FileAccess.Public)
-                return true;
-
-            // This is done to make it easier to call this method
-            userAccess ??= UserAccessLevel.NotLoggedIn;
-
-            // Unauthenticated users can only view public items
-            // False is returned here as public access was checked above
-            if (userId == null || userAccess == UserAccessLevel.NotLoggedIn)
-                return false;
-
-            // Admins can access anything not system-only
-            if (userAccess == UserAccessLevel.Admin)
-                return access != FileAccess.Nobody;
-
-            // Object owner access
-            if (objectOwnerId != null && userId == objectOwnerId)
-                return access != FileAccess.Nobody;
-
-            if (userAccess == UserAccessLevel.Developer)
-            {
-                return access is FileAccess.User or FileAccess.RestrictedUser or FileAccess.Developer;
-            }
-
-            if (userAccess == UserAccessLevel.RestrictedUser)
-            {
-                return access == FileAccess.RestrictedUser;
-            }
-
-            return access is FileAccess.User or FileAccess.RestrictedUser;
+            case FileAccess.Public:
+                return "public";
+            case FileAccess.RestrictedUser:
+                return "restricted users";
+            case FileAccess.User:
+                return "users";
+            case FileAccess.Developer:
+                return "developers";
+            case FileAccess.OwnerOrAdmin:
+                return "owner";
+            case FileAccess.Nobody:
+                return "system";
+            default:
+                throw new ArgumentOutOfRangeException(nameof(access), access, null);
         }
+    }
 
-        public static string ToUserReadableString(this FileAccess access)
+    public static FileAccess AccessFromUserReadableString(string access)
+    {
+        switch (access.ToLowerInvariant())
         {
-            switch (access)
-            {
-                case FileAccess.Public:
-                    return "public";
-                case FileAccess.RestrictedUser:
-                    return "restricted users";
-                case FileAccess.User:
-                    return "users";
-                case FileAccess.Developer:
-                    return "developers";
-                case FileAccess.OwnerOrAdmin:
-                    return "owner";
-                case FileAccess.Nobody:
-                    return "system";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(access), access, null);
-            }
-        }
-
-        public static FileAccess AccessFromUserReadableString(string access)
-        {
-            switch (access.ToLowerInvariant())
-            {
-                case "public":
-                    return FileAccess.Public;
-                case "restricted user":
-                case "restricted users":
-                case "restrictedUser":
-                case "restrictedUsers":
-                // ReSharper disable StringLiteralTypo
-                case "restricteduser":
-                case "restrictedusers":
-                case "ruser":
-                case "rusers":
-                    // ReSharper restore StringLiteralTypo
-                    return FileAccess.RestrictedUser;
-                case "users":
-                case "user":
-                    return FileAccess.User;
-                case "developers":
-                case "developer":
-                    return FileAccess.Developer;
-                case "owner":
-                case "owners":
-                case "owner + admins":
-                case "admins":
-                case "admin":
-                    return FileAccess.OwnerOrAdmin;
-                case "system":
-                case "nobody":
-                    return FileAccess.Nobody;
-                default:
-                    throw new ArgumentException("Unknown name for FileAccess");
-            }
+            case "public":
+                return FileAccess.Public;
+            case "restricted user":
+            case "restricted users":
+            case "restrictedUser":
+            case "restrictedUsers":
+            // ReSharper disable StringLiteralTypo
+            case "restricteduser":
+            case "restrictedusers":
+            case "ruser":
+            case "rusers":
+                // ReSharper restore StringLiteralTypo
+                return FileAccess.RestrictedUser;
+            case "users":
+            case "user":
+                return FileAccess.User;
+            case "developers":
+            case "developer":
+                return FileAccess.Developer;
+            case "owner":
+            case "owners":
+            case "owner + admins":
+            case "admins":
+            case "admin":
+                return FileAccess.OwnerOrAdmin;
+            case "system":
+            case "nobody":
+                return FileAccess.Nobody;
+            default:
+                throw new ArgumentException("Unknown name for FileAccess");
         }
     }
 }

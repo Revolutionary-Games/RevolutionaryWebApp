@@ -1,13 +1,12 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System;
+using System.ComponentModel.DataAnnotations;
+
+public class GithubWebhookDTO : ClientSideTimedModel
 {
-    using System;
-    using System.ComponentModel.DataAnnotations;
+    [Required]
+    public string Secret { get; set; } = string.Empty;
 
-    public class GithubWebhookDTO : ClientSideTimedModel
-    {
-        [Required]
-        public string Secret { get; set; } = string.Empty;
-
-        public DateTime? LastUsed { get; set; }
-    }
+    public DateTime? LastUsed { get; set; }
 }

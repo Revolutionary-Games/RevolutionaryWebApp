@@ -1,12 +1,11 @@
-namespace ThriveDevCenter.Server.Common.Models
+namespace ThriveDevCenter.Server.Common.Models;
+
+using System.ComponentModel.DataAnnotations;
+
+public class CiSecretExecutorData
 {
-    using System.ComponentModel.DataAnnotations;
+    [Required]
+    public string SecretName { get; set; } = string.Empty;
 
-    public class CiSecretExecutorData
-    {
-        [Required]
-        public string SecretName { get; set; } = string.Empty;
-
-        public string SecretContent { get; set; } = string.Empty;
-    }
+    public string SecretContent { get; set; } = string.Empty;
 }

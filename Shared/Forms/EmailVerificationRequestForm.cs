@@ -1,12 +1,11 @@
-namespace ThriveDevCenter.Shared.Forms
-{
-    using System.ComponentModel.DataAnnotations;
-    using SharedBase.ModelVerifiers;
+namespace ThriveDevCenter.Shared.Forms;
 
-    public class EmailVerificationRequestForm
-    {
-        [Required]
-        [Email]
-        public string Email { get; set; } = string.Empty;
-    }
+using System.ComponentModel.DataAnnotations;
+using SharedBase.ModelVerifiers;
+
+public class EmailVerificationRequestForm
+{
+    [Required]
+    [Email]
+    public string Email { get; set; } = string.Empty;
 }

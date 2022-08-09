@@ -1,82 +1,81 @@
-namespace ThriveDevCenter.Shared.Utilities
+namespace ThriveDevCenter.Shared.Utilities;
+
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.Serialization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+public class ActualEnumStringConverter : JsonConverterFactory
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Reflection;
-    using System.Runtime.Serialization;
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
-
-    public class ActualEnumStringConverter : JsonConverterFactory
+    public override bool CanConvert(Type typeToConvert)
     {
-        public override bool CanConvert(Type typeToConvert)
-        {
-            return typeToConvert.IsEnum;
-        }
+        return typeToConvert.IsEnum;
+    }
 
-        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-        {
-            JsonConverter converter = (JsonConverter)Activator.CreateInstance(
-                typeof(ActualEnumConverter<>).MakeGenericType(typeToConvert),
-                BindingFlags.Instance | BindingFlags.Public,
-                binder: null,
-                new object[] { options },
-                culture: null)!;
+    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    {
+        JsonConverter converter = (JsonConverter)Activator.CreateInstance(
+            typeof(ActualEnumConverter<>).MakeGenericType(typeToConvert),
+            BindingFlags.Instance | BindingFlags.Public,
+            binder: null,
+            new object[] { options },
+            culture: null)!;
 
-            return converter;
+        return converter;
+    }
+}
+
+internal class ActualEnumConverter<T> : JsonConverter<T>
+    where T : notnull
+{
+    private readonly Dictionary<T, string> valueToStringMap = new();
+    private readonly Dictionary<string, T> stringToValueMap = new();
+
+    public ActualEnumConverter(JsonSerializerOptions options)
+    {
+        _ = options;
+
+        var type = typeof(T);
+        var enumValues = type.GetFields(BindingFlags.Public | BindingFlags.Static);
+
+        foreach (var value in enumValues)
+        {
+            var realValue = (T)value.GetValue(null)!;
+
+            var attribute = value.GetCustomAttribute(typeof(EnumMemberAttribute)) as EnumMemberAttribute;
+
+            var stringValue = attribute?.Value ?? value.Name;
+
+            valueToStringMap[realValue] = stringValue;
+            stringToValueMap[stringValue.ToLowerInvariant()] = realValue;
         }
     }
 
-    internal class ActualEnumConverter<T> : JsonConverter<T>
-        where T : notnull
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        private readonly Dictionary<T, string> valueToStringMap = new();
-        private readonly Dictionary<string, T> stringToValueMap = new();
+        var stringValue = reader.GetString();
 
-        public ActualEnumConverter(JsonSerializerOptions options)
+        // TODO: allow null values?
+        // if (stringValue == null)
+        //    return null;
+
+        if (stringValue == null)
+            throw new JsonException("Enum string value is null");
+
+        try
         {
-            _ = options;
-
-            var type = typeof(T);
-            var enumValues = type.GetFields(BindingFlags.Public | BindingFlags.Static);
-
-            foreach (var value in enumValues)
-            {
-                var realValue = (T)value.GetValue(null)!;
-
-                var attribute = value.GetCustomAttribute(typeof(EnumMemberAttribute)) as EnumMemberAttribute;
-
-                var stringValue = attribute?.Value ?? value.Name;
-
-                valueToStringMap[realValue] = stringValue;
-                stringToValueMap[stringValue.ToLowerInvariant()] = realValue;
-            }
+            return stringToValueMap[stringValue.ToLowerInvariant()];
         }
-
-        public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        catch (KeyNotFoundException)
         {
-            var stringValue = reader.GetString();
-
-            // TODO: allow null values?
-            // if (stringValue == null)
-            //    return null;
-
-            if (stringValue == null)
-                throw new JsonException("Enum string value is null");
-
-            try
-            {
-                return stringToValueMap[stringValue.ToLowerInvariant()];
-            }
-            catch (KeyNotFoundException)
-            {
-                throw new JsonException("Invalid given value for enum type");
-            }
+            throw new JsonException("Invalid given value for enum type");
         }
+    }
 
-        public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
-        {
-            writer.WriteStringValue(valueToStringMap[value]);
-        }
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(valueToStringMap[value]);
     }
 }

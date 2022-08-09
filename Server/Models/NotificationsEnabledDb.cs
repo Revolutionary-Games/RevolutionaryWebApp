@@ -1,14 +1,13 @@
-namespace ThriveDevCenter.Server.Models
-{
-    using Microsoft.EntityFrameworkCore;
-    using Services;
+namespace ThriveDevCenter.Server.Models;
 
-    public class NotificationsEnabledDb : ApplicationDbContext
+using Microsoft.EntityFrameworkCore;
+using Services;
+
+public class NotificationsEnabledDb : ApplicationDbContext
+{
+    public NotificationsEnabledDb(DbContextOptions<ApplicationDbContext> options,
+        IModelUpdateNotificationSender notificationSender) : base(options)
     {
-        public NotificationsEnabledDb(DbContextOptions<ApplicationDbContext> options,
-            IModelUpdateNotificationSender notificationSender) : base(options)
-        {
-            AutoSendNotifications = notificationSender;
-        }
+        AutoSendNotifications = notificationSender;
     }
 }

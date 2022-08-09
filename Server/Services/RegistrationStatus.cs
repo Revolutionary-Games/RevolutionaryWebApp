@@ -1,32 +1,31 @@
-namespace ThriveDevCenter.Server.Services
+namespace ThriveDevCenter.Server.Services;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+public class RegistrationStatus : IRegistrationStatus
 {
-    using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
-
-    public class RegistrationStatus : IRegistrationStatus
+    public RegistrationStatus(IConfiguration configuration, ILogger<RegistrationStatus> logger)
     {
-        public RegistrationStatus(IConfiguration configuration, ILogger<RegistrationStatus> logger)
+        RegistrationCode = configuration.GetValue("Registration:RegistrationCode", string.Empty);
+
+        if (configuration.GetValue("Registration:Enabled", false) && !string.IsNullOrEmpty(RegistrationCode))
         {
-            RegistrationCode = configuration.GetValue("Registration:RegistrationCode", string.Empty);
-
-            if (configuration.GetValue("Registration:Enabled", false) && !string.IsNullOrEmpty(RegistrationCode))
-            {
-                logger.LogInformation("Registration is enabled on this instance");
-                RegistrationEnabled = true;
-            }
-            else
-            {
-                RegistrationEnabled = false;
-            }
+            logger.LogInformation("Registration is enabled on this instance");
+            RegistrationEnabled = true;
         }
-
-        public bool RegistrationEnabled { get; }
-        public string RegistrationCode { get; }
+        else
+        {
+            RegistrationEnabled = false;
+        }
     }
 
-    public interface IRegistrationStatus
-    {
-        bool RegistrationEnabled { get; }
-        string? RegistrationCode { get; }
-    }
+    public bool RegistrationEnabled { get; }
+    public string RegistrationCode { get; }
+}
+
+public interface IRegistrationStatus
+{
+    bool RegistrationEnabled { get; }
+    string? RegistrationCode { get; }
 }

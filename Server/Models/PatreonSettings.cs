@@ -1,48 +1,47 @@
 ﻿using System;
 
-namespace ThriveDevCenter.Server.Models
+namespace ThriveDevCenter.Server.Models;
+
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+
+[Index(nameof(WebhookId), IsUnique = true)]
+public class PatreonSettings : UpdateableModel
 {
-    using System.ComponentModel.DataAnnotations;
-    using Microsoft.EntityFrameworkCore;
+    public bool Active { get; set; } = false;
 
-    [Index(nameof(WebhookId), IsUnique = true)]
-    public class PatreonSettings : UpdateableModel
+    [Required]
+    public string CreatorToken { get; set; }  = string.Empty;
+
+    public string? CreatorRefreshToken { get; set; }
+
+    [Required]
+    public string WebhookId { get; set; }  = string.Empty;
+
+    [Required]
+    public string WebhookSecret { get; set; }  = string.Empty;
+
+    public DateTime? LastWebhook { get; set; }
+
+    public DateTime? LastRefreshed { get; set; }
+
+    public string? CampaignId { get; set; }
+    public string? DevbuildsRewardId { get; set; }
+    public string? VipRewardId { get; set; }
+
+    public bool IsEntitledToDevBuilds(Patron? patron)
     {
-        public bool Active { get; set; } = false;
+        if (patron == null)
+            return false;
 
-        [Required]
-        public string CreatorToken { get; set; }  = string.Empty;
+        return patron.RewardId == DevbuildsRewardId || patron.RewardId == VipRewardId;
+    }
 
-        public string? CreatorRefreshToken { get; set; }
+    public bool IsEntitledToVIP(Patron? patron)
+    {
+        if (patron == null)
+            return false;
 
-        [Required]
-        public string WebhookId { get; set; }  = string.Empty;
-
-        [Required]
-        public string WebhookSecret { get; set; }  = string.Empty;
-
-        public DateTime? LastWebhook { get; set; }
-
-        public DateTime? LastRefreshed { get; set; }
-
-        public string? CampaignId { get; set; }
-        public string? DevbuildsRewardId { get; set; }
-        public string? VipRewardId { get; set; }
-
-        public bool IsEntitledToDevBuilds(Patron? patron)
-        {
-            if (patron == null)
-                return false;
-
-            return patron.RewardId == DevbuildsRewardId || patron.RewardId == VipRewardId;
-        }
-
-        public bool IsEntitledToVIP(Patron? patron)
-        {
-            if (patron == null)
-                return false;
-
-            return patron.RewardId == VipRewardId;
-        }
+        return patron.RewardId == VipRewardId;
     }
 }

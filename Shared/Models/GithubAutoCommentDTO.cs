@@ -1,19 +1,18 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+using System.ComponentModel.DataAnnotations;
+using Enums;
+
+public class GithubAutoCommentDTO : ClientSideTimedModel
 {
-    using System.ComponentModel.DataAnnotations;
-    using Enums;
+    public bool Enabled { get; set; }
 
-    public class GithubAutoCommentDTO : ClientSideTimedModel
-    {
-        public bool Enabled { get; set; }
+    [MaxLength(500)]
+    public string? Repository { get; set; }
 
-        [MaxLength(500)]
-        public string? Repository { get; set; }
+    [Required]
+    [StringLength(2000, MinimumLength = 5)]
+    public string CommentText { get; set; } = string.Empty;
 
-        [Required]
-        [StringLength(2000, MinimumLength = 5)]
-        public string CommentText { get; set; } = string.Empty;
-
-        public AutoCommentCondition Condition { get; set; }
-    }
+    public AutoCommentCondition Condition { get; set; }
 }

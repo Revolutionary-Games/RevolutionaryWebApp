@@ -1,10 +1,9 @@
-namespace ThriveDevCenter.Shared.Models
+namespace ThriveDevCenter.Shared.Models;
+
+public enum BuildStatus
 {
-    public enum BuildStatus
-    {
-        Running,
-        Succeeded,
-        Failed,
-        GoingToFail,
-    }
+    Running,
+    Succeeded,
+    Failed,
+    GoingToFail,
 }

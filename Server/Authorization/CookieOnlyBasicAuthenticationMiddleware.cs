@@ -1,48 +1,47 @@
-namespace ThriveDevCenter.Server.Authorization
+namespace ThriveDevCenter.Server.Authorization;
+
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Models;
+using Shared;
+
+/// <summary>
+///   Uses just cookies without a CSRF token for authorization. Used for Hangfire dashboard
+///   (which hopefully has its own CSRF). And in the future probably for the download endpoint?
+/// </summary>
+public class CookieOnlyBasicAuthenticationMiddleware : BaseAuthenticationHelper
 {
-    using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Http;
-    using Models;
-    using Shared;
+    private readonly ApplicationDbContext database;
 
-    /// <summary>
-    ///   Uses just cookies without a CSRF token for authorization. Used for Hangfire dashboard
-    ///   (which hopefully has its own CSRF). And in the future probably for the download endpoint?
-    /// </summary>
-    public class CookieOnlyBasicAuthenticationMiddleware : BaseAuthenticationHelper
+    public CookieOnlyBasicAuthenticationMiddleware(ApplicationDbContext database)
     {
-        private readonly ApplicationDbContext database;
+        this.database = database;
+    }
 
-        public CookieOnlyBasicAuthenticationMiddleware(ApplicationDbContext database)
+    protected override async Task<bool> PerformAuthentication(HttpContext context)
+    {
+        if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) &&
+            !string.IsNullOrEmpty(session))
         {
-            this.database = database;
-        }
+            var (user, sessionObject) = await context.Request.Cookies.GetUserFromSession(database,
+                context.Connection.RemoteIpAddress);
 
-        protected override async Task<bool> PerformAuthentication(HttpContext context)
-        {
-            if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) &&
-                !string.IsNullOrEmpty(session))
+            if (user != null)
             {
-                var (user, sessionObject) = await context.Request.Cookies.GetUserFromSession(database,
-                    context.Connection.RemoteIpAddress);
+                // This is special handling, and doesn't require CSRF
 
-                if (user != null)
+                if (user.Suspended != true)
                 {
-                    // This is special handling, and doesn't require CSRF
-
-                    if (user.Suspended != true)
-                    {
-                        OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, sessionObject);
-                        return true;
-                    }
-
-                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.Response.WriteAsync("Invalid session cookie");
-                    return false;
+                    OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, sessionObject);
+                    return true;
                 }
-            }
 
-            return true;
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Invalid session cookie");
+                return false;
+            }
         }
+
+        return true;
     }
 }

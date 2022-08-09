@@ -1,9 +1,8 @@
-namespace ThriveDevCenter.Shared.Models
-{
-    using System;
+namespace ThriveDevCenter.Shared.Models;
 
-    public abstract class ClientSideModelWithCreationTime : ClientSideModel
-    {
-        public DateTime CreatedAt { get; set; }
-    }
+using System;
+
+public abstract class ClientSideModelWithCreationTime : ClientSideModel
+{
+    public DateTime CreatedAt { get; set; }
 }

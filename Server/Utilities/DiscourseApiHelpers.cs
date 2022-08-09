@@ -1,8 +1,7 @@
-namespace ThriveDevCenter.Server.Utilities
+namespace ThriveDevCenter.Server.Utilities;
+
+public class DiscourseApiHelpers
 {
-    public class DiscourseApiHelpers
-    {
-        public const string CommunityDevBuildGroup = "Supporter";
-        public const string CommunityVIPGroup = "VIP_supporter";
-    }
+    public const string CommunityDevBuildGroup = "Supporter";
+    public const string CommunityVIPGroup = "VIP_supporter";
 }

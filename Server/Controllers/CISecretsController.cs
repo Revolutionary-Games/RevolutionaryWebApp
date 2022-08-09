@@ -1,135 +1,134 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace ThriveDevCenter.Server.Controllers
+namespace ThriveDevCenter.Server.Controllers;
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+using Authorization;
+using Filters;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Models;
+using Shared;
+using Shared.Forms;
+using Shared.Models;
+
+[ApiController]
+[Route("api/v1/[controller]")]
+public class CISecretsController : Controller
 {
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel.DataAnnotations;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using Authorization;
-    using Filters;
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Logging;
-    using Models;
-    using Shared;
-    using Shared.Forms;
-    using Shared.Models;
+    private readonly ILogger<CISecretsController> logger;
+    private readonly NotificationsEnabledDb database;
 
-    [ApiController]
-    [Route("api/v1/[controller]")]
-    public class CISecretsController : Controller
+    public CISecretsController(ILogger<CISecretsController> logger, NotificationsEnabledDb database)
     {
-        private readonly ILogger<CISecretsController> logger;
-        private readonly NotificationsEnabledDb database;
+        this.logger = logger;
+        this.database = database;
+    }
 
-        public CISecretsController(ILogger<CISecretsController> logger, NotificationsEnabledDb database)
+    [HttpGet("{projectId:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<List<CISecretDTO>>> Get([Required] long projectId, [Required] string sortColumn,
+        [Required] SortDirection sortDirection)
+    {
+        var project = await database.CiProjects.FindAsync(projectId);
+
+        if (project == null)
+            return NotFound();
+
+        IQueryable<CiSecret> query;
+
+        try
         {
-            this.logger = logger;
-            this.database = database;
+            query = database.CiSecrets.Where(s => s.CiProjectId == project.Id)
+                .OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
         }
 
-        [HttpGet("{projectId:long}")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        public async Task<ActionResult<List<CISecretDTO>>> Get([Required] long projectId, [Required] string sortColumn,
-            [Required] SortDirection sortDirection)
+        return await query.Select(s => s.GetDTO()).ToListAsync();
+    }
+
+    [HttpPost("{projectId:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> Create([Required] long projectId,
+        [Required] [FromBody] CreateCISecretForm request)
+    {
+        var project = await database.CiProjects.FindAsync(projectId);
+
+        if (project == null)
+            return NotFound();
+
+        if (await database.CiSecrets.FirstOrDefaultAsync(s => s.CiProjectId == project.Id &&
+                s.SecretName == request.SecretName && s.UsedForBuildTypes == request.UsedForBuildTypes) != null)
         {
-            var project = await database.CiProjects.FindAsync(projectId);
-
-            if (project == null)
-                return NotFound();
-
-            IQueryable<CiSecret> query;
-
-            try
-            {
-                query = database.CiSecrets.Where(s => s.CiProjectId == project.Id)
-                    .OrderBy(sortColumn, sortDirection);
-            }
-            catch (ArgumentException e)
-            {
-                logger.LogWarning("Invalid requested order: {@E}", e);
-                throw new HttpResponseException() { Value = "Invalid data selection or sort" };
-            }
-
-            return await query.Select(s => s.GetDTO()).ToListAsync();
+            return BadRequest("A secret with the given name and type already exists");
         }
 
-        [HttpPost("{projectId:long}")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        public async Task<IActionResult> Create([Required] long projectId,
-            [Required] [FromBody] CreateCISecretForm request)
+        var previousSecretId = await database.CiSecrets.Where(s => s.CiProjectId == project.Id)
+            .MaxAsync(s => (long?)s.CiSecretId) ?? 0;
+
+        var user = HttpContext.AuthenticatedUser()!;
+
+        await database.AdminActions.AddAsync(new AdminAction()
         {
-            var project = await database.CiProjects.FindAsync(projectId);
+            Message = $"New secret \"{request.SecretName}\" created for project {project.Id}",
+            PerformedById = user.Id,
+        });
 
-            if (project == null)
-                return NotFound();
-
-            if (await database.CiSecrets.FirstOrDefaultAsync(s => s.CiProjectId == project.Id &&
-                    s.SecretName == request.SecretName && s.UsedForBuildTypes == request.UsedForBuildTypes) != null)
-            {
-                return BadRequest("A secret with the given name and type already exists");
-            }
-
-            var previousSecretId = await database.CiSecrets.Where(s => s.CiProjectId == project.Id)
-                .MaxAsync(s => (long?)s.CiSecretId) ?? 0;
-
-            var user = HttpContext.AuthenticatedUser()!;
-
-            await database.AdminActions.AddAsync(new AdminAction()
-            {
-                Message = $"New secret \"{request.SecretName}\" created for project {project.Id}",
-                PerformedById = user.Id,
-            });
-
-            await database.CiSecrets.AddAsync(new CiSecret()
-            {
-                CiProjectId = project.Id,
-                CiSecretId = previousSecretId + 1,
-                SecretName = request.SecretName,
-                SecretContent = request.SecretContent ?? string.Empty,
-                UsedForBuildTypes = request.UsedForBuildTypes,
-            });
-
-            await database.SaveChangesAsync();
-
-            logger.LogInformation("New secret {SecretName} created by {Email} for {Id}", request.SecretName, user.Email,
-                project.Id);
-
-            return Ok();
-        }
-
-        [HttpDelete("{projectId:long}/{id:long}")]
-        [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-        public async Task<ActionResult> DeleteSecret([Required] long projectId, [Required] long id)
+        await database.CiSecrets.AddAsync(new CiSecret()
         {
-            var project = await database.CiProjects.FindAsync(projectId);
+            CiProjectId = project.Id,
+            CiSecretId = previousSecretId + 1,
+            SecretName = request.SecretName,
+            SecretContent = request.SecretContent ?? string.Empty,
+            UsedForBuildTypes = request.UsedForBuildTypes,
+        });
 
-            if (project == null)
-                return NotFound();
+        await database.SaveChangesAsync();
 
-            var item = await database.CiSecrets.FirstOrDefaultAsync(s =>
-                s.CiProjectId == project.Id && s.CiSecretId == id);
+        logger.LogInformation("New secret {SecretName} created by {Email} for {Id}", request.SecretName, user.Email,
+            project.Id);
 
-            if (item == null)
-                return NotFound();
+        return Ok();
+    }
 
-            var user = HttpContext.AuthenticatedUser()!;
+    [HttpDelete("{projectId:long}/{id:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult> DeleteSecret([Required] long projectId, [Required] long id)
+    {
+        var project = await database.CiProjects.FindAsync(projectId);
 
-            await database.AdminActions.AddAsync(new AdminAction()
-            {
-                Message = $"Secret \"{item.SecretName}\" ({item.CiSecretId}) deleted from project {project.Id}",
-                PerformedById = user.Id,
-            });
+        if (project == null)
+            return NotFound();
 
-            database.CiSecrets.Remove(item);
+        var item = await database.CiSecrets.FirstOrDefaultAsync(s =>
+            s.CiProjectId == project.Id && s.CiSecretId == id);
 
-            await database.SaveChangesAsync();
+        if (item == null)
+            return NotFound();
 
-            logger.LogInformation("Secret {SecretName} ({CiSecretId}) deleted by {Email} from project {Id}",
-                item.SecretName, item.CiSecretId, user.Email, project.Id);
+        var user = HttpContext.AuthenticatedUser()!;
 
-            return Ok();
-        }
+        await database.AdminActions.AddAsync(new AdminAction()
+        {
+            Message = $"Secret \"{item.SecretName}\" ({item.CiSecretId}) deleted from project {project.Id}",
+            PerformedById = user.Id,
+        });
+
+        database.CiSecrets.Remove(item);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Secret {SecretName} ({CiSecretId}) deleted by {Email} from project {Id}",
+            item.SecretName, item.CiSecretId, user.Email, project.Id);
+
+        return Ok();
     }
 }

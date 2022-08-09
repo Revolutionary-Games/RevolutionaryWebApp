@@ -1,61 +1,60 @@
-namespace AutomatedUITests.Fixtures
+namespace AutomatedUITests.Fixtures;
+
+using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using ThriveDevCenter.Server.Models;
+
+public sealed class RealIntegrationTestDatabaseFixture
 {
-    using System;
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Configuration;
-    using ThriveDevCenter.Server.Models;
+    private static readonly object Lock = new object();
+    private static bool databaseInitialized;
 
-    public sealed class RealIntegrationTestDatabaseFixture
+    public RealIntegrationTestDatabaseFixture()
     {
-        private static readonly object Lock = new object();
-        private static bool databaseInitialized;
+        var connectionString = GetConnectionString();
 
-        public RealIntegrationTestDatabaseFixture()
+        if (string.IsNullOrEmpty(connectionString))
         {
-            var connectionString = GetConnectionString();
+            throw new ArgumentException("connection string is empty, make sure to setup secrets",
+                nameof(connectionString)
+            );
+        }
 
-            if (string.IsNullOrEmpty(connectionString))
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(connectionString)
+            .UseSnakeCaseNamingConvention()
+            .Options;
+
+        Database = new ApplicationDbContext(options);
+
+        lock (Lock)
+        {
+            if (!databaseInitialized)
             {
-                throw new ArgumentException("connection string is empty, make sure to setup secrets",
-                    nameof(connectionString)
-                );
-            }
-
-            var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(connectionString)
-                .UseSnakeCaseNamingConvention()
-                .Options;
-
-            Database = new ApplicationDbContext(options);
-
-            lock (Lock)
-            {
-                if (!databaseInitialized)
-                {
-                    Database.Database.EnsureDeleted();
-                    Database.Database.EnsureCreated();
-                    Seed();
-                    databaseInitialized = true;
-                }
+                Database.Database.EnsureDeleted();
+                Database.Database.EnsureCreated();
+                Seed();
+                databaseInitialized = true;
             }
         }
+    }
 
-        public ApplicationDbContext Database { get; }
+    public ApplicationDbContext Database { get; }
 
-        public static string GetConnectionString()
-        {
-            var configuration = new ConfigurationBuilder()
-                .AddUserSecrets<RealIntegrationTestDatabaseFixture>().Build();
+    public static string GetConnectionString()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets<RealIntegrationTestDatabaseFixture>().Build();
 
-            return configuration["IntegrationTestConnection"];
-        }
+        return configuration["IntegrationTestConnection"];
+    }
 
-        public void Dispose()
-        {
-            Database.Dispose();
-        }
+    public void Dispose()
+    {
+        Database.Dispose();
+    }
 
-        private void Seed()
-        {
-        }
+    private void Seed()
+    {
     }
 }

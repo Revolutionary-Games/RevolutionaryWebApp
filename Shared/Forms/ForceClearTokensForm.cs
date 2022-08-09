@@ -1,7 +1,6 @@
-namespace ThriveDevCenter.Shared.Forms
+namespace ThriveDevCenter.Shared.Forms;
+
+public class ForceClearTokensForm
 {
-    public class ForceClearTokensForm
-    {
-        public long TargetUserId { get; set; }
-    }
+    public long TargetUserId { get; set; }
 }

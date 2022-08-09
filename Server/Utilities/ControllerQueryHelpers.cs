@@ -1,84 +1,83 @@
-namespace ThriveDevCenter.Server.Utilities
+namespace ThriveDevCenter.Server.Utilities;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+using BlazorPagination;
+using Shared;
+
+public static class ControllerQueryHelpers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Linq.Expressions;
-    using System.Threading.Tasks;
-    using BlazorPagination;
-    using Shared;
-
-    public static class ControllerQueryHelpers
+    public static async Task<PagedResult<T>> ToPagedResultAsync<T>(this IAsyncEnumerable<T> enumerable,
+        int page,
+        int pageSize)
+        where T : class
     {
-        public static async Task<PagedResult<T>> ToPagedResultAsync<T>(this IAsyncEnumerable<T> enumerable,
-            int page,
-            int pageSize)
-            where T : class
+        var allData = await enumerable.ToArrayAsync();
+
+        // Logic duplicated mostly from BlazorPagination with modifications
+
+        int num = allData.Length;
+        page = page < 1 ? 1 : page;
+
+        var result = new PagedResult<T>
         {
-            var allData = await enumerable.ToArrayAsync();
+            CurrentPage = page, PageSize = pageSize, RowCount = num,
+        };
 
-            // Logic duplicated mostly from BlazorPagination with modifications
+        if (num > 0)
+        {
+            result.PageCount = (int)Math.Ceiling(result.RowCount / (double)pageSize);
 
-            int num = allData.Length;
-            page = page < 1 ? 1 : page;
+            page = Math.Min(result.PageCount, page);
 
-            var result = new PagedResult<T>
-            {
-                CurrentPage = page, PageSize = pageSize, RowCount = num,
-            };
-
-            if (num > 0)
-            {
-                result.PageCount = (int)Math.Ceiling(result.RowCount / (double)pageSize);
-
-                page = Math.Min(result.PageCount, page);
-
-                result.Results = allData.AsEnumerable().Skip((page - 1) * pageSize).Take(pageSize).ToArray();
-            }
-            else
-            {
-                result.Results = allData;
-            }
-
-            return result;
+            result.Results = allData.AsEnumerable().Skip((page - 1) * pageSize).Take(pageSize).ToArray();
+        }
+        else
+        {
+            result.Results = allData;
         }
 
-        public static IOrderedAsyncEnumerable<T> OrderBy<T>(this IAsyncEnumerable<T> source, string column,
-            SortDirection direction, IEnumerable<string>? extraAllowedColumns = null)
+        return result;
+    }
+
+    public static IOrderedAsyncEnumerable<T> OrderBy<T>(this IAsyncEnumerable<T> source, string column,
+        SortDirection direction, IEnumerable<string>? extraAllowedColumns = null)
+    {
+        var lambda = CreatePropertySelector<T>(column, extraAllowedColumns);
+
+        if (direction == SortDirection.Descending)
         {
-            var lambda = CreatePropertySelector<T>(column, extraAllowedColumns);
-
-            if (direction == SortDirection.Descending)
-            {
-                return source.OrderByDescending(lambda);
-            }
-
-            return source.OrderBy(lambda);
+            return source.OrderByDescending(lambda);
         }
 
-        public static IOrderedAsyncEnumerable<T> ThenBy<T>(this IOrderedAsyncEnumerable<T> source, string column,
-            SortDirection direction, IEnumerable<string>? extraAllowedColumns = null)
+        return source.OrderBy(lambda);
+    }
+
+    public static IOrderedAsyncEnumerable<T> ThenBy<T>(this IOrderedAsyncEnumerable<T> source, string column,
+        SortDirection direction, IEnumerable<string>? extraAllowedColumns = null)
+    {
+        var lambda = CreatePropertySelector<T>(column, extraAllowedColumns);
+
+        if (direction == SortDirection.Descending)
         {
-            var lambda = CreatePropertySelector<T>(column, extraAllowedColumns);
-
-            if (direction == SortDirection.Descending)
-            {
-                return source.ThenByDescending(lambda);
-            }
-
-            return source.ThenBy(lambda);
+            return source.ThenByDescending(lambda);
         }
 
-        private static Func<T, object> CreatePropertySelector<T>(string column, IEnumerable<string>? extraAllowedColumns)
-        {
-            var parameter = Expression.Parameter(typeof(T), "x");
-            var selector = Expression.PropertyOrField(parameter, column);
+        return source.ThenBy(lambda);
+    }
 
-            LinqHelpers.CheckTargetColumn(column, extraAllowedColumns, selector);
+    private static Func<T, object> CreatePropertySelector<T>(string column, IEnumerable<string>? extraAllowedColumns)
+    {
+        var parameter = Expression.Parameter(typeof(T), "x");
+        var selector = Expression.PropertyOrField(parameter, column);
 
-            var cast = Expression.Convert(selector, typeof(object));
+        LinqHelpers.CheckTargetColumn(column, extraAllowedColumns, selector);
 
-            return (Func<T, object>)Expression.Lambda(cast, parameter).Compile();
-        }
+        var cast = Expression.Convert(selector, typeof(object));
+
+        return (Func<T, object>)Expression.Lambda(cast, parameter).Compile();
     }
 }
