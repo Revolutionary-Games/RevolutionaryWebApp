@@ -65,6 +65,23 @@ public static class GitRunHelpers
         }
     }
 
+    public static async Task UpdateSubmodules(string folder, bool init, CancellationToken cancellationToken)
+    {
+        var startInfo = PrepareToRunGit(folder, false);
+        startInfo.ArgumentList.Add("submodule");
+        startInfo.ArgumentList.Add("update");
+
+        if (init)
+            startInfo.ArgumentList.Add("--init");
+
+        var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
+        if (result.ExitCode != 0)
+        {
+            throw new Exception(
+                $"Failed to update submodules in repo, process exited with error: {result.FullOutput}");
+        }
+    }
+
     public static async Task Pull(string folder, bool skipLFS, CancellationToken cancellationToken,
         bool force = false)
     {

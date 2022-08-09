@@ -526,6 +526,9 @@ public class CIExecutor
             await GitRunHelpers.Checkout(folder, ciCommit, false, CancellationToken.None, true);
             await QueueSendBasicMessage($"Checked out commit {ciCommit}");
 
+            await GitRunHelpers.UpdateSubmodules(folder, true, CancellationToken.None);
+            await QueueSendBasicMessage("Submodules are up to date");
+
             // Clean out non-ignored files
             var deleted = await GitRunHelpers.Clean(folder, CancellationToken.None);
 
