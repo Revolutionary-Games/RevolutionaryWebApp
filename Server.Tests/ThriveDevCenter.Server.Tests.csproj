@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\RevolutionaryGamesCommon\FeedParser.Tests\FeedParser.Tests.csproj" />
     <ProjectReference Include="..\Server\ThriveDevCenter.Server.csproj" />
     <ProjectReference Include="..\Shared\ThriveDevCenter.Shared.csproj" />
   </ItemGroup>

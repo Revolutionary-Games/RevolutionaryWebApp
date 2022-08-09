@@ -17,7 +17,7 @@ namespace CIExecutor
     using YamlDotNet.Serialization;
     using YamlDotNet.Serialization.NamingConventions;
     using Mono.Unix;
-    using ThriveDevCenter.Shared.Converters;
+    using SharedBase.Utilities;
     using ThriveDevCenter.Shared.Utilities;
 
     public class CIExecutor

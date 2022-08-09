@@ -1,5 +1,6 @@
 @using ThriveDevCenter.Shared
 @using System.Net
+@using SharedBase.Utilities
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Forms
 @inject HttpClient Http
@@ -66,7 +67,7 @@ else
     private bool CanRegister => !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(name) &&
         !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(code) && password == passwordVerification &&
         password.Length is >= AppInfo.MinPasswordLength and <= AppInfo.MaxPasswordLength &&
-        email.Length is >= AppInfo.MinEmailLength and <= AppInfo.MaxEmailLength &&
+        email.Length is >= GlobalConstants.MinEmailLength and <= GlobalConstants.MaxEmailLength &&
         name.Length is >= AppInfo.MinUsernameLength and <= AppInfo.MaxUsernameLength;
 
     private string? ErrorMessage

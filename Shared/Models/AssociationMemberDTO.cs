@@ -2,7 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using ModelVerifiers;
+using SharedBase.ModelVerifiers;
 
 public class AssociationMemberDTO : ClientSideTimedModel
 {

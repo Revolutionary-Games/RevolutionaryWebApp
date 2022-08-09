@@ -1,7 +1,7 @@
 namespace ThriveDevCenter.Server.Models;
 
 using System.ComponentModel.DataAnnotations;
-using Shared.ModelVerifiers;
+using SharedBase.ModelVerifiers;
 
 public class EmailTokenData
 {

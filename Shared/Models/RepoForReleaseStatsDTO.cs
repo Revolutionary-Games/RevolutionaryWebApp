@@ -1,7 +1,7 @@
 namespace ThriveDevCenter.Shared.Models;
 
 using System.ComponentModel.DataAnnotations;
-using ModelVerifiers;
+using SharedBase.ModelVerifiers;
 
 public class RepoForReleaseStatsDTO : IIdentifiable
 {

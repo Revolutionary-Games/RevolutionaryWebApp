@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Tests.Models.Tests;
 
 using System;
+using FeedParser.Models;
 using Server.Models;
 using Xunit;
 

@@ -8,7 +8,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
     using Server.Controllers;
     using Server.Services;
     using Shared;
-    using Shared.Converters;
+    using SharedBase.Utilities;
     using Utilities;
     using Xunit;
     using Xunit.Abstractions;

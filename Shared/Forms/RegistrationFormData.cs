@@ -1,7 +1,7 @@
 namespace ThriveDevCenter.Shared.Forms
 {
     using System.ComponentModel.DataAnnotations;
-    using ModelVerifiers;
+    using SharedBase.ModelVerifiers;
 
     public class RegistrationFormData
     {

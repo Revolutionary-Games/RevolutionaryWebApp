@@ -8,7 +8,7 @@ namespace ThriveDevCenter.Server.Tests.Dummies
     using Server.Models;
     using Shared;
     using Shared.Models;
-    using Shared.ModelVerifiers;
+    using SharedBase.ModelVerifiers;
 
     [ApiController]
     [Route("dummy")]

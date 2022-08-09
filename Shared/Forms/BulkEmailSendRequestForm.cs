@@ -2,7 +2,7 @@ namespace ThriveDevCenter.Shared.Forms
 {
     using System.ComponentModel.DataAnnotations;
     using Models.Enums;
-    using ModelVerifiers;
+    using SharedBase.ModelVerifiers;
 
     public class BulkEmailSendRequestForm
     {

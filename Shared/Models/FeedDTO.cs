@@ -4,7 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using ModelVerifiers;
+using FeedParser.Shared.Models;
+using SharedBase.ModelVerifiers;
 
 public class FeedDTO : ClientSideTimedModel
 {

@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using AngleSharp.Html.Parser;
+using FeedParser.Tests.Services.Tests;
+using FeedParser.Services;
 using Server.Models;
 using Xunit;
 
@@ -16,7 +18,7 @@ public class CombinedFeedTests
         {
             MaxItems = 1,
         };
-        part1.ProcessContent(FeedTests.TestGithubFeedContent);
+        FeedParser.ProcessContent(part1, FeedTests.TestGithubFeedContent);
 
         var part2 = new Feed("test", "test2", TimeSpan.FromMinutes(1))
         {

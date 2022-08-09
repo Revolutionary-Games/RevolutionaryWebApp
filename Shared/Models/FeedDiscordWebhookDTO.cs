@@ -3,7 +3,7 @@ namespace ThriveDevCenter.Shared.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using ModelVerifiers;
+using SharedBase.ModelVerifiers;
 
 public class FeedDiscordWebhookDTO : IIdentifiable
 {

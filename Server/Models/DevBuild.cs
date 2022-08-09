@@ -6,10 +6,10 @@ namespace ThriveDevCenter.Server.Models
     using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
-    using Shared.ModelVerifiers;
     using Shared;
     using Shared.Models;
     using Shared.Notifications;
+    using SharedBase.ModelVerifiers;
     using Utilities;
 
     [Index(new[] { nameof(BuildHash), nameof(Platform) }, IsUnique = true)]

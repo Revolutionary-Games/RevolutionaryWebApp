@@ -11,8 +11,8 @@ namespace ThriveDevCenter.Server.Services
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.WebUtilities;
     using Microsoft.Extensions.Configuration;
-    using Shared.Converters;
     using Shared.Models.Enums;
+    using SharedBase.Utilities;
 
     public class Stackwalk : IStackwalk
     {

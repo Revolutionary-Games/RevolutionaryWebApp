@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Models;
 
 using System;
 using System.Collections.Generic;
+using FeedParser.Models;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;

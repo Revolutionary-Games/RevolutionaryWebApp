@@ -53,6 +53,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Client\ThriveDevCenter.Client.csproj" />
+    <ProjectReference Include="..\RevolutionaryGamesCommon\FeedParser\FeedParser.csproj" />
     <ProjectReference Include="..\Server.Common\ThriveDevCenter.Server.Common.csproj" />
     <ProjectReference Include="..\Shared\ThriveDevCenter.Shared.csproj" />
   </ItemGroup>

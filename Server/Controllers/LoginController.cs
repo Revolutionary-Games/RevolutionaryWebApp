@@ -22,6 +22,7 @@ namespace ThriveDevCenter.Server.Controllers
     using Services;
     using Shared;
     using Shared.Models;
+    using SharedBase.Utilities;
     using Utilities;
 
     [ApiController]
@@ -762,7 +763,7 @@ namespace ThriveDevCenter.Server.Controllers
     public class LoginFormData
     {
         [Required]
-        [MaxLength(AppInfo.MaxEmailLength)]
+        [MaxLength(GlobalConstants.MaxEmailLength)]
         public string Email { get; set; } = string.Empty;
 
         [Required]
