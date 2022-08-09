@@ -55,7 +55,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 Signatures = new HashSet<ClaSignature>()
                 {
                     cla1Signature1,
-                }
+                },
             };
 
             cla1Signature1.Cla = cla1;
@@ -84,7 +84,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 {
                     cla2Signature1,
                     cla2Signature2,
-                }
+                },
             };
 
             cla2Signature1.Cla = cla2;

@@ -13,21 +13,21 @@ namespace ThriveDevCenter.Shared.Tests.Converters.Tests
         {
             var serialized = JsonSerializer.Serialize(new Container
             {
-                Value = SomeEnum.Value1
+                Value = SomeEnum.Value1,
             });
 
             Assert.Equal(@"{""Value"":""Value1""}", serialized);
 
             serialized = JsonSerializer.Serialize(new Container
             {
-                Value = SomeEnum.Second
+                Value = SomeEnum.Second,
             });
 
             Assert.Equal(@"{""Value"":""abc""}", serialized);
 
             serialized = JsonSerializer.Serialize(new Container
             {
-                Value = SomeEnum.Third
+                Value = SomeEnum.Third,
             });
 
             Assert.Equal(@"{""Value"":""third""}", serialized);
@@ -55,7 +55,7 @@ namespace ThriveDevCenter.Shared.Tests.Converters.Tests
         {
             var original = new Container
             {
-                Value = value
+                Value = value,
             };
             var serialized = JsonSerializer.Serialize(original);
 
@@ -79,7 +79,7 @@ namespace ThriveDevCenter.Shared.Tests.Converters.Tests
             Second,
 
             [EnumMember(Value = "third")]
-            Third
+            Third,
         }
     }
 }

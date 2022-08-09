@@ -22,8 +22,8 @@
         {
             <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage"
                             PageCount="@Data?.PageCount"
-                            OnPageChanged="async (e) => await ChangePage(e)"
-                            OnSortChanged="async (column) => await ChangeSort(column)"
+                            OnPageChanged="async e => await ChangePage(e)"
+                            OnSortChanged="async column => await ChangeSort(column)"
                             GetSortClass="@SortClass"
                             ShowContentSpinner="@VisibleFetchInProgress"
                             Columns="@columns"
@@ -57,13 +57,13 @@
 @code {
     private readonly List<TableColumn> columns = new()
     {
-        new TableColumn("ID", true),
-        new TableColumn("Name", true),
-        new TableColumn("Updated At", true, "UpdatedAt"),
-        new TableColumn("Actions", false)
+        new("ID", true),
+        new("Name", true),
+        new("Updated At", true, "UpdatedAt"),
+        new("Actions", false),
     };
 
-    private readonly Dictionary<long, ResourceStatus> statuses = new Dictionary<long, ResourceStatus>();
+    private readonly Dictionary<long, ResourceStatus> statuses = new();
 
     private bool visible;
 
@@ -142,7 +142,7 @@
         {
             result = await Http.PostAsJsonAsync(restoreUrl, new Dictionary<string, long>()
             {
-                { "Id", resourceId }
+                { "Id", resourceId },
             });
         }
         catch (HttpRequestException e)

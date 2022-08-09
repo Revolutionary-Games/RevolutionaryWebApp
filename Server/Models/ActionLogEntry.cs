@@ -7,7 +7,7 @@ namespace ThriveDevCenter.Server.Models
     using Shared.Models;
 
     /// <summary>
-    ///   A logged user peformed action
+    ///   A logged user performed action
     /// </summary>
     [Index(nameof(PerformedById))]
     public class ActionLogEntry : BaseModel
@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Models
                 Id = Id,
                 Message = Message,
                 CreatedAt = CreatedAt,
-                PerformedById = PerformedById
+                PerformedById = PerformedById,
             };
         }
     }

@@ -23,10 +23,10 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
         private readonly DbContextOptions<ApplicationDbContext> dbOptions =
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase("RegistrationTestDB").Options;
 
-        private readonly DummyRegistrationStatus dummyRegistrationStatus = new DummyRegistrationStatus()
+        private readonly DummyRegistrationStatus dummyRegistrationStatus = new()
         {
             RegistrationEnabled = true,
-            RegistrationCode = RegistrationCode
+            RegistrationCode = RegistrationCode,
         };
 
         public RegistrationControllerTests(ITestOutputHelper output)
@@ -45,7 +45,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             var controller = new RegistrationController(logger, new DummyRegistrationStatus()
             {
                 RegistrationEnabled = true,
-                RegistrationCode = "abc123"
+                RegistrationCode = "abc123",
             }, Mock.Of<ITokenVerifier>(), database, jobClientMock.Object);
 
             var result = controller.Get();
@@ -65,7 +65,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
 
             var controller = new RegistrationController(logger, new DummyRegistrationStatus()
             {
-                RegistrationEnabled = false
+                RegistrationEnabled = false,
             }, Mock.Of<ITokenVerifier>(), database, jobClientMock.Object);
 
             var result = controller.Get();
@@ -95,7 +95,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             var result = await controller.Post(new RegistrationFormData()
             {
                 CSRF = csrfValue, Email = "test@example.com", Name = "test", Password = "password12345",
-                RegistrationCode = RegistrationCode
+                RegistrationCode = RegistrationCode,
             });
 
             var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -124,7 +124,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             var result = await controller.Post(new RegistrationFormData()
             {
                 CSRF = "aValue", Email = "test@example.com", Name = "test", Password = "password12345",
-                RegistrationCode = RegistrationCode + "a"
+                RegistrationCode = RegistrationCode + "a",
             });
 
             var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -158,7 +158,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             var result = await controller.Post(new RegistrationFormData()
             {
                 CSRF = csrfValue, Email = "test@example.com", Name = "test", Password = "password12345",
-                RegistrationCode = RegistrationCode
+                RegistrationCode = RegistrationCode,
             });
 
             var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);

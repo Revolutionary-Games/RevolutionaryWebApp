@@ -75,9 +75,9 @@ public class SimpleFewDebugSymbolsDatabase : BaseSharedDatabaseFixture
                     {
                         Uploading = !uploaded,
                         StorageFile = file,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         // Finish the file setup now that we know the info for it

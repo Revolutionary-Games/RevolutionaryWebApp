@@ -50,7 +50,7 @@ namespace ThriveDevCenter.Server.Controllers
                 RepositoryCloneUrl = projectInfo.RepositoryCloneUrl,
                 ProjectType = projectInfo.ProjectType,
                 Enabled = projectInfo.Enabled,
-                DefaultBranch = projectInfo.DefaultBranch
+                DefaultBranch = projectInfo.DefaultBranch,
             };
 
             var results = new List<ValidationResult>();
@@ -63,7 +63,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!project.RepositoryFullName.Contains('/'))
                 return BadRequest("Repository full name should contain a '/'");
 
-            if (project.Name.Length < 3 || project.Name.Length > 100)
+            if (project.Name.Length is < 3 or > 100)
                 return BadRequest("Project name is too long or too short");
 
             // Check for duplicate data
@@ -77,7 +77,7 @@ namespace ThriveDevCenter.Server.Controllers
             var action = new AdminAction()
             {
                 Message = $"New CI project created, repo: {project.RepositoryFullName}, name: {project.Name}",
-                PerformedById = HttpContext.AuthenticatedUser()!.Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             };
 
             await database.CiProjects.AddAsync(project);

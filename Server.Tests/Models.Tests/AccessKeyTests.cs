@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
                 KeyCode = Guid.NewGuid().ToString(),
                 KeyType = AccessKeyType.DevBuilds,
                 LastUsed = DateTime.UtcNow,
-                LastUsedFrom = new IPAddress(new byte[] { 127, 0, 0, 1 })
+                LastUsedFrom = new IPAddress(new byte[] { 127, 0, 0, 1 }),
             };
 
             var serialized = JsonSerializer.Serialize(key);

@@ -87,7 +87,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (server == null)
                 return NotFound();
 
-            if (server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Stopping)
+            if (server.Status is ServerStatus.Stopped or ServerStatus.Stopping)
                 return Ok("Server already stopped or stopping");
 
             if (server.Status == ServerStatus.Terminated)
@@ -437,7 +437,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "EC2 control not configured"
+                    Value = "EC2 control not configured",
                 };
             }
         }

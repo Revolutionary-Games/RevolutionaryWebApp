@@ -215,7 +215,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (!Regex.IsMatch(project.Slug, @"^[\w-]{2,15}$"))
                 return BadRequest("Invalid slug, either too long, short, or uses disallowed characters");
 
-            if (project.Name.Length < 3 || project.Name.Length > 100)
+            if (project.Name.Length is < 3 or > 100)
                 return BadRequest("Project name is too long or too short");
 
             // Check for duplicate data
@@ -229,7 +229,7 @@ namespace ThriveDevCenter.Server.Controllers
             var action = new AdminAction()
             {
                 Message = $"New LFS project created, slug: {project.Slug}, name: {project.Name}",
-                PerformedById = HttpContext.AuthenticatedUser()!.Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             };
 
             await database.LfsProjects.AddAsync(project);

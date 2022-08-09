@@ -62,7 +62,7 @@ namespace ThriveDevCenter.Server.Jobs
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
                     Message = $"Destroying patron ({toDelete.Id}) because it is unmarked " +
-                        "(wasn't found from fresh data from Patreon)"
+                        "(wasn't found from fresh data from Patreon)",
                 }, cancellationToken);
 
                 logger.LogInformation("Deleted unmarked Patron {Id}", toDelete.Id);

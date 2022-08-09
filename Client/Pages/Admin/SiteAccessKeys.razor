@@ -92,7 +92,7 @@
             result = await Http.PostAsJsonAsync("api/v1/AccessKey", new AccessKeyDTO()
             {
                 Description = newDescription!,
-                KeyType = newKeyType
+                KeyType = newKeyType,
             });
         }
         catch (HttpRequestException e)

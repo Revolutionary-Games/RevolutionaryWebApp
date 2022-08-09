@@ -94,7 +94,7 @@ namespace ThriveDevCenter.Server.Common.Utilities
             var process = new Process()
             {
                 StartInfo = startInfo,
-                EnableRaisingEvents = true
+                EnableRaisingEvents = true,
             };
 
             process.Exited += (_, _) =>

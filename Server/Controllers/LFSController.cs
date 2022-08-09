@@ -109,7 +109,7 @@ namespace ThriveDevCenter.Server.Controllers
                     Status = StatusCodes.Status500InternalServerError,
                     ContentType = AppInfo.GitLfsContentType,
                     Value = new GitLFSErrorResponse()
-                        { Message = "LFS storage on the server side is not configured properly" }.ToString()
+                        { Message = "LFS storage on the server side is not configured properly" }.ToString(),
                 };
             }
 
@@ -120,7 +120,7 @@ namespace ThriveDevCenter.Server.Controllers
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status422UnprocessableEntity,
-                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
                 };
             }
 
@@ -143,7 +143,7 @@ namespace ThriveDevCenter.Server.Controllers
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status422UnprocessableEntity,
-                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
                 };
             }
 
@@ -158,11 +158,11 @@ namespace ThriveDevCenter.Server.Controllers
             return new ObjectResult(
                 new LFSResponse
                 {
-                    Objects = objects
+                    Objects = objects,
                 })
             {
                 StatusCode = status,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
             };
         }
 
@@ -186,7 +186,7 @@ namespace ThriveDevCenter.Server.Controllers
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
                 };
             }
 
@@ -207,7 +207,7 @@ namespace ThriveDevCenter.Server.Controllers
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
                 };
             }
 
@@ -224,12 +224,12 @@ namespace ThriveDevCenter.Server.Controllers
                     return new ObjectResult(new GitLFSErrorResponse()
                         {
                             Message =
-                                "Verification failed: the object size in remote storage is different than it should be"
+                                "Verification failed: the object size in remote storage is different than it should be",
                         }
                         .ToString())
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                        ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
                     };
                 }
             }
@@ -241,7 +241,7 @@ namespace ThriveDevCenter.Server.Controllers
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
                 };
             }
 
@@ -265,12 +265,12 @@ namespace ThriveDevCenter.Server.Controllers
                     return new ObjectResult(new GitLFSErrorResponse()
                         {
                             Message =
-                                "Verification failed: the file you uploaded doesn't match the oid you claimed it to be"
+                                "Verification failed: the file you uploaded doesn't match the oid you claimed it to be",
                         }
                         .ToString())
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                        ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
                     };
                 }
             }
@@ -281,7 +281,7 @@ namespace ThriveDevCenter.Server.Controllers
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
                 };
             }
 
@@ -292,7 +292,7 @@ namespace ThriveDevCenter.Server.Controllers
                 LfsOid = verifiedToken.Oid,
                 Size = verifiedToken.Size,
                 LfsProjectId = project.Id,
-                StoragePath = finalStoragePath
+                StoragePath = finalStoragePath,
             });
             await database.SaveChangesAsync();
 
@@ -312,7 +312,7 @@ namespace ThriveDevCenter.Server.Controllers
                 .ToString())
             {
                 StatusCode = StatusCodes.Status501NotImplemented,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
             };
         }
 
@@ -367,7 +367,7 @@ namespace ThriveDevCenter.Server.Controllers
                 .ToString())
             {
                 StatusCode = StatusCodes.Status403Forbidden,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
             };
 
             return result;
@@ -380,7 +380,7 @@ namespace ThriveDevCenter.Server.Controllers
                 .ToString())
             {
                 StatusCode = StatusCodes.Status400BadRequest,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType }
+                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
             };
 
             return result;
@@ -411,10 +411,10 @@ namespace ThriveDevCenter.Server.Controllers
                         "download", new LFSResponse.LFSObject.DownloadAction()
                         {
                             Href = createdUrl,
-                            ExpiresIn = (int)DownloadExpireTime.TotalSeconds
+                            ExpiresIn = (int)DownloadExpireTime.TotalSeconds,
                         }
-                    }
-                }
+                    },
+                },
             };
         }
 
@@ -424,7 +424,7 @@ namespace ThriveDevCenter.Server.Controllers
             var token = new UploadVerifyToken()
             {
                 Oid = obj.Oid,
-                Size = obj.Size
+                Size = obj.Size,
             };
 
             var value = JsonSerializer.Serialize(token);
@@ -445,7 +445,7 @@ namespace ThriveDevCenter.Server.Controllers
                 return new LFSResponse.LFSObject(obj.Oid, obj.Size)
                 {
                     Actions = null,
-                    Authenticated = null
+                    Authenticated = null,
                 };
             }
 
@@ -486,7 +486,7 @@ namespace ThriveDevCenter.Server.Controllers
                     {
                         Status = StatusCodes.Status500InternalServerError,
                         ContentType = AppInfo.GitLfsContentType,
-                        Value = new GitLFSErrorResponse() { Message = error }.ToString()
+                        Value = new GitLFSErrorResponse() { Message = error }.ToString(),
                     };
                 }
 
@@ -505,17 +505,17 @@ namespace ThriveDevCenter.Server.Controllers
                         "upload", new LFSResponse.LFSObject.UploadAction()
                         {
                             Href = remoteStorage.CreatePresignedUploadURL(storagePath, S3UploadValidTime),
-                            ExpiresIn = (int)UploadValidTime.TotalSeconds
+                            ExpiresIn = (int)UploadValidTime.TotalSeconds,
                         }
                     },
                     {
                         "verify", new LFSResponse.LFSObject.UploadAction()
                         {
                             Href = verifyUrl,
-                            ExpiresIn = (int)UploadValidTime.TotalSeconds
+                            ExpiresIn = (int)UploadValidTime.TotalSeconds,
                         }
-                    }
-                }
+                    },
+                },
             };
         }
 
@@ -588,7 +588,7 @@ namespace ThriveDevCenter.Server.Controllers
             Download,
 
             [EnumMember(Value = "upload")]
-            Upload
+            Upload,
         }
 
         public class LFSObject

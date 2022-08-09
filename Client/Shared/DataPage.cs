@@ -248,7 +248,7 @@ namespace ThriveDevCenter.Client.Shared
             return new()
             {
                 { "sortColumn", Sort.SortColumn },
-                { "sortDirection", Sort.Direction.ToString() }
+                { "sortDirection", Sort.Direction.ToString() },
             };
         }
 

@@ -263,8 +263,8 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
                         {
                             Code = 123,
                             Name = InstanceStateName.Running,
-                        }
-                    }
+                        },
+                    },
                 }))
                 .Verifiable();
             ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
@@ -341,8 +341,8 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
                         {
                             Code = 123,
                             Name = InstanceStateName.Stopped,
-                        }
-                    }
+                        },
+                    },
                 }))
                 .Verifiable();
             ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);

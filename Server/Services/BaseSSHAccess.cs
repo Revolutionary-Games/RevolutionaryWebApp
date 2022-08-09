@@ -26,7 +26,7 @@ namespace ThriveDevCenter.Server.Services
             {
                 ExitCode = command.ExitStatus,
                 Error = command.Error,
-                Result = result
+                Result = result,
             };
         }
 
@@ -63,7 +63,7 @@ namespace ThriveDevCenter.Server.Services
 
             var connectionInfo = new ConnectionInfo(address, username, auth)
             {
-                Timeout = TimeSpan.FromSeconds(10)
+                Timeout = TimeSpan.FromSeconds(10),
             };
 
             Client = new SshClient(connectionInfo);

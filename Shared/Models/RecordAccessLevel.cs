@@ -12,6 +12,6 @@ namespace ThriveDevCenter.Shared.Models
         /// <summary>
         ///   Access to all parts of a record, things even users can't see about themselves
         /// </summary>
-        Admin
+        Admin,
     }
 }

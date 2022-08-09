@@ -22,12 +22,12 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
                                 "download", new LFSResponse.LFSObject.DownloadAction()
                                 {
                                     Href = "https://example.com",
-                                    ExpiresIn = 30
+                                    ExpiresIn = 30,
                                 }
-                            }
-                        }
-                    }
-                }
+                            },
+                        },
+                    },
+                },
             };
 
             var serialized = JsonSerializer.Serialize(response, new JsonSerializerOptions(JsonSerializerDefaults.Web));

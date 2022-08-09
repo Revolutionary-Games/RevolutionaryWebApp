@@ -30,7 +30,7 @@
                 LfsOid = LfsOid,
                 Size = Size,
                 CreatedAt = CreatedAt,
-                UpdatedAt = UpdatedAt
+                UpdatedAt = UpdatedAt,
             };
         }
     }

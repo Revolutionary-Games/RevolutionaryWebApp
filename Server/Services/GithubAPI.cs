@@ -43,7 +43,7 @@ namespace ThriveDevCenter.Server.Services
             Pending,
 
             [EnumMember(Value = "success")]
-            Success
+            Success,
         }
 
         public GithubAPI(ILogger<GithubAPI> logger, string oauthToken)
@@ -61,8 +61,8 @@ namespace ThriveDevCenter.Server.Services
                 {
                     Authorization = new AuthenticationHeaderValue("token", oauthToken),
                     Accept = { new MediaTypeWithQualityHeaderValue(AppInfo.GithubApiContentType) },
-                    UserAgent = { new ProductInfoHeaderValue("ThriveDevCenter", $"{AppInfo.Major}.{AppInfo.Minor}") }
-                }
+                    UserAgent = { new ProductInfoHeaderValue("ThriveDevCenter", $"{AppInfo.Major}.{AppInfo.Minor}") },
+                },
             };
 
             Configured = true;

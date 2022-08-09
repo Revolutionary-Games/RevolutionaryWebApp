@@ -101,7 +101,7 @@ namespace AutomatedUITests.Fixtures
                 .AddJsonFile("appsettings.Testing.json")
                 .AddInMemoryCollection(new List<KeyValuePair<string, string>>
                 {
-                    new("ConnectionStrings:WebApiConnection", connection)
+                    new("ConnectionStrings:WebApiConnection", connection),
                 })
                 .Build();
 

@@ -6,7 +6,7 @@ namespace ThriveDevCenter.Server.Filters
 
     public class HttpResponseExceptionFilter : IActionFilter, IOrderedFilter
     {
-        public int Order { get; } = int.MaxValue - 10;
+        public int Order => int.MaxValue - 10;
 
         public void OnActionExecuting(ActionExecutingContext context) { }
 
@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Server.Filters
             {
                 result.ContentTypes = new MediaTypeCollection()
                 {
-                    exception.ContentType
+                    exception.ContentType,
                 };
             }
 

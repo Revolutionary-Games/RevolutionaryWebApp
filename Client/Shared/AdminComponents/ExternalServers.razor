@@ -25,8 +25,8 @@
         <StatusMessageShower Message="@message" Type="@messageType" />
 
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                        OnPageChanged="async (e) => await ChangePage(e)"
-                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        OnPageChanged="async e => await ChangePage(e)"
+                        OnSortChanged="async column => await ChangeSort(column)"
                         GetSortClass="@SortClass"
                         ShowContentSpinner="@VisibleFetchInProgress"
                         Columns="@columns"
@@ -200,7 +200,7 @@
         new TableColumn("Updated At", true, "UpdatedAt"),
         new TableColumn("Created At", true, "CreatedAt"),
         new TableColumn("Wants Maintenance", true, "WantsMaintenance"),
-        new TableColumn("Actions", false)
+        new TableColumn("Actions", false),
     };
 
     private readonly ClientSideResourceStatus<ServerResourceStatus> clientSideResourceStatus = new();
@@ -310,8 +310,7 @@
         if (IsProcessing(server.Id))
             return false;
 
-        return server.Status == ServerStatus.Running || server.Status == ServerStatus.Provisioning ||
-            server.Status == ServerStatus.Stopping;
+        return server.Status is ServerStatus.Running or ServerStatus.Provisioning or ServerStatus.Stopping;
     }
 
     private bool CanDelete(ExternalServerDTO server)

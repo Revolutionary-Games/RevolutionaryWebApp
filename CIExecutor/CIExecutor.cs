@@ -1029,7 +1029,7 @@ namespace CIExecutor
             var process = new Process()
             {
                 StartInfo = startInfo,
-                EnableRaisingEvents = true
+                EnableRaisingEvents = true,
             };
 
             process.Exited += (_, _) =>
@@ -1088,7 +1088,7 @@ namespace CIExecutor
             var startInfo = new ProcessStartInfo(executable)
             {
                 CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true,
-                RedirectStandardInput = true
+                RedirectStandardInput = true,
             };
 
             foreach (var argument in arguments)
@@ -1101,7 +1101,7 @@ namespace CIExecutor
             var process = new Process()
             {
                 StartInfo = startInfo,
-                EnableRaisingEvents = true
+                EnableRaisingEvents = true,
             };
 
             process.Exited += (_, _) =>

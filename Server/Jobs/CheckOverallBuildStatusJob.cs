@@ -98,7 +98,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             // Don't send notifications yet if we only know that the build is going to fail, but not all jobs
             // are complete yet
-            if (build.Status == BuildStatus.Running || build.Status == BuildStatus.GoingToFail)
+            if (build.Status is BuildStatus.Running or BuildStatus.GoingToFail)
                 return;
 
             // Discord notice

@@ -48,7 +48,7 @@ namespace ThriveDevCenter.Server.Services
                 new KeyValuePair<string, string>("grant_type", "authorization_code"),
                 new KeyValuePair<string, string>("client_id", clientId),
                 new KeyValuePair<string, string>("client_secret", clientSecret),
-                new KeyValuePair<string, string>("redirect_uri", redirectUri)
+                new KeyValuePair<string, string>("redirect_uri", redirectUri),
             });
 
             var response = await Client.PostAsync("https://www.patreon.com/api/oauth2/token", content);
@@ -75,7 +75,7 @@ namespace ThriveDevCenter.Server.Services
                 "https://www.patreon.com/api/oauth2/v2/identity",
                 new Dictionary<string, string?>()
                 {
-                    { "fields[user]", "email,full_name,vanity,url" }
+                    { "fields[user]", "email,full_name,vanity,url" },
                 }));
 
             if (result == null || !Validator.TryValidateObject(result, new ValidationContext(result), null))
@@ -126,7 +126,7 @@ namespace ThriveDevCenter.Server.Services
         {
             client = new HttpClient()
             {
-                DefaultRequestHeaders = { Authorization = new AuthenticationHeaderValue("Bearer", patreonToken) }
+                DefaultRequestHeaders = { Authorization = new AuthenticationHeaderValue("Bearer", patreonToken) },
             };
         }
 

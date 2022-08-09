@@ -59,7 +59,7 @@ namespace ThriveDevCenter.Server.Services
             return QueryHelpers.AddQueryString(fullUri.ToString(), new Dictionary<string, string?>()
             {
                 { "token", HashToken(unhashedKey) },
-                { "expires", expirationTimestamp.ToString() }
+                { "expires", expirationTimestamp.ToString() },
             });
         }
 
@@ -73,7 +73,7 @@ namespace ThriveDevCenter.Server.Services
             throw new HttpResponseException()
             {
                 Status = StatusCodes.Status500InternalServerError,
-                Value = new BasicJSONErrorResult(error, error).ToString()
+                Value = new BasicJSONErrorResult(error, error).ToString(),
             };
         }
 

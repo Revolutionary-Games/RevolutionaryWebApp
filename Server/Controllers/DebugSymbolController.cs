@@ -154,7 +154,7 @@ namespace ThriveDevCenter.Server.Controllers
             // This save will fail if duplicate upload was attempted
             await database.SaveChangesAsync();
 
-            jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(folder.Id, CancellationToken.None));
+            jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(folder.Id, CancellationToken.None));
 
             logger.LogInformation("New DebugSymbol ({Id}) \"{RelativePath}\" created by {Email}", symbol.Id,
                 symbol.RelativePath, user.Email);
@@ -182,7 +182,7 @@ namespace ThriveDevCenter.Server.Controllers
                 UploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
                     AppInfo.RemoteStorageUploadExpireTime),
                 VerifyToken = new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
-                    file.Size.Value, file.Id, symbol.Id, null, null).ToString()
+                    file.Size.Value, file.Id, symbol.Id, null, null).ToString(),
             };
         }
 
@@ -195,13 +195,13 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "Remote storage is not configured"
+                    Value = "Remote storage is not configured",
                 };
             }
 
             var decodedToken = StorageUploadVerifyToken.TryToLoadFromString(dataProtector, request.Token);
 
-            if (decodedToken == null || decodedToken.ParentId == null)
+            if (decodedToken?.ParentId == null)
                 return BadRequest("Invalid finished upload token");
 
             StorageFile file;

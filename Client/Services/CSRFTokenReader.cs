@@ -57,7 +57,7 @@ namespace ThriveDevCenter.Client.Services
             {
                 await localStorage.SetItemAsync(AppInfo.LocalStorageUserInfo, new LocalStorageUserInfo()
                 {
-                    LastSignedInUserId = InitialUserId
+                    LastSignedInUserId = InitialUserId,
                 });
             }
             catch (Exception e)

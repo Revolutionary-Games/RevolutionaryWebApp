@@ -39,7 +39,7 @@ namespace ThriveDevCenter.Server.Models
         public Guid DeleteKey { get; set; } = Guid.NewGuid();
 
         [Required]
-        public string HashedDeleteKey { get; set; }  = string.Empty;
+        public string HashedDeleteKey { get; set; } = string.Empty;
 
         /// <summary>
         ///   The IP address the report was uploaded from, used to combat spam / too many reports from the same user

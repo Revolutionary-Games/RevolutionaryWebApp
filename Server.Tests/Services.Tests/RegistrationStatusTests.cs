@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
                 {
                     new KeyValuePair<string, string>("Registration:Enabled", "false"),
-                    new KeyValuePair<string, string>("Registration:RegistrationCode", Code)
+                    new KeyValuePair<string, string>("Registration:RegistrationCode", Code),
                 }
             ).Build();
 
@@ -53,7 +53,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
                 {
                     new KeyValuePair<string, string>("Registration:Enabled", "true"),
-                    new KeyValuePair<string, string>("Registration:RegistrationCode", "")
+                    new KeyValuePair<string, string>("Registration:RegistrationCode", ""),
                 }
             ).Build();
 
@@ -68,7 +68,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
                 {
                     new KeyValuePair<string, string>("Registration:Enabled", "true"),
-                    new KeyValuePair<string, string>("Registration:RegistrationCode", Code)
+                    new KeyValuePair<string, string>("Registration:RegistrationCode", Code),
                 }
             ).Build();
 
@@ -83,7 +83,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
                 {
                     new KeyValuePair<string, string>("Registration:Enabled", "True"),
-                    new KeyValuePair<string, string>("Registration:RegistrationCode", Code)
+                    new KeyValuePair<string, string>("Registration:RegistrationCode", Code),
                 }
             ).Build();
 
@@ -98,7 +98,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
                 {
                     new KeyValuePair<string, string>("Registration:Enabled", "true"),
-                    new KeyValuePair<string, string>("Registration:RegistrationCode", Code)
+                    new KeyValuePair<string, string>("Registration:RegistrationCode", Code),
                 }
             ).Build();
 

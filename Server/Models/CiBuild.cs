@@ -68,7 +68,6 @@ namespace ThriveDevCenter.Server.Models
         /// </summary>
         public string? Commits { get; set; }
 
-
         [NotMapped]
         public List<GithubCommit>? ParsedCommits
         {
@@ -90,12 +89,12 @@ namespace ThriveDevCenter.Server.Models
             return new()
             {
                 CiProjectId = CiProjectId,
-                CiBuildId =CiBuildId,
+                CiBuildId = CiBuildId,
                 CommitHash = CommitHash,
                 RemoteRef = RemoteRef,
                 CreatedAt = CreatedAt,
                 Status = Status,
-                ProjectName = CiProject?.Name ?? CiProjectId.ToString()
+                ProjectName = CiProject?.Name ?? CiProjectId.ToString(),
             };
         }
 
@@ -106,14 +105,14 @@ namespace ThriveDevCenter.Server.Models
             yield return new Tuple<SerializedNotification, string>(new CIProjectBuildsListUpdated()
             {
                 Type = entityState.ToChangeType(),
-                Item = dto
+                Item = dto,
             }, NotificationGroups.CIProjectBuildsUpdatedPrefix + CiProjectId);
 
             var notificationsId = CiProjectId + "_" + CiBuildId;
 
             yield return new Tuple<SerializedNotification, string>(new CIBuildUpdated()
             {
-                Item = dto
+                Item = dto,
             }, NotificationGroups.CIProjectsBuildUpdatedPrefix + notificationsId);
         }
     }

@@ -127,8 +127,8 @@ else
         }
 
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                        OnPageChanged="async (e) => await ChangePage(e)"
-                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        OnPageChanged="async e => await ChangePage(e)"
+                        OnSortChanged="async column => await ChangeSort(column)"
                         GetSortClass="@SortClass"
                         ShowContentSpinner="@VisibleFetchInProgress"
                         Columns="@columns"
@@ -293,7 +293,7 @@ else
         new TableColumn("Access", false),
     };
 
-    private readonly List<string> uploadErrors = new List<string>();
+    private readonly List<string> uploadErrors = new();
     private readonly List<IBrowserFile> filesToBeUploaded = new();
     private readonly SemaphoreSlim requestNextChunksSemaphore = new(1, 1);
 

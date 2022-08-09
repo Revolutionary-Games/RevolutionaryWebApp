@@ -41,7 +41,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "Remote storage on the server is not configured"
+                    Value = "Remote storage on the server is not configured",
                 };
             }
 

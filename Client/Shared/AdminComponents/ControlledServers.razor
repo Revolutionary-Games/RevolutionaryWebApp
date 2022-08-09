@@ -20,8 +20,8 @@
         <StatusMessageShower Message="@message" Type="@messageType" />
 
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                        OnPageChanged="async (e) => await ChangePage(e)"
-                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        OnPageChanged="async e => await ChangePage(e)"
+                        OnSortChanged="async column => await ChangeSort(column)"
                         GetSortClass="@SortClass"
                         ShowContentSpinner="@VisibleFetchInProgress"
                         Columns="@columns"
@@ -47,7 +47,7 @@
                                     OnPressed="@(async () => await VerifyStartStop(item))"
                                     Spinner="@IsProcessing(item.Id)" ButtonStyle="@StartButtonStyle(item)"
                                     class="btn-sm">
-                                @if (item.Status == ServerStatus.Stopped || item.Status == ServerStatus.Terminated)
+                                @if (item.Status is ServerStatus.Stopped or ServerStatus.Terminated)
                                 {
                                     <span>Start</span>
                                 }
@@ -109,7 +109,7 @@
         new TableColumn("Total Runtime", true, "TotalRuntime"),
         new TableColumn("Updated At", true, "UpdatedAt"),
         new TableColumn("Wants Maintenance", true, "WantsMaintenance"),
-        new TableColumn("Actions", false)
+        new TableColumn("Actions", false),
     };
 
     private readonly Dictionary<long, bool> processingItems = new();
@@ -225,13 +225,12 @@
         if (IsProcessing(server.Id))
             return false;
 
-        return server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated ||
-            server.Status == ServerStatus.Running;
+        return server.Status is ServerStatus.Stopped or ServerStatus.Terminated or ServerStatus.Running;
     }
 
     private string StartButtonStyle(ControlledServerDTO server)
     {
-        if (server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated)
+        if (server.Status is ServerStatus.Stopped or ServerStatus.Terminated)
             return "secondary";
 
         return "warning";
@@ -239,7 +238,7 @@
 
     private async Task VerifyStartStop(ControlledServerDTO server)
     {
-        if (server.Status == ServerStatus.Stopped || server.Status == ServerStatus.Terminated)
+        if (server.Status is ServerStatus.Stopped or ServerStatus.Terminated)
         {
             // These can just be started
             await PerformStart(server.Id);

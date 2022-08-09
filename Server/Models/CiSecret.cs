@@ -50,7 +50,7 @@ namespace ThriveDevCenter.Server.Models
             return new()
             {
                 SecretName = SecretName,
-                SecretContent = SecretContent
+                SecretContent = SecretContent,
             };
         }
 

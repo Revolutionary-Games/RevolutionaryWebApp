@@ -309,9 +309,9 @@ namespace ThriveDevCenter.Client.Services
                 OnVersionMismatch?.Invoke(this, EventArgs.Empty);
             });
 
-            hubConnection.On<UserInfo>("ReceiveOwnUserInfo", (user) => { userInfoReceiver.OnReceivedOurInfo(user); });
+            hubConnection.On<UserInfo>("ReceiveOwnUserInfo", user => { userInfoReceiver.OnReceivedOurInfo(user); });
 
-            hubConnection.On<string>("ReceiveNotificationJSON", async (json) =>
+            hubConnection.On<string>("ReceiveNotificationJSON", async json =>
             {
                 if (FullMessageLogging)
                     Console.WriteLine("Got a notification handler message: " + json);

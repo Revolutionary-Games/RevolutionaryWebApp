@@ -17,7 +17,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
 
             var session = new Session()
             {
-                SsoNonce = "1234"
+                SsoNonce = "1234",
             };
 
             await database.Database.Sessions.AddAsync(session);

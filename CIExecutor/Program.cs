@@ -4,7 +4,7 @@ namespace CIExecutor
 {
     using System.Threading.Tasks;
 
-    class Program
+    internal class Program
     {
         private static Task Main(string[] args)
         {

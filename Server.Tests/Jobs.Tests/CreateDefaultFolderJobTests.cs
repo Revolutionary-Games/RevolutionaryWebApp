@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
             public async Task CreateDefaultFolders_InCleanDatabase()
             {
                 var clientMock = new Mock<IBackgroundJobClient>();
-                clientMock.Setup((client) => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+                clientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
 
                 var database = fixture.Database;
                 await using var transaction = await database.Database.BeginTransactionAsync();

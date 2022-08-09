@@ -59,8 +59,7 @@ namespace ThriveDevCenter.Server.Jobs
 
             // If we have active servers, queue a check in 1 minute
             if (!queuedRecheck && (serverHandler.NewServersAdded || (await serverHandler.GetControlledServers()).Any(
-                    s => s.Status == ServerStatus.Provisioning || s.Status == ServerStatus.Running ||
-                        s.Status == ServerStatus.Stopping || s.Status == ServerStatus.WaitingForStartup)))
+                    s => s.Status is ServerStatus.Provisioning or ServerStatus.Running or ServerStatus.Stopping or ServerStatus.WaitingForStartup)))
             {
                 jobClient.Schedule<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None),
                     TimeSpan.FromSeconds(60));

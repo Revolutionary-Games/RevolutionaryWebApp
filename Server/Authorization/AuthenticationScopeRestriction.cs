@@ -17,6 +17,6 @@ namespace ThriveDevCenter.Server.Authorization
         /// <summary>
         ///   Authenticated through a launcher link, only valid for launcher endpoint
         /// </summary>
-        LauncherOnly
+        LauncherOnly,
     }
 }

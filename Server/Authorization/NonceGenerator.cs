@@ -8,7 +8,7 @@ namespace ThriveDevCenter.Server.Authorization
     {
         public static string GenerateNonce(int bytes)
         {
-            if (bytes < 8 || bytes > 128)
+            if (bytes is < 8 or > 128)
                 throw new ArgumentException("invalid number of bytes to use for none");
 
             byte[] raw = new byte[bytes];

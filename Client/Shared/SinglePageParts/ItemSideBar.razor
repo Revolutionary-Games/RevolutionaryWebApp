@@ -156,7 +156,7 @@
                 case ".md":
                 case ".txt":
                 {
-                    if (Item.Size == null || Item.Size > AppInfo.MaxInBrowserPreviewTextFileSize)
+                    if (Item.Size is null or > AppInfo.MaxInBrowserPreviewTextFileSize)
                     {
                         downloadedTextContent = "File too large for preview";
                         downloadingData = false;

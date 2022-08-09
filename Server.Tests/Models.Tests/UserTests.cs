@@ -20,7 +20,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
             {
                 UserName = "test",
                 Email = "test@example.com",
-                LfsToken = NonceGenerator.GenerateNonce(32)
+                LfsToken = NonceGenerator.GenerateNonce(32),
             };
 
             await database.Database.Users.AddAsync(user);

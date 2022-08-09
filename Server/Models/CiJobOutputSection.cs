@@ -89,7 +89,7 @@ namespace ThriveDevCenter.Server.Models
             yield return new Tuple<SerializedNotification, string>(new CIProjectBuildJobOutputSectionsListUpdated()
             {
                 Type = entityState.ToChangeType(),
-                Item = info
+                Item = info,
             }, NotificationGroups.CIProjectBuildJobSectionsUpdatedPrefix + jobNotificationsId);
 
             // var notificationsId = jobNotificationsId + "_" + CiJobOutputSectionId;

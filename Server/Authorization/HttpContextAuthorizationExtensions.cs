@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Server.Authorization
         {
             NoUser,
             NoAccess,
-            Success
+            Success,
         }
 
         /// <summary>

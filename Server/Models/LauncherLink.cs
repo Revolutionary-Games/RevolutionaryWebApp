@@ -43,7 +43,7 @@ namespace ThriveDevCenter.Server.Models
                 LastConnection = LastConnection,
                 TotalApiCalls = TotalApiCalls,
                 CreatedAt = CreatedAt,
-                UpdatedAt = UpdatedAt
+                UpdatedAt = UpdatedAt,
             };
         }
 

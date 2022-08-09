@@ -398,7 +398,7 @@ namespace ThriveDevCenter.Server.Jobs
 
                 await Database.LogEntries.AddAsync(new LogEntry()
                 {
-                    Message = $"Failed to cleanup server {server.Id}"
+                    Message = $"Failed to cleanup server {server.Id}",
                 });
             }
 

@@ -48,7 +48,7 @@ namespace ThriveDevCenter.Server.Jobs
                 {
                     Message =
                         $"Server {server.Id} ({server.InstanceId}) is stuck in state {server.Status} " +
-                        $"since {server.UpdatedAt}"
+                        $"since {server.UpdatedAt}",
                 }, cancellationToken);
 
                 if (string.IsNullOrEmpty(server.InstanceId))

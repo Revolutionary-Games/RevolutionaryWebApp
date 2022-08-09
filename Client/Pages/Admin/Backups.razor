@@ -63,8 +63,8 @@
     else
     {
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                        OnPageChanged="async (e) => await ChangePage(e)"
-                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        OnPageChanged="async e => await ChangePage(e)"
+                        OnSortChanged="async column => await ChangeSort(column)"
                         GetSortClass="@SortClass"
                         ShowContentSpinner="@VisibleFetchInProgress"
                         Columns="@columns"
@@ -123,7 +123,7 @@
         new TableColumn("Name", false),
         new TableColumn("Created At", true, "CreatedAt"),
         new TableColumn("Size", false),
-        new TableColumn("Actions", false)
+        new TableColumn("Actions", false),
     };
 
     private readonly Dictionary<long, bool> processingItems = new();

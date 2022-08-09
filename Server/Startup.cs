@@ -168,7 +168,7 @@ namespace ThriveDevCenter.Server
                 opts.UsePostgreSqlStorage(Configuration.GetConnectionString("WebApiConnection"),
                     new PostgreSqlStorageOptions()
                     {
-                        QueuePollInterval = TimeSpan.FromSeconds(3)
+                        QueuePollInterval = TimeSpan.FromSeconds(3),
                     });
                 opts.SetDataCompatibilityLevel(CompatibilityLevel.Version_170);
                 opts.UseSimpleAssemblyNameTypeSerializer();
@@ -287,7 +287,7 @@ namespace ThriveDevCenter.Server
 
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
-                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
             });
 
             app.Use(async (context, next) =>
@@ -302,7 +302,7 @@ namespace ThriveDevCenter.Server
 
             app.UseWebSockets(new WebSocketOptions()
             {
-                KeepAliveInterval = TimeSpan.FromSeconds(60)
+                KeepAliveInterval = TimeSpan.FromSeconds(60),
             });
 
             if (env.IsDevelopment())
@@ -351,8 +351,8 @@ namespace ThriveDevCenter.Server
                 Authorization = new[]
                 {
                     new HangfireDashboardAuthorization(
-                        app.ApplicationServices.GetRequiredService<ILogger<HangfireDashboardAuthorization>>())
-                }
+                        app.ApplicationServices.GetRequiredService<ILogger<HangfireDashboardAuthorization>>()),
+                },
             });
 
             SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));

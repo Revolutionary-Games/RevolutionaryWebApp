@@ -78,7 +78,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Value = new BasicJSONErrorResult("Invalid content",
-                        "Failed to deserialize payload").ToString()
+                        "Failed to deserialize payload").ToString(),
                 };
             }
 
@@ -87,7 +87,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 throw new HttpResponseException()
                 {
-                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-GitHub-Event header").ToString()
+                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-GitHub-Event header").ToString(),
                 };
             }
 
@@ -199,7 +199,7 @@ namespace ThriveDevCenter.Server.Controllers
                     {
                         logger.LogInformation("A pull request was closed");
                     }
-                    else if (data.Action == "synchronize" || data.Action == "opened")
+                    else if (data.Action is "synchronize" or "opened")
                     {
                         // PR content was changed so we should rebuild (we don't react to other actions to avoid
                         // duplicate builds)
@@ -271,7 +271,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 throw new HttpResponseException()
                 {
-                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-Hub-Signature-256 header").ToString()
+                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-Hub-Signature-256 header").ToString(),
                 };
             }
 
@@ -292,7 +292,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Value = new BasicJSONErrorResult("Invalid signature",
-                        "Payload signature does not match expected value").ToString()
+                        "Payload signature does not match expected value").ToString(),
                 };
             }
 

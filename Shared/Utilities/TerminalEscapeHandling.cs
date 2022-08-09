@@ -62,7 +62,7 @@ namespace ThriveDevCenter.Shared.Converters
                             yield return new TextSection()
                             {
                                 Colour = sectionColour,
-                                Text = rawText.Substring(sectionStart, sectionEnd - sectionStart + 1)
+                                Text = rawText.Substring(sectionStart, sectionEnd - sectionStart + 1),
                             };
 
                             sectionStart = -1;
@@ -93,7 +93,7 @@ namespace ThriveDevCenter.Shared.Converters
                 yield return new TextSection()
                 {
                     Colour = sectionColour,
-                    Text = rawText.Substring(sectionStart)
+                    Text = rawText.Substring(sectionStart),
                 };
             }
         }

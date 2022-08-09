@@ -34,9 +34,9 @@ namespace ThriveDevCenter.Client.Tests.Mocks
                     {
                         Headers =
                         {
-                            ContentType = new MediaTypeHeaderValue("application/json")
-                        }
-                    }
+                            ContentType = new MediaTypeHeaderValue("application/json"),
+                        },
+                    },
                 };
 
                 return response;
@@ -55,9 +55,9 @@ namespace ThriveDevCenter.Client.Tests.Mocks
                     {
                         Headers =
                         {
-                            ContentType = new MediaTypeHeaderValue("application/json")
-                        }
-                    }
+                            ContentType = new MediaTypeHeaderValue("application/json"),
+                        },
+                    },
                 };
 
                 return response;

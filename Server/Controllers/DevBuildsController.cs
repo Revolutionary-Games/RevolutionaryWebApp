@@ -73,7 +73,7 @@ namespace ThriveDevCenter.Server.Controllers
                 BOTDUpdated = botdCreated,
                 LatestBuild = latestBuild,
                 DevBuildsSize = buildsSize,
-                TotalSpaceUsed = buildsSize + dehydratedSize
+                TotalSpaceUsed = buildsSize + dehydratedSize,
             };
 
             return result;
@@ -174,7 +174,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"Build {id} marked verified",
-                PerformedById = user.Id
+                PerformedById = user.Id,
             });
 
             await database.SaveChangesAsync();
@@ -225,7 +225,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"Verification removed from build {id}",
-                PerformedById = user.Id
+                PerformedById = user.Id,
             });
 
             await database.SaveChangesAsync();
@@ -319,7 +319,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.ActionLogEntries.AddAsync(new ActionLogEntry()
             {
                 Message = $"Build {build.Id} along with siblings is now the BOTD",
-                PerformedById = user.Id
+                PerformedById = user.Id,
             });
 
             await database.SaveChangesAsync();

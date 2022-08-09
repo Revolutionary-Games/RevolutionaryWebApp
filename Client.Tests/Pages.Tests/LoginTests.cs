@@ -33,11 +33,11 @@ namespace ThriveDevCenter.Client.Tests.Pages.Tests
                                     ReadableName = "Login using a local account",
                                     InternalName = "local",
                                     Active = false,
-                                    Local = true
-                                }
-                            }
-                        }
-                    }
+                                    Local = true,
+                                },
+                            },
+                        },
+                    },
                 }
             );
 
@@ -70,11 +70,11 @@ namespace ThriveDevCenter.Client.Tests.Pages.Tests
                                     ReadableName = "Login using a local account",
                                     InternalName = "local",
                                     Active = true,
-                                    Local = true
-                                }
-                            }
-                        }
-                    }
+                                    Local = true,
+                                },
+                            },
+                        },
+                    },
                 }
             );
 
@@ -83,12 +83,12 @@ namespace ThriveDevCenter.Client.Tests.Pages.Tests
 
             cut.WaitForAssertion(() => cut.FindIsNull(".spinner-border"));
 
-            Assert.Contains(cut.Find("form button").Attributes, (i) => i.Name == "disabled");
+            Assert.Contains(cut.Find("form button").Attributes, i => i.Name == "disabled");
 
             cut.Find("input[type=email]").Input("test@example.com");
             cut.Find("input[type=password]").Input("12345");
 
-            Assert.DoesNotContain(cut.Find("form button").Attributes, (i) => i.Name == "disabled");
+            Assert.DoesNotContain(cut.Find("form button").Attributes, i => i.Name == "disabled");
         }
     }
 }

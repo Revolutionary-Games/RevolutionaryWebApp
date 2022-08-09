@@ -36,7 +36,7 @@ namespace ThriveDevCenter.Server.Controllers
         private static readonly List<string> AllowedDevBuildPlatforms = new()
         {
             "Linux/X11",
-            "Windows Desktop"
+            "Windows Desktop",
         };
 
         private readonly ILogger<DevBuildUploadController> logger;
@@ -152,7 +152,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "Remote storage is not configured"
+                    Value = "Remote storage is not configured",
                 };
             }
 
@@ -197,7 +197,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "Storage folder is missing"
+                    Value = "Storage folder is missing",
                 };
             }
 
@@ -238,13 +238,13 @@ namespace ThriveDevCenter.Server.Controllers
                     BuildZipHash = "notUploaded",
 
                     // TODO: put this logic in somewhere more obvious
-                    Important = !anonymous && (request.BuildBranch == "master" || request.BuildBranch == "main")
+                    Important = !anonymous && request.BuildBranch is "master" or "main",
                 };
 
                 await database.DevBuilds.AddAsync(existing);
                 await database.SaveChangesAsync();
 
-                jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(folder.Id, CancellationToken.None));
+                jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(folder.Id, CancellationToken.None));
             }
 
             // Apply objects
@@ -305,7 +305,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "Remote storage is not configured"
+                    Value = "Remote storage is not configured",
                 };
             }
 
@@ -318,7 +318,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "Storage folder is missing"
+                    Value = "Storage folder is missing",
                 };
             }
 
@@ -359,7 +359,7 @@ namespace ThriveDevCenter.Server.Controllers
                     dehydrated = new DehydratedObject()
                     {
                         Sha3 = obj.Sha3,
-                        StorageItem = storageItem
+                        StorageItem = storageItem,
                     };
 
                     await database.StorageItems.AddAsync(storageItem);
@@ -396,7 +396,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.SaveChangesAsync();
 
             if (addedItems)
-                jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(folder.Id, CancellationToken.None));
+                jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(folder.Id, CancellationToken.None));
 
             return result;
         }
@@ -417,7 +417,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status500InternalServerError,
-                    Value = "Remote storage is not configured"
+                    Value = "Remote storage is not configured",
                 };
             }
 

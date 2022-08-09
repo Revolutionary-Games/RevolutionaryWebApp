@@ -103,7 +103,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
 
             var dummyList = new List<Tuple<SerializedNotification, string>>
             {
-                new(new DummyUpdated(), DummyUpdated.UpdateGroup)
+                new(new DummyUpdated(), DummyUpdated.UpdateGroup),
             };
 
             notificationsMock

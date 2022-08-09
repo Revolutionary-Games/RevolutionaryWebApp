@@ -53,7 +53,7 @@
                 PledgeAmountCents = PledgeAmountCents,
                 RewardId = RewardId,
                 HasForumAccount = HasForumAccount ?? false,
-                Suspended = Suspended ?? false
+                Suspended = Suspended ?? false,
             };
         }
     }

@@ -27,13 +27,13 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                         CiProjectId = CIProjectId,
                         CiBuildId = CIBuildId,
                         Branch = "master",
-                        CommitHash = "abcdef",
+                        CommitHash = "deadbeef",
                         CommitMessage = "stuff",
                         RemoteRef = "refs/heads/master",
                         IsSafe = true,
                         PreviousCommit = "aabb",
                         Commits = "[]",
-                    }
+                    },
                 },
                 CiSecrets = new List<CiSecret>()
                 {
@@ -44,8 +44,8 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                         SecretContent = "This is a secret",
                         SecretName = "BUILD_SECRET",
                         UsedForBuildTypes = CISecretType.SafeOnly,
-                    }
-                }
+                    },
+                },
             };
 
             database.CiProjects.Add(project);
@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 StorageItemVersions = new List<StorageItemVersion>()
                 {
                     imageVersion,
-                }
+                },
             };
             imageVersion.StorageItem = ciImageFile;
 
@@ -85,7 +85,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 Children = new List<StorageItem>()
                 {
                     ciImageFile,
-                }
+                },
             };
             ciImageFile.Parent = testFolder;
 
@@ -96,7 +96,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 Children = new List<StorageItem>()
                 {
                     testFolder,
-                }
+                },
             };
             testFolder.Parent = imagesFolder;
 
@@ -108,7 +108,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures
                 Children = new List<StorageItem>()
                 {
                     imagesFolder,
-                }
+                },
             };
             imagesFolder.Parent = ciFolder;
 

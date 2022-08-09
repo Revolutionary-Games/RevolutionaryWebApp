@@ -392,7 +392,7 @@ namespace ThriveDevCenter.Server.Controllers
                     signature = new InProgressClaSignature()
                     {
                         SessionId = session.Id,
-                        ClaId = id
+                        ClaId = id,
                     };
 
                     await database.InProgressClaSignatures.AddAsync(signature);
@@ -636,7 +636,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = $"New CLA signature for CLA ({cla.Id}) created",
-                TargetUserId = finalSignature.UserId
+                TargetUserId = finalSignature.UserId,
             });
 
             // Email the agreement to the person signing it
@@ -651,7 +651,7 @@ namespace ThriveDevCenter.Server.Controllers
                         new(fileName, signedDocumentText)
                         {
                             MimeType = AppInfo.MarkdownMimeType,
-                        }
+                        },
                     },
                 }, CancellationToken.None);
 

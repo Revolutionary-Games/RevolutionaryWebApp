@@ -29,7 +29,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
 
             var created = new Session()
             {
-                SsoNonce = "5123"
+                SsoNonce = "5123",
             };
 
             // It should be impossible to create a session with no hash, so we use raw SQL to insert it

@@ -24,8 +24,8 @@ else
     @*<StatusMessageShower Message="@message" Type="@messageType" />*@
 
     <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                    OnPageChanged="async (e) => await ChangePage(e)"
-                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
                     GetSortClass="@SortClass"
                     ShowContentSpinner="@VisibleFetchInProgress"
                     Columns="@columns"
@@ -63,9 +63,9 @@ else
                     <td>@item.PollInterval</td>
                     <td>
 						@if (item.HasHtmlFeedItemEntryTemplate)
-						{
-						    <a href="@($"/api/v1/feed/{item.Name}{item.HtmlFeedVersionSuffix}")" target="_blank">Yes</a>
-						}
+                        {
+                            <a href="@($"/api/v1/feed/{item.Name}{item.HtmlFeedVersionSuffix}")" target="_blank">Yes</a>
+                        }
 					</td>
                     <td>@item.CacheTime</td>
                     <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>

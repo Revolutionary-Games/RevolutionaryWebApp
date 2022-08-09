@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Models
                 Public = Public,
                 TotalObjectSize = TotalObjectSize ?? 0,
                 UpdatedAt = UpdatedAt,
-                CreatedAt = CreatedAt
+                CreatedAt = CreatedAt,
             };
         }
 

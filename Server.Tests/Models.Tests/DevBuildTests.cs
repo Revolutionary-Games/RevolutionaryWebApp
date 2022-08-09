@@ -30,7 +30,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
                 Branch = "master",
                 Platform = "Linux/X11",
                 BuildOfTheDay = true,
-                Description = description
+                Description = description,
             };
 
             List<ValidationResult> result = new List<ValidationResult>();
@@ -50,7 +50,7 @@ namespace ThriveDevCenter.Server.Tests.Models.Tests
                 Branch = "master",
                 Platform = "Linux/X11",
                 BuildOfTheDay = true,
-                Description = "A cool description"
+                Description = "A cool description",
             };
 
             List<ValidationResult> result = new List<ValidationResult>();

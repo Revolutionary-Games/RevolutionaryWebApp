@@ -20,8 +20,8 @@ namespace ThriveDevCenter.Shared.Tests.Utilities.Tests
                 new()
                 {
                     Colour = TerminalColour.Blue,
-                    Text = "Beginning upload of 2 devbuilds with 2 dehydrated objects"
-                }
+                    Text = "Beginning upload of 2 devbuilds with 2 dehydrated objects",
+                },
             };
 
             Assert.Equal(expected.Count, result.Count);

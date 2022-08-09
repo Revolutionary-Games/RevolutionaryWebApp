@@ -141,7 +141,7 @@ namespace ThriveDevCenter.Server.Jobs
             }
 
             if (configuration.Jobs.SelectMany(j => j.Value.Artifacts.Paths).Any(p =>
-                    p.Length < 3 || p.Length > 250 || p.StartsWith("/") || p.Contains("..")))
+                    p.Length is < 3 or > 250 || p.StartsWith("/") || p.Contains("..")))
             {
                 logger.LogError("Build has a too long, short, or non-relative artifact path");
 
@@ -212,7 +212,7 @@ namespace ThriveDevCenter.Server.Jobs
                 CiJobOutputSectionId = 1,
                 Name = "Invalid configuration",
                 Status = CIJobSectionStatus.Failed,
-                Output = failure
+                Output = failure,
             };
 
             outputSection.CalculateOutputLength();
@@ -229,8 +229,8 @@ namespace ThriveDevCenter.Server.Jobs
 
                 CiJobOutputSections = new List<CiJobOutputSection>()
                 {
-                    outputSection
-                }
+                    outputSection,
+                },
             };
 
             if (build.CiProject == null)

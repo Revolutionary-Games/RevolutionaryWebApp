@@ -54,7 +54,7 @@ namespace ThriveDevCenter.Server.Jobs
             {
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
-                    Message = "Detected servers that are left in running state, trying to fix by re-running handle job"
+                    Message = "Detected servers that are left in running state, trying to fix by re-running handle job",
                 }, cancellationToken);
 
                 await database.SaveChangesAsync(cancellationToken);

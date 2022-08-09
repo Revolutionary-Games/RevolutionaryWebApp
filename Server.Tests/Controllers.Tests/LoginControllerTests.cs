@@ -12,7 +12,7 @@ namespace ThriveDevCenter.Server.Tests.Controllers.Tests
             StringValues groups = new StringValues(new[]
             {
                 "Supporter", "Developer", "VIP_supporter", "trust_level_0", "trust_level_2", "trust_level_3",
-                "trust_level_1"
+                "trust_level_1",
             });
 
             Assert.Contains(groups, group =>

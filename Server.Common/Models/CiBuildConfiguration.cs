@@ -88,7 +88,7 @@ namespace ThriveDevCenter.Server.Common.Models
     {
         Success,
         Failure,
-        Always
+        Always,
     }
 
     public class CiArtifactsConfiguration

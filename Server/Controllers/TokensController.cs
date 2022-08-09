@@ -51,7 +51,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = "API token cleared by user",
-                TargetUserId = user.Id
+                TargetUserId = user.Id,
             });
 
             user.ApiToken = null;
@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = "LFS token cleared by user",
-                TargetUserId = user.Id
+                TargetUserId = user.Id,
             });
 
             user.LfsToken = null;
@@ -97,7 +97,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = "API token created by user",
-                TargetUserId = user.Id
+                TargetUserId = user.Id,
             });
 
             user.ApiToken = NonceGenerator.GenerateNonce(AppInfo.APITokenByteCount);
@@ -120,7 +120,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = "LFS token created by user",
-                TargetUserId = user.Id
+                TargetUserId = user.Id,
             });
 
             user.LfsToken = NonceGenerator.GenerateNonce(AppInfo.APITokenByteCount);
@@ -149,7 +149,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 Message = "Force cleared user's tokens",
                 TargetUserId = target.Id,
-                PerformedById = user.Id
+                PerformedById = user.Id,
             });
 
             // It's assumed here that the authentication also used ApplicationDbContext so that this works

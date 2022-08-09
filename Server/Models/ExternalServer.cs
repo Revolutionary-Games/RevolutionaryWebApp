@@ -48,7 +48,7 @@ namespace ThriveDevCenter.Server.Models
             yield return new Tuple<SerializedNotification, string>(new ExternalServersUpdated()
             {
                 Type = entityState.ToChangeType(),
-                Item = GetDTO()
+                Item = GetDTO(),
             }, NotificationGroups.ExternalServerListUpdated);
         }
     }

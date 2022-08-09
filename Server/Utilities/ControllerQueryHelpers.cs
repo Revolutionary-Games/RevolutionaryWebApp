@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Server.Utilities
 
             var result = new PagedResult<T>
             {
-                CurrentPage = page, PageSize = pageSize, RowCount = num
+                CurrentPage = page, PageSize = pageSize, RowCount = num,
             };
 
             if (num > 0)

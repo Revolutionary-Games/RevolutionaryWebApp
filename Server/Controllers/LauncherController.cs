@@ -52,7 +52,7 @@ namespace ThriveDevCenter.Server.Controllers
                 Valid = true,
                 Username = user.UserName ?? user.Email,
                 Email = user.Email,
-                Developer = user.HasAccessLevel(UserAccessLevel.Developer)
+                Developer = user.HasAccessLevel(UserAccessLevel.Developer),
             };
         }
 
@@ -77,13 +77,13 @@ namespace ThriveDevCenter.Server.Controllers
                 User = user,
                 LinkCode = code,
                 LastIp = remoteAddress?.ToString(),
-                LastConnection = DateTime.UtcNow
+                LastConnection = DateTime.UtcNow,
             });
 
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = $"New launcher link created from: {remoteAddress}",
-                TargetUserId = user.Id
+                TargetUserId = user.Id,
             });
 
             await database.SaveChangesAsync();
@@ -108,7 +108,7 @@ namespace ThriveDevCenter.Server.Controllers
                 Valid = true,
                 Username = user.UserName ?? user.Email,
                 Email = user.Email,
-                Developer = user.HasAccessLevel(UserAccessLevel.Developer)
+                Developer = user.HasAccessLevel(UserAccessLevel.Developer),
             };
         }
 
@@ -129,7 +129,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status500InternalServerError,
                     Value = new BasicJSONErrorResult("Link not found",
-                        "Used link object was not found").ToString()
+                        "Used link object was not found").ToString(),
                 };
             }
 
@@ -148,7 +148,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             return new LauncherUnlinkResult()
             {
-                Success = true
+                Success = true,
             };
         }
 
@@ -167,7 +167,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status404NotFound,
                     Value = new BasicJSONErrorResult("Build not found",
-                        "Build with specified ID not found").ToString()
+                        "Build with specified ID not found").ToString(),
                 };
             }
 
@@ -177,7 +177,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status404NotFound,
                     Value = new BasicJSONErrorResult("Invalid build",
-                        "The specified build doesn't have a valid download file").ToString()
+                        "The specified build doesn't have a valid download file").ToString(),
                 };
             }
 
@@ -187,19 +187,19 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Value = new BasicJSONErrorResult("No access",
-                        "You don't have permission to access this build's download file").ToString()
+                        "You don't have permission to access this build's download file").ToString(),
                 };
             }
 
             var version = await build.StorageItem.GetHighestUploadedVersion(database);
 
-            if (version == null || version.StorageFile == null)
+            if (version?.StorageFile == null)
             {
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status404NotFound,
                     Value = new BasicJSONErrorResult("Invalid build",
-                        "The specified build's storage doesn't have a valid uploaded file").ToString()
+                        "The specified build's storage doesn't have a valid uploaded file").ToString(),
                 };
             }
 
@@ -314,7 +314,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status404NotFound,
                     Value = new BasicJSONErrorResult("Build not found",
-                        $"Could not find build with type {request.Type}").ToString()
+                        $"Could not find build with type {request.Type}").ToString(),
                 };
             }
 
@@ -342,7 +342,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             return new DehydratedObjectDownloads()
             {
-                Downloads = objects
+                Downloads = objects,
             };
         }
 
@@ -374,7 +374,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Value = new BasicJSONErrorResult("Restricted account",
-                        "Your account is not allowed to create launcher links").ToString()
+                        "Your account is not allowed to create launcher links").ToString(),
                 };
             }
 
@@ -384,7 +384,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status400BadRequest,
                     Value = new BasicJSONErrorResult("Too many links",
-                        "You have already linked the maximum number of launchers to your account").ToString()
+                        "You have already linked the maximum number of launchers to your account").ToString(),
                 };
             }
 
@@ -404,7 +404,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status404NotFound,
                     Value = new BasicJSONErrorResult("Object not found",
-                        $"The specified object ({sha3}) was not found").ToString()
+                        $"The specified object ({sha3}) was not found").ToString(),
                 };
             }
 
@@ -414,19 +414,19 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Value = new BasicJSONErrorResult("No access",
-                        $"You don't have permission to access this object's ({sha3}) download file").ToString()
+                        $"You don't have permission to access this object's ({sha3}) download file").ToString(),
                 };
             }
 
             var version = await dehydrated.StorageItem.GetHighestUploadedVersion(database);
 
-            if (version == null || version.StorageFile == null)
+            if (version?.StorageFile == null)
             {
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status404NotFound,
                     Value = new BasicJSONErrorResult("Not found",
-                        $"The specified object's ({sha3}) storage doesn't have a valid uploaded file").ToString()
+                        $"The specified object's ({sha3}) storage doesn't have a valid uploaded file").ToString(),
                 };
             }
 

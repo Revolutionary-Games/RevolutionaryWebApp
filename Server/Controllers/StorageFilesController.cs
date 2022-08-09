@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status403Forbidden,
-                    Value = "You authentication method has incorrect access restriction for this endpoint"
+                    Value = "You authentication method has incorrect access restriction for this endpoint",
                 };
             }
 
@@ -76,7 +76,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 return new PathParseResult()
                 {
-                    FinalItem = null
+                    FinalItem = null,
                 };
             }
 
@@ -114,7 +114,7 @@ namespace ThriveDevCenter.Server.Controllers
             return new PathParseResult()
             {
                 ParentFolder = parentItem?.GetDTO(),
-                FinalItem = currentItem?.GetDTO()
+                FinalItem = currentItem?.GetDTO(),
             };
         }
 
@@ -218,7 +218,7 @@ namespace ThriveDevCenter.Server.Controllers
             await database.LogEntries.AddAsync(new LogEntry()
             {
                 Message = $"New folder \"{request.Name}\" created with owner",
-                TargetUserId = user.Id
+                TargetUserId = user.Id,
             });
 
             var newFolder = new StorageItem()
@@ -241,7 +241,7 @@ namespace ThriveDevCenter.Server.Controllers
                 newFolder.ReadAccess.ToUserReadableString(), newFolder.WriteAccess.ToUserReadableString(), user.Email);
 
             // Need to queue a job to calculate the folder size
-            jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(newFolder.Id, CancellationToken.None));
+            jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(newFolder.Id, CancellationToken.None));
 
             return Ok($"New folder with id {newFolder.Id} created");
         }
@@ -310,7 +310,7 @@ namespace ThriveDevCenter.Server.Controllers
                 Message =
                     $"StorageItem {item.Id} edited, new name: \"{item.Name}\", accesses: {item.ReadAccess}, " +
                     $"{item.WriteAccess}",
-                PerformedById = user.Id
+                PerformedById = user.Id,
             });
 
             await database.SaveChangesAsync();
@@ -377,11 +377,8 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 // New version of an existing item. User needs at least read access to the folder and
                 // Root folder is publicly readable so that doesn't need to be checked here
-                if (parentFolder != null)
-                {
-                    if (!parentFolder.IsReadableBy(user))
-                        return this.WorkingForbid("You don't have read access to the folder");
-                }
+                if (parentFolder?.IsReadableBy(user) == false)
+                    return this.WorkingForbid("You don't have read access to the folder");
 
                 // Disallow file uploads to a folder item
                 if (existingItem.Ftype != FileType.File)
@@ -484,13 +481,13 @@ namespace ThriveDevCenter.Server.Controllers
             // Need to queue a job to calculate the parent folder size
             if (parentId != null)
             {
-                jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(parentId.Value,
+                jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(parentId.Value,
                     CancellationToken.None));
             }
 
             if (uploadId != null)
             {
-                jobClient.Schedule<DeleteNonFinishedMultipartUploadJob>((x) => x.Execute(uploadId,
+                jobClient.Schedule<DeleteNonFinishedMultipartUploadJob>(x => x.Execute(uploadId,
                     CancellationToken.None), AppInfo.MultipartUploadTotalAllowedTime * 2);
             }
 
@@ -710,7 +707,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Status = StatusCodes.Status403Forbidden,
-                    Value = "You authentication method has incorrect access restriction for this endpoint"
+                    Value = "You authentication method has incorrect access restriction for this endpoint",
                 };
             }
 

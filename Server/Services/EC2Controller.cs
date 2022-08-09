@@ -73,13 +73,13 @@ namespace ThriveDevCenter.Server.Services
                 throw new ArgumentException("Encryption must be enabled if hibernate is enabled");
 
             // A quick sanity check on the volume sizes
-            if (defaultVolumeSize < 5 || defaultVolumeSize > 1000)
+            if (defaultVolumeSize is < 5 or > 1000)
                 throw new ArgumentException("Volume size should be between 5 and 1000 gigabytes");
 
             ec2Client = new AmazonEC2Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), new AmazonEC2Config()
             {
                 RegionEndpoint = RegionEndpoint.GetBySystemName(region),
-                AuthenticationRegion = region
+                AuthenticationRegion = region,
             });
 
             Configured = true;
@@ -126,11 +126,11 @@ namespace ThriveDevCenter.Server.Services
                 MaxCount = 1,
                 HibernationOptions = new HibernationOptionsRequest()
                 {
-                    Configured = allowHibernate
+                    Configured = allowHibernate,
                 },
                 BlockDeviceMappings = new List<BlockDeviceMapping>()
                 {
-                    new BlockDeviceMapping()
+                    new()
                     {
                         DeviceName = rootFileSystemPath,
                         Ebs = new EbsBlockDevice()
@@ -139,10 +139,10 @@ namespace ThriveDevCenter.Server.Services
                             DeleteOnTermination = true,
                             VolumeSize = defaultVolumeSize,
                             VolumeType = VolumeType.Gp2,
-                            Encrypted = encryptVolumes
-                        }
-                    }
-                }
+                            Encrypted = encryptVolumes,
+                        },
+                    },
+                },
             });
 
             CheckStatusCode(response.HttpStatusCode);
@@ -163,7 +163,7 @@ namespace ThriveDevCenter.Server.Services
 
             var response = await ec2Client!.StartInstancesAsync(new StartInstancesRequest()
             {
-                InstanceIds = new List<string>() { instanceId }
+                InstanceIds = new List<string>() { instanceId },
             });
 
             CheckStatusCode(response.HttpStatusCode);
@@ -179,7 +179,7 @@ namespace ThriveDevCenter.Server.Services
 
             var response = await ec2Client!.DescribeInstancesAsync(new DescribeInstancesRequest()
             {
-                InstanceIds = instanceIds
+                InstanceIds = instanceIds,
             }, cancellationToken);
 
             return response.Reservations.SelectMany(r => r.Instances).ToList();
@@ -191,7 +191,7 @@ namespace ThriveDevCenter.Server.Services
 
             var response = await ec2Client!.TerminateInstancesAsync(new TerminateInstancesRequest()
             {
-                InstanceIds = new List<string>() { instanceId }
+                InstanceIds = new List<string>() { instanceId },
             });
 
             CheckStatusCode(response.HttpStatusCode);
@@ -207,7 +207,7 @@ namespace ThriveDevCenter.Server.Services
             var response = await ec2Client!.StopInstancesAsync(new StopInstancesRequest()
             {
                 InstanceIds = new List<string>() { instanceId },
-                Hibernate = hibernate
+                Hibernate = hibernate,
             });
 
             CheckStatusCode(response.HttpStatusCode);

@@ -25,7 +25,7 @@ namespace ThriveDevCenter.Server.Models
                 CreatedAt = CreatedAt,
                 UpdatedAt = UpdatedAt,
                 Secret = Secret,
-                LastUsed = LastUsed
+                LastUsed = LastUsed,
             };
         }
 

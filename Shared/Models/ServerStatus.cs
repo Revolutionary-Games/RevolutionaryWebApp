@@ -7,6 +7,6 @@ namespace ThriveDevCenter.Shared.Models
         Running,
         Stopping,
         Stopped,
-        Terminated
+        Terminated,
     }
 }

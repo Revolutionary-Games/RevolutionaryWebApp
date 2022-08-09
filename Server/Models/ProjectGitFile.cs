@@ -17,7 +17,7 @@
 
         [AllowSortingBy]
         public int? Size { get; set; } = -1;
-        
+
         [AllowSortingBy]
         public FileType FType { get; set; } = FileType.File;
 
@@ -34,7 +34,7 @@
                 Name = Name,
                 Size = Size ?? 0,
                 FType = FType,
-                UsesLfsOid = !string.IsNullOrEmpty(LfsOid)
+                UsesLfsOid = !string.IsNullOrEmpty(LfsOid),
             };
         }
     }

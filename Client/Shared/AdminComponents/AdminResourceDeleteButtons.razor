@@ -145,10 +145,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync(RestoreURL, new Dictionary<string,long>()
-            {
-                {"Id", Id}
-            });
+            result = await Http.PostAsJsonAsync(RestoreURL, new Dictionary<string,long> {{"Id", Id}});
         }
         catch (HttpRequestException e)
         {

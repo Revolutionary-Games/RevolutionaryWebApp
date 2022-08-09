@@ -58,7 +58,7 @@ namespace ThriveDevCenter.Server.Jobs
                     throw new ArgumentException("Could not find server to release for a stuck build");
 
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 if (server.PublicAddress == null)
                     throw new InvalidOperationException("Can't connect to a server with no public address");
 
@@ -93,7 +93,7 @@ namespace ThriveDevCenter.Server.Jobs
                 {
                     Message =
                         $"Server {server.Id} ({server.InstanceId}) timed out running CI job, stopping it, running " +
-                        $"since {server.UpdatedAt}"
+                        $"since {server.UpdatedAt}",
                 }, cancellationToken);
 
                 if (string.IsNullOrEmpty(server.InstanceId))

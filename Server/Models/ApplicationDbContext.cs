@@ -84,7 +84,7 @@ namespace ThriveDevCenter.Server.Models
             return result;
         }
 
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
         {
             // Run pre-save validations and build notifications before saving
             var notificationsToSend = RunPreSaveChecks();
@@ -100,8 +100,7 @@ namespace ThriveDevCenter.Server.Models
         {
             var changedEntities = ChangeTracker
                 .Entries()
-                .Where(e => e.State == EntityState.Added ||
-                    e.State == EntityState.Modified || e.State == EntityState.Deleted).ToList();
+                .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted).ToList();
 
             foreach (var entry in changedEntities)
             {

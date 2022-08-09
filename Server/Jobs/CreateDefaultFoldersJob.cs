@@ -88,7 +88,7 @@ namespace ThriveDevCenter.Server.Jobs
                 if (item == null)
                     continue;
 
-                jobClient.Enqueue<CountFolderItemsJob>((x) => x.Execute(item.Id, CancellationToken.None));
+                jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(item.Id, CancellationToken.None));
             }
         }
 
@@ -118,7 +118,7 @@ namespace ThriveDevCenter.Server.Jobs
                     Ftype = FileType.Folder,
                     ReadAccess = read,
                     WriteAccess = write,
-                    Special = true
+                    Special = true,
                 };
 
                 await database.StorageItems.AddAsync(newItem, cancellationToken);

@@ -36,7 +36,7 @@ namespace ThriveDevCenter.Server.Controllers
         {
             Create,
             Update,
-            Delete
+            Delete,
         }
 
         public PatreonWebhookController(ILogger<PatreonWebhookController> logger, NotificationsEnabledDb database,
@@ -74,7 +74,7 @@ namespace ThriveDevCenter.Server.Controllers
                 logger.LogWarning("Failed to parse JSON in patreon webhook body: {@E}", e);
                 throw new HttpResponseException()
                 {
-                    Value = new BasicJSONErrorResult("Invalid request", "Invalid JSON").ToString()
+                    Value = new BasicJSONErrorResult("Invalid request", "Invalid JSON").ToString(),
                 };
             }
 
@@ -84,7 +84,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 throw new HttpResponseException()
                 {
-                    Value = new BasicJSONErrorResult("Bad data", "Expected pledge object").ToString()
+                    Value = new BasicJSONErrorResult("Bad data", "Expected pledge object").ToString(),
                 };
             }
 
@@ -94,7 +94,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 throw new HttpResponseException()
                 {
-                    Value = new BasicJSONErrorResult("Bad data", "Associated patron data not included").ToString()
+                    Value = new BasicJSONErrorResult("Bad data", "Associated patron data not included").ToString(),
                 };
             }
 
@@ -105,7 +105,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Value = new BasicJSONErrorResult("Bad data", "Included objects didn't contain relevant user object")
-                        .ToString()
+                        .ToString(),
                 };
             }
 
@@ -116,7 +116,7 @@ namespace ThriveDevCenter.Server.Controllers
                 throw new HttpResponseException()
                 {
                     Value = new BasicJSONErrorResult("Bad data", "User object is missing email")
-                        .ToString()
+                        .ToString(),
                 };
             }
 
@@ -185,7 +185,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 throw new HttpResponseException()
                 {
-                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-Patreon-Event header").ToString()
+                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-Patreon-Event header").ToString(),
                 };
             }
 
@@ -203,7 +203,7 @@ namespace ThriveDevCenter.Server.Controllers
 
             throw new HttpResponseException()
             {
-                Value = new BasicJSONErrorResult("Invalid request", "Unknown event type").ToString()
+                Value = new BasicJSONErrorResult("Invalid request", "Unknown event type").ToString(),
             };
         }
 
@@ -215,7 +215,7 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 throw new HttpResponseException()
                 {
-                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-Patreon-Signature header").ToString()
+                    Value = new BasicJSONErrorResult("Invalid request", "Missing X-Patreon-Signature header").ToString(),
                 };
             }
 
@@ -227,7 +227,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status500InternalServerError,
                     Value = new BasicJSONErrorResult("Server configuration error", "Patreon webhook is not configured")
-                        .ToString()
+                        .ToString(),
                 };
             }
 
@@ -244,7 +244,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Value = new BasicJSONErrorResult("Invalid signature",
-                        "Payload signature does not match expected value").ToString()
+                        "Payload signature does not match expected value").ToString(),
                 };
             }
 

@@ -97,7 +97,7 @@ namespace ThriveDevCenter.Server.Models
                 CiJobOutputSectionId = sectionId,
                 Name = sectionTitle,
                 Status = CIJobSectionStatus.Failed,
-                Output = content
+                Output = content,
             };
 
             section.CalculateOutputLength();
@@ -143,14 +143,14 @@ namespace ThriveDevCenter.Server.Models
             yield return new Tuple<SerializedNotification, string>(new CIProjectBuildJobsListUpdated()
             {
                 Type = entityState.ToChangeType(),
-                Item = dto
+                Item = dto,
             }, NotificationGroups.CIProjectBuildJobsUpdatedPrefix + buildNotificationsId);
 
             var notificationsId = buildNotificationsId + "_" + CiJobId;
 
             yield return new Tuple<SerializedNotification, string>(new CIJobUpdated()
             {
-                Item = dto
+                Item = dto,
             }, NotificationGroups.CIProjectsBuildsJobUpdatedPrefix + notificationsId);
         }
     }

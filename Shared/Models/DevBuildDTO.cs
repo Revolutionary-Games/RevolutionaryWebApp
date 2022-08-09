@@ -8,6 +8,6 @@ namespace ThriveDevCenter.Shared.Models
     {
         BOTD,
         NonAnonymous,
-        Anonymous
+        Anonymous,
     }
 }

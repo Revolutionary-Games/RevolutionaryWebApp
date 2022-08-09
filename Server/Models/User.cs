@@ -207,7 +207,7 @@ namespace ThriveDevCenter.Server.Models
             {
                 Id = Id,
                 Name = UserName,
-                Developer = Developer ?? false
+                Developer = Developer ?? false,
             };
 
             switch (infoLevel)
@@ -252,14 +252,14 @@ namespace ThriveDevCenter.Server.Models
                 Type = entityState.ToChangeType(),
 
                 // TODO: create a separate UserInfo type to use for the list here
-                Item = GetInfo(RecordAccessLevel.Admin)
+                Item = GetInfo(RecordAccessLevel.Admin),
             }, NotificationGroups.UserListUpdated);
 
             if (entityState != EntityState.Deleted)
             {
                 yield return new Tuple<SerializedNotification, string>(new UserUpdated()
                 {
-                    Item = GetInfo(RecordAccessLevel.Admin)
+                    Item = GetInfo(RecordAccessLevel.Admin),
                 }, NotificationGroups.UserUpdatedPrefixAdminInfo + Id);
             }
 
@@ -268,7 +268,7 @@ namespace ThriveDevCenter.Server.Models
                 yield return new Tuple<SerializedNotification, string>(new UserUpdated()
                 {
                     // Private is safe here as only admins and the user itself can join this group
-                    Item = GetInfo(RecordAccessLevel.Private)
+                    Item = GetInfo(RecordAccessLevel.Private),
                 }, NotificationGroups.UserUpdatedPrefix + Id);
             }
         }

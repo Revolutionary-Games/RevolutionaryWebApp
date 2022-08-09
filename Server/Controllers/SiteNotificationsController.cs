@@ -40,7 +40,7 @@ namespace ThriveDevCenter.Server.Controllers
             // As a site message is not a critical thing, only a normal log entry is created and not an admin action
             var log = new LogEntry()
             {
-                Message = $"Ephemeral site message sent by \"{user.Name}\": {data.Message}"
+                Message = $"Ephemeral site message sent by \"{user.Name}\": {data.Message}",
             };
 
             await database.LogEntries.AddAsync(log);

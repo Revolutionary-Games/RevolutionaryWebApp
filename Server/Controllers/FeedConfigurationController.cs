@@ -83,7 +83,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         var action = new AdminAction()
         {
             Message = $"New Feed created, url: {feed.Url}, name: {feed.Name}",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id
+            PerformedById = HttpContext.AuthenticatedUser()!.Id,
         };
 
         await database.Feeds.AddAsync(feed);
@@ -202,7 +202,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         var action = new AdminAction()
         {
             Message = $"New Feed webhook created, feed: {id}, url: {webhook.WebhookUrl}",
-            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
         };
 
         await database.FeedDiscordWebhooks.AddAsync(webhook);
@@ -217,7 +217,8 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
     [HttpDelete("{id:long}/discordWebhook/{webhookUrl}")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-    public async Task<IActionResult> DeleteFeedWebhook([Required] long id, [Required] [MaxLength(500)] string webhookUrl)
+    public async Task<IActionResult> DeleteFeedWebhook([Required] long id,
+        [Required] [MaxLength(500)] string webhookUrl)
     {
         webhookUrl = Encoding.UTF8.GetString(Convert.FromBase64String(webhookUrl));
 
@@ -286,8 +287,8 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
             return false;
         }
 
-        if (request.CacheTime != null && request.CacheTime > TimeSpan.FromHours(1) ||
-            request.CacheTime < TimeSpan.FromMinutes(1))
+        if (request.CacheTime != null && (request.CacheTime > TimeSpan.FromHours(1) ||
+                request.CacheTime < TimeSpan.FromMinutes(1)))
         {
             badRequest = BadRequest("Cache time is not between 1 minute and 1 hour");
             return false;

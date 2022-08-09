@@ -103,7 +103,7 @@ namespace ThriveDevCenter.Server.Controllers
             if (build.CiProject.Deleted)
                 return NotFound();
 
-            if (build.Status == BuildStatus.Running || build.Status == BuildStatus.GoingToFail)
+            if (build.Status is BuildStatus.Running or BuildStatus.GoingToFail)
                 return BadRequest("Build can be rerun only after it is complete");
 
             var user = HttpContext.AuthenticatedUser()!;
@@ -136,7 +136,7 @@ namespace ThriveDevCenter.Server.Controllers
             // re-check the repo here)
             long nextJobId = build.CiJobs.Max(j => j.CiJobId);
             var toRerun = build.CiJobs
-                .Where(j => j.State == CIJobState.Finished && (onlyFailed && !j.Succeeded || !onlyFailed)).ToList();
+                .Where(j => j.State == CIJobState.Finished && ((onlyFailed && !j.Succeeded) || !onlyFailed)).ToList();
 
             if (toRerun.Count < 1)
                 return BadRequest("Nothing needs to rerun");

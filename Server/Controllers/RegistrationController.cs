@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Controllers
                 Email = request.Email,
                 UserName = request.Name,
                 PasswordHash = password,
-                Local = true
+                Local = true,
             };
 
             await database.Users.AddAsync(user);

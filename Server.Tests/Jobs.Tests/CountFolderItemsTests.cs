@@ -27,21 +27,21 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
             {
                 Name = "folder1",
                 Ftype = FileType.Folder,
-                AllowParentless = true
+                AllowParentless = true,
             };
 
             var folder2 = new StorageItem()
             {
                 Name = "folder2",
                 Ftype = FileType.Folder,
-                AllowParentless = true
+                AllowParentless = true,
             };
 
             var folder3 = new StorageItem()
             {
                 Name = "folder3",
                 Ftype = FileType.Folder,
-                AllowParentless = true
+                AllowParentless = true,
             };
 
             var file1 = new StorageItem()

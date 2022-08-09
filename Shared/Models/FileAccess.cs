@@ -13,7 +13,7 @@ namespace ThriveDevCenter.Shared.Models
         /// <summary>
         ///   Only system access
         /// </summary>
-        Nobody
+        Nobody,
     }
 
     public static class FileAccessHelpers
@@ -43,8 +43,7 @@ namespace ThriveDevCenter.Shared.Models
 
             if (userAccess == UserAccessLevel.Developer)
             {
-                return access == FileAccess.User || access == FileAccess.RestrictedUser ||
-                    access == FileAccess.Developer;
+                return access is FileAccess.User or FileAccess.RestrictedUser or FileAccess.Developer;
             }
 
             if (userAccess == UserAccessLevel.RestrictedUser)
@@ -52,7 +51,7 @@ namespace ThriveDevCenter.Shared.Models
                 return access == FileAccess.RestrictedUser;
             }
 
-            return access == FileAccess.User || access == FileAccess.RestrictedUser;
+            return access is FileAccess.User or FileAccess.RestrictedUser;
         }
 
         public static string ToUserReadableString(this FileAccess access)

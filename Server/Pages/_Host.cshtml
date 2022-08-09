@@ -89,7 +89,7 @@ else
         var result = new UserToken()
         {
             CSRF = Jwt.GenerateCSRFToken(user),
-            User = info
+            User = info,
         };
 
         return JsonSerializer.Serialize(result);

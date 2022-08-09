@@ -64,7 +64,7 @@ namespace ThriveDevCenter.Server.Services
             var claims = new List<Claim>()
             {
                 new Claim("LoggedIn", user != null ? "true" : "false"),
-                new Claim("UserId", UserIdFromPotentiallyNull(user))
+                new Claim("UserId", UserIdFromPotentiallyNull(user)),
             };
 
             var token = new JwtSecurityToken(Issuer, string.Empty, claims, null, GetCSRFTokenExpiry(),
@@ -115,7 +115,7 @@ namespace ThriveDevCenter.Server.Services
                 ValidateAudience = false,
                 ValidIssuer = issuer,
                 IssuerSigningKey = new SymmetricSecurityKey(secret),
-                ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256Signature }
+                ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256Signature },
             };
         }
 

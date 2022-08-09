@@ -41,7 +41,7 @@ namespace ThriveDevCenter.Server.Services
             s3Client = new AmazonS3Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), new AmazonS3Config()
             {
                 ServiceURL = endpoint,
-                AuthenticationRegion = region
+                AuthenticationRegion = region,
             });
 
             Configured = true;
@@ -96,7 +96,7 @@ namespace ThriveDevCenter.Server.Services
                 Expires = DateTime.UtcNow + expiresIn,
                 Verb = HttpVerb.PUT,
                 UploadId = uploadId,
-                PartNumber = partNumber
+                PartNumber = partNumber,
             });
         }
 
@@ -216,7 +216,7 @@ namespace ThriveDevCenter.Server.Services
                 BucketName = bucket,
                 Key = path,
                 Expires = DateTime.UtcNow + expiresIn,
-                Verb = HttpVerb.GET
+                Verb = HttpVerb.GET,
             });
         }
 

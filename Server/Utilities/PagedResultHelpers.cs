@@ -17,7 +17,7 @@ namespace ThriveDevCenter.Server.Utilities
                 Results = result.Results.Select(conversion).ToArray(),
                 PageCount = result.PageCount,
                 PageSize = result.PageSize,
-                RowCount = result.RowCount
+                RowCount = result.RowCount,
             };
         }
     }

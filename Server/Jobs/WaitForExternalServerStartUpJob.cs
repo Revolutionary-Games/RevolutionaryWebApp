@@ -38,7 +38,7 @@ namespace ThriveDevCenter.Server.Jobs
                 return;
             }
 
-            if (server.Status == ServerStatus.Running || server.Status == ServerStatus.Provisioning)
+            if (server.Status is ServerStatus.Running or ServerStatus.Provisioning)
             {
                 logger.LogInformation("External server {Id} is already up, skipping check job", id);
                 return;

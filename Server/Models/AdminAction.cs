@@ -37,7 +37,7 @@ namespace ThriveDevCenter.Server.Models
                 Message = Message,
                 CreatedAt = CreatedAt,
                 TargetUserId = TargetUserId,
-                PerformedById = PerformedById
+                PerformedById = PerformedById,
             };
         }
     }

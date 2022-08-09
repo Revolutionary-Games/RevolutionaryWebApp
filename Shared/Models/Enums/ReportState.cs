@@ -4,6 +4,6 @@ namespace ThriveDevCenter.Shared.Models.Enums
     {
         Open,
         Closed,
-        Duplicate
+        Duplicate,
     }
 }

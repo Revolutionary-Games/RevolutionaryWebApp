@@ -87,7 +87,7 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
                     Message = "All launcher links deleted by self",
-                    TargetUserId = userId
+                    TargetUserId = userId,
                 });
             }
             else
@@ -96,7 +96,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Message = "All launcher links deleted by an admin",
                     TargetUserId = userId,
-                    PerformedById = performingUser.Id
+                    PerformedById = performingUser.Id,
                 });
             }
 
@@ -131,7 +131,7 @@ namespace ThriveDevCenter.Server.Controllers
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
                     Message = $"Launcher link ({linkId}) deleted by owning user",
-                    TargetUserId = userId
+                    TargetUserId = userId,
                 });
             }
             else
@@ -140,7 +140,7 @@ namespace ThriveDevCenter.Server.Controllers
                 {
                     Message = $"Launcher link ({linkId}) for user deleted by an admin",
                     TargetUserId = userId,
-                    PerformedById = performingUser.Id
+                    PerformedById = performingUser.Id,
                 });
             }
 

@@ -18,6 +18,6 @@ namespace ThriveDevCenter.Shared.Notifications
         /// <summary>
         ///   A new item was added
         /// </summary>
-        ItemAdded
+        ItemAdded,
     }
 }

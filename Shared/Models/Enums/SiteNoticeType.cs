@@ -14,7 +14,7 @@ namespace ThriveDevCenter.Shared
         Warning,
         Info,
         Light,
-        Dark
+        Dark,
     }
 
     public static class SiteNoticeTypeHelper

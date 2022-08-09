@@ -45,7 +45,7 @@ namespace ThriveDevCenter.Server.Models
                 Description = Description,
                 LastUsed = LastUsed,
                 LastUsedFrom = LastUsedFrom,
-                KeyType = KeyType
+                KeyType = KeyType,
             };
         }
 

@@ -88,7 +88,7 @@ namespace ThriveDevCenter.Server.Controllers
 
                 // Sessions are used for logins, they are essential. This might need to be re-thought out if
                 // non-essential info is attached to sessions later
-                IsEssential = true
+                IsEssential = true,
             };
 
             response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
@@ -110,9 +110,9 @@ namespace ThriveDevCenter.Server.Controllers
                             {
                                 ReadableName = "Login Using a Development Forum Account",
                                 InternalName = SsoTypeDevForum,
-                                Active = DevForumConfigured
-                            }
-                        }
+                                Active = DevForumConfigured,
+                            },
+                        },
                     },
                     new()
                     {
@@ -123,15 +123,15 @@ namespace ThriveDevCenter.Server.Controllers
                             {
                                 ReadableName = "Login Using a Community Forum Account",
                                 InternalName = SsoTypeCommunityForum,
-                                Active = CommunityForumConfigured
+                                Active = CommunityForumConfigured,
                             },
                             new()
                             {
                                 ReadableName = "Login Using Patreon",
                                 InternalName = SsoTypePatreon,
-                                Active = PatreonConfigured
-                            }
-                        }
+                                Active = PatreonConfigured,
+                            },
+                        },
                     },
                     new()
                     {
@@ -143,11 +143,11 @@ namespace ThriveDevCenter.Server.Controllers
                                 ReadableName = "Login using a local account",
                                 InternalName = "local",
                                 Active = localLoginEnabled,
-                                Local = true
-                            }
-                        }
+                                Local = true,
+                            },
+                        },
                     },
-                }
+                },
             };
         }
 
@@ -198,7 +198,7 @@ namespace ThriveDevCenter.Server.Controllers
                             { "client_id", configuration["Login:Patreon:ClientId"] },
                             { "redirect_uri", returnUrl },
                             { "scope", scopes },
-                            { "state", session.SsoNonce }
+                            { "state", session.SsoNonce },
                         }));
                 }
             }
@@ -387,7 +387,7 @@ namespace ThriveDevCenter.Server.Controllers
                 new Dictionary<string, string?>()
                 {
                     { "sso", payload },
-                    { "sig", signature }
+                    { "sig", signature },
                 }));
         }
 
@@ -613,7 +613,7 @@ namespace ThriveDevCenter.Server.Controllers
                     Local = false,
                     SsoSource = ssoType,
                     Developer = developerLogin,
-                    Admin = false
+                    Admin = false,
                 };
 
                 await Database.Users.AddAsync(user);
@@ -643,7 +643,7 @@ namespace ThriveDevCenter.Server.Controllers
                     await Database.LogEntries.AddAsync(new LogEntry()
                     {
                         Message = "User is now a developer due to different SSO login type",
-                        TargetUser = user
+                        TargetUser = user,
                     });
 
                     user.Developer = true;

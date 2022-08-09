@@ -292,7 +292,7 @@ namespace ThriveDevCenter.Server.Services
                 {
                     var server = new ControlledServer()
                     {
-                        InstanceId = awsServer
+                        InstanceId = awsServer,
                     };
 
                     --missingServer;

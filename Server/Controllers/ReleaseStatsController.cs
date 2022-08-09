@@ -191,7 +191,7 @@ public class ReleaseStatsController : Controller
             $"repos/{repo}/releases",
             new Dictionary<string, string?>()
             {
-                { "per_page", "100" }
+                { "per_page", "100" },
             })) ?? throw new NullDecodedJsonException();
 
         // TODO: fetch more pages if there are more than a 100 releases

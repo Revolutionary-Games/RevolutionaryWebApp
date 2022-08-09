@@ -69,8 +69,7 @@ namespace ThriveDevCenter.Server.Utilities
 
                         foreach (var group in fullInfo.User.Groups)
                         {
-                            if (group.Name == PatreonGroupHandler.CommunityDevBuildGroup ||
-                                group.Name == PatreonGroupHandler.CommunityVIPGroup)
+                            if (group.Name is PatreonGroupHandler.CommunityDevBuildGroup or PatreonGroupHandler.CommunityVIPGroup)
                             {
                                 found = true;
                                 break;
@@ -122,7 +121,7 @@ namespace ThriveDevCenter.Server.Utilities
                 await database.LogEntries.AddAsync(new LogEntry()
                 {
                     Message = "Unsuspended user from sso sources",
-                    TargetUserId = user.Id
+                    TargetUserId = user.Id,
                 }, cancellationToken);
 
                 user.Suspended = false;
@@ -133,7 +132,7 @@ namespace ThriveDevCenter.Server.Utilities
                 {
                     Message =
                         $"Suspending user due to sso login ({user.SsoSource}) no longer being valid for this user",
-                    TargetUserId = user.Id
+                    TargetUserId = user.Id,
                 }, cancellationToken);
 
                 user.Suspended = true;

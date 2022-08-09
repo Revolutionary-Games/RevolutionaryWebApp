@@ -40,9 +40,9 @@ namespace ThriveDevCenter.Server.Controllers
         /// <summary>
         ///   Used to coordinate between the main socket reading task and the background writing task
         /// </summary>
-        private readonly SemaphoreSlim outputLock = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim outputLock = new(1, 1);
 
-        private readonly CancellationTokenSource backgroundOutputCancel = new CancellationTokenSource();
+        private readonly CancellationTokenSource backgroundOutputCancel = new();
 
         private readonly string notificationGroup;
         private readonly StringBuilder outputSectionText = new();
@@ -163,7 +163,7 @@ namespace ThriveDevCenter.Server.Controllers
                     {
                         Type = BuildSectionMessageType.Error,
                         ErrorMessage =
-                            "Too long realTimeBuildMessage, can't receive, stopping realTimeBuildMessage processing"
+                            "Too long realTimeBuildMessage, can't receive, stopping realTimeBuildMessage processing",
                     });
 
                     error = true;
@@ -177,7 +177,7 @@ namespace ThriveDevCenter.Server.Controllers
                         Type = BuildSectionMessageType.Error,
                         ErrorMessage =
                             "RealTimeBuildMessage read and reported size mismatch, stopping " +
-                            "realTimeBuildMessage processing"
+                            "realTimeBuildMessage processing",
                     });
 
                     error = true;
@@ -189,7 +189,7 @@ namespace ThriveDevCenter.Server.Controllers
                     await SendMessage(new RealTimeBuildMessage()
                     {
                         Type = BuildSectionMessageType.Error,
-                        ErrorMessage = "Can't process realTimeBuildMessage, invalid format or content"
+                        ErrorMessage = "Can't process realTimeBuildMessage, invalid format or content",
                     });
 
                     continue;
@@ -228,7 +228,7 @@ namespace ThriveDevCenter.Server.Controllers
                             await SendMessage(new RealTimeBuildMessage()
                             {
                                 Type = BuildSectionMessageType.Error,
-                                ErrorMessage = "Can't start a new section with invalid name"
+                                ErrorMessage = "Can't start a new section with invalid name",
                             });
                         }
                         else
@@ -246,7 +246,7 @@ namespace ThriveDevCenter.Server.Controllers
                                     await SendMessage(new RealTimeBuildMessage()
                                     {
                                         Type = BuildSectionMessageType.Error,
-                                        ErrorMessage = "Can't start a new section while one is in progress"
+                                        ErrorMessage = "Can't start a new section while one is in progress",
                                     });
 
                                     // I guess we assume success here...
@@ -264,7 +264,7 @@ namespace ThriveDevCenter.Server.Controllers
                                     CiBuildId = job.CiBuildId,
                                     CiJobId = job.CiJobId,
                                     Name = message.SectionName,
-                                    Output = message.Output ?? string.Empty
+                                    Output = message.Output ?? string.Empty,
                                 };
 
                                 outputSectionText.Clear();
@@ -318,7 +318,7 @@ namespace ThriveDevCenter.Server.Controllers
                             await SendMessage(new RealTimeBuildMessage()
                             {
                                 Type = BuildSectionMessageType.Error,
-                                ErrorMessage = "No active output section"
+                                ErrorMessage = "No active output section",
                             });
                         }
                         else
@@ -352,7 +352,7 @@ namespace ThriveDevCenter.Server.Controllers
                             await SendMessage(new RealTimeBuildMessage()
                             {
                                 Type = BuildSectionMessageType.Error,
-                                ErrorMessage = "No active output section"
+                                ErrorMessage = "No active output section",
                             });
                         }
                         else
@@ -520,7 +520,7 @@ namespace ThriveDevCenter.Server.Controllers
             await notifications.Clients.Group(notificationGroup).ReceiveNotification(
                 new BuildMessageNotification()
                 {
-                    Message = message
+                    Message = message,
                 });
         }
 

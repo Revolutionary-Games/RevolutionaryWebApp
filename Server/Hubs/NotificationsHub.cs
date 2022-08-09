@@ -653,7 +653,7 @@ namespace ThriveDevCenter.Server.Hubs
 
     public static class NotificationHelpers
     {
-        private static readonly NotificationJsonConverter Converter = new NotificationJsonConverter();
+        private static readonly NotificationJsonConverter Converter = new();
 
         /// <summary>
         ///   Send all SerializedNotification derived classes through this extension method

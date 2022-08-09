@@ -218,7 +218,7 @@ else
         {
             result = await Http.PostAsJsonAsync("api/v1/Tokens/clear", new ForceClearTokensForm()
             {
-                TargetUserId = User.Id
+                TargetUserId = User.Id,
             });
         }
         catch (HttpRequestException e)

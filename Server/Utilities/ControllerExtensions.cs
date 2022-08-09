@@ -11,7 +11,7 @@ namespace ThriveDevCenter.Server.Utilities
             throw new HttpResponseException()
             {
                 Status = StatusCodes.Status403Forbidden,
-                Value = message
+                Value = message,
             };
         }
     }

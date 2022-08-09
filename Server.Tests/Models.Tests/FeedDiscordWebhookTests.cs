@@ -13,7 +13,7 @@ public class FeedDiscordWebhookTests
         var webhook = new FeedDiscordWebhook(1, "hook")
         {
             CustomItemFormat = "New post by {AuthorFirstWord} in topic {Title}\n{Link}",
-            Feed = new Feed("test", "test", TimeSpan.FromMinutes(1))
+            Feed = new Feed("test", "test", TimeSpan.FromMinutes(1)),
         };
 
         Assert.Equal("New post by User1 in topic Item title\nhttps://item.link",

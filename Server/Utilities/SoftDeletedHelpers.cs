@@ -10,7 +10,7 @@ namespace ThriveDevCenter.Server.Utilities
             {
                 Id = model.Id,
                 Name = name,
-                UpdatedAt = model.UpdatedAt
+                UpdatedAt = model.UpdatedAt,
             };
         }
     }

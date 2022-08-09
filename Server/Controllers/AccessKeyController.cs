@@ -58,7 +58,7 @@ namespace ThriveDevCenter.Server.Controllers
         public async Task<IActionResult> CreateNew([Required] [FromBody] AccessKeyDTO newKey)
         {
             if (string.IsNullOrWhiteSpace(newKey.Description) || await database.AccessKeys
-                .FirstOrDefaultAsync(a => a.Description == newKey.Description) != null)
+                    .FirstOrDefaultAsync(a => a.Description == newKey.Description) != null)
             {
                 return BadRequest("Description is empty or a key with that description already exists");
             }
@@ -67,13 +67,13 @@ namespace ThriveDevCenter.Server.Controllers
             {
                 Description = newKey.Description,
                 KeyCode = Guid.NewGuid().ToString(),
-                KeyType = newKey.KeyType
+                KeyType = newKey.KeyType,
             };
 
             var action = new AdminAction()
             {
                 Message = $"New access key ({key.Description}) created with scope: {key.KeyType}",
-                PerformedById = HttpContext.AuthenticatedUser()!.Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             };
 
             await database.AccessKeys.AddAsync(key);
@@ -95,7 +95,7 @@ namespace ThriveDevCenter.Server.Controllers
             var action = new AdminAction()
             {
                 Message = $"Access key {key.Id} was deleted",
-                PerformedById = HttpContext.AuthenticatedUser()!.Id
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
             };
 
             database.AccessKeys.Remove(key);

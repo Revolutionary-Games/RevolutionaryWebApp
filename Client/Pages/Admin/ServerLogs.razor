@@ -24,8 +24,8 @@
     else
     {
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                        OnPageChanged="async (e) => await ChangePage(e)"
-                        OnSortChanged="async (column) => await ChangeSort(column)"
+                        OnPageChanged="async e => await ChangePage(e)"
+                        OnSortChanged="async column => await ChangeSort(column)"
                         GetSortClass="@SortClass"
                         ShowContentSpinner="@VisibleFetchInProgress"
                         Columns="@columns"
@@ -58,7 +58,7 @@
     {
         new TableColumn("Message", false),
         new TableColumn("Time", true, "CreatedAt"),
-        new TableColumn("Target User", true, "TargetUserId")
+        new TableColumn("Target User", true, "TargetUserId"),
     };
 
     public ServerLogs() : base(new SortHelper("CreatedAt", SortDirection.Descending))

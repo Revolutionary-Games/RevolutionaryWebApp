@@ -27,8 +27,8 @@ else
 {
     @* TODO: add an option not have the table-hover class as that makes it a bit weird to use the embedded forms *@
     <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
-                    OnPageChanged="async (e) => await ChangePage(e)"
-                    OnSortChanged="async (column) => await ChangeSort(column)"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
                     GetSortClass="@SortClass"
                     ShowContentSpinner="@VisibleFetchInProgress"
                     Columns="@columns"

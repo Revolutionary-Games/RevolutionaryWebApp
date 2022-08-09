@@ -169,7 +169,7 @@ namespace ThriveDevCenter.Server.Models
             var version = new StorageItemVersion()
             {
                 Version = number,
-                StorageItemId = Id
+                StorageItemId = Id,
             };
 
             StorageItemVersions.Add(version);
@@ -240,7 +240,7 @@ namespace ThriveDevCenter.Server.Models
                 Name = Name,
                 Ftype = Ftype,
                 Size = Size,
-                ReadAccess = ReadAccess
+                ReadAccess = ReadAccess,
             };
         }
 
@@ -259,7 +259,7 @@ namespace ThriveDevCenter.Server.Models
                 ParentId = ParentId,
                 AllowParentless = AllowParentless,
                 CreatedAt = CreatedAt,
-                UpdatedAt = UpdatedAt
+                UpdatedAt = UpdatedAt,
             };
         }
 
@@ -279,7 +279,7 @@ namespace ThriveDevCenter.Server.Models
                     yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
                     {
                         Type = type,
-                        Item = info
+                        Item = info,
                     }, NotificationGroups.FolderContentsUpdatedPublicPrefix + parent);
 
                     break;
@@ -287,7 +287,7 @@ namespace ThriveDevCenter.Server.Models
                     yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
                     {
                         Type = type,
-                        Item = info
+                        Item = info,
                     }, NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix + parent);
 
                     break;
@@ -295,7 +295,7 @@ namespace ThriveDevCenter.Server.Models
                     yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
                     {
                         Type = type,
-                        Item = info
+                        Item = info,
                     }, NotificationGroups.FolderContentsUpdatedUserPrefix + parent);
 
                     break;
@@ -303,7 +303,7 @@ namespace ThriveDevCenter.Server.Models
                     yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
                     {
                         Type = type,
-                        Item = info
+                        Item = info,
                     }, NotificationGroups.FolderContentsUpdatedDeveloperPrefix + parent);
 
                     break;
@@ -311,7 +311,7 @@ namespace ThriveDevCenter.Server.Models
                     yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
                     {
                         Type = type,
-                        Item = info
+                        Item = info,
                     }, NotificationGroups.FolderContentsUpdatedOwnerPrefix + parent);
 
                     break;
@@ -319,7 +319,7 @@ namespace ThriveDevCenter.Server.Models
 
             yield return new Tuple<SerializedNotification, string>(new StorageItemUpdated()
             {
-                Item = GetDTO()
+                Item = GetDTO(),
             }, NotificationGroups.StorageItemUpdatedPrefix + Id);
         }
     }

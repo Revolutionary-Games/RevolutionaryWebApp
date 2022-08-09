@@ -18,7 +18,7 @@ namespace ThriveDevCenter.Server.Utilities
         {
             None,
             DevBuild,
-            VIP
+            VIP,
         }
 
         public static async Task<bool> HandlePatreonPledgeObject(PatreonObjectData? pledge, PatreonObjectData? user,
@@ -67,7 +67,7 @@ namespace ThriveDevCenter.Server.Utilities
                 {
                     await database.LogEntries.AddAsync(new LogEntry()
                     {
-                        Message = $"We have a new patron: {username}"
+                        Message = $"We have a new patron: {username}",
                     });
 
                     await database.Patrons.AddAsync(new Patron()
@@ -76,7 +76,7 @@ namespace ThriveDevCenter.Server.Utilities
                         Email = email,
                         PledgeAmountCents = pledgeCents,
                         RewardId = rewardId,
-                        Marked = true
+                        Marked = true,
                     });
 
                     return true;

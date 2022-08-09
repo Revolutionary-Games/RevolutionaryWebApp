@@ -29,7 +29,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
 
             var created1 = new Session()
             {
-                LastUsed = DateTime.UtcNow - TimeSpan.FromDays(10)
+                LastUsed = DateTime.UtcNow - TimeSpan.FromDays(10),
             };
 
             await database.Sessions.AddAsync(created1);
@@ -41,7 +41,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests
 
             var created2 = new Session()
             {
-                LastUsed = DateTime.UtcNow - TimeSpan.FromDays(35)
+                LastUsed = DateTime.UtcNow - TimeSpan.FromDays(35),
             };
 
             await database.Sessions.AddAsync(created2);

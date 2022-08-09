@@ -93,7 +93,7 @@ namespace ThriveDevCenter.Server.Models
                 Anonymous = Anonymous,
                 Verified = Verified,
                 CreatedAt = CreatedAt,
-                UpdatedAt = UpdatedAt
+                UpdatedAt = UpdatedAt,
             };
         }
 
@@ -115,7 +115,7 @@ namespace ThriveDevCenter.Server.Models
                 Anonymous = Anonymous,
                 Verified = Verified,
                 CreatedAt = CreatedAt,
-                UpdatedAt = UpdatedAt
+                UpdatedAt = UpdatedAt,
             };
         }
 
@@ -128,12 +128,12 @@ namespace ThriveDevCenter.Server.Models
                 Type = entityState.ToChangeType(),
 
                 // TODO: create a separate type for use with the list
-                Item = dto
+                Item = dto,
             }, NotificationGroups.DevBuildsListUpdated);
 
             yield return new Tuple<SerializedNotification, string>(new DevBuildUpdated()
             {
-                Item = dto
+                Item = dto,
             }, NotificationGroups.DevBuildUpdatedPrefix + Id);
         }
     }

@@ -58,7 +58,7 @@ namespace ThriveDevCenter.Shared.Models
                     return currentAccess != UserAccessLevel.NotLoggedIn &&
                         currentAccess != UserAccessLevel.RestrictedUser;
                 case UserAccessLevel.Developer:
-                    return currentAccess == UserAccessLevel.Developer || currentAccess == UserAccessLevel.Admin;
+                    return currentAccess is UserAccessLevel.Developer or UserAccessLevel.Admin;
                 case UserAccessLevel.Admin:
                     return currentAccess == UserAccessLevel.Admin;
                 default:

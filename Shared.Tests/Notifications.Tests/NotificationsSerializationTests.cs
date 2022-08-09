@@ -24,7 +24,7 @@ namespace ThriveDevCenter.Shared.Tests.Notifications.Tests
                     Public = true,
                     CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
                     UpdatedAt = DateTime.Parse("2021-01-02T06:15:00"),
-                }
+                },
             };
 
             var serialized = JsonSerializer.Serialize((SerializedNotification)original, options);
@@ -47,7 +47,7 @@ namespace ThriveDevCenter.Shared.Tests.Notifications.Tests
                     Slug = "smth",
                     CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
                     UpdatedAt = DateTime.Parse("2021-01-02T06:15:00"),
-                }
+                },
             };
 
             var serialized = JsonSerializer.Serialize((SerializedNotification)original, options);
