@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -14,6 +12,7 @@ using Filters;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -56,7 +55,7 @@ public class ExternalServersController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -112,14 +111,14 @@ public class ExternalServersController : Controller
             return BadRequest("There is already a server configured with that IP address");
         }
 
-        var server = new ExternalServer()
+        var server = new ExternalServer
         {
             PublicAddress = request.PublicAddress,
             SSHKeyFileName = request.SSHKeyFileName,
         };
         await database.ExternalServers.AddAsync(server);
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"New external server with IP {request.PublicAddress} added",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,
@@ -148,7 +147,7 @@ public class ExternalServersController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"External server {id} deleted",
             PerformedById = user.Id,
@@ -178,7 +177,7 @@ public class ExternalServersController : Controller
         if (offline)
         {
             server.Status = ServerStatus.Stopped;
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"External server {id} marked offline",
                 PerformedById = user.Id,
@@ -188,7 +187,7 @@ public class ExternalServersController : Controller
         {
             server.Status = ServerStatus.WaitingForStartup;
 
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"External server {id} marked online",
                 PerformedById = user.Id,
@@ -239,7 +238,7 @@ public class ExternalServersController : Controller
 
         if (server.ReservationType != ServerReservationType.None)
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"External server {id} force rebooted by an admin while it was reserved",
                 PerformedById = user.Id,
@@ -247,7 +246,7 @@ public class ExternalServersController : Controller
         }
         else if (server.Status == ServerStatus.Provisioning)
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"External server {id} force rebooted by an admin while it was provisioning",
                 PerformedById = user.Id,
@@ -255,7 +254,7 @@ public class ExternalServersController : Controller
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"External server {id} rebooted by an admin",
                 PerformedById = user.Id,
@@ -300,7 +299,7 @@ public class ExternalServersController : Controller
         if (server.CleanUpQueued)
             return Ok("Server already has clean up queued");
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Server {id} is queued for clean up",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,
@@ -327,7 +326,7 @@ public class ExternalServersController : Controller
         if (server.WantsMaintenance)
             return Ok("Server already wants maintenance");
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Server {id} is queued for maintenance",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,

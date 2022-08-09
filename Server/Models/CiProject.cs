@@ -92,7 +92,7 @@ public class CiProject : UpdateableModel, IUpdateNotifications, ISoftDeletable, 
         // notification group before this goes into a state where they couldn't join anymore, they still receive
         // notifications and that leaks some information
         yield return new Tuple<SerializedNotification, string>(
-            new CIProjectUpdated() { Item = GetDTO() },
+            new CIProjectUpdated { Item = GetDTO() },
             NotificationGroups.CIProjectUpdatedPrefix + Id);
     }
 }

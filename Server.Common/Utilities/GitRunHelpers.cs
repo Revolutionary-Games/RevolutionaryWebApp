@@ -280,17 +280,15 @@ public static class GitRunHelpers
 
             throw new Exception($"Unrecognized PR ref: {remoteRef}");
         }
-        else
-        {
-            if (remoteRef.StartsWith(NormalRefPrefix))
-            {
-                var localBranch = remoteRef.Substring(NormalRefPrefix.Length);
-                localHeadsRef += localBranch;
-                return (localBranch, localHeadsRef);
-            }
 
-            throw new Exception($"Unrecognized normal ref: {remoteRef}");
+        if (remoteRef.StartsWith(NormalRefPrefix))
+        {
+            var localBranch = remoteRef.Substring(NormalRefPrefix.Length);
+            localHeadsRef += localBranch;
+            return (localBranch, localHeadsRef);
         }
+
+        throw new Exception($"Unrecognized normal ref: {remoteRef}");
     }
 
     public static string ParseRefBranch(string remoteRef)

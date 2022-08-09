@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System.ComponentModel.DataAnnotations;
@@ -9,6 +7,7 @@ using System.Threading.Tasks;
 using Authorization;
 using Hangfire;
 using Jobs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -72,7 +71,7 @@ public class CIBuildManagementController : Controller
             user.Email);
 
         // TODO: would be nice to have that non-admin action log type
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"CI job {projectId}-{buildId}-{jobId} canceled by an user",
             TargetUserId = user.Id,
@@ -110,7 +109,7 @@ public class CIBuildManagementController : Controller
         logger.LogInformation("CI build {ProjectId}-{BuildId} reran by {Email}", projectId, buildId, user.Email);
 
         // TODO: would be nice to have that non-admin action log type
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"CI build reran {projectId}-{buildId} by a user",
             TargetUserId = user.Id,
@@ -143,7 +142,7 @@ public class CIBuildManagementController : Controller
 
         foreach (var jobToRerun in toRerun)
         {
-            var newJob = new CiJob()
+            var newJob = new CiJob
             {
                 CiProjectId = jobToRerun.CiProjectId,
                 CiBuildId = jobToRerun.CiBuildId,

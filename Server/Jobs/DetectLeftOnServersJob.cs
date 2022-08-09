@@ -52,7 +52,7 @@ public class DetectLeftOnServersJob : IJob
 
         if (jobNeeded)
         {
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = "Detected servers that are left in running state, trying to fix by re-running handle job",
             }, cancellationToken);

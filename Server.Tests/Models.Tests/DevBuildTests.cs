@@ -23,7 +23,7 @@ public class DevBuildTests : IClassFixture<EmptyDatabaseFixture>
     [InlineData("\t")]
     public void DevBuildVerification_FailsToSetBOTDWithoutDescription(string description)
     {
-        var build = new DevBuild()
+        var build = new DevBuild
         {
             BuildHash = "123445",
             BuildZipHash = "aabababa",
@@ -43,7 +43,7 @@ public class DevBuildTests : IClassFixture<EmptyDatabaseFixture>
     [Fact]
     public async Task DevBuildVerification_CanValidateAndSaveCorrectBOTD()
     {
-        var build = new DevBuild()
+        var build = new DevBuild
         {
             BuildHash = "123445",
             BuildZipHash = "aabababa",

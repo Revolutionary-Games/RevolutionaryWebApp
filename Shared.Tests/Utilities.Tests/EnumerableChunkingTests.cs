@@ -27,14 +27,14 @@ public class EnumerableChunkingTests
     [Fact]
     public void ListChunking_ChunkSplitInExpectedWay()
     {
-        var list = new List<int>() { 1, 2, 3, 4, 5 };
+        var list = new List<int> { 1, 2, 3, 4, 5 };
 
         var chunked = list.AsEnumerable().Chunk(
             (int)Math.Ceiling(list.Count / (float)AppInfo.MultipartSimultaneousUploads)).ToList();
 
         Assert.Equal(AppInfo.MultipartSimultaneousUploads, chunked.Count);
-        Assert.Equal(new List<int>() { 1, 2 }, chunked[0]);
-        Assert.Equal(new List<int>() { 3, 4 }, chunked[1]);
-        Assert.Equal(new List<int>() { 5 }, chunked[2]);
+        Assert.Equal(new List<int> { 1, 2 }, chunked[0]);
+        Assert.Equal(new List<int> { 3, 4 }, chunked[1]);
+        Assert.Equal(new List<int> { 5 }, chunked[2]);
     }
 }

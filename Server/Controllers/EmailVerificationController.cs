@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -7,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -89,7 +88,7 @@ public class EmailVerificationController : Controller
 
         await database.SaveChangesAsync();
 
-        return new EmailVerifyResult()
+        return new EmailVerifyResult
         {
             RedirectTo = redirect,
         };
@@ -107,7 +106,7 @@ public class EmailVerificationController : Controller
         if (inProgressSign!.EmailVerified && inProgressSign.Email == request.Email)
             return BadRequest("That email has already been verified");
 
-        var token = emailTokens.GenerateToken(new EmailTokenData()
+        var token = emailTokens.GenerateToken(new EmailTokenData
         {
             SentToEmail = request.Email,
             Type = EmailVerificationType.CLA,

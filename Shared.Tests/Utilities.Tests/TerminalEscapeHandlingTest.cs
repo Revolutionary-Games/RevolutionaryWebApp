@@ -15,7 +15,7 @@ public class TerminalEscapeHandlingTest
             "[0;94;49mBeginning upload of 2 devbuilds with 2 dehydrated objects[0m";
 
         var result = TerminalEscapeHandling.HandleTerminalEscapes(input).ToList();
-        var expected = new List<TerminalEscapeHandling.TextSection>()
+        var expected = new List<TerminalEscapeHandling.TextSection>
         {
             new()
             {

@@ -26,7 +26,7 @@ public class RemoteServerHandlerTests
     private readonly XunitLogger<RemoteServerHandler> logger;
 
     private readonly IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(
-        new List<KeyValuePair<string, string>>()
+        new List<KeyValuePair<string, string>>
         {
             new("CI:ServerIdleTimeBeforeStop", "60"),
             new("CI:MaximumConcurrentServers", "3"),
@@ -43,7 +43,7 @@ public class RemoteServerHandlerTests
     {
         var ec2Mock = new Mock<IEC2Controller>();
         ec2Mock.Setup(ec2 => ec2.LaunchNewInstance())
-            .Returns(Task.FromResult(new List<string>() { NewInstanceId })).Verifiable();
+            .Returns(Task.FromResult(new List<string> { NewInstanceId })).Verifiable();
         ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
         var jobClientMock = new Mock<IBackgroundJobClient>();
@@ -63,7 +63,7 @@ public class RemoteServerHandlerTests
         Assert.Empty(database.ControlledServers);
         Assert.False(handler.NewServersAdded);
 
-        Assert.False(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.False(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.True(handler.NewServersAdded);
 
@@ -98,7 +98,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Status = ServerStatus.Stopped,
             ProvisionedFully = true,
@@ -107,7 +107,7 @@ public class RemoteServerHandlerTests
 
         await database.ControlledServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Stopped,
             ProvisionedFully = true,
@@ -120,7 +120,7 @@ public class RemoteServerHandlerTests
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
 
-        Assert.False(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.False(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.False(handler.NewServersAdded);
 
@@ -149,7 +149,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Status = ServerStatus.Stopped,
             ProvisionedFully = true,
@@ -158,7 +158,7 @@ public class RemoteServerHandlerTests
 
         await database.ControlledServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -171,7 +171,7 @@ public class RemoteServerHandlerTests
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.False(handler.NewServersAdded);
 
@@ -204,7 +204,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -213,7 +213,7 @@ public class RemoteServerHandlerTests
 
         await database.ControlledServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -226,12 +226,12 @@ public class RemoteServerHandlerTests
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.NotNull(server1.ReservedFor);
         Assert.Null(server2.ReservedFor);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.NotNull(server1.ReservedFor);
         Assert.Null(server2.ReservedFor);
@@ -252,14 +252,14 @@ public class RemoteServerHandlerTests
 
         var ec2Mock = new Mock<IEC2Controller>();
         ec2Mock.Setup(ec2 =>
-                ec2.GetInstanceStatuses(new List<string>() { instanceId1 }, It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(new List<Instance>()
+                ec2.GetInstanceStatuses(new List<string> { instanceId1 }, It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(new List<Instance>
             {
                 new()
                 {
                     InstanceId = instanceId1,
                     PublicIpAddress = "1.2.3.4",
-                    State = new InstanceState()
+                    State = new InstanceState
                     {
                         Code = 123,
                         Name = InstanceStateName.Running,
@@ -280,7 +280,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Status = ServerStatus.WaitingForStartup,
             ProvisionedFully = true,
@@ -290,7 +290,7 @@ public class RemoteServerHandlerTests
 
         await database.ControlledServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Stopped,
             ProvisionedFully = true,
@@ -308,7 +308,7 @@ public class RemoteServerHandlerTests
         await handler.CheckServerStatuses(CancellationToken.None);
         Assert.Equal(ServerStatus.Running, server1.Status);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.False(handler.NewServersAdded);
 
@@ -331,13 +331,13 @@ public class RemoteServerHandlerTests
         var ec2Mock = new Mock<IEC2Controller>();
         ec2Mock.Setup(ec2 => ec2.StopInstance(instanceId1, false)).Returns(Task.CompletedTask).Verifiable();
         ec2Mock.Setup(ec2 =>
-                ec2.GetInstanceStatuses(new List<string>() { instanceId1 }, It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(new List<Instance>()
+                ec2.GetInstanceStatuses(new List<string> { instanceId1 }, It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(new List<Instance>
             {
                 new()
                 {
                     InstanceId = instanceId1,
-                    State = new InstanceState()
+                    State = new InstanceState
                     {
                         Code = 123,
                         Name = InstanceStateName.Stopped,
@@ -358,7 +358,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         await AddTestJob(database);
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -369,7 +369,7 @@ public class RemoteServerHandlerTests
 
         await database.ControlledServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -422,7 +422,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -433,7 +433,7 @@ public class RemoteServerHandlerTests
 
         await database.ControlledServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -444,7 +444,7 @@ public class RemoteServerHandlerTests
 
         await database.ControlledServers.AddAsync(server2);
 
-        var server3 = new ControlledServer()
+        var server3 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -459,7 +459,7 @@ public class RemoteServerHandlerTests
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
 
-        Assert.False(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.False(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.False(handler.NewServersAdded);
 
@@ -489,7 +489,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -500,7 +500,7 @@ public class RemoteServerHandlerTests
 
         await database.ControlledServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Provisioning,
             ProvisionedFully = true,
@@ -513,7 +513,7 @@ public class RemoteServerHandlerTests
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
 
-        Assert.False(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.False(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.False(handler.NewServersAdded);
 
@@ -542,7 +542,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var job2 = new CiJob()
+        var job2 = new CiJob
         {
             CiProjectId = CIProjectTestDatabaseData.CIProjectId,
             CiBuildId = CIProjectTestDatabaseData.CIBuildId,
@@ -554,7 +554,7 @@ public class RemoteServerHandlerTests
 
         await database.CiJobs.AddAsync(job2);
 
-        var server1 = new ExternalServer()
+        var server1 = new ExternalServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -564,7 +564,7 @@ public class RemoteServerHandlerTests
 
         await database.ExternalServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -577,7 +577,7 @@ public class RemoteServerHandlerTests
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(job.CiJobId, server1.ReservedFor);
@@ -585,7 +585,7 @@ public class RemoteServerHandlerTests
         Assert.Equal(ServerReservationType.None, server2.ReservationType);
         Assert.Null(server2.ReservedFor);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job2 }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job2 }));
 
         Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(job.CiJobId, server1.ReservedFor);
@@ -613,7 +613,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var job2 = new CiJob()
+        var job2 = new CiJob
         {
             CiProjectId = CIProjectTestDatabaseData.CIProjectId,
             CiBuildId = CIProjectTestDatabaseData.CIBuildId,
@@ -625,7 +625,7 @@ public class RemoteServerHandlerTests
 
         await database.CiJobs.AddAsync(job2);
 
-        var server1 = new ExternalServer()
+        var server1 = new ExternalServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -639,12 +639,12 @@ public class RemoteServerHandlerTests
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(job.CiJobId, server1.ReservedFor);
 
-        Assert.False(await handler.HandleCIJobs(new List<CiJob>() { job2 }));
+        Assert.False(await handler.HandleCIJobs(new List<CiJob> { job2 }));
 
         Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(job.CiJobId, server1.ReservedFor);
@@ -669,7 +669,7 @@ public class RemoteServerHandlerTests
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
-        var job2 = new CiJob()
+        var job2 = new CiJob
         {
             CiProjectId = CIProjectTestDatabaseData.CIProjectId,
             CiBuildId = CIProjectTestDatabaseData.CIBuildId,
@@ -681,7 +681,7 @@ public class RemoteServerHandlerTests
 
         await database.CiJobs.AddAsync(job2);
 
-        var server1 = new ExternalServer()
+        var server1 = new ExternalServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -691,7 +691,7 @@ public class RemoteServerHandlerTests
 
         await database.ExternalServers.AddAsync(server1);
 
-        var server2 = new ExternalServer()
+        var server2 = new ExternalServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -706,7 +706,7 @@ public class RemoteServerHandlerTests
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
         Assert.Equal(job.CiJobId, server2.ReservedFor);
@@ -714,7 +714,7 @@ public class RemoteServerHandlerTests
         Assert.Equal(ServerReservationType.None, server1.ReservationType);
         Assert.Null(server1.ReservedFor);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob>() { job2 }));
+        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job2 }));
 
         Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
         Assert.Equal(job.CiJobId, server2.ReservedFor);
@@ -727,7 +727,7 @@ public class RemoteServerHandlerTests
 
     private static async Task<CiJob> AddTestJob(NotificationsEnabledDb database)
     {
-        var job = new CiJob()
+        var job = new CiJob
         {
             CiProjectId = CIProjectTestDatabaseData.CIProjectId,
             CiBuildId = CIProjectTestDatabaseData.CIBuildId,

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -14,6 +12,7 @@ using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -61,7 +60,7 @@ public class DebugSymbolController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -105,7 +104,7 @@ public class DebugSymbolController : Controller
 
         if (!remoteStorage.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Remote storage is not configured",
@@ -116,7 +115,7 @@ public class DebugSymbolController : Controller
 
         if (folder == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Storage folder is missing",
@@ -125,7 +124,7 @@ public class DebugSymbolController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        var symbol = new DebugSymbol()
+        var symbol = new DebugSymbol
         {
             // Start in non-active state until the upload is ready
             Active = false,
@@ -136,7 +135,7 @@ public class DebugSymbolController : Controller
             Size = request.Size,
         };
 
-        var storageItem = new StorageItem()
+        var storageItem = new StorageItem
         {
             Name = symbol.StorageFileName,
             Parent = folder,
@@ -177,7 +176,7 @@ public class DebugSymbolController : Controller
         jobClient.Schedule<DeleteDebugSymbolIfUploadFailedJob>(x => x.Execute(symbol.Id, CancellationToken.None),
             AppInfo.RemoteStorageUploadExpireTime * 2);
 
-        return new DebugSymbolUploadResult()
+        return new DebugSymbolUploadResult
         {
             UploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
                 AppInfo.RemoteStorageUploadExpireTime),
@@ -192,7 +191,7 @@ public class DebugSymbolController : Controller
     {
         if (!remoteStorage.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Remote storage is not configured",
@@ -252,7 +251,7 @@ public class DebugSymbolController : Controller
 
         symbol.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"DebugSymbol {symbol.Id} edited",
 

@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+﻿namespace ThriveDevCenter.Server;
 
-namespace ThriveDevCenter.Server;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 public class Program
 {

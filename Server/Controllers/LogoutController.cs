@@ -1,9 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System.Threading.Tasks;
 using Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;

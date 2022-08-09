@@ -45,7 +45,7 @@ public class ExternalServer : BaseServer, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new ExternalServersUpdated()
+        yield return new Tuple<SerializedNotification, string>(new ExternalServersUpdated
         {
             Type = entityState.ToChangeType(),
             Item = GetDTO(),

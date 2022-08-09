@@ -159,7 +159,7 @@ public class BuildWebSocketHandler
             catch (WebSocketBuildMessageTooLongException e)
             {
                 logger.LogError("Received too long realTimeBuildMessage: {@E}", e);
-                await SendMessage(new RealTimeBuildMessage()
+                await SendMessage(new RealTimeBuildMessage
                 {
                     Type = BuildSectionMessageType.Error,
                     ErrorMessage =
@@ -172,7 +172,7 @@ public class BuildWebSocketHandler
             catch (WebSocketBuildMessageLengthMisMatchException e)
             {
                 logger.LogError("Read realTimeBuildMessage length doesn't match reported length: {@E}", e);
-                await SendMessage(new RealTimeBuildMessage()
+                await SendMessage(new RealTimeBuildMessage
                 {
                     Type = BuildSectionMessageType.Error,
                     ErrorMessage =
@@ -186,7 +186,7 @@ public class BuildWebSocketHandler
             catch (InvalidWebSocketBuildMessageFormatException e)
             {
                 logger.LogError("Failed to parse a received realTimeBuildMessage: {@E}", e);
-                await SendMessage(new RealTimeBuildMessage()
+                await SendMessage(new RealTimeBuildMessage
                 {
                     Type = BuildSectionMessageType.Error,
                     ErrorMessage = "Can't process realTimeBuildMessage, invalid format or content",
@@ -225,7 +225,7 @@ public class BuildWebSocketHandler
                     if (string.IsNullOrEmpty(message.SectionName) || message.SectionName.Length > 100)
                     {
                         logger.LogError("Received a build output section start with missing or too long name");
-                        await SendMessage(new RealTimeBuildMessage()
+                        await SendMessage(new RealTimeBuildMessage
                         {
                             Type = BuildSectionMessageType.Error,
                             ErrorMessage = "Can't start a new section with invalid name",
@@ -243,7 +243,7 @@ public class BuildWebSocketHandler
                                     "Received a build output section start ({Name}) " +
                                     "while there's an active section ({SectionName})",
                                     activeSection.Name, message.SectionName);
-                                await SendMessage(new RealTimeBuildMessage()
+                                await SendMessage(new RealTimeBuildMessage
                                 {
                                     Type = BuildSectionMessageType.Error,
                                     ErrorMessage = "Can't start a new section while one is in progress",
@@ -258,7 +258,7 @@ public class BuildWebSocketHandler
                                 AddPendingOutputToActiveSection();
                             }
 
-                            activeSection = new CiJobOutputSection()
+                            activeSection = new CiJobOutputSection
                             {
                                 CiProjectId = job.CiProjectId,
                                 CiBuildId = job.CiBuildId,
@@ -315,7 +315,7 @@ public class BuildWebSocketHandler
                     {
                         logger.LogError("Received a build output message but there is no active section");
                         logger.LogInformation("Missed message for above error: {Output}", message.Output);
-                        await SendMessage(new RealTimeBuildMessage()
+                        await SendMessage(new RealTimeBuildMessage
                         {
                             Type = BuildSectionMessageType.Error,
                             ErrorMessage = "No active output section",
@@ -349,7 +349,7 @@ public class BuildWebSocketHandler
                     if (activeSection == null)
                     {
                         logger.LogError("Received a build section end but there is no active section");
-                        await SendMessage(new RealTimeBuildMessage()
+                        await SendMessage(new RealTimeBuildMessage
                         {
                             Type = BuildSectionMessageType.Error,
                             ErrorMessage = "No active output section",
@@ -518,7 +518,7 @@ public class BuildWebSocketHandler
     private async Task SendMessageToWebsiteClients(RealTimeBuildMessage message)
     {
         await notifications.Clients.Group(notificationGroup).ReceiveNotification(
-            new BuildMessageNotification()
+            new BuildMessageNotification
             {
                 Message = message,
             });

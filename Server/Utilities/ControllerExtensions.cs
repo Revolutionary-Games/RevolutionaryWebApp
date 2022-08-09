@@ -8,7 +8,7 @@ public static class ControllerExtensions
 {
     public static ActionResult WorkingForbid(this Controller controller, string message)
     {
-        throw new HttpResponseException()
+        throw new HttpResponseException
         {
             Status = StatusCodes.Status403Forbidden,
             Value = message,

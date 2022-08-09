@@ -27,7 +27,7 @@ public class SessionCleanupJobTests : IClassFixture<RealUnitTestDatabaseFixture>
         var database = fixture.Database;
         await using var transaction = await database.Database.BeginTransactionAsync();
 
-        var created1 = new Session()
+        var created1 = new Session
         {
             LastUsed = DateTime.UtcNow - TimeSpan.FromDays(10),
         };
@@ -39,7 +39,7 @@ public class SessionCleanupJobTests : IClassFixture<RealUnitTestDatabaseFixture>
         // Raw SQL needs to be used here as the tested job uses SQL, so we otherwise wouldn't see the changes
         var countBefore = await database.Database.ExecuteSqlRawAsync("SELECT COUNT(*) FROM sessions;");
 
-        var created2 = new Session()
+        var created2 = new Session
         {
             LastUsed = DateTime.UtcNow - TimeSpan.FromDays(35),
         };

@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
+﻿namespace ThriveDevCenter.Server.Pages;
+
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
-namespace ThriveDevCenter.Server.Pages;
 
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [IgnoreAntiforgeryToken]

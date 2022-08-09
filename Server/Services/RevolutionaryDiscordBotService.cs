@@ -31,7 +31,7 @@ using SixLabors.ImageSharp.Processing;
 using SkiaSharp;
 using Svg.Skia;
 using Utilities;
-using Color = Discord.Color;
+using Color = SixLabors.ImageSharp.Color;
 using Image = SixLabors.ImageSharp.Image;
 
 /// <summary>
@@ -451,9 +451,9 @@ public class RevolutionaryDiscordBotService
 
             progressImage.Mutate(x =>
             {
-                var textBrush = Brushes.Solid(SixLabors.ImageSharp.Color.White);
-                var titlePen = Pens.Solid(SixLabors.ImageSharp.Color.Black, 3.0f);
-                var textPen = Pens.Solid(SixLabors.ImageSharp.Color.Black, 2.0f);
+                var textBrush = Brushes.Solid(Color.White);
+                var titlePen = Pens.Solid(Color.Black, 3.0f);
+                var textPen = Pens.Solid(Color.Black, 2.0f);
 
                 x.DrawText(milestone.Title, titleFont, textBrush, titlePen, new PointF(15, 5));
 
@@ -464,8 +464,8 @@ public class RevolutionaryDiscordBotService
 
                 // Progress bar
                 // TODO: make rounded corners for the bar
-                var barPen = Pens.Solid(SixLabors.ImageSharp.Color.Black, 7.0f);
-                var barBrush = Brushes.Solid(new SixLabors.ImageSharp.Color(new Rgb24(63, 169, 82)));
+                var barPen = Pens.Solid(Color.Black, 7.0f);
+                var barBrush = Brushes.Solid(new Color(new Rgb24(63, 169, 82)));
 
                 // TODO: gradient to:
                 // new SixLabors.ImageSharp.Color(new Rgb24(134, 207, 147)));
@@ -693,7 +693,7 @@ public class RevolutionaryDiscordBotService
 
         var embedBuilder = new EmbedBuilder().WithTitle(title).WithDescription(description)
             .WithImageUrl(wikiDefaultPreviewImage.ToString()).WithUrl(finalUrl.ToString())
-            .WithColor(new Color(182, 9, 9));
+            .WithColor(new Discord.Color(182, 9, 9));
 
         if (updatedTime != null)
             embedBuilder.WithTimestamp(updatedTime.Value);

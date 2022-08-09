@@ -99,7 +99,7 @@ public class DeleteDebugSymbolIfUploadFailedJob
         logger.LogInformation("Performing final delete on symbol {Id} as it had not been uploaded successfully",
             symbol.Id);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"Deleted failed to be uploaded DebugSymbol {symbol.Id}",
         }, cancellationToken);

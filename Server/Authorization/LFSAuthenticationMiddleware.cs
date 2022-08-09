@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Authorization;
 
 using System;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +46,7 @@ public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
         try
         {
             var base64EncodedBytes = Convert.FromBase64String(encoded);
-            userPassword = System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            userPassword = Encoding.UTF8.GetString(base64EncodedBytes);
         }
         catch (Exception)
         {
@@ -102,6 +103,6 @@ public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
         }
 
         return context.Response.WriteAsync(
-            new GitLFSErrorResponse() { Message = error }.ToString());
+            new GitLFSErrorResponse { Message = error }.ToString());
     }
 }

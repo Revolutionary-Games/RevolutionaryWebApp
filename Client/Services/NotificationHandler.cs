@@ -320,7 +320,7 @@ public class NotificationHandler : IAsyncDisposable
             {
                 // TODO: unify this with HttpClientHelpers and Startup code
                 var notification = JsonSerializer.Deserialize<SerializedNotification>(json,
-                    new JsonSerializerOptions() { Converters = { converter } });
+                    new JsonSerializerOptions { Converters = { converter } });
 
                 await ForwardNotification(notification ?? throw new NullDecodedJsonException());
             }

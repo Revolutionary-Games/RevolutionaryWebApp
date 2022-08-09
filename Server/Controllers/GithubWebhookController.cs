@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -19,6 +17,7 @@ using Filters;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -75,7 +74,7 @@ public class GithubWebhookController : Controller
         catch (Exception e)
         {
             logger.LogWarning("Error deserializing github webhook: {@E}", e);
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Invalid content",
                     "Failed to deserialize payload").ToString(),
@@ -85,7 +84,7 @@ public class GithubWebhookController : Controller
         if (!HttpContext.Request.Headers.TryGetValue("X-GitHub-Event", out StringValues typeHeader) ||
             typeHeader.Count != 1)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Invalid request", "Missing X-GitHub-Event header").ToString(),
             };
@@ -114,7 +113,7 @@ public class GithubWebhookController : Controller
 
                 if (data.Repository == null)
                 {
-                    throw new HttpResponseException()
+                    throw new HttpResponseException
                     {
                         Value = new BasicJSONErrorResult("Invalid request",
                             "Repository is needed for this event type").ToString(),
@@ -134,7 +133,7 @@ public class GithubWebhookController : Controller
                     var previousBuildId = await database.CiBuilds.Where(b => b.CiProjectId == project.Id)
                         .MaxAsync(b => (long?)b.CiBuildId) ?? 0;
 
-                    var build = new CiBuild()
+                    var build = new CiBuild
                     {
                         CiProjectId = project.Id,
                         CiBuildId = ++previousBuildId,
@@ -168,7 +167,7 @@ public class GithubWebhookController : Controller
 
             if (data.Repository == null)
             {
-                throw new HttpResponseException()
+                throw new HttpResponseException
                 {
                     Value = new BasicJSONErrorResult("Invalid request",
                         "Repository is needed for this event type").ToString(),
@@ -177,7 +176,7 @@ public class GithubWebhookController : Controller
 
             if (data.PullRequest == null)
             {
-                throw new HttpResponseException()
+                throw new HttpResponseException
                 {
                     Value = new BasicJSONErrorResult("Invalid request",
                         "PullRequest data is needed for this event type").ToString(),
@@ -220,7 +219,7 @@ public class GithubWebhookController : Controller
                         var previousBuildId = await database.CiBuilds.Where(b => b.CiProjectId == project.Id)
                             .MaxAsync(b => (long?)b.CiBuildId) ?? 0;
 
-                        var build = new CiBuild()
+                        var build = new CiBuild
                         {
                             CiProjectId = project.Id,
                             CiBuildId = ++previousBuildId,
@@ -269,7 +268,7 @@ public class GithubWebhookController : Controller
         if (!HttpContext.Request.Headers.TryGetValue("X-Hub-Signature-256", out StringValues header) ||
             header.Count != 1)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Invalid request", "Missing X-Hub-Signature-256 header").ToString(),
             };
@@ -288,7 +287,7 @@ public class GithubWebhookController : Controller
             logger.LogWarning(
                 "Github webhook signature ({ActualSignature}) didn't match expected value ({NeededSignature})",
                 actualSignature, neededSignature);
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = new BasicJSONErrorResult("Invalid signature",

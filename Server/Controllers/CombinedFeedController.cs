@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -10,6 +8,7 @@ using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -45,7 +44,7 @@ public class CombinedFeedController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -53,7 +52,7 @@ public class CombinedFeedController : Controller
         return objects.ConvertResult(i => i.GetInfo());
     }
 
-    [HttpPost()]
+    [HttpPost]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<IActionResult> Create([Required] [FromBody] CombinedFeedDTO request)
     {
@@ -80,7 +79,7 @@ public class CombinedFeedController : Controller
         var user = HttpContext.AuthenticatedUser()!;
 
         await database.CombinedFeeds.AddAsync(feed);
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"New Combined feed created, name: {feed.Name}, combine count: {feed.CombinedFromFeeds.Count}",
             PerformedById = user.Id,
@@ -149,7 +148,7 @@ public class CombinedFeedController : Controller
         // Reset content time to allow the content to regenerate
         feed.ContentUpdatedAt = null;
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Combined feed {feed.Id} edited",
 
@@ -176,7 +175,7 @@ public class CombinedFeedController : Controller
         var user = HttpContext.AuthenticatedUser()!;
 
         database.CombinedFeeds.Remove(feed);
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Combined feed {feed.Id} deleted",
             PerformedById = user.Id,

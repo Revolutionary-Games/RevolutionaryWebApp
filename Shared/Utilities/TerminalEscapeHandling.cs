@@ -59,7 +59,7 @@ public class TerminalEscapeHandling
                     if (sectionStart != -1)
                     {
                         // End the previous section
-                        yield return new TextSection()
+                        yield return new TextSection
                         {
                             Colour = sectionColour,
                             Text = rawText.Substring(sectionStart, sectionEnd - sectionStart + 1),
@@ -90,7 +90,7 @@ public class TerminalEscapeHandling
         // Final section to the end of the string
         if (sectionStart != -1)
         {
-            yield return new TextSection()
+            yield return new TextSection
             {
                 Colour = sectionColour,
                 Text = rawText.Substring(sectionStart),

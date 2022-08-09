@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json.Serialization;
-using Shared.Converters;
 using Microsoft.EntityFrameworkCore;
 using Shared;
+using Shared.Converters;
 using Shared.Models;
 using Shared.Notifications;
 using Utilities;
@@ -84,7 +84,7 @@ public class Session : IContainsHashedLookUps, IUpdateNotifications
         if (UserId == null)
             yield break;
 
-        yield return new Tuple<SerializedNotification, string>(new SessionListUpdated()
+        yield return new Tuple<SerializedNotification, string>(new SessionListUpdated
         {
             Type = entityState.ToChangeType(),
             Item = GetDTO(false),

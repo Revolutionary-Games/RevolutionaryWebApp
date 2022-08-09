@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -11,6 +9,7 @@ using System.Threading.Tasks;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -69,7 +68,7 @@ public class StackwalkToolController : Controller
             localTempFileLocks.GetTempFilePath(StackwalkTask.CrashDumpToolTempStorageFolderName,
                 out string baseFolder);
 
-        var task = new StackwalkTask()
+        var task = new StackwalkTask
         {
             DumpTempCategory = StackwalkTask.CrashDumpToolTempStorageFolderName,
             DumpFileName = Guid.NewGuid() + ".dmp",

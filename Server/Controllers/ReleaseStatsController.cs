@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -13,6 +11,7 @@ using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -139,7 +138,7 @@ public class ReleaseStatsController : Controller
         };
         await database.ReposForReleaseStats.AddAsync(config);
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"New repo for release stats {config.QualifiedName} created",
             PerformedById = user.Id,
@@ -168,7 +167,7 @@ public class ReleaseStatsController : Controller
 
         database.ReposForReleaseStats.Remove(config);
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Repo for release stats ({config.QualifiedName}) deleted",
             PerformedById = user.Id,
@@ -189,7 +188,7 @@ public class ReleaseStatsController : Controller
 
         var releases = await client.GetFromJsonAsync<List<GithubRelease>>(QueryHelpers.AddQueryString(
             $"repos/{repo}/releases",
-            new Dictionary<string, string?>()
+            new Dictionary<string, string?>
             {
                 { "per_page", "100" },
             })) ?? throw new NullDecodedJsonException();

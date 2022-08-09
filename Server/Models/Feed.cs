@@ -125,11 +125,11 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
         if (entityState != EntityState.Modified || !Deleted)
         {
             yield return new Tuple<SerializedNotification, string>(
-                new FeedListUpdated() { Type = entityState.ToChangeType(), Item = GetInfo() },
+                new FeedListUpdated { Type = entityState.ToChangeType(), Item = GetInfo() },
                 NotificationGroups.FeedListUpdated);
         }
 
         yield return new Tuple<SerializedNotification, string>(
-            new FeedUpdated() { Item = GetDTO() }, NotificationGroups.FeedUpdatedPrefix + Id);
+            new FeedUpdated { Item = GetDTO() }, NotificationGroups.FeedUpdatedPrefix + Id);
     }
 }

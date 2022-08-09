@@ -16,7 +16,7 @@ public class UserTests
     {
         var database = new EditableInMemoryDatabaseFixture("UserClearApiToken");
 
-        var user = new User()
+        var user = new User
         {
             UserName = "test",
             Email = "test@example.com",
@@ -46,7 +46,7 @@ public class UserTests
     {
         var database = new EditableInMemoryDatabaseFixture("UserLinkCodeRecreated");
 
-        var user = new User()
+        var user = new User
         {
             UserName = "test",
             Email = "test@example.com",

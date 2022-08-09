@@ -1,8 +1,7 @@
-﻿using System.Collections.Generic;
-
-namespace ThriveDevCenter.Server.Models;
+﻿namespace ThriveDevCenter.Server.Models;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,7 +11,7 @@ using Shared.Models;
 using Shared.Notifications;
 using Utilities;
 
-[Index(new[] { nameof(Name), nameof(ParentId) }, IsUnique = true)]
+[Index(nameof(Name), nameof(ParentId), IsUnique = true)]
 [Index(nameof(AllowParentless))]
 [Index(nameof(OwnerId))]
 
@@ -166,7 +165,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
     {
         var number = await GetNextVersionNumber(database);
 
-        var version = new StorageItemVersion()
+        var version = new StorageItemVersion
         {
             Version = number,
             StorageItemId = Id,
@@ -276,7 +275,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
         switch (ReadAccess)
         {
             case FileAccess.Public:
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
                     Item = info,
@@ -284,7 +283,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
 
                 break;
             case FileAccess.RestrictedUser:
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
                     Item = info,
@@ -292,7 +291,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
 
                 break;
             case FileAccess.User:
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
                     Item = info,
@@ -300,7 +299,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
 
                 break;
             case FileAccess.Developer:
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
                     Item = info,
@@ -308,7 +307,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
 
                 break;
             case FileAccess.OwnerOrAdmin:
-                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated()
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
                     Item = info,
@@ -317,7 +316,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 break;
         }
 
-        yield return new Tuple<SerializedNotification, string>(new StorageItemUpdated()
+        yield return new Tuple<SerializedNotification, string>(new StorageItemUpdated
         {
             Item = GetDTO(),
         }, NotificationGroups.StorageItemUpdatedPrefix + Id);

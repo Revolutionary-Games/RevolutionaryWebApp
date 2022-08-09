@@ -52,7 +52,7 @@ public class DiscourseAPI
         long limit = DiscourseQueryLimit;
 
         var url = QueryHelpers.AddQueryString(new Uri(apiBaseUrl!, $"groups/{name}/members.json").ToString(),
-            new Dictionary<string, string?>()
+            new Dictionary<string, string?>
             {
                 { "offset", offset.ToString() },
                 { "limit", limit.ToString() },
@@ -98,7 +98,7 @@ public class DiscourseAPI
 
         var url = QueryHelpers.AddQueryString(
             new Uri(apiBaseUrl!, $"admin/users/list/{searchType}.json").ToString(),
-            new Dictionary<string, string?>()
+            new Dictionary<string, string?>
             {
                 { "email", email },
                 { "show_emails", avoidEmailQuery ? "false" : "true" },

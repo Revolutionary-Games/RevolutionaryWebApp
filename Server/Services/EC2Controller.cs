@@ -76,7 +76,7 @@ public class EC2Controller : IEC2Controller
         if (defaultVolumeSize is < 5 or > 1000)
             throw new ArgumentException("Volume size should be between 5 and 1000 gigabytes");
 
-        ec2Client = new AmazonEC2Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), new AmazonEC2Config()
+        ec2Client = new AmazonEC2Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), new AmazonEC2Config
         {
             RegionEndpoint = RegionEndpoint.GetBySystemName(region),
             AuthenticationRegion = region,
@@ -114,26 +114,26 @@ public class EC2Controller : IEC2Controller
     {
         ThrowIfNotConfigured();
 
-        var response = await ec2Client!.RunInstancesAsync(new RunInstancesRequest()
+        var response = await ec2Client!.RunInstancesAsync(new RunInstancesRequest
         {
             ImageId = imageId,
             KeyName = serverKeyId,
             InstanceType = instanceType,
             SubnetId = subnet,
-            SecurityGroupIds = new List<string>() { securityGroup },
+            SecurityGroupIds = new List<string> { securityGroup },
             EbsOptimized = true,
             MinCount = 1,
             MaxCount = 1,
-            HibernationOptions = new HibernationOptionsRequest()
+            HibernationOptions = new HibernationOptionsRequest
             {
                 Configured = allowHibernate,
             },
-            BlockDeviceMappings = new List<BlockDeviceMapping>()
+            BlockDeviceMappings = new List<BlockDeviceMapping>
             {
                 new()
                 {
                     DeviceName = rootFileSystemPath,
-                    Ebs = new EbsBlockDevice()
+                    Ebs = new EbsBlockDevice
                     {
                         SnapshotId = rootFileSystemSnap,
                         DeleteOnTermination = true,
@@ -161,9 +161,9 @@ public class EC2Controller : IEC2Controller
     {
         ThrowIfNotConfigured();
 
-        var response = await ec2Client!.StartInstancesAsync(new StartInstancesRequest()
+        var response = await ec2Client!.StartInstancesAsync(new StartInstancesRequest
         {
-            InstanceIds = new List<string>() { instanceId },
+            InstanceIds = new List<string> { instanceId },
         });
 
         CheckStatusCode(response.HttpStatusCode);
@@ -177,7 +177,7 @@ public class EC2Controller : IEC2Controller
     {
         ThrowIfNotConfigured();
 
-        var response = await ec2Client!.DescribeInstancesAsync(new DescribeInstancesRequest()
+        var response = await ec2Client!.DescribeInstancesAsync(new DescribeInstancesRequest
         {
             InstanceIds = instanceIds,
         }, cancellationToken);
@@ -189,9 +189,9 @@ public class EC2Controller : IEC2Controller
     {
         ThrowIfNotConfigured();
 
-        var response = await ec2Client!.TerminateInstancesAsync(new TerminateInstancesRequest()
+        var response = await ec2Client!.TerminateInstancesAsync(new TerminateInstancesRequest
         {
-            InstanceIds = new List<string>() { instanceId },
+            InstanceIds = new List<string> { instanceId },
         });
 
         CheckStatusCode(response.HttpStatusCode);
@@ -204,9 +204,9 @@ public class EC2Controller : IEC2Controller
     {
         ThrowIfNotConfigured();
 
-        var response = await ec2Client!.StopInstancesAsync(new StopInstancesRequest()
+        var response = await ec2Client!.StopInstancesAsync(new StopInstancesRequest
         {
-            InstanceIds = new List<string>() { instanceId },
+            InstanceIds = new List<string> { instanceId },
             Hibernate = hibernate,
         });
 

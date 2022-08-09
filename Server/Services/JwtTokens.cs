@@ -61,7 +61,7 @@ public class TokenGenerator : JwtBase, ITokenGenerator
 
     public string GenerateCSRFToken(User? user)
     {
-        var claims = new List<Claim>()
+        var claims = new List<Claim>
         {
             new Claim("LoggedIn", user != null ? "true" : "false"),
             new Claim("UserId", UserIdFromPotentiallyNull(user)),

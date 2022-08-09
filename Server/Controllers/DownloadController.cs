@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System.Collections.Generic;
@@ -9,6 +7,7 @@ using System.Threading.Tasks;
 using Authorization;
 using Filters;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -38,7 +37,7 @@ public class DownloadController : Controller
     {
         if (!remoteDownload.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Remote storage on the server is not configured",
@@ -114,7 +113,7 @@ public class DownloadController : Controller
         var other = groups.FirstOrDefault(g =>
             g.Key != patreonSettings.VipRewardId && g.Key != patreonSettings.DevbuildsRewardId);
 
-        var result = new PatreonCredits()
+        var result = new PatreonCredits
         {
             VIPPatrons = PreparePatronGroup(vips),
             DevBuildPatrons = PreparePatronGroup(devbuilds),

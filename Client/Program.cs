@@ -13,9 +13,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using Modulight.Modules.Hosting;
 using Services;
-using ThriveDevCenter.Shared;
 using StardustDL.RazorComponents.Markdown;
 using TextCopy;
+using ThriveDevCenter.Shared;
 
 public class Program
 {

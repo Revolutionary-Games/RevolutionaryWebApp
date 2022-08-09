@@ -12,7 +12,7 @@ public class JsonConversionTests
     {
         var errors = new List<ValidationResult>();
 
-        var original1 = new Model()
+        var original1 = new Model
         {
             Data = "Some data",
         };

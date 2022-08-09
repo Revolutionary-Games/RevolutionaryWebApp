@@ -27,7 +27,7 @@ public class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestDatabaseFix
         var database = fixture.Database;
         await using var transaction = await database.Database.BeginTransactionAsync();
 
-        var created = new Session()
+        var created = new Session
         {
             SsoNonce = "5123",
         };

@@ -58,7 +58,7 @@ public class DebugSymbol : UpdateableModel, IUpdateNotifications
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return new Tuple<SerializedNotification, string>(
-            new DebugSymbolListUpdated()
+            new DebugSymbolListUpdated
             {
                 Type = entityState.ToChangeType(),
                 Item = GetDTO(),

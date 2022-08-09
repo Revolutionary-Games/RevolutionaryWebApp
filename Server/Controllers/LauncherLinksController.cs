@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -10,6 +8,7 @@ using Authorization;
 using BlazorPagination;
 using Filters;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -55,7 +54,7 @@ public class LauncherLinksController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -84,7 +83,7 @@ public class LauncherLinksController : Controller
 
         if (userId == performingUser.Id)
         {
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = "All launcher links deleted by self",
                 TargetUserId = userId,
@@ -92,7 +91,7 @@ public class LauncherLinksController : Controller
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = "All launcher links deleted by an admin",
                 TargetUserId = userId,
@@ -128,7 +127,7 @@ public class LauncherLinksController : Controller
 
         if (userId == performingUser.Id)
         {
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"Launcher link ({linkId}) deleted by owning user",
                 TargetUserId = userId,
@@ -136,7 +135,7 @@ public class LauncherLinksController : Controller
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"Launcher link ({linkId}) for user deleted by an admin",
                 TargetUserId = userId,
@@ -167,8 +166,7 @@ public class LauncherLinksController : Controller
 
         if (modifiableUser == null)
         {
-            throw new HttpResponseException()
-                { Status = StatusCodes.Status500InternalServerError, Value = "Failed to find target user" };
+            throw new HttpResponseException { Status = StatusCodes.Status500InternalServerError, Value = "Failed to find target user" };
         }
 
         modifiableUser.LauncherLinkCode = Guid.NewGuid().ToString();

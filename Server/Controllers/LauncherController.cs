@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -12,6 +10,7 @@ using System.Threading.Tasks;
 using Authorization;
 using Filters;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -47,7 +46,7 @@ public class LauncherController : Controller
         Response.ContentType = "application/json";
         var user = await GetUserForNewLink(request.Code);
 
-        return new LauncherConnectionStatus()
+        return new LauncherConnectionStatus
         {
             Valid = true,
             Username = user.UserName ?? user.Email,
@@ -72,7 +71,7 @@ public class LauncherController : Controller
 
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
 
-        await database.LauncherLinks.AddAsync(new LauncherLink()
+        await database.LauncherLinks.AddAsync(new LauncherLink
         {
             User = user,
             LinkCode = code,
@@ -80,7 +79,7 @@ public class LauncherController : Controller
             LastConnection = DateTime.UtcNow,
         });
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"New launcher link created from: {remoteAddress}",
             TargetUserId = user.Id,
@@ -103,7 +102,7 @@ public class LauncherController : Controller
         Response.ContentType = "application/json";
         var user = HttpContext.AuthenticatedUser()!;
 
-        return new LauncherConnectionStatus()
+        return new LauncherConnectionStatus
         {
             Valid = true,
             Username = user.UserName ?? user.Email,
@@ -125,7 +124,7 @@ public class LauncherController : Controller
 
         if (link == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = new BasicJSONErrorResult("Link not found",
@@ -135,7 +134,7 @@ public class LauncherController : Controller
 
         database.LauncherLinks.Remove(link);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"Launcher disconnected through the launcher API from: {remoteAddress}",
             TargetUserId = user.Id,
@@ -146,7 +145,7 @@ public class LauncherController : Controller
         logger.LogInformation("Launcher disconnected from user {Id} from {RemoteAddress} through the launcher API",
             user.Id, remoteAddress);
 
-        return new LauncherUnlinkResult()
+        return new LauncherUnlinkResult
         {
             Success = true,
         };
@@ -163,7 +162,7 @@ public class LauncherController : Controller
 
         if (build == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status404NotFound,
                 Value = new BasicJSONErrorResult("Build not found",
@@ -173,7 +172,7 @@ public class LauncherController : Controller
 
         if (build.StorageItem == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status404NotFound,
                 Value = new BasicJSONErrorResult("Invalid build",
@@ -183,7 +182,7 @@ public class LauncherController : Controller
 
         if (!build.StorageItem.IsReadableBy(HttpContext.AuthenticatedUser()))
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = new BasicJSONErrorResult("No access",
@@ -195,7 +194,7 @@ public class LauncherController : Controller
 
         if (version?.StorageFile == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status404NotFound,
                 Value = new BasicJSONErrorResult("Invalid build",
@@ -310,7 +309,7 @@ public class LauncherController : Controller
 
         if (build == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status404NotFound,
                 Value = new BasicJSONErrorResult("Build not found",
@@ -340,7 +339,7 @@ public class LauncherController : Controller
         logger.LogInformation("{Count} dehydrated objects downloaded from {RemoteAddress} with the launcher",
             objects.Count, HttpContext.Connection.RemoteIpAddress);
 
-        return new DehydratedObjectDownloads()
+        return new DehydratedObjectDownloads
         {
             Downloads = objects,
         };
@@ -360,7 +359,7 @@ public class LauncherController : Controller
 
         if (user == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = new BasicJSONErrorResult("Invalid code",
@@ -370,7 +369,7 @@ public class LauncherController : Controller
 
         if (!user.HasAccessLevel(UserAccessLevel.User))
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = new BasicJSONErrorResult("Restricted account",
@@ -380,7 +379,7 @@ public class LauncherController : Controller
 
         if (user.LauncherLinks.Count >= AppInfo.DefaultMaxLauncherLinks)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status400BadRequest,
                 Value = new BasicJSONErrorResult("Too many links",
@@ -400,7 +399,7 @@ public class LauncherController : Controller
 
         if (dehydrated == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status404NotFound,
                 Value = new BasicJSONErrorResult("Object not found",
@@ -410,7 +409,7 @@ public class LauncherController : Controller
 
         if (dehydrated.StorageItem == null || !dehydrated.StorageItem.IsReadableBy(user))
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = new BasicJSONErrorResult("No access",
@@ -422,7 +421,7 @@ public class LauncherController : Controller
 
         if (version?.StorageFile == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status404NotFound,
                 Value = new BasicJSONErrorResult("Not found",

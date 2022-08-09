@@ -12,7 +12,7 @@ public class AccessKeyTests
     [Fact]
     public void AccessKey_JsonSerializeWorks()
     {
-        var key = new AccessKey()
+        var key = new AccessKey
         {
             Id = 123,
             Description = "some description",

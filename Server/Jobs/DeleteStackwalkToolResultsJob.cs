@@ -47,7 +47,7 @@ public class DeleteStackwalkToolResultsJob : IJob
 
             database.StackwalkTasks.RemoveRange(failedTasks);
 
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"Cleared {failedTasks.Count} stackwalk tasks that failed to run entirely",
             }, cancellationToken);

@@ -44,7 +44,7 @@ public class DetectStuckServersJob : IJob
                 "Server {Id} is stuck! Last state change: {UpdatedAt} current state: {Status}, terminating it",
                 server.Id, server.UpdatedAt, server.Status);
 
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message =
                     $"Server {server.Id} ({server.InstanceId}) is stuck in state {server.Status} " +

@@ -1,11 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Authorization;
 using Hubs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -38,7 +37,7 @@ public class SiteNotificationsController : Controller
             user.Email, data.Message, data.Type);
 
         // As a site message is not a critical thing, only a normal log entry is created and not an admin action
-        var log = new LogEntry()
+        var log = new LogEntry
         {
             Message = $"Ephemeral site message sent by \"{user.Name}\": {data.Message}",
         };

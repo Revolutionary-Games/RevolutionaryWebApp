@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -9,6 +7,7 @@ using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -45,7 +44,7 @@ public class AccessKeyController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -63,14 +62,14 @@ public class AccessKeyController : Controller
             return BadRequest("Description is empty or a key with that description already exists");
         }
 
-        var key = new AccessKey()
+        var key = new AccessKey
         {
             Description = newKey.Description,
             KeyCode = Guid.NewGuid().ToString(),
             KeyType = newKey.KeyType,
         };
 
-        var action = new AdminAction()
+        var action = new AdminAction
         {
             Message = $"New access key ({key.Description}) created with scope: {key.KeyType}",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,
@@ -92,7 +91,7 @@ public class AccessKeyController : Controller
         if (key == null)
             return NotFound();
 
-        var action = new AdminAction()
+        var action = new AdminAction
         {
             Message = $"Access key {key.Id} was deleted",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,

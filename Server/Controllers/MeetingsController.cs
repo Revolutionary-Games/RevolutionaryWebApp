@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -13,6 +11,7 @@ using BlazorPagination;
 using Filters;
 using Hangfire;
 using Jobs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -53,7 +52,7 @@ public class MeetingsController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -104,13 +103,13 @@ public class MeetingsController : Controller
         }
 
         // Allow join
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"User joined meeting {meeting.Id}",
             PerformedById = user.Id,
         });
 
-        await database.MeetingMembers.AddAsync(new MeetingMember()
+        await database.MeetingMembers.AddAsync(new MeetingMember
         {
             MeetingId = meeting.Id,
             UserId = user.Id,
@@ -151,7 +150,7 @@ public class MeetingsController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -201,7 +200,7 @@ public class MeetingsController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         return await query.Select(p => p.GetDTO()).ToListAsync();
@@ -293,14 +292,14 @@ public class MeetingsController : Controller
             votingPower = 2;
 
         // These should execute within a single transaction so only one of these can get through
-        var votingRecord = new MeetingPollVotingRecord()
+        var votingRecord = new MeetingPollVotingRecord
         {
             MeetingId = meeting.Id,
             PollId = poll.PollId,
             UserId = user.Id,
         };
 
-        var vote = new MeetingPollVote()
+        var vote = new MeetingPollVote
         {
             MeetingId = meeting.Id,
             PollId = poll.PollId,
@@ -433,7 +432,7 @@ public class MeetingsController : Controller
 
         await database.MeetingPolls.AddAsync(poll);
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Poll added to meeting ({meeting.Id}) with title: {poll.Title}",
             PerformedById = user.Id,
@@ -479,7 +478,7 @@ public class MeetingsController : Controller
         if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
             return this.WorkingForbid("You don't have permission to recompute polls in this meeting");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Poll in meeting ({meeting.Id}) with title: {poll.Title} has been recomputed. " +
                 "Note that random value used for tiebreak will be recomputed and may change the result.",
@@ -519,7 +518,7 @@ public class MeetingsController : Controller
         if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
             return this.WorkingForbid("You don't have permission to close polls in this meeting");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Poll ({poll.PollId}) closed early in meeting ({meeting.Id}), title: {poll.Title}",
             PerformedById = user.Id,
@@ -570,7 +569,7 @@ public class MeetingsController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        var meeting = new Meeting()
+        var meeting = new Meeting
         {
             Name = request.Name,
             Description = request.Description,
@@ -585,7 +584,7 @@ public class MeetingsController : Controller
 
         await database.Meetings.AddAsync(meeting);
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"New meeting ({meeting.Name}) created, scheduled to start at {meeting.StartsAt}",
             PerformedById = user.Id,
@@ -625,7 +624,7 @@ public class MeetingsController : Controller
         if (meeting.ChairmanId == newChairman.Id)
             return Ok("Meeting already has the specified user as chairman");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Meeting ({meeting.Id}) has now {newChairman.NameOrEmail} ({newChairmanId}) as the chairman",
             PerformedById = user.Id,
@@ -677,7 +676,7 @@ public class MeetingsController : Controller
                 CancellationToken.None), TimeSpan.FromSeconds(15));
         }
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Meeting ({meeting.Id}) ended by a user",
             PerformedById = user.Id,

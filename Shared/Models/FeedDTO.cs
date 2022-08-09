@@ -43,7 +43,7 @@ public class FeedDTO : ClientSideTimedModel
 
     public FeedDTO Clone()
     {
-        return new FeedDTO()
+        return new FeedDTO
         {
             Id = Id,
             CreatedAt = CreatedAt,

@@ -46,7 +46,7 @@ public class TerminateLongStoppedServersJobTests
             .UseInMemoryDatabase("TerminateLongStoppedServersTerminates")
             .Options, notificationsMock.Object);
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Status = ServerStatus.Stopped,
             InstanceId = Server1InstanceId,
@@ -55,7 +55,7 @@ public class TerminateLongStoppedServersJobTests
 
         await database.ControlledServers.AddAsync(server1);
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Status = ServerStatus.Stopped,
             InstanceId = Server2InstanceId,
@@ -64,7 +64,7 @@ public class TerminateLongStoppedServersJobTests
 
         await database.ControlledServers.AddAsync(server2);
 
-        var server3 = new ControlledServer()
+        var server3 = new ControlledServer
         {
             Status = ServerStatus.Running,
             InstanceId = Server3InstanceId,

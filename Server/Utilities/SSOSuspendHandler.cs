@@ -118,7 +118,7 @@ public static class SSOSuspendHandler
         // Don't unsuspend if user was suspended manually
         if (user.Suspended == true && user.SuspendedManually != true)
         {
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = "Unsuspended user from sso sources",
                 TargetUserId = user.Id,
@@ -128,7 +128,7 @@ public static class SSOSuspendHandler
         }
         else if (user.Suspended != true)
         {
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message =
                     $"Suspending user due to sso login ({user.SsoSource}) no longer being valid for this user",

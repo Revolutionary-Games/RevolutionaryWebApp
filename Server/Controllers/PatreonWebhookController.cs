@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -15,6 +13,7 @@ using Filters;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -72,7 +71,7 @@ public class PatreonWebhookController : Controller
         catch (Exception e)
         {
             logger.LogWarning("Failed to parse JSON in patreon webhook body: {@E}", e);
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Invalid request", "Invalid JSON").ToString(),
             };
@@ -82,7 +81,7 @@ public class PatreonWebhookController : Controller
 
         if (pledge.Type != "pledge")
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Bad data", "Expected pledge object").ToString(),
             };
@@ -92,7 +91,7 @@ public class PatreonWebhookController : Controller
 
         if (patronHookData == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Bad data", "Associated patron data not included").ToString(),
             };
@@ -102,7 +101,7 @@ public class PatreonWebhookController : Controller
 
         if (userData == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Bad data", "Included objects didn't contain relevant user object")
                     .ToString(),
@@ -113,7 +112,7 @@ public class PatreonWebhookController : Controller
 
         if (string.IsNullOrEmpty(email))
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Bad data", "User object is missing email")
                     .ToString(),
@@ -183,7 +182,7 @@ public class PatreonWebhookController : Controller
         if (!HttpContext.Request.Headers.TryGetValue("X-Patreon-Event", out StringValues header) ||
             header.Count != 1)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Invalid request", "Missing X-Patreon-Event header").ToString(),
             };
@@ -201,7 +200,7 @@ public class PatreonWebhookController : Controller
 
         logger.LogWarning("Invalid event type in patreon webhook: {Header}", header[0]);
 
-        throw new HttpResponseException()
+        throw new HttpResponseException
         {
             Value = new BasicJSONErrorResult("Invalid request", "Unknown event type").ToString(),
         };
@@ -213,7 +212,7 @@ public class PatreonWebhookController : Controller
         if (!HttpContext.Request.Headers.TryGetValue("X-Patreon-Signature", out StringValues header) ||
             header.Count != 1)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Invalid request", "Missing X-Patreon-Signature header").ToString(),
             };
@@ -223,7 +222,7 @@ public class PatreonWebhookController : Controller
 
         if (settings == null || string.IsNullOrEmpty(settings.WebhookSecret))
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = new BasicJSONErrorResult("Server configuration error", "Patreon webhook is not configured")
@@ -240,7 +239,7 @@ public class PatreonWebhookController : Controller
         if (!SecurityHelpers.SlowEquals(neededSignature, actualSignature))
         {
             logger.LogWarning("Patreon webhook signature didn't match expected value");
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = new BasicJSONErrorResult("Invalid signature",

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -9,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Authorization;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -49,7 +48,7 @@ public class CISecretsController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         return await query.Select(s => s.GetDTO()).ToListAsync();
@@ -76,13 +75,13 @@ public class CISecretsController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"New secret \"{request.SecretName}\" created for project {project.Id}",
             PerformedById = user.Id,
         });
 
-        await database.CiSecrets.AddAsync(new CiSecret()
+        await database.CiSecrets.AddAsync(new CiSecret
         {
             CiProjectId = project.Id,
             CiSecretId = previousSecretId + 1,
@@ -116,7 +115,7 @@ public class CISecretsController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Secret \"{item.SecretName}\" ({item.CiSecretId}) deleted from project {project.Id}",
             PerformedById = user.Id,

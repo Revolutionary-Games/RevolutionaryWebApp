@@ -49,8 +49,7 @@ public class GithubAutoComment : UpdateableModel, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new GithubAutoCommentListUpdated()
-                { Type = entityState.ToChangeType(), Item = GetDTO() },
+        yield return new Tuple<SerializedNotification, string>(new GithubAutoCommentListUpdated { Type = entityState.ToChangeType(), Item = GetDTO() },
             NotificationGroups.GithubAutoCommentListUpdated);
     }
 }

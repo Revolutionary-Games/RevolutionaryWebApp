@@ -110,7 +110,7 @@ public class CreateDefaultFoldersJob : IJob
         {
             logger.LogInformation("Created default folder \"{Name}\"", name);
 
-            var newItem = new StorageItem()
+            var newItem = new StorageItem
             {
                 Name = name,
                 Parent = parent,

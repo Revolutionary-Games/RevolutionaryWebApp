@@ -86,7 +86,7 @@ else
                 RecordAccessLevel.Private);
         }
 
-        var result = new UserToken()
+        var result = new UserToken
         {
             CSRF = Jwt.GenerateCSRFToken(user),
             User = info,

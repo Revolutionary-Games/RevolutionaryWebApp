@@ -1,10 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System.Threading.Tasks;
 using Authorization;
 using Hangfire;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -62,7 +61,7 @@ public class RegistrationController : Controller
 
         var password = Passwords.CreateSaltedPasswordHash(request.Password);
 
-        var user = new User()
+        var user = new User
         {
             Email = request.Email,
             UserName = request.Name,

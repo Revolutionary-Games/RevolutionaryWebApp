@@ -55,7 +55,7 @@ public class GithubAPI : IGithubAPI
             return;
         }
 
-        client = new HttpClient()
+        client = new HttpClient
         {
             DefaultRequestHeaders =
             {
@@ -100,7 +100,7 @@ public class GithubAPI : IGithubAPI
 
         var response = await client.PostAsJsonAsync(
             $"https://api.github.com/repos/{qualifiedRepoName}/statuses/{sha}",
-            new CommitStatusSetRequest()
+            new CommitStatusSetRequest
             {
                 State = state,
                 TargetUrl = buildStatusUrl,

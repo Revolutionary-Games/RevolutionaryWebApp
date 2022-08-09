@@ -290,7 +290,7 @@ public class RemoteServerHandler
 
             foreach (var awsServer in awsServers)
             {
-                var server = new ControlledServer()
+                var server = new ControlledServer
                 {
                     InstanceId = awsServer,
                 };

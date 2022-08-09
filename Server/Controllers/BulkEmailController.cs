@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -14,6 +12,7 @@ using BlazorPagination;
 using Filters;
 using Hangfire;
 using Jobs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -54,7 +53,7 @@ public class BulkEmailController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -106,7 +105,7 @@ public class BulkEmailController : Controller
             return BadRequest("No recipients were left after taking ignores into account");
         }
 
-        var bulkModel = new SentBulkEmail()
+        var bulkModel = new SentBulkEmail
         {
             Title = request.Title,
             Recipients = recipientsList.Count,
@@ -121,7 +120,7 @@ public class BulkEmailController : Controller
             return Problem("The number of sent bulk emails changed while processing, please try again");
         }
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"A bulk email was sent to {bulkModel.Recipients} people",
             PerformedById = user.Id,

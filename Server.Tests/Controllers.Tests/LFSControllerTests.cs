@@ -10,16 +10,16 @@ public class LFSControllerTests
     [Fact]
     public void LFSController_LFSResultIsSerializedCorrectly()
     {
-        var response = new LFSResponse()
+        var response = new LFSResponse
         {
-            Objects = new List<LFSResponse.LFSObject>()
+            Objects = new List<LFSResponse.LFSObject>
             {
                 new("an_oid", 123)
                 {
-                    Actions = new Dictionary<string, LFSResponse.LFSObject.Action>()
+                    Actions = new Dictionary<string, LFSResponse.LFSObject.Action>
                     {
                         {
-                            "download", new LFSResponse.LFSObject.DownloadAction()
+                            "download", new LFSResponse.LFSObject.DownloadAction
                             {
                                 Href = "https://example.com",
                                 ExpiresIn = 30,

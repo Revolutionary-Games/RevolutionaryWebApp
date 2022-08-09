@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -11,6 +9,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -148,7 +147,7 @@ public class OAuthReturnController : SSOLoginController
         {
             var response = await client.PostAsync(QueryHelpers.AddQueryString(
                 "https://github.com/login/oauth/access_token",
-                new Dictionary<string, string?>()
+                new Dictionary<string, string?>
                 {
                     { "client_id", githubClientId },
                     { "client_secret", githubClientSecret },

@@ -19,7 +19,7 @@ public class DebugSymbolDTO : ClientSideTimedModel, ICloneable
 
     public object Clone()
     {
-        return new DebugSymbolDTO()
+        return new DebugSymbolDTO
         {
             Id = Id,
             CreatedAt = CreatedAt,

@@ -23,42 +23,42 @@ public class CountFolderItemsTests : IClassFixture<RealUnitTestDatabaseFixture>
         var database = fixture.Database;
         await using var transaction = await database.Database.BeginTransactionAsync();
 
-        var folder1 = new StorageItem()
+        var folder1 = new StorageItem
         {
             Name = "folder1",
             Ftype = FileType.Folder,
             AllowParentless = true,
         };
 
-        var folder2 = new StorageItem()
+        var folder2 = new StorageItem
         {
             Name = "folder2",
             Ftype = FileType.Folder,
             AllowParentless = true,
         };
 
-        var folder3 = new StorageItem()
+        var folder3 = new StorageItem
         {
             Name = "folder3",
             Ftype = FileType.Folder,
             AllowParentless = true,
         };
 
-        var file1 = new StorageItem()
+        var file1 = new StorageItem
         {
             Name = "file1",
             Ftype = FileType.File,
             Parent = folder1,
         };
 
-        var file2 = new StorageItem()
+        var file2 = new StorageItem
         {
             Name = "file2",
             Ftype = FileType.File,
             Parent = folder1,
         };
 
-        var file3 = new StorageItem()
+        var file3 = new StorageItem
         {
             Name = "file3",
             Ftype = FileType.File,

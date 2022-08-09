@@ -203,7 +203,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
     public UserInfo GetInfo(RecordAccessLevel infoLevel)
     {
-        var info = new UserInfo()
+        var info = new UserInfo
         {
             Id = Id,
             Name = UserName,
@@ -247,7 +247,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new UserListUpdated()
+        yield return new Tuple<SerializedNotification, string>(new UserListUpdated
         {
             Type = entityState.ToChangeType(),
 
@@ -257,7 +257,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
         if (entityState != EntityState.Deleted)
         {
-            yield return new Tuple<SerializedNotification, string>(new UserUpdated()
+            yield return new Tuple<SerializedNotification, string>(new UserUpdated
             {
                 Item = GetInfo(RecordAccessLevel.Admin),
             }, NotificationGroups.UserUpdatedPrefixAdminInfo + Id);
@@ -265,7 +265,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
         if (entityState == EntityState.Modified)
         {
-            yield return new Tuple<SerializedNotification, string>(new UserUpdated()
+            yield return new Tuple<SerializedNotification, string>(new UserUpdated
             {
                 // Private is safe here as only admins and the user itself can join this group
                 Item = GetInfo(RecordAccessLevel.Private),

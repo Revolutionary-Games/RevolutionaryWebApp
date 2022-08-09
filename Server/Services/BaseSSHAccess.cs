@@ -22,7 +22,7 @@ public class BaseSSHAccess : IDisposable, IBaseSSHAccess
         // Result is the command output
         // Error is maybe the error stream?
 
-        return new CommandResult()
+        return new CommandResult
         {
             ExitCode = command.ExitStatus,
             Error = command.Error,

@@ -111,8 +111,7 @@ public class AssociationMember : UpdateableModel, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new AssociationMemberListUpdated()
-                { Type = entityState.ToChangeType(), Item = GetInfo() },
+        yield return new Tuple<SerializedNotification, string>(new AssociationMemberListUpdated { Type = entityState.ToChangeType(), Item = GetInfo() },
             NotificationGroups.AssociationMemberListUpdated);
 
         // For slightly better control on the data single item update notifications with all data are not enabled

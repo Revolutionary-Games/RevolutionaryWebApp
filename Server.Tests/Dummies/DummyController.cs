@@ -1,9 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Tests.Dummies;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
 using Server.Authorization;
 using Server.Models;
 using Shared;

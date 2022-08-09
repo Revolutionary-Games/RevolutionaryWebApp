@@ -1,7 +1,6 @@
-﻿using System;
+﻿namespace CIExecutor;
 
-namespace CIExecutor;
-
+using System;
 using System.Threading.Tasks;
 
 internal class Program

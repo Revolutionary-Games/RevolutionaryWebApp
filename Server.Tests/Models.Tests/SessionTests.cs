@@ -15,7 +15,7 @@ public class SessionTests
     {
         var database = new EditableInMemoryDatabaseFixture("SessionCreateNewHash");
 
-        var session = new Session()
+        var session = new Session
         {
             SsoNonce = "1234",
         };

@@ -42,7 +42,7 @@ public class RegistrationControllerTests
 
         await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
-        var controller = new RegistrationController(logger, new DummyRegistrationStatus()
+        var controller = new RegistrationController(logger, new DummyRegistrationStatus
         {
             RegistrationEnabled = true,
             RegistrationCode = "abc123",
@@ -63,7 +63,7 @@ public class RegistrationControllerTests
 
         await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
 
-        var controller = new RegistrationController(logger, new DummyRegistrationStatus()
+        var controller = new RegistrationController(logger, new DummyRegistrationStatus
         {
             RegistrationEnabled = false,
         }, Mock.Of<ITokenVerifier>(), database, jobClientMock.Object);
@@ -92,7 +92,7 @@ public class RegistrationControllerTests
         var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database,
             jobClientMock.Object);
 
-        var result = await controller.Post(new RegistrationFormData()
+        var result = await controller.Post(new RegistrationFormData
         {
             CSRF = csrfValue, Email = "test@example.com", Name = "test", Password = "password12345",
             RegistrationCode = RegistrationCode,
@@ -121,7 +121,7 @@ public class RegistrationControllerTests
         var controller = new RegistrationController(logger, dummyRegistrationStatus,
             csrfMock.Object, database, jobClientMock.Object);
 
-        var result = await controller.Post(new RegistrationFormData()
+        var result = await controller.Post(new RegistrationFormData
         {
             CSRF = "aValue", Email = "test@example.com", Name = "test", Password = "password12345",
             RegistrationCode = RegistrationCode + "a",
@@ -155,7 +155,7 @@ public class RegistrationControllerTests
         var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database,
             jobClientMock.Object);
 
-        var result = await controller.Post(new RegistrationFormData()
+        var result = await controller.Post(new RegistrationFormData
         {
             CSRF = csrfValue, Email = "test@example.com", Name = "test", Password = "password12345",
             RegistrationCode = RegistrationCode,

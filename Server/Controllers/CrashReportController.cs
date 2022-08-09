@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -15,6 +13,7 @@ using Filters;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -106,7 +105,7 @@ public class CrashReportController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -178,7 +177,7 @@ public class CrashReportController : Controller
         if (report.DumpLocalFileName == null)
             return BadRequest("Report no longer has a crash dump file");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Report {report.Id} crash dump reprocessing requested",
             PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
@@ -246,7 +245,7 @@ public class CrashReportController : Controller
         if (report.ReporterEmail == null)
             return Ok("Reporter email was not set");
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Crash report {report.Id} reporter email cleared",
 
@@ -296,7 +295,7 @@ public class CrashReportController : Controller
             report.DescriptionLastEditedById = user.Id;
         }
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = editedDescription ?
                 $"Crash report {report.Id} edited (edit included description)" :
@@ -327,7 +326,7 @@ public class CrashReportController : Controller
 
         // And then delete the report itself, there may be a leftover dump delete job for the report but that will
         // only cause a warning
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Crash report {report.Id} queued for deletion",
             PerformedById = user.Id,
@@ -444,7 +443,7 @@ public class CrashReportController : Controller
         logger.LogInformation("New crash report ({Id}) created, with crash dump at: {FilePath} from: {Address}",
             report.Id, filePath, address);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message =
                 $"New crash report {report.Id} created for {report.StoreOrVersion} on platform: {report.Platform}",
@@ -469,7 +468,7 @@ public class CrashReportController : Controller
             logger.LogError(e, "Failed to save log entry or create jobs for crash report");
         }
 
-        var response = new CreateCrashReportResponse()
+        var response = new CreateCrashReportResponse
         {
             CreatedId = report.Id,
             DeleteKey = report.DeleteKey.ToString(),
@@ -505,7 +504,7 @@ public class CrashReportController : Controller
         if (report == null)
             return NotFound("No report found with key");
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"Crash report {report.Id} queued for deletion through the use of the delete key",
         });

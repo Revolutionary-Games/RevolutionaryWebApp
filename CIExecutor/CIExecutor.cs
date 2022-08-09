@@ -10,15 +10,15 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Mono.Unix;
+using SharedBase.Utilities;
 using ThriveDevCenter.Server.Common.Models;
 using ThriveDevCenter.Server.Common.Utilities;
 using ThriveDevCenter.Shared;
 using ThriveDevCenter.Shared.Models;
+using ThriveDevCenter.Shared.Utilities;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using Mono.Unix;
-using SharedBase.Utilities;
-using ThriveDevCenter.Shared.Utilities;
 
 public class CIExecutor
 {
@@ -106,7 +106,7 @@ public class CIExecutor
             Console.WriteLine("Setting Failure to true");
 
             failure = true;
-            QueueSendMessage(new RealTimeBuildMessage()
+            QueueSendMessage(new RealTimeBuildMessage
             {
                 Type = BuildSectionMessageType.FinalStatus,
                 WasSuccessful = false,
@@ -122,7 +122,7 @@ public class CIExecutor
         Console.WriteLine("Starting websocket");
         var connectTask = AcquireWebsocketConnection();
 
-        await QueueSendMessage(new RealTimeBuildMessage()
+        await QueueSendMessage(new RealTimeBuildMessage
         {
             Type = BuildSectionMessageType.SectionStart,
             SectionName = "Environment setup",
@@ -328,7 +328,7 @@ public class CIExecutor
                                 throw new Exception("protocolSocket has been destroyed");
 
                             await protocolSocket.Write(
-                                new RealTimeBuildMessage()
+                                new RealTimeBuildMessage
                                     { Type = BuildSectionMessageType.BuildOutput, Output = "..." },
                                 CancellationToken.None);
                         }
@@ -627,7 +627,7 @@ public class CIExecutor
 
             await DeleteBuildImageDownload();
 
-            await QueueSendMessage(new RealTimeBuildMessage()
+            await QueueSendMessage(new RealTimeBuildMessage
             {
                 Type = BuildSectionMessageType.SectionEnd,
                 WasSuccessful = true,
@@ -712,7 +712,7 @@ public class CIExecutor
         Console.WriteLine("Starting build");
         try
         {
-            await QueueSendMessage(new RealTimeBuildMessage()
+            await QueueSendMessage(new RealTimeBuildMessage
             {
                 Type = BuildSectionMessageType.SectionStart,
                 SectionName = "Build start",
@@ -783,7 +783,7 @@ public class CIExecutor
                 // TODO: probably would be nice to print this message anyway even if the last section is closed...
                 await QueueSendBasicMessage(result ? "Build commands succeeded" : "Build commands failed");
 
-                await QueueSendMessage(new RealTimeBuildMessage()
+                await QueueSendMessage(new RealTimeBuildMessage
                 {
                     Type = BuildSectionMessageType.SectionEnd,
                     WasSuccessful = result,
@@ -805,7 +805,7 @@ public class CIExecutor
 
         // Send final status
         Console.WriteLine("Sending final status: {0}", !buildCommandsFailed);
-        await QueueSendMessage(new RealTimeBuildMessage()
+        await QueueSendMessage(new RealTimeBuildMessage
         {
             Type = BuildSectionMessageType.FinalStatus,
             WasSuccessful = !Failure && !buildCommandsFailed,
@@ -814,7 +814,7 @@ public class CIExecutor
 
     private Task QueueSendBasicMessage(string message)
     {
-        return QueueSendMessage(new RealTimeBuildMessage()
+        return QueueSendMessage(new RealTimeBuildMessage
         {
             Type = BuildSectionMessageType.BuildOutput,
             Output = $"{message}\n",
@@ -826,7 +826,7 @@ public class CIExecutor
         Console.WriteLine("Failing current section with error: {0}", error);
         await QueueSendBasicMessage(error);
 
-        await QueueSendMessage(new RealTimeBuildMessage()
+        await QueueSendMessage(new RealTimeBuildMessage
         {
             Type = BuildSectionMessageType.SectionEnd,
             WasSuccessful = false,
@@ -1026,7 +1026,7 @@ public class CIExecutor
 
         var taskCompletionSource = new TaskCompletionSource<bool>();
 
-        var process = new Process()
+        var process = new Process
         {
             StartInfo = startInfo,
             EnableRaisingEvents = true,
@@ -1056,7 +1056,7 @@ public class CIExecutor
 
         process.OutputDataReceived += (_, args) =>
         {
-            QueueSendMessage(new RealTimeBuildMessage()
+            QueueSendMessage(new RealTimeBuildMessage
             {
                 Type = BuildSectionMessageType.BuildOutput,
                 Output = ProcessBuildOutputLine(args.Data ?? string.Empty),
@@ -1067,7 +1067,7 @@ public class CIExecutor
             if (args.Data == null)
                 return;
 
-            QueueSendMessage(new RealTimeBuildMessage()
+            QueueSendMessage(new RealTimeBuildMessage
             {
                 Type = BuildSectionMessageType.BuildOutput,
                 Output = ProcessBuildOutputLine(args.Data),
@@ -1098,7 +1098,7 @@ public class CIExecutor
 
         var taskCompletionSource = new TaskCompletionSource<bool>();
 
-        var process = new Process()
+        var process = new Process
         {
             StartInfo = startInfo,
             EnableRaisingEvents = true,
@@ -1150,7 +1150,7 @@ public class CIExecutor
                     {
                         var success = Convert.ToInt32(parts[2]) == 0;
 
-                        QueueSendMessage(new RealTimeBuildMessage()
+                        QueueSendMessage(new RealTimeBuildMessage
                         {
                             Type = BuildSectionMessageType.SectionEnd,
                             WasSuccessful = success,
@@ -1164,7 +1164,7 @@ public class CIExecutor
                     }
                     case "SectionStart":
                     {
-                        QueueSendMessage(new RealTimeBuildMessage()
+                        QueueSendMessage(new RealTimeBuildMessage
                         {
                             Type = BuildSectionMessageType.SectionStart,
                             SectionName = string.Join(' ', parts.Skip(2)),
@@ -1183,7 +1183,7 @@ public class CIExecutor
             else if (args.Data != null)
             {
                 // Normal output
-                QueueSendMessage(new RealTimeBuildMessage()
+                QueueSendMessage(new RealTimeBuildMessage
                 {
                     Type = BuildSectionMessageType.BuildOutput,
                     Output = ProcessBuildOutputLine(args.Data),
@@ -1195,7 +1195,7 @@ public class CIExecutor
             if (args.Data == null)
                 return;
 
-            QueueSendMessage(new RealTimeBuildMessage()
+            QueueSendMessage(new RealTimeBuildMessage
             {
                 Type = BuildSectionMessageType.BuildOutput,
                 Output = ProcessBuildOutputLine(args.Data),

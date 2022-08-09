@@ -104,7 +104,7 @@ public class Meeting : UpdateableModel, IUpdateNotifications
 
         // TODO: different read accesses should probably send info to different groups
         yield return new Tuple<SerializedNotification, string>(
-            new MeetingUpdated() { Item = GetDTO() },
+            new MeetingUpdated { Item = GetDTO() },
             NotificationGroups.MeetingUpdatedPrefix + Id);
     }
 }

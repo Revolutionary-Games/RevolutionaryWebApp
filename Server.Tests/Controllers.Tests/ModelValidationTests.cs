@@ -34,7 +34,7 @@ public class ModelValidationTests
             })
             .StartAsync();
 
-        var response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel()
+        var response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel
         {
             Field = "stuff",
         });
@@ -45,7 +45,7 @@ public class ModelValidationTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel()
+        response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel
         {
             Field = "stuff",
             AnotherField = "stuff",
@@ -54,7 +54,7 @@ public class ModelValidationTests
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel()
+        response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel
         {
             Field = "stuff",
             AnotherField = "stuff",
@@ -63,7 +63,7 @@ public class ModelValidationTests
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel()
+        response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel
         {
             Field = "stuff",
             AnotherField = "",

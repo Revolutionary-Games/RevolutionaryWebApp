@@ -166,7 +166,7 @@ public class Startup
         services.AddHangfire(opts =>
         {
             opts.UsePostgreSqlStorage(Configuration.GetConnectionString("WebApiConnection"),
-                new PostgreSqlStorageOptions()
+                new PostgreSqlStorageOptions
                 {
                     QueuePollInterval = TimeSpan.FromSeconds(3),
                 });
@@ -300,7 +300,7 @@ public class Startup
 
         app.UseIpRateLimiting();
 
-        app.UseWebSockets(new WebSocketOptions()
+        app.UseWebSockets(new WebSocketOptions
         {
             KeepAliveInterval = TimeSpan.FromSeconds(60),
         });
@@ -346,7 +346,7 @@ public class Startup
             context => context.Request.Path.StartsWithSegments("/api"),
             appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
 
-        app.UseHangfireDashboard("/hangfire", new DashboardOptions()
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
             Authorization = new[]
             {

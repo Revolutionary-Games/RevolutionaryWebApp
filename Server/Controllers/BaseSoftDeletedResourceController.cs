@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -10,6 +8,7 @@ using Authorization;
 using BlazorPagination;
 using Filters;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models.Interfaces;
@@ -40,8 +39,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
         if (deleted &&
             !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
         {
-            throw new HttpResponseException()
-                { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
+            throw new HttpResponseException { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
         }
 
         IQueryable<TModel> query;
@@ -53,7 +51,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
         catch (ArgumentException e)
         {
             Logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);

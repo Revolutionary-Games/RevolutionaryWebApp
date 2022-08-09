@@ -1,8 +1,7 @@
-﻿using System.Collections.Generic;
-
-namespace ThriveDevCenter.Server.Models;
+﻿namespace ThriveDevCenter.Server.Models;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +11,7 @@ using Shared.Notifications;
 using SharedBase.ModelVerifiers;
 using Utilities;
 
-[Index(new[] { nameof(BuildHash), nameof(Platform) }, IsUnique = true)]
+[Index(nameof(BuildHash), nameof(Platform), IsUnique = true)]
 [Index(nameof(Anonymous))]
 [Index(nameof(StorageItemId))]
 [Index(nameof(VerifiedById))]
@@ -123,7 +122,7 @@ public class DevBuild : UpdateableModel, IUpdateNotifications
     {
         var dto = GetDTO();
 
-        yield return new Tuple<SerializedNotification, string>(new DevBuildListUpdated()
+        yield return new Tuple<SerializedNotification, string>(new DevBuildListUpdated
         {
             Type = entityState.ToChangeType(),
 
@@ -131,7 +130,7 @@ public class DevBuild : UpdateableModel, IUpdateNotifications
             Item = dto,
         }, NotificationGroups.DevBuildsListUpdated);
 
-        yield return new Tuple<SerializedNotification, string>(new DevBuildUpdated()
+        yield return new Tuple<SerializedNotification, string>(new DevBuildUpdated
         {
             Item = dto,
         }, NotificationGroups.DevBuildUpdatedPrefix + Id);

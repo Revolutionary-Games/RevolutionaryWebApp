@@ -1,12 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Linq;
-using Microsoft.Extensions.Logging;
-
 namespace ThriveDevCenter.Server.Controllers;
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +12,9 @@ using BlazorPagination;
 using Filters;
 using Hangfire;
 using Jobs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
 using Shared.Models;
@@ -65,7 +64,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -104,7 +103,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"LFS project file tree refresh requested for {item.Id}",
             PerformedById = user.Id,
@@ -134,7 +133,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
 
         await database.Database.BeginTransactionAsync();
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"LFS project file tree rebuilt for {item.Id}",
             PerformedById = user.Id,
@@ -176,7 +175,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
 
         item.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"LFS Project {item.Id} edited",
 
@@ -195,7 +194,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<ActionResult> CreateNew([Required] LFSProjectDTO projectInfo)
     {
-        var project = new LfsProject()
+        var project = new LfsProject
         {
             Name = projectInfo.Name,
             Slug = projectInfo.Slug,
@@ -226,7 +225,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
         }
 
         // TODO: could maybe save the project first in order to get the ID for the log message...
-        var action = new AdminAction()
+        var action = new AdminAction
         {
             Message = $"New LFS project created, slug: {project.Slug}, name: {project.Name}",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,

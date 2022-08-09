@@ -102,7 +102,7 @@ public class CiBuild : IUpdateNotifications
     {
         var dto = GetDTO();
 
-        yield return new Tuple<SerializedNotification, string>(new CIProjectBuildsListUpdated()
+        yield return new Tuple<SerializedNotification, string>(new CIProjectBuildsListUpdated
         {
             Type = entityState.ToChangeType(),
             Item = dto,
@@ -110,7 +110,7 @@ public class CiBuild : IUpdateNotifications
 
         var notificationsId = CiProjectId + "_" + CiBuildId;
 
-        yield return new Tuple<SerializedNotification, string>(new CIBuildUpdated()
+        yield return new Tuple<SerializedNotification, string>(new CIBuildUpdated
         {
             Item = dto,
         }, NotificationGroups.CIProjectsBuildUpdatedPrefix + notificationsId);

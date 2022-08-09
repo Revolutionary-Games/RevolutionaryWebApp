@@ -109,7 +109,7 @@ public static class HttpContextAuthorizationExtensions
             !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? rawUser) || rawUser == null)
         {
             throw new InvalidOperationException(
-                $"No authenticated user when requested. Should have been checked " +
+                "No authenticated user when requested. Should have been checked " +
                 $"before or {nameof(AuthenticatedUser)} should be used");
         }
 

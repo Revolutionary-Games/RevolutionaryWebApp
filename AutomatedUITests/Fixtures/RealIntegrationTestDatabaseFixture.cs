@@ -7,7 +7,7 @@ using ThriveDevCenter.Server.Models;
 
 public sealed class RealIntegrationTestDatabaseFixture
 {
-    private static readonly object Lock = new object();
+    private static readonly object Lock = new();
     private static bool databaseInitialized;
 
     public RealIntegrationTestDatabaseFixture()

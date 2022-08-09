@@ -39,7 +39,7 @@ public class SampleCLADatabase : BaseSharedDatabaseFixtureWithNotifications
 
     protected sealed override void Seed()
     {
-        var cla1Signature1 = new ClaSignature()
+        var cla1Signature1 = new ClaSignature
         {
             Email = CLA1Signature1Email,
             ClaSignatureStoragePath = "cla1/signature1",
@@ -47,12 +47,12 @@ public class SampleCLADatabase : BaseSharedDatabaseFixtureWithNotifications
             GithubAccount = CLA1Signature1Github,
         };
 
-        var cla1 = new Cla()
+        var cla1 = new Cla
         {
             Active = false,
             Id = CLA1Id,
             RawMarkdown = "CLA 1",
-            Signatures = new HashSet<ClaSignature>()
+            Signatures = new HashSet<ClaSignature>
             {
                 cla1Signature1,
             },
@@ -60,7 +60,7 @@ public class SampleCLADatabase : BaseSharedDatabaseFixtureWithNotifications
 
         cla1Signature1.Cla = cla1;
 
-        var cla2Signature1 = new ClaSignature()
+        var cla2Signature1 = new ClaSignature
         {
             Email = CLA2Signature1Email,
             ClaSignatureStoragePath = "cla2/signature1",
@@ -68,19 +68,19 @@ public class SampleCLADatabase : BaseSharedDatabaseFixtureWithNotifications
             GithubAccount = CLA2Signature1Github,
         };
 
-        var cla2Signature2 = new ClaSignature()
+        var cla2Signature2 = new ClaSignature
         {
             Email = CLA2Signature2Email,
             ClaSignatureStoragePath = "cla2/signature2",
             GithubAccount = CLA2Signature2Github,
         };
 
-        var cla2 = new Cla()
+        var cla2 = new Cla
         {
             Active = true,
             Id = CLA2Id,
             RawMarkdown = "CLA 2",
-            Signatures = new HashSet<ClaSignature>()
+            Signatures = new HashSet<ClaSignature>
             {
                 cla2Signature1,
                 cla2Signature2,

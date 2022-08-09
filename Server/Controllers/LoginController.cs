@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -13,6 +11,7 @@ using Authorization;
 using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -97,14 +96,14 @@ public class LoginController : SSOLoginController
     [HttpGet]
     public LoginOptions Get()
     {
-        return new LoginOptions()
+        return new LoginOptions
         {
-            Categories = new List<LoginCategory>()
+            Categories = new List<LoginCategory>
             {
                 new()
                 {
                     Name = "Developer login",
-                    Options = new List<LoginOption>()
+                    Options = new List<LoginOption>
                     {
                         new()
                         {
@@ -117,7 +116,7 @@ public class LoginController : SSOLoginController
                 new()
                 {
                     Name = "Supporter (patron) login",
-                    Options = new List<LoginOption>()
+                    Options = new List<LoginOption>
                     {
                         new()
                         {
@@ -136,7 +135,7 @@ public class LoginController : SSOLoginController
                 new()
                 {
                     Name = "Local Account",
-                    Options = new List<LoginOption>()
+                    Options = new List<LoginOption>
                     {
                         new()
                         {
@@ -192,7 +191,7 @@ public class LoginController : SSOLoginController
 
                 return Redirect(QueryHelpers.AddQueryString(
                     configuration["Login:Patreon:BaseUrl"],
-                    new Dictionary<string, string?>()
+                    new Dictionary<string, string?>
                     {
                         { "response_type", "code" },
                         { "client_id", configuration["Login:Patreon:ClientId"] },
@@ -261,10 +260,8 @@ public class LoginController : SSOLoginController
         {
             return Redirect("/");
         }
-        else
-        {
-            return Redirect(redirect ?? "/");
-        }
+
+        return Redirect(redirect ?? "/");
     }
 
     [NonAction]
@@ -315,8 +312,7 @@ public class LoginController : SSOLoginController
         // TODO: verify that the client making the request had up to date token
         if (!csrfVerifier.IsValidCSRFToken(csrf, existingSession?.User))
         {
-            throw new HttpResponseException()
-                { Value = "Invalid CSRF token. Please refresh the previous page and try logging in again" };
+            throw new HttpResponseException { Value = "Invalid CSRF token. Please refresh the previous page and try logging in again" };
         }
 
         if (existingSession != null)
@@ -384,7 +380,7 @@ public class LoginController : SSOLoginController
 
         return Redirect(QueryHelpers.AddQueryString(
             new Uri(new Uri(redirectBase), DiscourseSsoEndpoint).ToString(),
-            new Dictionary<string, string?>()
+            new Dictionary<string, string?>
             {
                 { "sso", payload },
                 { "sig", signature },
@@ -606,7 +602,7 @@ public class LoginController : SSOLoginController
             Logger.LogInformation("Creating new account for SSO login: {Email} developer: {DeveloperLogin}",
                 email, developerLogin);
 
-            user = new User()
+            user = new User
             {
                 Email = email,
                 UserName = username,
@@ -640,7 +636,7 @@ public class LoginController : SSOLoginController
             if (ssoType == SsoTypeDevForum)
             {
                 // Conversion to a developer account
-                await Database.LogEntries.AddAsync(new LogEntry()
+                await Database.LogEntries.AddAsync(new LogEntry
                 {
                     Message = "User is now a developer due to different SSO login type",
                     TargetUser = user,
@@ -692,7 +688,7 @@ public class LoginController : SSOLoginController
             }
             else
             {
-                await Database.LogEntries.AddAsync(new LogEntry()
+                await Database.LogEntries.AddAsync(new LogEntry
                 {
                     Message = $"Username changed due to SSO login to \"{username}\"",
                     TargetUserId = user.Id,
@@ -715,7 +711,7 @@ public class LoginController : SSOLoginController
             return;
 
         // TODO: this should only unsuspend if the last login source is no longer valid
-        await Database.LogEntries.AddAsync(new LogEntry()
+        await Database.LogEntries.AddAsync(new LogEntry
         {
             Message = "Un-suspending automatically suspended user due to SSO source change",
             TargetUserId = user.Id,
@@ -753,10 +749,8 @@ public class LoginController : SSOLoginController
         {
             return Redirect("/");
         }
-        else
-        {
-            return Redirect(redirect ?? "/");
-        }
+
+        return Redirect(redirect ?? "/");
     }
 }
 

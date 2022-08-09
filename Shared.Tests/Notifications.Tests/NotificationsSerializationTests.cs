@@ -12,12 +12,12 @@ public class NotificationsSerializationTests
     [Fact]
     public void NotificationJsonConverter_AddsTypeOnce()
     {
-        var options = new JsonSerializerOptions() { Converters = { new NotificationJsonConverter() } };
+        var options = new JsonSerializerOptions { Converters = { new NotificationJsonConverter() } };
 
         var original = new LFSListUpdated
         {
             Type = ListItemChangeType.ItemAdded,
-            Item = new LFSProjectInfo()
+            Item = new LFSProjectInfo
             {
                 Name = "something",
                 Slug = "smth",
@@ -35,12 +35,12 @@ public class NotificationsSerializationTests
     [Fact]
     public void LFSUpdateRoundTripSerialization()
     {
-        var options = new JsonSerializerOptions() { Converters = { new NotificationJsonConverter() } };
+        var options = new JsonSerializerOptions { Converters = { new NotificationJsonConverter() } };
 
         var original = new LFSListUpdated
         {
             Type = ListItemChangeType.ItemAdded,
-            Item = new LFSProjectInfo()
+            Item = new LFSProjectInfo
             {
                 Name = "something",
                 Public = true,

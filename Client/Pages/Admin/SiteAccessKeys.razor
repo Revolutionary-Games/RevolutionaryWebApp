@@ -89,7 +89,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/AccessKey", new AccessKeyDTO()
+            result = await Http.PostAsJsonAsync("api/v1/AccessKey", new AccessKeyDTO
             {
                 Description = newDescription!,
                 KeyType = newKeyType,

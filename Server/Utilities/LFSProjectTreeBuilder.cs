@@ -139,7 +139,7 @@ public static class LFSProjectTreeBuilder
             }
             else
             {
-                await database.ProjectGitFiles.AddAsync(new ProjectGitFile()
+                await database.ProjectGitFiles.AddAsync(new ProjectGitFile
                 {
                     FType = FileType.File,
                     LfsProjectId = project.Id,
@@ -168,7 +168,7 @@ public static class LFSProjectTreeBuilder
             }
             else
             {
-                await database.ProjectGitFiles.AddAsync(new ProjectGitFile()
+                await database.ProjectGitFiles.AddAsync(new ProjectGitFile
                 {
                     FType = FileType.Folder,
                     LfsProjectId = project.Id,

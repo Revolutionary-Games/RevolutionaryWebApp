@@ -74,7 +74,7 @@ public class StorageUploadVerifyToken
         if (dataProtector == null)
             return base.ToString() ?? throw new InvalidOperationException("base ToString returned null");
 
-        return dataProtector.Protect(JsonSerializer.Serialize(this, new JsonSerializerOptions()
+        return dataProtector.Protect(JsonSerializer.Serialize(this, new JsonSerializerOptions
         {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         }));

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -7,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using AngleSharp.Io;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -59,7 +58,7 @@ public class FeedController : Controller
         // As we have dynamic expire times, we can't use the normal response caching here
         if (cache.Cache.TryGetValue(cacheKey, out object rawCacheEntry) && rawCacheEntry is CacheEntry cacheEntry)
         {
-            headers.CacheControl = new CacheControlHeaderValue()
+            headers.CacheControl = new CacheControlHeaderValue
             {
                 MaxAge = cacheEntry.ClientCacheTime,
                 Public = true,
@@ -127,7 +126,7 @@ public class FeedController : Controller
         // Default cache when we don't find anything
         cacheTime ??= TimeSpan.FromSeconds(60);
 
-        headers.CacheControl = new CacheControlHeaderValue()
+        headers.CacheControl = new CacheControlHeaderValue
         {
             MaxAge = cacheTime,
             Public = true,

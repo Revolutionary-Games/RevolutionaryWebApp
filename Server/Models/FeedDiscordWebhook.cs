@@ -55,7 +55,7 @@ public class FeedDiscordWebhook : IUpdateNotifications
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return new Tuple<SerializedNotification, string>(
-            new FeedDiscordWebhookListUpdated() { Type = entityState.ToChangeType(), Item = GetDTO() },
+            new FeedDiscordWebhookListUpdated { Type = entityState.ToChangeType(), Item = GetDTO() },
             NotificationGroups.FeedDiscordWebhookListUpdatedPrefix + FeedId);
     }
 }

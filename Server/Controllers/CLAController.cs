@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -15,6 +13,7 @@ using BlazorPagination;
 using Filters;
 using Hangfire;
 using Jobs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -65,7 +64,7 @@ public class CLAController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -102,7 +101,7 @@ public class CLAController : Controller
     [HttpPost]
     public async Task<IActionResult> CreateNew([Required] [FromBody] CLADTO request)
     {
-        var newCla = new Cla()
+        var newCla = new Cla
         {
             Active = request.Active,
             RawMarkdown = request.RawMarkdown,
@@ -123,7 +122,7 @@ public class CLAController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"New CLA with active status: {newCla.Active} created",
             PerformedById = user.Id,
@@ -258,7 +257,7 @@ public class CLAController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -351,7 +350,7 @@ public class CLAController : Controller
 
         if (session == null)
         {
-            var signature = new InProgressClaSignature()
+            var signature = new InProgressClaSignature
             {
                 ClaId = id,
             };
@@ -389,7 +388,7 @@ public class CLAController : Controller
                     database.InProgressClaSignatures.Remove(signature);
                 }
 
-                signature = new InProgressClaSignature()
+                signature = new InProgressClaSignature
                 {
                     SessionId = session.Id,
                     ClaId = id,
@@ -406,7 +405,7 @@ public class CLAController : Controller
         if (createdNew)
             LoginController.SetSessionCookie(session, Response);
 
-        return new SigningStartResponse()
+        return new SigningStartResponse
         {
             SessionStarted = createdNew,
             NextPath = "/cla/sign",
@@ -608,7 +607,7 @@ public class CLAController : Controller
         signature.GuardianSignature = request.GuardianSignature;
 
         // Create the actual signature database entry
-        var finalSignature = new ClaSignature()
+        var finalSignature = new ClaSignature
         {
             Email = signature.Email,
             GithubAccount = signature.GithubAccount,
@@ -633,7 +632,7 @@ public class CLAController : Controller
         logger.LogInformation(
             "CLA ({Id1}) signature created with ID {Id2}, with email: {Email} from: {RemoteIpAddress}", cla.Id,
             finalSignature.Id, finalSignature.Email, HttpContext.Connection.RemoteIpAddress);
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"New CLA signature for CLA ({cla.Id}) created",
             TargetUserId = finalSignature.UserId,
@@ -646,7 +645,7 @@ public class CLAController : Controller
                 Bcc = emailSignaturesTo,
                 PlainTextBody = "Here is the document you just signed on ThriveDevCenter (as an attachment)",
                 HtmlBody = "<p>Here is the document you just signed on ThriveDevCenter (as an attachment)</p>",
-                Attachments = new List<MailAttachment>()
+                Attachments = new List<MailAttachment>
                 {
                     new(fileName, signedDocumentText)
                     {

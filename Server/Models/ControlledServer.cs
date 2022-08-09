@@ -56,7 +56,7 @@ public class ControlledServer : BaseServer, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new ControlledServersUpdated()
+        yield return new Tuple<SerializedNotification, string>(new ControlledServersUpdated
         {
             Type = entityState.ToChangeType(),
             Item = GetDTO(),

@@ -65,7 +65,7 @@ public class CancelCIBuildIfStuckJob
             externalServerSSHAccess.ConnectTo(server.PublicAddress.ToString(), server.SSHKeyFileName);
             externalServerSSHAccess.Reboot();
 
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"External server {server.Id} timed out running CI job, force rebooting it",
             }, cancellationToken);
@@ -89,7 +89,7 @@ public class CancelCIBuildIfStuckJob
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message =
                     $"Server {server.Id} ({server.InstanceId}) timed out running CI job, stopping it, running " +

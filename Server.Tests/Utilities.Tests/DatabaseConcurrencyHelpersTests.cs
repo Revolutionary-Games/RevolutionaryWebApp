@@ -26,7 +26,7 @@ public class DatabaseConcurrencyHelpersTests : IClassFixture<RealUnitTestDatabas
         var database = fixture.Database;
         await using var transaction = await database.Database.BeginTransactionAsync();
 
-        var item1 = new CrashReport()
+        var item1 = new CrashReport
         {
             Description = "Test description",
             DumpLocalFileName = "test.dmp",

@@ -56,7 +56,7 @@ public abstract class BaseCDNDownload : IBaseCDNDownload
         // Now it's possible to use countries, so that is likely much more reliable regarding ipv4 and ipv6
         // addresses for the same computer
 
-        return QueryHelpers.AddQueryString(fullUri.ToString(), new Dictionary<string, string?>()
+        return QueryHelpers.AddQueryString(fullUri.ToString(), new Dictionary<string, string?>
         {
             { "token", HashToken(unhashedKey) },
             { "expires", expirationTimestamp.ToString() },
@@ -70,7 +70,7 @@ public abstract class BaseCDNDownload : IBaseCDNDownload
 
         string error = "The server storage is not configured properly";
 
-        throw new HttpResponseException()
+        throw new HttpResponseException
         {
             Status = StatusCodes.Status500InternalServerError,
             Value = new BasicJSONErrorResult(error, error).ToString(),

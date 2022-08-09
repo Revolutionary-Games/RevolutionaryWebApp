@@ -70,7 +70,7 @@ public class InProgressClaSignature : UpdateableModel, IUpdateNotifications
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return new Tuple<SerializedNotification, string>(
-            new InProgressClaSignatureUpdated() { Item = GetDTO() },
+            new InProgressClaSignatureUpdated { Item = GetDTO() },
             NotificationGroups.InProgressCLASignatureUpdated + SessionId);
     }
 }

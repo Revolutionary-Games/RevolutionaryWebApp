@@ -38,7 +38,7 @@ public class RunMarkedServerMaintenanceJobTests
 
         var sshMock = new Mock<IExternalServerSSHAccess>();
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Id = 1,
             InstanceId = "1234",
@@ -48,7 +48,7 @@ public class RunMarkedServerMaintenanceJobTests
             WantsMaintenance = true,
         };
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Id = 2,
             InstanceId = secondServerInstance,
@@ -97,11 +97,10 @@ public class RunMarkedServerMaintenanceJobTests
 
         var sshMock = new Mock<IExternalServerSSHAccess>();
         sshMock.Setup(ssh => ssh.ConnectTo(firstExternalAddress, keyName)).Verifiable();
-        sshMock.Setup(ssh => ssh.RunCommand(It.IsAny<string>())).Returns(new BaseSSHAccess.CommandResult()
-            { ExitCode = 0, Result = "Output would go here" }).Verifiable();
+        sshMock.Setup(ssh => ssh.RunCommand(It.IsAny<string>())).Returns(new BaseSSHAccess.CommandResult { ExitCode = 0, Result = "Output would go here" }).Verifiable();
         sshMock.Setup(ssh => ssh.Reboot()).Verifiable();
 
-        var server1 = new ControlledServer()
+        var server1 = new ControlledServer
         {
             Id = 1,
             InstanceId = firstServerInstance,
@@ -109,7 +108,7 @@ public class RunMarkedServerMaintenanceJobTests
             WantsMaintenance = true,
         };
 
-        var server2 = new ControlledServer()
+        var server2 = new ControlledServer
         {
             Id = 2,
             InstanceId = secondServerInstance,
@@ -117,7 +116,7 @@ public class RunMarkedServerMaintenanceJobTests
             WantsMaintenance = true,
         };
 
-        var server3 = new ExternalServer()
+        var server3 = new ExternalServer
         {
             Id = 3,
             PublicAddress = IPAddress.Parse(firstExternalAddress),
@@ -126,7 +125,7 @@ public class RunMarkedServerMaintenanceJobTests
             SSHKeyFileName = keyName,
         };
 
-        var server4 = new ExternalServer()
+        var server4 = new ExternalServer
         {
             Id = 4,
             PublicAddress = IPAddress.Parse(secondExternalAddress),

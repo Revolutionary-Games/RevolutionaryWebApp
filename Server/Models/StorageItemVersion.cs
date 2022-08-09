@@ -1,7 +1,6 @@
-﻿using System;
+﻿namespace ThriveDevCenter.Server.Models;
 
-namespace ThriveDevCenter.Server.Models;
-
+using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -9,7 +8,7 @@ using Shared.Models;
 using Utilities;
 
 [Index(nameof(StorageFileId))]
-[Index(new[] { nameof(StorageItemId), nameof(Version) }, IsUnique = true)]
+[Index(nameof(StorageItemId), nameof(Version), IsUnique = true)]
 public class StorageItemVersion : UpdateableModel
 {
     [AllowSortingBy]
@@ -58,7 +57,7 @@ public class StorageItemVersion : UpdateableModel
     public async Task<StorageFile> CreateStorageFile(ApplicationDbContext database, DateTime uploadExpiresAt,
         long size)
     {
-        var file = new StorageFile()
+        var file = new StorageFile
         {
             StoragePath = await ComputeStoragePath(database),
             Size = size,

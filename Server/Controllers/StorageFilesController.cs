@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -17,6 +15,7 @@ using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -64,7 +63,7 @@ public class StorageFilesController : Controller
 
         if (user != null && HttpContext.AuthenticatedUserRestriction() != AuthenticationScopeRestriction.None)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = "You authentication method has incorrect access restriction for this endpoint",
@@ -74,7 +73,7 @@ public class StorageFilesController : Controller
         // Return root folder if the path is empty
         if (string.IsNullOrEmpty(path))
         {
-            return new PathParseResult()
+            return new PathParseResult
             {
                 FinalItem = null,
             };
@@ -111,7 +110,7 @@ public class StorageFilesController : Controller
             currentItem = nextItem;
         }
 
-        return new PathParseResult()
+        return new PathParseResult
         {
             ParentFolder = parentItem?.GetDTO(),
             FinalItem = currentItem?.GetDTO(),
@@ -149,7 +148,7 @@ public class StorageFilesController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         // Filter out objects not readable by current user
@@ -215,13 +214,13 @@ public class StorageFilesController : Controller
         }
 
         // Folder is fine to be created
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"New folder \"{request.Name}\" created with owner",
             TargetUserId = user.Id,
         });
 
-        var newFolder = new StorageItem()
+        var newFolder = new StorageItem
         {
             Name = request.Name,
             Ftype = FileType.Folder,
@@ -266,7 +265,7 @@ public class StorageFilesController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         // And then return the contents of this folder to the requester
@@ -305,7 +304,7 @@ public class StorageFilesController : Controller
         item.ReadAccess = newData.ReadAccess;
         item.WriteAccess = newData.WriteAccess;
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message =
                 $"StorageItem {item.Id} edited, new name: \"{item.Name}\", accesses: {item.ReadAccess}, " +
@@ -342,7 +341,7 @@ public class StorageFilesController : Controller
 
         if (!remoteStorage.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Remote storage is not configured on the server",
@@ -401,7 +400,7 @@ public class StorageFilesController : Controller
 
         if (existingItem == null)
         {
-            existingItem = new StorageItem()
+            existingItem = new StorageItem
             {
                 Name = request.Name,
                 Ftype = FileType.File,
@@ -445,7 +444,7 @@ public class StorageFilesController : Controller
                     AppInfo.MultipartUploadPartsToReturnInSingleCall), file.UploadPath, uploadId,
                 AppInfo.RemoteStorageUploadExpireTime).ToList();
 
-            var multipartModel = new InProgressMultipartUpload()
+            var multipartModel = new InProgressMultipartUpload
             {
                 UploadId = uploadId,
                 Path = file.UploadPath,
@@ -461,7 +460,7 @@ public class StorageFilesController : Controller
 
             var chunkTokenStr = JsonSerializer.Serialize(chunkToken);
 
-            multipart = new MultipartFileUpload()
+            multipart = new MultipartFileUpload
             {
                 ChunkRetrieveToken =
                     chunkDataProtector.Protect(chunkTokenStr, AppInfo.MultipartUploadTotalAllowedTime),
@@ -493,7 +492,7 @@ public class StorageFilesController : Controller
 
         // TODO: queue a job to delete the version / UploadPath after a few hours if the upload fails
 
-        var token = new UploadVerifyToken()
+        var token = new UploadVerifyToken
         {
             TargetStorageItem = existingItem.Id,
             TargetStorageItemVersion = version.Id,
@@ -502,7 +501,7 @@ public class StorageFilesController : Controller
 
         var tokenStr = JsonSerializer.Serialize(token);
 
-        return new UploadFileResponse()
+        return new UploadFileResponse
         {
             UploadURL = uploadUrl,
             Multipart = multipart,
@@ -566,7 +565,7 @@ public class StorageFilesController : Controller
             await database.SaveChangesAsync();
         }
 
-        return new MultipartFileUpload() { NextChunks = chunks };
+        return new MultipartFileUpload { NextChunks = chunks };
     }
 
     [HttpPost("finishUpload")]
@@ -704,7 +703,7 @@ public class StorageFilesController : Controller
 
         if (user != null && HttpContext.AuthenticatedUserRestriction() != AuthenticationScopeRestriction.None)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = "You authentication method has incorrect access restriction for this endpoint",
@@ -737,7 +736,7 @@ public class StorageFilesController : Controller
 
         while (fileSize > 0)
         {
-            var chunk = new MultipartFileUpload.FileChunk()
+            var chunk = new MultipartFileUpload.FileChunk
             {
                 ChunkNumber = ++chunkNumber,
                 Length = Math.Min(chunkSize, fileSize),
@@ -768,10 +767,8 @@ public class StorageFilesController : Controller
         {
             return AppInfo.MultipartUploadChunkSize;
         }
-        else
-        {
-            return AppInfo.MultipartUploadChunkSizeLarge;
-        }
+
+        return AppInfo.MultipartUploadChunkSizeLarge;
     }
 
     private class UploadVerifyToken

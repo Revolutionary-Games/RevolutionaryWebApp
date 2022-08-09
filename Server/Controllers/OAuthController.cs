@@ -1,11 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -69,10 +68,10 @@ public class OAuthController : SSOLoginController
         await Database.SaveChangesAsync();
         Logger.LogInformation("OAuth started for Github for attaching to a signature, session {Id}", session.Id);
 
-        return new JSONWrappedRedirect()
+        return new JSONWrappedRedirect
         {
             RedirectTo = QueryHelpers.AddQueryString("https://github.com/login/oauth/authorize",
-                new Dictionary<string, string?>()
+                new Dictionary<string, string?>
                 {
                     { "client_id", githubClientId },
                     { "redirect_uri", returnTo },

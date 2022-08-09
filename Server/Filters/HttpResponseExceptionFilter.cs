@@ -22,7 +22,7 @@ public class HttpResponseExceptionFilter : IActionFilter, IOrderedFilter
 
         if (!string.IsNullOrEmpty(exception.ContentType))
         {
-            result.ContentTypes = new MediaTypeCollection()
+            result.ContentTypes = new MediaTypeCollection
             {
                 exception.ContentType,
             };

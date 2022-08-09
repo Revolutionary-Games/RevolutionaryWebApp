@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -9,6 +7,7 @@ using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
@@ -43,7 +42,7 @@ public class GithubConfigurationController : Controller
     {
         var existing = await GetOrCreateHook();
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = "Github webhook secret recreated",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,
@@ -70,7 +69,7 @@ public class GithubConfigurationController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -82,7 +81,7 @@ public class GithubConfigurationController : Controller
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<IActionResult> CreateAutoComment([Required] [FromBody] GithubAutoCommentDTO request)
     {
-        var comment = new GithubAutoComment()
+        var comment = new GithubAutoComment
         {
             Enabled = request.Enabled,
             CommentText = request.CommentText,
@@ -93,7 +92,7 @@ public class GithubConfigurationController : Controller
         var user = HttpContext.AuthenticatedUser()!;
 
         await database.GithubAutoComments.AddAsync(comment);
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"New Github auto comment created (condition: {comment.Condition})",
             PerformedById = user.Id,
@@ -136,7 +135,7 @@ public class GithubConfigurationController : Controller
 
         comment.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Github auto comment {comment.Id} edited",
 
@@ -163,7 +162,7 @@ public class GithubConfigurationController : Controller
         var user = HttpContext.AuthenticatedUser()!;
 
         database.GithubAutoComments.Remove(comment);
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Github auto comment {comment.Id} deleted",
             PerformedById = user.Id,
@@ -183,13 +182,13 @@ public class GithubConfigurationController : Controller
         if (existing != null)
             return existing;
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = "New Github webhook secret created",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,
         });
 
-        var webhook = new GithubWebhook()
+        var webhook = new GithubWebhook
         {
             Id = AppInfo.SingleResourceTableRowId,
         };

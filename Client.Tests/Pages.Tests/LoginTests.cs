@@ -19,14 +19,14 @@ public class LoginTests : TestContext
 
         var http = Services.AddMockHttpClient();
         http.When("/api/v1/Registration").RespondJson(false);
-        http.When("/LoginController").RespondJson(new LoginOptions()
+        http.When("/LoginController").RespondJson(new LoginOptions
             {
-                Categories = new List<LoginCategory>()
+                Categories = new List<LoginCategory>
                 {
                     new()
                     {
                         Name = "Local Account",
-                        Options = new List<LoginOption>()
+                        Options = new List<LoginOption>
                         {
                             new()
                             {
@@ -56,14 +56,14 @@ public class LoginTests : TestContext
 
         var http = Services.AddMockHttpClient();
         http.When("/api/v1/Registration").RespondJson(false);
-        http.When("/LoginController").RespondJson(new LoginOptions()
+        http.When("/LoginController").RespondJson(new LoginOptions
             {
-                Categories = new List<LoginCategory>()
+                Categories = new List<LoginCategory>
                 {
                     new()
                     {
                         Name = "Local Account",
-                        Options = new List<LoginOption>()
+                        Options = new List<LoginOption>
                         {
                             new()
                             {

@@ -662,7 +662,7 @@ public static class NotificationHelpers
     {
         // TODO: unify with the startup code
         var serialized =
-            JsonSerializer.Serialize(notification, new JsonSerializerOptions() { Converters = { Converter } });
+            JsonSerializer.Serialize(notification, new JsonSerializerOptions { Converters = { Converter } });
 
         return receiver.ReceiveNotificationJSON(serialized);
     }

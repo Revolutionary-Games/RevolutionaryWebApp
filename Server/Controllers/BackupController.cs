@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -12,6 +10,7 @@ using BlazorPagination;
 using Filters;
 using Hangfire;
 using Jobs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -92,7 +91,7 @@ public class BackupController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Backup {backup.Id} downloaded",
             PerformedById = user.Id,
@@ -124,7 +123,7 @@ public class BackupController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Backup {backup.Id} downloaded",
             PerformedById = user.Id,
@@ -167,9 +166,9 @@ public class BackupController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
-            Message = $"Manual backup triggered",
+            Message = "Manual backup triggered",
             PerformedById = user.Id,
         });
 

@@ -82,7 +82,7 @@ public class DeleteOldDisabledSymbolsJob : IJob
         logger.LogInformation("Performing final delete on symbol {Id} as it is being deleted as old",
             symbol.Id);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"Deleted inactive symbol ({symbol.Id}): {symbol.RelativePath}",
         }, cancellationToken);

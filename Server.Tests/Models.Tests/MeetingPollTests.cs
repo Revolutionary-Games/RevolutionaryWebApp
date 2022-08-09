@@ -11,12 +11,12 @@ public class MeetingPollTests
     [Fact]
     public void Poll_WeightedChoicesAreCorrectlyCounted()
     {
-        var poll = new MeetingPoll()
+        var poll = new MeetingPoll
         {
             ClosedAt = DateTime.UtcNow,
-            ParsedData = new PollData()
+            ParsedData = new PollData
             {
-                Choices = new Dictionary<int, PollData.PollChoice>()
+                Choices = new Dictionary<int, PollData.PollChoice>
                 {
                     { 1, new PollData.PollChoice(1, "Name1") },
                     { 2, new PollData.PollChoice(2, "Name2") },
@@ -26,37 +26,37 @@ public class MeetingPollTests
             },
         };
 
-        var votes = new List<MeetingPollVote>()
+        var votes = new List<MeetingPollVote>
         {
             new()
             {
                 IsTiebreaker = true,
                 VotingPower = 2,
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 1, 2 },
+                    SelectedOptions = new List<int> { 1, 2 },
                 },
             },
             new()
             {
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 2 },
+                    SelectedOptions = new List<int> { 2 },
                 },
             },
             new()
             {
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 3, 2, 1 },
+                    SelectedOptions = new List<int> { 3, 2, 1 },
                 },
             },
             new()
             {
                 VotingPower = 2,
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 3 },
+                    SelectedOptions = new List<int> { 3 },
                 },
             },
         };
@@ -89,12 +89,12 @@ public class MeetingPollTests
     [Fact]
     public void Poll_SingleChoicePollCountingWorks()
     {
-        var poll = new MeetingPoll()
+        var poll = new MeetingPoll
         {
             ClosedAt = DateTime.UtcNow,
-            ParsedData = new PollData()
+            ParsedData = new PollData
             {
-                Choices = new Dictionary<int, PollData.PollChoice>()
+                Choices = new Dictionary<int, PollData.PollChoice>
                 {
                     { 1, new PollData.PollChoice(1, "Name1") },
                     { 2, new PollData.PollChoice(2, "Name2") },
@@ -104,37 +104,37 @@ public class MeetingPollTests
             },
         };
 
-        var votes = new List<MeetingPollVote>()
+        var votes = new List<MeetingPollVote>
         {
             new()
             {
                 IsTiebreaker = true,
                 VotingPower = 2,
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 1 },
+                    SelectedOptions = new List<int> { 1 },
                 },
             },
             new()
             {
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 2 },
+                    SelectedOptions = new List<int> { 2 },
                 },
             },
             new()
             {
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 3 },
+                    SelectedOptions = new List<int> { 3 },
                 },
             },
             new()
             {
                 VotingPower = 2,
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 3 },
+                    SelectedOptions = new List<int> { 3 },
                 },
             },
         };
@@ -170,12 +170,12 @@ public class MeetingPollTests
     [Fact]
     public void Poll_SinglePollMultipleVotesAreNotCounted()
     {
-        var poll = new MeetingPoll()
+        var poll = new MeetingPoll
         {
             ClosedAt = DateTime.UtcNow,
-            ParsedData = new PollData()
+            ParsedData = new PollData
             {
-                Choices = new Dictionary<int, PollData.PollChoice>()
+                Choices = new Dictionary<int, PollData.PollChoice>
                 {
                     { 1, new PollData.PollChoice(1, "Name1") },
                     { 2, new PollData.PollChoice(2, "Name2") },
@@ -185,37 +185,37 @@ public class MeetingPollTests
             },
         };
 
-        var votes = new List<MeetingPollVote>()
+        var votes = new List<MeetingPollVote>
         {
             new()
             {
                 IsTiebreaker = true,
                 VotingPower = 2,
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 1, 2 },
+                    SelectedOptions = new List<int> { 1, 2 },
                 },
             },
             new()
             {
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 2 },
+                    SelectedOptions = new List<int> { 2 },
                 },
             },
             new()
             {
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 3 },
+                    SelectedOptions = new List<int> { 3 },
                 },
             },
             new()
             {
                 VotingPower = 2,
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 3, 1 },
+                    SelectedOptions = new List<int> { 3, 1 },
                 },
             },
         };
@@ -248,12 +248,12 @@ public class MeetingPollTests
     [Fact]
     public void Poll_MultipleChoiceResultsAreRight()
     {
-        var poll = new MeetingPoll()
+        var poll = new MeetingPoll
         {
             ClosedAt = DateTime.UtcNow,
-            ParsedData = new PollData()
+            ParsedData = new PollData
             {
-                Choices = new Dictionary<int, PollData.PollChoice>()
+                Choices = new Dictionary<int, PollData.PollChoice>
                 {
                     { 1, new PollData.PollChoice(1, "Name1") },
                     { 2, new PollData.PollChoice(2, "Name2") },
@@ -263,37 +263,37 @@ public class MeetingPollTests
             },
         };
 
-        var votes = new List<MeetingPollVote>()
+        var votes = new List<MeetingPollVote>
         {
             new()
             {
                 IsTiebreaker = true,
                 VotingPower = 2,
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 1, 2 },
+                    SelectedOptions = new List<int> { 1, 2 },
                 },
             },
             new()
             {
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 2 },
+                    SelectedOptions = new List<int> { 2 },
                 },
             },
             new()
             {
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 3, 2, 1 },
+                    SelectedOptions = new List<int> { 3, 2, 1 },
                 },
             },
             new()
             {
                 VotingPower = 2,
-                ParsedVoteContent = new PollVoteData()
+                ParsedVoteContent = new PollVoteData
                 {
-                    SelectedOptions = new List<int>() { 3 },
+                    SelectedOptions = new List<int> { 3 },
                 },
             },
         };
@@ -326,7 +326,7 @@ public class MeetingPollTests
     [Fact]
     public void Poll_ParsingResultDataWorks()
     {
-        var poll = new MeetingPoll()
+        var poll = new MeetingPoll
         {
             ClosedAt = DateTime.UtcNow,
             PollResults =

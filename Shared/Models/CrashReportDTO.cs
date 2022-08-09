@@ -26,7 +26,7 @@ public class CrashReportDTO : ClientSideTimedModel, ICloneable
 
     public object Clone()
     {
-        return new CrashReportDTO()
+        return new CrashReportDTO
         {
             Public = Public,
             State = State,

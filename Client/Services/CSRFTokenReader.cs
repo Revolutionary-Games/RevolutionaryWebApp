@@ -55,7 +55,7 @@ public class CSRFTokenReader : ICSRFTokenReader
     {
         try
         {
-            await localStorage.SetItemAsync(AppInfo.LocalStorageUserInfo, new LocalStorageUserInfo()
+            await localStorage.SetItemAsync(AppInfo.LocalStorageUserInfo, new LocalStorageUserInfo
             {
                 LastSignedInUserId = InitialUserId,
             });

@@ -1,9 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System.Threading.Tasks;
 using Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
@@ -48,7 +47,7 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) deleted their own API token", user.Email);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = "API token cleared by user",
             TargetUserId = user.Id,
@@ -71,7 +70,7 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) deleted their own LFS token", user.Email);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = "LFS token cleared by user",
             TargetUserId = user.Id,
@@ -94,7 +93,7 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) created a new API token", user.Email);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = "API token created by user",
             TargetUserId = user.Id,
@@ -117,7 +116,7 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) created a new LFS token", user.Email);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = "LFS token created by user",
             TargetUserId = user.Id,
@@ -145,7 +144,7 @@ public class TokensController : Controller
         var user = HttpContext.AuthenticatedUser()!;
         logger.LogInformation("Force clearing tokens on user {Id} by admin {Email}", target.Id, user.Email);
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = "Force cleared user's tokens",
             TargetUserId = target.Id,

@@ -13,14 +13,14 @@ public class CIProjectTestDatabaseData
 
     public static void Seed(ApplicationDbContext database)
     {
-        var project = new CiProject()
+        var project = new CiProject
         {
             Id = CIProjectId,
             Name = "Test Project",
             RepositoryFullName = "test/Repo",
             RepositoryCloneUrl = "https://example.com/repo.git",
             ProjectType = CIProjectType.Github,
-            CiBuilds = new List<CiBuild>()
+            CiBuilds = new List<CiBuild>
             {
                 new()
                 {
@@ -35,7 +35,7 @@ public class CIProjectTestDatabaseData
                     Commits = "[]",
                 },
             },
-            CiSecrets = new List<CiSecret>()
+            CiSecrets = new List<CiSecret>
             {
                 new()
                 {
@@ -51,61 +51,61 @@ public class CIProjectTestDatabaseData
         database.CiProjects.Add(project);
 
         // Build image used by the job(s)
-        var imageFile = new StorageFile()
+        var imageFile = new StorageFile
         {
             StoragePath = TestImageStoragePath,
             Size = 123,
             Uploading = false,
         };
 
-        var imageVersion = new StorageItemVersion()
+        var imageVersion = new StorageItemVersion
         {
             Uploading = false,
             StorageFile = imageFile,
         };
-        imageFile.StorageItemVersions = new List<StorageItemVersion>() { imageVersion };
+        imageFile.StorageItemVersions = new List<StorageItemVersion> { imageVersion };
 
-        var ciImageFile = new StorageItem()
+        var ciImageFile = new StorageItem
         {
             Name = new CiJob { Image = "test:v1" }.GetImageFileName(),
             Ftype = FileType.File,
             WriteAccess = FileAccess.Nobody,
             Special = true,
-            StorageItemVersions = new List<StorageItemVersion>()
+            StorageItemVersions = new List<StorageItemVersion>
             {
                 imageVersion,
             },
         };
         imageVersion.StorageItem = ciImageFile;
 
-        var testFolder = new StorageItem()
+        var testFolder = new StorageItem
         {
             Name = "test",
             Ftype = FileType.Folder,
-            Children = new List<StorageItem>()
+            Children = new List<StorageItem>
             {
                 ciImageFile,
             },
         };
         ciImageFile.Parent = testFolder;
 
-        var imagesFolder = new StorageItem()
+        var imagesFolder = new StorageItem
         {
             Name = "Images",
             Ftype = FileType.Folder,
-            Children = new List<StorageItem>()
+            Children = new List<StorageItem>
             {
                 testFolder,
             },
         };
         testFolder.Parent = imagesFolder;
 
-        var ciFolder = new StorageItem()
+        var ciFolder = new StorageItem
         {
             Name = "CI",
             AllowParentless = true,
             Ftype = FileType.Folder,
-            Children = new List<StorageItem>()
+            Children = new List<StorageItem>
             {
                 imagesFolder,
             },

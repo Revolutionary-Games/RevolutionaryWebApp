@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -10,6 +8,7 @@ using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -98,7 +97,7 @@ public class DevBuildsController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -171,7 +170,7 @@ public class DevBuildsController : Controller
         if (!didSomething)
             return Ok("Nothing needed to be marked as verified");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Build {id} marked verified",
             PerformedById = user.Id,
@@ -222,7 +221,7 @@ public class DevBuildsController : Controller
         if (!didSomething)
             return Ok("Nothing needed to be unverified");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Verification removed from build {id}",
             PerformedById = user.Id,
@@ -256,7 +255,7 @@ public class DevBuildsController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Build {id} info modified",
             PerformedById = user.Id,
@@ -316,7 +315,7 @@ public class DevBuildsController : Controller
         build.Important = true;
         build.Keep = true;
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry()
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"Build {build.Id} along with siblings is now the BOTD",
             PerformedById = user.Id,
@@ -339,7 +338,7 @@ public class DevBuildsController : Controller
         await RemoveAllBOTDStatuses();
 
         var user = HttpContext.AuthenticatedUser()!;
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = "BOTD unset",
             PerformedById = user.Id,

@@ -215,7 +215,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/LFSProject", new LFSProjectDTO()
+            result = await Http.PostAsJsonAsync("api/v1/LFSProject", new LFSProjectDTO
             {
                 Name =  newName,
                 Slug = newSlug,

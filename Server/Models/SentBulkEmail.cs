@@ -49,7 +49,7 @@ public class SentBulkEmail : ModelWithCreationTime, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new SentBulkEmailListUpdated()
+        yield return new Tuple<SerializedNotification, string>(new SentBulkEmailListUpdated
         {
             Type = entityState.ToChangeType(),
             Item = GetDTO(),

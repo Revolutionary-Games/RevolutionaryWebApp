@@ -36,24 +36,24 @@ public class CIImageTests
             new EditableInMemoryDatabaseFixtureWithNotifications(notificationsMock.Object,
                 "LockCIImageDeleteRightVersion");
 
-        var item1Version1 = new StorageItemVersion()
+        var item1Version1 = new StorageItemVersion
         {
             Version = 1,
             Uploading = true,
         };
 
-        var item1Version2 = new StorageItemVersion()
+        var item1Version2 = new StorageItemVersion
         {
             Version = 2,
             Uploading = false,
         };
 
-        var imageItem1 = new StorageItem()
+        var imageItem1 = new StorageItem
         {
             Name = "CIImage1",
             Ftype = FileType.File,
             AllowParentless = true,
-            StorageItemVersions = new HashSet<StorageItemVersion>()
+            StorageItemVersions = new HashSet<StorageItemVersion>
             {
                 item1Version1,
                 item1Version2,
@@ -63,24 +63,24 @@ public class CIImageTests
         item1Version1.StorageItem = imageItem1;
         item1Version2.StorageItem = imageItem1;
 
-        var item2Version1 = new StorageItemVersion()
+        var item2Version1 = new StorageItemVersion
         {
             Version = 1,
             Uploading = true,
         };
 
-        var item2Version2 = new StorageItemVersion()
+        var item2Version2 = new StorageItemVersion
         {
             Version = 2,
             Uploading = false,
         };
 
-        var imageItem2 = new StorageItem()
+        var imageItem2 = new StorageItem
         {
             Name = "CIImage2",
             Ftype = FileType.File,
             AllowParentless = true,
-            StorageItemVersions = new HashSet<StorageItemVersion>()
+            StorageItemVersions = new HashSet<StorageItemVersion>
             {
                 item2Version1,
                 item2Version2,

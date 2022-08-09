@@ -396,7 +396,7 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
             Logger.LogError("Failed to cleanup on server: {Result}, error: {Error}", cleanupResult.Result,
                 cleanupResult.Error);
 
-            await Database.LogEntries.AddAsync(new LogEntry()
+            await Database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"Failed to cleanup server {server.Id}",
             });

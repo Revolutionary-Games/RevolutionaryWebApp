@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -13,6 +11,7 @@ using BlazorPagination;
 using Filters;
 using Hangfire;
 using Jobs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -105,7 +104,7 @@ public class AssociationMemberController : Controller
 
         member.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Association member {member.Id} edited",
 
@@ -143,7 +142,7 @@ public class AssociationMemberController : Controller
 
         database.AssociationMembers.Remove(member);
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Association member {member.Id} ({member.Email}) deleted",
             PerformedById = user.Id,
@@ -184,7 +183,7 @@ public class AssociationMemberController : Controller
         };
         await database.AssociationMembers.AddAsync(member);
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = member.CurrentPresident ?
                 $"New association president {member.Email} created" :

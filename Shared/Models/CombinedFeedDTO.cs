@@ -35,7 +35,7 @@ public class CombinedFeedDTO : ClientSideTimedModel
 
     public CombinedFeedDTO Clone()
     {
-        return new CombinedFeedDTO()
+        return new CombinedFeedDTO
         {
             Id = Id,
             CreatedAt = CreatedAt,

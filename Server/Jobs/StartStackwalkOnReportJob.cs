@@ -98,7 +98,7 @@ public class StartStackwalkOnReportJob
 
         logger.LogInformation("Stackwalking took: {Duration}", duration);
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"Stackwalking performed on report {report.Id}, result length: {result.Length}, " +
                 $"duration: {duration}",

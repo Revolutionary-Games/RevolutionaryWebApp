@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -15,6 +13,7 @@ using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -149,7 +148,7 @@ public class DevBuildUploadController : Controller
 
         if (!remoteStorage.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Remote storage is not configured",
@@ -194,7 +193,7 @@ public class DevBuildUploadController : Controller
 
         if (folder == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Storage folder is missing",
@@ -212,7 +211,7 @@ public class DevBuildUploadController : Controller
 
             if (storageItem == null)
             {
-                storageItem = new StorageItem()
+                storageItem = new StorageItem
                 {
                     Name = fileName,
                     Parent = folder,
@@ -225,7 +224,7 @@ public class DevBuildUploadController : Controller
                 await database.StorageItems.AddAsync(storageItem);
             }
 
-            existing = new DevBuild()
+            existing = new DevBuild
             {
                 BuildHash = request.BuildHash,
                 Platform = request.BuildPlatform,
@@ -302,7 +301,7 @@ public class DevBuildUploadController : Controller
 
         if (!remoteStorage.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Remote storage is not configured",
@@ -315,7 +314,7 @@ public class DevBuildUploadController : Controller
 
         if (folder == null)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Storage folder is missing",
@@ -346,7 +345,7 @@ public class DevBuildUploadController : Controller
 
             if (dehydrated == null)
             {
-                var storageItem = new StorageItem()
+                var storageItem = new StorageItem
                 {
                     Name = $"{obj.Sha3}.gz",
                     Parent = folder,
@@ -356,7 +355,7 @@ public class DevBuildUploadController : Controller
                     WriteAccess = FileAccess.Nobody,
                 };
 
-                dehydrated = new DehydratedObject()
+                dehydrated = new DehydratedObject
                 {
                     Sha3 = obj.Sha3,
                     StorageItem = storageItem,
@@ -414,7 +413,7 @@ public class DevBuildUploadController : Controller
 
         if (!remoteStorage.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Remote storage is not configured",

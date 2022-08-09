@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 
-[Index(new[] { nameof(LfsProjectId), nameof(LfsOid) }, IsUnique = true)]
+[Index(nameof(LfsProjectId), nameof(LfsOid), IsUnique = true)]
 public class LfsObject : UpdateableModel
 {
     /// <summary>

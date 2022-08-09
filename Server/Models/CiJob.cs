@@ -23,7 +23,7 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
 
     public CIJobState State { get; set; } = CIJobState.Starting;
 
-    public bool Succeeded { get; set; } = false;
+    public bool Succeeded { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? FinishedAt { get; set; }
@@ -89,7 +89,7 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     public async Task CreateFailureSection(ApplicationDbContext database, string content,
         string sectionTitle = "Invalid configuration", long sectionId = 1)
     {
-        var section = new CiJobOutputSection()
+        var section = new CiJobOutputSection
         {
             CiProjectId = CiProjectId,
             CiBuildId = CiBuildId,
@@ -140,7 +140,7 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
         var dto = GetDTO();
         var buildNotificationsId = CiProjectId + "_" + CiBuildId;
 
-        yield return new Tuple<SerializedNotification, string>(new CIProjectBuildJobsListUpdated()
+        yield return new Tuple<SerializedNotification, string>(new CIProjectBuildJobsListUpdated
         {
             Type = entityState.ToChangeType(),
             Item = dto,
@@ -148,7 +148,7 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
 
         var notificationsId = buildNotificationsId + "_" + CiJobId;
 
-        yield return new Tuple<SerializedNotification, string>(new CIJobUpdated()
+        yield return new Tuple<SerializedNotification, string>(new CIJobUpdated
         {
             Item = dto,
         }, NotificationGroups.CIProjectsBuildsJobUpdatedPrefix + notificationsId);

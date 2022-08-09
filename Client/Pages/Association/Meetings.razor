@@ -242,7 +242,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/Meetings", new MeetingDTO()
+            result = await Http.PostAsJsonAsync("api/v1/Meetings", new MeetingDTO
             {
                 Name = newName!,
                 Description = newDescription!,

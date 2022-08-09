@@ -38,7 +38,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
             return;
         }
 
-        s3Client = new AmazonS3Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), new AmazonS3Config()
+        s3Client = new AmazonS3Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), new AmazonS3Config
         {
             ServiceURL = endpoint,
             AuthenticationRegion = region,
@@ -59,7 +59,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest()
+        return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest
         {
             BucketName = bucket,
             Key = path,
@@ -72,7 +72,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        var response = await s3Client!.InitiateMultipartUploadAsync(new InitiateMultipartUploadRequest()
+        var response = await s3Client!.InitiateMultipartUploadAsync(new InitiateMultipartUploadRequest
         {
             BucketName = bucket,
             Key = path,
@@ -89,7 +89,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest()
+        return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest
         {
             BucketName = bucket,
             Key = path,
@@ -104,7 +104,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        await s3Client!.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest()
+        await s3Client!.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest
         {
             BucketName = bucket,
             Key = path,
@@ -117,7 +117,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        await s3Client!.AbortMultipartUploadAsync(new AbortMultipartUploadRequest()
+        await s3Client!.AbortMultipartUploadAsync(new AbortMultipartUploadRequest
         {
             BucketName = bucket,
             Key = path,
@@ -136,7 +136,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
         ListPartsResponse response;
         do
         {
-            response = await s3Client!.ListPartsAsync(new ListPartsRequest()
+            response = await s3Client!.ListPartsAsync(new ListPartsRequest
             {
                 BucketName = bucket,
                 Key = path,
@@ -165,7 +165,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
         do
         {
-            response = await s3Client!.ListMultipartUploadsAsync(new ListMultipartUploadsRequest()
+            response = await s3Client!.ListMultipartUploadsAsync(new ListMultipartUploadsRequest
             {
                 BucketName = bucket,
                 KeyMarker = nextKeyMarker,
@@ -186,7 +186,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        return s3Client!.PutObjectAsync(new PutObjectRequest()
+        return s3Client!.PutObjectAsync(new PutObjectRequest
         {
             BucketName = bucket,
             Key = path,
@@ -198,7 +198,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        return s3Client!.PutObjectAsync(new PutObjectRequest()
+        return s3Client!.PutObjectAsync(new PutObjectRequest
         {
             BucketName = bucket,
             Key = path,
@@ -211,7 +211,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest()
+        return s3Client!.GetPreSignedURL(new GetPreSignedUrlRequest
         {
             BucketName = bucket,
             Key = path,
@@ -252,7 +252,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        var copyResult = await s3Client!.CopyObjectAsync(new CopyObjectRequest()
+        var copyResult = await s3Client!.CopyObjectAsync(new CopyObjectRequest
         {
             SourceBucket = bucket,
             SourceKey = currentPath,
@@ -273,7 +273,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        var result = await s3Client!.GetObjectAsync(new GetObjectRequest()
+        var result = await s3Client!.GetObjectAsync(new GetObjectRequest
         {
             BucketName = bucket,
             Key = path,
@@ -287,7 +287,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
     public async Task DeleteObject(string path)
     {
-        var deleteResult = await s3Client!.DeleteObjectAsync(new DeleteObjectRequest()
+        var deleteResult = await s3Client!.DeleteObjectAsync(new DeleteObjectRequest
         {
             BucketName = bucket,
             Key = path,
@@ -302,7 +302,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        var response = await s3Client!.ListObjectsAsync(new ListObjectsRequest()
+        var response = await s3Client!.ListObjectsAsync(new ListObjectsRequest
         {
             BucketName = bucket,
         }, cancellationToken);
@@ -327,7 +327,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
         do
         {
-            response = await s3Client!.ListObjectsV2Async(new ListObjectsV2Request()
+            response = await s3Client!.ListObjectsV2Async(new ListObjectsV2Request
             {
                 BucketName = bucket,
                 ContinuationToken = nextContinuationToken,
@@ -453,8 +453,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         if (!Configured || s3Client == null)
         {
-            throw new HttpResponseException()
-                { Status = StatusCodes.Status500InternalServerError, Value = "Remote storage is not configured" };
+            throw new HttpResponseException { Status = StatusCodes.Status500InternalServerError, Value = "Remote storage is not configured" };
         }
     }
 }

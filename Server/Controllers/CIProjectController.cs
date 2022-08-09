@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -10,6 +8,7 @@ using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -42,7 +41,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
     [HttpPost]
     public async Task<ActionResult> CreateNew([Required] CIProjectDTO projectInfo)
     {
-        var project = new CiProject()
+        var project = new CiProject
         {
             Name = projectInfo.Name,
             RepositoryFullName = projectInfo.RepositoryFullName,
@@ -74,7 +73,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         }
 
         // TODO: could maybe save the project first in order to get the ID for the log message...
-        var action = new AdminAction()
+        var action = new AdminAction
         {
             Message = $"New CI project created, repo: {project.RepositoryFullName}, name: {project.Name}",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,
@@ -116,7 +115,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         catch (ArgumentException e)
         {
             Logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -170,7 +169,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         catch (ArgumentException e)
         {
             Logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -225,7 +224,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         catch (ArgumentException e)
         {
             Logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         // Exclude the output from fetch in DB which might be very large

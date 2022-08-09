@@ -224,7 +224,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/CIProject", new CIProjectDTO()
+            result = await Http.PostAsJsonAsync("api/v1/CIProject", new CIProjectDTO
             {
                 Name = newName!,
                 RepositoryFullName = newFullRepoName,

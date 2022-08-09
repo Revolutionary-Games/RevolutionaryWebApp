@@ -73,7 +73,7 @@ public class PatreonAPI : IPatreonAPI
     {
         var result = await Client.GetFromJsonAsync<PatreonAPIObjectResponse>(QueryHelpers.AddQueryString(
             "https://www.patreon.com/api/oauth2/v2/identity",
-            new Dictionary<string, string?>()
+            new Dictionary<string, string?>
             {
                 { "fields[user]", "email,full_name,vanity,url" },
             }));
@@ -124,7 +124,7 @@ public class PatreonCreatorAPI
 
     public PatreonCreatorAPI(string patreonToken)
     {
-        client = new HttpClient()
+        client = new HttpClient
         {
             DefaultRequestHeaders = { Authorization = new AuthenticationHeaderValue("Bearer", patreonToken) },
         };
@@ -193,7 +193,7 @@ public class PatreonCreatorAPI
                 if (rewardData == null)
                     throw new PatreonAPIDataException("Failed to find pledge's related reward object");
 
-                result.Add(new PatronMemberInfo()
+                result.Add(new PatronMemberInfo
                 {
                     Pledge = data,
                     User = userData,

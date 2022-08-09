@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -15,6 +13,7 @@ using Filters;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -56,7 +55,7 @@ public class ControlledServersController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -100,7 +99,7 @@ public class ControlledServersController : Controller
 
         if (server.ReservationType != ServerReservationType.None)
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"Server {id} force stopped by an admin while it was reserved",
                 PerformedById = user.Id,
@@ -108,7 +107,7 @@ public class ControlledServersController : Controller
         }
         else if (server.Status == ServerStatus.Provisioning)
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"Server {id} force stopped by an admin while it was provisioning",
                 PerformedById = user.Id,
@@ -116,7 +115,7 @@ public class ControlledServersController : Controller
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"Server {id} force stopped by an admin",
                 PerformedById = user.Id,
@@ -156,7 +155,7 @@ public class ControlledServersController : Controller
 
         if (server.ReservationType != ServerReservationType.None)
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"Server {id} terminated by an admin while it was reserved",
                 PerformedById = user.Id,
@@ -164,7 +163,7 @@ public class ControlledServersController : Controller
         }
         else if (server.Status == ServerStatus.Provisioning)
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"Server {id} terminated by an admin while it was provisioning",
                 PerformedById = user.Id,
@@ -172,7 +171,7 @@ public class ControlledServersController : Controller
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"Server {id} terminated by an admin",
                 PerformedById = user.Id,
@@ -267,7 +266,7 @@ public class ControlledServersController : Controller
         if (server.CleanUpQueued)
             return Ok("Server already has clean up queued");
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Server {id} is queued for clean up",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,
@@ -296,7 +295,7 @@ public class ControlledServersController : Controller
         List<Instance> newStatuses;
         try
         {
-            newStatuses = await ec2Controller.GetInstanceStatuses(new List<string>() { server.InstanceId },
+            newStatuses = await ec2Controller.GetInstanceStatuses(new List<string> { server.InstanceId },
                 CancellationToken.None);
         }
         catch (Exception e)
@@ -403,9 +402,9 @@ public class ControlledServersController : Controller
         var user = HttpContext.AuthenticatedUser()!;
         logger.LogInformation("All terminated servers removed by: {Email}", user.Email);
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
-            Message = $"Terminated servers removed",
+            Message = "Terminated servers removed",
             PerformedById = user.Id,
         });
 
@@ -434,7 +433,7 @@ public class ControlledServersController : Controller
     {
         if (!ec2Controller.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "EC2 control not configured",

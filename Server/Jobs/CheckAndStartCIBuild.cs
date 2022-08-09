@@ -171,7 +171,7 @@ public class CheckAndStartCIBuild
                 return;
             }
 
-            var job = new CiJob()
+            var job = new CiJob
             {
                 CiProjectId = ciProjectId,
                 CiBuildId = ciBuildId,
@@ -204,7 +204,7 @@ public class CheckAndStartCIBuild
 
     private async Task CreateFailedJob(CiBuild build, string failure, CancellationToken cancellationToken)
     {
-        var outputSection = new CiJobOutputSection()
+        var outputSection = new CiJobOutputSection
         {
             CiProjectId = build.CiProjectId,
             CiBuildId = build.CiBuildId,
@@ -227,7 +227,7 @@ public class CheckAndStartCIBuild
             Succeeded = false,
             State = CIJobState.Finished,
 
-            CiJobOutputSections = new List<CiJobOutputSection>()
+            CiJobOutputSections = new List<CiJobOutputSection>
             {
                 outputSection,
             },

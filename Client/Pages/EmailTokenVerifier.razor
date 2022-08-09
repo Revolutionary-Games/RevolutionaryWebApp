@@ -60,7 +60,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/EmailVerification", new EmailVerificationFinishForm()
+            result = await Http.PostAsJsonAsync("api/v1/EmailVerification", new EmailVerificationFinishForm
             {
                 Token = Token,
             });

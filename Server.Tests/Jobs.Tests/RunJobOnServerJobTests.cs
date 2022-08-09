@@ -47,14 +47,14 @@ public class RunJobOnServerJobTests
 
         var externalSSHMock = new Mock<IExternalServerSSHAccess>();
         externalSSHMock.Setup(ssh => ssh.RunCommand(BaseCIJobManagingJob.DiskUsageCheckCommand)).Returns(
-                new BaseSSHAccess.CommandResult()
+                new BaseSSHAccess.CommandResult
                 {
                     Result = DiskUsageResult,
                     ExitCode = 0,
                 })
             .Verifiable();
         externalSSHMock.Setup(ssh => ssh.RunCommand(It.Is<string>(s => s.Contains("~/CIExecutor")))).Returns(
-            new BaseSSHAccess.CommandResult()
+            new BaseSSHAccess.CommandResult
             {
                 ExitCode = 0,
             }).Verifiable();
@@ -79,7 +79,7 @@ public class RunJobOnServerJobTests
             githubStatusAPI.Object, remoteDownloadsMock.Object, hashMock.Object);
 
         CIProjectTestDatabaseData.Seed(database);
-        var buildJob = new CiJob()
+        var buildJob = new CiJob
         {
             CiProjectId = CIProjectTestDatabaseData.CIProjectId,
             CiBuildId = CIProjectTestDatabaseData.CIBuildId,
@@ -92,7 +92,7 @@ public class RunJobOnServerJobTests
 
         await database.CiJobs.AddAsync(buildJob);
 
-        var server = new ExternalServer()
+        var server = new ExternalServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -128,14 +128,14 @@ public class RunJobOnServerJobTests
 
         var controlledSSHMock = new Mock<IControlledServerSSHAccess>();
         controlledSSHMock.Setup(ssh => ssh.RunCommand(BaseCIJobManagingJob.DiskUsageCheckCommand)).Returns(
-                new BaseSSHAccess.CommandResult()
+                new BaseSSHAccess.CommandResult
                 {
                     Result = DiskUsageResult,
                     ExitCode = 0,
                 })
             .Verifiable();
         controlledSSHMock.Setup(ssh => ssh.RunCommand(It.Is<string>(s => s.Contains("~/CIExecutor")))).Returns(
-            new BaseSSHAccess.CommandResult()
+            new BaseSSHAccess.CommandResult
             {
                 ExitCode = 0,
             }).Verifiable();
@@ -162,7 +162,7 @@ public class RunJobOnServerJobTests
             githubStatusAPI.Object, remoteDownloadsMock.Object, hashMock.Object);
 
         CIProjectTestDatabaseData.Seed(database);
-        var buildJob = new CiJob()
+        var buildJob = new CiJob
         {
             CiProjectId = CIProjectTestDatabaseData.CIProjectId,
             CiBuildId = CIProjectTestDatabaseData.CIBuildId,
@@ -175,7 +175,7 @@ public class RunJobOnServerJobTests
 
         await database.CiJobs.AddAsync(buildJob);
 
-        var server = new ControlledServer()
+        var server = new ControlledServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -11,6 +9,7 @@ using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -80,7 +79,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
         feed.Id = (await Entities.MaxAsync(f => (long?)f.Id) ?? 0) + 1;
 
-        var action = new AdminAction()
+        var action = new AdminAction
         {
             Message = $"New Feed created, url: {feed.Url}, name: {feed.Name}",
             PerformedById = HttpContext.AuthenticatedUser()!.Id,
@@ -123,7 +122,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         // Reset content time to allow the content to regenerate
         item.ContentUpdatedAt = null;
 
-        await database.AdminActions.AddAsync(new AdminAction()
+        await database.AdminActions.AddAsync(new AdminAction
         {
             Message = $"Feed {item.Id} edited",
 
@@ -167,7 +166,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         catch (ArgumentException e)
         {
             Logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -199,7 +198,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
             return BadRequest("That webhook is already configured for this feed");
         }
 
-        var action = new AdminAction()
+        var action = new AdminAction
         {
             Message = $"New Feed webhook created, feed: {id}, url: {webhook.WebhookUrl}",
             PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
@@ -230,7 +229,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        var action = new AdminAction()
+        var action = new AdminAction
         {
             Message = $"Feed ({id}) webhook deleted",
             PerformedById = user.Id,

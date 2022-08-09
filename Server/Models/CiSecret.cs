@@ -11,7 +11,7 @@ using Shared.Models.Enums;
 using Shared.Notifications;
 using Utilities;
 
-[Index(new[] { nameof(CiProjectId), nameof(SecretName), nameof(UsedForBuildTypes) }, IsUnique = true)]
+[Index(nameof(CiProjectId), nameof(SecretName), nameof(UsedForBuildTypes), IsUnique = true)]
 public class CiSecret : IUpdateNotifications
 {
     public long CiProjectId { get; set; }
@@ -58,7 +58,7 @@ public class CiSecret : IUpdateNotifications
     {
         var dto = GetDTO();
 
-        yield return new Tuple<SerializedNotification, string>(new CIProjectSecretsUpdated()
+        yield return new Tuple<SerializedNotification, string>(new CIProjectSecretsUpdated
         {
             Type = entityState.ToChangeType(),
             Item = dto,

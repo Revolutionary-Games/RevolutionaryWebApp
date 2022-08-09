@@ -50,7 +50,7 @@ public class DeleteCrashReportJob
             newDuplicatePrimary.DuplicateOfId = null;
             newDuplicatePrimary.BumpUpdatedAt();
 
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"Crash report {newDuplicatePrimary.Id} has become primary report for a group " +
                     $"of duplicates (size: {duplicates.Count}) due to report deletion",
@@ -70,7 +70,7 @@ public class DeleteCrashReportJob
             duplicate.DuplicateOfId = null;
             duplicate.BumpUpdatedAt();
 
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"Crash report {duplicate.Id} has become non-duplicate due to report deletion",
             }, cancellationToken);
@@ -86,7 +86,7 @@ public class DeleteCrashReportJob
         // Cancellation tokens are used even after that local file delete as it is not an error if the file is
         // already deleted
 
-        await database.LogEntries.AddAsync(new LogEntry()
+        await database.LogEntries.AddAsync(new LogEntry
         {
             Message = $"Crash report {report.Id} is now deleted",
         }, cancellationToken);

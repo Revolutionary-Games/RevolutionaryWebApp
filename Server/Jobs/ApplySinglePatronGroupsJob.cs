@@ -58,7 +58,7 @@ public class ApplySinglePatronGroupsJob : PatreonForumGroupBaseJob
 
         // Bit of a hack, but the rest of the code doesn't need changes this way
         // When a patron is deleted, this job runs with just an email but no patron object so make one here
-        patron ??= new Patron()
+        patron ??= new Patron
         {
             Username = forumUser.Username,
             Email = forumEmail,

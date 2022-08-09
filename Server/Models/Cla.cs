@@ -51,14 +51,14 @@ public class Cla : BaseModel, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new CLAListUpdated()
+        yield return new Tuple<SerializedNotification, string>(new CLAListUpdated
         {
             Type = entityState.ToChangeType(),
             Item = GetInfo(),
         }, NotificationGroups.CLAListUpdated);
 
         yield return new Tuple<SerializedNotification, string>(
-            new CLAUpdated() { Item = GetDTO() },
+            new CLAUpdated { Item = GetDTO() },
             NotificationGroups.CLAUpdatedPrefix + Id);
     }
 }

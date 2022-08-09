@@ -36,7 +36,7 @@ public class ProvisionControlledServerJob : BaseProvisionServerJob
             throw new Exception("Server InstanceId is null, can't provision");
 
         // Check that the server is running before starting provisioning
-        foreach (var status in await ec2Controller.GetInstanceStatuses(new List<string>() { server.InstanceId },
+        foreach (var status in await ec2Controller.GetInstanceStatuses(new List<string> { server.InstanceId },
                      cancellationToken))
         {
             if (status.InstanceId != server.InstanceId)

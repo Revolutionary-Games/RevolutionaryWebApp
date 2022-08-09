@@ -11,7 +11,7 @@ public class BulkEmailSendRequestFormTests
     [Fact]
     public void BulkEmailSendRequestFormTest_ValidPassesValidation()
     {
-        var model = new BulkEmailSendRequestForm()
+        var model = new BulkEmailSendRequestForm
         {
             Title = "This is a dummy email title",
             HTMLBody = "This is a dummy email body that is long enough to pass validation",
@@ -29,7 +29,7 @@ public class BulkEmailSendRequestFormTests
     [Fact]
     public void BulkEmailSendRequestFormTest_DisallowSendToNoOne()
     {
-        var model = new BulkEmailSendRequestForm()
+        var model = new BulkEmailSendRequestForm
         {
             Title = "This is a dummy email title",
             HTMLBody = "This is a dummy email body that is long enough to pass validation",

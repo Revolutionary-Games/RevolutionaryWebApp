@@ -91,7 +91,7 @@ public static class ProcessRunHelpers
         var result = new ProcessResult();
         var taskCompletionSource = new TaskCompletionSource<ProcessResult>();
 
-        var process = new Process()
+        var process = new Process
         {
             StartInfo = startInfo,
             EnableRaisingEvents = true,

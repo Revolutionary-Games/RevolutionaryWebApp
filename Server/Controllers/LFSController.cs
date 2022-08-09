@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -14,6 +12,7 @@ using Authorization;
 using Filters;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -104,23 +103,22 @@ public class LFSController : Controller
 
         if (!remoteStorage.Configured || !downloadUrls.Configured)
         {
-            throw new HttpResponseException()
+            throw new HttpResponseException
             {
                 Status = StatusCodes.Status500InternalServerError,
                 ContentType = AppInfo.GitLfsContentType,
-                Value = new GitLFSErrorResponse()
+                Value = new GitLFSErrorResponse
                     { Message = "LFS storage on the server side is not configured properly" }.ToString(),
             };
         }
 
         if (request.Objects.Count < 1)
         {
-            return new ObjectResult(new GitLFSErrorResponse()
-                    { Message = "No objects found in the request to process" }
+            return new ObjectResult(new GitLFSErrorResponse { Message = "No objects found in the request to process" }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status422UnprocessableEntity,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+                ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
             };
         }
 
@@ -138,12 +136,12 @@ public class LFSController : Controller
 
         if (objects.Count < 1)
         {
-            return new ObjectResult(new GitLFSErrorResponse()
+            return new ObjectResult(new GitLFSErrorResponse
                     { Message = "No valid objects found in request to process" }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status422UnprocessableEntity,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+                ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
             };
         }
 
@@ -162,7 +160,7 @@ public class LFSController : Controller
             })
         {
             StatusCode = status,
-            ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+            ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
         };
     }
 
@@ -182,11 +180,11 @@ public class LFSController : Controller
         catch (Exception e)
         {
             logger.LogWarning("Failed to verify LFS upload token: {@E}", e);
-            return new ObjectResult(new GitLFSErrorResponse() { Message = "Invalid upload verify token provided" }
+            return new ObjectResult(new GitLFSErrorResponse { Message = "Invalid upload verify token provided" }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status400BadRequest,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+                ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
             };
         }
 
@@ -202,12 +200,12 @@ public class LFSController : Controller
         if (existingObject != null)
         {
             logger.LogWarning("Duplicate LFS oid attempted to be verified: {Oid}", verifiedToken.Oid);
-            return new ObjectResult(new GitLFSErrorResponse()
+            return new ObjectResult(new GitLFSErrorResponse
                     { Message = "Object with the given OID has already been verified" }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status400BadRequest,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+                ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
             };
         }
 
@@ -221,7 +219,7 @@ public class LFSController : Controller
             if (actualSize != verifiedToken.Size)
             {
                 logger.LogWarning("Detected partial upload to remote storage");
-                return new ObjectResult(new GitLFSErrorResponse()
+                return new ObjectResult(new GitLFSErrorResponse
                     {
                         Message =
                             "Verification failed: the object size in remote storage is different than it should be",
@@ -229,19 +227,19 @@ public class LFSController : Controller
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+                    ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
                 };
             }
         }
         catch (Exception e)
         {
             logger.LogWarning("Failed to check object size in storage: {@E}", e);
-            return new ObjectResult(new GitLFSErrorResponse()
+            return new ObjectResult(new GitLFSErrorResponse
                     { Message = "Verification failed: failed to retrieve the object size" }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status400BadRequest,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+                ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
             };
         }
 
@@ -262,7 +260,7 @@ public class LFSController : Controller
 
                 await remoteStorage.DeleteObject(finalStoragePath);
 
-                return new ObjectResult(new GitLFSErrorResponse()
+                return new ObjectResult(new GitLFSErrorResponse
                     {
                         Message =
                             "Verification failed: the file you uploaded doesn't match the oid you claimed it to be",
@@ -270,24 +268,24 @@ public class LFSController : Controller
                     .ToString())
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+                    ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
                 };
             }
         }
         catch (Exception e)
         {
             logger.LogError("Upload verify storage operation failed: {@E}", e);
-            return new ObjectResult(new GitLFSErrorResponse() { Message = "Internal storage operation failed" }
+            return new ObjectResult(new GitLFSErrorResponse { Message = "Internal storage operation failed" }
                 .ToString())
             {
                 StatusCode = StatusCodes.Status500InternalServerError,
-                ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+                ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
             };
         }
 
         // Everything has been verified now so we can save the object
         // TODO: store the user Id who uploaded the object / if this was anonymous (for PRs)
-        await database.LfsObjects.AddAsync(new LfsObject()
+        await database.LfsObjects.AddAsync(new LfsObject
         {
             LfsOid = verifiedToken.Oid,
             Size = verifiedToken.Size,
@@ -308,11 +306,11 @@ public class LFSController : Controller
     [HttpPost("{slug}/locks/verify")]
     public IActionResult Locks([Required] string slug)
     {
-        return new ObjectResult(new GitLFSErrorResponse() { Message = "LFS locks API is unimplemented" }
+        return new ObjectResult(new GitLFSErrorResponse { Message = "LFS locks API is unimplemented" }
             .ToString())
         {
             StatusCode = StatusCodes.Status501NotImplemented,
-            ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+            ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
         };
     }
 
@@ -353,7 +351,7 @@ public class LFSController : Controller
     private ActionResult RequestAuthResult()
     {
         SetAuthenticateHeader();
-        return Unauthorized(new GitLFSErrorResponse() { Message = "Authentication required" }
+        return Unauthorized(new GitLFSErrorResponse { Message = "Authentication required" }
             .ToString());
     }
 
@@ -362,12 +360,12 @@ public class LFSController : Controller
     {
         SetAuthenticateHeader();
 
-        var result = new ObjectResult(new GitLFSErrorResponse()
+        var result = new ObjectResult(new GitLFSErrorResponse
                 { Message = "Invalid credentials or you don't have write access or your account is suspended." }
             .ToString())
         {
             StatusCode = StatusCodes.Status403Forbidden,
-            ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+            ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
         };
 
         return result;
@@ -376,11 +374,11 @@ public class LFSController : Controller
     [NonAction]
     private ActionResult CreateErrorResult(string message)
     {
-        var result = new ObjectResult(new GitLFSErrorResponse() { Message = $"Bad request: {message}" }
+        var result = new ObjectResult(new GitLFSErrorResponse { Message = $"Bad request: {message}" }
             .ToString())
         {
             StatusCode = StatusCodes.Status400BadRequest,
-            ContentTypes = new MediaTypeCollection() { AppInfo.GitLfsContentType },
+            ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
         };
 
         return result;
@@ -405,10 +403,10 @@ public class LFSController : Controller
 
         return new LFSResponse.LFSObject(obj.Oid, obj.Size)
         {
-            Actions = new Dictionary<string, LFSResponse.LFSObject.Action>()
+            Actions = new Dictionary<string, LFSResponse.LFSObject.Action>
             {
                 {
-                    "download", new LFSResponse.LFSObject.DownloadAction()
+                    "download", new LFSResponse.LFSObject.DownloadAction
                     {
                         Href = createdUrl,
                         ExpiresIn = (int)DownloadExpireTime.TotalSeconds,
@@ -421,7 +419,7 @@ public class LFSController : Controller
     [NonAction]
     private string GenerateUploadVerifyToken(LFSRequest.LFSObject obj)
     {
-        var token = new UploadVerifyToken()
+        var token = new UploadVerifyToken
         {
             Oid = obj.Oid,
             Size = obj.Size,
@@ -482,11 +480,11 @@ public class LFSController : Controller
             {
                 logger.LogWarning("Bucket check failed: {@E}", e);
                 var error = "remote storage is inaccessible";
-                throw new HttpResponseException()
+                throw new HttpResponseException
                 {
                     Status = StatusCodes.Status500InternalServerError,
                     ContentType = AppInfo.GitLfsContentType,
-                    Value = new GitLFSErrorResponse() { Message = error }.ToString(),
+                    Value = new GitLFSErrorResponse { Message = error }.ToString(),
                 };
             }
 
@@ -499,17 +497,17 @@ public class LFSController : Controller
 
         return new LFSResponse.LFSObject(obj.Oid, obj.Size)
         {
-            Actions = new Dictionary<string, LFSResponse.LFSObject.Action>()
+            Actions = new Dictionary<string, LFSResponse.LFSObject.Action>
             {
                 {
-                    "upload", new LFSResponse.LFSObject.UploadAction()
+                    "upload", new LFSResponse.LFSObject.UploadAction
                     {
                         Href = remoteStorage.CreatePresignedUploadURL(storagePath, S3UploadValidTime),
                         ExpiresIn = (int)UploadValidTime.TotalSeconds,
                     }
                 },
                 {
-                    "verify", new LFSResponse.LFSObject.UploadAction()
+                    "verify", new LFSResponse.LFSObject.UploadAction
                     {
                         Href = verifyUrl,
                         ExpiresIn = (int)UploadValidTime.TotalSeconds,

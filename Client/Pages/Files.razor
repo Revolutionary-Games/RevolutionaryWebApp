@@ -581,7 +581,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/Files/createFolder", new CreateFolderForm()
+            result = await Http.PostAsJsonAsync("api/v1/Files/createFolder", new CreateFolderForm
             {
                 Name = newFolderName!,
                 ParentFolder = parsedFolderId,
@@ -785,7 +785,7 @@ else
     private async Task<UploadFileResponse> GetFileUploadUrl(IBrowserFile file, StorageItemDTO? parentFolder)
     {
         var result = await Http.PostAsJsonAsync("api/v1/Files/startUpload",
-            new UploadFileRequestForm()
+            new UploadFileRequestForm
             {
                 Name = file.Name,
                 Size = file.Size,

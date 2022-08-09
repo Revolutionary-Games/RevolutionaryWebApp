@@ -38,12 +38,12 @@ public class CheckPullRequestStatusJob
 
         if (pullRequest == null)
         {
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"New Github pull request detected {repository}/{pullRequestNumber}",
             }, cancellationToken);
 
-            pullRequest = new GithubPullRequest()
+            pullRequest = new GithubPullRequest
             {
                 Repository = repository,
                 GithubId = pullRequestNumber,
@@ -63,7 +63,7 @@ public class CheckPullRequestStatusJob
             {
                 pullRequest.Open = open;
 
-                await database.LogEntries.AddAsync(new LogEntry()
+                await database.LogEntries.AddAsync(new LogEntry
                 {
                     Message = $"Github pull request open state {repository}/{pullRequestNumber} is now {open}",
                 }, cancellationToken);

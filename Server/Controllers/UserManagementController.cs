@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -8,12 +5,14 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using Hubs;
-using Microsoft.AspNetCore.SignalR;
 using Authorization;
 using BlazorPagination;
 using Filters;
+using Hubs;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
 using Shared.Models;
@@ -157,7 +156,7 @@ public class UserManagementController : Controller
         catch (ArgumentException e)
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
-            throw new HttpResponseException() { Value = "Invalid data selection or sort" };
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
@@ -189,7 +188,7 @@ public class UserManagementController : Controller
 
         if (admin && actingUser.Id != user.Id)
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = "Forced logout",
                 PerformedById = actingUser.Id,
@@ -282,7 +281,7 @@ public class UserManagementController : Controller
 
         if (admin && actingUser.Id != user.Id)
         {
-            await database.AdminActions.AddAsync(new AdminAction()
+            await database.AdminActions.AddAsync(new AdminAction
             {
                 Message = $"Force ended session {session.Id}",
                 PerformedById = actingUser.Id,

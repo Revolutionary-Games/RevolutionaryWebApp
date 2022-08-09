@@ -65,12 +65,12 @@ public static class PatreonGroupHandler
         {
             if (!declined)
             {
-                await database.LogEntries.AddAsync(new LogEntry()
+                await database.LogEntries.AddAsync(new LogEntry
                 {
                     Message = $"We have a new patron: {username}",
                 });
 
-                await database.Patrons.AddAsync(new Patron()
+                await database.Patrons.AddAsync(new Patron
                 {
                     Username = username,
                     Email = email,
@@ -94,7 +94,7 @@ public static class PatreonGroupHandler
         {
             if (patron.Suspended != true)
             {
-                await database.LogEntries.AddAsync(new LogEntry()
+                await database.LogEntries.AddAsync(new LogEntry
                 {
                     Message = $"A patron ({patron.Id}) is now in declined state. Setting as suspended",
                 });
@@ -108,7 +108,7 @@ public static class PatreonGroupHandler
         }
         else if (patron.RewardId != rewardId || patron.Username != username)
         {
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"A patron ({patron.Id}) has changed their reward or name",
             });

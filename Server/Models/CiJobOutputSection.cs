@@ -86,7 +86,7 @@ public class CiJobOutputSection : IUpdateNotifications
         var info = GetInfo();
         var jobNotificationsId = CiProjectId + "_" + CiBuildId + "_" + CiJobId;
 
-        yield return new Tuple<SerializedNotification, string>(new CIProjectBuildJobOutputSectionsListUpdated()
+        yield return new Tuple<SerializedNotification, string>(new CIProjectBuildJobOutputSectionsListUpdated
         {
             Type = entityState.ToChangeType(),
             Item = info,

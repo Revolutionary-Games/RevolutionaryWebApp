@@ -15,7 +15,7 @@ public class WebDriverFixture : IDisposable
     {
         playwright = Playwright.CreateAsync().Result;
 
-        var options = new BrowserTypeLaunchOptions()
+        var options = new BrowserTypeLaunchOptions
         {
             Headless = Headless,
         };

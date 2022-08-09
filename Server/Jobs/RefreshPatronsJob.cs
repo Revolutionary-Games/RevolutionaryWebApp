@@ -59,7 +59,7 @@ public class RefreshPatronsJob : IJob
 
         foreach (var toDelete in patrons.Where(p => p.Marked == false))
         {
-            await database.LogEntries.AddAsync(new LogEntry()
+            await database.LogEntries.AddAsync(new LogEntry
             {
                 Message = $"Destroying patron ({toDelete.Id}) because it is unmarked " +
                     "(wasn't found from fresh data from Patreon)",
