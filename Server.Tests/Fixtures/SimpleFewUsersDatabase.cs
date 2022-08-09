@@ -6,7 +6,7 @@ using Shared.Models;
 
 public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 {
-    private static readonly object Lock = new object();
+    private static readonly object Lock = new();
     private static bool databaseInitialized;
 
     private static readonly Guid StaticSessionId1 = Guid.NewGuid();

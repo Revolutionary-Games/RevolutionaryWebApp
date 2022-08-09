@@ -100,7 +100,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/Registration", new RegistrationFormData()
+            result = await Http.PostAsJsonAsync("api/v1/Registration", new RegistrationFormData
             {
                 Email = email!,
                 Name = name!,

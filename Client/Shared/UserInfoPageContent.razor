@@ -216,7 +216,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/Tokens/clear", new ForceClearTokensForm()
+            result = await Http.PostAsJsonAsync("api/v1/Tokens/clear", new ForceClearTokensForm
             {
                 TargetUserId = User.Id,
             });

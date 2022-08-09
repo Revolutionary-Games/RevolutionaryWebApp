@@ -83,7 +83,7 @@ public class DisposableTimedResourceCache<T> : IDisposable
         {
             if (data == null || now - lastGenerated > cacheTime)
             {
-                if(data != null)
+                if (data != null)
                 {
                     data.Dispose();
                     data = null;

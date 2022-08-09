@@ -63,8 +63,8 @@ public class TokenGenerator : JwtBase, ITokenGenerator
     {
         var claims = new List<Claim>
         {
-            new Claim("LoggedIn", user != null ? "true" : "false"),
-            new Claim("UserId", UserIdFromPotentiallyNull(user)),
+            new("LoggedIn", user != null ? "true" : "false"),
+            new("UserId", UserIdFromPotentiallyNull(user)),
         };
 
         var token = new JwtSecurityToken(Issuer, string.Empty, claims, null, GetCSRFTokenExpiry(),

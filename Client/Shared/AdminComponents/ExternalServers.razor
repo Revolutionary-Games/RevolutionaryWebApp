@@ -625,7 +625,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/ExternalServers", new ExternalServerDTO()
+            result = await Http.PostAsJsonAsync("api/v1/ExternalServers", new ExternalServerDTO
             {
                 PublicAddress = IPAddress.Parse(newIP!),
                 SSHKeyFileName = newSSHKey!,

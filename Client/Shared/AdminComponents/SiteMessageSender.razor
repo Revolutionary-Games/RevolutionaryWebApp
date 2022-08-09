@@ -46,7 +46,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/SiteNotifications/ephemeralNotice", new SiteNoticeFormData()
+            result = await Http.PostAsJsonAsync("api/v1/SiteNotifications/ephemeralNotice", new SiteNoticeFormData
             {
                 Message = message!,
                 Type = noticeType,

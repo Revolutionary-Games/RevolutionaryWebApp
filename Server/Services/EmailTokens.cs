@@ -45,8 +45,8 @@ public class EmailTokens
 
         var claims = new List<Claim>
         {
-            new Claim("Type", "email"),
-            new Claim("Data", JsonSerializer.Serialize(data)),
+            new("Type", "email"),
+            new("Data", JsonSerializer.Serialize(data)),
         };
 
         var token = new JwtSecurityToken(Issuer, string.Empty, claims, null,

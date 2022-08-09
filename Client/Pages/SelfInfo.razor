@@ -67,7 +67,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/CodeRedeem", new RedeemCodeData()
+            result = await Http.PostAsJsonAsync("api/v1/CodeRedeem", new RedeemCodeData
             {
                 Code = codeRedeem!,
             });

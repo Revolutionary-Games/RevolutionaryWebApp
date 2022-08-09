@@ -42,7 +42,7 @@ public class RecomputeHashedColumns : IJob
     }
 
     private async Task ProcessSingleModel<T>(DbSet<T> entriesInDb, CancellationToken cancellationToken)
-        where T: class, IContainsHashedLookUps
+        where T : class, IContainsHashedLookUps
     {
         if (cancellationToken.IsCancellationRequested)
             return;

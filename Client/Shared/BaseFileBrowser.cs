@@ -70,7 +70,7 @@ public abstract class BaseFileBrowser<T> : PaginatedPage<T>
 
     protected override Task OnDataReceived()
     {
-        if(AutoSetReactToParameterChangeAfterDataReceived)
+        if (AutoSetReactToParameterChangeAfterDataReceived)
             ReactToParameterChange = true;
         return base.OnDataReceived();
     }

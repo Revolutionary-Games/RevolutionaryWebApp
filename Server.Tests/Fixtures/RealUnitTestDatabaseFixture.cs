@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
 {
-    private static readonly object Lock = new object();
+    private static readonly object Lock = new();
     private static bool databaseInitialized;
 
     public RealUnitTestDatabaseFixture() : base(GetConnectionString())

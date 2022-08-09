@@ -47,7 +47,7 @@ public class CSRFCheckerMiddleware : IMiddleware
         {
             // Download endpoints (for usability with direct links) don't require this
             if (!context.Request.Path.StartsWithSegments("/api/v1/download") &&
-                !context.Request.Path.StartsWithSegments("/api/v1/download_lfs")&&
+                !context.Request.Path.StartsWithSegments("/api/v1/download_lfs") &&
                 !context.Request.Path.StartsWithSegments("/api/v1/feed"))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;

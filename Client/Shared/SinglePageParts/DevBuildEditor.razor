@@ -110,7 +110,7 @@ else
 
         try
         {
-            result = await Http.PutAsJsonAsync($"api/v1/DevBuilds/{Data.Id}", new DevBuildUpdateForm()
+            result = await Http.PutAsJsonAsync($"api/v1/DevBuilds/{Data.Id}", new DevBuildUpdateForm
             {
                 Description = string.IsNullOrEmpty(description) ? null : description,
             });

@@ -31,7 +31,7 @@ public class ClaSignature : BaseModel
     public string? DeveloperUsername { get; set; }
 
     [Required]
-    public string ClaSignatureStoragePath { get; set; }  = string.Empty;
+    public string ClaSignatureStoragePath { get; set; } = string.Empty;
 
     public string? ClaInvalidationStoragePath { get; set; }
 

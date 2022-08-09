@@ -6,5 +6,5 @@ public class MoreChunksRequestForm
 {
     [Required]
     [MaxLength(AppInfo.MaximumTokenLength)]
-    public string Token { get; set; }  = string.Empty;
+    public string Token { get; set; } = string.Empty;
 }

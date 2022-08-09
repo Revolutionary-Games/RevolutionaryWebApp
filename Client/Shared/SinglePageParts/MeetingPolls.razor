@@ -420,7 +420,7 @@ else
         createMessage = null;
 
         newAutoCloseInMinutes = 5;
-        newPollDTOData = new MeetingPollDTO()
+        newPollDTOData = new MeetingPollDTO
         {
             MeetingId = MeetingId,
             // In association general meetings normal votes have the chairman as the tiebreak
@@ -429,9 +429,9 @@ else
             TiebreakType = VotingTiebreakType.Chairman,
         };
 
-        newPollData = new PollData()
+        newPollData = new PollData
         {
-            Choices = new Dictionary<int, PollData.PollChoice>()
+            Choices = new Dictionary<int, PollData.PollChoice>
             {
                 { 1, new PollData.PollChoice(1, "Choice 1") },
                 { 2, new PollData.PollChoice(2, "Choice 2") },
@@ -448,13 +448,13 @@ else
 
                 break;
             case NewPollType.SingleChoice:
-                newPollData.SingleChoiceOption = new PollData.SingleChoice()
+                newPollData.SingleChoiceOption = new PollData.SingleChoice
                 {
                     CanSelectNone = false,
                 };
                 break;
             case NewPollType.MultipleChoice:
-                newPollData.MultipleChoiceOption = new PollData.MultipleChoice()
+                newPollData.MultipleChoiceOption = new PollData.MultipleChoice
                 {
                     MinimumSelections = 1,
                     MaximumSelections = 2,
@@ -537,7 +537,7 @@ else
         try
         {
             result = await Http.PostAsJsonAsync($"api/v1/Meetings/{MeetingId}/polls/{item.PollId}/vote",
-                new PollVoteData()
+                new PollVoteData
             {
                 SelectedOptions = GetStatus(item).PollChoices!.Item1.AsEnumerable()
                     .Where(t => t.Value.ChoiceNumber != null)
@@ -716,6 +716,9 @@ else
                     continue;
 
                 var otherVote = entry.Value;
+
+                // Makes the logic less clear
+                // ReSharper disable once UseNullPropagationWhenPossible
                 if (otherVote.ChoiceNumber == null)
                     continue;
 
@@ -746,7 +749,7 @@ else
         if (voteData.Values.Where(v => v.ChoiceNumber != null).GroupBy(v => v.ChoiceNumber).Any(g => g.Count() > 1))
         {
             Console.Error.WriteLine("Vote adjusting caused duplicate choice numbers");
-            
+
             statusMessage = "Error in processing vote preference numbers";
             createMessageType = SiteNoticeType.Danger;
         }
@@ -850,9 +853,9 @@ else
             createMessageType = SiteNoticeType.Danger;
 
             Console.Error.WriteLine($"Error parsing poll results for poll ({poll.MeetingId}-{poll.PollId}): {e}");
-            status.ParsedData = new PollResultData()
+            status.ParsedData = new PollResultData
             {
-                Results = new List<PollResultData.ChoiceVotes>() { new(1, 0) },
+                Results = new List<PollResultData.ChoiceVotes> { new(1, 0) },
             };
         }
 

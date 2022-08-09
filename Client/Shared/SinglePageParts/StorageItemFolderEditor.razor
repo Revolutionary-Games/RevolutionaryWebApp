@@ -117,7 +117,7 @@ else
 
         try
         {
-            result = await Http.PutAsJsonAsync($"api/v1/Files/{Data.Id}/edit", new StorageItemDTO()
+            result = await Http.PutAsJsonAsync($"api/v1/Files/{Data.Id}/edit", new StorageItemDTO
             {
                 Name = folderName!,
                 ReadAccess = readAccess,

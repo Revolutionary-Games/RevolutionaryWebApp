@@ -9,7 +9,7 @@ using Shared;
 
 public class SampleCLADatabase : BaseSharedDatabaseFixtureWithNotifications
 {
-    private static readonly object Lock = new object();
+    private static readonly object Lock = new();
     private static bool databaseInitialized;
 
     public SampleCLADatabase() : base(new Mock<IModelUpdateNotificationSender>().Object, "SampleCLADatabase")

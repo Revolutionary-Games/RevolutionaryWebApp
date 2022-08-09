@@ -38,7 +38,7 @@ public static class ExecutableFinder
                     var attributes = File.GetAttributes(fullPath);
                     // TODO: there used to be executable flag check here but apparently C# doesn't have that
                     // So that is skipped, so this can find something that isn't an executable that is in PATH
-                    if(!attributes.HasFlag(FileAttributes.Directory))
+                    if (!attributes.HasFlag(FileAttributes.Directory))
                         return fullPath;
                 }
             }

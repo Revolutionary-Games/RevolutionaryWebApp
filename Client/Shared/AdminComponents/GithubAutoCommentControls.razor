@@ -281,7 +281,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/GithubConfiguration/autoComments", new GithubAutoCommentDTO()
+            result = await Http.PostAsJsonAsync("api/v1/GithubConfiguration/autoComments", new GithubAutoCommentDTO
             {
                 Repository = newRepoName,
                 Enabled = newEnabled,

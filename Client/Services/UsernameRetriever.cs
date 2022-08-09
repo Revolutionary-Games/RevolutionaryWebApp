@@ -35,7 +35,7 @@ public class UsernameRetriever
     public async ValueTask<string> GetUsername(long id)
     {
         bool query = false;
-            
+
         while (true)
         {
             await usernameLock.WaitAsync();
@@ -52,7 +52,7 @@ public class UsernameRetriever
             }
 
             // We only add the ID to query *once* to the list of things to query
-            if(!query)
+            if (!query)
             {
                 await fetchQueueLock.WaitAsync();
                 try

@@ -10,15 +10,15 @@ public class PatreonSettings : UpdateableModel
     public bool Active { get; set; } = false;
 
     [Required]
-    public string CreatorToken { get; set; }  = string.Empty;
+    public string CreatorToken { get; set; } = string.Empty;
 
     public string? CreatorRefreshToken { get; set; }
 
     [Required]
-    public string WebhookId { get; set; }  = string.Empty;
+    public string WebhookId { get; set; } = string.Empty;
 
     [Required]
-    public string WebhookSecret { get; set; }  = string.Empty;
+    public string WebhookSecret { get; set; } = string.Empty;
 
     public DateTime? LastWebhook { get; set; }
 

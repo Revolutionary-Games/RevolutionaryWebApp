@@ -31,7 +31,7 @@
     private string? alert;
 
     // Don't want to waste too much performance on this so this is quite long interval
-    private Timer checkTimer = new Timer(5000);
+    private Timer checkTimer = new (5000);
 
     protected override async Task OnInitializedAsync()
     {

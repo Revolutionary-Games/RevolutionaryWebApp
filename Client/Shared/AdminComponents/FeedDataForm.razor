@@ -203,10 +203,7 @@
 
     private void RemovePreprocessingAction(FeedPreprocessingAction preprocessingAction)
     {
-        if (EditedData.PreprocessingActions == null)
-            return;
-
-        if (EditedData.PreprocessingActions.Remove(preprocessingAction))
+        if (EditedData.PreprocessingActions?.Remove(preprocessingAction) == true)
         {
             // Set to null if it is empty
             if (EditedData.PreprocessingActions.Count < 1)
