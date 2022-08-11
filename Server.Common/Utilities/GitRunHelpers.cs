@@ -65,7 +65,8 @@ public static class GitRunHelpers
         }
     }
 
-    public static async Task UpdateSubmodules(string folder, bool init, CancellationToken cancellationToken)
+    public static async Task UpdateSubmodules(string folder, bool init, bool recursive,
+        CancellationToken cancellationToken)
     {
         var startInfo = PrepareToRunGit(folder, false);
         startInfo.ArgumentList.Add("submodule");
@@ -73,6 +74,9 @@ public static class GitRunHelpers
 
         if (init)
             startInfo.ArgumentList.Add("--init");
+
+        if (recursive)
+            startInfo.ArgumentList.Add("--recursive");
 
         var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken);
         if (result.ExitCode != 0)
