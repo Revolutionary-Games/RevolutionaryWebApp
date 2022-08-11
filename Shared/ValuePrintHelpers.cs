@@ -2,12 +2,13 @@ namespace ThriveDevCenter.Shared;
 
 using System;
 using System.Globalization;
+using SharedBase.Utilities;
 
 public static class ValuePrintHelpers
 {
     public static string BytesToMiB(this float number, int decimals = 2, bool suffix = true)
     {
-        var result = Math.Round((number / AppInfo.MEBIBYTE), decimals).ToString(CultureInfo.CurrentCulture);
+        var result = Math.Round((number / GlobalConstants.MEBIBYTE), decimals).ToString(CultureInfo.CurrentCulture);
 
         if (!suffix)
             return result;

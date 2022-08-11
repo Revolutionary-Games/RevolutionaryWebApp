@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared;
 
 using System;
+using SharedBase.Utilities;
 
 /// <summary>
 ///   Holds App-wide constant values.
@@ -66,46 +67,42 @@ public static class AppInfo
 
     public const int MinimumReportTextSearchLength = 3;
 
-    public const int KIBIBYTE = 1024;
-    public const int MEBIBYTE = KIBIBYTE * KIBIBYTE;
-    public const int GIBIBYTE = MEBIBYTE * 1024;
-
     /// <summary>
     ///   Maximum size of a file to upload through LFS
     /// </summary>
-    public const long MaxLfsUploadSize = 75 * MEBIBYTE;
+    public const long MaxLfsUploadSize = 75 * GlobalConstants.MEBIBYTE;
 
     /// <summary>
     ///   Maximum size of a dehydrated file
     /// </summary>
-    public const long MaxDehydratedUploadSize = 200 * MEBIBYTE;
+    public const long MaxDehydratedUploadSize = 200 * GlobalConstants.MEBIBYTE;
 
     /// <summary>
     ///   Maximum size of a devbuild file
     /// </summary>
-    public const long MaxDevBuildUploadSize = 50 * MEBIBYTE;
+    public const long MaxDevBuildUploadSize = 50 * GlobalConstants.MEBIBYTE;
 
     /// <summary>
     ///   Maximum size of a file uploaded to the general file storage by a client.
     ///   Note that if this is increased over this value, multipart uploads need to go directly to the final
     ///   storage path (as they can't be copied)
     /// </summary>
-    public const long MaxGeneralFileStoreSize = 4024L * MEBIBYTE;
+    public const long MaxGeneralFileStoreSize = 4024L * GlobalConstants.MEBIBYTE;
 
-    public const long FileSizeBeforeMultipartUpload = 70 * MEBIBYTE;
-    public const long MultipartUploadChunkSize = 50 * MEBIBYTE;
-    public const long MultipartUploadChunkSizeLarge = 100 * MEBIBYTE;
-    public const long MultipartUploadChunkSizeLargeThreshold = 1 * GIBIBYTE;
+    public const long FileSizeBeforeMultipartUpload = 70 * GlobalConstants.MEBIBYTE;
+    public const long MultipartUploadChunkSize = 50 * GlobalConstants.MEBIBYTE;
+    public const long MultipartUploadChunkSizeLarge = 100 * GlobalConstants.MEBIBYTE;
+    public const long MultipartUploadChunkSizeLargeThreshold = 1 * GlobalConstants.GIBIBYTE;
     public const int MultipartSimultaneousUploads = 3;
     public const int MultipartUploadPartsToReturnInSingleCall = 5;
 
-    public const int MaxInBrowserPreviewTextFileSize = MEBIBYTE * 20;
-    public const int MaxSingleBuildOutputMessageLength = MEBIBYTE * 20;
+    public const int MaxInBrowserPreviewTextFileSize = GlobalConstants.MEBIBYTE * 20;
+    public const int MaxSingleBuildOutputMessageLength = GlobalConstants.MEBIBYTE * 20;
 
-    public const long MaxCrashDumpUploadSize = MEBIBYTE * 9;
-    public const long MaxCrashLogsLength = MEBIBYTE * 5;
+    public const long MaxCrashDumpUploadSize = GlobalConstants.MEBIBYTE * 9;
+    public const long MaxCrashLogsLength = GlobalConstants.MEBIBYTE * 5;
 
-    public const long MaxDebugSymbolSize = MEBIBYTE * 500;
+    public const long MaxDebugSymbolSize = GlobalConstants.MEBIBYTE * 500;
 
     public const int MaxBuildOutputLineLength = 4000;
 
@@ -157,7 +154,7 @@ public static class AppInfo
     /// <summary>
     ///   Maximum size of our normal caches combined across all controllers (in bytes)
     /// </summary>
-    public const int MaxNormalCacheSize = 150 * MEBIBYTE;
+    public const int MaxNormalCacheSize = 150 * GlobalConstants.MEBIBYTE;
 
     /// <summary>
     ///   The interval in seconds that a session use is updated to the database
