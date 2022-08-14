@@ -3,7 +3,7 @@ namespace ThriveDevCenter.Shared.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Notifications;
-using Utilities;
+using SharedBase.Converters;
 
 public class RealTimeBuildMessage : SerializedNotification
 {

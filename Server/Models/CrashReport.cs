@@ -8,10 +8,10 @@ using System.Net;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Shared;
-using Shared.Converters;
 using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Notifications;
+using SharedBase.Converters;
 using Utilities;
 
 [Index(nameof(CreatedAt))]

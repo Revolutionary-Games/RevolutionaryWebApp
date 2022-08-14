@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shared;
-using Shared.Utilities;
+using SharedBase.Converters;
 
 /// <summary>
 ///   Wrapper around the Github HTTP API

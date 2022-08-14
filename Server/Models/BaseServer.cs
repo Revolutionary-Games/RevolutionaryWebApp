@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Net;
 using System.Text.Json.Serialization;
 using Shared;
-using Shared.Converters;
 using Shared.Models;
+using SharedBase.Converters;
 
 /// <summary>
 ///   Common data for controlled and external servers
