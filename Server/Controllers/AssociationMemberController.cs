@@ -99,7 +99,7 @@ public class AssociationMemberController : Controller
         if (!changes)
             return Ok();
 
-        if (await ConflictsWithCurrentPresident(member.Id))
+        if (await ConflictsWithCurrentPresident(member.Id, member.CurrentPresident))
             return BadRequest("There can only be one association president at once");
 
         member.BumpUpdatedAt();
@@ -167,7 +167,7 @@ public class AssociationMemberController : Controller
         if (member != null)
             return BadRequest("Email already in use");
 
-        if (await ConflictsWithCurrentPresident(-1))
+        if (await ConflictsWithCurrentPresident(-1, request.CurrentPresident))
             return BadRequest("There can only be one association president at once");
 
         var user = HttpContext.AuthenticatedUser()!;
@@ -207,8 +207,12 @@ public class AssociationMemberController : Controller
     }
 
     [NonAction]
-    public async Task<bool> ConflictsWithCurrentPresident(long editedUser)
+    public async Task<bool> ConflictsWithCurrentPresident(long editedUser, bool isPresident)
     {
+        // If the edited member is not the president, it can't conflict
+        if (!isPresident)
+            return false;
+
         var currentPresident = await database.AssociationMembers.FirstOrDefaultAsync(a => a.CurrentPresident);
 
         if (currentPresident == null)
