@@ -2,7 +2,7 @@ namespace ThriveDevCenter.Shared.Tests.Utilities.Tests;
 
 using System.Collections.Generic;
 using System.Linq;
-using Shared.Converters;
+using Converters;
 using Shared.Models.Enums;
 using Xunit;
 
