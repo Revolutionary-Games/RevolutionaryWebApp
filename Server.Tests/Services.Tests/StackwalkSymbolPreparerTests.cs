@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Fixtures;
 using Moq;
 using Server.Services;
-using Utilities;
+using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 

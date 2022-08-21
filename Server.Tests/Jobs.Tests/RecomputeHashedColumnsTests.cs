@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Server.Jobs;
 using Server.Models;
 using Server.Utilities;
-using Utilities;
+using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 

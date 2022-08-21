@@ -10,7 +10,7 @@ using Server.Jobs;
 using Server.Models;
 using Server.Services;
 using Shared.Models;
-using Utilities;
+using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 

@@ -9,7 +9,7 @@ using Server.Controllers;
 using Server.Services;
 using Shared;
 using SharedBase.Utilities;
-using Utilities;
+using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 

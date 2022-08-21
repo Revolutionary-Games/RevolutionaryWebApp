@@ -3,7 +3,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Server.Services;
-using Utilities;
+using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 

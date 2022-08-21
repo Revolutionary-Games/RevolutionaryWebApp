@@ -9,7 +9,7 @@ using Hangfire.States;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Server.Jobs;
-using Utilities;
+using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 

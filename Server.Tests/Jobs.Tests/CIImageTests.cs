@@ -15,7 +15,7 @@ using Server.Models;
 using Server.Services;
 using Shared.Models;
 using Shared.Notifications;
-using Utilities;
+using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
