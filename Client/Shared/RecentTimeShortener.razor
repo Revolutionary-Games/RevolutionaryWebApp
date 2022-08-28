@@ -1,4 +1,5 @@
-@Time.ToLocalTime().ToString(FormatString)
+@using SharedBase.Utilities
+@RecentTimeString.FormatRecentTimeInLocalTime(Time, IncludeSeconds, ShortDisplayCutoff)
 
 @code {
 
@@ -10,26 +11,5 @@
 
     [Parameter]
     public TimeSpan ShortDisplayCutoff { get; set; } = TimeSpan.FromHours(18);
-
-    private string FormatString
-    {
-        get
-        {
-            var now = DateTime.UtcNow;
-
-            // If in the future more than an hour, show full time
-            if (now - Time < -TimeSpan.FromHours(1))
-            {
-                return "G";
-            }
-
-            if (now - Time < ShortDisplayCutoff)
-            {
-                return IncludeSeconds ? "T" : "t";
-            }
-
-            return "G";
-        }
-    }
 
 }
