@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using SharedBase.Utilities;
 
 public static class GitRunHelpers
 {
