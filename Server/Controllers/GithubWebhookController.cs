@@ -12,7 +12,6 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
-using Common.Utilities;
 using Filters;
 using Hangfire;
 using Jobs;
@@ -26,6 +25,7 @@ using Services;
 using Shared;
 using Shared.Converters;
 using Shared.Models;
+using SharedBase.Utilities;
 using Utilities;
 
 [ApiController]
