@@ -330,8 +330,8 @@ public class MeetingPollTests
         {
             ClosedAt = DateTime.UtcNow,
             PollResults =
-                @"{""Results"":[{""Item1"":1,""Item2"":5},{""Item1"":2,""Item2"":1}],""TotalVotes"":6,}" +
-                @"{""TiebreakInFavourOf"":null}",
+                @"{""Results"":[{""Item1"":1,""Item2"":5},{""Item1"":2,""Item2"":1}],""TotalVotes"":6," +
+                @"""TiebreakInFavourOf"":null}",
         };
 
         var results = poll.ParsedResults;
