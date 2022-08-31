@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using CommandLine;
 using Scripts;
 using ScriptsBase.Models;
@@ -8,6 +11,12 @@ using SharedBase.Utilities;
 
 public class Program
 {
+    private static readonly IEnumerable<string> DefaultFoldersToClean = new List<string>
+    {
+        "AutomatedUITests", "CIExecutor", "Client", "Client.Tests", "Server", "Server.Common", "Server.Tests", "Shared",
+        "Shared.Tests", "RevolutionaryGamesCommon/SharedBase",
+    };
+
     public class CheckOptions : CheckOptionsBase
     {
     }
@@ -17,18 +26,24 @@ public class Program
     {
     }
 
+    [Verb("clean", HelpText = "Clean binaries (package upgrades can break deploy and this fixes that)")]
+    public class CleanOptions : ScriptOptionsBase
+    {
+    }
+
     [STAThread]
     public static int Main(string[] args)
     {
         RunFolderChecker.EnsureRightRunningFolder("ThriveDevCenter.sln");
 
         var result = CommandLineHelpers.CreateParser()
-            .ParseArguments<CheckOptions, TestOptions, Deployer.DeployOptions, EFTool.EFOptions>(args)
+            .ParseArguments<CheckOptions, TestOptions, Deployer.DeployOptions, EFTool.EFOptions, CleanOptions>(args)
             .MapResult(
                 (CheckOptions opts) => RunChecks(opts),
                 (TestOptions opts) => RunTests(opts),
                 (Deployer.DeployOptions opts) => RunDeploy(opts),
                 (EFTool.EFOptions opts) => RunEF(opts),
+                (CleanOptions opts) => RunClean(opts),
                 CommandLineHelpers.PrintCommandLineErrors);
 
         ConsoleHelpers.CleanConsoleStateForExit();
@@ -90,5 +105,41 @@ public class Program
             return 0;
 
         return 2;
+    }
+
+    private static int RunClean(CleanOptions opts)
+    {
+        ColourConsole.WriteDebugLine("Running cleaning tool");
+
+        foreach (var folder in DefaultFoldersToClean)
+        {
+            if (!Directory.Exists(folder))
+            {
+                ColourConsole.WriteErrorLine($"Folder to clean in doesn't exist: {folder}");
+                continue;
+            }
+
+            CleanIfExists(Path.Join(folder, "bin"));
+            CleanIfExists(Path.Join(folder, "obj"));
+        }
+
+        return 0;
+    }
+
+    private static void CleanIfExists(string folder)
+    {
+        if (!Directory.Exists(folder))
+            return;
+
+        ColourConsole.WriteNormalLine($"Deleting: {folder}");
+
+        try
+        {
+            Directory.Delete(folder, true);
+        }
+        catch (Exception e)
+        {
+            ColourConsole.WriteErrorLine($"Failed to delete a folder ({folder}): {e}");
+        }
     }
 }
