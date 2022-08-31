@@ -246,7 +246,10 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
         if (job.Build.CiProject == null)
             throw new NotLoadedModelNavigationException();
 
-        var env = new StringBuilder(250);
+        var env = new StringBuilder(500);
+
+        // Tries to make things print in more colour but doesn't really work
+        env.Append("export CI=1; export TERM=xterm-256color; ");
         env.Append("export CI_REF=\"");
         env.Append(BashEscape.EscapeForBash(job.Build.RemoteRef));
         env.Append("\"; export CI_COMMIT_HASH=\"");
