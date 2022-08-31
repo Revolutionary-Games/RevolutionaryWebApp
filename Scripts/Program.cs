@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -117,6 +116,8 @@ public class Program
 
     private static int RunClean(CleanOptions opts)
     {
+        _ = opts;
+
         ColourConsole.WriteDebugLine("Running cleaning tool");
 
         foreach (var folder in DefaultFoldersToClean)
