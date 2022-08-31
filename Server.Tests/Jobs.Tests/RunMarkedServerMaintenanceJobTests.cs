@@ -97,7 +97,8 @@ public class RunMarkedServerMaintenanceJobTests
 
         var sshMock = new Mock<IExternalServerSSHAccess>();
         sshMock.Setup(ssh => ssh.ConnectTo(firstExternalAddress, keyName)).Verifiable();
-        sshMock.Setup(ssh => ssh.RunCommand(It.IsAny<string>())).Returns(new BaseSSHAccess.CommandResult { ExitCode = 0, Result = "Output would go here" }).Verifiable();
+        sshMock.Setup(ssh => ssh.RunCommand(It.IsAny<string>())).Returns(new BaseSSHAccess.CommandResult
+            { ExitCode = 0, Result = "Output would go here" }).Verifiable();
         sshMock.Setup(ssh => ssh.Reboot()).Verifiable();
 
         var server1 = new ControlledServer

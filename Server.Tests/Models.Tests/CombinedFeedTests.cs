@@ -26,6 +26,7 @@ public class CombinedFeedTests
         };
         part2.ProcessContent(FeedTests.TestDiscourseFeedContent);
 
+        // LineLengthCheckDisable
         var feed = new CombinedFeed("all", @"<div class=""custom-feed-item-class feed-{FeedName}"">
 <span class=""custom-feed-icon-{OriginalFeedName}""></span>
 <span class=""custom-feed-title""><span class=""custom-feed-title-main"">
@@ -34,6 +35,8 @@ public class CombinedFeedTests
 <span class=""custom-feed-author"">{AuthorFirstWord}</span></span><span class=""custom-feed-at""> at <span class=""custom-feed-time"">{PublishedAt:yyyy-dd-MM HH.mm}</span></span>
 </span><br><span class=""custom-feed-content"">{Summary}<br><a class=""custom-feed-item-url"" href=""{Link}"">Read it here</a></span></div>
 </div>");
+
+        // LineLengthCheckEnable
 
         feed.ProcessContent(new List<Feed> { part1, part2 });
 

@@ -7,7 +7,8 @@ public static class NavigationManagerExtensions
 {
     public const string PermissionProblemErrorMessage = "You don't have the necessary permissions to view this page";
     public const string LoginRequiredErrorMessage = "You need to login to view this page";
-    public const string ResourcePrivateErrorMessage = "This resource may exist but is private. Logging in may make it available.";
+    public const string ResourcePrivateErrorMessage = "This resource may exist but is private. " +
+        "Logging in may make it available.";
 
     public static string GetLinkToLogin(this NavigationManager navigationManager, string? message = null)
     {

@@ -110,7 +110,8 @@ public class MeetingPoll : IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new MeetingPollListUpdated { Type = entityState.ToChangeType(), Item = GetDTO() },
+        yield return new Tuple<SerializedNotification, string>(
+            new MeetingPollListUpdated { Type = entityState.ToChangeType(), Item = GetDTO() },
             NotificationGroups.MeetingPollListUpdatedPrefix + MeetingId);
     }
 

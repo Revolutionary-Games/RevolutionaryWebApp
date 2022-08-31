@@ -69,7 +69,8 @@ public static class SSOSuspendHandler
 
                     foreach (var group in fullInfo.User.Groups)
                     {
-                        if (group.Name is PatreonGroupHandler.CommunityDevBuildGroup or PatreonGroupHandler.CommunityVIPGroup)
+                        if (group.Name is PatreonGroupHandler.CommunityDevBuildGroup
+                            or PatreonGroupHandler.CommunityVIPGroup)
                         {
                             found = true;
                             break;

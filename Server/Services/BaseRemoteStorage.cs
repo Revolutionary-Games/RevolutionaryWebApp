@@ -453,7 +453,8 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         if (!Configured || s3Client == null)
         {
-            throw new HttpResponseException { Status = StatusCodes.Status500InternalServerError, Value = "Remote storage is not configured" };
+            throw new HttpResponseException
+                { Status = StatusCodes.Status500InternalServerError, Value = "Remote storage is not configured" };
         }
     }
 }

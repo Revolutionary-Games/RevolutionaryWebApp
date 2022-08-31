@@ -13,7 +13,9 @@ public static class LinqHelpers
         IEnumerable<string>? extraAllowedColumns = null)
     {
         // This logic is from Blazor.Pagination Licensed under the MIT license (this is a modified version)
+        // LineLengthCheckDisable
         // https://github.com/villainoustourist/Blazor.Pagination/blob/24f0c938e5ecdab4eb605a41b77b9b27caa11947/src/Extensions.cs#L13
+        // LineLengthCheckEnable
         var expression = source.Expression;
         var parameter = Expression.Parameter(typeof(T), "x");
         var selector = Expression.PropertyOrField(parameter, column);

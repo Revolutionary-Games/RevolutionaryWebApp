@@ -156,12 +156,14 @@ public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashe
 
         if (Public)
         {
-            yield return new Tuple<SerializedNotification, string>(new CrashReportListUpdated { Type = entityState.ToChangeType(), Item = info },
+            yield return new Tuple<SerializedNotification, string>(
+                new CrashReportListUpdated { Type = entityState.ToChangeType(), Item = info },
                 NotificationGroups.CrashReportListUpdatedPublic);
         }
         else
         {
-            yield return new Tuple<SerializedNotification, string>(new CrashReportListUpdated { Type = entityState.ToChangeType(), Item = info },
+            yield return new Tuple<SerializedNotification, string>(
+                new CrashReportListUpdated { Type = entityState.ToChangeType(), Item = info },
                 NotificationGroups.CrashReportListUpdatedPrivate);
         }
 

@@ -47,7 +47,8 @@ public class RepoForReleaseStats : IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new RepoForReleaseStatsListUpdated { Type = entityState.ToChangeType(), Item = GetDTO() },
+        yield return new Tuple<SerializedNotification, string>(
+            new RepoForReleaseStatsListUpdated { Type = entityState.ToChangeType(), Item = GetDTO() },
             NotificationGroups.RepoForReleaseStatsListUpdated);
     }
 }

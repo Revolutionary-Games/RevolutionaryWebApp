@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Components.WebAssembly.Http;
 /// </summary>
 public class HttpCookieHandler : DelegatingHandler
 {
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+        CancellationToken cancellationToken)
     {
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.SameOrigin);
         return base.SendAsync(request, cancellationToken);

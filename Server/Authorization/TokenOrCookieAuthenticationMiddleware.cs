@@ -103,8 +103,8 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
             return AuthMethodResult.Error;
         }
 
-        var user = await database.Users.WhereHashed(nameof(User.ApiToken), apiToken).Include(u => u.AssociationMember).AsAsyncEnumerable()
-            .FirstOrDefaultAsync(u => u.ApiToken == apiToken);
+        var user = await database.Users.WhereHashed(nameof(User.ApiToken), apiToken).Include(u => u.AssociationMember)
+            .AsAsyncEnumerable().FirstOrDefaultAsync(u => u.ApiToken == apiToken);
 
         if (user != null && user.Suspended != true)
         {

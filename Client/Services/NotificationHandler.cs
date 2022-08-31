@@ -299,7 +299,8 @@ public class NotificationHandler : IAsyncDisposable
         {
             await OnRequireStoppingConnection();
 
-            // Force reload as our session should be invalid now so we need to reopen everything as non-authenticated user
+            // Force reload as our session should be invalid now so we need to reopen everything as
+            // non-authenticated user
             navManager.ForceReload();
         });
 

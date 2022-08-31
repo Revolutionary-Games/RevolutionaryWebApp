@@ -33,7 +33,8 @@ public class Program
     {
         RunFolderChecker.EnsureRightRunningFolder("ThriveDevCenter.sln");
 
-        var result = CommandLineHelpers.CreateParser().ParseArguments<CheckOptions, TestOptions, DeployOptions, EFOptions>(args)
+        var result = CommandLineHelpers.CreateParser()
+            .ParseArguments<CheckOptions, TestOptions, DeployOptions, EFOptions>(args)
             .MapResult(
                 (CheckOptions opts) => RunChecks(opts),
                 (TestOptions opts) => RunTests(opts),

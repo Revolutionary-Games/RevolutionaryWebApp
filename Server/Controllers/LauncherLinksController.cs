@@ -166,7 +166,8 @@ public class LauncherLinksController : Controller
 
         if (modifiableUser == null)
         {
-            throw new HttpResponseException { Status = StatusCodes.Status500InternalServerError, Value = "Failed to find target user" };
+            throw new HttpResponseException
+                { Status = StatusCodes.Status500InternalServerError, Value = "Failed to find target user" };
         }
 
         modifiableUser.LauncherLinkCode = Guid.NewGuid().ToString();

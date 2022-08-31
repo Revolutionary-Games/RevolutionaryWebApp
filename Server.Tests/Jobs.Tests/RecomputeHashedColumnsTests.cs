@@ -34,9 +34,12 @@ public class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestDatabaseFix
 
         // It should be impossible to create a session with no hash, so we use raw SQL to insert it
         // It seems impossible to split the interpolated string here into multiple lines...
+        // LineLengthCheckDisable
         var changes =
             await database.Database.ExecuteSqlInterpolatedAsync(
                 $"INSERT INTO sessions (id, session_version, last_used, sso_nonce) VALUES ({created.Id}, 1, {created.LastUsed}, {created.SsoNonce});");
+
+        // LineLengthCheckEnable
 
         Assert.Equal(1, changes);
 

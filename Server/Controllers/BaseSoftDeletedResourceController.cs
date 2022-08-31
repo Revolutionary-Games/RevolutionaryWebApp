@@ -39,7 +39,8 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
         if (deleted &&
             !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
         {
-            throw new HttpResponseException { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
+            throw new HttpResponseException
+                { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
         }
 
         IQueryable<TModel> query;

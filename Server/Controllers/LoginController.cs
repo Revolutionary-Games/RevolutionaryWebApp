@@ -312,7 +312,8 @@ public class LoginController : SSOLoginController
         // TODO: verify that the client making the request had up to date token
         if (!csrfVerifier.IsValidCSRFToken(csrf, existingSession?.User))
         {
-            throw new HttpResponseException { Value = "Invalid CSRF token. Please refresh the previous page and try logging in again" };
+            throw new HttpResponseException
+                { Value = "Invalid CSRF token. Please refresh the previous page and try logging in again" };
         }
 
         if (existingSession != null)
@@ -536,7 +537,8 @@ public class LoginController : SSOLoginController
             if (patron == null)
             {
                 return Redirect(QueryHelpers.AddQueryString("/login", "error",
-                    "You aren't a patron of Thrive Game according to our latest information. Please become our patron and try again."));
+                    "You aren't a patron of Thrive Game according to our latest information. " +
+                    "Please become our patron and try again."));
             }
 
             if (patron.Suspended == true)
