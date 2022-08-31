@@ -26,5 +26,5 @@ public class CodeChecks : CodeChecksBase<Program.CheckOptions>
 
     protected override IEnumerable<string> ExtraIgnoredJetbrainsInspectWildcards => new[] { "Server/Migrations/*" };
 
-    protected override string MainSolutionFile => "RevolutionaryGamesCommon.sln";
+    protected override string MainSolutionFile => "ThriveDevCenter.sln";
 }
