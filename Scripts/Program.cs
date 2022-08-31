@@ -14,17 +14,17 @@ public class Program
     }
 
     [Verb("test", HelpText = "Run tests using 'dotnet' command")]
-    public class TestOptions : CheckOptionsBase
+    public class TestOptions : ScriptOptionsBase
     {
     }
 
     [Verb("deploy", HelpText = "Perform site deployment")]
-    public class DeployOptions : CheckOptionsBase
+    public class DeployOptions : ScriptOptionsBase
     {
     }
 
     [Verb("ef", HelpText = "Perform EntityFramework (ef) helper operations")]
-    public class EFOptions : CheckOptionsBase
+    public class EFOptions : ScriptOptionsBase
     {
     }
 
