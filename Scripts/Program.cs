@@ -116,7 +116,7 @@ public class Program
 
     private static int RunClean(CleanOptions opts)
     {
-        _ = opts;
+        CommandLineHelpers.HandleDefaultOptions(opts);
 
         ColourConsole.WriteDebugLine("Running cleaning tool");
 
@@ -154,6 +154,8 @@ public class Program
 
     private static int RunChangesFinding(ChangesOptions opts)
     {
+        CommandLineHelpers.HandleDefaultOptions(opts);
+
         ColourConsole.WriteDebugLine("Running changes finding tool");
 
         return OnlyChangedFileDetector.BuildListOfChangedFiles(opts).Result ? 0 : 1;
