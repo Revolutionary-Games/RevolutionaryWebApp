@@ -31,19 +31,27 @@ public class Program
     {
     }
 
+    public class ChangesOptions : ChangesOptionsBase
+    {
+        [Option('b', "branch", Required = false, Default = "master", HelpText = "The git remote branch name")]
+        public override string RemoteBranch { get; set; } = "master";
+    }
+
     [STAThread]
     public static int Main(string[] args)
     {
         RunFolderChecker.EnsureRightRunningFolder("ThriveDevCenter.sln");
 
         var result = CommandLineHelpers.CreateParser()
-            .ParseArguments<CheckOptions, TestOptions, Deployer.DeployOptions, EFTool.EFOptions, CleanOptions>(args)
+            .ParseArguments<CheckOptions, TestOptions, Deployer.DeployOptions, EFTool.EFOptions, CleanOptions,
+                ChangesOptions>(args)
             .MapResult(
                 (CheckOptions opts) => RunChecks(opts),
                 (TestOptions opts) => RunTests(opts),
                 (Deployer.DeployOptions opts) => RunDeploy(opts),
                 (EFTool.EFOptions opts) => RunEF(opts),
                 (CleanOptions opts) => RunClean(opts),
+                (ChangesOptions opts) => RunChangesFinding(opts),
                 CommandLineHelpers.PrintCommandLineErrors);
 
         ConsoleHelpers.CleanConsoleStateForExit();
@@ -141,5 +149,12 @@ public class Program
         {
             ColourConsole.WriteErrorLine($"Failed to delete a folder ({folder}): {e}");
         }
+    }
+
+    private static int RunChangesFinding(ChangesOptions opts)
+    {
+        ColourConsole.WriteDebugLine("Running changes finding tool");
+
+        return OnlyChangedFileDetector.BuildListOfChangedFiles(opts).Result ? 0 : 1;
     }
 }
