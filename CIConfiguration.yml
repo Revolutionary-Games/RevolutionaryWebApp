@@ -5,10 +5,10 @@ jobs:
     image: thrive/devcenter-ci:v3
     cache:
       loadFrom:
-        - v1-{Branch}-build
-      writeTo: v1-{Branch}-build
+        - v2-{Branch}-build
+      writeTo: v2-{Branch}-build
       system:
-        /root/.nuget: v1-nuget
+        /root/.nuget: v2-nuget
         /root/.cache/ms-playwright: v1-playwright
     steps:
       - run:
@@ -29,10 +29,10 @@ jobs:
     image: thrive/devcenter-ci:v3
     cache:
       loadFrom:
-        - v1-{Branch}-build
-      writeTo: v1-{Branch}-build
+        - v2-{Branch}-build
+      writeTo: v2-{Branch}-build
       system:
-        /root/.nuget: v1-nuget
+        /root/.nuget: v2-nuget
     steps:
       - run:
           name: Build list of changed files
@@ -46,7 +46,10 @@ jobs:
           command: dotnet restore
       - run:
           name: Build with warnings
-          command: ruby check_formatting.rb -c compile
+          command: dotnet run --project Scripts -- check compile
+      - run:
+          name: File based checks
+          command: dotnet run --project Scripts -- check files
       - run:
           name: Jetbrains inspectcode
-          command: ruby check_formatting.rb -c inspectcode
+          command: dotnet run --project Scripts -- check inspectcode
