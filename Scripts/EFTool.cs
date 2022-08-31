@@ -14,9 +14,9 @@ using SharedBase.Utilities;
 
 public class EFTool
 {
-    private const string SERVER_PROJECT_FILE = "Server/ThriveDevCenter.Server.csproj";
-    private const string SERVER_FOLDER = "Server/";
-    private const string DB_CONTEXT = "ApplicationDbContext";
+    public const string SERVER_PROJECT_FILE = "Server/ThriveDevCenter.Server.csproj";
+    public const string SERVER_FOLDER = "Server/";
+    public const string DB_CONTEXT = "ApplicationDbContext";
 
     private readonly Regex aspNetVersionRegex = new(@"Include=""Microsoft\.AspNetCore\..+"" Version=""([0-9.]+)""");
 
