@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Threading;
 using CommandLine;
 using Scripts;
 using ScriptsBase.Models;
@@ -18,28 +17,18 @@ public class Program
     {
     }
 
-    [Verb("deploy", HelpText = "Perform site deployment")]
-    public class DeployOptions : ScriptOptionsBase
-    {
-    }
-
-    [Verb("ef", HelpText = "Perform EntityFramework (ef) helper operations")]
-    public class EFOptions : ScriptOptionsBase
-    {
-    }
-
     [STAThread]
     public static int Main(string[] args)
     {
         RunFolderChecker.EnsureRightRunningFolder("ThriveDevCenter.sln");
 
         var result = CommandLineHelpers.CreateParser()
-            .ParseArguments<CheckOptions, TestOptions, DeployOptions, EFOptions>(args)
+            .ParseArguments<CheckOptions, TestOptions, Deployer.DeployOptions, EFTool.EFOptions>(args)
             .MapResult(
                 (CheckOptions opts) => RunChecks(opts),
                 (TestOptions opts) => RunTests(opts),
-                (DeployOptions opts) => RunDeploy(opts),
-                (EFOptions opts) => RunEF(opts),
+                (Deployer.DeployOptions opts) => RunDeploy(opts),
+                (EFTool.EFOptions opts) => RunEF(opts),
                 CommandLineHelpers.PrintCommandLineErrors);
 
         ConsoleHelpers.CleanConsoleStateForExit();
@@ -70,19 +59,24 @@ public class Program
         return ProcessRunHelpers.RunProcessAsync(new ProcessStartInfo("dotnet", "test"), tokenSource.Token, false)
             .Result.ExitCode;
     }
-    
-    private static int RunDeploy(DeployOptions opts)
+
+    private static int RunDeploy(Deployer.DeployOptions opts)
     {
         CommandLineHelpers.HandleDefaultOptions(opts);
 
-        ColourConsole.WriteInfo("Starting deployment");
+        ColourConsole.WriteDebugLine("Running deployment tool");
 
         var tokenSource = ConsoleHelpers.CreateSimpleConsoleCancellationSource();
 
-        throw new NotImplementedException();
+        var deployer = new Deployer(opts);
+
+        if (deployer.Run(tokenSource.Token).Result)
+            return 0;
+
+        return 2;
     }
-    
-    private static int RunEF(EFOptions opts)
+
+    private static int RunEF(EFTool.EFOptions opts)
     {
         CommandLineHelpers.HandleDefaultOptions(opts);
 
@@ -90,9 +84,11 @@ public class Program
 
         var tokenSource = ConsoleHelpers.CreateSimpleConsoleCancellationSource();
 
-        throw new NotImplementedException();
+        var checker = new EFTool(opts);
 
-        return ProcessRunHelpers.RunProcessAsync(new ProcessStartInfo("dotnet", "test"), tokenSource.Token, false)
-            .Result.ExitCode;
+        if (checker.Run(tokenSource.Token).Result)
+            return 0;
+
+        return 2;
     }
 }

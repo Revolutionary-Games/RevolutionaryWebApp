@@ -99,6 +99,14 @@ now.
 
 ## Running
 
+When cloning this repository, you need to clone
+recursively. Alternatively (and also when submodules are updated) you
+need to run:
+
+```sh
+git submodule update --init --recursive
+```
+
 The server computer needs to the following packages
 aspnetcore-runtime-6.0 (at the time of writing), nginx, and git
 installed. Or you can alternatively have a different proxy
@@ -121,7 +129,7 @@ executes it on a remote server. There's an utility script provided
 that can do it automatically:
 
 ```sh
-ruby ef.rb -m
+dotnet run --project Scripts -- ef -m
 ```
 
 ### Getting an admin account
@@ -232,18 +240,6 @@ pwsh AutomatedUITests/bin/Debug/net6.0/playwright.ps1 install
 
 Most tests can be ran like normal.
 
-However the AutomatedUITests project contains tests that require a
-test server instance to be running. To start that, run in the Server
-folder:
-
-```sh
-dotnet run --launch-profile ThriveDevCenter.Server.Testing
-```
-
-You should then stop the test server once the tests have been ran.
-
-See: https://github.com/dotnet/aspnetcore/issues/4892 for why this is needed
-
 ### Local mail server
 
 You can use mailcatcher to work as a local test email server.
@@ -285,14 +281,9 @@ section.
 
 ## Code checks
 
-The code checks script depends on ruby and a few gems you need to install:
+Code checks can be ran with:
 ```sh
-gem install os colorize json parallel nokogiri
-```
-
-After those are installed you can run the check locally:
-```
-ruby check_formatting.rb
+dotnet run --project Scripts -- check
 ```
 
 ## Deploying
@@ -323,6 +314,11 @@ Edit auto config to have just security upgrades (and enable it):
 ```sh
 emacs /etc/dnf/automatic.conf
 systemctl enable --now dnf-automatic-install.timer
+```
+
+This repository contains a script for deploying:
+```sh
+dotnet run --project Scripts -- deploy --help
 ```
 
 ### Extra tools
