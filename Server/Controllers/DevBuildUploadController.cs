@@ -4,11 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
-using DevCenterCommunication;
+using DevCenterCommunication.Models;
 using Filters;
 using Hangfire;
 using Jobs;
@@ -537,147 +536,5 @@ public class DevBuildUploadController : Controller
             default:
                 throw new ArgumentOutOfRangeException();
         }
-    }
-}
-
-public class DevBuildOfferRequest
-{
-    [Required]
-    [JsonPropertyName("build_hash")]
-    public string BuildHash { get; set; } = string.Empty;
-
-    [Required]
-    [JsonPropertyName("build_platform")]
-    public string BuildPlatform { get; set; } = string.Empty;
-}
-
-public class DevBuildOfferResult
-{
-    [JsonPropertyName("upload")]
-    public bool Upload { get; set; }
-}
-
-public class ObjectOfferRequest
-{
-    [Required]
-    [MaxLength(CommunicationConstants.MAX_DEHYDRATED_OBJECTS_PER_OFFER)]
-    public List<DehydratedObjectRequest> Objects { get; set; } = new();
-}
-
-public class DehydratedObjectIdentification
-{
-    public DehydratedObjectIdentification(string sha3)
-    {
-        Sha3 = sha3;
-    }
-
-    [JsonPropertyName("sha3")]
-    [Required]
-    [MinLength(5)]
-    [MaxLength(100)]
-    public string Sha3 { get; set; }
-}
-
-public class DehydratedObjectRequest : DehydratedObjectIdentification
-{
-    public DehydratedObjectRequest(string sha3, int size) : base(sha3)
-    {
-        Size = size;
-    }
-
-    [Required]
-    [Range(1, CommunicationConstants.MAX_DEHYDRATED_UPLOAD_SIZE)]
-    public int Size { get; set; }
-}
-
-public class DevObjectOfferResult
-{
-    /// <summary>
-    ///   The SHA3s of objects the server wants
-    /// </summary>
-    [JsonPropertyName("upload")]
-    public List<string> Upload { get; set; } = new();
-}
-
-public class DevBuildUploadRequest
-{
-    [Required]
-    [JsonPropertyName("build_hash")]
-    [MinLength(5)]
-    [MaxLength(100)]
-    public string BuildHash { get; set; } = string.Empty;
-
-    [Required]
-    [JsonPropertyName("build_branch")]
-    [MinLength(2)]
-    [MaxLength(100)]
-    public string BuildBranch { get; set; } = string.Empty;
-
-    [Required]
-    [JsonPropertyName("build_platform")]
-    [MaxLength(255)]
-    public string BuildPlatform { get; set; } = string.Empty;
-
-    [Required]
-    [JsonPropertyName("build_size")]
-    [Range(1, CommunicationConstants.MAX_DEV_BUILD_UPLOAD_SIZE)]
-    public int BuildSize { get; set; }
-
-    [Required]
-    [JsonPropertyName("build_zip_hash")]
-    [MinLength(2)]
-    [MaxLength(100)]
-    public string BuildZipHash { get; set; } = string.Empty;
-
-    [Required]
-    [JsonPropertyName("required_objects")]
-    [MaxLength(CommunicationConstants.MAX_DEHYDRATED_OBJECTS_IN_DEV_BUILD)]
-    public List<string> RequiredDehydratedObjects { get; set; } = new();
-}
-
-public class DevBuildUploadResult
-{
-    public DevBuildUploadResult(string uploadUrl, string verifyToken)
-    {
-        UploadUrl = uploadUrl;
-        VerifyToken = verifyToken;
-    }
-
-    [JsonPropertyName("upload_url")]
-    public string UploadUrl { get; set; }
-
-    [JsonPropertyName("verify_token")]
-    public string VerifyToken { get; set; }
-}
-
-public class DehydratedUploadRequest
-{
-    [Required]
-    [MaxLength(CommunicationConstants.MAX_DEHYDRATED_OBJECTS_PER_OFFER)]
-    public List<DehydratedObjectRequest> Objects { get; set; } = new();
-}
-
-public class DehydratedUploadResult
-{
-    [JsonPropertyName("upload")]
-    public List<ObjectToUpload> Upload { get; set; } = new();
-
-    public class ObjectToUpload
-    {
-        public ObjectToUpload(string sha3, string uploadUrl, string verifyToken)
-        {
-            Sha3 = sha3;
-            UploadUrl = uploadUrl;
-            VerifyToken = verifyToken;
-        }
-
-        [JsonPropertyName("sha3")]
-        public string Sha3 { get; set; }
-
-        [JsonPropertyName("upload_url")]
-        public string UploadUrl { get; set; }
-
-        [JsonPropertyName("verify_token")]
-        public string VerifyToken { get; set; }
     }
 }
