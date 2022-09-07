@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Authorization;
+using DevCenterCommunication;
 using Filters;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -218,8 +219,7 @@ public class LauncherController : Controller
     /// </summary>
     [HttpPost("builds")]
     [AuthorizeRoleFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
-    public async Task<ActionResult<DevBuildSearchResults>> GetBuilds(
-        [Required] [FromBody] DevBuildSearchForm request)
+    public async Task<ActionResult<DevBuildSearchResults>> GetBuilds([Required] [FromBody] DevBuildSearchForm request)
     {
         Response.ContentType = "application/json";
 
@@ -506,8 +506,8 @@ public class DevBuildSearchForm
     public int Offset { get; set; } = 0;
 
     [JsonPropertyName("page_size")]
-    [Range(1, AppInfo.MaxPageSizeForBuildSearch)]
-    public int PageSize { get; set; } = AppInfo.MaxPageSizeForBuildSearch;
+    [Range(1, CommunicationConstants.MAX_PAGE_SIZE_FOR_BUILD_SEARCH)]
+    public int PageSize { get; set; } = CommunicationConstants.MAX_PAGE_SIZE_FOR_BUILD_SEARCH;
 }
 
 public class DevBuildHashSearchForm : DevBuildSearchForm
@@ -554,7 +554,7 @@ public class DevBuildDehydratedObjectDownloadRequest
 {
     [Required]
     [JsonPropertyName("objects")]
-    [MaxLength(AppInfo.MaxDehydratedDownloadBatch)]
+    [MaxLength(CommunicationConstants.MAX_DEHYDRATED_DOWNLOAD_BATCH)]
     public List<DehydratedObjectIdentification> Objects { get; set; } = new();
 }
 

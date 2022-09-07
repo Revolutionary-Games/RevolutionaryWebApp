@@ -34,6 +34,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scripts", "Scripts\Scripts.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptsBase", "RevolutionaryGamesCommon\ScriptsBase\ScriptsBase.csproj", "{22574600-7350-4A79-8EB2-9DC09C7CD9D7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevCenterCommunication", "RevolutionaryGamesCommon\DevCenterCommunication\DevCenterCommunication.csproj", "{D782C2EF-CD26-4B8C-9AA5-3805BC940128}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -236,6 +238,18 @@ Global
 		{22574600-7350-4A79-8EB2-9DC09C7CD9D7}.Release|x64.Build.0 = Release|Any CPU
 		{22574600-7350-4A79-8EB2-9DC09C7CD9D7}.Release|x86.ActiveCfg = Release|Any CPU
 		{22574600-7350-4A79-8EB2-9DC09C7CD9D7}.Release|x86.Build.0 = Release|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Debug|x64.Build.0 = Debug|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Debug|x86.Build.0 = Debug|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Release|x64.ActiveCfg = Release|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Release|x64.Build.0 = Release|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Release|x86.ActiveCfg = Release|Any CPU
+		{D782C2EF-CD26-4B8C-9AA5-3805BC940128}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

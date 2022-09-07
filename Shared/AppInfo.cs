@@ -44,11 +44,6 @@ public static class AppInfo
     public const int PartialEmailMatchRevealAfterLenght = 15;
     public const int PartialGithubMatchRevealAfterLenght = 8;
 
-    public const int MaxDehydratedObjectsPerOffer = 100;
-    public const int MaxDehydratedObjectsInDevBuild = 5000;
-    public const int MaxPageSizeForBuildSearch = 100;
-    public const int MaxDehydratedDownloadBatch = 100;
-
     public const int MaxDevBuildDescriptionLength = 4000;
     public const int MinimumDevBuildDescriptionLength = 20;
     public const int MaxDevBuildDescriptionNiceLineLength = 70;
@@ -71,16 +66,6 @@ public static class AppInfo
     ///   Maximum size of a file to upload through LFS
     /// </summary>
     public const long MaxLfsUploadSize = 75 * GlobalConstants.MEBIBYTE;
-
-    /// <summary>
-    ///   Maximum size of a dehydrated file
-    /// </summary>
-    public const long MaxDehydratedUploadSize = 200 * GlobalConstants.MEBIBYTE;
-
-    /// <summary>
-    ///   Maximum size of a devbuild file
-    /// </summary>
-    public const long MaxDevBuildUploadSize = 50 * GlobalConstants.MEBIBYTE;
 
     /// <summary>
     ///   Maximum size of a file uploaded to the general file storage by a client.

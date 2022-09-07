@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using DevCenterCommunication;
 using Filters;
 using Hangfire;
 using Jobs;
@@ -59,8 +60,7 @@ public class DevBuildUploadController : Controller
     ///   Checks if the server wants the specified devbuild
     /// </summary>
     [HttpPost("offer_devbuild")]
-    public async Task<ActionResult<DevBuildOfferResult>> OfferBuild(
-        [Required] [FromBody] DevBuildOfferRequest request)
+    public async Task<ActionResult<DevBuildOfferResult>> OfferBuild([Required] [FromBody] DevBuildOfferRequest request)
     {
         if (!AllowedDevBuildPlatforms.Contains(request.BuildPlatform))
             return BadRequest("Invalid DevBuild platform");
@@ -102,8 +102,7 @@ public class DevBuildUploadController : Controller
     ///   Checks if the server wants any of the specified dehydrated objects
     /// </summary>
     [HttpPost("offer_objects")]
-    public async Task<ActionResult<DevObjectOfferResult>> OfferObjects(
-        [Required] [FromBody] ObjectOfferRequest request)
+    public async Task<ActionResult<DevObjectOfferResult>> OfferObjects([Required] [FromBody] ObjectOfferRequest request)
     {
         var failResult = GetAccessStatus(out _);
         if (failResult != null)
@@ -561,7 +560,7 @@ public class DevBuildOfferResult
 public class ObjectOfferRequest
 {
     [Required]
-    [MaxLength(AppInfo.MaxDehydratedObjectsPerOffer)]
+    [MaxLength(CommunicationConstants.MAX_DEHYDRATED_OBJECTS_PER_OFFER)]
     public List<DehydratedObjectRequest> Objects { get; set; } = new();
 }
 
@@ -587,7 +586,7 @@ public class DehydratedObjectRequest : DehydratedObjectIdentification
     }
 
     [Required]
-    [Range(1, AppInfo.MaxDehydratedUploadSize)]
+    [Range(1, CommunicationConstants.MAX_DEHYDRATED_UPLOAD_SIZE)]
     public int Size { get; set; }
 }
 
@@ -621,7 +620,7 @@ public class DevBuildUploadRequest
 
     [Required]
     [JsonPropertyName("build_size")]
-    [Range(1, AppInfo.MaxDevBuildUploadSize)]
+    [Range(1, CommunicationConstants.MAX_DEV_BUILD_UPLOAD_SIZE)]
     public int BuildSize { get; set; }
 
     [Required]
@@ -632,7 +631,7 @@ public class DevBuildUploadRequest
 
     [Required]
     [JsonPropertyName("required_objects")]
-    [MaxLength(AppInfo.MaxDehydratedObjectsInDevBuild)]
+    [MaxLength(CommunicationConstants.MAX_DEHYDRATED_OBJECTS_IN_DEV_BUILD)]
     public List<string> RequiredDehydratedObjects { get; set; } = new();
 }
 
@@ -654,7 +653,7 @@ public class DevBuildUploadResult
 public class DehydratedUploadRequest
 {
     [Required]
-    [MaxLength(AppInfo.MaxDehydratedObjectsPerOffer)]
+    [MaxLength(CommunicationConstants.MAX_DEHYDRATED_OBJECTS_PER_OFFER)]
     public List<DehydratedObjectRequest> Objects { get; set; } = new();
 }
 
