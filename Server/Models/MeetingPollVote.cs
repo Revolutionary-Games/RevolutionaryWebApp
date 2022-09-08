@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Shared.Converters;
 using Shared.Models;
+using SharedBase.Utilities;
 
 /// <summary>
 ///   Separately stored cast vote on a poll. This is stored separately to add anonymity

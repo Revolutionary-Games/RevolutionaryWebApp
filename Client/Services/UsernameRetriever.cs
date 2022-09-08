@@ -8,8 +8,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using SharedBase.Utilities;
 using ThriveDevCenter.Shared;
-using ThriveDevCenter.Shared.Converters;
 using Utilities;
 
 public class UsernameRetriever
