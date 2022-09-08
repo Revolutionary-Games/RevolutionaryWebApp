@@ -58,8 +58,6 @@ public static class AppInfo
 
     public const int MinNameLengthToLookFor = 2;
 
-    public const int MaximumTokenLength = 10000;
-
     public const int MinimumReportTextSearchLength = 3;
 
     /// <summary>

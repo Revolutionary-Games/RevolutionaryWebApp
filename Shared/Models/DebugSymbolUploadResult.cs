@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared.Models;
 
 using System.ComponentModel.DataAnnotations;
+using DevCenterCommunication;
 
 public class DebugSymbolUploadResult
 {
@@ -8,6 +9,6 @@ public class DebugSymbolUploadResult
     public string UploadUrl { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(AppInfo.MaximumTokenLength)]
+    [MaxLength(CommunicationConstants.MAXIMUM_TOKEN_LENGTH)]
     public string VerifyToken { get; set; } = string.Empty;
 }

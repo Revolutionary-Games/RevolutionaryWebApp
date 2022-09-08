@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Shared.Forms;
 
 using System.ComponentModel.DataAnnotations;
+using DevCenterCommunication;
 using SharedBase.ModelVerifiers;
 
 public class RegistrationFormData
@@ -19,7 +20,7 @@ public class RegistrationFormData
     public string Password { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(AppInfo.MaximumTokenLength)]
+    [MaxLength(CommunicationConstants.MAXIMUM_TOKEN_LENGTH)]
     public string CSRF { get; set; } = string.Empty;
 
     [MaxLength(300)]

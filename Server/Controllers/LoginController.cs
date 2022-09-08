@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Authorization;
+using DevCenterCommunication;
 using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
@@ -767,7 +768,7 @@ public class LoginFormData
     public string Password { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(AppInfo.MaximumTokenLength)]
+    [MaxLength(CommunicationConstants.MAXIMUM_TOKEN_LENGTH)]
     public string CSRF { get; set; } = string.Empty;
 
     public string? ReturnUrl { get; set; }
@@ -780,7 +781,7 @@ public class SsoStartFormData
     public string SsoType { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(AppInfo.MaximumTokenLength)]
+    [MaxLength(CommunicationConstants.MAXIMUM_TOKEN_LENGTH)]
     public string CSRF { get; set; } = string.Empty;
 
     public string? ReturnUrl { get; set; }

@@ -183,6 +183,7 @@ public class DevBuildUploadController : Controller
             else if (await existing.IsUploaded(database))
             {
                 // This is OK result so that the CI doesn't fail in case it ends up with a duplicate build
+                // If this is hit, this will actually fail in CI, but the offer mechanism should prevent this case
                 return Ok("Can't upload a new version of an existing build");
             }
         }
