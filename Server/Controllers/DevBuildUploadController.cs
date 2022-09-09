@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using DevCenterCommunication;
 using DevCenterCommunication.Models;
 using Filters;
 using Hangfire;
@@ -163,7 +164,7 @@ public class DevBuildUploadController : Controller
         {
             if (existing != null)
             {
-                return Unauthorized("Can't upload over an existing build without an access key");
+                return Unauthorized(CommunicationStrings.ERROR_UPLOADING_DEVBUILD_ANONYMOUSLY_OVER_EXISTING);
             }
         }
         else if (existing != null)
