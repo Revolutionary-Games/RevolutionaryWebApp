@@ -1017,221 +1017,127 @@ public class CIExecutor
         return line + "\n";
     }
 
-    private Task<bool> RunWithOutputStreaming(string executable, IEnumerable<string> arguments)
+    private async Task<bool> RunWithOutputStreaming(string executable, IEnumerable<string> arguments)
     {
-        var startInfo = new ProcessStartInfo(executable)
-            { CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };
+        var startInfo = new ProcessStartInfo(executable) { CreateNoWindow = true };
 
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
         }
 
-        var taskCompletionSource = new TaskCompletionSource<bool>();
-
-        var process = new Process
-        {
-            StartInfo = startInfo,
-            EnableRaisingEvents = true,
-        };
-
-        process.Exited += (_, _) =>
-        {
-            int code;
-            try
-            {
-                code = process.ExitCode;
-            }
-            catch (InvalidOperationException e)
-            {
-                Console.WriteLine("Failed to read process result code: {0}", e);
-                code = 1;
-            }
-
-            if (code != 0)
-            {
-                Console.WriteLine("Failed to run: {0}", executable);
-            }
-
-            process.Dispose();
-            taskCompletionSource.SetResult(code == 0);
-        };
-
-        process.OutputDataReceived += (_, args) =>
+        void SendOutputMessage(string line)
         {
             QueueSendMessage(new RealTimeBuildMessage
             {
                 Type = BuildSectionMessageType.BuildOutput,
-                Output = ProcessBuildOutputLine(args.Data ?? string.Empty),
+                Output = ProcessBuildOutputLine(line),
             }).Wait();
-        };
-        process.ErrorDataReceived += (_, args) =>
+        }
+
+        var result = await ProcessRunHelpers.RunProcessWithOutputStreamingAsync(startInfo, CancellationToken.None,
+            SendOutputMessage, SendOutputMessage);
+
+        if (result.ExitCode != 0)
         {
-            if (args.Data == null)
-                return;
+            if (result.ExitCode == ProcessRunHelpers.EXIT_STATUS_UNAVAILABLE)
+                Console.WriteLine("Failed to read process result code");
 
-            QueueSendMessage(new RealTimeBuildMessage
-            {
-                Type = BuildSectionMessageType.BuildOutput,
-                Output = ProcessBuildOutputLine(args.Data),
-            }).Wait();
-        };
+            Console.WriteLine("Failed to run: {0}", executable);
+            return false;
+        }
 
-        if (!process.Start())
-            throw new InvalidOperationException($"Could not start process: {process}");
-
-        ProcessRunHelpers.StartProcessOutputRead(process, CancellationToken.None);
-
-        return taskCompletionSource.Task;
+        return true;
     }
 
     private async Task<bool> RunWithInputAndOutput(List<string> inputLines, string executable,
         IEnumerable<string> arguments)
     {
-        var startInfo = new ProcessStartInfo(executable)
-        {
-            CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true,
-            RedirectStandardInput = true,
-        };
+        var startInfo = new ProcessStartInfo(executable) { CreateNoWindow = true };
 
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
         }
 
-        var taskCompletionSource = new TaskCompletionSource<bool>();
-
-        var process = new Process
+        void JustSendOutputMessage(string line)
         {
-            StartInfo = startInfo,
-            EnableRaisingEvents = true,
-        };
-
-        process.Exited += (_, _) =>
-        {
-            int code;
-            try
-            {
-                code = process.ExitCode;
-            }
-            catch (InvalidOperationException e)
-            {
-                Console.WriteLine("Failed to read process result code: {0}", e);
-                code = 1;
-            }
-
-            if (code != 0)
-            {
-                Console.WriteLine("Failed to run (with input): {0}", executable);
-            }
-
-            try
-            {
-                process.Dispose();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Failed to dispose the process object: {0}", e);
-            }
-
-            taskCompletionSource.SetResult(code == 0);
-        };
-
-        process.OutputDataReceived += (_, args) =>
-        {
-            if (args.Data == null)
-                return;
-
-            if (args.Data.StartsWith(OutputSpecialCommandMarker))
-            {
-                // A special command
-                var parts = args.Data.Split(' ');
-
-                switch (parts[1])
-                {
-                    case "SectionEnd":
-                    {
-                        var success = Convert.ToInt32(parts[2]) == 0;
-
-                        QueueSendMessage(new RealTimeBuildMessage
-                        {
-                            Type = BuildSectionMessageType.SectionEnd,
-                            WasSuccessful = success,
-                        }).Wait();
-
-                        if (!success)
-                            buildCommandsFailed = true;
-
-                        lastSectionClosed = true;
-                        break;
-                    }
-                    case "SectionStart":
-                    {
-                        QueueSendMessage(new RealTimeBuildMessage
-                        {
-                            Type = BuildSectionMessageType.SectionStart,
-                            SectionName = string.Join(' ', parts.Skip(2)),
-                        }).Wait();
-                        lastSectionClosed = false;
-
-                        break;
-                    }
-                    default:
-                    {
-                        EndSectionWithFailure("Unknown special command received from build process").Wait();
-                        break;
-                    }
-                }
-            }
-            else if (args.Data != null)
-            {
-                // Normal output
-                QueueSendMessage(new RealTimeBuildMessage
-                {
-                    Type = BuildSectionMessageType.BuildOutput,
-                    Output = ProcessBuildOutputLine(args.Data),
-                }).Wait();
-            }
-        };
-        process.ErrorDataReceived += (_, args) =>
-        {
-            if (args.Data == null)
-                return;
-
             QueueSendMessage(new RealTimeBuildMessage
             {
                 Type = BuildSectionMessageType.BuildOutput,
-                Output = ProcessBuildOutputLine(args.Data),
+                Output = ProcessBuildOutputLine(line),
             }).Wait();
-        };
+        }
 
-        if (!process.Start())
-            throw new InvalidOperationException($"Could not start process: {process}");
-
-        ProcessRunHelpers.StartProcessOutputRead(process, CancellationToken.None);
-
-        foreach (var line in inputLines)
+        void HandleOutputLine(string line)
         {
-            if (process.HasExited)
+            if (!line.StartsWith(OutputSpecialCommandMarker))
             {
-                Console.WriteLine("Process exited before all input lines were written");
-                break;
+                // Normal output
+                JustSendOutputMessage(line);
+                return;
             }
 
-            await process.StandardInput.WriteLineAsync(line);
+            // A special command
+            // TODO: could refactor this to split at most into 3 parts as the last part can be arbitrary text we
+            // don't need to parse
+            var parts = line.Split(' ');
+
+            switch (parts[1])
+            {
+                case "SectionEnd":
+                {
+                    var success = Convert.ToInt32(parts[2]) == 0;
+
+                    QueueSendMessage(new RealTimeBuildMessage
+                    {
+                        Type = BuildSectionMessageType.SectionEnd,
+                        WasSuccessful = success,
+                    }).Wait();
+
+                    if (!success)
+                        buildCommandsFailed = true;
+
+                    lastSectionClosed = true;
+                    break;
+                }
+                case "SectionStart":
+                {
+                    QueueSendMessage(new RealTimeBuildMessage
+                    {
+                        Type = BuildSectionMessageType.SectionStart,
+                        SectionName = string.Join(' ', parts.Skip(2)),
+                    }).Wait();
+                    lastSectionClosed = false;
+
+                    break;
+                }
+                default:
+                {
+                    EndSectionWithFailure("Unknown special command received from build process").Wait();
+                    break;
+                }
+            }
         }
 
-        Console.WriteLine("All standard input lines written");
+        var result = await ProcessRunHelpers.RunProcessWithStdInAndOutputStreamingAsync(startInfo,
+            CancellationToken.None, inputLines, HandleOutputLine, JustSendOutputMessage);
 
-        try
+        if (!result.AllInputLinesWritten)
+            Console.WriteLine("Process exited before all input lines were written");
+
+        if (result.ErrorInInputLineClosing)
+            Console.WriteLine("Failed to close input stream after writing input");
+
+        if (result.ExitCode != 0)
         {
-            process.StandardInput.Close();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("Failed to close input stream after writing input: {0}", e);
+            if (result.ExitCode == ProcessRunHelpers.EXIT_STATUS_UNAVAILABLE)
+                Console.WriteLine("Failed to read process result code");
+
+            Console.WriteLine("Failed to run: {0}", executable);
+            return false;
         }
 
-        return await taskCompletionSource.Task;
+        return true;
     }
 }
