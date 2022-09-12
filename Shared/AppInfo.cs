@@ -85,8 +85,6 @@ public static class AppInfo
     public const long MaxCrashDumpUploadSize = GlobalConstants.MEBIBYTE * 9;
     public const long MaxCrashLogsLength = GlobalConstants.MEBIBYTE * 5;
 
-    public const long MaxDebugSymbolSize = GlobalConstants.MEBIBYTE * 500;
-
     public const int MaxBuildOutputLineLength = 4000;
 
     public const int MaxBulkEmailsPerInterval = 4;
@@ -131,8 +129,6 @@ public static class AppInfo
     public const int DefaultDatabaseUpdateFailureAttempts = 100;
 
     public const int UsernameRetrieveBatchSize = 50;
-
-    public const int MaxDebugSymbolOfferBatch = 50;
 
     /// <summary>
     ///   Maximum size of our normal caches combined across all controllers (in bytes)
