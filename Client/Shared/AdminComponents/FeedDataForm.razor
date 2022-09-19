@@ -196,7 +196,8 @@
 
         EditedData.PreprocessingActions ??= new List<FeedPreprocessingAction>();
 
-        EditedData.PreprocessingActions.Add((FeedPreprocessingAction)result.Data);
+        EditedData.PreprocessingActions.Add((FeedPreprocessingAction?)result.Data ??
+            throw new Exception("Form didn't return data"));
 
         await InvokeAsync(StateHasChanged);
     }
