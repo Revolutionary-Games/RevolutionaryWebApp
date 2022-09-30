@@ -53,3 +53,16 @@ jobs:
       - run:
           name: Jetbrains inspectcode
           command: dotnet run --project Scripts -- check inspectcode
+      - run:
+          when: always
+          name: Check cleanup changes
+          command: |
+            git diff > cleanup_diff.patch
+            if grep -q '[^[:space:]]' < cleanup_diff.patch; then
+                echo "Code cleanup found things to be fixed:"
+                cat cleanup_diff.patch
+                exit 1
+            else
+                echo "No changes made"
+                rm -f cleanup_diff.patch
+            fi
