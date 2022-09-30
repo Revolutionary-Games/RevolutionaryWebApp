@@ -47,12 +47,12 @@ public class LauncherInfoController : Controller
     public async Task<ActionResult<Stream>> GetInfoForLauncher()
     {
         var info = new LauncherThriveInformation(new LauncherVersionInfo("2.0.0"), 26,
-            new List<ThriveVersionLauncherInfo>()
+            new List<ThriveVersionLauncherInfo>
             {
-                new(26, "0.5.10", new Dictionary<PackagePlatform, DownloadableInfo>()
+                new(26, "0.5.10", new Dictionary<PackagePlatform, DownloadableInfo>
                 {
                     {
-                        PackagePlatform.Linux, new DownloadableInfo("1234", new Dictionary<string, Uri>()
+                        PackagePlatform.Linux, new DownloadableInfo("1234", new Dictionary<string, Uri>
                         {
                             {
                                 "github",
@@ -62,7 +62,7 @@ public class LauncherInfoController : Controller
                         })
                     },
                 }),
-            }, new Dictionary<string, DownloadMirrorInfo>()
+            }, new Dictionary<string, DownloadMirrorInfo>
             {
                 { "github", new DownloadMirrorInfo(new Uri("https://github.com"), "Github") },
             });
