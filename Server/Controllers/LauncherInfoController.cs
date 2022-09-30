@@ -57,7 +57,8 @@ public class LauncherInfoController : Controller
                             {
                                 "github",
                                 new Uri(
-                                    "https://github.com/Revolutionary-Games/Thrive/releases/download/v0.5.9/Thrive_0.5.9.0_linux_x11.7z")
+                                    "https://github.com/Revolutionary-Games/Thrive/releases/download/v0.5.9/" +
+                                    "Thrive_0.5.9.0_linux_x11.7z")
                             },
                         })
                     },
