@@ -52,17 +52,21 @@ public class LauncherInfoController : Controller
                 new(26, "0.5.10", new Dictionary<PackagePlatform, DownloadableInfo>
                 {
                     {
-                        PackagePlatform.Linux, new DownloadableInfo("1234", new Dictionary<string, Uri>
-                        {
+                        PackagePlatform.Linux, new DownloadableInfo("1234", "Thrive_0.5.9.0_linux_x11",
+                            new Dictionary<string, Uri>
                             {
-                                "github",
-                                new Uri(
-                                    "https://github.com/Revolutionary-Games/Thrive/releases/download/v0.5.9/" +
-                                    "Thrive_0.5.9.0_linux_x11.7z")
-                            },
-                        })
+                                {
+                                    "github",
+                                    new Uri(
+                                        "https://github.com/Revolutionary-Games/Thrive/releases/download/v0.5.9/" +
+                                        "Thrive_0.5.9.0_linux_x11.7z")
+                                },
+                            })
                     },
-                }),
+                })
+                {
+                    Stable = true,
+                },
             }, new Dictionary<string, DownloadMirrorInfo>
             {
                 { "github", new DownloadMirrorInfo(new Uri("https://github.com"), "Github") },
