@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System.Net;
 using System.Text.Json.Serialization;
+using DevCenterCommunication.Models;
 using SharedBase.Converters;
 
 public class SessionDTO : ClientSideTimedModel

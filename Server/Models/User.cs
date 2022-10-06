@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Security.Principal;
 using System.Threading;
+using DevCenterCommunication.Models;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Identity;

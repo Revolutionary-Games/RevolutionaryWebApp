@@ -2,12 +2,12 @@ namespace ThriveDevCenter.Server.Jobs;
 
 using System.Threading;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
-using Shared.Models;
 
 [DisableConcurrentExecution(60)]
 public class CheckPullRequestStatusJob

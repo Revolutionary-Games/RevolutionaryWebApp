@@ -1,14 +1,10 @@
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Authorization;
-using DevCenterCommunication;
 using DevCenterCommunication.Models;
 using Filters;
 using Microsoft.AspNetCore.Http;
@@ -19,7 +15,6 @@ using Models;
 using Services;
 using Shared;
 using Shared.Models;
-using SharedBase.Converters;
 using Utilities;
 
 [ApiController]
@@ -45,6 +40,7 @@ public class LauncherController : Controller
     public async Task<ActionResult<LauncherConnectionStatus>> CheckNewLinkCode(
         [Required] LauncherLinkCodeCheckForm request)
     {
+        // TODO: remove the content types specified in this file
         Response.ContentType = "application/json";
         var user = await GetUserForNewLink(request.Code);
 
@@ -432,148 +428,5 @@ public class LauncherController : Controller
 
         return new DehydratedObjectDownloads.DehydratedObjectDownload(sha3,
             remoteDownloads.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime));
-    }
-}
-
-public class LauncherLinkCodeCheckForm
-{
-    [Required]
-    [MaxLength(200)]
-    public string Code { get; set; } = string.Empty;
-}
-
-public class LauncherLinkResult
-{
-    public LauncherLinkResult(bool connected, string code)
-    {
-        Connected = connected;
-        Code = code;
-    }
-
-    [JsonPropertyName("connected")]
-    public bool Connected { get; set; }
-
-    [Required]
-    [JsonPropertyName("code")]
-    public string Code { get; set; }
-}
-
-public class LauncherConnectionStatus
-{
-    [JsonPropertyName("valid")]
-    public bool Valid { get; set; }
-
-    [JsonPropertyName("username")]
-    public string? Username { get; set; }
-
-    [JsonPropertyName("email")]
-    public string? Email { get; set; }
-
-    [JsonPropertyName("developer")]
-    public bool Developer { get; set; }
-}
-
-public class LauncherUnlinkResult
-{
-    [JsonPropertyName("success")]
-    public bool Success { get; set; }
-}
-
-public class DevBuildDownload
-{
-    public DevBuildDownload(string downloadUrl, string downloadHash)
-    {
-        DownloadUrl = downloadUrl;
-        DownloadHash = downloadHash;
-    }
-
-    [Required]
-    [JsonPropertyName("download_url")]
-    public string DownloadUrl { get; set; }
-
-    [Required]
-    [JsonPropertyName("dl_hash")]
-    public string DownloadHash { get; set; }
-}
-
-public class DevBuildSearchForm
-{
-    [JsonPropertyName("platform")]
-    [MaxLength(200)]
-    public string? Platform { get; set; }
-
-    [JsonPropertyName("offset")]
-    [Range(0, int.MaxValue)]
-    public int Offset { get; set; } = 0;
-
-    [JsonPropertyName("page_size")]
-    [Range(1, CommunicationConstants.MAX_PAGE_SIZE_FOR_BUILD_SEARCH)]
-    public int PageSize { get; set; } = CommunicationConstants.MAX_PAGE_SIZE_FOR_BUILD_SEARCH;
-}
-
-public class DevBuildHashSearchForm : DevBuildSearchForm
-{
-    [Required]
-    [JsonPropertyName("devbuild_hash")]
-    [MaxLength(200)]
-    public string BuildHash { get; set; } = string.Empty;
-}
-
-public class DevBuildFindByTypeForm
-{
-    [JsonPropertyName("type")]
-    [Required]
-    public BuildType Type { get; set; }
-
-    [JsonPropertyName("platform")]
-    [MaxLength(200)]
-    [Required]
-    public string Platform { get; set; } = string.Empty;
-
-    [JsonConverter(typeof(ActualEnumStringConverter))]
-    public enum BuildType
-    {
-        [EnumMember(Value = "botd")]
-        BuildOfTheDay,
-
-        [EnumMember(Value = "latest")]
-        Latest,
-    }
-}
-
-public class DevBuildSearchResults
-{
-    [Required]
-    [JsonPropertyName("result")]
-    public List<DevBuildLauncherDTO> Result { get; set; } = new();
-
-    [JsonPropertyName("next_offset")]
-    public int? NextOffset { get; set; }
-}
-
-public class DevBuildDehydratedObjectDownloadRequest
-{
-    [Required]
-    [JsonPropertyName("objects")]
-    [MaxLength(CommunicationConstants.MAX_DEHYDRATED_DOWNLOAD_BATCH)]
-    public List<DehydratedObjectIdentification> Objects { get; set; } = new();
-}
-
-public class DehydratedObjectDownloads
-{
-    [Required]
-    [JsonPropertyName("downloads")]
-    public List<DehydratedObjectDownload> Downloads { get; set; } = new();
-
-    public class DehydratedObjectDownload : DehydratedObjectIdentification
-    {
-        public DehydratedObjectDownload(string sha3, string downloadUrl) : base(sha3)
-        {
-            DownloadUrl = downloadUrl;
-        }
-
-        [Required]
-        [JsonPropertyName("download_url")]
-        public string DownloadUrl { get; set; }
     }
 }

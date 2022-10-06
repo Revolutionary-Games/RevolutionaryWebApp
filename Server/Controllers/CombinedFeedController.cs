@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
+using DevCenterCommunication.Models;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

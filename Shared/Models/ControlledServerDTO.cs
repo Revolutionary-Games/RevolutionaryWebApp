@@ -4,6 +4,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json.Serialization;
+using DevCenterCommunication.Models;
 using SharedBase.Converters;
 
 public class ControlledServerDTO : ClientSideTimedModel

@@ -1,5 +1,7 @@
 namespace ThriveDevCenter.Shared.Models;
 
+using DevCenterCommunication.Models;
+
 public class StorageItemVersionInfo : ClientSideTimedModel
 {
     public int Version { get; set; }

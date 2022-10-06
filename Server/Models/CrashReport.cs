@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Net;
 using System.Text.Json.Serialization;
+using DevCenterCommunication.Models;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;

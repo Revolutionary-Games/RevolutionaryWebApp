@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Amazon.S3.Model;
 using Authorization;
 using BlazorPagination;
+using DevCenterCommunication.Models;
 using Filters;
 using Hangfire;
 using Jobs;

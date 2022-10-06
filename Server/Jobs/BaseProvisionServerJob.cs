@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Jobs;
 using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
 using Microsoft.Extensions.Logging;
 using Models;
 using Renci.SshNet.Common;

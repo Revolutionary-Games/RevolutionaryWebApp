@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Authorization;
 using DevCenterCommunication;
+using DevCenterCommunication.Models;
 using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Http;

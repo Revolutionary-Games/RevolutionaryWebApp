@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System;
 using System.Text.Json.Serialization;
+using DevCenterCommunication.Models;
 
 public class MeetingMemberInfo : IIdentifiable
 {

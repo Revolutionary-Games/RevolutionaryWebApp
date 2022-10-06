@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Shared.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using DevCenterCommunication.Models;
 
 public class CIJobOutputSectionInfo : IIdentifiable
 {

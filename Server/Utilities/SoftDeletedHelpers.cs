@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Utilities;
 
+using DevCenterCommunication.Models;
 using Shared.Models;
 
 public static class SoftDeletedHelpers

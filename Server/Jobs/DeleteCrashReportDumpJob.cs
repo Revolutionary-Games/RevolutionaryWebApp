@@ -3,10 +3,10 @@ namespace ThriveDevCenter.Server.Jobs;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
-using Shared.Models;
 using Utilities;
 
 public class DeleteCrashReportDumpJob

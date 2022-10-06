@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;

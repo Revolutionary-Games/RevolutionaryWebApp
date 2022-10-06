@@ -3,11 +3,11 @@ namespace ThriveDevCenter.Server.Jobs;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
-using Shared.Models;
 
 public class ProvisionExternalServerJob : BaseProvisionServerJob
 {

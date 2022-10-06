@@ -1,9 +1,9 @@
 namespace ThriveDevCenter.Client.Shared;
 
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
 using ThriveDevCenter.Shared;
-using ThriveDevCenter.Shared.Models;
 using ThriveDevCenter.Shared.Utilities;
 
 public abstract class BaseFileBrowser<T> : PaginatedPage<T>

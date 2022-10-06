@@ -1,8 +1,8 @@
 namespace ThriveDevCenter.Server.Models;
 
 using System.ComponentModel.DataAnnotations;
+using DevCenterCommunication.Models;
 using Shared;
-using Shared.Models;
 
 public abstract class BaseModel : IIdentifiable
 {

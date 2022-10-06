@@ -4,13 +4,13 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
-using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 

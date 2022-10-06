@@ -4,6 +4,7 @@ using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Net;
 using System.Text.Json.Serialization;
+using DevCenterCommunication.Models;
 using Shared;
 using Shared.Models;
 using SharedBase.Converters;

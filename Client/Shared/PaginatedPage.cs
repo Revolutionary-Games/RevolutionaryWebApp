@@ -5,8 +5,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 using BlazorPagination;
+using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
-using ThriveDevCenter.Shared.Models;
 using ThriveDevCenter.Shared.Notifications;
 
 /// <summary>

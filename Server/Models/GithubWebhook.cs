@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 using Authorization;
+using DevCenterCommunication.Models;
 using Shared.Models;
 using Utilities;
 

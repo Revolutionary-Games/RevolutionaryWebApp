@@ -13,13 +13,13 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Util;
+using DevCenterCommunication.Models;
 using Filters;
 using ICSharpCode.SharpZipLib.GZip;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using SHA3.Net;
-using Shared.Models;
 using Utilities;
 
 public abstract class BaseRemoteStorage : IBaseRemoteStorage

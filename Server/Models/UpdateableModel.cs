@@ -1,8 +1,8 @@
 namespace ThriveDevCenter.Server.Models;
 
 using System;
+using DevCenterCommunication.Models;
 using Shared;
-using Shared.Models;
 
 public class UpdateableModel : ModelWithCreationTime, ITimestampedModel
 {

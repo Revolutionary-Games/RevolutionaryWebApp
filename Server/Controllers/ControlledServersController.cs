@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Amazon.EC2.Model;
 using Authorization;
 using BlazorPagination;
+using DevCenterCommunication.Models;
 using Filters;
 using Hangfire;
 using Jobs;
