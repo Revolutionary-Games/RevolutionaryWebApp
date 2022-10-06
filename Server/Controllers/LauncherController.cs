@@ -17,6 +17,9 @@ using Shared;
 using Shared.Models;
 using Utilities;
 
+/// <summary>
+///   Handles serving the launcher requests API
+/// </summary>
 [ApiController]
 [Route("api/v1/launcher")]
 public class LauncherController : Controller
@@ -44,13 +47,8 @@ public class LauncherController : Controller
         Response.ContentType = "application/json";
         var user = await GetUserForNewLink(request.Code);
 
-        return new LauncherConnectionStatus
-        {
-            Valid = true,
-            Username = user.UserName ?? user.Email,
-            Email = user.Email,
-            Developer = user.HasAccessLevel(UserAccessLevel.Developer),
-        };
+        return new LauncherConnectionStatus(user.UserName ?? user.Email, user.Email,
+            user.HasAccessLevel(UserAccessLevel.Developer));
     }
 
     [HttpPost("link")]
@@ -100,13 +98,8 @@ public class LauncherController : Controller
         Response.ContentType = "application/json";
         var user = HttpContext.AuthenticatedUser()!;
 
-        return new LauncherConnectionStatus
-        {
-            Valid = true,
-            Username = user.UserName ?? user.Email,
-            Email = user.Email,
-            Developer = user.HasAccessLevel(UserAccessLevel.Developer),
-        };
+        return new LauncherConnectionStatus(user.UserName ?? user.Email, user.Email,
+            user.HasAccessLevel(UserAccessLevel.Developer));
     }
 
     [HttpDelete("status")]
