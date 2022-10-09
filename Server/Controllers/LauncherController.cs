@@ -353,7 +353,7 @@ public class LauncherController : Controller
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = new BasicJSONErrorResult("Invalid code",
-                    "Invalid authorization code or it has expired").ToString(),
+                    "Invalid authorization code or it has expired"),
             };
         }
 
@@ -363,7 +363,7 @@ public class LauncherController : Controller
             {
                 Status = StatusCodes.Status403Forbidden,
                 Value = new BasicJSONErrorResult("Restricted account",
-                    "Your account is not allowed to create launcher links").ToString(),
+                    "Your account is not allowed to create launcher links"),
             };
         }
 
@@ -373,7 +373,7 @@ public class LauncherController : Controller
             {
                 Status = StatusCodes.Status400BadRequest,
                 Value = new BasicJSONErrorResult("Too many links",
-                    "You have already linked the maximum number of launchers to your account").ToString(),
+                    "You have already linked the maximum number of launchers to your account"),
             };
         }
 
