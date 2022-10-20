@@ -1,12 +1,12 @@
 @page "/lfs"
 @inject HttpClient Http
 @inject NavigationManager NavManager
-@inject IJSRuntime JS
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
+@using SharedBase.Utilities
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LFSListUpdated>
