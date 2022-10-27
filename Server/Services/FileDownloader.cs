@@ -19,7 +19,7 @@ public class FileDownloader : IFileDownloader
 
     public async Task DownloadFile(string url, string file, CancellationToken cancellationToken)
     {
-        var response = await httpClient.GetAsync(url, cancellationToken);
+        var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 

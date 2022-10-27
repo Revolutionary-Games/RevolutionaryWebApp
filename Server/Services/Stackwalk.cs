@@ -73,6 +73,9 @@ public class Stackwalk : IStackwalk
         using var form = new MultipartFormDataContent();
 
         form.Add(new StreamContent(dumpContent), "file", "file");
+
+        // Note that due to using POST here we can't use HttpCompletionOption.ResponseHeadersRead so we just need to
+        // deal with the fact that the response up to a few megabytes gets buffered here
         var response = await httpClient.PostAsync(url, form, cancellationToken);
 
         if (response.StatusCode != HttpStatusCode.OK)

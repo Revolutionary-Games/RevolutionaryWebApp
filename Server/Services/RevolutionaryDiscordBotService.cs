@@ -878,7 +878,7 @@ public class RevolutionaryDiscordBotService
     {
         var httpClient = httpClientFactory.CreateClient();
 
-        var response = await httpClient.GetAsync(url);
+        var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStreamAsync();
@@ -893,7 +893,7 @@ public class RevolutionaryDiscordBotService
     {
         var httpClient = httpClientFactory.CreateClient();
 
-        var response = await httpClient.GetAsync(url);
+        var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStreamAsync();
@@ -905,7 +905,7 @@ public class RevolutionaryDiscordBotService
     {
         var httpClient = httpClientFactory.CreateClient();
 
-        var response = await httpClient.GetAsync(url);
+        var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStreamAsync();

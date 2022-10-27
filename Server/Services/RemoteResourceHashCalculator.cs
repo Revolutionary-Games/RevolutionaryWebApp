@@ -44,7 +44,7 @@ public class RemoteResourceHashCalculator : IRemoteResourceHashCalculator
     private async Task<string> ComputeSha256Of(Uri url, CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient();
-        var response = await client.GetAsync(url, cancellationToken);
+        var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
         return Convert.ToHexString(await SHA256.Create()
                 .ComputeHashAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken))
