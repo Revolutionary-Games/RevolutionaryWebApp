@@ -71,3 +71,37 @@ public class FeedUpdated : ModelUpdated<FeedDTO>
 public class CombinedFeedUpdated : ModelUpdated<CombinedFeedDTO>
 {
 }
+
+public class LauncherDownloadMirrorUpdated : ModelUpdated<LauncherDownloadMirrorDTO>
+{
+}
+
+public class LauncherLauncherVersionUpdated : ModelUpdated<LauncherLauncherVersionDTO>
+{
+}
+
+public class LauncherVersionAutoUpdateChannelUpdated : ModelUpdated<LauncherVersionAutoUpdateChannelDTO>
+{
+}
+
+/// <summary>
+///   Not currently used, but there's commented out code in the model to set this up
+/// </summary>
+public class LauncherVersionDownloadUpdated : ModelUpdated<LauncherVersionDownloadDTO>
+{
+}
+
+public class LauncherThriveVersionUpdated : ModelUpdated<LauncherThriveVersionDTO>
+{
+}
+
+public class LauncherThriveVersionPlatformUpdated : ModelUpdated<LauncherThriveVersionPlatformDTO>
+{
+}
+
+/// <summary>
+///   Not currently used
+/// </summary>
+public class LauncherThriveVersionDownloadUpdated : ModelUpdated<LauncherThriveVersionDownloadDTO>
+{
+}

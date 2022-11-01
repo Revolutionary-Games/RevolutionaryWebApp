@@ -87,6 +87,29 @@ public static class NotificationGroups
     public const string CombinedFeedListUpdated = "CombinedFeeds";
     public const string CombinedFeedUpdatedPrefix = "SCombinedFeed_";
 
+    // Launcher info modification models
+    public const string LauncherDownloadMirrorListUpdated = "LaunchMirrors";
+    public const string LauncherDownloadMirrorUpdatedPrefix = "SLaunchMirror_";
+
+    public const string LauncherLauncherVersionListUpdated = "LaunchVersions";
+    public const string LauncherLauncherVersionUpdatedPrefix = "SLaunchVersion_";
+    public const string LauncherLauncherVersionUpdateChannelListUpdatedPrefix = "SLaunchVersionUpdateChannels_";
+    public const string LauncherLauncherVersionUpdateChannelUpdatedPrefix = "SLaunchVersionUpdateChannel_";
+
+    public const string LauncherLauncherVersionUpdateChannelDownloadsListUpdatedPrefix =
+        "SLaunchVersionUpdateChannelDownloads_";
+
+    // public const string LauncherLauncherVersionUpdateChannelDownloadUpdatedPrefix =
+    //     "SLaunchVersionUpdateChannelDownloads_";
+
+    public const string LauncherThriveVersionListUpdated = "LaunchThrives";
+    public const string LauncherThriveVersionUpdatedPrefix = "SLaunchThrive_";
+    public const string LauncherThriveVersionPlatformListUpdatedPrefix = "SLaunchThrivePlatforms_";
+    public const string LauncherThriveVersionPlatformUpdatedPrefix = "SLaunchThrivePlatform_";
+    public const string LauncherThriveVersionPlatformDownloadsListUpdatedPrefix = "SLaunchThrivePlatformDownloads_";
+
+    // public const string LauncherThriveVersionPlatformDownloadUpdatedPrefix = "SLaunchThrivePlatformDownload_";
+
     /// <summary>
     ///   The client doesn't know their session ID so this is used as-is on the client but with a suffix on the
     ///   server side

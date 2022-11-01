@@ -67,6 +67,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<FeedDiscordWebhook> FeedDiscordWebhooks { get; set; } = null!;
     public DbSet<SeenFeedItem> SeenFeedItems { get; set; } = null!;
     public DbSet<CombinedFeed> CombinedFeeds { get; set; } = null!;
+    public DbSet<LauncherDownloadMirror> LauncherDownloadMirrors { get; set; } = null!;
+    public DbSet<LauncherLauncherVersion> LauncherLauncherVersions { get; set; } = null!;
+    public DbSet<LauncherVersionAutoUpdateChannel> LauncherVersionAutoUpdateChannels { get; set; } = null!;
+    public DbSet<LauncherVersionDownload> LauncherVersionDownloads { get; set; } = null!;
+    public DbSet<LauncherThriveVersion> LauncherThriveVersions { get; set; } = null!;
+    public DbSet<LauncherThriveVersionPlatform> LauncherThriveVersionPlatforms { get; set; } = null!;
+    public DbSet<LauncherThriveVersionDownload> LauncherThriveVersionDownloads { get; set; } = null!;
 
     /// <summary>
     ///   If non-null this will be used to send model update notifications on save
@@ -500,6 +507,56 @@ public class ApplicationDbContext : DbContext
         {
             entity.UseXminAsConcurrencyToken();
             entity.HasMany(d => d.CombinedFromFeeds).WithMany(p => p.CombinedInto);
+        });
+
+        // Start of launcher info models, first the mirrors
+        modelBuilder.Entity<LauncherDownloadMirror>(entity =>
+        {
+            entity.HasMany(p => p.LauncherVersionDownloads).WithOne(d => d.Mirror)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(p => p.ThriveVersionDownloads).WithOne(d => d.Mirror)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Launcher downloads
+        modelBuilder.Entity<LauncherLauncherVersion>(entity =>
+        {
+            entity.HasMany(p => p.AutoUpdateDownloads).WithOne(d => d.Version).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LauncherVersionAutoUpdateChannel>(entity =>
+        {
+            entity.HasKey(nameof(LauncherVersionAutoUpdateChannel.VersionId),
+                nameof(LauncherVersionAutoUpdateChannel.Channel));
+
+            entity.HasMany(p => p.Mirrors).WithOne(d => d.UpdateChannel).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LauncherVersionDownload>(entity =>
+        {
+            entity.HasKey(nameof(LauncherVersionDownload.VersionId),
+                nameof(LauncherVersionDownload.Channel), nameof(LauncherVersionDownload.MirrorId));
+        });
+
+        // Thrive downloads
+        modelBuilder.Entity<LauncherThriveVersion>(entity =>
+        {
+            entity.HasMany(p => p.Platforms).WithOne(d => d.Version).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LauncherThriveVersionPlatform>(entity =>
+        {
+            entity.HasKey(nameof(LauncherThriveVersionPlatform.VersionId),
+                nameof(LauncherThriveVersionPlatform.Platform));
+
+            entity.HasMany(p => p.Mirrors).WithOne(d => d.PartOfPlatform).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LauncherThriveVersionDownload>(entity =>
+        {
+            entity.HasKey(nameof(LauncherThriveVersionDownload.VersionId),
+                nameof(LauncherThriveVersionDownload.Platform), nameof(LauncherThriveVersionDownload.MirrorId));
         });
     }
 

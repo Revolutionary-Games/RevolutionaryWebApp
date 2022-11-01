@@ -248,6 +248,9 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.RepoForReleaseStatsListUpdated:
             case NotificationGroups.FeedListUpdated:
             case NotificationGroups.CombinedFeedListUpdated:
+            case NotificationGroups.LauncherDownloadMirrorListUpdated:
+            case NotificationGroups.LauncherLauncherVersionListUpdated:
+            case NotificationGroups.LauncherThriveVersionListUpdated:
                 return RequireAccessLevel(UserAccessLevel.Admin, user);
             case NotificationGroups.PrivateLFSUpdated:
             case NotificationGroups.PrivateCIProjectUpdated:
@@ -520,6 +523,50 @@ public class NotificationsHub : Hub<INotifications>
         if (groupName.StartsWith(NotificationGroups.CombinedFeedUpdatedPrefix))
         {
             if (!GetTargetModelFromGroup(groupName, database.CombinedFeeds, out _))
+                return false;
+
+            return RequireAccessLevel(UserAccessLevel.Admin, user);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.LauncherDownloadMirrorUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroup(groupName, database.LauncherDownloadMirrors, out _))
+                return false;
+
+            return RequireAccessLevel(UserAccessLevel.Admin, user);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.LauncherLauncherVersionUpdatedPrefix) ||
+            groupName.StartsWith(NotificationGroups.LauncherLauncherVersionUpdateChannelListUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroup(groupName, database.LauncherLauncherVersions, out _))
+                return false;
+
+            return RequireAccessLevel(UserAccessLevel.Admin, user);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.LauncherLauncherVersionUpdateChannelUpdatedPrefix) ||
+            groupName.StartsWith(NotificationGroups.LauncherLauncherVersionUpdateChannelDownloadsListUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroupCompositeId(groupName, database.LauncherVersionAutoUpdateChannels, out _))
+                return false;
+
+            return RequireAccessLevel(UserAccessLevel.Admin, user);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.LauncherThriveVersionUpdatedPrefix) ||
+            groupName.StartsWith(NotificationGroups.LauncherThriveVersionPlatformListUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroup(groupName, database.LauncherThriveVersions, out _))
+                return false;
+
+            return RequireAccessLevel(UserAccessLevel.Admin, user);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.LauncherThriveVersionPlatformUpdatedPrefix) ||
+            groupName.StartsWith(NotificationGroups.LauncherThriveVersionPlatformDownloadsListUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroupCompositeId(groupName, database.LauncherThriveVersionPlatforms, out _))
                 return false;
 
             return RequireAccessLevel(UserAccessLevel.Admin, user);

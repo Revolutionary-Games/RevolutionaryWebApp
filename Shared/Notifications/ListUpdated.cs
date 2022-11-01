@@ -150,3 +150,31 @@ public class CombinedFeedListUpdated : ListUpdated<CombinedFeedInfo>
 public class FeedDiscordWebhookListUpdated : ListUpdated<FeedDiscordWebhookDTO>
 {
 }
+
+public class LauncherDownloadMirrorListUpdated : ListUpdated<LauncherDownloadMirrorDTO>
+{
+}
+
+public class LauncherLauncherVersionListUpdated : ListUpdated<LauncherLauncherVersionDTO>
+{
+}
+
+public class LauncherVersionAutoUpdateChannelListUpdated : ListUpdated<LauncherVersionAutoUpdateChannelDTO>
+{
+}
+
+public class LauncherVersionDownloadListUpdated : ListUpdated<LauncherVersionDownloadDTO>
+{
+}
+
+public class LauncherThriveVersionListUpdated : ListUpdated<LauncherThriveVersionDTO>
+{
+}
+
+public class LauncherThriveVersionPlatformListUpdated : ListUpdated<LauncherThriveVersionPlatformDTO>
+{
+}
+
+public class LauncherThriveVersionDownloadListUpdated : ListUpdated<LauncherThriveVersionDownloadDTO>
+{
+}
