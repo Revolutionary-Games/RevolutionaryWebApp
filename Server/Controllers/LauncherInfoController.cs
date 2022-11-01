@@ -17,22 +17,24 @@ using Models;
 using SharedBase.Models;
 
 /// <summary>
-///   Returns the info about Thrive and launcher versions the launcher needs to download, and also modifying that info
-///   by an admin
+///   Returns the info about Thrive and launcher versions the launcher needs to download, edited through
+///   <see cref="LauncherInfoConfigurationController"/>
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
 public class LauncherInfoController : Controller
 {
     private readonly ILogger<LauncherInfoController> logger;
-    private readonly NotificationsEnabledDb database;
+    private readonly IConfiguration configuration;
+    private readonly ApplicationDbContext database;
     private readonly string? signingCertFile;
     private readonly string? signingCertPassword;
 
     public LauncherInfoController(ILogger<LauncherInfoController> logger, IConfiguration configuration,
-        NotificationsEnabledDb database)
+        ApplicationDbContext database)
     {
         this.logger = logger;
+        this.configuration = configuration;
         this.database = database;
 
         signingCertFile = configuration["Launcher:InfoSigningKey"];
@@ -42,17 +44,47 @@ public class LauncherInfoController : Controller
             logger.LogWarning("Signing cert password is specified but no file is defined");
     }
 
-    [HttpGet]
-    [ResponseCache(Duration = 600)]
-    public async Task<ActionResult<Stream>> GetInfoForLauncher()
+    [NonAction]
+    public static async Task<LauncherThriveInformation> GenerateLauncherInfoObject(ApplicationDbContext database,
+        IConfiguration configuration)
     {
-        var info = new LauncherThriveInformation(new LauncherVersionInfo("2.0.0"), 26,
+        var launcherDownloads = new Uri(configuration["Launcher:LauncherDownloadsPage"]);
+
+        return new LauncherThriveInformation(new LauncherVersionInfo("2.0.0")
+            {
+                DownloadsPage = launcherDownloads,
+            }, 27,
             new List<ThriveVersionLauncherInfo>
             {
-                new(26, "0.5.10", new Dictionary<PackagePlatform, DownloadableInfo>
+                new(27, "0.5.10", new Dictionary<PackagePlatform, DownloadableInfo>
                 {
                     {
-                        PackagePlatform.Linux, new DownloadableInfo("1234", "Thrive_0.5.9.0_linux_x11",
+                        PackagePlatform.Linux, new DownloadableInfo(
+                            "7c9137ed64dc7e0d8c93113b90b79f84a63d85b2e8b824e9554a2f4457d72399",
+                            "Thrive_0.5.10.0_linux_x11",
+                            new Dictionary<string, Uri>
+                            {
+                                {
+                                    "github",
+                                    new Uri(
+                                        "https://github.com/Revolutionary-Games/Thrive/releases/download/v0.5.10/" +
+                                        "Thrive_0.5.10.0_linux_x11.7z")
+                                },
+                            })
+                    },
+                })
+                {
+                    Stable = true,
+                },
+                new(26, "0.5.9", new Dictionary<PackagePlatform, DownloadableInfo>
+                {
+                    {
+                        PackagePlatform.Linux, new DownloadableInfo(
+
+                            // "827304db6b306a2e16b61250f4f3152ec03f05a0eb06bc6305259be20a49727f",
+                            // Intentionally wrong hash:
+                            "abc1234db6b306a2e16b61250f4f3152ec03f05a0eb06bc6305259be20a49727f",
+                            "Thrive_0.5.9.0_linux_x11",
                             new Dictionary<string, Uri>
                             {
                                 {
@@ -71,6 +103,13 @@ public class LauncherInfoController : Controller
             {
                 { "github", new DownloadMirrorInfo(new Uri("https://github.com"), "Github") },
             });
+    }
+
+    [HttpGet]
+    [ResponseCache(Duration = 600)]
+    public async Task<ActionResult<Stream>> GetInfoForLauncher()
+    {
+        var info = GenerateLauncherInfoObject(database, configuration);
 
         using var compressedDataStream = new MemoryStream();
 

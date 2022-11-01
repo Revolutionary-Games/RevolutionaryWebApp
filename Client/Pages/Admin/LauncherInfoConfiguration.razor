@@ -1,0 +1,99 @@
+@page "/admin/launcherInfo"
+@inject HttpClient Http
+@using ThriveDevCenter.Shared.Models
+@using System.Net
+@using ThriveDevCenter.Shared
+
+<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+    <h3>Launcher Thrive Version Info Configuration</h3>
+
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
+
+    @if (fetchingInfoStatus)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    }
+    else
+    {
+        <p>Is configured right for launchers to receive the active info: @infoStatus</p>
+        <p>Note the above info won't automatically update without refreshing this page</p>
+    }
+
+    <h4>Thrive Versions</h4>
+
+    <p>
+        This is the list of Thrive versions that the launcher shows. This is where new releases need to be added
+        once they are published to be available through the launcher. Note that active releases should preferrably
+        not be modified, because the data will be available right away through the launcher and if all edits are
+        not able to be done with a single operation the resulting info send to the launcher might be a bit
+        inconsistent.
+    </p>
+
+    <LauncherThriveVersionsControls/>
+
+    <h4>Launcher Versions</h4>
+
+    <p>
+        This section controls what's the latest launcher version and where the auto updater downloads its files.
+    </p>
+
+    <LauncherLauncherVersionsControls/>
+
+    <h4>Mirrors</h4>
+
+    <p>
+        Each download site Thrive releases can be downloaded from needs to be configured here for
+        release downloads to reference.
+    </p>
+
+    <LauncherDownloadMirrorControls/>
+
+    <DevCenterTitle>LauncherInfo</DevCenterTitle>
+</AccessLimited>
+
+@code {
+    private bool fetchingInfoStatus = true;
+    private string infoStatus = "unknown";
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        createMessageType = SiteNoticeType.Danger;
+        createMessage = null;
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.GetAsync("api/v1/LauncherInfoConfiguration");
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            fetchingInfoStatus = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        fetchingInfoStatus = false;
+
+        if (result.StatusCode != HttpStatusCode.OK)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            infoStatus = $"not configured properly (error: {content})";
+        }
+        else
+        {
+            infoStatus = "configured correctly";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}
