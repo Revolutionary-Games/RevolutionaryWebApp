@@ -100,4 +100,80 @@ public class LauncherInfoConfigurationController : Controller
 
         return objects.ConvertResult(i => i.GetDTO());
     }
+
+    [HttpGet("mirrors/{id:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<LauncherDownloadMirrorDTO>> GetMirror(long id)
+    {
+        var mirror = await database.LauncherDownloadMirrors.FindAsync(id);
+
+        if (mirror == null)
+            return NotFound();
+
+        return mirror.GetDTO();
+    }
+
+    [HttpDelete("mirrors/{id:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> DeleteMirror(long id)
+    {
+        var mirror = await database.LauncherDownloadMirrors.FindAsync(id);
+
+        if (mirror == null)
+            return NotFound();
+
+        // Disallow delete if currently in use, the DB should restrict a delete like this, but we check anyway
+        // to give a better error message
+        if (await database.LauncherVersionDownloads.AnyAsync(d => d.MirrorId == mirror.Id))
+            return BadRequest("Mirror is in use by a launcher download");
+
+        if (await database.LauncherThriveVersionDownloads.AnyAsync(d => d.MirrorId == mirror.Id))
+            return BadRequest("Mirror is in use by a Thrive version download");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"Download mirror \"{mirror.InternalName}\" ({mirror.Id}) deleted",
+            PerformedById = user.Id,
+        });
+
+        database.LauncherDownloadMirrors.Remove(mirror);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Download mirror {Id} deleted by {Email}", mirror.Id, user.Email);
+        return Ok();
+    }
+
+    [HttpPost("mirrors")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> CreateMirror([Required] [FromBody] LauncherDownloadMirrorDTO request)
+    {
+        var mirror = new LauncherDownloadMirror(request.InternalName, new Uri(request.InfoLink), request.ReadableName)
+        {
+            BannerImageUrl = request.BannerImageUrl == null ? null : new Uri(request.BannerImageUrl),
+            ExtraDescription = request.ExtraDescription,
+        };
+
+        if (await database.LauncherDownloadMirrors.FirstOrDefaultAsync(m => m.InternalName == mirror.InternalName) !=
+            null)
+        {
+            return BadRequest("InternalName is already in use");
+        }
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"New download mirror \"{mirror.ReadableName}\" ({mirror.InternalName}) created",
+            PerformedById = user.Id,
+        });
+
+        await database.LauncherDownloadMirrors.AddAsync(mirror);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("New download mirror {InternalName} ({Id}) created by {Email}", mirror.Id,
+            mirror.InternalName, user.Email);
+        return Ok();
+    }
 }
