@@ -31,4 +31,19 @@ public class LauncherDownloadMirrorDTO : ClientSideTimedModel
 
     [MaxLength(250)]
     public string? ExtraDescription { get; set; }
+
+    public LauncherDownloadMirrorDTO Clone()
+    {
+        return new LauncherDownloadMirrorDTO
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            InternalName = InternalName,
+            InfoLink = InfoLink,
+            ReadableName = ReadableName,
+            BannerImageUrl = BannerImageUrl,
+            ExtraDescription = ExtraDescription,
+        };
+    }
 }

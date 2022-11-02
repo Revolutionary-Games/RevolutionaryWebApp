@@ -10,6 +10,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
+using DevCenterCommunication.Models;
 using Filters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -113,6 +114,42 @@ public class LauncherInfoConfigurationController : Controller
         return mirror.GetDTO();
     }
 
+    [HttpPut("mirrors/{id:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> UpdateMirror([Required] [FromBody] LauncherDownloadMirrorDTO request)
+    {
+        var mirror = await database.LauncherDownloadMirrors.FindAsync(request.Id);
+
+        if (mirror == null)
+            return NotFound();
+
+        PreProcessMirrorRequest(request);
+
+        var user = HttpContext.AuthenticatedUser()!;
+
+        var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(mirror, request);
+
+        if (!changes)
+            return Ok();
+
+        mirror.BumpUpdatedAt();
+
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"Download Mirror {mirror.Id} edited",
+
+            // TODO: there could be an extra info property where the description is stored
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Download Mirror {Id} edited by {Email}, changes: {Description}", mirror.Id,
+            user.Email, description);
+
+        return Ok();
+    }
+
     [HttpDelete("mirrors/{id:long}")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<IActionResult> DeleteMirror(long id)
@@ -149,6 +186,8 @@ public class LauncherInfoConfigurationController : Controller
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
     public async Task<IActionResult> CreateMirror([Required] [FromBody] LauncherDownloadMirrorDTO request)
     {
+        PreProcessMirrorRequest(request);
+
         var mirror = new LauncherDownloadMirror(request.InternalName, new Uri(request.InfoLink), request.ReadableName)
         {
             BannerImageUrl = request.BannerImageUrl == null ? null : new Uri(request.BannerImageUrl),
@@ -175,5 +214,15 @@ public class LauncherInfoConfigurationController : Controller
         logger.LogInformation("New download mirror {InternalName} ({Id}) created by {Email}", mirror.Id,
             mirror.InternalName, user.Email);
         return Ok();
+    }
+
+    [NonAction]
+    private void PreProcessMirrorRequest(LauncherDownloadMirrorDTO request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ExtraDescription))
+            request.ExtraDescription = null;
+
+        if (string.IsNullOrWhiteSpace(request.BannerImageUrl))
+            request.BannerImageUrl = null;
     }
 }

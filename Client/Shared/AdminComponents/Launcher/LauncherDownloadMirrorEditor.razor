@@ -1,0 +1,51 @@
+@inherits ResourceEditorBase<LauncherDownloadMirrorDTO, LauncherDownloadMirrorUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+@* TODO: firefox once again complains here about that relative now has an effect here *@
+<tr @key="ElementIdPrefix" style="position: relative;">
+    <td colspan="@ColumnSpan" class="mb-2 expanded-box">
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                <LauncherMirrorDataForm EditContext="@editContext" EditedData="@editedData"
+                              ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage" Processing="@processing"
+                              StatusMessageType="@statusMessageType" OnValidSubmit="@Save"
+                              ForExistingResource="@true"/>
+
+                @if (processing)
+                {
+                    <TableElementProcessingOverlay/>
+                }
+            }
+        </SingleResourceDisplayer>
+    </td>
+</tr>
+
+@code {
+    protected override string ElementIdPrefix => $"{Id}-mirrorDetails";
+
+    protected override Task<LauncherDownloadMirrorDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<LauncherDownloadMirrorDTO>(
+            $"api/v1/LauncherInfoConfiguration/mirrors/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.LauncherDownloadMirrorUpdatedPrefix + Id);
+    }
+
+    protected override LauncherDownloadMirrorDTO CreateEditData(LauncherDownloadMirrorDTO serverData)
+    {
+        return serverData.Clone();
+    }
+
+    protected override string GetSaveEndpoint(LauncherDownloadMirrorDTO serverData)
+    {
+        return $"api/v1/LauncherInfoConfiguration/mirrors/{serverData.Id}";
+    }
+}
