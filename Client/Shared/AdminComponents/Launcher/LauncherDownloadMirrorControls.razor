@@ -1,0 +1,238 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using SharedBase.Utilities
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherDownloadMirrorListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherDownloadMirrorDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <StatusMessageShower Message="@message" Type="@messageType" />
+
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="@true">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (clientSideResourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                var status = clientSideResourceStatus.GetStatus(item.Id);
+
+                <tr @key="item.Id">
+                    <th scope="row" @onclick="() => ToggleDetails(item)" class="clickable">
+                        @if (status.Expanded)
+                        {
+                            <span class="oi oi-chevron-top"></span>
+                        }
+                        else
+                        {
+                            <span class="oi oi-chevron-right"></span>
+                        }
+                        <span class="ml-1">@item.InternalName</span>
+                    </th>
+                    <td>@item.ReadableName.Truncate(50)</td>
+                    <td>
+                        <a href="@item.InfoLink" target="_blank">@item.InfoLink.Truncate()</a>
+                    </td>
+                    <td>
+                        @if (item.BannerImageUrl != null)
+                        {
+                            <a href="@item.InfoLink" target="_blank">@item.BannerImageUrl.Truncate()</a>
+                        }
+                    </td>
+                    <td>@item.ExtraDescription?.Truncate()</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                </tr>
+
+                @if (status.Expanded)
+                {
+                    <FeedEditor Id="@item.Id" ColumnSpan="@columns.Count" />
+                }
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <LauncherMirrorDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
+                  ControlIdSuffix="-new" StatusMessage="@createMessage"
+                  StatusMessageType="@createMessageType" OnValidSubmit="@CreateNew" OverrideSaveText="Create">
+        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+            Cancel
+        </Button>
+    </LauncherMirrorDataForm>
+}
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true, "InternalName"),
+        new TableColumn("Readable Name", false),
+        new TableColumn("Info Url", true, "InfoLink"),
+        new TableColumn("Banner Image Link", false),
+        new TableColumn("Extra Description", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+    };
+
+    private readonly ClientSideResourceStatus<MirrorResourceStatus> clientSideResourceStatus = new();
+
+    private string? message;
+    private SiteNoticeType messageType;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+
+    private EditContext editContext = null!;
+
+    private LauncherDownloadMirrorDTO? newData;
+
+    public LauncherDownloadMirrorControls() : base(new SortHelper("InternalName", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(LauncherDownloadMirrorListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.LauncherDownloadMirrorListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<LauncherDownloadMirrorDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<LauncherDownloadMirrorDTO>>(
+            QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/mirrors", requestParams));
+    }
+
+    private bool IsProcessing(long mirrorId)
+    {
+        if (!clientSideResourceStatus.HasStatus(mirrorId))
+            return false;
+
+        return clientSideResourceStatus.GetStatus(mirrorId).Processing;
+    }
+
+    private void SetProcessingStatus(long mirrorId, bool processing)
+    {
+        clientSideResourceStatus.GetStatus(mirrorId).Processing = processing;
+    }
+
+    private void ToggleDetails(LauncherDownloadMirrorDTO item)
+    {
+        var status = clientSideResourceStatus.GetStatus(item.Id);
+        status.Expanded = !status.Expanded;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            newData = new LauncherDownloadMirrorDTO();
+
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/LauncherInfoConfiguration/mirrors", newData!);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New Download Mirror created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private class MirrorResourceStatus : DeletedResourceStatus
+    {
+        public bool Expanded { get; set; }
+    }
+}

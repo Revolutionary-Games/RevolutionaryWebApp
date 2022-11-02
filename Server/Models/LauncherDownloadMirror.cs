@@ -30,12 +30,19 @@ public class LauncherDownloadMirror : UpdateableModel, IUpdateNotifications
     public string InternalName { get; }
 
     [AllowSortingBy]
+    [UpdateFromClientRequest]
+    [ConvertWithWhenUpdatingFromClient(nameof(StringToUri))]
     public Uri InfoLink { get; }
 
+    [AllowSortingBy]
+    [UpdateFromClientRequest]
     public string ReadableName { get; }
 
+    [UpdateFromClientRequest]
+    [ConvertWithWhenUpdatingFromClient(nameof(StringToUri))]
     public Uri? BannerImageUrl { get; set; }
 
+    [UpdateFromClientRequest]
     public string? ExtraDescription { get; set; }
 
     public ICollection<LauncherVersionDownload> LauncherVersionDownloads { get; set; } =
@@ -43,6 +50,11 @@ public class LauncherDownloadMirror : UpdateableModel, IUpdateNotifications
 
     public ICollection<LauncherThriveVersionDownload> ThriveVersionDownloads { get; set; } =
         new HashSet<LauncherThriveVersionDownload>();
+
+    public static Uri StringToUri(string value)
+    {
+        return new Uri(value);
+    }
 
     public LauncherDownloadMirrorDTO GetDTO()
     {
@@ -52,9 +64,9 @@ public class LauncherDownloadMirror : UpdateableModel, IUpdateNotifications
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
             InternalName = InternalName,
-            InfoLink = InfoLink,
+            InfoLink = InfoLink.ToString(),
             ReadableName = ReadableName,
-            BannerImageUrl = BannerImageUrl,
+            BannerImageUrl = BannerImageUrl?.ToString(),
             ExtraDescription = ExtraDescription,
         };
     }
