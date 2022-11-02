@@ -1,6 +1,6 @@
 @inherits InputTextArea
 
-<textarea @attributes="AdditionalAttributes"
+<textarea @attributes="@AdditionalAttributes"
        class="@CssClass"
        @bind="CurrentValueAsString"
        @bind:event="oninput"></textarea>
