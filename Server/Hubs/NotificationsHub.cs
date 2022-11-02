@@ -595,6 +595,8 @@ public class NotificationsHub : Hub<INotifications>
         return item != null;
     }
 
+    // This should be useful in the future like for GetTargetModelFromGroup
+    // ReSharper disable once OutParameterValueIsAlwaysDiscarded.Local
     private static bool GetTargetModelFromGroupCompositeId<T>(string groupName, DbSet<T> existingItems, out T? item)
         where T : class
     {
