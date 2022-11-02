@@ -1,6 +1,7 @@
 @inject HttpClient Http
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models
+@inherits EditFormBase<CombinedFeedDTO>
 <EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
     <DataAnnotationsValidator />
 
@@ -126,16 +127,8 @@
 
     <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
     <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
-        @if (string.IsNullOrEmpty(OverrideSaveText))
-        {
-            <span>Save Changes</span>
-        }
-        else
-        {
-            <span>@OverrideSaveText</span>
-        }
+        @SaveButtonText
     </Button>
-
 
     @ChildContent
 </EditForm>
@@ -149,42 +142,7 @@
     private long? currentlyPickedFeedToAdd;
 
     [Parameter]
-    // ReSharper disable InconsistentNaming
-    public string? @class { get; set; }
-
-#pragma warning disable CS8618
-    [Parameter]
-    [EditorRequired]
-    public EditContext EditContext { get; set; }
-
-    [Parameter]
-    [EditorRequired]
-    public CombinedFeedDTO EditedData { get; set; }
-
-    [Parameter]
-    [EditorRequired]
-    public string ControlIdSuffix { get; set; }
-
-#pragma warning restore CS8618
-
-    [Parameter]
-    public string? StatusMessage { get; set; }
-
-    [Parameter]
-    public bool Processing { get; set; }
-
-    [Parameter]
-    public SiteNoticeType StatusMessageType { get; set; } = SiteNoticeType.Danger;
-
-    [Parameter]
-    [EditorRequired]
-    public EventCallback OnValidSubmit { get; set; }
-
-    [Parameter]
     public RenderFragment? ChildContent { get; set; }
-
-    [Parameter]
-    public string? OverrideSaveText { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
