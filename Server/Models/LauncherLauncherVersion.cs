@@ -2,7 +2,6 @@ namespace ThriveDevCenter.Server.Models;
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using DevCenterCommunication.Models;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
@@ -12,6 +11,7 @@ using Utilities;
 /// <summary>
 ///   Serverside version of <see cref="LauncherVersionInfo"/>
 /// </summary>
+[Index(nameof(Version), IsUnique = true)]
 public class LauncherLauncherVersion : UpdateableModel, IUpdateNotifications
 {
     public LauncherLauncherVersion(string version)

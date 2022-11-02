@@ -530,7 +530,9 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(nameof(LauncherVersionAutoUpdateChannel.VersionId),
                 nameof(LauncherVersionAutoUpdateChannel.Channel));
 
-            entity.HasMany(p => p.Mirrors).WithOne(d => d.UpdateChannel).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(p => p.Mirrors).WithOne(d => d.UpdateChannel)
+                .HasForeignKey(nameof(LauncherVersionDownload.VersionId), nameof(LauncherVersionDownload.Channel))
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<LauncherVersionDownload>(entity =>
@@ -550,7 +552,9 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(nameof(LauncherThriveVersionPlatform.VersionId),
                 nameof(LauncherThriveVersionPlatform.Platform));
 
-            entity.HasMany(p => p.Mirrors).WithOne(d => d.PartOfPlatform).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(p => p.Mirrors).WithOne(d => d.PartOfPlatform)
+                .HasForeignKey(nameof(LauncherThriveVersionDownload.VersionId),
+                    nameof(LauncherThriveVersionDownload.Platform)).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<LauncherThriveVersionDownload>(entity =>
