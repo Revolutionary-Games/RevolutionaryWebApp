@@ -248,7 +248,7 @@ public class EFTool
             HelpText = "Downgrades the local database to specified migration level (0 to clear entirely)")]
         public string? Downgrade { get; set; }
 
-        [Option('r', "recreate", Default = null, MetaValue = "MIGRATION",
+        [Option('b', "recreate", Default = null, MetaValue = "MIGRATION",
             HelpText = "Recreates latest migration. If DB is already migrated use \"--redo\" instead")]
         public string? Recreate { get; set; }
 
