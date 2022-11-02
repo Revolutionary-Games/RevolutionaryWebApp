@@ -1,6 +1,4 @@
-@inject HttpClient Http
-@inject NotificationHandler NotificationHandler
-@inherits SingleResourcePage<CombinedFeedDTO, CombinedFeedUpdated>
+@inherits ResourceEditorBase<CombinedFeedDTO, CombinedFeedUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared
@@ -25,14 +23,7 @@
 
                 @if (processing)
                 {
-                    <div class="overlay">
-                        <div class="d-flex justify-content-center align-items-center"
-                             style="height: 100%;">
-                            <div class="spinner-border text-light" role="status">
-                                <span class="sr-only">Processing...</span>
-                            </div>
-                        </div>
-                    </div>
+                    <TableElementProcessingOverlay/>
                 }
             }
         </SingleResourceDisplayer>
@@ -40,19 +31,7 @@
 </tr>
 
 @code {
-    private bool processing;
-    private string? statusMessage;
-    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
-
-    private EditContext editContext = null!;
-
-    private CombinedFeedDTO? editedData;
-
-    [Parameter]
-    [EditorRequired]
-    public int ColumnSpan { get; set; }
-
-    private string ElementIdPrefix => $"{Id}-combinedFeedDetails";
+    protected override string ElementIdPrefix => $"{Id}-combinedFeedDetails";
 
     protected override Task<CombinedFeedDTO?> StartQuery()
     {
@@ -64,73 +43,13 @@
         groups.Add(NotificationGroups.CombinedFeedUpdatedPrefix + Id);
     }
 
-    public async ValueTask DisposeAsync()
+    protected override CombinedFeedDTO CreateEditData(CombinedFeedDTO serverData)
     {
-        await NotificationHandler.Unregister(this);
+        return serverData.Clone();
     }
 
-    protected override async Task OnFirstDataReceived()
+    protected override string GetSaveEndpoint(CombinedFeedDTO serverData)
     {
-        await NotificationHandler.Register(this);
-
-        OnStartEdit();
-    }
-
-    private void OnStartEdit()
-    {
-        if (Data == null)
-            return;
-
-        editedData = Data.Clone();
-
-        statusMessage = null;
-
-        editContext = new EditContext(editedData);
-    }
-
-    private void HideStatusMessage()
-    {
-        statusMessage = null;
-    }
-
-    private async Task Save()
-    {
-        processing = true;
-        statusMessage = null;
-        statusMessageType = SiteNoticeType.Danger;
-        await InvokeAsync(StateHasChanged);
-
-        HttpResponseMessage result;
-
-        try
-        {
-            // We don't want to handle the complexity so deleted feeds will be pruned when a combined feed is saved
-            editedData!.DeletedCombinedFromFeeds = null;
-
-            result = await Http.PutAsJsonAsync($"api/v1/CombinedFeed/{Data!.Id}", editedData);
-        }
-        catch (HttpRequestException e)
-        {
-            statusMessage = $"Network request failed: {e.Message}";
-            processing = false;
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-
-        processing = false;
-
-        if (!result.IsSuccessStatusCode)
-        {
-            var content = await result.Content.ReadAsStringAsync();
-
-            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
-        }
-        else
-        {
-            statusMessage = "Changes saved.";
-            statusMessageType = SiteNoticeType.Primary;
-        }
-
-        await InvokeAsync(StateHasChanged);
+        return $"api/v1/CombinedFeed/{serverData.Id}";
     }
 }
