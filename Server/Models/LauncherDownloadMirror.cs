@@ -17,6 +17,7 @@ using Utilities;
 ///     Note that the Ids should be less than 56000 due to the way individual downloads generate IDs on the fly.
 ///   </para>
 /// </remarks>
+[Index(nameof(InternalName), IsUnique = true)]
 public class LauncherDownloadMirror : UpdateableModel, IUpdateNotifications
 {
     public LauncherDownloadMirror(string internalName, Uri infoLink, string readableName)
