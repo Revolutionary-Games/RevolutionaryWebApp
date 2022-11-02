@@ -27,16 +27,16 @@ public class LauncherDownloadMirror : UpdateableModel, IUpdateNotifications
     }
 
     [AllowSortingBy]
-    public string InternalName { get; }
+    public string InternalName { get; private set; }
 
     [AllowSortingBy]
     [UpdateFromClientRequest]
     [ConvertWithWhenUpdatingFromClient(nameof(StringToUri))]
-    public Uri InfoLink { get; }
+    public Uri InfoLink { get; set; }
 
     [AllowSortingBy]
     [UpdateFromClientRequest]
-    public string ReadableName { get; }
+    public string ReadableName { get; set; }
 
     [UpdateFromClientRequest]
     [ConvertWithWhenUpdatingFromClient(nameof(StringToUri))]
