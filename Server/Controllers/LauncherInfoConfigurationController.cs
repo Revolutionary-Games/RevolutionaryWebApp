@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
+using RecursiveDataAnnotationsValidation;
 using Shared;
 using Shared.Models;
 using Utilities;
@@ -45,8 +46,9 @@ public class LauncherInfoConfigurationController : Controller
         var currentData = await LauncherInfoController.GenerateLauncherInfoObject(database, configuration);
 
         var validationResult = new List<ValidationResult>();
+        var validator = new RecursiveDataAnnotationValidator();
 
-        if (!Validator.TryValidateObject(currentData, new ValidationContext(currentData), validationResult, true))
+        if (!validator.TryValidateObjectRecursive(currentData, new ValidationContext(currentData), validationResult))
         {
             throw new HttpResponseException
             {
