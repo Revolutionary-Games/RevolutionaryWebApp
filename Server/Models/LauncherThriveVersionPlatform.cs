@@ -22,13 +22,13 @@ public class LauncherThriveVersionPlatform : IUpdateNotifications
         LocalFileName = localFileName;
     }
 
-    public long VersionId { get; }
+    public long VersionId { get; private set; }
 
-    public PackagePlatform Platform { get; }
+    public PackagePlatform Platform { get; private set; }
 
-    public string FileSha3 { get; }
+    public string FileSha3 { get; set; }
 
-    public string LocalFileName { get; }
+    public string LocalFileName { get; set; }
 
     public LauncherThriveVersion Version { get; set; } = null!;
 

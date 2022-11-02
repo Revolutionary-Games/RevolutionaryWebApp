@@ -20,11 +20,11 @@ public class LauncherVersionAutoUpdateChannel : IUpdateNotifications
         FileSha3 = fileSha3;
     }
 
-    public long VersionId { get; }
+    public long VersionId { get; private set; }
 
-    public LauncherAutoUpdateChannel Channel { get; }
+    public LauncherAutoUpdateChannel Channel { get; private set; }
 
-    public string FileSha3 { get; }
+    public string FileSha3 { get; set; }
 
     public LauncherLauncherVersion Version { get; set; } = null!;
 

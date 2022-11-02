@@ -19,8 +19,7 @@ public class LauncherLauncherVersion : UpdateableModel, IUpdateNotifications
         Version = version;
     }
 
-    [Required]
-    public string Version { get; }
+    public string Version { get; private set; }
 
     public bool Latest { get; set; }
 
