@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Shared.Models;
 using System.ComponentModel.DataAnnotations;
 using DevCenterCommunication.Models;
 using SharedBase.ModelVerifiers;
+using SharedBase.Utilities;
 
 /// <summary>
 ///   DevCenter modifiable version of <see cref="DownloadMirrorInfo"/>. This is a separate class because DevCenter
@@ -12,10 +13,11 @@ using SharedBase.ModelVerifiers;
 public class LauncherDownloadMirrorDTO : ClientSideTimedModel
 {
     [Required]
+    [NoWhitespace]
     public string InternalName { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(300)]
+    [MaxLength(GlobalConstants.DEFAULT_MAX_LENGTH_FOR_TO_STRING_ATTRIBUTE)]
     [IsUri]
     public string InfoLink { get; set; } = string.Empty;
 
@@ -23,7 +25,7 @@ public class LauncherDownloadMirrorDTO : ClientSideTimedModel
     [StringLength(60, MinimumLength = 2)]
     public string ReadableName { get; set; } = string.Empty;
 
-    [MaxLength(300)]
+    [MaxLength(GlobalConstants.DEFAULT_MAX_LENGTH_FOR_TO_STRING_ATTRIBUTE)]
     [IsUri]
     public string? BannerImageUrl { get; set; }
 

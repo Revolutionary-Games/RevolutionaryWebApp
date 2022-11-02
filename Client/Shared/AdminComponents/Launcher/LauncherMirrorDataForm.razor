@@ -10,7 +10,7 @@
             <label for="@($"mirrorFormInternalName-{ControlIdSuffix}")">Internal Name</label>
             <CustomInputText class="form-control" id="@($"mirrorFormInternalName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.InternalName"
-                             placeholder="Internal Name (used in backend code to identify)" />
+                             placeholder="Internal Name (used to refer to this mirror)" />
         </div>
         <div class="form-group col-md-6">
             <label for="@($"mirrorFormReadableName-{ControlIdSuffix}")">Readable Name</label>
