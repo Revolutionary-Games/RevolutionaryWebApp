@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System.ComponentModel.DataAnnotations;
 using DevCenterCommunication.Models;
+using SharedBase.ModelVerifiers;
 
 /// <summary>
 ///   DevCenter version of <see cref="ThriveVersionLauncherInfo"/>
@@ -10,6 +11,7 @@ public class LauncherThriveVersionDTO : ClientSideTimedModel
 {
     [Required]
     [StringLength(30, MinimumLength = 3)]
+    [NoWhitespace]
     public string ReleaseNumber { get; set; } = string.Empty;
 
     public bool Stable { get; set; } = true;

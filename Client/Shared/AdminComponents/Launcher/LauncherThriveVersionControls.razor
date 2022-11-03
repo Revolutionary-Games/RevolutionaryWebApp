@@ -64,7 +64,14 @@ else
                     <td>
                         @if (item.Latest)
                         {
-                            <span class="badge badge-success">Latest</span>
+                            @if(item.Stable)
+                            {
+                                <span class="badge badge-success">Latest</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-secondary">Latest beta</span>
+                            }
                         }
                     </td>
                     <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
@@ -75,6 +82,7 @@ else
                                 Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm mr-1">
                             Make Latest
                         </Button>
+
                         @if(item.Enabled)
                         {
                             <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
@@ -91,7 +99,8 @@ else
                                 Enable
                             </Button>
                         }
-                        <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
+
+                        <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest && !item.Enabled)"
                                 OnPressed="@(async () => await VerifyDeleteItem(item))"
                                 Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
                             Delete
@@ -252,11 +261,10 @@ else
         }
 
         processingNewForm = false;
+        var content = await result.Content.ReadAsStringAsync();
 
         if (!result.IsSuccessStatusCode)
         {
-            var content = await result.Content.ReadAsStringAsync();
-
             createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
         }
         else
@@ -266,6 +274,13 @@ else
 
             // Stop showing the form
             showNewForm = false;
+
+            // Expand the item immediately for subresource editing
+            if (long.TryParse(content, out var newId))
+            {
+                newData!.Id = newId;
+                ToggleDetails(newData);
+            }
         }
 
         await InvokeAsync(StateHasChanged);

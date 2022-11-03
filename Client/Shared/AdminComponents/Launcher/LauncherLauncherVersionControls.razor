@@ -222,11 +222,10 @@ else
         }
 
         processingNewForm = false;
+        var content = await result.Content.ReadAsStringAsync();
 
         if (!result.IsSuccessStatusCode)
         {
-            var content = await result.Content.ReadAsStringAsync();
-
             createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
         }
         else
@@ -236,6 +235,13 @@ else
 
             // Stop showing the form
             showNewForm = false;
+
+            // Expand the item immediately for subresource editing
+            if (long.TryParse(content, out var newId))
+            {
+                newData!.Id = newId;
+                ToggleDetails(newData);
+            }
         }
 
         await InvokeAsync(StateHasChanged);
