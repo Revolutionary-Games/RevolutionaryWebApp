@@ -523,6 +523,11 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<LauncherLauncherVersion>(entity =>
         {
             entity.HasMany(p => p.AutoUpdateDownloads).WithOne(d => d.Version).OnDelete(DeleteBehavior.Cascade);
+
+            // Ensures only one true value can exist
+            entity.HasIndex(e => e.Latest)
+                .IsUnique()
+                .HasFilter("(latest IS TRUE)");
         });
 
         modelBuilder.Entity<LauncherVersionAutoUpdateChannel>(entity =>
@@ -545,6 +550,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<LauncherThriveVersion>(entity =>
         {
             entity.HasMany(p => p.Platforms).WithOne(d => d.Version).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.Stable, e.Latest })
+                .IsUnique()
+                .HasFilter("(latest IS TRUE)");
         });
 
         modelBuilder.Entity<LauncherThriveVersionPlatform>(entity =>
