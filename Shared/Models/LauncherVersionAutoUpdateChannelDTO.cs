@@ -15,4 +15,13 @@ public class LauncherVersionAutoUpdateChannelDTO : IIdentifiable
 
     [JsonIgnore]
     public long Id => (VersionId << 8) | (byte)Channel;
+
+    public LauncherVersionAutoUpdateChannelDTO Clone()
+    {
+        return new()
+        {
+            VersionId = VersionId,
+            FileSha3 = FileSha3,
+        };
+    }
 }

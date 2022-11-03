@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using DevCenterCommunication.Models;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Models;
 using Shared.Notifications;
 using Utilities;
@@ -22,6 +23,7 @@ public class LauncherVersionAutoUpdateChannel : IUpdateNotifications
 
     public long VersionId { get; private set; }
 
+    [AllowSortingBy]
     public LauncherAutoUpdateChannel Channel { get; private set; }
 
     public string FileSha3 { get; set; }

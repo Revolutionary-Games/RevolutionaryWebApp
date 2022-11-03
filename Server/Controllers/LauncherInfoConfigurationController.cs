@@ -19,6 +19,7 @@ using Models;
 using RecursiveDataAnnotationsValidation;
 using Shared;
 using Shared.Models;
+using SharedBase.Models;
 using Utilities;
 
 /// <summary>
@@ -358,7 +359,252 @@ public class LauncherInfoConfigurationController : Controller
         return Ok(version.Id.ToString());
     }
 
+    // Launcher Launcher version channels
+
+    [HttpGet("launcherVersions/{id:long}/channels")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<PagedResult<LauncherVersionAutoUpdateChannelDTO>> GetLauncherVersionChannels(long id,
+        [Required] string sortColumn, [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
+    {
+        IQueryable<LauncherVersionAutoUpdateChannel> query;
+
+        try
+        {
+            query = database.LauncherVersionAutoUpdateChannels.Where(c => c.VersionId == id).AsNoTracking()
+                .OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
+        }
+
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetDTO());
+    }
+
+    [HttpGet("launcherVersions/{id:long}/channels/{channel:int}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<LauncherVersionAutoUpdateChannelDTO>> GetLauncherVersionChannel(long id,
+        int channel)
+    {
+        var channelEnumValue = ChannelFromInt(channel);
+
+        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, (int)channelEnumValue);
+
+        if (channelObject == null)
+            return NotFound();
+
+        return channelObject.GetDTO();
+    }
+
+    [HttpDelete("launcherVersions/{id:long}/channels/{channel:int}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> DeleteLauncherVersionChannel(long id, int channel)
+    {
+        var channelEnumValue = ChannelFromInt(channel);
+
+        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, (int)channelEnumValue);
+
+        if (channelObject == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"Launcher version's ({channelObject.VersionId}) channel {channelEnumValue} deleted",
+            PerformedById = user.Id,
+        });
+
+        database.LauncherVersionAutoUpdateChannels.Remove(channelObject);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Launcher version's ({Id}) channel {Channel} deleted by {Email}", channelObject.VersionId,
+            channelEnumValue, user.Email);
+        return Ok();
+    }
+
+    [HttpPost("launcherVersions/{id:long}/channels")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> CreateLauncherVersionChannel(long id,
+        [Required] [FromBody] LauncherVersionAutoUpdateChannelDTO request)
+    {
+        // A bit of a silly way to ensure the channel is correct
+        ChannelFromInt((int)request.Channel);
+
+        var version = await database.LauncherLauncherVersions.FindAsync(id);
+
+        if (version == null)
+            return NotFound();
+
+        var channel = new LauncherVersionAutoUpdateChannel(version.Id, request.Channel, request.FileSha3);
+
+        if (await database.LauncherVersionAutoUpdateChannels.FirstOrDefaultAsync(c =>
+                c.VersionId == channel.VersionId && c.Channel == channel.Channel) !=
+            null)
+        {
+            return BadRequest("Channel type for this version is already in use");
+        }
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"New channel {channel.Channel} created for launcher version {version.Version}",
+            PerformedById = user.Id,
+        });
+
+        await database.LauncherVersionAutoUpdateChannels.AddAsync(channel);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("New channel {Channel} created for launcher version {Version} ({Id}) by {Email}",
+            channel.Channel, version.Version, version.Id, user.Email);
+        return Ok();
+    }
+
+    // Launcher Launcher version channel downloads
+
+    [HttpGet("launcherVersions/{id:long}/channels/{channel:int}/downloads")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<PagedResult<LauncherVersionDownloadDTO>> GetLauncherVersionChannelDownloads(long id,
+        int channel, [Required] string sortColumn, [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
+    {
+        var channelEnumValue = ChannelFromInt(channel);
+
+        IQueryable<LauncherVersionDownload> query;
+
+        try
+        {
+            query = database.LauncherVersionDownloads.Include(d => d.Mirror)
+                .Where(d => d.VersionId == id && d.Channel == channelEnumValue).AsNoTracking()
+                .OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
+        }
+
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetDTO());
+    }
+
+    [HttpGet("launcherVersions/{id:long}/channels/{channel:int}/downloads/{mirrorId:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<LauncherVersionDownloadDTO>> GetLauncherVersionChannelDownload(long id,
+        int channel, long mirrorId)
+    {
+        var channelEnumValue = ChannelFromInt(channel);
+
+        var channelObject = await database.LauncherVersionDownloads.Include(d => d.Mirror)
+            .FirstOrDefaultAsync(d => d.VersionId == id && d.Channel == channelEnumValue && d.MirrorId == mirrorId);
+
+        if (channelObject == null)
+            return NotFound();
+
+        return channelObject.GetDTO();
+    }
+
+    [HttpDelete("launcherVersions/{id:long}/channels/{channel:int}/downloads/{mirrorId:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> DeleteLauncherVersionChannelDownload(long id, int channel, long mirrorId)
+    {
+        var channelEnumValue = ChannelFromInt(channel);
+
+        var download = await database.LauncherVersionDownloads.Include(d => d.Mirror)
+            .FirstOrDefaultAsync(d => d.VersionId == id && d.Channel == channelEnumValue && d.MirrorId == mirrorId);
+
+        if (download == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message =
+                $"Download with mirror {download.Mirror.InternalName} for Launcher version's " +
+                $"({download.VersionId}) channel {channelEnumValue} deleted",
+            PerformedById = user.Id,
+        });
+
+        database.LauncherVersionDownloads.Remove(download);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation(
+            "Download with mirror {InternalName} for Launcher version's ({Id}) channel {Channel} deleted by {Email}",
+            download.Mirror.InternalName, download.VersionId, channelEnumValue, user.Email);
+        return Ok();
+    }
+
+    [HttpPost("launcherVersions/{id:long}/channels/{channel:int}/downloads")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> CreateLauncherVersionChannelDownload(long id, int channel,
+        [Required] [FromBody] LauncherVersionDownloadDTO request)
+    {
+        // A bit of a silly way to ensure the channel is correct
+        var channelEnumValue = ChannelFromInt(channel);
+
+        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, (int)channelEnumValue);
+
+        if (channelObject == null)
+            return NotFound();
+
+        // Parse mirror name
+        if (!string.IsNullOrEmpty(request.MirrorName))
+        {
+            var mirror =
+                await database.LauncherDownloadMirrors.FirstOrDefaultAsync(m => m.InternalName == request.MirrorName);
+
+            if (mirror == null)
+            {
+                return BadRequest("Invalid mirror internal name");
+            }
+
+            request.MirrorId = mirror.Id;
+        }
+
+        if (request.MirrorId < 0)
+            return BadRequest("No mirror Id set, and no mirror name was set to detect it from");
+
+        var download = new LauncherVersionDownload(channelObject.VersionId, channelObject.Channel, request.MirrorId,
+            new Uri(request.DownloadUrl));
+
+        if (await database.LauncherVersionDownloads.FirstOrDefaultAsync(d =>
+                d.VersionId == download.VersionId && d.Channel == download.Channel &&
+                d.MirrorId == download.MirrorId) != null)
+        {
+            return BadRequest("Download mirror is in use already for this channel and version");
+        }
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message =
+                $"New download mirror ({download.MirrorId}) url specified for channel {download.Channel} " +
+                $"in a launcher version ({channelObject.VersionId})",
+            PerformedById = user.Id,
+        });
+
+        await database.LauncherVersionDownloads.AddAsync(download);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation(
+            "New download with mirror {MirrorId} ({DownloadUrl}) in channel {Channel} created " +
+            "for launcher version ({Id}) by {Email}",
+            download.MirrorId, download.DownloadUrl,
+            download.Channel, channelObject.VersionId, user.Email);
+        return Ok();
+    }
+
+    //
     // Launcher Thrive versions
+    //
 
     [HttpGet("thriveVersions")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
@@ -633,6 +879,254 @@ public class LauncherInfoConfigurationController : Controller
         return Ok(version.Id.ToString());
     }
 
+    // Launcher Thrive version platforms
+
+    [HttpGet("thriveVersions/{id:long}/platforms")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<PagedResult<LauncherThriveVersionPlatformDTO>> GetThriveVersionPlatforms(long id,
+        [Required] string sortColumn, [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
+    {
+        IQueryable<LauncherThriveVersionPlatform> query;
+
+        try
+        {
+            query = database.LauncherThriveVersionPlatforms.Where(p => p.VersionId == id).AsNoTracking()
+                .OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
+        }
+
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetDTO());
+    }
+
+    [HttpGet("thriveVersions/{id:long}/platforms/{platform:int}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<LauncherThriveVersionPlatformDTO>> GetThriveVersionPlatform(long id,
+        int platform)
+    {
+        var platformEnumValue = PlatformFromInt(platform);
+
+        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, (int)platformEnumValue);
+
+        if (platformObject == null)
+            return NotFound();
+
+        return platformObject.GetDTO();
+    }
+
+    [HttpDelete("thriveVersions/{id:long}/platforms/{platform:int}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> DeleteThriveVersionPlatform(long id, int platform)
+    {
+        var platformEnumValue = PlatformFromInt(platform);
+
+        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, (int)platformEnumValue);
+
+        if (platformObject == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"Thrive version's ({platformObject.VersionId}) platform {platformEnumValue} deleted",
+            PerformedById = user.Id,
+        });
+
+        database.LauncherThriveVersionPlatforms.Remove(platformObject);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Thrive version's ({Id}) platform {Platform} deleted by {Email}",
+            platformObject.VersionId,
+            platformEnumValue, user.Email);
+        return Ok();
+    }
+
+    [HttpPost("thriveVersions/{id:long}/platforms")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> CreateThriveVersionPlatform(long id,
+        [Required] [FromBody] LauncherThriveVersionPlatformDTO request)
+    {
+        // A bit of a silly way to ensure the platform is correct
+        PlatformFromInt((int)request.Platform);
+
+        var version = await database.LauncherThriveVersions.FindAsync(id);
+
+        if (version == null)
+            return NotFound();
+
+        var platform =
+            new LauncherThriveVersionPlatform(version.Id, request.Platform, request.FileSha3, request.LocalFileName);
+
+        if (await database.LauncherThriveVersionPlatforms.FirstOrDefaultAsync(c =>
+                c.VersionId == platform.VersionId && c.Platform == platform.Platform) !=
+            null)
+        {
+            return BadRequest("Platform type for this version is already in use");
+        }
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"New platform {platform.Platform} created for thrive version {version.ReleaseNumber}",
+            PerformedById = user.Id,
+        });
+
+        await database.LauncherThriveVersionPlatforms.AddAsync(platform);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("New platform {Platform} created for thrive version {ReleaseNumber} ({Id}) by {Email}",
+            platform.Platform, version.ReleaseNumber, version.Id, user.Email);
+        return Ok();
+    }
+
+    // Launcher thrive version platform downloads
+
+    [HttpGet("thriveVersions/{id:long}/platforms/{platform:int}/downloads")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<PagedResult<LauncherThriveVersionDownloadDTO>> GetThriveVersionPlatformDownloads(long id,
+        int platform, [Required] string sortColumn, [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
+    {
+        var platformEnumValue = PlatformFromInt(platform);
+
+        IQueryable<LauncherThriveVersionDownload> query;
+
+        try
+        {
+            query = database.LauncherThriveVersionDownloads.Include(d => d.Mirror)
+                .Where(d => d.VersionId == id && d.Platform == platformEnumValue).AsNoTracking()
+                .OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
+        }
+
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetDTO());
+    }
+
+    [HttpGet("thriveVersions/{id:long}/platforms/{platform:int}/downloads/{mirrorId:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<ActionResult<LauncherThriveVersionDownloadDTO>> GetThriveVersionPlatformDownload(long id,
+        int platform, long mirrorId)
+    {
+        var platformEnumValue = PlatformFromInt(platform);
+
+        var platformObject = await database.LauncherThriveVersionDownloads.Include(d => d.Mirror)
+            .FirstOrDefaultAsync(d => d.VersionId == id && d.Platform == platformEnumValue && d.MirrorId == mirrorId);
+
+        if (platformObject == null)
+            return NotFound();
+
+        return platformObject.GetDTO();
+    }
+
+    [HttpDelete("thriveVersions/{id:long}/platforms/{platform:int}/downloads/{mirrorId:long}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> DeleteThriveVersionPlatformDownload(long id, int platform, long mirrorId)
+    {
+        var platformEnumValue = PlatformFromInt(platform);
+
+        var download = await database.LauncherThriveVersionDownloads.Include(d => d.Mirror)
+            .FirstOrDefaultAsync(d => d.VersionId == id && d.Platform == platformEnumValue && d.MirrorId == mirrorId);
+
+        if (download == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message =
+                $"Download with mirror {download.Mirror.InternalName} for Thrive version's " +
+                $"({download.VersionId}) platform {platformEnumValue} deleted",
+            PerformedById = user.Id,
+        });
+
+        database.LauncherThriveVersionDownloads.Remove(download);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation(
+            "Download with mirror {InternalName} for Thrive version's ({Id}) platform {Platform} deleted by {Email}",
+            download.Mirror.InternalName, download.VersionId, platformEnumValue, user.Email);
+        return Ok();
+    }
+
+    [HttpPost("thriveVersions/{id:long}/platforms/{platform:int}/downloads")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> CreateThriveVersionPlatformDownload(long id, int platform,
+        [Required] [FromBody] LauncherThriveVersionDownloadDTO request)
+    {
+        // A bit of a silly way to ensure the platform is correct
+        var platformEnumValue = PlatformFromInt(platform);
+
+        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, (int)platformEnumValue);
+
+        if (platformObject == null)
+            return NotFound();
+
+        // Parse mirror name
+        if (!string.IsNullOrEmpty(request.MirrorName))
+        {
+            var mirror =
+                await database.LauncherDownloadMirrors.FirstOrDefaultAsync(m => m.InternalName == request.MirrorName);
+
+            if (mirror == null)
+            {
+                return BadRequest("Invalid mirror internal name");
+            }
+
+            request.MirrorId = mirror.Id;
+        }
+
+        if (request.MirrorId < 0)
+            return BadRequest("No mirror Id set, and no mirror name was set to detect it from");
+
+        var download = new LauncherThriveVersionDownload(platformObject.VersionId, platformObject.Platform,
+            request.MirrorId,
+            new Uri(request.DownloadUrl));
+
+        if (await database.LauncherThriveVersionDownloads.FirstOrDefaultAsync(d =>
+                d.VersionId == download.VersionId && d.Platform == download.Platform &&
+                d.MirrorId == download.MirrorId) != null)
+        {
+            return BadRequest("Download mirror is in use already for this platform and version");
+        }
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message =
+                $"New download mirror ({download.MirrorId}) url specified for platform {download.Platform} " +
+                $"in a thrive version ({platformObject.VersionId})",
+            PerformedById = user.Id,
+        });
+
+        await database.LauncherThriveVersionDownloads.AddAsync(download);
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation(
+            "New download with mirror {MirrorId} ({DownloadUrl}) for platform {Platform} created " +
+            "in thrive version ({Id}) by {Email}",
+            download.MirrorId, download.DownloadUrl,
+            download.Platform, platformObject.VersionId, user.Email);
+        return Ok();
+    }
+
+    // End of endpoints
+
     [NonAction]
     private void PreProcessMirrorRequest(LauncherDownloadMirrorDTO request)
     {
@@ -641,5 +1135,39 @@ public class LauncherInfoConfigurationController : Controller
 
         if (string.IsNullOrWhiteSpace(request.BannerImageUrl))
             request.BannerImageUrl = null;
+    }
+
+    [NonAction]
+    private static LauncherAutoUpdateChannel ChannelFromInt(int channel)
+    {
+        var channelEnumValue = (LauncherAutoUpdateChannel)channel;
+
+        if (!Enum.IsDefined(channelEnumValue))
+        {
+            throw new HttpResponseException
+            {
+                Status = (int)HttpStatusCode.BadRequest,
+                Value = "Invalid channel enum value",
+            };
+        }
+
+        return channelEnumValue;
+    }
+
+    [NonAction]
+    private static PackagePlatform PlatformFromInt(int platform)
+    {
+        var platformEnumValue = (PackagePlatform)platform;
+
+        if (!Enum.IsDefined(platformEnumValue))
+        {
+            throw new HttpResponseException
+            {
+                Status = (int)HttpStatusCode.BadRequest,
+                Value = "Invalid platform enum value",
+            };
+        }
+
+        return platformEnumValue;
     }
 }

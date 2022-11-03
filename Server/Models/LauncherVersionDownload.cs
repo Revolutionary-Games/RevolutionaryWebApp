@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using DevCenterCommunication.Models;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Models;
 using Shared.Notifications;
 using Utilities;
@@ -25,6 +26,7 @@ public class LauncherVersionDownload : IUpdateNotifications
 
     public LauncherAutoUpdateChannel Channel { get; }
 
+    [AllowSortingBy]
     public long MirrorId { get; }
 
     public Uri DownloadUrl { get; set; }
@@ -42,17 +44,20 @@ public class LauncherVersionDownload : IUpdateNotifications
             VersionId = VersionId,
             Channel = Channel,
             MirrorId = MirrorId,
-            DownloadUrl = DownloadUrl,
+            DownloadUrl = DownloadUrl.ToString(),
+            MirrorName = Mirror.InternalName,
         };
     }
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return new Tuple<SerializedNotification, string>(new LauncherVersionDownloadListUpdated
-        {
-            Type = entityState.ToChangeType(),
-            Item = GetDTO(),
-        }, $"{NotificationGroups.LauncherLauncherVersionUpdateChannelDownloadsListUpdatedPrefix}{VersionId}_{(int)Channel}");
+            {
+                Type = entityState.ToChangeType(),
+                Item = GetDTO(),
+            },
+            $"{NotificationGroups.LauncherLauncherVersionUpdateChannelDownloadsListUpdatedPrefix}" +
+            $"{VersionId}_{(int)Channel}");
 
         // yield return new Tuple<SerializedNotification, string>(new LauncherVersionDownloadUpdated
         // {

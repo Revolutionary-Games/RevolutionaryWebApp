@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models;
 using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Models;
 using Shared.Notifications;
 using SharedBase.Models;
@@ -23,6 +24,7 @@ public class LauncherThriveVersionDownload : IUpdateNotifications
 
     public long VersionId { get; }
 
+    [AllowSortingBy]
     public PackagePlatform Platform { get; }
 
     public long MirrorId { get; }
@@ -42,7 +44,8 @@ public class LauncherThriveVersionDownload : IUpdateNotifications
             VersionId = VersionId,
             Platform = Platform,
             MirrorId = MirrorId,
-            DownloadUrl = DownloadUrl,
+            DownloadUrl = DownloadUrl.ToString(),
+            MirrorName = Mirror.InternalName,
         };
     }
 
