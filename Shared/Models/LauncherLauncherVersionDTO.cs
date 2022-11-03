@@ -13,4 +13,16 @@ public class LauncherLauncherVersionDTO : ClientSideTimedModel
     public string Version { get; set; } = string.Empty;
 
     public bool Latest { get; set; }
+
+    public LauncherLauncherVersionDTO Clone()
+    {
+        return new()
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Version = Version,
+            Latest = Latest,
+        };
+    }
 }

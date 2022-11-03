@@ -1,0 +1,58 @@
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using FeedParser.Shared.Models
+@inherits EditFormBase<LauncherThriveVersionDTO>
+<EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
+    <DataAnnotationsValidator/>
+
+    @if (!ForExistingResource)
+    {
+        <div class="form-row">
+
+            <div class="form-group col-md-6">
+                <label for="@($"thriveVersionFormInternalName-{ControlIdSuffix}")">Version Name</label>
+                <CustomInputText class="form-control" id="@($"thriveVersionFormInternalName-{ControlIdSuffix}")"
+                                 @bind-Value="EditedData.ReleaseNumber"
+                                 placeholder="Version (version like 0.6.2 with optional -beta suffix)"/>
+            </div>
+
+            <div class="form-group col-md-6">
+                <label for="@($"thriveVersionFormStable-{ControlIdSuffix}")">
+                    Stable Version (non-beta)
+                </label>
+                <InputCheckbox class="form-control" id="@($"thriveVersionFormStable-{ControlIdSuffix}")"
+                               @bind-Value="EditedData.Stable"/>
+            </div>
+        </div>
+    }
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"thriveVersionFormStartupDetect-{ControlIdSuffix}")">
+                Supports startup failure detection
+            </label>
+            <InputCheckbox class="form-control" id="@($"thriveVersionFormStartupDetect-{ControlIdSuffix}")"
+                           @bind-Value="EditedData.SupportsFailedStartupDetection"/>
+        </div>
+    </div>
+
+
+    <ValidationSummary/>
+
+    <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType"/>
+    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+        @SaveButtonText
+    </Button>
+
+    @ChildContent
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public bool ForExistingResource { get; set; }
+
+}

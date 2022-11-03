@@ -1,0 +1,30 @@
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using FeedParser.Shared.Models
+@inherits EditFormBase<LauncherLauncherVersionDTO>
+<EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
+    <DataAnnotationsValidator />
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"launcherVersionFormVersion-{ControlIdSuffix}")">Launcher Version Number</label>
+            <CustomInputText class="form-control" id="@($"launcherVersionFormVersion-{ControlIdSuffix}")"
+                             @bind-Value="EditedData.Version" placeholder="version (for example 1.2.1)"/>
+        </div>
+    </div>
+
+    <ValidationSummary />
+
+    <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
+    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+        @SaveButtonText
+    </Button>
+
+    @ChildContent
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

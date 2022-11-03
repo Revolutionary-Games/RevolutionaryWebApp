@@ -20,11 +20,9 @@ public class LauncherThriveVersion : UpdateableModel, IUpdateNotifications
         ReleaseNumber = releaseNumber;
     }
 
-    [UpdateFromClientRequest]
     [AllowSortingBy]
     public string ReleaseNumber { get; }
 
-    [UpdateFromClientRequest]
     [AllowSortingBy]
     public bool Stable { get; set; }
 
@@ -32,9 +30,15 @@ public class LauncherThriveVersion : UpdateableModel, IUpdateNotifications
     ///   When true this is included in the launcher info when the launcher asks for it. Defaults to false to allow
     ///   setting up this whole object before turning this on.
     /// </summary>
-    [UpdateFromClientRequest]
     [AllowSortingBy]
     public bool Enabled { get; set; }
+
+    /// <summary>
+    ///   True when this is the latest version of the type <see cref="Stable"/> variable indicates. Only one can be
+    ///   latest of each type.
+    /// </summary>
+    [AllowSortingBy]
+    public bool Latest { get; set; }
 
     [UpdateFromClientRequest]
     [AllowSortingBy]
@@ -53,6 +57,7 @@ public class LauncherThriveVersion : UpdateableModel, IUpdateNotifications
             ReleaseNumber = ReleaseNumber,
             Stable = Stable,
             Enabled = Enabled,
+            Latest = Latest,
             SupportsFailedStartupDetection = SupportsFailedStartupDetection,
         };
     }

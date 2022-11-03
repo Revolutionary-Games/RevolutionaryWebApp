@@ -3,12 +3,11 @@
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
-@using SharedBase.Utilities
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
-@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherDownloadMirrorListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherDownloadMirrorDTO>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherThriveVersionListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherThriveVersionDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -47,23 +46,52 @@ else
                         {
                             <span class="oi oi-chevron-right"></span>
                         }
-                        <span class="ml-1">@item.InternalName</span>
+                        <span class="ml-1">@item.Id</span>
                     </th>
-                    <td>@item.ReadableName.Truncate(50)</td>
+                    <td>@item.ReleaseNumber</td>
                     <td>
-                        <a href="@item.InfoLink" target="_blank">@item.InfoLink.Truncate()</a>
-                    </td>
-                    <td>
-                        @if (item.BannerImageUrl != null)
+                        @if (!item.Stable)
                         {
-                            <a href="@item.InfoLink" target="_blank">@item.BannerImageUrl.Truncate()</a>
+                            <span class="badge badge-secondary">Beta</span>
                         }
                     </td>
-                    <td>@item.ExtraDescription?.Truncate()</td>
+                    <td>
+                        @if (!item.Enabled)
+                        {
+                            <span class="badge badge-warning">Disabled</span>
+                        }
+                    </td>
+                    <td>
+                        @if (item.Latest)
+                        {
+                            <span class="badge badge-success">Latest</span>
+                        }
+                    </td>
                     <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
                     <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
                     <td>
-                        <Button Enabled="@(!IsProcessing(item.Id))"
+                        <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest && item.Enabled)"
+                                OnPressed="@(async () => await MakeVersionLatest(item))"
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm mr-1">
+                            Make Latest
+                        </Button>
+                        @if(item.Enabled)
+                        {
+                            <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
+                                    OnPressed="@(async () => await DisableVersion(item))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm mr-2">
+                                Disable
+                            </Button>
+                        }
+                        else
+                        {
+                            <Button Enabled="@(!IsProcessing(item.Id))"
+                                    OnPressed="@(async () => await EnableVersion(item))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm mr-2">
+                                Enable
+                            </Button>
+                        }
+                        <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
                                 OnPressed="@(async () => await VerifyDeleteItem(item))"
                                 Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
                             Delete
@@ -73,7 +101,7 @@ else
 
                 @if (status.Expanded)
                 {
-                    <LauncherDownloadMirrorEditor Id="@item.Id" ColumnSpan="@columns.Count" />
+                    <LauncherThriveVersionEditor Id="@item.Id" ColumnSpan="@columns.Count" />
                 }
             }
         }
@@ -91,29 +119,29 @@ else
 
 @if (showNewForm)
 {
-    <LauncherDownloadMirrorDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
+    <LauncherThriveVersionDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
                   ControlIdSuffix="-new" StatusMessage="@createMessage"
                   StatusMessageType="@createMessageType" OnValidSubmit="@CreateNew" OverrideSaveText="Create">
         <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
             Cancel
         </Button>
-    </LauncherDownloadMirrorDataForm>
+    </LauncherThriveVersionDataForm>
 }
 
 @code {
     private readonly List<TableColumn> columns = new()
     {
-        new TableColumn("Name", true, "InternalName"),
-        new TableColumn("Readable Name", false),
-        new TableColumn("Info Url", true, "InfoLink"),
-        new TableColumn("Banner Image Link", false),
-        new TableColumn("Extra Description", false),
+        new TableColumn("Id", true),
+        new TableColumn("Version", true, "ReleaseNumber"),
+        new TableColumn("Beta", true, "Stable"),
+        new TableColumn("Disabled", true, "Enabled"),
+        new TableColumn("Latest", true),
         new TableColumn("Created At", true, "CreatedAt"),
         new TableColumn("Updated At", true, "UpdatedAt"),
         new TableColumn("Actions", false),
     };
 
-    private readonly ClientSideResourceStatus<MirrorResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ThriveVersionResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
     private SiteNoticeType messageType;
@@ -126,9 +154,9 @@ else
 
     private EditContext editContext = null!;
 
-    private LauncherDownloadMirrorDTO? newData;
+    private LauncherThriveVersionDTO? newData;
 
-    public LauncherDownloadMirrorControls() : base(new SortHelper("InternalName", SortDirection.Ascending))
+    public LauncherThriveVersionControls() : base(new SortHelper("Id", SortDirection.Descending))
     {
     }
 
@@ -141,7 +169,7 @@ else
         await base.OnInitializedAsync();
     }
 
-    public Task Handle(LauncherDownloadMirrorListUpdated notification, CancellationToken cancellationToken)
+    public Task Handle(LauncherThriveVersionListUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
     }
@@ -157,11 +185,11 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherDownloadMirrorDTO>?>
+    protected override Task<PagedResult<LauncherThriveVersionDTO>?>
         StartQuery(Dictionary<string, string> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<LauncherDownloadMirrorDTO>>(
-            QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/mirrors", requestParams));
+        return Http.GetFromJsonAsync<PagedResult<LauncherThriveVersionDTO>>(
+            QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/thriveVersions", requestParams));
     }
 
     private bool IsProcessing(long mirrorId)
@@ -177,7 +205,7 @@ else
         clientSideResourceStatus.GetStatus(mirrorId).Processing = processing;
     }
 
-    private void ToggleDetails(LauncherDownloadMirrorDTO item)
+    private void ToggleDetails(LauncherThriveVersionDTO item)
     {
         var status = clientSideResourceStatus.GetStatus(item.Id);
         status.Expanded = !status.Expanded;
@@ -194,7 +222,7 @@ else
             showNewForm = true;
             createMessage = null;
 
-            newData = new LauncherDownloadMirrorDTO();
+            newData = new LauncherThriveVersionDTO();
 
             editContext = new EditContext(newData);
         }
@@ -243,26 +271,26 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task VerifyDeleteItem(LauncherDownloadMirrorDTO mirror)
+    private async Task VerifyDeleteItem(LauncherThriveVersionDTO version)
     {
         var parameters = new ModalParameters
         {
-            { nameof(ConfirmDelete.Name), $"Download Mirror {mirror.InternalName}" },
+            { nameof(ConfirmDelete.Name), $"Thrive Version {version.ReleaseNumber}" },
         };
 
-        var modal = Modal.Show<ConfirmDelete>("Delete Download Mirror?", parameters);
+        var modal = Modal.Show<ConfirmDelete>("Delete Thrive Version?", parameters);
 
         var result = await modal.Result;
 
         if (result.Cancelled)
             return;
 
-        await DeleteItem(mirror);
+        await DeleteItem(version);
     }
 
-    private async Task DeleteItem(LauncherDownloadMirrorDTO mirror)
+    private async Task DeleteItem(LauncherThriveVersionDTO version)
     {
-        var itemId = mirror.Id;
+        var itemId = version.Id;
         SetProcessingStatus(itemId, true);
         message = null;
         messageType = SiteNoticeType.Danger;
@@ -272,7 +300,7 @@ else
 
         try
         {
-            result = await Http.DeleteAsync($"api/v1/LauncherInfoConfiguration/mirrors/{itemId}");
+            result = await Http.DeleteAsync($"api/v1/LauncherInfoConfiguration/thriveVersions/{itemId}");
         }
         catch (HttpRequestException e)
         {
@@ -291,7 +319,7 @@ else
         }
         else
         {
-            message = $"Download mirror {mirror.InternalName} deleted";
+            message = $"Thrive version {version.ReleaseNumber} deleted";
             messageType = SiteNoticeType.Warning;
             clientSideResourceStatus.SetDeletedStatus(itemId);
         }
@@ -299,7 +327,102 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private class MirrorResourceStatus : DeletedResourceStatus
+    private async Task MakeVersionLatest(LauncherThriveVersionDTO version)
+    {
+        var itemId = version.Id;
+        SetProcessingStatus(itemId, true);
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/LauncherInfoConfiguration/thriveVersions/{itemId}/latest",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(itemId, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(itemId, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = $"Thrive version {version.ReleaseNumber} is now the latest version";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task EnableVersion(LauncherThriveVersionDTO version)
+    {
+        return SetVersionStatus(version, true);
+    }
+
+    private Task DisableVersion(LauncherThriveVersionDTO version)
+    {
+        return SetVersionStatus(version, false);
+    }
+
+    private async Task SetVersionStatus(LauncherThriveVersionDTO version, bool enabled)
+    {
+        var itemId = version.Id;
+        SetProcessingStatus(itemId, true);
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync(enabled ?
+                $"api/v1/LauncherInfoConfiguration/thriveVersions/{itemId}/enable" :
+                $"api/v1/LauncherInfoConfiguration/thriveVersions/{itemId}/disable",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(itemId, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(itemId, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else if(enabled)
+        {
+            message = $"Thrive version {version.ReleaseNumber} is now enabled";
+            messageType = SiteNoticeType.Primary;
+        }
+        else
+        {
+            message = $"Thrive version {version.ReleaseNumber} is now disabled";
+            messageType = SiteNoticeType.Warning;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private class ThriveVersionResourceStatus : DeletedResourceStatus
     {
         public bool Expanded { get; set; }
     }

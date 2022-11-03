@@ -61,7 +61,7 @@ public class LauncherInfoController : Controller
                     {
                         PackagePlatform.Linux, new DownloadableInfo(
                             "7c9137ed64dc7e0d8c93113b90b79f84a63d85b2e8b824e9554a2f4457d72399",
-                            "Thrive_0.5.10.0_linux_x11",
+                            "Thrive_0.5.10.0_linux_x11.7z",
                             new Dictionary<string, Uri>
                             {
                                 {
@@ -84,7 +84,7 @@ public class LauncherInfoController : Controller
                             // "827304db6b306a2e16b61250f4f3152ec03f05a0eb06bc6305259be20a49727f",
                             // Intentionally wrong hash:
                             "abc1234db6b306a2e16b61250f4f3152ec03f05a0eb06bc6305259be20a49727f",
-                            "Thrive_0.5.9.0_linux_x11",
+                            "Thrive_0.5.9.0_linux_x11.7z",
                             new Dictionary<string, Uri>
                             {
                                 {
@@ -95,6 +95,12 @@ public class LauncherInfoController : Controller
                                 },
                             })
                     },
+                })
+                {
+                    Stable = true,
+                },
+                new(25, "", new Dictionary<PackagePlatform, DownloadableInfo>
+                {
                 })
                 {
                     Stable = true,

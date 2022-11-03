@@ -1,0 +1,48 @@
+@inherits ResourceEditorBase<LauncherLauncherVersionDTO, LauncherLauncherVersionUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+@* TODO: firefox once again complains here about that relative now has an effect here *@
+<tr @key="ElementIdPrefix" style="position: relative;">
+    <td colspan="@ColumnSpan" class="mb-2 expanded-box">
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                @* The version number is not editable so we just show the child object controls *@
+
+                <h5>Auto update channels for @Data.Version:</h5>
+
+                <span>TODO: controls for release channel and download configs</span>
+            }
+        </SingleResourceDisplayer>
+    </td>
+</tr>
+
+@code {
+    protected override string ElementIdPrefix => $"{Id}-mirrorDetails";
+
+    protected override Task<LauncherLauncherVersionDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<LauncherLauncherVersionDTO>(
+            $"api/v1/LauncherInfoConfiguration/launcherVersions/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.LauncherLauncherVersionUpdatedPrefix + Id);
+    }
+
+    protected override LauncherLauncherVersionDTO CreateEditData(LauncherLauncherVersionDTO serverData)
+    {
+        return serverData.Clone();
+    }
+
+    protected override string GetSaveEndpoint(LauncherLauncherVersionDTO serverData)
+    {
+        throw new NotSupportedException("Launcher versions are not updateable");
+    }
+
+}

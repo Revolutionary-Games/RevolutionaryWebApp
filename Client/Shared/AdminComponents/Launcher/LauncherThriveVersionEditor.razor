@@ -1,0 +1,56 @@
+@inherits ResourceEditorBase<LauncherThriveVersionDTO, LauncherThriveVersionUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@implements IAsyncDisposable
+
+@* TODO: firefox once again complains here about that relative now has an effect here *@
+<tr @key="ElementIdPrefix" style="position: relative;">
+    <td colspan="@ColumnSpan" class="mb-2 expanded-box">
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                <LauncherThriveVersionDataForm EditContext="@editContext" EditedData="@editedData"
+                                               ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage"
+                                               Processing="@processing" StatusMessageType="@statusMessageType"
+                                               OnValidSubmit="@Save" ForExistingResource="@true"/>
+
+                <h5>Platforms @Data.ReleaseNumber is available for:</h5>
+
+                <span>TODO: controls for version platforms and download configs</span>
+
+                @if (processing)
+                {
+                    <TableElementProcessingOverlay/>
+                }
+            }
+        </SingleResourceDisplayer>
+    </td>
+</tr>
+
+@code {
+    protected override string ElementIdPrefix => $"{Id}-mirrorDetails";
+
+    protected override Task<LauncherThriveVersionDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<LauncherThriveVersionDTO>(
+            $"api/v1/LauncherInfoConfiguration/thriveVersions/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.LauncherThriveVersionUpdatedPrefix + Id);
+    }
+
+    protected override LauncherThriveVersionDTO CreateEditData(LauncherThriveVersionDTO serverData)
+    {
+        return serverData.Clone();
+    }
+
+    protected override string GetSaveEndpoint(LauncherThriveVersionDTO serverData)
+    {
+        return $"api/v1/LauncherInfoConfiguration/thriveVersions/{serverData.Id}";
+    }
+
+}

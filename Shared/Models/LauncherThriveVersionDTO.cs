@@ -15,6 +15,21 @@ public class LauncherThriveVersionDTO : ClientSideTimedModel
     public bool Stable { get; set; } = true;
 
     public bool Enabled { get; set; }
-
+    public bool Latest { get; set; }
     public bool SupportsFailedStartupDetection { get; set; } = true;
+
+    public LauncherThriveVersionDTO Clone()
+    {
+        return new()
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            ReleaseNumber = ReleaseNumber,
+            Stable = Stable,
+            Enabled = Enabled,
+            Latest = Latest,
+            SupportsFailedStartupDetection = SupportsFailedStartupDetection,
+        };
+    }
 }

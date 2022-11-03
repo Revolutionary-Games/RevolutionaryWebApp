@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using DevCenterCommunication.Models;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Models;
 using Shared.Notifications;
 using Utilities;
@@ -19,8 +20,10 @@ public class LauncherLauncherVersion : UpdateableModel, IUpdateNotifications
         Version = version;
     }
 
+    [AllowSortingBy]
     public string Version { get; private set; }
 
+    [AllowSortingBy]
     public bool Latest { get; set; }
 
     public ICollection<LauncherVersionAutoUpdateChannel> AutoUpdateDownloads { get; set; } =

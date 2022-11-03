@@ -11,10 +11,10 @@
         <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
             @if (Data != null)
             {
-                <LauncherMirrorDataForm EditContext="@editContext" EditedData="@editedData"
-                              ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage" Processing="@processing"
-                              StatusMessageType="@statusMessageType" OnValidSubmit="@Save"
-                              ForExistingResource="@true"/>
+                <LauncherDownloadMirrorDataForm EditContext="@editContext" EditedData="@editedData"
+                                                ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage"
+                                                Processing="@processing" StatusMessageType="@statusMessageType"
+                                                OnValidSubmit="@Save" ForExistingResource="@true"/>
 
                 @if (processing)
                 {
@@ -48,4 +48,5 @@
     {
         return $"api/v1/LauncherInfoConfiguration/mirrors/{serverData.Id}";
     }
+
 }

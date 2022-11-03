@@ -3,12 +3,11 @@
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
-@using SharedBase.Utilities
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
-@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherDownloadMirrorListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherDownloadMirrorDTO>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherLauncherVersionListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherLauncherVersionDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -47,23 +46,24 @@ else
                         {
                             <span class="oi oi-chevron-right"></span>
                         }
-                        <span class="ml-1">@item.InternalName</span>
+                        <span class="ml-1">@item.Id</span>
                     </th>
-                    <td>@item.ReadableName.Truncate(50)</td>
+                    <td>@item.Version</td>
                     <td>
-                        <a href="@item.InfoLink" target="_blank">@item.InfoLink.Truncate()</a>
-                    </td>
-                    <td>
-                        @if (item.BannerImageUrl != null)
+                        @if (item.Latest)
                         {
-                            <a href="@item.InfoLink" target="_blank">@item.BannerImageUrl.Truncate()</a>
+                            <span class="badge badge-success">Latest</span>
                         }
                     </td>
-                    <td>@item.ExtraDescription?.Truncate()</td>
                     <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
                     <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
                     <td>
-                        <Button Enabled="@(!IsProcessing(item.Id))"
+                        <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
+                                OnPressed="@(async () => await MakeVersionLatest(item))"
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm mr-2">
+                            Make Latest
+                        </Button>
+                        <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
                                 OnPressed="@(async () => await VerifyDeleteItem(item))"
                                 Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
                             Delete
@@ -73,7 +73,7 @@ else
 
                 @if (status.Expanded)
                 {
-                    <LauncherDownloadMirrorEditor Id="@item.Id" ColumnSpan="@columns.Count" />
+                    <LauncherLauncherVersionEditor Id="@item.Id" ColumnSpan="@columns.Count" />
                 }
             }
         }
@@ -91,29 +91,27 @@ else
 
 @if (showNewForm)
 {
-    <LauncherDownloadMirrorDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
+    <LauncherLauncherVersionDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
                   ControlIdSuffix="-new" StatusMessage="@createMessage"
                   StatusMessageType="@createMessageType" OnValidSubmit="@CreateNew" OverrideSaveText="Create">
         <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
             Cancel
         </Button>
-    </LauncherDownloadMirrorDataForm>
+    </LauncherLauncherVersionDataForm>
 }
 
 @code {
     private readonly List<TableColumn> columns = new()
     {
-        new TableColumn("Name", true, "InternalName"),
-        new TableColumn("Readable Name", false),
-        new TableColumn("Info Url", true, "InfoLink"),
-        new TableColumn("Banner Image Link", false),
-        new TableColumn("Extra Description", false),
+        new TableColumn("Id", true),
+        new TableColumn("Version", true),
+        new TableColumn("Latest", false),
         new TableColumn("Created At", true, "CreatedAt"),
         new TableColumn("Updated At", true, "UpdatedAt"),
         new TableColumn("Actions", false),
     };
 
-    private readonly ClientSideResourceStatus<MirrorResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<LauncherVersionResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
     private SiteNoticeType messageType;
@@ -126,9 +124,9 @@ else
 
     private EditContext editContext = null!;
 
-    private LauncherDownloadMirrorDTO? newData;
+    private LauncherLauncherVersionDTO? newData;
 
-    public LauncherDownloadMirrorControls() : base(new SortHelper("InternalName", SortDirection.Ascending))
+    public LauncherLauncherVersionControls() : base(new SortHelper("Id", SortDirection.Descending))
     {
     }
 
@@ -141,14 +139,14 @@ else
         await base.OnInitializedAsync();
     }
 
-    public Task Handle(LauncherDownloadMirrorListUpdated notification, CancellationToken cancellationToken)
+    public Task Handle(LauncherLauncherVersionListUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
     }
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.LauncherDownloadMirrorListUpdated);
+        groups.Add(NotificationGroups.LauncherLauncherVersionListUpdated);
     }
 
     public override async ValueTask DisposeAsync()
@@ -157,11 +155,11 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherDownloadMirrorDTO>?>
+    protected override Task<PagedResult<LauncherLauncherVersionDTO>?>
         StartQuery(Dictionary<string, string> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<LauncherDownloadMirrorDTO>>(
-            QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/mirrors", requestParams));
+        return Http.GetFromJsonAsync<PagedResult<LauncherLauncherVersionDTO>>(
+            QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/launcherVersions", requestParams));
     }
 
     private bool IsProcessing(long mirrorId)
@@ -177,7 +175,7 @@ else
         clientSideResourceStatus.GetStatus(mirrorId).Processing = processing;
     }
 
-    private void ToggleDetails(LauncherDownloadMirrorDTO item)
+    private void ToggleDetails(LauncherLauncherVersionDTO item)
     {
         var status = clientSideResourceStatus.GetStatus(item.Id);
         status.Expanded = !status.Expanded;
@@ -194,7 +192,7 @@ else
             showNewForm = true;
             createMessage = null;
 
-            newData = new LauncherDownloadMirrorDTO();
+            newData = new LauncherLauncherVersionDTO();
 
             editContext = new EditContext(newData);
         }
@@ -213,7 +211,7 @@ else
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/LauncherInfoConfiguration/mirrors", newData!);
+            result = await Http.PostAsJsonAsync("api/v1/LauncherInfoConfiguration/launcherVersions", newData!);
         }
         catch (HttpRequestException e)
         {
@@ -243,26 +241,26 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task VerifyDeleteItem(LauncherDownloadMirrorDTO mirror)
+    private async Task VerifyDeleteItem(LauncherLauncherVersionDTO version)
     {
         var parameters = new ModalParameters
         {
-            { nameof(ConfirmDelete.Name), $"Download Mirror {mirror.InternalName}" },
+            { nameof(ConfirmDelete.Name), $"Launcher version {version.Version}" },
         };
 
-        var modal = Modal.Show<ConfirmDelete>("Delete Download Mirror?", parameters);
+        var modal = Modal.Show<ConfirmDelete>("Delete Launcher Version?", parameters);
 
         var result = await modal.Result;
 
         if (result.Cancelled)
             return;
 
-        await DeleteItem(mirror);
+        await DeleteItem(version);
     }
 
-    private async Task DeleteItem(LauncherDownloadMirrorDTO mirror)
+    private async Task DeleteItem(LauncherLauncherVersionDTO version)
     {
-        var itemId = mirror.Id;
+        var itemId = version.Id;
         SetProcessingStatus(itemId, true);
         message = null;
         messageType = SiteNoticeType.Danger;
@@ -272,7 +270,7 @@ else
 
         try
         {
-            result = await Http.DeleteAsync($"api/v1/LauncherInfoConfiguration/mirrors/{itemId}");
+            result = await Http.DeleteAsync($"api/v1/LauncherInfoConfiguration/launcherVersions/{itemId}");
         }
         catch (HttpRequestException e)
         {
@@ -291,7 +289,7 @@ else
         }
         else
         {
-            message = $"Download mirror {mirror.InternalName} deleted";
+            message = $"Launcher version {version.Version} deleted";
             messageType = SiteNoticeType.Warning;
             clientSideResourceStatus.SetDeletedStatus(itemId);
         }
@@ -299,7 +297,46 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private class MirrorResourceStatus : DeletedResourceStatus
+    private async Task MakeVersionLatest(LauncherLauncherVersionDTO version)
+    {
+        var itemId = version.Id;
+        SetProcessingStatus(itemId, true);
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/LauncherInfoConfiguration/launcherVersions/{itemId}/latest",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(itemId, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(itemId, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = $"Launcher version {version.Version} is now the latest version";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private class LauncherVersionResourceStatus : DeletedResourceStatus
     {
         public bool Expanded { get; set; }
     }
