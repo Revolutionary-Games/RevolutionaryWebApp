@@ -6,11 +6,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using DevCenterCommunication.Utilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -49,6 +51,104 @@ public class LauncherInfoController : Controller
         IConfiguration configuration)
     {
         var launcherDownloads = new Uri(configuration["Launcher:LauncherDownloadsPage"]);
+
+        var mirrors = await database.LauncherDownloadMirrors.ToDictionaryAsync(m => m.Id, m => m);
+
+        var latestLauncherVersion = await database.LauncherLauncherVersions.Include(v => v.AutoUpdateDownloads)
+            .ThenInclude(c => c.Mirrors)
+            .FirstOrDefaultAsync(v => v.Latest);
+
+        // We can already start processing things a bit while waiting for this DB operation
+        var versionsTask = database.LauncherThriveVersions.Include(v => v.Platforms).ThenInclude(p => p.Mirrors)
+            .Where(v => v.Enabled).ToListAsync();
+
+        LauncherVersionInfo launcherInfo;
+
+        if (latestLauncherVersion != null)
+        {
+            launcherInfo = new LauncherVersionInfo(latestLauncherVersion.Version);
+
+            // Build launcher update downloads info
+            foreach (var autoUpdateChannel in latestLauncherVersion.AutoUpdateDownloads)
+            {
+                var downloads = new Dictionary<string, Uri>();
+
+                foreach (var download in autoUpdateChannel.Mirrors)
+                {
+                    downloads[mirrors[download.MirrorId].InternalName] = download.DownloadUrl;
+                }
+
+                launcherInfo.AutoUpdateDownloads[autoUpdateChannel.Channel] =
+                    new DownloadableInfo(autoUpdateChannel.FileSha3, autoUpdateChannel.Channel.DownloadFilename(),
+                        downloads);
+            }
+        }
+        else
+        {
+            launcherInfo = new LauncherVersionInfo("0.0.0");
+        }
+
+        var mirrorInfo = new Dictionary<string, DownloadMirrorInfo>();
+
+        foreach (var (_, mirror) in mirrors)
+        {
+            mirrorInfo[mirror.InternalName] = new DownloadMirrorInfo(mirror.InfoLink, mirror.ReadableName)
+            {
+                BannerImage = mirror.BannerImageUrl,
+                ExtraDescription = mirror.ExtraDescription,
+            };
+        }
+
+        launcherInfo.DownloadsPage = launcherDownloads;
+
+        int? latestStableVersionId = null;
+        int? latestBetaVersionId = null;
+
+        var thriveVersions = await versionsTask;
+
+        var versionInfo = new List<ThriveVersionLauncherInfo>();
+
+        // Build Thrive versions info
+        foreach (var thriveVersion in thriveVersions)
+        {
+            var platforms = new Dictionary<PackagePlatform, DownloadableInfo>();
+
+            foreach (var versionPlatform in thriveVersion.Platforms)
+            {
+                var downloads = new Dictionary<string, Uri>();
+
+                foreach (var download in versionPlatform.Mirrors)
+                {
+                    downloads[mirrors[download.MirrorId].InternalName] = download.DownloadUrl;
+                }
+
+                platforms[versionPlatform.Platform] = new DownloadableInfo(versionPlatform.FileSha3,
+                    versionPlatform.LocalFileName, downloads);
+            }
+
+            if (thriveVersion.Latest)
+            {
+                if (thriveVersion.Stable)
+                {
+                    latestStableVersionId = (int)thriveVersion.Id;
+                }
+                else
+                {
+                    latestBetaVersionId = (int)thriveVersion.Id;
+                }
+            }
+
+            versionInfo.Add(new ThriveVersionLauncherInfo((int)thriveVersion.Id, thriveVersion.ReleaseNumber, platforms)
+            {
+                Stable = thriveVersion.Stable,
+                SupportsFailedStartupDetection = thriveVersion.SupportsFailedStartupDetection,
+            });
+        }
+
+        return new LauncherThriveInformation(launcherInfo, latestStableVersionId ?? -1, versionInfo, mirrorInfo)
+        {
+            LatestUnstable = latestBetaVersionId,
+        };
 
         return new LauncherThriveInformation(new LauncherVersionInfo("2.0.0")
             {
