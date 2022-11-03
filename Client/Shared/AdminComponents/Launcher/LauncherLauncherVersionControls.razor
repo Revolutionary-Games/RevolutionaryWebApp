@@ -162,17 +162,17 @@ else
             QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/launcherVersions", requestParams));
     }
 
-    private bool IsProcessing(long mirrorId)
+    private bool IsProcessing(long versionId)
     {
-        if (!clientSideResourceStatus.HasStatus(mirrorId))
+        if (!clientSideResourceStatus.HasStatus(versionId))
             return false;
 
-        return clientSideResourceStatus.GetStatus(mirrorId).Processing;
+        return clientSideResourceStatus.GetStatus(versionId).Processing;
     }
 
-    private void SetProcessingStatus(long mirrorId, bool processing)
+    private void SetProcessingStatus(long versionId, bool processing)
     {
-        clientSideResourceStatus.GetStatus(mirrorId).Processing = processing;
+        clientSideResourceStatus.GetStatus(versionId).Processing = processing;
     }
 
     private void ToggleDetails(LauncherLauncherVersionDTO item)
@@ -231,7 +231,7 @@ else
         }
         else
         {
-            createMessage = "New Download Mirror created";
+            createMessage = "New Launcher Version created";
             createMessageType = SiteNoticeType.Info;
 
             // Stop showing the form
