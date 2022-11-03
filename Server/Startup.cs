@@ -150,6 +150,10 @@ public class Startup
         {
             opts.UseSnakeCaseNamingConvention();
             opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection"));
+
+#if DEBUG
+            opts.EnableSensitiveDataLogging();
+#endif
         });
 
         // Can't currently be pooled due to the IModelUpdateNotificationSender that is a second constructor
@@ -158,6 +162,10 @@ public class Startup
         {
             opts.UseSnakeCaseNamingConvention();
             opts.UseNpgsql(Configuration.GetConnectionString("WebApiConnection"));
+
+#if DEBUG
+            opts.EnableSensitiveDataLogging();
+#endif
         });
 
         // services.AddIdentity<User, IdentityRole<long>>().AddEntityFrameworkStores<ApplicationDbContext>();

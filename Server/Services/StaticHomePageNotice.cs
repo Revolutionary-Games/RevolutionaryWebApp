@@ -9,6 +9,13 @@ public class StaticHomePageNotice
     public StaticHomePageNotice(IConfiguration configuration)
     {
         text = configuration["StaticSiteHomePageNotice"];
+
+#if DEBUG
+        if (!string.IsNullOrEmpty(text))
+            text += " ";
+
+        text += " [SERVER IN DEBUG MODE]";
+#endif
     }
 
     public bool Enabled => !string.IsNullOrEmpty(text);
