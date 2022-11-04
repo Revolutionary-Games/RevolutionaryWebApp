@@ -55,12 +55,12 @@ public class LauncherInfoController : Controller
         var mirrors = await database.LauncherDownloadMirrors.ToDictionaryAsync(m => m.Id, m => m);
 
         var latestLauncherVersion = await database.LauncherLauncherVersions.Include(v => v.AutoUpdateDownloads)
-            .ThenInclude(c => c.Mirrors)
+            .ThenInclude(c => c.Mirrors).AsSplitQuery()
             .FirstOrDefaultAsync(v => v.Latest);
 
         // We can already start processing things a bit while waiting for this DB operation
         var versionsTask = database.LauncherThriveVersions.Include(v => v.Platforms).ThenInclude(p => p.Mirrors)
-            .Where(v => v.Enabled).ToListAsync();
+            .AsSplitQuery().Where(v => v.Enabled).ToListAsync();
 
         LauncherVersionInfo launcherInfo;
 
