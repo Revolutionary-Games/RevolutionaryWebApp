@@ -35,6 +35,18 @@ public class ClientSideResourceStatus<T>
     {
         return statuses.ContainsKey(resourceId);
     }
+
+    /// <summary>
+    ///   Clears all deleted flags. Useful when creating new objects where the ID is not known but may conflict with
+    ///   a previously deleted item and it needs to be shown.
+    /// </summary>
+    public void ClearAllDeletedFlags()
+    {
+        foreach (var status in statuses.Values)
+        {
+            status.Deleted = false;
+        }
+    }
 }
 
 public interface IDeletedResourceStatus

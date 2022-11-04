@@ -241,8 +241,9 @@ private readonly List<TableColumn> columns = new()
             // Stop showing the form
             showNewForm = false;
 
-            // As ids will be reused, undelete the created object here
-            clientSideResourceStatus.GetStatus(newData.Id).Deleted = false;
+            // As ids will be reused, undelete everything here, our data refresh will correctly not get the deleted
+            // items. This is because we won't know the mirror id here
+            clientSideResourceStatus.ClearAllDeletedFlags();
         }
 
         await InvokeAsync(StateHasChanged);
@@ -252,7 +253,7 @@ private readonly List<TableColumn> columns = new()
     {
         var parameters = new ModalParameters
         {
-            { nameof(ConfirmDelete.Name), $"Download with mirror {download.MirrorName} for download " +
+            { nameof(ConfirmDelete.Name), $"Download with mirror {download.MirrorName} for channel " +
                 $"{download.Channel} in version {download.VersionId}"
             },
         };
