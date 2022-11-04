@@ -215,7 +215,7 @@ public class LauncherInfoController : Controller
     [ResponseCache(Duration = 600)]
     public async Task<ActionResult<Stream>> GetInfoForLauncher()
     {
-        var info = GenerateLauncherInfoObject(database, configuration);
+        var info = await GenerateLauncherInfoObject(database, configuration);
 
         using var compressedDataStream = new MemoryStream();
 
