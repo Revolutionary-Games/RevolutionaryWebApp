@@ -1,0 +1,105 @@
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using FeedParser.Shared.Models
+@using SharedBase.Models
+@using SharedBase.Utilities
+@inherits EditFormBase<LauncherThriveVersionPlatformDTO>
+<EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
+    <DataAnnotationsValidator/>
+
+    <div class="form-row">
+        @if (!ForExistingResource)
+        {
+            <div class="form-group col-md-12">
+                <label for="@($"newThrivePlatformPlatform-{ControlIdSuffix}")">
+                    Platform This Works On
+                </label>
+                <InputSelect TValue="@PackagePlatform" class="form-control"
+                             id="@($"newThrivePlatformPlatform-{ControlIdSuffix}")"
+                             ValueChanged="@UpdateSelectedPlatform"
+                             value="@EditedData.Platform"
+                             ValueExpression="@(() => EditedData.Platform)">
+                    @foreach (var name in Enum.GetNames<PackagePlatform>())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </InputSelect>
+            </div>
+        }
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"newThrivePlatformFileName-{ControlIdSuffix}")">
+                Local File Name (used by launcher internally)
+            </label>
+            <CustomInputText class="form-control" id="@($"newThrivePlatformFileName-{ControlIdSuffix}")"
+                             @bind-Value="EditedData.LocalFileName" placeholder="File name"/>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label for="@($"newThrivePlatformSha3-{ControlIdSuffix}")">SHA3 Hash of the Release on this Platform</label>
+            <CustomInputText class="form-control" id="@($"newThrivePlatformSha3-{ControlIdSuffix}")"
+                             @bind-Value="EditedData.FileSha3" placeholder="SHA3"/>
+        </div>
+    </div>
+
+
+    <ValidationSummary/>
+
+    <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType"/>
+    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+        @SaveButtonText
+    </Button>
+
+    @ChildContent
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public bool ForExistingResource { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        if (!ForExistingResource)
+            UpdateNameAutomaticallyForPlatform();
+    }
+
+    private void UpdateSelectedPlatform(PackagePlatform newPlatform)
+    {
+        EditedData.Platform = newPlatform;
+        UpdateNameAutomaticallyForPlatform();
+    }
+
+    private void UpdateNameAutomaticallyForPlatform()
+    {
+        string baseFolderName;
+        try
+        {
+            baseFolderName = ThriveProperties.GetBasePlatformPartOfFolderName(EditedData.Platform);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Auto detect version failed due to: {e}");
+            EditedData.LocalFileName = "CANNOT AUTO DETECT FOR THIS PLATFORM";
+            return;
+        }
+
+        var slightlySanitized = baseFolderName.Replace('(', '_').Replace(')', '_');
+
+        // This doesn't include version number here as that would be a bit complicated info to get here,
+        // and this isn't shown in any super important place so this is good enough
+
+        // Assume 7z packaging here, this needs to be updated if we switch packaging method
+        EditedData.LocalFileName = $"Thrive_{slightlySanitized}.7z";
+    }
+
+}
