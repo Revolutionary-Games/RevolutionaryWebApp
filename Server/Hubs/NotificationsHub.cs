@@ -1,10 +1,12 @@
 namespace ThriveDevCenter.Server.Hubs;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Authorization;
+using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -15,6 +17,7 @@ using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Notifications;
+using SharedBase.Models;
 using Utilities;
 
 public class NotificationsHub : Hub<INotifications>
@@ -22,6 +25,18 @@ public class NotificationsHub : Hub<INotifications>
     private readonly ILogger<NotificationsHub> logger;
     private readonly ITokenVerifier csrfVerifier;
     private readonly ApplicationDbContext database;
+
+    private readonly IReadOnlyCollection<Func<long, object>> launcherUpdateChannelMappers =
+        new List<Func<long, object>>
+        {
+            IdentityMapper, ChannelMapper,
+        };
+
+    private readonly IReadOnlyCollection<Func<long, object>> thriveVersionPlatformMappers =
+        new List<Func<long, object>>
+        {
+            IdentityMapper, PlatformMapper,
+        };
 
     public NotificationsHub(ILogger<NotificationsHub> logger, ITokenVerifier csrfVerifier,
         ApplicationDbContext database)
@@ -548,8 +563,11 @@ public class NotificationsHub : Hub<INotifications>
         if (groupName.StartsWith(NotificationGroups.LauncherLauncherVersionUpdateChannelUpdatedPrefix) ||
             groupName.StartsWith(NotificationGroups.LauncherLauncherVersionUpdateChannelDownloadsListUpdatedPrefix))
         {
-            if (!GetTargetModelFromGroupCompositeId(groupName, database.LauncherVersionAutoUpdateChannels, out _))
+            if (!GetTargetModelFromGroupCompositeId(groupName, database.LauncherVersionAutoUpdateChannels, out _,
+                    launcherUpdateChannelMappers))
+            {
                 return false;
+            }
 
             return RequireAccessLevel(UserAccessLevel.Admin, user);
         }
@@ -566,8 +584,11 @@ public class NotificationsHub : Hub<INotifications>
         if (groupName.StartsWith(NotificationGroups.LauncherThriveVersionPlatformUpdatedPrefix) ||
             groupName.StartsWith(NotificationGroups.LauncherThriveVersionPlatformDownloadsListUpdatedPrefix))
         {
-            if (!GetTargetModelFromGroupCompositeId(groupName, database.LauncherThriveVersionPlatforms, out _))
+            if (!GetTargetModelFromGroupCompositeId(groupName, database.LauncherThriveVersionPlatforms, out _,
+                    thriveVersionPlatformMappers))
+            {
                 return false;
+            }
 
             return RequireAccessLevel(UserAccessLevel.Admin, user);
         }
@@ -578,6 +599,21 @@ public class NotificationsHub : Hub<INotifications>
 
         // Unknown groups are not allowed
         return false;
+    }
+
+    private static object IdentityMapper(long id)
+    {
+        return id;
+    }
+
+    private static object ChannelMapper(long raw)
+    {
+        return (LauncherAutoUpdateChannel)raw;
+    }
+
+    private static object PlatformMapper(long raw)
+    {
+        return (PackagePlatform)raw;
     }
 
     private static bool GetTargetModelFromGroup<T>(string groupName, DbSet<T> existingItems, out T? item)
@@ -597,17 +633,43 @@ public class NotificationsHub : Hub<INotifications>
 
     // This should be useful in the future like for GetTargetModelFromGroup
     // ReSharper disable once OutParameterValueIsAlwaysDiscarded.Local
-    private static bool GetTargetModelFromGroupCompositeId<T>(string groupName, DbSet<T> existingItems, out T? item)
+    private static bool GetTargetModelFromGroupCompositeId<T>(string groupName, DbSet<T> existingItems, out T? item,
+        IEnumerable<Func<long, object>> keyMappers)
         where T : class
     {
-        if (!GetCompositeIDPartFromGroup(groupName, out var ids))
+        if (!GetCompositeIDPartFromGroup(groupName, out var ids) || ids == null)
         {
             item = null;
             return false;
         }
 
+        var keys = new object?[ids.Length];
+        int index = 0;
+
+        // Map the id values to the actual types (this mostly works just for enums currently, another approach is
+        // needed if arbitrary data need to be stored in the group name)
+        foreach (var keyMapper in keyMappers)
+        {
+            if (index >= keys.Length)
+            {
+                // Too many ID values provided
+                item = null;
+                return false;
+            }
+
+            keys[index] = keyMapper.Invoke(ids[index]);
+            ++index;
+        }
+
+        if (index < keys.Length)
+        {
+            // Not enough ID values provided
+            item = null;
+            return false;
+        }
+
         // This lookup probably can timing attack leak the IDs of objects
-        item = existingItems.Find(ids);
+        item = existingItems.Find(keys);
 
         return item != null;
     }

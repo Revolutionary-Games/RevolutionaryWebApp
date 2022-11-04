@@ -392,7 +392,7 @@ public class LauncherInfoConfigurationController : Controller
     {
         var channelEnumValue = ChannelFromInt(channel);
 
-        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, (int)channelEnumValue);
+        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, channelEnumValue);
 
         if (channelObject == null)
             return NotFound();
@@ -406,7 +406,7 @@ public class LauncherInfoConfigurationController : Controller
     {
         var channelEnumValue = ChannelFromInt(channel);
 
-        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, (int)channelEnumValue);
+        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, channelEnumValue);
 
         if (channelObject == null)
             return NotFound();
@@ -549,7 +549,7 @@ public class LauncherInfoConfigurationController : Controller
         // A bit of a silly way to ensure the channel is correct
         var channelEnumValue = ChannelFromInt(channel);
 
-        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, (int)channelEnumValue);
+        var channelObject = await database.LauncherVersionAutoUpdateChannels.FindAsync(id, channelEnumValue);
 
         if (channelObject == null)
             return NotFound();
@@ -912,7 +912,7 @@ public class LauncherInfoConfigurationController : Controller
     {
         var platformEnumValue = PlatformFromInt(platform);
 
-        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, (int)platformEnumValue);
+        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, platformEnumValue);
 
         if (platformObject == null)
             return NotFound();
@@ -926,7 +926,7 @@ public class LauncherInfoConfigurationController : Controller
     {
         var platformEnumValue = PlatformFromInt(platform);
 
-        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, (int)platformEnumValue);
+        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, platformEnumValue);
 
         if (platformObject == null)
             return NotFound();
@@ -1071,7 +1071,7 @@ public class LauncherInfoConfigurationController : Controller
         // A bit of a silly way to ensure the platform is correct
         var platformEnumValue = PlatformFromInt(platform);
 
-        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, (int)platformEnumValue);
+        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, platformEnumValue);
 
         if (platformObject == null)
             return NotFound();
