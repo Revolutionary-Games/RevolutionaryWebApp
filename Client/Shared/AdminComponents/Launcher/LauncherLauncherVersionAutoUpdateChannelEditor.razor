@@ -1,0 +1,55 @@
+@inherits ResourceEditorBase<LauncherVersionAutoUpdateChannelDTO, LauncherVersionAutoUpdateChannelUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using DevCenterCommunication.Models
+@implements IAsyncDisposable
+
+@* TODO: firefox once again complains here about that relative now has an effect here *@
+<tr @key="ElementIdPrefix" style="position: relative;">
+    <td colspan="@ColumnSpan" class="mb-2 expanded-box">
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                @* The file sha3 is currently not editable *@
+
+                <h5>Downloads for update channel @Channel:</h5>
+
+                <div>
+                    <LauncherLauncherVersionDownloads VersionId="@Id" Channel="@Channel" />
+                </div>
+            }
+        </SingleResourceDisplayer>
+    </td>
+</tr>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public LauncherAutoUpdateChannel Channel { get; set; }
+
+    protected override string ElementIdPrefix => $"{Id}-launcherChannelDetails";
+
+    protected override Task<LauncherVersionAutoUpdateChannelDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<LauncherVersionAutoUpdateChannelDTO>(
+            $"api/v1/LauncherInfoConfiguration/launcherVersions/{Id}/channels/{(int)Channel}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add($"{NotificationGroups.LauncherLauncherVersionUpdateChannelUpdatedPrefix}{Id}_{(int)Channel}");
+    }
+
+    protected override LauncherVersionAutoUpdateChannelDTO CreateEditData(LauncherVersionAutoUpdateChannelDTO serverData)
+    {
+        return serverData.Clone();
+    }
+
+    protected override string GetSaveEndpoint(LauncherVersionAutoUpdateChannelDTO serverData)
+    {
+        return $"api/v1/LauncherInfoConfiguration/launcherVersions/{Id}/channels/{(int)Channel}";
+    }
+
+}

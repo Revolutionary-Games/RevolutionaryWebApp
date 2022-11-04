@@ -10,7 +10,7 @@ public class LauncherVersionAutoUpdateChannelDTO : IIdentifiable
     public LauncherAutoUpdateChannel Channel { get; set; }
 
     [Required]
-    [MaxLength(256)]
+    [StringLength(256, MinimumLength = 10)]
     public string FileSha3 { get; set; } = string.Empty;
 
     [JsonIgnore]

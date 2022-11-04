@@ -1,0 +1,310 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models
+@using System.Text
+@using DevCenterCommunication.Models
+@using SharedBase.Utilities
+@using ThriveDevCenter.Shared.Converters
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherVersionDownloadListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherVersionDownloadDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <StatusMessageShower Message="@message" Type="@messageType" />
+
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="@false">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (clientSideResourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                <tr @key="item.Channel">
+                    <th scope="row">@(item.MirrorName ?? item.MirrorId.ToString())</th>
+                    <td>
+                        <a href="@item.DownloadUrl" target="_blank">@item.DownloadUrl.Truncate(50)</a>
+                    </td>
+                    <td>
+                        <Button Enabled="@(!IsProcessing(item.Id))"
+                                OnPressed="@(async () => await VerifyDelete(item))"
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
+                            Delete
+                        </Button>
+                    </td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
+        <DataAnnotationsValidator />
+
+        <div class="form-row">
+            @* TODO: auto complete for download mirror names *@
+
+            <div class="form-group col-md-4">
+                <label for="@($"newLaunchDownloadMirror-{VersionId}")">Mirror Name that provides this download</label>
+                <CustomInputText class="form-control" id="@($"newLaunchDownloadMirror-{VersionId}")"
+                                 @bind-Value="newData!.MirrorName" placeholder="Mirror internal name"/>
+            </div>
+
+            <div class="form-group col-md-8">
+                <label for="@($"newLaunchDownloadUrl-{VersionId}")">Download Url</label>
+                <CustomInputText class="form-control" id="@($"newLaunchDownloadUrl-{VersionId}")"
+                                 @bind-Value="newData!.DownloadUrl" placeholder="Url"/>
+            </div>
+        </div>
+
+        <ValidationSummary />
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit"
+                Spinner="@processingNewForm" ButtonStyle="primary">
+            Create
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+           Cancel
+        </Button>
+    </EditForm>
+}
+
+@code {
+private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Mirror", true, "MirrorId"),
+        new TableColumn("Download Url", false),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> clientSideResourceStatus = new();
+
+    private string? message;
+    private SiteNoticeType messageType;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+
+    private EditContext editContext = null!;
+
+    private LauncherVersionDownloadDTO? newData;
+
+    public LauncherLauncherVersionDownloads() : base(new SortHelper("MirrorId", SortDirection.Ascending))
+    {
+    }
+
+    [Parameter]
+    [EditorRequired]
+    public long VersionId { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public LauncherAutoUpdateChannel Channel { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(LauncherVersionDownloadListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add($"{NotificationGroups.LauncherLauncherVersionUpdateChannelDownloadsListUpdatedPrefix}" +
+            $"{VersionId}_{(int)Channel}");
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<LauncherVersionDownloadDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<LauncherVersionDownloadDTO>>(
+            QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/launcherVersions/" +
+                $"{VersionId}/channels/{(int)Channel}/downloads", requestParams));
+    }
+
+    private bool IsProcessing(long downloadId)
+    {
+        if (!clientSideResourceStatus.HasStatus(downloadId))
+            return false;
+
+        return clientSideResourceStatus.GetStatus(downloadId).Processing;
+    }
+
+    private void SetProcessingStatus(long downloadId, bool processing)
+    {
+        clientSideResourceStatus.GetStatus(downloadId).Processing = processing;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            newData = new LauncherVersionDownloadDTO
+            {
+                VersionId = VersionId,
+            };
+
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync(
+                $"api/v1/LauncherInfoConfiguration/launcherVersions/{VersionId}/channels/{(int)Channel}/downloads",
+                newData!);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = $"Download for mirror {newData!.MirrorName} created for download {newData!.Channel}";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+
+            // As ids will be reused, undelete the created object here
+            clientSideResourceStatus.GetStatus(newData.Id).Deleted = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task VerifyDelete(LauncherVersionDownloadDTO download)
+    {
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmDelete.Name), $"Download with mirror {download.MirrorName} for download " +
+                $"{download.Channel} in version {download.VersionId}"
+            },
+        };
+
+        var modal = Modal.Show<ConfirmDelete>("Delete this download?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await PerformDelete(download);
+    }
+
+    private async Task PerformDelete(LauncherVersionDownloadDTO download)
+    {
+        messageType = SiteNoticeType.Danger;
+        message = null;
+        SetProcessingStatus(download.Id, true);
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/LauncherInfoConfiguration/launcherVersions/" +
+                    $"{VersionId}/channels/{(int)download.Channel}/downloads/{download.MirrorId}");
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(download.Id, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(download.Id, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = $"Download of channel {download.Channel} with mirror {download.MirrorName} deleted";
+            messageType = SiteNoticeType.Warning;
+
+            clientSideResourceStatus.GetStatus(download.Id).Deleted = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

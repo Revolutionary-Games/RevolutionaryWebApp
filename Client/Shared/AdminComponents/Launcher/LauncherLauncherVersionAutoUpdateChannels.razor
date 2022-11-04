@@ -1,0 +1,338 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Utilities
+@using ThriveDevCenter.Shared.Models
+@using System.Text
+@using DevCenterCommunication.Models
+@using SharedBase.Utilities
+@using ThriveDevCenter.Shared.Converters
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherVersionAutoUpdateChannelListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherVersionAutoUpdateChannelDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <StatusMessageShower Message="@message" Type="@messageType" />
+
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="@false">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                if (clientSideResourceStatus.IsDeleted(item.Id))
+                    continue;
+
+                var status = clientSideResourceStatus.GetStatus(item.Id);
+
+                <tr @key="item.Channel">
+                    <th scope="row" @onclick="() => ToggleDetails(item)" class="clickable">
+                        @if (status.Expanded)
+                        {
+                            <span class="oi oi-chevron-top"></span>
+                        }
+                        else
+                        {
+                            <span class="oi oi-chevron-right"></span>
+                        }
+                        <span class="ml-1">@item.Channel</span>
+                    </th>
+                    <td>@item.FileSha3</td>
+                    <td>
+                        <Button Enabled="@(!IsProcessing(item.Id))"
+                                OnPressed="@(async () => await VerifyDelete(item))"
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm">
+                            Delete
+                        </Button>
+                    </td>
+                </tr>
+
+                @if (status.Expanded)
+                {
+                    <LauncherLauncherVersionAutoUpdateChannelEditor
+                        Id="@item.VersionId" Channel="@item.Channel" ColumnSpan="@columns.Count" />
+                }
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
+        <DataAnnotationsValidator />
+
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="@($"newVersionUpdateChannelChannel-{VersionId}")">
+                    Channel (type of launcher this download is for)
+                </label>
+                <InputSelect class="form-control" id="@($"newVersionUpdateChannelChannel-{VersionId}")"
+                             @bind-Value="newData!.Channel">
+                    @foreach (var name in Enum.GetNames<LauncherAutoUpdateChannel>())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="form-group col-md-8">
+                <label for="@($"newVersionUpdateChannelSha-{VersionId}")">SHA3 256 Hash of the Update File</label>
+                <CustomInputText class="form-control" id="@($"newVersionUpdateChannelSha-{VersionId}")"
+                                 @bind-Value="newData!.FileSha3" placeholder="SHA3 hash"/>
+            </div>
+        </div>
+
+        <ValidationSummary />
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit"
+                Spinner="@processingNewForm" ButtonStyle="primary">
+            Create
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+           Cancel
+        </Button>
+    </EditForm>
+}
+
+@code {
+private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Channel", true),
+        new TableColumn("FileSha3", false),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly ClientSideResourceStatus<ChannelResourceStatus> clientSideResourceStatus = new();
+
+    private string? message;
+    private SiteNoticeType messageType;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+
+    private EditContext editContext = null!;
+
+    private LauncherVersionAutoUpdateChannelDTO? newData;
+
+    public LauncherLauncherVersionAutoUpdateChannels() : base(new SortHelper("Channel", SortDirection.Ascending))
+    {
+    }
+
+    [Parameter]
+    [EditorRequired]
+    public long VersionId { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(LauncherVersionAutoUpdateChannelListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.LauncherLauncherVersionUpdateChannelListUpdatedPrefix + VersionId);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<LauncherVersionAutoUpdateChannelDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<LauncherVersionAutoUpdateChannelDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/LauncherInfoConfiguration/launcherVersions/{VersionId}/channels",
+                requestParams));
+    }
+
+    private bool IsProcessing(long channelId)
+    {
+        if (!clientSideResourceStatus.HasStatus(channelId))
+            return false;
+
+        return clientSideResourceStatus.GetStatus(channelId).Processing;
+    }
+
+    private void SetProcessingStatus(long channelId, bool processing)
+    {
+        clientSideResourceStatus.GetStatus(channelId).Processing = processing;
+    }
+
+    private void ToggleDetails(LauncherVersionAutoUpdateChannelDTO item)
+    {
+        var status = clientSideResourceStatus.GetStatus(item.Id);
+        status.Expanded = !status.Expanded;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // TODO: could auto select the next free channel enum value here
+            newData = new LauncherVersionAutoUpdateChannelDTO
+            {
+                VersionId = VersionId,
+            };
+
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync(
+                $"api/v1/LauncherInfoConfiguration/launcherVersions/{VersionId}/channels", newData!);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = $"Update channel {newData!.Channel} created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+
+            // Expand the item immediately for subresource editing
+            ToggleDetails(newData);
+
+            // As ids will be reused, undelete the created object here
+            clientSideResourceStatus.GetStatus(newData.Id).Deleted = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task VerifyDelete(LauncherVersionAutoUpdateChannelDTO channel)
+    {
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmDelete.Name), $"Channel {channel.Channel} in version {channel.VersionId}" },
+        };
+
+        var modal = Modal.Show<ConfirmDelete>("Delete this channel?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await PerformDelete(channel);
+    }
+
+    private async Task PerformDelete(LauncherVersionAutoUpdateChannelDTO channel)
+    {
+        messageType = SiteNoticeType.Danger;
+        message = null;
+        SetProcessingStatus(channel.Id, true);
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync(
+                $"api/v1/LauncherInfoConfiguration/launcherVersions/{VersionId}/channels/{(int)channel.Channel}");
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(channel.Id, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(channel.Id, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = $"Auto update channel {channel.Channel} deleted";
+            messageType = SiteNoticeType.Warning;
+
+            clientSideResourceStatus.GetStatus(channel.Id).Deleted = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private class ChannelResourceStatus : DeletedResourceStatus
+    {
+        public bool Expanded { get; set; }
+    }
+}
