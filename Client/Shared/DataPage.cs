@@ -81,8 +81,11 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     {
         get
         {
+            if (DataFetchCount < AppInfo.ShortTableRefreshIntervalCutoff)
+                return AppInfo.ShortTableNotificationFetchTimer;
+
             if (DataFetchCount < AppInfo.LongerTableRefreshIntervalCutoff)
-                return AppInfo.DefaultTableNotificationFetchTimer;
+                return AppInfo.NormalTableNotificationFetchTimer;
 
             if (DataFetchCount < AppInfo.LongestTableRefreshIntervalCutoff)
                 return AppInfo.LongerTableNotificationFetchTimer;
@@ -96,6 +99,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     protected TData? Data;
 
     private readonly Timer fetchStartTimer;
+    private readonly Timer fetchCountDecrementTimer;
     private bool wantsToFetchDataAgain;
 
     protected DataPage(SortHelper sort)
@@ -103,6 +107,9 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
         Sort = sort;
         fetchStartTimer = new Timer { Interval = FetchTimerInterval };
         fetchStartTimer.Elapsed += OnFetchTimer;
+
+        fetchCountDecrementTimer = new Timer { Interval = AppInfo.ForgetDataRefreshFetchInterval };
+        fetchCountDecrementTimer.Elapsed += OnDecrementFetchTimer;
 
         DefaultSortDirection = sort.Direction;
 
@@ -175,6 +182,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     public virtual ValueTask DisposeAsync()
     {
         fetchStartTimer.Dispose();
+        fetchCountDecrementTimer.Dispose();
         return ValueTask.CompletedTask;
     }
 
@@ -208,6 +216,9 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
             VisibleFetchInProgress = true;
 
         ++DataFetchCount;
+
+        if (!fetchCountDecrementTimer.Enabled)
+            fetchCountDecrementTimer.Start();
 
         var requestParams = CreatePageRequestParams();
 
@@ -317,6 +328,11 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
         {
             await FetchData(true);
         }
+    }
+
+    private void OnDecrementFetchTimer(object? sender, ElapsedEventArgs elapsedEventArgs)
+    {
+        DataFetchCount = Math.Max(DataFetchCount - 1, 0);
     }
 }
 

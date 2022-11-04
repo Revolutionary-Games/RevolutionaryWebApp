@@ -107,11 +107,19 @@ public static class AppInfo
     public const int CrashDumpDumpFileRetentionDays = 90;
     public const int MaximumDuplicateReports = 1000;
 
-    public const int DefaultTableNotificationFetchTimer = 1000;
+    public const int ShortTableNotificationFetchTimer = 400;
+    public const int NormalTableNotificationFetchTimer = 1000;
     public const int LongerTableNotificationFetchTimer = 5000;
     public const int LongestTableNotificationFetchTimer = 30000;
+    public const int ShortTableRefreshIntervalCutoff = 2;
     public const int LongerTableRefreshIntervalCutoff = 4;
     public const int LongestTableRefreshIntervalCutoff = 11;
+
+    /// <summary>
+    ///   Interval after which a data retrieve is cleared from history of data refresh due to an update notification.
+    ///   This ensures that pages that rarely get updates but are kept open for a long time refresh in reasonable time.
+    /// </summary>
+    public const int ForgetDataRefreshFetchInterval = 10000;
 
     public const long SingleResourceTableRowId = 1;
     public const int MinExternalServerPriority = -10;
