@@ -10,8 +10,8 @@
 @using DevCenterCommunication.Models
 @using SharedBase.Utilities
 @using ThriveDevCenter.Shared.Converters
-@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherVersionAutoUpdateChannelListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherVersionAutoUpdateChannelDTO>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherThriveVersionPlatformListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherThriveVersionPlatformDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -40,7 +40,7 @@ else
 
                 var status = clientSideResourceStatus.GetStatus(item.Id);
 
-                <tr @key="item.Channel">
+                <tr @key="item.Platform">
                     <th scope="row" @onclick="() => ToggleDetails(item)" class="clickable">
                         @if (status.Expanded)
                         {
@@ -50,9 +50,10 @@ else
                         {
                             <span class="oi oi-chevron-right"></span>
                         }
-                        <span class="ml-1">@item.Channel</span>
+                        <span class="ml-1">@item.Platform</span>
                     </th>
                     <td>@item.FileSha3</td>
+                    <td>@item.LocalFileName.Truncate(50)</td>
                     <td>
                         <Button Enabled="@(!IsProcessing(item.Id))"
                                 OnPressed="@(async () => await VerifyDelete(item))"
@@ -64,8 +65,8 @@ else
 
                 @if (status.Expanded)
                 {
-                    <LauncherLauncherVersionAutoUpdateChannelEditor
-                        Id="@item.VersionId" Channel="@item.Channel" ColumnSpan="@columns.Count" />
+                    <LauncherThriveVersionPlatformEditor
+                        Id="@item.VersionId" Platform="@item.Platform" ColumnSpan="@columns.Count" />
                 }
             }
         }
@@ -83,52 +84,26 @@ else
 
 @if (showNewForm)
 {
-    <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
-        <DataAnnotationsValidator />
-
-        <div class="form-row">
-            <div class="form-group col-md-4">
-                <label for="@($"newVersionUpdateChannelChannel-{VersionId}")">
-                    Channel (type of launcher this download is for)
-                </label>
-                <InputSelect class="form-control" id="@($"newVersionUpdateChannelChannel-{VersionId}")"
-                             @bind-Value="newData!.Channel">
-                    @foreach (var name in Enum.GetNames<LauncherAutoUpdateChannel>())
-                    {
-                        <option value="@name">@name</option>
-                    }
-                </InputSelect>
-            </div>
-
-            <div class="form-group col-md-8">
-                <label for="@($"newVersionUpdateChannelSha-{VersionId}")">SHA3 256 Hash of the Update File</label>
-                <CustomInputText class="form-control" id="@($"newVersionUpdateChannelSha-{VersionId}")"
-                                 @bind-Value="newData!.FileSha3" placeholder="SHA3 hash"/>
-            </div>
-        </div>
-
-        <ValidationSummary />
-
-        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-        <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit"
-                Spinner="@processingNewForm" ButtonStyle="primary">
-            Create
-        </Button>
+    <LauncherThriveVersionPlatformDataForm EditContext="@editContext" EditedData="@newData"
+                                           Processing="@processingNewForm" ControlIdSuffix="-new"
+                                           StatusMessage="@createMessage" StatusMessageType="@createMessageType"
+                                           OnValidSubmit="@CreateNew" OverrideSaveText="Create">
         <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
-           Cancel
+            Cancel
         </Button>
-    </EditForm>
+    </LauncherThriveVersionPlatformDataForm>
 }
 
 @code {
 private readonly List<TableColumn> columns = new()
     {
-        new TableColumn("Channel", true),
+        new TableColumn("Platform", true),
         new TableColumn("File SHA3", false),
+        new TableColumn("Local File Name", true, "LocalFileName"),
         new TableColumn("Actions", false),
     };
 
-    private readonly ClientSideResourceStatus<ChannelResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
     private SiteNoticeType messageType;
@@ -141,9 +116,9 @@ private readonly List<TableColumn> columns = new()
 
     private EditContext editContext = null!;
 
-    private LauncherVersionAutoUpdateChannelDTO? newData;
+    private LauncherThriveVersionPlatformDTO? newData;
 
-    public LauncherLauncherVersionAutoUpdateChannels() : base(new SortHelper("Channel", SortDirection.Ascending))
+    public LauncherThriveVersionPlatforms() : base(new SortHelper("Platform", SortDirection.Ascending))
     {
     }
 
@@ -160,14 +135,14 @@ private readonly List<TableColumn> columns = new()
         await base.OnInitializedAsync();
     }
 
-    public Task Handle(LauncherVersionAutoUpdateChannelListUpdated notification, CancellationToken cancellationToken)
+    public Task Handle(LauncherThriveVersionPlatformListUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
     }
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.LauncherLauncherVersionUpdateChannelListUpdatedPrefix + VersionId);
+        groups.Add(NotificationGroups.LauncherThriveVersionPlatformListUpdatedPrefix + VersionId);
     }
 
     public override async ValueTask DisposeAsync()
@@ -176,27 +151,27 @@ private readonly List<TableColumn> columns = new()
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherVersionAutoUpdateChannelDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LauncherThriveVersionPlatformDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<LauncherVersionAutoUpdateChannelDTO>>(
-            QueryHelpers.AddQueryString($"api/v1/LauncherInfoConfiguration/launcherVersions/{VersionId}/channels",
+        return Http.GetFromJsonAsync<PagedResult<LauncherThriveVersionPlatformDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/LauncherInfoConfiguration/thriveVersions/{VersionId}/platforms",
                 requestParams));
     }
 
-    private bool IsProcessing(long channelId)
+    private bool IsProcessing(long platformId)
     {
-        if (!clientSideResourceStatus.HasStatus(channelId))
+        if (!clientSideResourceStatus.HasStatus(platformId))
             return false;
 
-        return clientSideResourceStatus.GetStatus(channelId).Processing;
+        return clientSideResourceStatus.GetStatus(platformId).Processing;
     }
 
-    private void SetProcessingStatus(long channelId, bool processing)
+    private void SetProcessingStatus(long platformId, bool processing)
     {
-        clientSideResourceStatus.GetStatus(channelId).Processing = processing;
+        clientSideResourceStatus.GetStatus(platformId).Processing = processing;
     }
 
-    private void ToggleDetails(LauncherVersionAutoUpdateChannelDTO item)
+    private void ToggleDetails(LauncherThriveVersionPlatformDTO item)
     {
         var status = clientSideResourceStatus.GetStatus(item.Id);
         status.Expanded = !status.Expanded;
@@ -213,8 +188,8 @@ private readonly List<TableColumn> columns = new()
             showNewForm = true;
             createMessage = null;
 
-            // TODO: could auto select the next free channel enum value here
-            newData = new LauncherVersionAutoUpdateChannelDTO
+            // TODO: could auto select the next free platform enum value here
+            newData = new LauncherThriveVersionPlatformDTO
             {
                 VersionId = VersionId,
             };
@@ -237,7 +212,7 @@ private readonly List<TableColumn> columns = new()
         try
         {
             result = await Http.PostAsJsonAsync(
-                $"api/v1/LauncherInfoConfiguration/launcherVersions/{VersionId}/channels", newData!);
+                $"api/v1/LauncherInfoConfiguration/thriveVersions/{VersionId}/platforms", newData!);
         }
         catch (HttpRequestException e)
         {
@@ -257,7 +232,7 @@ private readonly List<TableColumn> columns = new()
         }
         else
         {
-            createMessage = $"Update channel {newData!.Channel} created";
+            createMessage = $"Platform {newData!.Platform} created";
             createMessageType = SiteNoticeType.Info;
 
             // Stop showing the form
@@ -273,28 +248,28 @@ private readonly List<TableColumn> columns = new()
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task VerifyDelete(LauncherVersionAutoUpdateChannelDTO channel)
+    private async Task VerifyDelete(LauncherThriveVersionPlatformDTO platform)
     {
         var parameters = new ModalParameters
         {
-            { nameof(ConfirmDelete.Name), $"Channel {channel.Channel} in version {channel.VersionId}" },
+            { nameof(ConfirmDelete.Name), $"Platform {platform.Platform} in version {platform.VersionId}" },
         };
 
-        var modal = Modal.Show<ConfirmDelete>("Delete this channel?", parameters);
+        var modal = Modal.Show<ConfirmDelete>("Delete this platform?", parameters);
 
         var result = await modal.Result;
 
         if (result.Cancelled)
             return;
 
-        await PerformDelete(channel);
+        await PerformDelete(platform);
     }
 
-    private async Task PerformDelete(LauncherVersionAutoUpdateChannelDTO channel)
+    private async Task PerformDelete(LauncherThriveVersionPlatformDTO platform)
     {
         messageType = SiteNoticeType.Danger;
         message = null;
-        SetProcessingStatus(channel.Id, true);
+        SetProcessingStatus(platform.Id, true);
         await InvokeAsync(StateHasChanged);
 
         HttpResponseMessage result;
@@ -302,17 +277,17 @@ private readonly List<TableColumn> columns = new()
         try
         {
             result = await Http.DeleteAsync(
-                $"api/v1/LauncherInfoConfiguration/launcherVersions/{VersionId}/channels/{(int)channel.Channel}");
+                $"api/v1/LauncherInfoConfiguration/thriveVersions/{VersionId}/platforms/{(int)platform.Platform}");
         }
         catch (HttpRequestException e)
         {
             message = $"Network request failed: {e.Message}";
-            SetProcessingStatus(channel.Id, false);
+            SetProcessingStatus(platform.Id, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        SetProcessingStatus(channel.Id, false);
+        SetProcessingStatus(platform.Id, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -322,17 +297,12 @@ private readonly List<TableColumn> columns = new()
         }
         else
         {
-            message = $"Auto update channel {channel.Channel} deleted";
+            message = $"Platform {platform.Platform} deleted";
             messageType = SiteNoticeType.Warning;
 
-            clientSideResourceStatus.GetStatus(channel.Id).Deleted = true;
+            clientSideResourceStatus.GetStatus(platform.Id).Deleted = true;
         }
 
         await InvokeAsync(StateHasChanged);
-    }
-
-    private class ChannelResourceStatus : DeletedResourceStatus
-    {
-        public bool Expanded { get; set; }
     }
 }

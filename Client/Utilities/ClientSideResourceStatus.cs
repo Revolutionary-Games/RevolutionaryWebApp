@@ -66,3 +66,12 @@ public class DeletedResourceStatus : IDeletedResourceStatus
     /// </summary>
     public bool Processing { get; set; }
 }
+
+// TODO: a bunch of places create one time used classes like this, those should be updated to use this instead
+public class ExpandableResourceStatus : DeletedResourceStatus
+{
+    /// <summary>
+    ///   True when the resource should be shown in an expanded view
+    /// </summary>
+    public bool Expanded { get; set; }
+}

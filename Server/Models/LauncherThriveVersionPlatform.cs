@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models;
 using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Models;
 using Shared.Notifications;
 using SharedBase.Models;
@@ -24,10 +25,12 @@ public class LauncherThriveVersionPlatform : IUpdateNotifications
 
     public long VersionId { get; private set; }
 
+    [AllowSortingBy]
     public PackagePlatform Platform { get; private set; }
 
     public string FileSha3 { get; set; }
 
+    [AllowSortingBy]
     public string LocalFileName { get; set; }
 
     public LauncherThriveVersion Version { get; set; } = null!;
