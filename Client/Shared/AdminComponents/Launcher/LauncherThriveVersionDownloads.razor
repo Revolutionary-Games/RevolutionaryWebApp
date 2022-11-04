@@ -8,12 +8,13 @@
 @using ThriveDevCenter.Shared.Models
 @using System.Text
 @using DevCenterCommunication.Models
+@using SharedBase.Models
 @using SharedBase.Utilities
 @using ThriveDevCenter.Shared.Converters
-@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherVersionDownloadListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherVersionDownloadDTO>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherThriveVersionDownloadListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherThriveVersionDownloadDTO>
 
-@* TODO: this is basically the same as the Thrive version downloads so merging these would be nice *@
+@* TODO: this is basically the same as the launcher version downloads so merging these would be nice *@
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -122,9 +123,9 @@ private readonly List<TableColumn> columns = new()
 
     private EditContext editContext = null!;
 
-    private LauncherVersionDownloadDTO? newData;
+    private LauncherThriveVersionDownloadDTO? newData;
 
-    public LauncherLauncherVersionDownloads() : base(new SortHelper("MirrorId", SortDirection.Ascending))
+    public LauncherThriveVersionDownloads() : base(new SortHelper("MirrorId", SortDirection.Ascending))
     {
     }
 
@@ -134,7 +135,7 @@ private readonly List<TableColumn> columns = new()
 
     [Parameter]
     [EditorRequired]
-    public LauncherAutoUpdateChannel Channel { get; set; }
+    public PackagePlatform Platform { get; set; }
 
     [CascadingParameter]
     public IModalService Modal { get; set; } = null!;
@@ -145,15 +146,15 @@ private readonly List<TableColumn> columns = new()
         await base.OnInitializedAsync();
     }
 
-    public Task Handle(LauncherVersionDownloadListUpdated notification, CancellationToken cancellationToken)
+    public Task Handle(LauncherThriveVersionDownloadListUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
     }
 
     public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
     {
-        groups.Add($"{NotificationGroups.LauncherLauncherVersionUpdateChannelDownloadsListUpdatedPrefix}" +
-            $"{VersionId}_{(int)Channel}");
+        groups.Add($"{NotificationGroups.LauncherThriveVersionPlatformDownloadsListUpdatedPrefix}" +
+            $"{VersionId}_{(int)Platform}");
     }
 
     public override async ValueTask DisposeAsync()
@@ -162,11 +163,11 @@ private readonly List<TableColumn> columns = new()
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherVersionDownloadDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LauncherThriveVersionDownloadDTO>?> StartQuery(Dictionary<string, string> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<LauncherVersionDownloadDTO>>(
-            QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/launcherVersions/" +
-                $"{VersionId}/channels/{(int)Channel}/downloads", requestParams));
+        return Http.GetFromJsonAsync<PagedResult<LauncherThriveVersionDownloadDTO>>(
+            QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/thriveVersions/" +
+                $"{VersionId}/platforms/{(int)Platform}/downloads", requestParams));
     }
 
     private bool IsProcessing(long downloadId)
@@ -193,10 +194,10 @@ private readonly List<TableColumn> columns = new()
             showNewForm = true;
             createMessage = null;
 
-            newData = new LauncherVersionDownloadDTO
+            newData = new LauncherThriveVersionDownloadDTO
             {
                 VersionId = VersionId,
-                Channel = Channel,
+                Platform = Platform,
             };
 
             editContext = new EditContext(newData);
@@ -217,7 +218,7 @@ private readonly List<TableColumn> columns = new()
         try
         {
             result = await Http.PostAsJsonAsync(
-                $"api/v1/LauncherInfoConfiguration/launcherVersions/{VersionId}/channels/{(int)Channel}/downloads",
+                $"api/v1/LauncherInfoConfiguration/thriveVersions/{VersionId}/platforms/{(int)Platform}/downloads",
                 newData!);
         }
         catch (HttpRequestException e)
@@ -238,7 +239,7 @@ private readonly List<TableColumn> columns = new()
         }
         else
         {
-            createMessage = $"Download for mirror {newData!.MirrorName} created for channel {newData!.Channel}";
+            createMessage = $"Download for mirror {newData!.MirrorName} created for platform {newData!.Platform}";
             createMessageType = SiteNoticeType.Info;
 
             // Stop showing the form
@@ -252,12 +253,12 @@ private readonly List<TableColumn> columns = new()
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task VerifyDelete(LauncherVersionDownloadDTO download)
+    private async Task VerifyDelete(LauncherThriveVersionDownloadDTO download)
     {
         var parameters = new ModalParameters
         {
-            { nameof(ConfirmDelete.Name), $"Download with mirror {download.MirrorName} for channel " +
-                $"{download.Channel} in version {download.VersionId}"
+            { nameof(ConfirmDelete.Name), $"Download with mirror {download.MirrorName} for platform " +
+                $"{download.Platform} in Thrive version {download.VersionId}"
             },
         };
 
@@ -271,7 +272,7 @@ private readonly List<TableColumn> columns = new()
         await PerformDelete(download);
     }
 
-    private async Task PerformDelete(LauncherVersionDownloadDTO download)
+    private async Task PerformDelete(LauncherThriveVersionDownloadDTO download)
     {
         messageType = SiteNoticeType.Danger;
         message = null;
@@ -282,8 +283,8 @@ private readonly List<TableColumn> columns = new()
 
         try
         {
-            result = await Http.DeleteAsync($"api/v1/LauncherInfoConfiguration/launcherVersions/" +
-                    $"{VersionId}/channels/{(int)download.Channel}/downloads/{download.MirrorId}");
+            result = await Http.DeleteAsync($"api/v1/LauncherInfoConfiguration/thriveVersions/" +
+                    $"{VersionId}/platforms/{(int)download.Platform}/downloads/{download.MirrorId}");
         }
         catch (HttpRequestException e)
         {
@@ -303,7 +304,7 @@ private readonly List<TableColumn> columns = new()
         }
         else
         {
-            message = $"Download of channel {download.Channel} with mirror {download.MirrorName} deleted";
+            message = $"Download of platform {download.Platform} with mirror {download.MirrorName} deleted";
             messageType = SiteNoticeType.Warning;
 
             clientSideResourceStatus.GetStatus(download.Id).Deleted = true;

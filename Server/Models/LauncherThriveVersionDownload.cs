@@ -22,11 +22,13 @@ public class LauncherThriveVersionDownload : IUpdateNotifications
         DownloadUrl = downloadUrl;
     }
 
+    [AllowSortingBy]
     public long VersionId { get; }
 
     [AllowSortingBy]
     public PackagePlatform Platform { get; }
 
+    [AllowSortingBy]
     public long MirrorId { get; }
 
     public Uri DownloadUrl { get; set; }

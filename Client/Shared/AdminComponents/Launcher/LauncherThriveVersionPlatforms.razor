@@ -30,7 +30,7 @@ else
                     ShowContentSpinner="@VisibleFetchInProgress"
                     Columns="@columns"
                     ShowNoContent="@NoItemsFound"
-                    UseNonFixedColumns="@false">
+                    UseNonFixedColumns="@true">
         @if (Data != null)
         {
             @foreach (var item in Data.Results)

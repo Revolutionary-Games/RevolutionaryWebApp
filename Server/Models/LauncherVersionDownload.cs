@@ -22,8 +22,10 @@ public class LauncherVersionDownload : IUpdateNotifications
         DownloadUrl = downloadUrl;
     }
 
+    [AllowSortingBy]
     public long VersionId { get; }
 
+    [AllowSortingBy]
     public LauncherAutoUpdateChannel Channel { get; }
 
     [AllowSortingBy]

@@ -23,4 +23,15 @@ public class LauncherThriveVersionPlatformDTO : IIdentifiable
 
     [JsonIgnore]
     public long Id => (VersionId << 8) | (byte)Platform;
+
+    public LauncherThriveVersionPlatformDTO Clone()
+    {
+        return new()
+        {
+            VersionId = VersionId,
+            Platform = Platform,
+            FileSha3 = FileSha3,
+            LocalFileName = LocalFileName,
+        };
+    }
 }

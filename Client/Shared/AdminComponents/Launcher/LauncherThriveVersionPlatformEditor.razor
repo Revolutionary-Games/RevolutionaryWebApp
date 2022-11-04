@@ -1,0 +1,64 @@
+@inherits ResourceEditorBase<LauncherThriveVersionPlatformDTO, LauncherThriveVersionPlatformUpdated>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using DevCenterCommunication.Models
+@using SharedBase.Models
+@implements IAsyncDisposable
+
+@* TODO: firefox once again complains here about that relative now has an effect here *@
+<tr @key="ElementIdPrefix" style="position: relative;">
+    <td colspan="@ColumnSpan" class="mb-2 expanded-box">
+        <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+            @if (Data != null)
+            {
+                <LauncherThriveVersionPlatformDataForm EditContext="@editContext" EditedData="@editedData"
+                                                       ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage"
+                                                       Processing="@processing" StatusMessageType="@statusMessageType"
+                                                       OnValidSubmit="@Save" ForExistingResource="@true"/>
+
+                <h5 class="mt-3">Downloads for platform @Platform:</h5>
+
+                <div>
+                    <LauncherThriveVersionDownloads VersionId="@Id" Platform="@Platform" />
+                </div>
+
+                @if (processing)
+                {
+                    <TableElementProcessingOverlay/>
+                }
+            }
+        </SingleResourceDisplayer>
+    </td>
+</tr>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public PackagePlatform Platform { get; set; }
+
+    protected override string ElementIdPrefix => $"{Id}-thrivePlatformDetails";
+
+    protected override Task<LauncherThriveVersionPlatformDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<LauncherThriveVersionPlatformDTO>(
+            $"api/v1/LauncherInfoConfiguration/thriveVersions/{Id}/platforms/{(int)Platform}");
+    }
+
+    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add($"{NotificationGroups.LauncherThriveVersionPlatformUpdatedPrefix}{Id}_{(int)Platform}");
+    }
+
+    protected override LauncherThriveVersionPlatformDTO CreateEditData(LauncherThriveVersionPlatformDTO serverData)
+    {
+        return serverData.Clone();
+    }
+
+    protected override string GetSaveEndpoint(LauncherThriveVersionPlatformDTO serverData)
+    {
+        return $"api/v1/LauncherInfoConfiguration/thriveVersions/{Id}/platforms/{(int)Platform}";
+    }
+
+}

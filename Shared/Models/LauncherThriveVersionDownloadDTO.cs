@@ -18,6 +18,7 @@ public class LauncherThriveVersionDownloadDTO : IIdentifiable
     [IsUri]
     public string DownloadUrl { get; set; } = string.Empty;
 
+    [MaxLength(500)]
     public string? MirrorName { get; set; }
 
     [JsonIgnore]
