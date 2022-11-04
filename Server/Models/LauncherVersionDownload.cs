@@ -64,6 +64,7 @@ public class LauncherVersionDownload : IUpdateNotifications
         // yield return new Tuple<SerializedNotification, string>(new LauncherVersionDownloadUpdated
         // {
         //     Item = GetDTO(),
-        // }, $"{NotificationGroups.LauncherLauncherVersionUpdateChannelDownloadUpdatedPrefix}{VersionId}_{(int)Channel}_{MirrorId}");
+        // }, $"{NotificationGroups.LauncherLauncherVersionUpdateChannelDownloadUpdatedPrefix}
+        // {VersionId}_{(int)Channel}_{MirrorId}");
     }
 }

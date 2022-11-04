@@ -62,6 +62,7 @@ public class LauncherThriveVersionDownload : IUpdateNotifications
         // yield return new Tuple<SerializedNotification, string>(new LauncherThriveVersionDownloadUpdated
         // {
         //     Item = GetDTO(),
-        // }, $"{NotificationGroups.LauncherThriveVersionPlatformDownloadUpdatedPrefix}{VersionId}_{(int)Platform}_{MirrorId}");
+        // }, $"{NotificationGroups.LauncherThriveVersionPlatformDownloadUpdatedPrefix}
+        // {VersionId}_{(int)Platform}_{MirrorId}");
     }
 }

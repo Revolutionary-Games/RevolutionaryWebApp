@@ -743,7 +743,8 @@ public class LauncherInfoConfigurationController : Controller
         await database.AdminActions.AddAsync(new AdminAction
         {
             Message =
-                $"Thrive version {version.ReleaseNumber} (previous: {previous?.ReleaseNumber}) is now latest for stable: {version.Stable}",
+                $"Thrive version {version.ReleaseNumber} (previous: {previous?.ReleaseNumber}) " +
+                $"is now latest for stable: {version.Stable}",
             PerformedById = user.Id,
         });
 
