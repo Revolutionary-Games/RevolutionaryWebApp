@@ -457,6 +457,7 @@ public class LauncherInfoConfigurationController : Controller
         });
 
         await database.LauncherVersionAutoUpdateChannels.AddAsync(channel);
+        version.BumpUpdatedAt();
 
         await database.SaveChangesAsync();
 
@@ -1024,6 +1025,7 @@ public class LauncherInfoConfigurationController : Controller
         });
 
         await database.LauncherThriveVersionPlatforms.AddAsync(platform);
+        version.BumpUpdatedAt();
 
         await database.SaveChangesAsync();
 
