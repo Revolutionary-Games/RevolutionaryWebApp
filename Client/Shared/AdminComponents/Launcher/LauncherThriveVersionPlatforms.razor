@@ -204,11 +204,19 @@ private readonly List<TableColumn> columns = new()
             showNewForm = true;
             createMessage = null;
 
-            // TODO: could auto select the next free platform enum value here
             newData = new LauncherThriveVersionPlatformDTO
             {
                 VersionId = VersionId,
             };
+
+            // Auto select the next free platform enum value here
+            if (Data != null)
+            {
+                var nextPlatform = Enum.GetValues<PackagePlatform>().FirstOrDefault(
+                    p => Data.Results.All(r => r.Platform != p));
+
+                newData.Platform = nextPlatform;
+            }
 
             editContext = new EditContext(newData);
 

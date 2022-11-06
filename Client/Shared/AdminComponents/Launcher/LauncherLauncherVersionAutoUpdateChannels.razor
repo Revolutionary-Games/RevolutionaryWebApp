@@ -213,11 +213,19 @@ private readonly List<TableColumn> columns = new()
             showNewForm = true;
             createMessage = null;
 
-            // TODO: could auto select the next free channel enum value here
             newData = new LauncherVersionAutoUpdateChannelDTO
             {
                 VersionId = VersionId,
             };
+
+            // Auto select the next free channel enum value here
+            if (Data != null)
+            {
+                var nextChannel = Enum.GetValues<LauncherAutoUpdateChannel>().FirstOrDefault(
+                    c => Data.Results.All(r => r.Channel != c));
+
+                newData.Channel = nextChannel;
+            }
 
             editContext = new EditContext(newData);
         }
