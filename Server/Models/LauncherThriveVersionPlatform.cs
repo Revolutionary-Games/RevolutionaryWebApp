@@ -28,12 +28,14 @@ public class LauncherThriveVersionPlatform : IUpdateNotifications
     [AllowSortingBy]
     public PackagePlatform Platform { get; private set; }
 
+    [UpdateFromClientRequest]
     public string FileSha3 { get; set; }
 
     [AllowSortingBy]
+    [UpdateFromClientRequest]
     public string LocalFileName { get; set; }
 
-    public LauncherThriveVersion Version { get; set; } = null!;
+    public LauncherThriveVersion? Version { get; set; }
 
     public ICollection<LauncherThriveVersionDownload> Mirrors { get; set; } =
         new HashSet<LauncherThriveVersionDownload>();
@@ -46,6 +48,7 @@ public class LauncherThriveVersionPlatform : IUpdateNotifications
             Platform = Platform,
             FileSha3 = FileSha3,
             LocalFileName = LocalFileName,
+            RelatedVersion = Version?.GetDTO(),
         };
     }
 

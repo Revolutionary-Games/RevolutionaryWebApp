@@ -31,11 +31,17 @@
     <div class="form-row">
         <div class="form-group col-md-12">
             <label for="@($"newThrivePlatformFileName-{ControlIdSuffix}")">
-                Local File Name (used by launcher internally)
+                Local Folder Name (launcher uses this to identify installed versions, so must be correct)
             </label>
             <CustomInputText class="form-control" id="@($"newThrivePlatformFileName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.LocalFileName" placeholder="File name"/>
         </div>
+    </div>
+
+    <div class="form-row">
+        <Button class="mb-3 ml-1" ButtonStyle="secondary" OnPressed="@UpdateNameAutomaticallyForPlatform">
+            Auto Generate File Name
+        </Button>
     </div>
 
     <div class="form-row">
@@ -62,6 +68,13 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>
+    ///   This is required here to properly automatically generate the full download file names
+    /// </summary>
+    [Parameter]
+    [EditorRequired]
+    public LauncherThriveVersionDTO RelatedVersion { get; set; } = null!;
+
     [Parameter]
     public bool ForExistingResource { get; set; }
 
@@ -84,22 +97,33 @@
         string baseFolderName;
         try
         {
-            baseFolderName = ThriveProperties.GetBasePlatformPartOfFolderName(EditedData.Platform);
+            var split = RelatedVersion.ReleaseNumber.Split('-', 2);
+            var parsedVersion = Version.Parse(split[0]);
+
+            // We need to do this to always have the trailing zero
+            var properVersion = new Version(parsedVersion.Major, parsedVersion.Minor, parsedVersion.Build,
+                parsedVersion.Revision > 0 ? parsedVersion.Revision : 0);
+
+            var stringVersion = properVersion.ToString();
+
+            // Add back the suffix
+            if (split.Length > 1)
+                stringVersion += $"-{split[1]}";
+
+            baseFolderName = ThriveProperties.GetFolderNameForPlatform(EditedData.Platform, stringVersion, false);
         }
         catch (Exception e)
         {
             Console.WriteLine($"Auto detect version failed due to: {e}");
-            EditedData.LocalFileName = "CANNOT AUTO DETECT FOR THIS PLATFORM";
+            EditedData.LocalFileName = "CANNOT AUTO DETECT";
             return;
         }
 
-        var slightlySanitized = baseFolderName.Replace('(', '_').Replace(')', '_');
+        // Should hopefully do what github file uploads do to match launcher 1.0 32-bit versions
+        var slightlySanitized = baseFolderName.Replace('(', '.').Replace(')', '.');
 
-        // This doesn't include version number here as that would be a bit complicated info to get here,
-        // and this isn't shown in any super important place so this is good enough
-
-        // Assume 7z packaging here, this needs to be updated if we switch packaging method
-        EditedData.LocalFileName = $"Thrive_{slightlySanitized}.7z";
+        // This is the folder name the launcher uses so we don't add any kind of suffix
+        EditedData.LocalFileName = slightlySanitized;
     }
 
 }

@@ -913,12 +913,56 @@ public class LauncherInfoConfigurationController : Controller
     {
         var platformEnumValue = PlatformFromInt(platform);
 
-        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, platformEnumValue);
+        var platformObject = await database.LauncherThriveVersionPlatforms.Include(p => p.Version)
+            .FirstOrDefaultAsync(p => p.VersionId == id && p.Platform == platformEnumValue);
 
         if (platformObject == null)
             return NotFound();
 
         return platformObject.GetDTO();
+    }
+
+    [HttpPut("thriveVersions/{id:long}/platforms/{platform:int}")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public async Task<IActionResult> UpdateThriveVersionPlatform(long id, int platform,
+        [Required] [FromBody] LauncherThriveVersionPlatformDTO request)
+    {
+        var platformEnumValue = PlatformFromInt(platform);
+
+        var platformObject = await database.LauncherThriveVersionPlatforms.FindAsync(id, platformEnumValue);
+
+        if (platformObject == null)
+            return NotFound();
+
+        // We get the version here as well so we can bump its updated time
+        var version = await database.LauncherThriveVersions.FindAsync(id);
+
+        if (version == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUser()!;
+
+        var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(platformObject, request);
+
+        if (!changes)
+            return Ok();
+
+        version.BumpUpdatedAt();
+
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"Thrive version {version.ReleaseNumber} ({version.Id}) platform {platformEnumValue} edited",
+
+            // TODO: there could be an extra info property where the description is stored
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Thrive version's ({Id}) platform {PlatformObject} edited by {Email}, " +
+            "changes: {Description}", version.Id, platformEnumValue, user.Email, description);
+
+        return Ok();
     }
 
     [HttpDelete("thriveVersions/{id:long}/platforms/{platform:int}")]

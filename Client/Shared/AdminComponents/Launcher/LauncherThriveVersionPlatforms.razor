@@ -8,6 +8,7 @@
 @using ThriveDevCenter.Shared.Models
 @using System.Text
 @using DevCenterCommunication.Models
+@using SharedBase.Models
 @using SharedBase.Utilities
 @using ThriveDevCenter.Shared.Converters
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherThriveVersionPlatformListUpdated>
@@ -82,12 +83,24 @@ else
     New
 </Button>
 
-@if (showNewForm)
+@if (!showNewForm)
+{
+}
+else if (loadingVersionInfo)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+}
+else
 {
     <LauncherThriveVersionPlatformDataForm EditContext="@editContext" EditedData="@newData"
                                            Processing="@processingNewForm" ControlIdSuffix="-new"
                                            StatusMessage="@createMessage" StatusMessageType="@createMessageType"
-                                           OnValidSubmit="@CreateNew" OverrideSaveText="Create">
+                                           OnValidSubmit="@CreateNew" OverrideSaveText="Create"
+                                           RelatedVersion="@relatedVersion">
         <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
             Cancel
         </Button>
@@ -99,7 +112,7 @@ private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Platform", true),
         new TableColumn("File SHA3", false),
-        new TableColumn("Local File Name", true, "LocalFileName"),
+        new TableColumn("Folder Name", true, "LocalFileName"),
         new TableColumn("Actions", false),
     };
 
@@ -110,6 +123,9 @@ private readonly List<TableColumn> columns = new()
 
     private string? createMessage;
     private SiteNoticeType createMessageType;
+
+    private bool loadingVersionInfo;
+    private LauncherThriveVersionDTO? relatedVersion;
 
     private bool showNewForm;
     private bool processingNewForm;
@@ -177,7 +193,7 @@ private readonly List<TableColumn> columns = new()
         status.Expanded = !status.Expanded;
     }
 
-    private void ToggleCreateNew()
+    private async void ToggleCreateNew()
     {
         if (showNewForm)
         {
@@ -195,9 +211,13 @@ private readonly List<TableColumn> columns = new()
             };
 
             editContext = new EditContext(newData);
-        }
 
-        StateHasChanged();
+            // Start loading the required info if we don't already have that info
+            if (relatedVersion == null)
+            {
+                await LoadRelatedVersionInfo();
+            }
+        }
     }
 
     private async void CreateNew()
@@ -245,6 +265,27 @@ private readonly List<TableColumn> columns = new()
             clientSideResourceStatus.GetStatus(newData.Id).Deleted = false;
         }
 
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadRelatedVersionInfo()
+    {
+        loadingVersionInfo = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            relatedVersion = await Http.GetFromJsonAsync<LauncherThriveVersionDTO>(
+                $"api/v1/LauncherInfoConfiguration/thriveVersions/{VersionId}") ??
+                throw new NullDecodedJsonException();
+        }
+        catch (HttpRequestException e)
+        {
+            messageType = SiteNoticeType.Danger;
+            message = $"Network request failed: {e.Message}";
+        }
+
+        loadingVersionInfo = false;
         await InvokeAsync(StateHasChanged);
     }
 
