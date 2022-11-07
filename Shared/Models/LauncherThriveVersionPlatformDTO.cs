@@ -14,6 +14,7 @@ public class LauncherThriveVersionPlatformDTO : IIdentifiable
 
     [Required]
     [StringLength(256, MinimumLength = 10)]
+    [NoWhitespace]
     public string FileSha3 { get; set; } = string.Empty;
 
     [Required]

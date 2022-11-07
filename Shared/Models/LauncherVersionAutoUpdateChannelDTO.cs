@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Shared.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using DevCenterCommunication.Models;
+using SharedBase.ModelVerifiers;
 
 public class LauncherVersionAutoUpdateChannelDTO : IIdentifiable
 {
@@ -11,6 +12,7 @@ public class LauncherVersionAutoUpdateChannelDTO : IIdentifiable
 
     [Required]
     [StringLength(256, MinimumLength = 10)]
+    [NoWhitespace]
     public string FileSha3 { get; set; } = string.Empty;
 
     [JsonIgnore]
