@@ -122,6 +122,10 @@
         // Should hopefully do what github file uploads do to match launcher 1.0 32-bit versions
         var slightlySanitized = baseFolderName.Replace('(', '.').Replace(')', '.');
 
+        // Github removes the last dot from the removed parenthesis in 32-bit releases
+        if (slightlySanitized.EndsWith('.'))
+            slightlySanitized = slightlySanitized.Substring(0, slightlySanitized.Length - 1);
+
         // This is the folder name the launcher uses so we don't add any kind of suffix
         EditedData.LocalFileName = slightlySanitized;
     }
