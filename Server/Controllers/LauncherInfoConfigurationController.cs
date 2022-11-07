@@ -20,6 +20,7 @@ using RecursiveDataAnnotationsValidation;
 using Shared;
 using Shared.Models;
 using SharedBase.Models;
+using SharedBase.Utilities;
 using Utilities;
 
 /// <summary>
@@ -65,6 +66,19 @@ public class LauncherInfoConfigurationController : Controller
         if (currentData.LatestVersionOrNull() == null)
         {
             validationError = "No latest version set";
+        }
+
+        foreach (var download in currentData.LauncherVersion.AutoUpdateDownloads.Values.Concat(currentData.Versions
+                     .SelectMany(v => v.Platforms).Select(p => p.Value)))
+        {
+            foreach (var (key, url) in download.Mirrors)
+            {
+                if (url.ToString().Length > GlobalConstants.DEFAULT_MAX_LENGTH_FOR_TO_STRING_ATTRIBUTE)
+                {
+                    validationError = $"Too long download URL (mirror: {key}): {url}";
+                    break;
+                }
+            }
         }
 
         if (validationError != null)
