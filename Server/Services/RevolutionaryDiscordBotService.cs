@@ -878,7 +878,8 @@ public class RevolutionaryDiscordBotService
     {
         var httpClient = httpClientFactory.CreateClient();
 
-        var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        // The font constructor requires a seekable stream, so we need to buffer the entire thing in memory
+        var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseContentRead);
         response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStreamAsync();
