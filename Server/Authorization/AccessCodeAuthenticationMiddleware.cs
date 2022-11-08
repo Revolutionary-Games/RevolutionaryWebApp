@@ -30,7 +30,7 @@ public class AccessCodeAuthenticationMiddleware : IMiddleware
             }
 
             var usedCode =
-                await database.AccessKeys.WhereHashed(nameof(AccessKey.KeyCode), headerValues[0])
+                await database.AccessKeys.WhereHashed(nameof(AccessKey.KeyCode), headerValues[0]!)
                     .ToAsyncEnumerable().FirstOrDefaultAsync(k => k.KeyCode == headerValues[0]);
 
             if (usedCode == null)

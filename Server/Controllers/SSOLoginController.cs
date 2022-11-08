@@ -42,7 +42,7 @@ public abstract class SSOLoginController : Controller
         session.SsoReturnUrl = returnTo;
     }
 
-    protected async Task<(Session? session, IActionResult? result)> FetchAndCheckSessionForSsoReturn(string nonce,
+    protected async Task<(Session? session, IActionResult? result)> FetchAndCheckSessionForSsoReturn(string? nonce,
         string ssoType)
     {
         var session = await HttpContext.Request.Cookies.GetSession(Database);
@@ -71,7 +71,7 @@ public abstract class SSOLoginController : Controller
                 "Your IP address changed during the login attempt.")));
         }
 
-        if (session.SsoNonce != nonce || string.IsNullOrEmpty(session.SsoNonce))
+        if (nonce == null || session.SsoNonce != nonce || string.IsNullOrEmpty(session.SsoNonce))
         {
             return (session, Redirect(QueryHelpers.AddQueryString("/login", "error",
                 "Invalid request nonce. Please try again.")));

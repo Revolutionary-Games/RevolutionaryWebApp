@@ -23,7 +23,11 @@ public class JavaScriptConsoleLogger : ILogger
         return true;
     }
 
-    public IDisposable BeginScope<TState>(TState state) => new DummyScope();
+    public IDisposable BeginScope<TState>(TState state)
+        where TState : notnull
+    {
+        return new DummyScope();
+    }
 
     private class DummyScope : IDisposable
     {

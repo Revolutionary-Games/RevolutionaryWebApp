@@ -28,7 +28,7 @@ public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
 
         var tokenValue = header[0];
 
-        if (!tokenValue.StartsWith("Basic "))
+        if (tokenValue == null || !tokenValue.StartsWith("Basic "))
         {
             await WriteGitLFSJsonError(context, "Invalid format for Authorization header", true);
             return false;

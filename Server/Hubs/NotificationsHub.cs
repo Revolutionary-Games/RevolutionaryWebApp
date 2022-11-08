@@ -71,10 +71,10 @@ public class NotificationsHub : Hub<INotifications>
             {
                 // In release mode (at least I saw this happen once) the access token is in a header
                 if (http.Request.Headers.TryGetValue("Authorization", out StringValues header) &&
-                    header.Count > 0 && header[0].StartsWith("Bearer "))
+                    header.Count > 0 && header[0] != null && header[0]!.StartsWith("Bearer "))
                 {
                     // In format "Bearer TOKEN"
-                    csrf = header[0].Split(' ').Last();
+                    csrf = header[0]!.Split(' ').Last();
                 }
                 else
                 {
@@ -83,10 +83,10 @@ public class NotificationsHub : Hub<INotifications>
             }
             else
             {
-                if (accessToken.Count < 1)
+                if (accessToken.Count < 1 || string.IsNullOrEmpty(accessToken[0]))
                     throw new HubException("invalid connection parameters");
 
-                csrf = accessToken[0];
+                csrf = accessToken[0]!;
             }
 
             try

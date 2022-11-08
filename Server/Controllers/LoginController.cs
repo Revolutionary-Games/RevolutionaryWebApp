@@ -463,7 +463,7 @@ public class LoginController : SSOLoginController
                 if (!payload.TryGetValue("groups", out StringValues groups))
                     return GetInvalidSsoParametersResult();
 
-                var parsedGroups = groups.SelectMany(groupList => groupList.Split(','));
+                var parsedGroups = groups.Where(g => g != null).SelectMany(g => g!.Split(','));
 
                 if (!parsedGroups.Any(group =>
                         DiscourseApiHelpers.CommunityDevBuildGroup.Equals(group) ||

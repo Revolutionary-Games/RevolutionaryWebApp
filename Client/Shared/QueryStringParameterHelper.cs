@@ -46,11 +46,14 @@ public static class QueryStringParameterHelper
 
                     if (property.PropertyType.IsEnum)
                     {
-                        convertedValue = Enum.Parse(property.PropertyType, tuple.Value[0]);
+                        convertedValue = Enum.Parse(property.PropertyType,
+                            tuple.Value[0] ?? throw new Exception("Query parameter has null value"));
                     }
                     else
                     {
-                        convertedValue = Convert.ChangeType(tuple.Value[0], property.PropertyType,
+                        convertedValue = Convert.ChangeType(
+                            tuple.Value[0] ?? throw new Exception("Query parameter has null value"),
+                            property.PropertyType,
                             CultureInfo.InvariantCulture);
                     }
 

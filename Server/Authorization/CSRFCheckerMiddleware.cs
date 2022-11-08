@@ -34,7 +34,7 @@ public class CSRFCheckerMiddleware : IMiddleware
                 user = userRaw as User;
             }
 
-            if (!csrfVerifier.IsValidCSRFToken(headerValues[0], user))
+            if (!csrfVerifier.IsValidCSRFToken(headerValues[0]!, user))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsync("CSRF token is invalid. Please refresh and try again.");

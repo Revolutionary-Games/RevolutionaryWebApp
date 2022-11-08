@@ -50,7 +50,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
         if (foundToken && !string.IsNullOrEmpty(queryToken[0]))
         {
-            var user = await database.Users.WhereHashed(nameof(User.ApiToken), queryToken[0])
+            var user = await database.Users.WhereHashed(nameof(User.ApiToken), queryToken[0]!)
                 .Include(u => u.AssociationMember).AsAsyncEnumerable()
                 .FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
 
@@ -74,6 +74,9 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
         if (context.Request.Headers.TryGetValue("Authorization", out StringValues header) && header.Count > 0)
         {
             var tokenValue = header[0];
+
+            if (string.IsNullOrEmpty(tokenValue))
+                return AuthMethodResult.Nothing;
 
             if (tokenValue.StartsWith("Bearer "))
             {
