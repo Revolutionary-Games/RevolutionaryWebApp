@@ -26,6 +26,8 @@ public class LauncherLauncherVersion : UpdateableModel, IUpdateNotifications
     [AllowSortingBy]
     public bool Latest { get; set; }
 
+    public DateTime? SetLatestAt { get; set; }
+
     public ICollection<LauncherVersionAutoUpdateChannel> AutoUpdateDownloads { get; set; } =
         new HashSet<LauncherVersionAutoUpdateChannel>();
 

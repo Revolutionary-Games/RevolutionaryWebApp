@@ -316,6 +316,7 @@ public class LauncherInfoConfigurationController : Controller
         {
             logger.LogInformation("Removing latest status from launcher version {Id}", previous.Id);
             previous.Latest = false;
+            previous.SetLatestAt = null;
             previous.BumpUpdatedAt();
 
             // We have to save here due to the unique index on latest
@@ -323,6 +324,7 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         version.Latest = true;
+        version.SetLatestAt = DateTime.UtcNow;
         version.BumpUpdatedAt();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
