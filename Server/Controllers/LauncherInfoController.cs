@@ -66,7 +66,10 @@ public class LauncherInfoController : Controller
 
         if (latestLauncherVersion != null)
         {
-            launcherInfo = new LauncherVersionInfo(latestLauncherVersion.Version);
+            launcherInfo = new LauncherVersionInfo(latestLauncherVersion.Version)
+            {
+                LatestVersionPublishedAt = latestLauncherVersion.SetLatestAt,
+            };
 
             // Build launcher update downloads info
             foreach (var autoUpdateChannel in latestLauncherVersion.AutoUpdateDownloads)
