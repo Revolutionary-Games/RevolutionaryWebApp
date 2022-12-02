@@ -2,10 +2,10 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests;
 
 using System.Threading;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models.Enums;
 using Fixtures;
 using Server.Jobs;
 using Server.Models;
-using Shared.Models;
 using Xunit;
 
 public class CountFolderItemsTests : IClassFixture<RealUnitTestDatabaseFixture>

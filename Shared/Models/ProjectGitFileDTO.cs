@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System.ComponentModel.DataAnnotations;
 using DevCenterCommunication.Models;
+using DevCenterCommunication.Models.Enums;
 
 public class ProjectGitFileDTO : ClientSideModel
 {

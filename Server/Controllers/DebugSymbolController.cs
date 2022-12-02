@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using DevCenterCommunication.Models;
+using DevCenterCommunication.Models.Enums;
 using Filters;
 using Hangfire;
 using Jobs;

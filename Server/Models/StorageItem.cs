@@ -5,10 +5,12 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
+using DevCenterCommunication.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared;
-using Shared.Models;
 using Shared.Notifications;
+using Shared.Utilities;
 using Utilities;
 
 [Index(nameof(Name), nameof(ParentId), IsUnique = true)]

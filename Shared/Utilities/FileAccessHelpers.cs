@@ -1,20 +1,8 @@
-namespace ThriveDevCenter.Shared.Models;
+namespace ThriveDevCenter.Shared.Utilities;
 
 using System;
-
-public enum FileAccess
-{
-    Public = 0,
-    RestrictedUser = 1,
-    User = 2,
-    Developer,
-    OwnerOrAdmin,
-
-    /// <summary>
-    ///   Only system access
-    /// </summary>
-    Nobody,
-}
+using DevCenterCommunication.Models.Enums;
+using Models;
 
 public static class FileAccessHelpers
 {

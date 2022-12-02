@@ -5,11 +5,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
+using DevCenterCommunication.Models.Enums;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
-using Shared.Models;
 
 [DisableConcurrentExecution(45)]
 public class LockCIImageItemJob

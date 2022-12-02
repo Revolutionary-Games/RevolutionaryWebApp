@@ -1,6 +1,7 @@
 ﻿namespace ThriveDevCenter.Server.Models;
 
 using System.ComponentModel.DataAnnotations;
+using DevCenterCommunication.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;

@@ -22,7 +22,7 @@ using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
-using FileAccess = Shared.Models.FileAccess;
+using FileAccess = DevCenterCommunication.Models.Enums.FileAccess;
 
 public class RunJobOnServerJob : BaseCIJobManagingJob
 {

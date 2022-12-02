@@ -1,6 +1,8 @@
-namespace ThriveDevCenter.Shared.Tests.Models.Tests;
+namespace ThriveDevCenter.Shared.Tests.Utilities.Tests;
 
+using DevCenterCommunication.Models.Enums;
 using Shared.Models;
+using Shared.Utilities;
 using Xunit;
 
 public class FileAccessTests

@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Shared.Notifications;
 
+using DevCenterCommunication.Models;
 using Models;
 
 /// <summary>

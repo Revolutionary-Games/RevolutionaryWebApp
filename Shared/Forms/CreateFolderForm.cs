@@ -1,7 +1,7 @@
 namespace ThriveDevCenter.Shared.Forms;
 
 using System.ComponentModel.DataAnnotations;
-using Models;
+using DevCenterCommunication.Models.Enums;
 
 public class CreateFolderForm
 {

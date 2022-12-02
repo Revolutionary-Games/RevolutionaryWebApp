@@ -4,11 +4,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models.Enums;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
-using Shared.Models;
 
 /// <summary>
 ///   Creates the default folders in the database, if missing. This is used instead of seeding the db to make

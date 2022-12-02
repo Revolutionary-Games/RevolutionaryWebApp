@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Authorization;
 using DevCenterCommunication;
 using DevCenterCommunication.Models;
+using DevCenterCommunication.Models.Enums;
 using Filters;
 using Hangfire;
 using Jobs;

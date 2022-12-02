@@ -1,8 +1,8 @@
 namespace ThriveDevCenter.Server.Tests.Fixtures;
 
 using System.Collections.Generic;
+using DevCenterCommunication.Models.Enums;
 using Server.Models;
-using Shared.Models;
 
 public class SimpleFewDebugSymbolsDatabase : BaseSharedDatabaseFixture
 {

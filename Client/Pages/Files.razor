@@ -12,12 +12,14 @@
 @using System.Threading
 @using System.Net
 @using System.Text.Json
+@using DevCenterCommunication.Models
+@using DevCenterCommunication.Models.Enums
 @using SharedBase.Utilities
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Forms
 @using ThriveDevCenter.Shared.Utilities
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
-@inherits BaseFileBrowser<ThriveDevCenter.Shared.Models.StorageItemInfo>
+@inherits BaseFileBrowser<DevCenterCommunication.Models.StorageItemInfo>
 <h3>Files</h3>
 
 <p>This is a service to store files needed for Thrive development, which aren't included in the code repository.</p>

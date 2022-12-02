@@ -11,6 +11,7 @@ using Amazon.S3.Model;
 using Authorization;
 using BlazorPagination;
 using DevCenterCommunication.Models;
+using DevCenterCommunication.Models.Enums;
 using Filters;
 using Hangfire;
 using Jobs;
