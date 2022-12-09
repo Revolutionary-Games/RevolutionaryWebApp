@@ -57,10 +57,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
                         app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
                         app.UseMiddleware<CSRFCheckerMiddleware>();
                         app.UseRouting();
-                        app.UseEndpoints(endpoints =>
-                        {
-                            endpoints.MapControllers();
-                        });
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
                     });
             })
             .StartAsync();
@@ -109,12 +106,8 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
                 app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
                 app.UseMiddleware<CSRFCheckerMiddleware>();
                 app.UseRouting();
-                app.UseEndpoints(endpoints =>
-                {
-                    endpoints.MapControllers();
-                });
-            })
-        );
+                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            }));
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
         requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
@@ -172,12 +165,8 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
                 app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
                 app.UseMiddleware<CSRFCheckerMiddleware>();
                 app.UseRouting();
-                app.UseEndpoints(endpoints =>
-                {
-                    endpoints.MapControllers();
-                });
-            })
-        );
+                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            }));
 
         // User 1 requests
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/user").ToString());

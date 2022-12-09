@@ -31,19 +31,19 @@ public class PatreonWebhookController : Controller
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
 
-    private enum EventType
-    {
-        Create,
-        Update,
-        Delete,
-    }
-
     public PatreonWebhookController(ILogger<PatreonWebhookController> logger, NotificationsEnabledDb database,
         IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
+    }
+
+    private enum EventType
+    {
+        Create,
+        Update,
+        Delete,
     }
 
     [HttpPost]
@@ -144,6 +144,7 @@ public class PatreonWebhookController : Controller
                     jobClient);
                 break;
             }
+
             case EventType.Delete:
             {
                 // Find relevant patron object and delete it
@@ -162,6 +163,7 @@ public class PatreonWebhookController : Controller
 
                 break;
             }
+
             default:
                 throw new ArgumentOutOfRangeException();
         }

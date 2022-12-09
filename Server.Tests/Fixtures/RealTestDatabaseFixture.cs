@@ -15,8 +15,7 @@ public abstract class RealTestDatabaseFixture : IDisposable
         if (string.IsNullOrEmpty(connectionString))
         {
             throw new ArgumentException("connection string is empty, make sure to setup secrets",
-                nameof(connectionString)
-            );
+                nameof(connectionString));
         }
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(connectionString)
@@ -31,6 +30,12 @@ public abstract class RealTestDatabaseFixture : IDisposable
     public static Guid SessionId3 { get; } = Guid.NewGuid();
 
     public ApplicationDbContext Database { get; }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
     protected void RecreateDb()
     {
@@ -99,11 +104,5 @@ public abstract class RealTestDatabaseFixture : IDisposable
         {
             Database.Dispose();
         }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
     }
 }

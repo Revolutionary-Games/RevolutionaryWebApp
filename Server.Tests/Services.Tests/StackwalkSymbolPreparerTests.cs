@@ -12,7 +12,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class StackwalkSymbolPreparerTests : IClassFixture<SimpleFewDebugSymbolsDatabase>
+public sealed class StackwalkSymbolPreparerTests : IClassFixture<SimpleFewDebugSymbolsDatabase>, IDisposable
 {
     private const string DownloadUrl1 = "https://example.com/test/1";
     private const string DownloadUrl2 = "https://example.com/test/2";
@@ -72,6 +72,12 @@ public class StackwalkSymbolPreparerTests : IClassFixture<SimpleFewDebugSymbolsD
         Assert.True(File.Exists(Path.Join(folder, symbolsDatabase.Path1)));
         Assert.True(File.Exists(Path.Join(folder, symbolsDatabase.Path2)));
         Assert.False(File.Exists(Path.Join(folder, symbolsDatabase.Path3)));
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
+        symbolsDatabase.Dispose();
     }
 
     private static Task WriteDummyFile(string url, string file, CancellationToken cancellationToken)

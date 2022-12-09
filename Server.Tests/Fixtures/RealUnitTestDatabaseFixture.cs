@@ -19,14 +19,6 @@ public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
         }
     }
 
-    private static string GetConnectionString()
-    {
-        var configuration = new ConfigurationBuilder()
-            .AddUserSecrets<RealUnitTestDatabaseFixture>().Build();
-
-        return configuration["UnitTestConnection"];
-    }
-
     protected override void Seed()
     {
         RecreateDb();
@@ -34,5 +26,13 @@ public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
         InsertBasicUsers();
 
         Database.SaveChanges();
+    }
+
+    private static string GetConnectionString()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets<RealUnitTestDatabaseFixture>().Build();
+
+        return configuration["UnitTestConnection"];
     }
 }

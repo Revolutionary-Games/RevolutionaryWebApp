@@ -5,7 +5,7 @@ using Hangfire.Dashboard;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
-using Shared.Models;
+using Shared.Models.Enums;
 
 public class HangfireDashboardAuthorization : IDashboardAuthorizationFilter
 {

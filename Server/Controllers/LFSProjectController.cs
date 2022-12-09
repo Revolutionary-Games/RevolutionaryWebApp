@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using Utilities;
 
 [ApiController]

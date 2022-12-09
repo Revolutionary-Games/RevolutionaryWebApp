@@ -7,6 +7,7 @@ using Server.Authorization;
 using Server.Models;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using SharedBase.ModelVerifiers;
 
 [ApiController]

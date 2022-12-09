@@ -11,10 +11,10 @@ using Shared;
 
 public abstract class SSOLoginController : Controller
 {
-    private static readonly TimeSpan SsoTimeout = TimeSpan.FromMinutes(20);
-
     protected readonly ILogger<SSOLoginController> Logger;
     protected readonly NotificationsEnabledDb Database;
+
+    private static readonly TimeSpan SsoTimeout = TimeSpan.FromMinutes(20);
 
     protected SSOLoginController(ILogger<SSOLoginController> logger, NotificationsEnabledDb database)
     {
@@ -42,7 +42,7 @@ public abstract class SSOLoginController : Controller
         session.SsoReturnUrl = returnTo;
     }
 
-    protected async Task<(Session? session, IActionResult? result)> FetchAndCheckSessionForSsoReturn(string? nonce,
+    protected async Task<(Session? Session, IActionResult? Result)> FetchAndCheckSessionForSsoReturn(string? nonce,
         string ssoType)
     {
         var session = await HttpContext.Request.Cookies.GetSession(Database);

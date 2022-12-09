@@ -47,7 +47,7 @@ public class CancelStuckMultipartUploadsJob : IJob
     /// <summary>
     ///   There may be old DB records that are not cleared out. This looks for them and queues a job to remove them
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">Cancellation</param>
     private async Task DetectOldNonFinishedRecords(CancellationToken cancellationToken)
     {
         var cutoff = DateTime.UtcNow - AppInfo.OldMultipartUploadThreshold;
@@ -86,7 +86,7 @@ public class CancelStuckMultipartUploadsJob : IJob
 
             foreach (var activeUpload in activeUploads)
             {
-                if (activeUpload.Path == upload.key && activeUpload.UploadId == upload.uploadId)
+                if (activeUpload.Path == upload.Key && activeUpload.UploadId == upload.UploadId)
                 {
                     match = true;
                     break;
@@ -98,12 +98,12 @@ public class CancelStuckMultipartUploadsJob : IJob
 
             logger.LogError("Detected multipart upload that we have no record of {UploadId} for path: {Key}"
                 + " will attempt to terminate it",
-                upload.uploadId, upload.key);
+                upload.UploadId, upload.Key);
 
-            await remoteStorage.AbortMultipartUpload(upload.key, upload.uploadId);
+            await remoteStorage.AbortMultipartUpload(upload.Key, upload.UploadId);
 
             jobClient.Schedule<MakeSureNoMultipartPartsExistJob>(
-                x => x.Execute(upload.uploadId, upload.key, CancellationToken.None),
+                x => x.Execute(upload.UploadId, upload.Key, CancellationToken.None),
                 TimeSpan.FromDays(1));
         }
     }

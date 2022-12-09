@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Enums;
 using Notifications;
 using SharedBase.Converters;
 
@@ -24,13 +25,4 @@ public class RealTimeBuildMessage : SerializedNotification
     ///   The section id (as we don't guarantee SectionName to be unique)
     /// </summary>
     public long SectionId { get; set; }
-}
-
-public enum BuildSectionMessageType
-{
-    SectionStart,
-    BuildOutput,
-    SectionEnd,
-    FinalStatus,
-    Error,
 }

@@ -4,7 +4,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Shared.Models;
+using Shared.Models.Enums;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class AuthorizeRoleFilterAttribute : Attribute, IAsyncAuthorizationFilter

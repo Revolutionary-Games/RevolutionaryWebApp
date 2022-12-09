@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models.Interfaces;
 using Shared;
-using Shared.Models;
+using Shared.Models.Enums;
 using Utilities;
 
 public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : Controller

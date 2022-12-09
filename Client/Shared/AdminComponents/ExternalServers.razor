@@ -10,6 +10,8 @@
 @using ThriveDevCenter.Client.Utilities
 @using System.Diagnostics
 @using System.Globalization
+@using ThriveDevCenter.Client.Models
+@using ThriveDevCenter.Shared.Models.Enums
 @implements ThriveDevCenter.Client.Services.INotificationHandler<ExternalServersUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.ExternalServerDTO>
 
@@ -203,7 +205,7 @@
         new TableColumn("Actions", false),
     };
 
-    private readonly ClientSideResourceStatus<ServerResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
@@ -705,11 +707,6 @@
         }
 
         await InvokeAsync(StateHasChanged);
-    }
-
-    private class ServerResourceStatus : DeletedResourceStatus
-    {
-        public bool Expanded { get; set; }
     }
 
 }

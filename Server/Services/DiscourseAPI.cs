@@ -28,13 +28,13 @@ public class DiscourseAPI
     private readonly string apiUsername;
     private readonly HttpClient httpClient;
 
-    public DiscourseAPI(string apiBaseUrl, string key, string apiUsername = "system")
+    public DiscourseAPI(string apiBaseUrl, string key, IHttpClientFactory clientFactory, string apiUsername = "system")
     {
         this.apiBaseUrl = string.IsNullOrEmpty(apiBaseUrl) ? null : new Uri(apiBaseUrl);
         this.key = key;
         this.apiUsername = apiUsername;
 
-        httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(80) };
+        httpClient = clientFactory.CreateClient("discourse");
 
         if (Configured)
         {

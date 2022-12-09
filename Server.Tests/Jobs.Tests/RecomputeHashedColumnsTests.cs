@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Tests.Jobs.Tests;
 
+using System;
 using System.Threading.Tasks;
 using Fixtures;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestDatabaseFixture>
+public sealed class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestDatabaseFixture>, IDisposable
 {
     private readonly XunitLogger<RecomputeHashedColumns> logger;
     private readonly RealUnitTestDatabaseFixture fixture;
@@ -60,5 +61,11 @@ public class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestDatabaseFix
         Assert.Null(await database.Sessions
             .FromSqlInterpolated($"SELECT * FROM sessions WHERE id = {created.Id} AND hashed_id IS NULL")
             .FirstOrDefaultAsync());
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
+        fixture.Dispose();
     }
 }

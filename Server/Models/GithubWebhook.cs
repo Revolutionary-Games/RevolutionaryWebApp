@@ -4,6 +4,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Authorization;
 using DevCenterCommunication.Models;
+using Enums;
 using Shared.Models;
 using Utilities;
 

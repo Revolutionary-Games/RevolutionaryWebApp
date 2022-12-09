@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Models;
 
 using System.ComponentModel.DataAnnotations;
+using Enums;
 using SharedBase.ModelVerifiers;
 
 public class EmailTokenData
@@ -15,9 +16,4 @@ public class EmailTokenData
     [Required]
     [StringLength(1024, MinimumLength = 3)]
     public string VerifiedResourceId { get; set; } = string.Empty;
-}
-
-public enum EmailVerificationType
-{
-    CLA,
 }

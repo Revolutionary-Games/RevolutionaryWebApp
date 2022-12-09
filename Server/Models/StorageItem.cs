@@ -222,8 +222,10 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 parent = await database.StorageItems.FindAsync(ParentId);
 
                 if (parent == null)
+                {
                     throw new NullReferenceException(
                         "failed to get the StorageItem parent for parent folder returning");
+                }
             }
 
             result.Add(parent);

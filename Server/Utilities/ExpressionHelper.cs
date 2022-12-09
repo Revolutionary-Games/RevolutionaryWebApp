@@ -20,12 +20,12 @@ public static class ExpressionHelper
 
     private class WrappedObj<TValue>
     {
-        // ReSharper disable once UnusedAutoPropertyAccessor.Local
-        public TValue Value { get; }
-
         public WrappedObj(TValue value)
         {
             Value = value;
         }
+
+        // ReSharper disable once UnusedAutoPropertyAccessor.Local
+        public TValue Value { get; }
     }
 }

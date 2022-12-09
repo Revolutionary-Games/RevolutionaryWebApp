@@ -12,7 +12,7 @@ using SharedBase.Utilities;
 using ThriveDevCenter.Shared;
 using Utilities;
 
-public class UsernameRetriever
+public sealed class UsernameRetriever : IDisposable
 {
     // Seems like this may be useful in the future at some point
     // ReSharper disable once NotAccessedField.Local
@@ -72,6 +72,13 @@ public class UsernameRetriever
             await Task.Delay(AppInfo.WaitBeforeNameRetrieveBatchStart);
             await PerformQueries();
         }
+    }
+
+    public void Dispose()
+    {
+        usernameLock.Dispose();
+        fetchQueueLock.Dispose();
+        fetchLock.Dispose();
     }
 
     private async Task PerformQueries()

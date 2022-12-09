@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
 using Shared.Forms;
-using Shared.Models;
+using Shared.Models.Enums;
 
 [ApiController]
 [Route("api/v1/[controller]")]

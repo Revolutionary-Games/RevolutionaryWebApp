@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
 using Services;
-using ThriveDevCenter.Shared.Models;
+using ThriveDevCenter.Shared.Models.Enums;
 using ThriveDevCenter.Shared.Notifications;
 
 /// <summary>
@@ -67,12 +67,12 @@ public abstract class SingleResourcePage<T> : SimpleResourceFetcher<T>
 
     protected override Task OnParametersSetAsync()
     {
-        base.OnParametersSet();
+        base.OnParametersSetAsync();
 
         if (Id != previouslyFetchedId)
         {
             // Changed to showing a different entity
-            DataReceived = false;
+            dataReceived = false;
             return FetchData();
         }
 
@@ -108,10 +108,10 @@ public abstract class SingleResourcePage<T> : SimpleResourceFetcher<T>
 
         if (Data != null)
         {
-            if (!DataReceived)
+            if (!dataReceived)
             {
                 await OnFirstDataReceived();
-                DataReceived = true;
+                dataReceived = true;
             }
         }
 

@@ -9,7 +9,7 @@ using System.Text.Json;
 
 public static class ModelUpdateApplyHelper
 {
-    public static (bool changes, string? changeDescription, List<string>? changedFields)
+    public static (bool Changes, string? ChangeDescription, List<string>? ChangedFields)
         ApplyUpdateRequestToModel<T, TRequest>(T model, TRequest updateRequest)
         where T : class
         where TRequest : class

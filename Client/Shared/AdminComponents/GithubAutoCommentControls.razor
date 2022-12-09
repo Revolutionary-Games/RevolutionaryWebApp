@@ -7,6 +7,7 @@
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using SharedBase.Utilities
+@using ThriveDevCenter.Client.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Converters
@@ -180,7 +181,7 @@ else
         new TableColumn("Created At", true, "CreatedAt"),
     };
 
-    private readonly ClientSideResourceStatus<AutoCommentResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
     private SiteNoticeType messageType;
@@ -417,10 +418,5 @@ else
     {
         var status = clientSideResourceStatus.GetStatus(comment.Id);
         status.Expanded = !status.Expanded;
-    }
-
-    private class AutoCommentResourceStatus : DeletedResourceStatus
-    {
-        public bool Expanded { get; set; }
     }
 }

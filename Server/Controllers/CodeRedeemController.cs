@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using Utilities;
 
 [ApiController]
@@ -60,6 +61,7 @@ public class CodeRedeemController : Controller
 
                 break;
             }
+
             case "ForceDeveloper":
             {
                 if (target.Admin == true)
@@ -69,6 +71,7 @@ public class CodeRedeemController : Controller
 
                 break;
             }
+
             default:
                 logger.LogError("Redeemable code has invalid resource: {GrantedResource}",
                     validCode.GrantedResource);

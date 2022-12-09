@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using Models.Enums;
 
 /// <summary>
 ///   To avoid timing attacks when querying the database this class provides helpers for searching based on
@@ -153,9 +154,5 @@ public static class SelectByHashedProperty
 
 [AttributeUsage(AttributeTargets.Property)]
 public class HashedLookUpAttribute : Attribute
-{
-}
-
-public interface IContainsHashedLookUps
 {
 }

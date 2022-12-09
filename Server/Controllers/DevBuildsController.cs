@@ -16,6 +16,7 @@ using Services;
 using Shared;
 using Shared.Forms;
 using Shared.Models;
+using Shared.Models.Enums;
 using Utilities;
 
 [ApiController]
@@ -89,10 +90,12 @@ public class DevBuildsController : Controller
 
         try
         {
+            // This nested ternary is kind of necessary here due to how it reads different build properties
             query = database.DevBuilds.Where(b => type == DevBuildSearchType.BOTD ?
                 b.BuildOfTheDay :
-                (type == DevBuildSearchType.NonAnonymous ? !b.Anonymous : b.Anonymous)
-            ).OrderBy(sortColumn, sortDirection);
+                type == DevBuildSearchType.NonAnonymous ?
+                    !b.Anonymous :
+                    b.Anonymous).OrderBy(sortColumn, sortDirection);
         }
         catch (ArgumentException e)
         {

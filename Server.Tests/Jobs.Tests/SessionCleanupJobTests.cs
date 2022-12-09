@@ -10,7 +10,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class SessionCleanupJobTests : IClassFixture<RealUnitTestDatabaseFixture>
+public sealed class SessionCleanupJobTests : IClassFixture<RealUnitTestDatabaseFixture>, IDisposable
 {
     private readonly XunitLogger<SessionCleanupJob> logger;
     private readonly RealUnitTestDatabaseFixture fixture;
@@ -65,5 +65,11 @@ public class SessionCleanupJobTests : IClassFixture<RealUnitTestDatabaseFixture>
 
         Assert.Null(retrieved2);
         Assert.Equal(countBefore, await database.Database.ExecuteSqlRawAsync("SELECT COUNT(*) FROM sessions;"));
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
+        fixture.Dispose();
     }
 }

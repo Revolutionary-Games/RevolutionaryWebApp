@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
+using Models.Enums;
 using Services;
 using Shared.Forms;
 using Shared.Models;
@@ -82,6 +83,7 @@ public class EmailVerificationController : Controller
                 redirect = "/cla/sign";
                 break;
             }
+
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -95,8 +97,7 @@ public class EmailVerificationController : Controller
     }
 
     [HttpPost("start/cla")]
-    public async Task<ActionResult> StartEmailVerifyForCLA(
-        [Required] [FromBody] EmailVerificationRequestForm request)
+    public async Task<ActionResult> StartEmailVerifyForCLA([Required] [FromBody] EmailVerificationRequestForm request)
     {
         var (inProgressSign, session, error) = await GetActiveSignature();
 
@@ -138,7 +139,8 @@ public class EmailVerificationController : Controller
     }
 
     [NonAction]
-    private async Task<(InProgressClaSignature?, Session?, ActionResult?)> GetActiveSignature()
+    private async Task<(InProgressClaSignature? InProgressSing, Session? Session, ActionResult? Error)>
+        GetActiveSignature()
     {
         var session = await HttpContext.Request.Cookies.GetSession(database);
 

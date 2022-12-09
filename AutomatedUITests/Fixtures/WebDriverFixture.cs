@@ -4,7 +4,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Playwright;
 
-public class WebDriverFixture : IDisposable
+public sealed class WebDriverFixture : IDisposable
 {
     private static readonly bool Headless = true;
 

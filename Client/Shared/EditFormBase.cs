@@ -12,8 +12,10 @@ public class EditFormBase<T> : ComponentBase
 {
     [Parameter]
 
-    // ReSharper disable InconsistentNaming
+    // ReSharper disable once InconsistentNaming
+#pragma warning disable SA1300
     public string? @class { get; set; }
+#pragma warning restore SA1300
 
 #pragma warning disable CS8618
     [Parameter]

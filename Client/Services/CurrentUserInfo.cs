@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ThriveDevCenter.Shared.Models;
+using ThriveDevCenter.Shared.Models.Enums;
 using ThriveDevCenter.Shared.Notifications;
 
 /// <summary>

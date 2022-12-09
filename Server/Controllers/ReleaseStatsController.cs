@@ -19,6 +19,7 @@ using Models;
 using Services;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using SharedBase.Utilities;
 using Utilities;
 

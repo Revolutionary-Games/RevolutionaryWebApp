@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -12,6 +10,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using DevCenterCommunication.Utilities;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -162,9 +161,8 @@ public class LauncherInfoController : Controller
 
         using var compressedDataStream = new MemoryStream();
 
+        using (var dataStream = new MemoryStream())
         {
-            using var dataStream = new MemoryStream();
-
             await JsonSerializer.SerializeAsync(dataStream, info);
 
             dataStream.Position = 0;

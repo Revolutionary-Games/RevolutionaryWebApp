@@ -9,6 +9,11 @@ using ThriveDevCenter.Shared.Utilities;
 public abstract class BaseFileBrowser<T> : PaginatedPage<T>
     where T : class, IIdentifiable, new()
 {
+    protected BaseFileBrowser() : base(new SortHelper("Name", SortDirection.Ascending))
+    {
+        DefaultPageSize = 100;
+    }
+
     [Parameter]
     public string? FileBrowserPath { get; set; }
 
@@ -19,11 +24,6 @@ public abstract class BaseFileBrowser<T> : PaginatedPage<T>
     [Parameter]
     [EditorRequired]
     public string RootFolderName { get; set; } = null!;
-
-    protected BaseFileBrowser() : base(new SortHelper("Name", SortDirection.Ascending))
-    {
-        DefaultPageSize = 100;
-    }
 
     /// <summary>
     ///   When true reacts to parameters changing by querying the server again

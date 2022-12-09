@@ -194,7 +194,7 @@ public static class LFSProjectTreeBuilder
         return result;
     }
 
-    private static async Task<(string? oid, int? size)> DetectLFSFile(string path,
+    private static async Task<(string? Oid, int? Size)> DetectLFSFile(string path,
         CancellationToken cancellationToken)
     {
         bool identifiedAsLFS = false;

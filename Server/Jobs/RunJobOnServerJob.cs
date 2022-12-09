@@ -299,6 +299,14 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
             "CI job startup succeeded, now it's up to the executor to contact us with updates");
     }
 
+    private static string CreateDownloadCommand(string filePath, string hash, string downloadUrl)
+    {
+        return $"if [ ! -f {filePath} -o '{hash}' != \"$(sha256sum {filePath} | awk '{{print $1}}')\" ]; then\n" +
+            $"echo 'downloading missing or incorrect hash file: {filePath}'\n" +
+            $"rm -f {filePath} && curl -L {downloadUrl} -o {filePath}\n" +
+            "fi\n";
+    }
+
     private async Task PerformServerCleanUpIfNeeded(BaseServer server, IBaseSSHAccess sshAccess)
     {
         int? detectedUsedPercentage = null;
@@ -446,13 +454,5 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
     {
         return new Uri(configuration.GetBaseUrl(), $"/ciBuildConnection?key={job.BuildOutputConnectKey}")
             .ToString();
-    }
-
-    private static string CreateDownloadCommand(string filePath, string hash, string downloadUrl)
-    {
-        return $"if [ ! -f {filePath} -o '{hash}' != \"$(sha256sum {filePath} | awk '{{print $1}}')\" ]; then\n" +
-            $"echo 'downloading missing or incorrect hash file: {filePath}'\n" +
-            $"rm -f {filePath} && curl -L {downloadUrl} -o {filePath}\n" +
-            "fi\n";
     }
 }

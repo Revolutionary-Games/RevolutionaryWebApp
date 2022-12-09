@@ -31,17 +31,17 @@ public class ApplyPatronForumGroupsJob : PatreonForumGroupBaseJob, IJob
             return;
 
         await LoadDiscourseGroupMembers(cancellationToken);
-        if (DevBuildGroupMembers == null || VIPGroupMembers == null)
+        if (devBuildGroupMembers == null || vipGroupMembers == null)
             throw new Exception("Failed to load discourse group members");
 
         await HandlePatrons(cancellationToken);
 
         logger.LogTrace("Checking extraneous group members");
 
-        UsernamesToRemoveFromDevBuild.AddRange(DevBuildGroupMembers.GetUnmarkedMembers().AsEnumerable()
+        UsernamesToRemoveFromDevBuild.AddRange(devBuildGroupMembers.GetUnmarkedMembers().AsEnumerable()
             .Select(m => m.Username));
 
-        UsernamesToRemoveFromVIP.AddRange(VIPGroupMembers.GetUnmarkedMembers().AsEnumerable()
+        UsernamesToRemoveFromVIP.AddRange(vipGroupMembers.GetUnmarkedMembers().AsEnumerable()
             .Select(m => m.Username));
 
         if (cancellationToken.IsCancellationRequested)
@@ -54,7 +54,7 @@ public class ApplyPatronForumGroupsJob : PatreonForumGroupBaseJob, IJob
 
     private async Task HandlePatrons(CancellationToken cancellationToken)
     {
-        if (Settings == null)
+        if (settings == null)
             throw new InvalidOperationException("Patreon settings haven't been loaded");
 
         // TODO: might need to change this to working in batches
@@ -63,7 +63,7 @@ public class ApplyPatronForumGroupsJob : PatreonForumGroupBaseJob, IJob
         foreach (var patron in allPatrons)
         {
             // Skip patrons who shouldn't have a forum group, check_unmarked will find them
-            if (PatreonGroupHandler.ShouldBeInGroupForPatron(patron, Settings) ==
+            if (PatreonGroupHandler.ShouldBeInGroupForPatron(patron, settings) ==
                 PatreonGroupHandler.RewardGroup.None)
             {
                 continue;

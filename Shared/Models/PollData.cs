@@ -16,6 +16,10 @@ public class PollData
     // Only one of the types should be populated to detect which kind of poll this is
     public WeightedChoicesList? WeightedChoices { get; set; }
 
+    public SingleChoice? SingleChoiceOption { get; set; }
+
+    public MultipleChoice? MultipleChoiceOption { get; set; }
+
     /// <summary>
     ///   In the poll is a list of choices that the user can put in a certain order. Not all items need to be ranked
     ///   but all that are will be given voting power / nth choice as the weight.
@@ -27,8 +31,6 @@ public class PollData
         public bool CanSelectNone { get; set; } = false;
     }
 
-    public SingleChoice? SingleChoiceOption { get; set; }
-
     /// <summary>
     ///   The poll voter can only select one choice. The choice is given voting power of the user
     /// </summary>
@@ -37,8 +39,6 @@ public class PollData
         [Required]
         public bool CanSelectNone { get; set; }
     }
-
-    public MultipleChoice? MultipleChoiceOption { get; set; }
 
     /// <summary>
     ///   The poll voter can select one or more choices (up to a limit). All of the choices is given a

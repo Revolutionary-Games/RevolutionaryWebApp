@@ -84,13 +84,6 @@ public class CiJobBuildStepRun
     public CiJobStepRunCondition When { get; set; } = CiJobStepRunCondition.Success;
 }
 
-public enum CiJobStepRunCondition
-{
-    Success,
-    Failure,
-    Always,
-}
-
 public class CiArtifactsConfiguration
 {
     [MaxLength(25)]

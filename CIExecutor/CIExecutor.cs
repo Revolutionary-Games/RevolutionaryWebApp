@@ -16,11 +16,12 @@ using ThriveDevCenter.Server.Common.Models;
 using ThriveDevCenter.Server.Common.Utilities;
 using ThriveDevCenter.Shared;
 using ThriveDevCenter.Shared.Models;
+using ThriveDevCenter.Shared.Models.Enums;
 using ThriveDevCenter.Shared.Utilities;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-public class CIExecutor
+public sealed class CIExecutor : IDisposable
 {
     private const bool VerboseSectionFail = false;
 
@@ -219,6 +220,23 @@ public class CIExecutor
         Console.WriteLine("CI executor finished");
     }
 
+    public void Dispose()
+    {
+        webSocket?.Dispose();
+    }
+
+    private static void AddSecretsConfiguration(List<CiSecretExecutorData> secrets, List<string> arguments)
+    {
+        foreach (var secret in secrets)
+        {
+            arguments.Add("-e");
+
+            // Quoting cannot be used with podman (and also not with docker) so we can't do that here, hopefully
+            // this is safe enough like this
+            arguments.Add($"{secret.SecretName}={secret.SecretContent}");
+        }
+    }
+
     private async Task AcquireWebsocketConnection()
     {
         Console.WriteLine("Starting socket acquire");
@@ -383,7 +401,7 @@ public class CIExecutor
             if (cancellationToken.IsCancellationRequested)
                 break;
 
-            (RealTimeBuildMessage? message, bool closed) received;
+            (RealTimeBuildMessage? Message, bool Closed) received;
 
             bool lockFailed = false;
 
@@ -424,16 +442,16 @@ public class CIExecutor
             if (lockFailed)
                 return;
 
-            if (received.closed)
+            if (received.Closed)
             {
                 Console.WriteLine("Remote side closed the socket while we were reading");
                 break;
             }
 
-            if (received.message != null)
+            if (received.Message != null)
             {
-                Console.WriteLine("Received message from server: {0}, {1}, {2}", received.message.Type,
-                    received.message.ErrorMessage, received.message.Output);
+                Console.WriteLine("Received message from server: {0}, {1}, {2}", received.Message.Type,
+                    received.Message.ErrorMessage, received.Message.Output);
             }
         }
     }
@@ -853,18 +871,6 @@ public class CIExecutor
         arguments.Add($"type=bind,source={sharedCacheFolder},destination={sharedCacheFolder},relabel=shared");
     }
 
-    private static void AddSecretsConfiguration(List<CiSecretExecutorData> secrets, List<string> arguments)
-    {
-        foreach (var secret in secrets)
-        {
-            arguments.Add("-e");
-
-            // Quoting cannot be used with podman (and also not with docker) so we can't do that here, hopefully
-            // this is safe enough like this
-            arguments.Add($"{secret.SecretName}={secret.SecretContent}");
-        }
-    }
-
     private async Task<CiBuildConfiguration?> LoadCIBuildConfiguration(string folder)
     {
         try
@@ -1101,6 +1107,7 @@ public class CIExecutor
                     lastSectionClosed = true;
                     break;
                 }
+
                 case "SectionStart":
                 {
                     QueueSendMessage(new RealTimeBuildMessage
@@ -1112,6 +1119,7 @@ public class CIExecutor
 
                     break;
                 }
+
                 default:
                 {
                     EndSectionWithFailure("Unknown special command received from build process").Wait();

@@ -20,26 +20,25 @@ public class LoginTests : TestContext
         var http = Services.AddMockHttpClient();
         http.When("/api/v1/Registration").RespondJson(false);
         http.When("/LoginController").RespondJson(new LoginOptions
+        {
+            Categories = new List<LoginCategory>
             {
-                Categories = new List<LoginCategory>
+                new()
                 {
-                    new()
+                    Name = "Local Account",
+                    Options = new List<LoginOption>
                     {
-                        Name = "Local Account",
-                        Options = new List<LoginOption>
+                        new()
                         {
-                            new()
-                            {
-                                ReadableName = "Login using a local account",
-                                InternalName = "local",
-                                Active = false,
-                                Local = true,
-                            },
+                            ReadableName = "Login using a local account",
+                            InternalName = "local",
+                            Active = false,
+                            Local = true,
                         },
                     },
                 },
-            }
-        );
+            },
+        });
 
         Services.AddSingleton(mockCSRF.Object);
         var cut = RenderComponent<Login>();
@@ -57,26 +56,25 @@ public class LoginTests : TestContext
         var http = Services.AddMockHttpClient();
         http.When("/api/v1/Registration").RespondJson(false);
         http.When("/LoginController").RespondJson(new LoginOptions
+        {
+            Categories = new List<LoginCategory>
             {
-                Categories = new List<LoginCategory>
+                new()
                 {
-                    new()
+                    Name = "Local Account",
+                    Options = new List<LoginOption>
                     {
-                        Name = "Local Account",
-                        Options = new List<LoginOption>
+                        new()
                         {
-                            new()
-                            {
-                                ReadableName = "Login using a local account",
-                                InternalName = "local",
-                                Active = true,
-                                Local = true,
-                            },
+                            ReadableName = "Login using a local account",
+                            InternalName = "local",
+                            Active = true,
+                            Local = true,
                         },
                     },
                 },
-            }
-        );
+            },
+        });
 
         Services.AddSingleton(mockCSRF.Object);
         var cut = RenderComponent<Login>();

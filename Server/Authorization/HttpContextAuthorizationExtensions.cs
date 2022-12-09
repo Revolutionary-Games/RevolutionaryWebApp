@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Models;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 
 public static class HttpContextAuthorizationExtensions
 {
@@ -130,7 +131,7 @@ public static class HttpContextAuthorizationExtensions
         return rawSession as Session;
     }
 
-    public static (User? user, AuthenticationScopeRestriction restriction) AuthenticatedUserWithRestriction(
+    public static (User? User, AuthenticationScopeRestriction Restriction) AuthenticatedUserWithRestriction(
         this HttpContext context)
     {
         if (context.User.Identity == null ||

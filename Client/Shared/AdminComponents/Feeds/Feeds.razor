@@ -5,9 +5,11 @@
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
+@using ThriveDevCenter.Client.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FeedListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.FeedInfo>
 
@@ -118,7 +120,7 @@ else
         new TableColumn("Updated At", true, "UpdatedAt"),
     };
 
-    private readonly ClientSideResourceStatus<FeedResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
 
     // TODO: implement button to force refresh a feed and use these for it
     /*
@@ -262,10 +264,5 @@ else
         }
 
         await InvokeAsync(StateHasChanged);
-    }
-
-    private class FeedResourceStatus : DeletedResourceStatus
-    {
-        public bool Expanded { get; set; }
     }
 }

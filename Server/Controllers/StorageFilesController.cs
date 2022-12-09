@@ -25,6 +25,7 @@ using Services;
 using Shared;
 using Shared.Forms;
 using Shared.Models;
+using Shared.Models.Enums;
 using Shared.Utilities;
 using SharedBase.Utilities;
 using Utilities;
@@ -316,21 +317,6 @@ public class StorageFilesController : Controller
 
         await database.SaveChangesAsync();
         return Ok();
-    }
-
-    [NonAction]
-    private bool CheckNewItemName(string name, out ActionResult? badRequest)
-    {
-        // Purely numeric names (that are short) or starting with '@' are disallowed
-        // TODO: would be nice to do this validation also on the client side form
-        if (name.StartsWith('@') || (name.Length <= 5 && int.TryParse(name, out int _)))
-        {
-            badRequest = BadRequest("You specified a disallowed folder name");
-            return false;
-        }
-
-        badRequest = null;
-        return true;
     }
 
     [HttpPost("startUpload")]
@@ -691,6 +677,21 @@ public class StorageFilesController : Controller
 
         logger.LogInformation("StorageItem {Id} has now version {Version} uploaded", item.Id, version.Version);
         return Ok();
+    }
+
+    [NonAction]
+    private bool CheckNewItemName(string name, out ActionResult? badRequest)
+    {
+        // Purely numeric names (that are short) or starting with '@' are disallowed
+        // TODO: would be nice to do this validation also on the client side form
+        if (name.StartsWith('@') || (name.Length <= 5 && int.TryParse(name, out int _)))
+        {
+            badRequest = BadRequest("You specified a disallowed folder name");
+            return false;
+        }
+
+        badRequest = null;
+        return true;
     }
 
     [NonAction]

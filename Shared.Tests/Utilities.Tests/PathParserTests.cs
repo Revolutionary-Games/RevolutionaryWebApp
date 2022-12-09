@@ -16,7 +16,7 @@ public class PathParserTests
     [Fact]
     public void PathParser_EmptyParentPath()
     {
-        Assert.Equal("", PathParser.GetParentPath("/folder"));
-        Assert.Equal("", PathParser.GetParentPath("/"));
+        Assert.Equal(string.Empty, PathParser.GetParentPath("/folder"));
+        Assert.Equal(string.Empty, PathParser.GetParentPath("/"));
     }
 }

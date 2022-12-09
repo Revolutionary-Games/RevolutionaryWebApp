@@ -1,6 +1,8 @@
 namespace ThriveDevCenter.Server.Tests.Services.Tests;
 
+using System.Net.Http;
 using Microsoft.Extensions.Configuration;
+using Moq;
 using Server.Services;
 using Xunit;
 
@@ -9,7 +11,8 @@ public class StackwalkTests
     [Fact]
     public void Stackwalk_CallstackCondenseWorks()
     {
-        var stackwalk = new Stackwalk(new ConfigurationBuilder().Build());
+        var clientFactoryMock = new Mock<IHttpClientFactory>();
+        var stackwalk = new Stackwalk(new ConfigurationBuilder().Build(), clientFactoryMock.Object);
 
         // ReSharper disable StringLiteralTypo
         var result = stackwalk.CondenseCallstack(@"Thread 0 (crashed)
@@ -47,7 +50,8 @@ public class StackwalkTests
     [Fact]
     public void Stackwalk_NoFramesCondenseWorks()
     {
-        var stackwalk = new Stackwalk(new ConfigurationBuilder().Build());
+        var clientFactoryMock = new Mock<IHttpClientFactory>();
+        var stackwalk = new Stackwalk(new ConfigurationBuilder().Build(), clientFactoryMock.Object);
 
         // ReSharper disable StringLiteralTypo
         var result = stackwalk.CondenseCallstack(@"Thread 25 (crashed)

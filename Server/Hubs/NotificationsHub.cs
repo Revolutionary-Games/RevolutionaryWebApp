@@ -3,7 +3,6 @@ namespace ThriveDevCenter.Server.Hubs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Authorization;
 using DevCenterCommunication.Models;
@@ -193,6 +192,153 @@ public class NotificationsHub : Hub<INotifications>
 
         return Clients.Caller.ReceiveOwnUserInfo(
             user?.GetInfo(accessLevel));
+    }
+
+    private static object IdentityMapper(long id)
+    {
+        return id;
+    }
+
+    private static object ChannelMapper(long raw)
+    {
+        return (LauncherAutoUpdateChannel)raw;
+    }
+
+    private static object PlatformMapper(long raw)
+    {
+        return (PackagePlatform)raw;
+    }
+
+    private static bool GetTargetModelFromGroup<T>(string groupName, DbSet<T> existingItems, out T? item)
+        where T : class
+    {
+        if (!GetIDPartFromGroup(groupName, out long id))
+        {
+            item = null;
+            return false;
+        }
+
+        // This lookup probably can timing attack leak the IDs of objects
+        item = existingItems.Find(id);
+
+        return item != null;
+    }
+
+    // This should be useful in the future like for GetTargetModelFromGroup
+    // ReSharper disable once OutParameterValueIsAlwaysDiscarded.Local
+    private static bool GetTargetModelFromGroupCompositeId<T>(string groupName, DbSet<T> existingItems, out T? item,
+        IEnumerable<Func<long, object>> keyMappers)
+        where T : class
+    {
+        if (!GetCompositeIDPartFromGroup(groupName, out var ids) || ids == null)
+        {
+            item = null;
+            return false;
+        }
+
+        var keys = new object?[ids.Length];
+        int index = 0;
+
+        // Map the id values to the actual types (this mostly works just for enums currently, another approach is
+        // needed if arbitrary data need to be stored in the group name)
+        foreach (var keyMapper in keyMappers)
+        {
+            if (index >= keys.Length)
+            {
+                // Too many ID values provided
+                item = null;
+                return false;
+            }
+
+            keys[index] = keyMapper.Invoke(ids[index]);
+            ++index;
+        }
+
+        if (index < keys.Length)
+        {
+            // Not enough ID values provided
+            item = null;
+            return false;
+        }
+
+        // This lookup probably can timing attack leak the IDs of objects
+        item = existingItems.Find(keys);
+
+        return item != null;
+    }
+
+    private static bool GetTargetFolderFromGroup(string groupName, DbSet<StorageItem> existingItems,
+        out StorageItem? item)
+    {
+        var idRaw = groupName.Split('_').Last();
+
+        if (long.TryParse(idRaw, out long id))
+        {
+            // This lookup probably can timing attack leak the IDs of objects
+            item = existingItems.Find(id);
+            return item != null;
+        }
+
+        item = null;
+
+        // Raw may be also "root" to listen for root folder items
+        if (idRaw == "root")
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool CheckFolderContentsAccess(User? user, UserAccessLevel baseAccessLevel, StorageItem? folder)
+    {
+        if (!RequireAccessLevel(baseAccessLevel, user))
+            return false;
+
+        // Base folder is null, and it has public read by default
+        if (folder == null)
+            return true;
+
+        return folder.IsReadableBy(user);
+    }
+
+    private static bool GetIDPartFromGroup(string groupName, out long id)
+    {
+        var idRaw = groupName.Split('_').Last();
+
+        if (!long.TryParse(idRaw, out id))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool GetCompositeIDPartFromGroup(string groupName, out long[]? id)
+    {
+        try
+        {
+            id = groupName.Split('_').Skip(1).Select(long.Parse).ToArray();
+            return true;
+        }
+        catch (Exception)
+        {
+            id = null;
+            return false;
+        }
+    }
+
+    private static bool RequireAccessLevel(UserAccessLevel level, User? user)
+    {
+        // All site visitors have the not logged in access level
+        if (level == UserAccessLevel.NotLoggedIn)
+            return true;
+
+        // All other access levels require a user
+        if (user == null)
+            return false;
+
+        return user.HasAccessLevel(level);
     }
 
     private async Task<bool> HandleSpecialGroupJoin(string groupName, User? user, Session? session)
@@ -599,182 +745,5 @@ public class NotificationsHub : Hub<INotifications>
 
         // Unknown groups are not allowed
         return false;
-    }
-
-    private static object IdentityMapper(long id)
-    {
-        return id;
-    }
-
-    private static object ChannelMapper(long raw)
-    {
-        return (LauncherAutoUpdateChannel)raw;
-    }
-
-    private static object PlatformMapper(long raw)
-    {
-        return (PackagePlatform)raw;
-    }
-
-    private static bool GetTargetModelFromGroup<T>(string groupName, DbSet<T> existingItems, out T? item)
-        where T : class
-    {
-        if (!GetIDPartFromGroup(groupName, out long id))
-        {
-            item = null;
-            return false;
-        }
-
-        // This lookup probably can timing attack leak the IDs of objects
-        item = existingItems.Find(id);
-
-        return item != null;
-    }
-
-    // This should be useful in the future like for GetTargetModelFromGroup
-    // ReSharper disable once OutParameterValueIsAlwaysDiscarded.Local
-    private static bool GetTargetModelFromGroupCompositeId<T>(string groupName, DbSet<T> existingItems, out T? item,
-        IEnumerable<Func<long, object>> keyMappers)
-        where T : class
-    {
-        if (!GetCompositeIDPartFromGroup(groupName, out var ids) || ids == null)
-        {
-            item = null;
-            return false;
-        }
-
-        var keys = new object?[ids.Length];
-        int index = 0;
-
-        // Map the id values to the actual types (this mostly works just for enums currently, another approach is
-        // needed if arbitrary data need to be stored in the group name)
-        foreach (var keyMapper in keyMappers)
-        {
-            if (index >= keys.Length)
-            {
-                // Too many ID values provided
-                item = null;
-                return false;
-            }
-
-            keys[index] = keyMapper.Invoke(ids[index]);
-            ++index;
-        }
-
-        if (index < keys.Length)
-        {
-            // Not enough ID values provided
-            item = null;
-            return false;
-        }
-
-        // This lookup probably can timing attack leak the IDs of objects
-        item = existingItems.Find(keys);
-
-        return item != null;
-    }
-
-    private static bool GetTargetFolderFromGroup(string groupName, DbSet<StorageItem> existingItems,
-        out StorageItem? item)
-    {
-        var idRaw = groupName.Split('_').Last();
-
-        if (long.TryParse(idRaw, out long id))
-        {
-            // This lookup probably can timing attack leak the IDs of objects
-            item = existingItems.Find(id);
-            return item != null;
-        }
-
-        item = null;
-
-        // Raw may be also "root" to listen for root folder items
-        if (idRaw == "root")
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool CheckFolderContentsAccess(User? user, UserAccessLevel baseAccessLevel, StorageItem? folder)
-    {
-        if (!RequireAccessLevel(baseAccessLevel, user))
-            return false;
-
-        // Base folder is null, and it has public read by default
-        if (folder == null)
-            return true;
-
-        return folder.IsReadableBy(user);
-    }
-
-    private static bool GetIDPartFromGroup(string groupName, out long id)
-    {
-        var idRaw = groupName.Split('_').Last();
-
-        if (!long.TryParse(idRaw, out id))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool GetCompositeIDPartFromGroup(string groupName, out long[]? id)
-    {
-        try
-        {
-            id = groupName.Split('_').Skip(1).Select(long.Parse).ToArray();
-            return true;
-        }
-        catch (Exception)
-        {
-            id = null;
-            return false;
-        }
-    }
-
-    private static bool RequireAccessLevel(UserAccessLevel level, User? user)
-    {
-        // All site visitors have the not logged in access level
-        if (level == UserAccessLevel.NotLoggedIn)
-            return true;
-
-        // All other access levels require a user
-        if (user == null)
-            return false;
-
-        return user.HasAccessLevel(level);
-    }
-}
-
-public interface INotifications
-{
-    // These are general connection related things sent
-    Task ReceiveSiteNotice(SiteNoticeType type, string message);
-    Task ReceiveSessionInvalidation();
-    Task ReceiveVersionMismatch();
-    Task ReceiveOwnUserInfo(UserInfo? user);
-
-    // Directly sending SerializedNotification doesn't work so we hack around that by manually serializing it
-    // to a string before sending
-    Task ReceiveNotificationJSON(string json);
-}
-
-public static class NotificationHelpers
-{
-    private static readonly NotificationJsonConverter Converter = new();
-
-    /// <summary>
-    ///   Send all SerializedNotification derived classes through this extension method
-    /// </summary>
-    public static Task ReceiveNotification(this INotifications receiver, SerializedNotification notification)
-    {
-        // TODO: unify with the startup code
-        var serialized =
-            JsonSerializer.Serialize(notification, new JsonSerializerOptions { Converters = { Converter } });
-
-        return receiver.ReceiveNotificationJSON(serialized);
     }
 }

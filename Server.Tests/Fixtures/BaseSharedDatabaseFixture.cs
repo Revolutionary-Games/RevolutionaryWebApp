@@ -23,6 +23,12 @@ public abstract class BaseSharedDatabaseFixture : IDisposable
 
     public ApplicationDbContext Database { get; }
 
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
     protected abstract void Seed();
 
     protected virtual void Dispose(bool disposing)
@@ -31,12 +37,6 @@ public abstract class BaseSharedDatabaseFixture : IDisposable
         {
             Database.Dispose();
         }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
     }
 }
 

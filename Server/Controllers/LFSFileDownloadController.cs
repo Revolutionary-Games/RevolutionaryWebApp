@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Models;
 using Services;
 using Shared;
-using Shared.Models;
+using Shared.Models.Enums;
 
 [ApiController]
 [Route("api/v1/download_lfs")]

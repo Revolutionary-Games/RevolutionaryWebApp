@@ -16,26 +16,6 @@ public class Program
         "Shared.Tests", "RevolutionaryGamesCommon/SharedBase",
     };
 
-    public class CheckOptions : CheckOptionsBase
-    {
-    }
-
-    [Verb("test", HelpText = "Run tests using 'dotnet' command")]
-    public class TestOptions : ScriptOptionsBase
-    {
-    }
-
-    [Verb("clean", HelpText = "Clean binaries (package upgrades can break deploy and this fixes that)")]
-    public class CleanOptions : ScriptOptionsBase
-    {
-    }
-
-    public class ChangesOptions : ChangesOptionsBase
-    {
-        [Option('b', "branch", Required = false, Default = "master", HelpText = "The git remote branch name")]
-        public override string RemoteBranch { get; set; } = "master";
-    }
-
     [STAThread]
     public static int Main(string[] args)
     {
@@ -159,5 +139,25 @@ public class Program
         ColourConsole.WriteDebugLine("Running changes finding tool");
 
         return OnlyChangedFileDetector.BuildListOfChangedFiles(opts).Result ? 0 : 1;
+    }
+
+    public class CheckOptions : CheckOptionsBase
+    {
+    }
+
+    [Verb("test", HelpText = "Run tests using 'dotnet' command")]
+    public class TestOptions : ScriptOptionsBase
+    {
+    }
+
+    [Verb("clean", HelpText = "Clean binaries (package upgrades can break deploy and this fixes that)")]
+    public class CleanOptions : ScriptOptionsBase
+    {
+    }
+
+    public class ChangesOptions : ChangesOptionsBase
+    {
+        [Option('b', "branch", Required = false, Default = "master", HelpText = "The git remote branch name")]
+        public override string RemoteBranch { get; set; } = "master";
     }
 }

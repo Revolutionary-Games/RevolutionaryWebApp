@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;
@@ -19,9 +20,9 @@ public class LauncherLink : UpdateableModel, IContainsHashedLookUps, IUpdateNoti
 
     public string? HashedLinkCode { get; set; }
 
+    // TODO: switch this to IPAddress type
     [Required]
     [AllowSortingBy]
-    // TODO: switch this to IPAddress type
     public string? LastIp { get; set; }
 
     [AllowSortingBy]

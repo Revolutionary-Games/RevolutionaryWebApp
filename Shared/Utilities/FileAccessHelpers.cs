@@ -2,7 +2,7 @@ namespace ThriveDevCenter.Shared.Utilities;
 
 using System;
 using DevCenterCommunication.Models.Enums;
-using Models;
+using Models.Enums;
 
 public static class FileAccessHelpers
 {

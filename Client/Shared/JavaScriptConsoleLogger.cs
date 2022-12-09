@@ -41,10 +41,19 @@ public class JavaScriptConsoleLoggerProvider : ILoggerProvider
 {
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public ILogger CreateLogger(string categoryName)
     {
         return new JavaScriptConsoleLogger(categoryName);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+        }
     }
 }

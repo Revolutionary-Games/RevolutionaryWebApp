@@ -3,9 +3,11 @@
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
+@using ThriveDevCenter.Client.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherThriveVersionListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherThriveVersionDTO>
 
@@ -150,7 +152,7 @@ else
         new TableColumn("Actions", false),
     };
 
-    private readonly ClientSideResourceStatus<ThriveVersionResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
     private SiteNoticeType messageType;
@@ -435,10 +437,5 @@ else
         }
 
         await InvokeAsync(StateHasChanged);
-    }
-
-    private class ThriveVersionResourceStatus : DeletedResourceStatus
-    {
-        public bool Expanded { get; set; }
     }
 }

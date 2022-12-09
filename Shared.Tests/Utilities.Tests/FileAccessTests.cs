@@ -1,7 +1,7 @@
 namespace ThriveDevCenter.Shared.Tests.Utilities.Tests;
 
 using DevCenterCommunication.Models.Enums;
-using Shared.Models;
+using Shared.Models.Enums;
 using Shared.Utilities;
 using Xunit;
 

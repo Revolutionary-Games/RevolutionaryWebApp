@@ -14,6 +14,7 @@ public class PasswordHashingTests
         // ReSharper disable StringLiteralTypo
         Assert.Equal("AQIDBAUGBwg=:9CtRsYKuet+gr6NRVnrIjd37nKwH1sTCEI3kdt8i5N0oJF+n1JUR3Idy2SuU1+zi",
             Passwords.CreateSaltedPasswordHash("test1234", salt));
+
         // ReSharper enable StringLiteralTypo
     }
 

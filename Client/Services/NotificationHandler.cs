@@ -49,7 +49,7 @@ public class NotificationHandler : IAsyncDisposable
 
     public delegate void ConnectionRetryStatusEventHandler(object sender, bool connectionLostPermanently);
 
-    public delegate void SiteNoticeEventHandler(object sender, (SiteNoticeType, string) info);
+    public delegate void SiteNoticeEventHandler(object sender, (SiteNoticeType NoticeType, string Message) info);
 
     public delegate void VersionMismatchEventHandler(object sender, EventArgs e);
 
@@ -114,7 +114,8 @@ public class NotificationHandler : IAsyncDisposable
     ///     of them in a single call.
     ///   </para>
     /// </remarks>
-    public async Task Register<T>(INotificationHandler<T> handler) where T : SerializedNotification
+    public async Task Register<T>(INotificationHandler<T> handler)
+        where T : SerializedNotification
     {
         if (handler == null)
             throw new ArgumentException();
@@ -175,7 +176,8 @@ public class NotificationHandler : IAsyncDisposable
         await ApplyGroupMemberships();
     }
 
-    public async Task Unregister<T>(INotificationHandler<T> handler) where T : SerializedNotification
+    public async Task Unregister<T>(INotificationHandler<T> handler)
+        where T : SerializedNotification
     {
         bool removed = false;
 
@@ -207,37 +209,6 @@ public class NotificationHandler : IAsyncDisposable
     public Task NotifyWantedGroupsChanged()
     {
         return ApplyGroupMemberships();
-    }
-
-    private async Task ForwardNotification(SerializedNotification notification)
-    {
-        var notificationType = notification.GetType();
-
-        List<(IGroupListener, Func<SerializedNotification, Task>)>? filtered;
-
-        lock (handlers)
-        {
-            if (!handlers.TryGetValue(notificationType, out filtered))
-            {
-                return;
-            }
-        }
-
-        // TODO: is it bad that all of the tasks are started at once?
-        var tasks = new List<Task>();
-
-        lock (filtered)
-        {
-            // Bug: user info (especially redeeming codes) seems to cause an error in some .Next method
-            // we need to queue or disallow (and require components to invoke) group changes in relation to
-            // notifications
-            foreach (var item in filtered)
-            {
-                tasks.Add(item.Item2(notification));
-            }
-        }
-
-        await Task.WhenAll(tasks);
     }
 
     // ReSharper disable ConditionIsAlwaysTrueOrFalse
@@ -415,6 +386,38 @@ public class NotificationHandler : IAsyncDisposable
             return;
 
         await hubConnection.DisposeAsync();
+        groupJoinSemaphore.Dispose();
+    }
+
+    private async Task ForwardNotification(SerializedNotification notification)
+    {
+        var notificationType = notification.GetType();
+
+        List<(IGroupListener, Func<SerializedNotification, Task>)>? filtered;
+
+        lock (handlers)
+        {
+            if (!handlers.TryGetValue(notificationType, out filtered))
+            {
+                return;
+            }
+        }
+
+        // TODO: is it bad that all of the tasks are started at once?
+        var tasks = new List<Task>();
+
+        lock (filtered)
+        {
+            // Bug: user info (especially redeeming codes) seems to cause an error in some .Next method
+            // we need to queue or disallow (and require components to invoke) group changes in relation to
+            // notifications
+            foreach (var item in filtered)
+            {
+                tasks.Add(item.Item2(notification));
+            }
+        }
+
+        await Task.WhenAll(tasks);
     }
 
     private async void OnUserInfoChanged(object? sender, UserInfo? info)

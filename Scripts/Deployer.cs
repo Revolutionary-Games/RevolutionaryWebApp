@@ -42,6 +42,11 @@ public class Deployer
 
     private readonly DeployOptions options;
 
+    public Deployer(DeployOptions options)
+    {
+        this.options = options;
+    }
+
     public enum DeployMode
     {
         Staging,
@@ -52,11 +57,6 @@ public class Deployer
     {
         // TODO: add running only specific migrations mode
         Idempotent,
-    }
-
-    public Deployer(DeployOptions options)
-    {
-        this.options = options;
     }
 
     private string ClientBuiltWebroot => string.Format(CLIENT_BUILT_WEBROOT, options.BuildMode, NET_VERSION);

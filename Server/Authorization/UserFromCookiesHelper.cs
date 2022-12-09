@@ -20,7 +20,7 @@ public static class UserFromCookiesHelper
     /// <param name="clientAddress">The address the cookies are from (used to track where session is used)</param>
     /// <returns>The user for the session cookie or null and the session that the user was retrieved from</returns>
     /// <exception cref="ArgumentException">If the cookie is malformed</exception>
-    public static Task<(User? user, Session? session)> GetUserFromSession(this IRequestCookieCollection cookies,
+    public static Task<(User? User, Session? Session)> GetUserFromSession(this IRequestCookieCollection cookies,
         ApplicationDbContext database, IPAddress? clientAddress)
     {
         if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) || string.IsNullOrEmpty(session))
@@ -29,7 +29,7 @@ public static class UserFromCookiesHelper
         return GetUserFromSession(session, database, true, clientAddress);
     }
 
-    public static async Task<(User? user, Session? session)> GetUserFromSession(string sessionId,
+    public static async Task<(User? User, Session? Session)> GetUserFromSession(string sessionId,
         ApplicationDbContext database, bool updateLastUsed = true, IPAddress? clientAddress = null)
     {
         var existingSession = await GetSession(sessionId, database);

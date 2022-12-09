@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 ///   Allows caching a specific resource for some time
 /// </summary>
 /// <typeparam name="T">The object type to cache</typeparam>
-public class TimedResourceCache<T>
+public class TimedResourceCache<T> : IDisposable
     where T : class
 {
     private readonly SemaphoreSlim generationLock = new(1);
@@ -45,6 +45,21 @@ public class TimedResourceCache<T>
         finally
         {
             generationLock.Release();
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            generationLock.Dispose();
+            data = null;
         }
     }
 }
@@ -114,6 +129,7 @@ public class DisposableTimedResourceCache<T> : IDisposable
 
         if (disposing)
         {
+            generationLock.Dispose();
             data?.Dispose();
             data = null;
         }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Enums;
 using Microsoft.EntityFrameworkCore;
 using Services;
 using Shared;
@@ -91,7 +92,7 @@ public class ApplicationDbContext : DbContext
         return result;
     }
 
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         // Run pre-save validations and build notifications before saving
         var notificationsToSend = RunPreSaveChecks();

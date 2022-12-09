@@ -6,7 +6,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
-using SharedBase.Utilities;
 
 /// <summary>
 ///   Separately stored cast vote on a poll. This is stored separately to add anonymity
@@ -43,7 +42,8 @@ public class MeetingPollVote
     [NotMapped]
     public PollVoteData ParsedVoteContent
     {
-        get => JsonSerializer.Deserialize<PollVoteData>(VoteContent) ?? throw new NullDecodedJsonException();
+        get => JsonSerializer.Deserialize<PollVoteData>(VoteContent) ??
+            throw new InvalidOperationException("Decoded JSON is null");
         set
         {
             VoteContent = JsonSerializer.Serialize(value);

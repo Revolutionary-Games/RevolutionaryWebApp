@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Shared.Models;
 
 using System.ComponentModel.DataAnnotations;
 using DevCenterCommunication.Models;
+using Enums;
 
 // TODO: this should be renamed to UserDTO as this is closer to that than the actual Info types
 public class UserInfo : ClientSideTimedModel

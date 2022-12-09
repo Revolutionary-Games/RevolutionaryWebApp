@@ -17,8 +17,7 @@ public sealed class RealIntegrationTestDatabaseFixture
         if (string.IsNullOrEmpty(connectionString))
         {
             throw new ArgumentException("connection string is empty, make sure to setup secrets",
-                nameof(connectionString)
-            );
+                nameof(connectionString));
         }
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(connectionString)

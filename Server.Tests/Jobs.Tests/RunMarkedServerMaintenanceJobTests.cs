@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Tests.Jobs.Tests;
 
+using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class RunMarkedServerMaintenanceJobTests
+public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
 {
     private readonly XunitLogger<RunMarkedServerMaintenanceJob> logger;
 
@@ -173,5 +174,10 @@ public class RunMarkedServerMaintenanceJobTests
         ec2Mock.VerifyNoOtherCalls();
         sshMock.Verify();
         sshMock.VerifyNoOtherCalls();
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
     }
 }

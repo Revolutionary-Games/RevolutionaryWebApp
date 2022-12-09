@@ -167,6 +167,7 @@ public class LoginController : SSOLoginController
                 return await DoDiscourseLoginRedirect(SsoTypeDevForum, configuration["Login:DevForum:SsoSecret"],
                     configuration["Login:DevForum:BaseUrl"], data.ReturnUrl);
             }
+
             case SsoTypeCommunityForum:
             {
                 if (!CommunityForumConfigured)
@@ -176,6 +177,7 @@ public class LoginController : SSOLoginController
                     configuration["Login:CommunityForum:SsoSecret"],
                     configuration["Login:CommunityForum:BaseUrl"], data.ReturnUrl);
             }
+
             case SsoTypePatreon:
             {
                 if (!PatreonConfigured)
@@ -488,8 +490,8 @@ public class LoginController : SSOLoginController
             }
 
             var tuple = await HandleSsoLoginToAccount(session, email, username, ssoType, developer);
-            requireSave = !tuple.saved;
-            return tuple.result;
+            requireSave = !tuple.Saved;
+            return tuple.Result;
         }
         finally
         {
@@ -569,8 +571,8 @@ public class LoginController : SSOLoginController
             // email = patron.EmailAlias ?? patron.Email;
 
             var tuple = await HandleSsoLoginToAccount(session, email, patron.Username, SsoTypePatreon, false);
-            requireSave = !tuple.saved;
-            return tuple.result;
+            requireSave = !tuple.Saved;
+            return tuple.Result;
         }
         catch (Exception e)
         {
@@ -586,7 +588,7 @@ public class LoginController : SSOLoginController
     }
 
     [NonAction]
-    private async Task<(IActionResult result, bool saved)> HandleSsoLoginToAccount(Session session, string? email,
+    private async Task<(IActionResult Result, bool Saved)> HandleSsoLoginToAccount(Session session, string? email,
         string? username, string ssoType, bool developerLogin)
     {
         // Ensure whitespace is consistent

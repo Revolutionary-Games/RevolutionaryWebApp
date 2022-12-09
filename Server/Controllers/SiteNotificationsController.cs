@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared.Forms;
-using Shared.Models;
+using Shared.Models.Enums;
 
 [ApiController]
 [Route("api/v1/[controller]")]

@@ -19,10 +19,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Models;
 using Shared.Models;
+using Shared.Models.Enums;
 using Shared.Notifications;
 using Utilities;
 
-public class BuildWebSocketHandler
+public sealed class BuildWebSocketHandler : IDisposable
 {
     private const int MaxSocketReadFailuresBeforeGivingUp = 5;
 
@@ -111,6 +112,12 @@ public class BuildWebSocketHandler
         }
     }
 
+    public void Dispose()
+    {
+        outputLock.Dispose();
+        backgroundOutputCancel.Dispose();
+    }
+
     private async Task Run()
     {
         // Detect existing sections (if this is a reconnection)
@@ -151,10 +158,10 @@ public class BuildWebSocketHandler
             {
                 var readResult = await socket.Read(CancellationToken.None);
 
-                if (readResult.closed)
+                if (readResult.Closed)
                     break;
 
-                message = readResult.message;
+                message = readResult.Message;
             }
             catch (WebSocketBuildMessageTooLongException e)
             {
@@ -308,6 +315,7 @@ public class BuildWebSocketHandler
 
                     break;
                 }
+
                 case BuildSectionMessageType.BuildOutput:
                 {
                     // Error if no active section
@@ -343,6 +351,7 @@ public class BuildWebSocketHandler
 
                     break;
                 }
+
                 case BuildSectionMessageType.SectionEnd:
                 {
                     // Set the status of the last section and unset the active section
@@ -381,6 +390,7 @@ public class BuildWebSocketHandler
 
                     break;
                 }
+
                 case BuildSectionMessageType.FinalStatus:
                 {
                     if (activeSection != null)
@@ -414,6 +424,7 @@ public class BuildWebSocketHandler
                         job.CiJobId, message.WasSuccessful, CancellationToken.None));
                     return;
                 }
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }

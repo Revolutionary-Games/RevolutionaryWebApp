@@ -47,6 +47,7 @@ public static class SSOSuspendHandler
 
                 break;
             }
+
             case LoginController.SsoTypeCommunityForum:
             {
                 if (!communityAPI.Configured)

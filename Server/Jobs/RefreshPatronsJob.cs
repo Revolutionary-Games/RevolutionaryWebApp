@@ -43,7 +43,7 @@ public class RefreshPatronsJob : IJob
             if (settings.Active == false)
                 continue;
 
-            var api = new PatreonCreatorAPI(settings);
+            using var api = new PatreonCreatorAPI(settings);
 
             foreach (var actualPatron in await api.GetPatrons(settings, cancellationToken))
             {

@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Services;
 using Shared.Forms;
-using Shared.Models;
+using Shared.Models.Enums;
 
 [ApiController]
 [Route("api/v1/[controller]")]

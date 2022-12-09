@@ -16,14 +16,14 @@ public abstract class PatreonForumGroupBaseJob
     protected readonly ApplicationDbContext Database;
     protected readonly CommunityForumAPI DiscourseAPI;
 
-    protected PatreonSettings? Settings;
-    protected DiscourseGroupMembers? DevBuildGroupMembers;
-    protected DiscourseGroupMembers? VIPGroupMembers;
-
     protected readonly List<string> UsernamesToRemoveFromDevBuild = new();
     protected readonly List<string> UsernamesToRemoveFromVIP = new();
     protected readonly List<string> UsernamesToAddToDevBuild = new();
     protected readonly List<string> UsernamesToAddToVIP = new();
+
+    protected PatreonSettings? settings;
+    protected DiscourseGroupMembers? devBuildGroupMembers;
+    protected DiscourseGroupMembers? vipGroupMembers;
 
     protected PatreonForumGroupBaseJob(ApplicationDbContext database, CommunityForumAPI discourseAPI)
     {
@@ -39,9 +39,9 @@ public abstract class PatreonForumGroupBaseJob
             return false;
         }
 
-        Settings = await Database.PatreonSettings.OrderBy(p => p.Id).FirstOrDefaultAsync(cancellationToken);
+        settings = await Database.PatreonSettings.OrderBy(p => p.Id).FirstOrDefaultAsync(cancellationToken);
 
-        if (Settings == null)
+        if (settings == null)
         {
             logger.LogWarning("Patreon settings unconfigured, skipping ApplyPatronForumGroupsJob");
             return false;
@@ -68,18 +68,18 @@ public abstract class PatreonForumGroupBaseJob
 
     protected async Task LoadDiscourseGroupMembers(CancellationToken cancellationToken)
     {
-        DevBuildGroupMembers =
+        devBuildGroupMembers =
             await DiscourseAPI.GetGroupMembers(PatreonGroupHandler.CommunityDevBuildGroup, cancellationToken);
-        VIPGroupMembers =
+        vipGroupMembers =
             await DiscourseAPI.GetGroupMembers(PatreonGroupHandler.CommunityVIPGroup, cancellationToken);
     }
 
     protected void HandlePatron(Patron patron, DiscourseUser correspondingForumUser, ILogger logger)
     {
-        if (Settings == null)
+        if (settings == null)
             throw new InvalidOperationException("Patreon settings haven't been loaded");
 
-        if (DevBuildGroupMembers == null || VIPGroupMembers == null)
+        if (devBuildGroupMembers == null || vipGroupMembers == null)
             throw new InvalidOperationException("Discourse group members have not been loaded");
 
         var username = correspondingForumUser.Username;
@@ -87,15 +87,15 @@ public abstract class PatreonForumGroupBaseJob
         logger.LogTrace("Handling ({Patron}) {Username}", patron.Username,
             username);
 
-        var shouldBeGroup = PatreonGroupHandler.ShouldBeInGroupForPatron(patron, Settings);
+        var shouldBeGroup = PatreonGroupHandler.ShouldBeInGroupForPatron(patron, settings);
 
         logger.LogTrace("Target group {ShouldBeGroup}", shouldBeGroup);
 
         // Detect group adds and removes
-        CheckSingleGroupAddRemove(username, DevBuildGroupMembers,
+        CheckSingleGroupAddRemove(username, devBuildGroupMembers,
             shouldBeGroup == PatreonGroupHandler.RewardGroup.DevBuild, UsernamesToRemoveFromDevBuild,
             UsernamesToAddToDevBuild);
-        CheckSingleGroupAddRemove(username, VIPGroupMembers, shouldBeGroup == PatreonGroupHandler.RewardGroup.VIP,
+        CheckSingleGroupAddRemove(username, vipGroupMembers, shouldBeGroup == PatreonGroupHandler.RewardGroup.VIP,
             UsernamesToRemoveFromVIP, UsernamesToAddToVIP);
     }
 

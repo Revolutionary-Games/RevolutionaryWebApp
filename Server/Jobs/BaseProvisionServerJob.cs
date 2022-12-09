@@ -12,19 +12,20 @@ using Shared.Models;
 
 public abstract class BaseProvisionServerJob
 {
+    // TODO: put this somewhere more sensible
+    public const string GeneralProvisionCommandPart =
+        "sudo dnf install -y --refresh podman curl git git-lfs gawk dotnet-runtime-6.0 && " +
+        "git lfs install && sudo mkdir -p /executor_cache";
+
     protected readonly ILogger<BaseProvisionServerJob> Logger;
     protected readonly NotificationsEnabledDb Database;
+
     protected BaseProvisionServerJob(ILogger<BaseProvisionServerJob> logger,
         NotificationsEnabledDb database)
     {
         Logger = logger;
         Database = database;
     }
-
-    // TODO: put this somewhere more sensible
-    public const string GeneralProvisionCommandPart =
-        "sudo dnf install -y --refresh podman curl git git-lfs gawk dotnet-runtime-6.0 && " +
-        "git lfs install && sudo mkdir -p /executor_cache";
 
     protected bool CheckServerDataIsFineForProvisioning(long id, BaseServer? server)
     {

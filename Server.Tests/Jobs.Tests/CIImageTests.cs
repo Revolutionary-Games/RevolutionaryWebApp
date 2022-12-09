@@ -19,7 +19,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class CIImageTests
+public sealed class CIImageTests : IDisposable
 {
     private readonly XunitLogger<LockCIImageItemJob> logger;
 
@@ -153,5 +153,10 @@ public class CIImageTests
         Assert.False(item2Version2.Protected);
 
         notificationsMock.Verify();
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
     }
 }

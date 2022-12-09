@@ -29,9 +29,8 @@ public static class BlazorBootFileHandler
         {
             Console.WriteLine($"Detected invalid hashes in {file}, recreating it");
 
+            await using (var stream = File.Open(file, FileMode.Create, FileAccess.Write))
             {
-                await using var stream = File.Open(file, FileMode.Create, FileAccess.Write);
-
                 await using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions
                 {
                     Indented = true,
@@ -53,9 +52,8 @@ public static class BlazorBootFileHandler
         var content = await File.ReadAllBytesAsync(file, cancellationToken);
         var fileAttributes = new FileInfo(file);
 
+        await using (var stream = File.Open(gzipped, FileMode.Create, FileAccess.Write))
         {
-            await using var stream = File.Open(gzipped, FileMode.Create, FileAccess.Write);
-
             await using var compressedStream = new GZipOutputStream(stream);
             compressedStream.SetLevel(9);
 
@@ -70,9 +68,8 @@ public static class BlazorBootFileHandler
         if (File.Exists(brotliProcessed))
             File.Delete(brotliProcessed);
 
+        await using (var stream = File.Open(brotliProcessed, FileMode.Create, FileAccess.Write))
         {
-            await using var stream = File.Open(brotliProcessed, FileMode.Create, FileAccess.Write);
-
             await using var compressedStream = new BrotliStream(stream, CompressionLevel.SmallestSize);
 
             await compressedStream.WriteAsync(content, 0, content.Length, cancellationToken);
@@ -98,6 +95,7 @@ public static class BlazorBootFileHandler
                         changes = true;
                     break;
                 }
+
                 case JsonValue childValue when childValue.TryGetValue(out string? stringValue):
                 {
                     if (!string.IsNullOrEmpty(stringValue) && stringValue.Contains(ShaPrefix))

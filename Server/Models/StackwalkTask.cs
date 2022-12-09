@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models.Enums;
 using Utilities;

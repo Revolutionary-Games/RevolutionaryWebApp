@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Tests.Controllers.Tests;
 
+using System;
 using System.Threading.Tasks;
 using Dummies;
 using Hangfire;
@@ -15,7 +16,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class RegistrationControllerTests
+public sealed class RegistrationControllerTests : IDisposable
 {
     private const string RegistrationCode = "Code";
     private readonly XunitLogger<RegistrationController> logger;
@@ -174,5 +175,10 @@ public class RegistrationControllerTests
         Assert.True(Passwords.CheckPassword(user.PasswordHash, "password12345"));
 
         notificationsMock.Verify();
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
     }
 }

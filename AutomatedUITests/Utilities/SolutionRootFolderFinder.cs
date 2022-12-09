@@ -9,7 +9,7 @@ public class SolutionRootFolderFinder
     /// <summary>
     ///   Extracted method from UseSolutionRelativeContentRoot as we also need solution relative web root
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The found root folder with a solution file</returns>
     public static string FindSolutionRootFolder(string solutionName = "*.sln", string? baseDirectory = null)
     {
         baseDirectory ??= AppContext.BaseDirectory;

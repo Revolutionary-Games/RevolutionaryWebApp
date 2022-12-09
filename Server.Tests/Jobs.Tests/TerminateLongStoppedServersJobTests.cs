@@ -15,7 +15,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class TerminateLongStoppedServersJobTests
+public sealed class TerminateLongStoppedServersJobTests : IDisposable
 {
     private const string Server1InstanceId = "id-1231245";
     private const string Server2InstanceId = "id-6789012";
@@ -93,5 +93,10 @@ public class TerminateLongStoppedServersJobTests
         Assert.Equal(ServerStatus.Running, server3.Status);
 
         ec2Mock.Verify();
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
     }
 }

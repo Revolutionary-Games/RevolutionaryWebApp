@@ -17,7 +17,7 @@ public class RealTimeBuildMessageSocket
 {
     private readonly WebSocket socket;
 
-    private readonly byte[] messageSizeBuffer = new byte [4];
+    private readonly byte[] messageSizeBuffer = new byte[4];
 
     private byte[]? messageBuffer;
 
@@ -28,7 +28,7 @@ public class RealTimeBuildMessageSocket
 
     public WebSocketCloseStatus? CloseStatus => socket.CloseStatus;
 
-    public async Task<(RealTimeBuildMessage? message, bool closed)> Read(CancellationToken cancellationToken)
+    public async Task<(RealTimeBuildMessage? Message, bool Closed)> Read(CancellationToken cancellationToken)
     {
         WebSocketReceiveResult sizeReadResult;
         try

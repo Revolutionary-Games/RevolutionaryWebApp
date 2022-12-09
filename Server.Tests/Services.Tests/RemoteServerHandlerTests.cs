@@ -19,7 +19,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class RemoteServerHandlerTests
+public sealed class RemoteServerHandlerTests : IDisposable
 {
     private const string NewInstanceId = "id-1231245";
 
@@ -723,6 +723,11 @@ public class RemoteServerHandlerTests
         Assert.Equal(job2.CiJobId, server1.ReservedFor);
 
         ec2Mock.VerifyNoOtherCalls();
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
     }
 
     private static async Task<CiJob> AddTestJob(NotificationsEnabledDb database)

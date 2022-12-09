@@ -9,7 +9,9 @@
 @using System.Text
 @using DevCenterCommunication.Models
 @using SharedBase.Utilities
+@using ThriveDevCenter.Client.Models
 @using ThriveDevCenter.Shared.Converters
+@using ThriveDevCenter.Shared.Models.Enums
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherVersionAutoUpdateChannelListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherVersionAutoUpdateChannelDTO>
 
@@ -128,7 +130,7 @@ private readonly List<TableColumn> columns = new()
         new TableColumn("Actions", false),
     };
 
-    private readonly ClientSideResourceStatus<ChannelResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
     private SiteNoticeType messageType;
@@ -337,10 +339,5 @@ private readonly List<TableColumn> columns = new()
         }
 
         await InvokeAsync(StateHasChanged);
-    }
-
-    private class ChannelResourceStatus : DeletedResourceStatus
-    {
-        public bool Expanded { get; set; }
     }
 }

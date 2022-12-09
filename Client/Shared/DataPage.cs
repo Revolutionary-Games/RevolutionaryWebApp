@@ -16,6 +16,25 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     where T : class, IIdentifiable, new()
     where TData : class
 {
+    private readonly Timer fetchStartTimer;
+    private readonly Timer fetchCountDecrementTimer;
+    private bool wantsToFetchDataAgain;
+
+    protected DataPage(SortHelper sort)
+    {
+        Sort = sort;
+        fetchStartTimer = new Timer { Interval = FetchTimerInterval };
+        fetchStartTimer.Elapsed += OnFetchTimer;
+
+        fetchCountDecrementTimer = new Timer { Interval = AppInfo.ForgetDataRefreshFetchInterval };
+        fetchCountDecrementTimer.Elapsed += OnDecrementFetchTimer;
+
+        DefaultSortDirection = sort.Direction;
+
+        if (string.IsNullOrEmpty(DefaultSortColumn))
+            DefaultSortColumn = Sort.SortColumn;
+    }
+
     [Parameter]
     public string DefaultSortColumn { get; set; }
 
@@ -58,6 +77,12 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 
     public abstract bool NoItemsFound { get; }
 
+    /// <summary>
+    ///   The loaded data for this page. This is public just so that the name can be kept as it's used in way too many
+    ///   .razor files to rename without automatic rename support.
+    /// </summary>
+    public TData? Data { get; protected set; }
+
     protected int DataFetchCount { get; private set; }
 
     protected bool WantsToFetchDataAgain
@@ -94,28 +119,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
         }
     }
 
-    protected readonly SortHelper Sort;
-
-    protected TData? Data;
-
-    private readonly Timer fetchStartTimer;
-    private readonly Timer fetchCountDecrementTimer;
-    private bool wantsToFetchDataAgain;
-
-    protected DataPage(SortHelper sort)
-    {
-        Sort = sort;
-        fetchStartTimer = new Timer { Interval = FetchTimerInterval };
-        fetchStartTimer.Elapsed += OnFetchTimer;
-
-        fetchCountDecrementTimer = new Timer { Interval = AppInfo.ForgetDataRefreshFetchInterval };
-        fetchCountDecrementTimer.Elapsed += OnDecrementFetchTimer;
-
-        DefaultSortDirection = sort.Direction;
-
-        if (string.IsNullOrEmpty(DefaultSortColumn))
-            DefaultSortColumn = Sort.SortColumn;
-    }
+    protected SortHelper Sort { get; }
 
     public async Task ChangeSort(string column)
     {
@@ -154,6 +158,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 
                 break;
             }
+
             case ListItemChangeType.ItemDeleted:
             {
                 if (Data == null)
@@ -165,6 +170,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
                 await SingleItemDeleteReceived(notification.Item);
                 break;
             }
+
             case ListItemChangeType.ItemAdded:
             {
                 if (Data == null)
@@ -339,9 +345,8 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 public abstract class ListDataPage<T> : DataPage<T, List<T>>
     where T : class, IIdentifiable, new()
 {
-    public override bool NoItemsFound => Data is { Count: < 1 };
-
     protected ListDataPage(SortHelper sort) : base(sort) { }
+    public override bool NoItemsFound => Data is { Count: < 1 };
 
     protected override async Task SingleItemUpdateReceived(T updatedItem)
     {

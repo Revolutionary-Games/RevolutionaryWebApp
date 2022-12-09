@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Tests.Controllers.Tests;
 
+using System;
 using System.Threading.Tasks;
 using Fixtures;
 using Hangfire;
@@ -13,7 +14,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class CLAControllerTests : IClassFixture<SampleCLADatabase>
+public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisposable
 {
     private readonly XunitLogger<CLAController> logger;
     private readonly SampleCLADatabase fixture;
@@ -205,5 +206,11 @@ public class CLAControllerTests : IClassFixture<SampleCLADatabase>
 
         Assert.NotNull(data);
         Assert.Empty(data);
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
+        fixture.Dispose();
     }
 }

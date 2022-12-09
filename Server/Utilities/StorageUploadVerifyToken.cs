@@ -71,8 +71,12 @@ public class StorageUploadVerifyToken
 
     public override string ToString()
     {
+        // We don't want to have to deal with nulls up the chain, only with problematic base ToString methods will we
+        // throw an exception
+#pragma warning disable CA1065
         if (dataProtector == null)
             return base.ToString() ?? throw new InvalidOperationException("base ToString returned null");
+#pragma warning restore CA1065
 
         return dataProtector.Protect(JsonSerializer.Serialize(this, new JsonSerializerOptions
         {

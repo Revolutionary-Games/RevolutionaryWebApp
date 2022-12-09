@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Client.Utilities;
 
 using System.Collections.Generic;
+using Models;
 
 public class ClientSideResourceStatus<T>
     where T : class, IDeletedResourceStatus, new()
@@ -47,31 +48,4 @@ public class ClientSideResourceStatus<T>
             status.Deleted = false;
         }
     }
-}
-
-public interface IDeletedResourceStatus
-{
-    /// <summary>
-    ///   This is used to pretend that an item is deleted before we get the server re-fetch of data done
-    /// </summary>
-    public bool Deleted { get; set; }
-}
-
-public class DeletedResourceStatus : IDeletedResourceStatus
-{
-    public bool Deleted { get; set; }
-
-    /// <summary>
-    ///   Set to true when the delete is being processed
-    /// </summary>
-    public bool Processing { get; set; }
-}
-
-// TODO: a bunch of places create one time used classes like this, those should be updated to use this instead
-public class ExpandableResourceStatus : DeletedResourceStatus
-{
-    /// <summary>
-    ///   True when the resource should be shown in an expanded view
-    /// </summary>
-    public bool Expanded { get; set; }
 }

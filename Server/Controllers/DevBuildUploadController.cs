@@ -203,7 +203,7 @@ public class DevBuildUploadController : Controller
 
         if (existing == null)
         {
-            var sanitizedPlatform = request.BuildPlatform.Replace("/", "");
+            var sanitizedPlatform = request.BuildPlatform.Replace("/", string.Empty);
 
             var fileName = $"{request.BuildHash}_{sanitizedPlatform}.7z";
 
@@ -285,8 +285,7 @@ public class DevBuildUploadController : Controller
                 AppInfo.RemoteStorageUploadExpireTime),
             new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
                 file.Size.Value,
-                file.Id, existing.Id, null, request.BuildZipHash).ToString()
-        );
+                file.Id, existing.Id, null, request.BuildZipHash).ToString());
     }
 
     /// <summary>
@@ -389,8 +388,7 @@ public class DevBuildUploadController : Controller
                     AppInfo.RemoteStorageUploadExpireTime),
                 new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
                     file.Size.Value,
-                    file.Id, null, obj.Sha3, null).ToString()
-            ));
+                    file.Id, null, obj.Sha3, null).ToString()));
         }
 
         await database.SaveChangesAsync();

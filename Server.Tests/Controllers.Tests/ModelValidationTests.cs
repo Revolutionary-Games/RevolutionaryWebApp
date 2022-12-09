@@ -66,7 +66,7 @@ public class ModelValidationTests
         response = await host.GetTestClient().PostAsJsonAsync("/dummy", new DummyController.DummyModel
         {
             Field = "stuff",
-            AnotherField = "",
+            AnotherField = string.Empty,
             AValue = 5,
         });
 

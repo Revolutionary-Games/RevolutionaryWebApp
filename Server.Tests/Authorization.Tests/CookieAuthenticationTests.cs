@@ -90,8 +90,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
                 app.UseMiddleware<CSRFCheckerMiddleware>();
                 app.UseRouting();
                 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            })
-        );
+            }));
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
         requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
@@ -132,8 +131,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
                 app.UseMiddleware<CSRFCheckerMiddleware>();
                 app.UseRouting();
                 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            })
-        );
+            }));
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
         requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
@@ -173,8 +171,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
                 app.UseMiddleware<CSRFCheckerMiddleware>();
                 app.UseRouting();
                 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            })
-        );
+            }));
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
         requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");

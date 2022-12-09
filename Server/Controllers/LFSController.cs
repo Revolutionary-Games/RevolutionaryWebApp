@@ -22,6 +22,7 @@ using Models;
 using Services;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using SharedBase.Converters;
 using SharedBase.Utilities;
 using Utilities;
@@ -554,6 +555,16 @@ public class LFSController : Controller
 
 public class LFSRequest
 {
+    [JsonConverter(typeof(ActualEnumStringConverter))]
+    public enum OperationType
+    {
+        [EnumMember(Value = "download")]
+        Download,
+
+        [EnumMember(Value = "upload")]
+        Upload,
+    }
+
     [Required]
     public OperationType Operation { get; set; }
 
@@ -577,16 +588,6 @@ public class LFSRequest
             // otherwise basic needs to be defined
             return Transfers.Any(t => t == "basic");
         }
-    }
-
-    [JsonConverter(typeof(ActualEnumStringConverter))]
-    public enum OperationType
-    {
-        [EnumMember(Value = "download")]
-        Download,
-
-        [EnumMember(Value = "upload")]
-        Upload,
     }
 
     public class LFSObject
@@ -617,6 +618,20 @@ public class LFSResponse
 
     public class LFSObject
     {
+        public LFSObject(string oid, long size)
+        {
+            Oid = oid;
+            Size = size;
+        }
+
+        public LFSObject(string oid, long size, ErrorInfo error)
+        {
+            Oid = oid;
+            Size = size;
+            Error = error;
+            Authenticated = null;
+        }
+
         [Required]
         [JsonPropertyName("oid")]
         [StringLength(128, MinimumLength = 5)]
@@ -639,20 +654,6 @@ public class LFSResponse
         [JsonPropertyName("error")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ErrorInfo? Error { get; set; }
-
-        public LFSObject(string oid, long size)
-        {
-            Oid = oid;
-            Size = size;
-        }
-
-        public LFSObject(string oid, long size, ErrorInfo error)
-        {
-            Oid = oid;
-            Size = size;
-            Error = error;
-            Authenticated = null;
-        }
 
         public abstract class Action
         {
@@ -681,6 +682,12 @@ public class LFSResponse
 
         public class ErrorInfo
         {
+            public ErrorInfo(int code, string message)
+            {
+                Code = code;
+                Message = message;
+            }
+
             [Required]
             [JsonPropertyName("code")]
             public int Code { get; set; }
@@ -688,12 +695,6 @@ public class LFSResponse
             [Required]
             [JsonPropertyName("message")]
             public string Message { get; set; }
-
-            public ErrorInfo(int code, string message)
-            {
-                Code = code;
-                Message = message;
-            }
         }
     }
 }

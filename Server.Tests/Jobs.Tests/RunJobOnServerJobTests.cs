@@ -18,7 +18,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class RunJobOnServerJobTests
+public sealed class RunJobOnServerJobTests : IDisposable
 {
     private const string DiskUsageResult =
         @"Tiedostojärjestelmä                1K-lohkot        Käyt    Vapaana Käy% Liitospiste
@@ -196,5 +196,10 @@ public class RunJobOnServerJobTests
         externalSSHMock.VerifyNoOtherCalls();
         remoteDownloadsMock.Verify();
         githubStatusAPI.VerifyNoOtherCalls();
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
     }
 }

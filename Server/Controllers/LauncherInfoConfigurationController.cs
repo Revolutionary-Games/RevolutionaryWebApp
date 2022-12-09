@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace ThriveDevCenter.Server.Controllers;
 
 using System;
@@ -12,6 +10,7 @@ using Authorization;
 using BlazorPagination;
 using DevCenterCommunication.Models;
 using Filters;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -19,6 +18,7 @@ using Models;
 using RecursiveDataAnnotationsValidation;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using SharedBase.Models;
 using SharedBase.Utilities;
 using Utilities;
@@ -619,9 +619,7 @@ public class LauncherInfoConfigurationController : Controller
         return Ok();
     }
 
-    //
     // Launcher Thrive versions
-    //
 
     [HttpGet("thriveVersions")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
@@ -1191,16 +1189,6 @@ public class LauncherInfoConfigurationController : Controller
     // End of endpoints
 
     [NonAction]
-    private void PreProcessMirrorRequest(LauncherDownloadMirrorDTO request)
-    {
-        if (string.IsNullOrWhiteSpace(request.ExtraDescription))
-            request.ExtraDescription = null;
-
-        if (string.IsNullOrWhiteSpace(request.BannerImageUrl))
-            request.BannerImageUrl = null;
-    }
-
-    [NonAction]
     private static LauncherAutoUpdateChannel ChannelFromInt(int channel)
     {
         var channelEnumValue = (LauncherAutoUpdateChannel)channel;
@@ -1232,5 +1220,15 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         return platformEnumValue;
+    }
+
+    [NonAction]
+    private void PreProcessMirrorRequest(LauncherDownloadMirrorDTO request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ExtraDescription))
+            request.ExtraDescription = null;
+
+        if (string.IsNullOrWhiteSpace(request.BannerImageUrl))
+            request.BannerImageUrl = null;
     }
 }

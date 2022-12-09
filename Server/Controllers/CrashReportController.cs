@@ -484,8 +484,8 @@ public class CrashReportController : Controller
         if (!Guid.TryParse(key, out var parsedKey))
             return BadRequest("Invalid key format");
 
-        var report = await WithoutLogs(database.CrashReports.WhereHashed(nameof(CrashReport.DeleteKey), key)
-        ).ToAsyncEnumerable().FirstOrDefaultAsync(r => r.DeleteKey == parsedKey);
+        var report = await WithoutLogs(database.CrashReports.WhereHashed(nameof(CrashReport.DeleteKey), key))
+            .ToAsyncEnumerable().FirstOrDefaultAsync(r => r.DeleteKey == parsedKey);
 
         if (report == null)
             return NotFound("No report found with key");
@@ -499,8 +499,8 @@ public class CrashReportController : Controller
         if (!Guid.TryParse(key, out var parsedKey))
             return BadRequest("Invalid key format");
 
-        var report = await WithoutLogs(database.CrashReports.WhereHashed(nameof(CrashReport.DeleteKey), key)
-        ).ToAsyncEnumerable().FirstOrDefaultAsync(r => r.DeleteKey == parsedKey);
+        var report = await WithoutLogs(database.CrashReports.WhereHashed(nameof(CrashReport.DeleteKey), key))
+            .ToAsyncEnumerable().FirstOrDefaultAsync(r => r.DeleteKey == parsedKey);
 
         if (report == null)
             return NotFound("No report found with key");

@@ -29,11 +29,6 @@ public abstract class WebHostServerFixture : IDisposable
 {
     private readonly Lazy<Uri> rootUriInitializer;
 
-    public Uri RootUri => rootUriInitializer.Value;
-    public IHost? Host { get; set; }
-
-    public RealIntegrationTestDatabaseFixture DatabaseFixture { get; }
-
     public WebHostServerFixture()
     {
         DatabaseFixture = new RealIntegrationTestDatabaseFixture();
@@ -41,25 +36,29 @@ public abstract class WebHostServerFixture : IDisposable
         rootUriInitializer = new Lazy<Uri>(() => new Uri(StartAndGetRootUri()));
     }
 
-    public virtual void Dispose()
-    {
-        DatabaseFixture.Dispose();
+    public Uri RootUri => rootUriInitializer.Value;
+    public IHost? Host { get; set; }
 
-        // Originally StopAsync was called after dispose
-        Host?.StopAsync();
-        Host?.Dispose();
+    public RealIntegrationTestDatabaseFixture DatabaseFixture { get; }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     protected abstract IHost CreateWebHost();
 
-    private string StartAndGetRootUri()
+    protected virtual void Dispose(bool disposing)
     {
-        // As the port is generated automatically, we can use IServerAddressesFeature to get the actual server URL
-        Host = CreateWebHost();
-        RunInBackgroundThread(Host.Start);
-        return Host.Services.GetRequiredService<IServer>().Features
-            .Get<IServerAddressesFeature>()!
-            .Addresses.Single();
+        if (disposing)
+        {
+            DatabaseFixture.Dispose();
+
+            // Originally StopAsync was called after dispose
+            Host?.StopAsync();
+            Host?.Dispose();
+        }
     }
 
     private static void RunInBackgroundThread(Action action)
@@ -86,6 +85,16 @@ public abstract class WebHostServerFixture : IDisposable
 
         if (edi != null)
             throw edi.SourceException;
+    }
+
+    private string StartAndGetRootUri()
+    {
+        // As the port is generated automatically, we can use IServerAddressesFeature to get the actual server URL
+        Host = CreateWebHost();
+        RunInBackgroundThread(Host.Start);
+        return Host.Services.GetRequiredService<IServer>().Features
+            .Get<IServerAddressesFeature>()!
+            .Addresses.Single();
     }
 }
 

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json.Serialization;
+using Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;

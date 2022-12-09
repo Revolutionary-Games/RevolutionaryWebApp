@@ -2,17 +2,18 @@ namespace ThriveDevCenter.Server.Tests.Fixtures;
 
 using System;
 using Server.Models;
-using Shared.Models;
+using Shared.Models.Enums;
 
 public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 {
     private static readonly object Lock = new();
-    private static bool databaseInitialized;
 
     private static readonly Guid StaticSessionId1 = Guid.NewGuid();
     private static readonly Guid StaticSessionId2 = Guid.NewGuid();
     private static readonly Guid StaticSessionId3 = Guid.NewGuid();
     private static readonly Guid StaticSessionId4 = Guid.NewGuid();
+
+    private static bool databaseInitialized;
 
     public SimpleFewUsersDatabase() : base("SimpleFewUsersDatabase")
     {

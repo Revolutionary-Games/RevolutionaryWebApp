@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Components;
 public abstract class SimpleResourceFetcher<T> : ComponentBase
     where T : class
 {
-    protected bool DataReceived;
+    protected bool dataReceived;
 
     /// <summary>
     ///   Contains any errors encountered when fetching the data
@@ -44,10 +44,10 @@ public abstract class SimpleResourceFetcher<T> : ComponentBase
 
         if (Data != null)
         {
-            if (!DataReceived)
+            if (!dataReceived)
             {
                 await OnFirstDataReceived();
-                DataReceived = true;
+                dataReceived = true;
             }
         }
 

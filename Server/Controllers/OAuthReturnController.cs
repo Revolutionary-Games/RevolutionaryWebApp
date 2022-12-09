@@ -30,12 +30,13 @@ public class OAuthReturnController : SSOLoginController
 
     private readonly bool githubConfigured;
 
+    // ReSharper disable ContextualLoggerProblem
     public OAuthReturnController(ILogger<OAuthReturnController> logger, IConfiguration configuration,
-
-        // ReSharper disable once ContextualLoggerProblem
         NotificationsEnabledDb database, ILogger<GithubAPI> githubLog, ICLAExemptions claExemptions) : base(logger,
         database)
     {
+        // ReSharper restore ContextualLoggerProblem
+
         this.githubLog = githubLog;
         this.claExemptions = claExemptions;
 

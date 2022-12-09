@@ -36,7 +36,7 @@ using Image = SixLabors.ImageSharp.Image;
 /// <summary>
 ///   Handles running the Revolutionary Bot for Discord. Used on the Thrive community discord
 /// </summary>
-public class RevolutionaryDiscordBotService
+public sealed class RevolutionaryDiscordBotService : IDisposable
 {
     private const int SecondsBetweenSameCommand = 10;
 
@@ -190,6 +190,16 @@ public class RevolutionaryDiscordBotService
             if (client != null)
                 await client.StopAsync();
         }
+    }
+
+    public void Dispose()
+    {
+        expensiveOperationLimiter.Dispose();
+        client?.Dispose();
+        githubMilestones?.Dispose();
+        progressBackgroundImage?.Dispose();
+        overallTranslationStatus?.Dispose();
+        translationProgress?.Dispose();
     }
 
     private Task OnConnected()

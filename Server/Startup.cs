@@ -204,6 +204,8 @@ public class Startup
             httpClient.DefaultRequestHeaders.Add(
                 HeaderNames.UserAgent, "HttpRequestsSample");
         });
+        services.AddHttpClient("stackwalk", httpClient => { httpClient.Timeout = TimeSpan.FromSeconds(120); });
+        services.AddHttpClient("discourse", httpClient => { httpClient.Timeout = TimeSpan.FromSeconds(80); });
 
         services.AddSingleton<IRegistrationStatus, RegistrationStatus>();
         services.AddSingleton<ITokenGenerator, TokenGenerator>();
@@ -409,6 +411,16 @@ public class Startup
         app.ApplicationServices.GetRequiredService<RedirectVerifier>();
     }
 
+    private static void AddJobHelper<T>(string schedule)
+        where T : class, IJob
+    {
+        // If the server restarts very fast this can get locked in a crashing spiral due to
+        // Hangfire.PostgreSql.PostgreSqlDistributedLockException
+        // TODO: perhaps we should add a try catch here and just log the errors if there are any?
+        // See: https://github.com/frankhommers/Hangfire.PostgreSql/issues/119
+        RecurringJob.AddOrUpdate<T>(x => x.Execute(CancellationToken.None), schedule);
+    }
+
     private void SetupDefaultJobs(IConfigurationSection configurationSection)
     {
         AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
@@ -437,14 +449,5 @@ public class Startup
         // This is kept here if in the future more hashed fields are needed to be added so this might be needed
         // in the future as well to update info in the db
         // BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
-    }
-
-    private static void AddJobHelper<T>(string schedule) where T : class, IJob
-    {
-        // If the server restarts very fast this can get locked in a crashing spiral due to
-        // Hangfire.PostgreSql.PostgreSqlDistributedLockException
-        // TODO: perhaps we should add a try catch here and just log the errors if there are any?
-        // See: https://github.com/frankhommers/Hangfire.PostgreSql/issues/119
-        RecurringJob.AddOrUpdate<T>(x => x.Execute(CancellationToken.None), schedule);
     }
 }

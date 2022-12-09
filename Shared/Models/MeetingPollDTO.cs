@@ -6,7 +6,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DevCenterCommunication.Models;
 using Enums;
-using SharedBase.Utilities;
 
 public class MeetingPollDTO : IIdentifiable
 {
@@ -37,7 +36,8 @@ public class MeetingPollDTO : IIdentifiable
     {
         get
         {
-            return JsonSerializer.Deserialize<PollData>(PollData) ?? throw new NullDecodedJsonException();
+            return JsonSerializer.Deserialize<PollData>(PollData) ??
+                throw new InvalidOperationException("Decoded JSON is null");
         }
         set
         {

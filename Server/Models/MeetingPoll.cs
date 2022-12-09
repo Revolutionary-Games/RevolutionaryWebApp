@@ -11,7 +11,6 @@ using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Notifications;
-using SharedBase.Utilities;
 using Utilities;
 
 /// <summary>
@@ -67,7 +66,8 @@ public class MeetingPoll : IUpdateNotifications
     [NotMapped]
     public PollData ParsedData
     {
-        get => JsonSerializer.Deserialize<PollData>(PollData) ?? throw new NullDecodedJsonException();
+        get => JsonSerializer.Deserialize<PollData>(PollData) ??
+            throw new InvalidOperationException("Decoded JSON is null");
         set
         {
             PollData = JsonSerializer.Serialize(value);

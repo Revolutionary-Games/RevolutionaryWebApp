@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using Enums;
 using Microsoft.EntityFrameworkCore;
 using Utilities;
 

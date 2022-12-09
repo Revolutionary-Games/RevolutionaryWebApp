@@ -12,6 +12,8 @@ internal class Program
         if (args.Length != 1)
             throw new Exception("Expected to be ran with a single argument specifying websocket connect url");
 
-        return new CIExecutor(args[0]).Run();
+        using var executor = new CIExecutor(args[0]);
+
+        return executor.Run();
     }
 }

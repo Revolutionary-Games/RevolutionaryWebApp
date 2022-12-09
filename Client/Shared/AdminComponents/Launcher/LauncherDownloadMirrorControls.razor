@@ -4,9 +4,11 @@
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using SharedBase.Utilities
+@using ThriveDevCenter.Client.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherDownloadMirrorListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherDownloadMirrorDTO>
 
@@ -113,7 +115,7 @@ else
         new TableColumn("Actions", false),
     };
 
-    private readonly ClientSideResourceStatus<MirrorResourceStatus> clientSideResourceStatus = new();
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
 
     private string? message;
     private SiteNoticeType messageType;
@@ -297,10 +299,5 @@ else
         }
 
         await InvokeAsync(StateHasChanged);
-    }
-
-    private class MirrorResourceStatus : DeletedResourceStatus
-    {
-        public bool Expanded { get; set; }
     }
 }

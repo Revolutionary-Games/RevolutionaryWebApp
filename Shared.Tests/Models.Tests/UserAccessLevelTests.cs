@@ -1,6 +1,6 @@
 namespace ThriveDevCenter.Shared.Tests.Models.Tests;
 
-using Shared.Models;
+using Shared.Models.Enums;
 using Xunit;
 
 public class UserAccessLevelTests
