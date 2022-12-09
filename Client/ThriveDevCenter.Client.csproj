@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blazored.LocalStorage" Version="4.2.0" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.3.0" />
     <PackageReference Include="Blazored.Modal" Version="7.1.0" />
     <PackageReference Include="BlazorPagination" Version="0.2.16" />
     <PackageReference Include="BlazorPro.BlazorSize" Version="6.1.2" />
@@ -17,7 +17,7 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
     <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.28" />
-    <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
+    <PackageReference Include="System.Net.Http.Json" Version="7.0.0" />
     <PackageReference Include="TextCopy" Version="6.2.0" />
   </ItemGroup>
 
