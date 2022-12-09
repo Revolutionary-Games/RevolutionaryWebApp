@@ -66,6 +66,5 @@ public sealed class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestData
     public void Dispose()
     {
         logger.Dispose();
-        fixture.Dispose();
     }
 }

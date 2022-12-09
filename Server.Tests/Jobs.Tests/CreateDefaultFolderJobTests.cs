@@ -49,6 +49,5 @@ public sealed class CreateDefaultFolderJobTests : IClassFixture<RealUnitTestData
     public void Dispose()
     {
         logger.Dispose();
-        fixture.Dispose();
     }
 }

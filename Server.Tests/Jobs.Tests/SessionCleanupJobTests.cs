@@ -70,6 +70,5 @@ public sealed class SessionCleanupJobTests : IClassFixture<RealUnitTestDatabaseF
     public void Dispose()
     {
         logger.Dispose();
-        fixture.Dispose();
     }
 }

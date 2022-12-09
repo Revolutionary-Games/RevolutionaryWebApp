@@ -211,6 +211,5 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
     public void Dispose()
     {
         logger.Dispose();
-        fixture.Dispose();
     }
 }
