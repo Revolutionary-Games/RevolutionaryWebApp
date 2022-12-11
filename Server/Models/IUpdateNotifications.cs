@@ -14,7 +14,7 @@ public interface IUpdateNotifications
     ///   deleted from the database
     /// </summary>
     [NotMapped]
-    public virtual bool UsesSoftDelete
+    public bool UsesSoftDelete
     {
         get
         {
@@ -26,7 +26,7 @@ public interface IUpdateNotifications
     ///   Returns the soft delete status if UsesSoftDelete is true
     /// </summary>
     [NotMapped]
-    public virtual bool IsSoftDeleted
+    public bool IsSoftDeleted
     {
         get
         {
