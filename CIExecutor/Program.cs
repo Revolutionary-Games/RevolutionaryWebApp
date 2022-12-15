@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 internal class Program
 {
-    private static Task Main(string[] args)
+    private static async Task<int> Main(string[] args)
     {
         // This fails with an exception because we can't anyway report our failure if we don't have
         // the webhook connection url
@@ -14,6 +14,7 @@ internal class Program
 
         using var executor = new CIExecutor(args[0]);
 
-        return executor.Run();
+        await executor.Run();
+        return 0;
     }
 }

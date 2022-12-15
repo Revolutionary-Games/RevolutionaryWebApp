@@ -222,6 +222,7 @@ public sealed class CIExecutor : IDisposable
 
     public void Dispose()
     {
+        Console.WriteLine("Disposing CI executor");
         webSocket?.Dispose();
     }
 
