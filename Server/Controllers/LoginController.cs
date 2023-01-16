@@ -676,12 +676,12 @@ public class LoginController : SSOLoginController
             else if (user.SsoSource == SsoTypePatreon && ssoType == SsoTypeCommunityForum)
             {
                 Logger.LogInformation("Patron logged in using a community forum account");
-                await ChangeSsoSourceForNormalUser(user, ssoType);
+                ChangeSsoSourceForNormalUser(user, ssoType);
             }
             else if (user.SsoSource == SsoTypeCommunityForum && ssoType == SsoTypePatreon)
             {
                 Logger.LogInformation("Community forum user logged in using patreon");
-                await ChangeSsoSourceForNormalUser(user, ssoType);
+                ChangeSsoSourceForNormalUser(user, ssoType);
             }
             else
             {
@@ -691,11 +691,11 @@ public class LoginController : SSOLoginController
 
         if (user.Suspended == true)
         {
-            var suspension = user.SuspendedManually == true ?
-                " manually" :
-                $" with the reason: {user.SuspendedReason}";
-
-            return (CreateSuspendedUserRedirect(user), false);
+            if (!await CheckCanAutoUnsuspend(user))
+            {
+                Logger.LogInformation("Suspended user tried to login, SSO auto unsuspend not possible");
+                return (CreateSuspendedUserRedirect(user), false);
+            }
         }
 
         // Change username from SSO login
@@ -730,22 +730,40 @@ public class LoginController : SSOLoginController
     }
 
     [NonAction]
-    private async Task ChangeSsoSourceForNormalUser(User user, string ssoType)
+    private async Task<bool> CheckCanAutoUnsuspend(User user)
     {
-        if (user.Suspended != true || user.SuspendedManually == true || user.SsoSource == ssoType)
+        // Manually suspended users cannot auto-unsuspend
+        if (user.SuspendedManually == true)
+            return false;
+
+        if (user.SuspendedReason != null &&
+            user.SuspendedReason.Contains(SSOSuspendHandler.LoginOptionNoLongerValidText))
+        {
+            Logger.LogInformation("Auto un-suspending user as SSO login is about to succeed for {Email}",
+                user.Email);
+
+            user.Suspended = false;
+
+            await Database.LogEntries.AddAsync(new LogEntry
+            {
+                Message = "User unsuspended automatically due to SSO login success",
+                TargetUserId = user.Id,
+            });
+
+            // We rely on save happening later
+            return true;
+        }
+
+        return false;
+    }
+
+    [NonAction]
+    private void ChangeSsoSourceForNormalUser(User user, string ssoType)
+    {
+        if (user.SuspendedManually == true || user.SsoSource == ssoType)
             return;
 
-        // TODO: this should only unsuspend if the last login source is no longer valid
-        await Database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = "Un-suspending automatically suspended user due to SSO source change",
-            TargetUserId = user.Id,
-        });
-
-        user.Suspended = false;
         user.SsoSource = ssoType;
-
-        await Database.SaveChangesAsync();
     }
 
     [NonAction]

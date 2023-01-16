@@ -35,7 +35,11 @@ public sealed class LoginControllerTests : IDisposable
     private const string PatreonClientId = "beef";
     private const string PatreonClientSecret = "ASuperSecureSecret";
 
+    private const string DevBuildRewardTier = "tierBuilds-1234";
+
     private readonly XunitLogger<LoginController> logger;
+
+    private readonly IPAddress testIp = IPAddress.Parse("127.1.2.3");
 
     private readonly PatreonAPIBearerToken testBearerToken = new()
     {
@@ -246,51 +250,20 @@ public sealed class LoginControllerTests : IDisposable
     [Fact]
     public async Task LoginController_UnsuspendSSOPatron()
     {
-        var testIp = IPAddress.Parse("127.1.2.3");
-
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(CSRFValue, null, true))
-            .Returns(true).Verifiable();
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        var patreonMock = new Mock<IPatreonAPI>();
-        patreonMock.Setup(patreon => patreon.Initialize(PatreonClientId, PatreonClientSecret)).Verifiable();
-        patreonMock.Setup(patreon => patreon.TurnCodeIntoTokens(PatreonReturnCode, It.IsAny<string>()))
-            .Returns(Task.FromResult(testBearerToken)).Verifiable();
-        patreonMock.Setup(patreon => patreon.LoginAsUser(testBearerToken)).Verifiable();
-        patreonMock.Setup(patreon => patreon.GetOwnDetails()).Returns(Task.FromResult(testPatreonUserDetails))
-            .Verifiable();
-
         string? seenSessionId = null;
-
         var cookiesMock = new Mock<IResponseCookies>();
         cookiesMock.Setup(cookies =>
                 cookies.Append(AppInfo.SessionCookieName, It.IsAny<string>(), It.IsAny<CookieOptions>()))
             .Callback<string, string, CookieOptions>(
                 (_, value, _) => { seenSessionId = value; }).Verifiable();
 
-        var connectionMock = new Mock<ConnectionInfo>();
-        connectionMock.SetupGet(connection => connection.RemoteIpAddress).Returns(testIp);
-
-        var requestCookiesMock = new Mock<IRequestCookieCollection>();
-
-        var httpResponseMock = new Mock<HttpResponse>();
-        httpResponseMock.SetupGet(response => response.Cookies).Returns(cookiesMock.Object);
-
-        var httpRequestMock = new Mock<HttpRequest>();
-        httpRequestMock.SetupGet(request => request.Cookies).Returns(requestCookiesMock.Object);
-
-        var httpContextMock = new Mock<HttpContext>();
-        httpContextMock.SetupGet(http => http.Response).Returns(httpResponseMock.Object);
-        httpContextMock.SetupGet(http => http.Request).Returns(httpRequestMock.Object);
-        httpContextMock.SetupGet(http => http.Connection).Returns(connectionMock.Object);
-
-        httpRequestMock.SetupGet(request => request.HttpContext).Returns(httpContextMock.Object);
+        SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
+            out var patreonMock, out var requestCookiesMock, out var httpContextMock);
 
         var configuration = CreateConfiguration(false, true);
 
         await using var database =
-            CreateMemoryDatabase(nameof(LoginController_SuspendedCannotLogin), notificationsMock.Object);
+            CreateMemoryDatabase(nameof(LoginController_UnsuspendSSOPatron), notificationsMock.Object);
 
         await SeedPatronData(database);
 
@@ -369,8 +342,160 @@ public sealed class LoginControllerTests : IDisposable
     }
 
     [Fact]
-    public void LoginController_AutoUnsuspendDoesNotOverrideManualSuspension()
+    public async Task LoginController_AutoUnsuspendDoesNotOverrideManualSuspension()
     {
+        string? seenSessionId = null;
+        var cookiesMock = new Mock<IResponseCookies>();
+        cookiesMock.Setup(cookies =>
+                cookies.Append(AppInfo.SessionCookieName, It.IsAny<string>(), It.IsAny<CookieOptions>()))
+            .Callback<string, string, CookieOptions>(
+                (_, value, _) => { seenSessionId = value; }).Verifiable();
+
+        SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
+            out var patreonMock, out var requestCookiesMock, out var httpContextMock);
+
+        var configuration = CreateConfiguration(false, true);
+
+        await using var database =
+            CreateMemoryDatabase(nameof(LoginController_AutoUnsuspendDoesNotOverrideManualSuspension),
+                notificationsMock.Object);
+
+        await SeedPatronData(database);
+
+        var user = new User
+        {
+            Local = false,
+            SsoSource = LoginController.SsoTypePatreon,
+            Email = PatronEmail,
+            UserName = "Mr. Patron",
+            Suspended = true,
+            SuspendedManually = true,
+            SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
+        };
+        await database.Users.AddAsync(user);
+
+        await database.SaveChangesAsync();
+
+        var controller = new LoginController(logger, database, configuration, csrfMock.Object,
+            new RedirectVerifier(configuration), patreonMock.Object, jobClientMock.Object);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock.Object,
+        };
+
+        // Perform start login request
+        var result = await controller.StartSsoLogin(new SsoStartFormData
+        {
+            SsoType = LoginController.SsoTypePatreon,
+            CSRF = CSRFValue,
+        });
+
+        var redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
+        IReadOnlyDictionary<string, string> data = QueryHelpers.ParseQuery(redirectResult.Url).SelectFirstStringValue();
+
+        Assert.NotNull(seenSessionId);
+        var session = await database.Sessions.FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+
+        Assert.NotNull(session);
+        Assert.Null(session.User);
+
+        // Perform return request
+        string? dummyCookie;
+        requestCookiesMock.Setup(cookies => cookies.TryGetValue(AppInfo.SessionCookieName, out dummyCookie))
+            .Callback(new CookieDelegate((string _, out string? value) => { value = seenSessionId; })).Returns(true)
+            .Verifiable();
+
+        result = await controller.SsoReturnPatreon(data["state"], PatreonReturnCode, null);
+
+        redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
+
+        Assert.False(redirectResult.Permanent);
+        Assert.StartsWith("/login?error", redirectResult.Url);
+
+        Assert.Null(session.SsoNonce);
+        Assert.Null(session.User);
+
+        Assert.True(user.Suspended);
+    }
+
+    [Theory]
+    [InlineData(true, true, DevBuildRewardTier)]
+    [InlineData(false, true, DevBuildRewardTier)]
+    [InlineData(true, false, "nothing")]
+    [InlineData(false, false, "nothing")]
+    public async Task LoginController_BadPatronStatusDisallowsLogin(bool userSuspended, bool patronSuspended,
+        string rewardTier)
+    {
+        string? seenSessionId = null;
+        var cookiesMock = new Mock<IResponseCookies>();
+        cookiesMock.Setup(cookies =>
+                cookies.Append(AppInfo.SessionCookieName, It.IsAny<string>(), It.IsAny<CookieOptions>()))
+            .Callback<string, string, CookieOptions>(
+                (_, value, _) => { seenSessionId = value; }).Verifiable();
+
+        SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
+            out var patreonMock, out var requestCookiesMock, out var httpContextMock);
+
+        var configuration = CreateConfiguration(false, true);
+
+        await using var database =
+            CreateMemoryDatabase(nameof(LoginController_AutoUnsuspendDoesNotOverrideManualSuspension),
+                notificationsMock.Object);
+
+        await SeedPatronData(database, patronSuspended, rewardTier);
+
+        var user = new User
+        {
+            Local = false,
+            SsoSource = LoginController.SsoTypePatreon,
+            Email = PatronEmail,
+            UserName = "Mr. Patron",
+            Suspended = userSuspended,
+            SuspendedManually = false,
+            SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
+        };
+        await database.Users.AddAsync(user);
+
+        await database.SaveChangesAsync();
+
+        var controller = new LoginController(logger, database, configuration, csrfMock.Object,
+            new RedirectVerifier(configuration), patreonMock.Object, jobClientMock.Object);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock.Object,
+        };
+
+        // Perform start login request
+        var result = await controller.StartSsoLogin(new SsoStartFormData
+        {
+            SsoType = LoginController.SsoTypePatreon,
+            CSRF = CSRFValue,
+        });
+
+        var redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
+        var data = QueryHelpers.ParseQuery(redirectResult.Url).SelectFirstStringValue();
+
+        Assert.NotNull(seenSessionId);
+        var session = await database.Sessions.FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+
+        Assert.NotNull(session);
+
+        // Perform return request
+        string? dummyCookie;
+        requestCookiesMock.Setup(cookies => cookies.TryGetValue(AppInfo.SessionCookieName, out dummyCookie))
+            .Callback(new CookieDelegate((string _, out string? value) => { value = seenSessionId; })).Returns(true)
+            .Verifiable();
+
+        result = await controller.SsoReturnPatreon(data["state"], PatreonReturnCode, null);
+
+        redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
+
+        Assert.StartsWith("/login?error", redirectResult.Url);
+
+        Assert.Null(session.User);
+        Assert.Equal(userSuspended, user.Suspended);
     }
 
     public void Dispose()
@@ -410,23 +535,64 @@ public sealed class LoginControllerTests : IDisposable
         return database;
     }
 
-    private static async Task SeedPatronData(NotificationsEnabledDb database)
+    private static async Task SeedPatronData(NotificationsEnabledDb database, bool suspended = false,
+        string? rewardTier = null)
     {
+        rewardTier ??= DevBuildRewardTier;
+
         await database.Patrons.AddAsync(new Patron
         {
             Email = PatronEmail,
-            RewardId = "1234",
+            RewardId = rewardTier,
             Username = "Mr. Patron",
+            Suspended = suspended,
         });
 
         await database.PatreonSettings.AddAsync(new PatreonSettings
         {
             Active = true,
-            DevbuildsRewardId = "1234",
+            DevbuildsRewardId = DevBuildRewardTier,
             VipRewardId = "4567",
             CreatorToken = "Creator-0101",
         });
 
         await database.SaveChangesAsync();
+    }
+
+    private void SetupPatronMocks(Mock<IResponseCookies> cookiesMock, out Mock<ITokenVerifier> csrfMock,
+        out Mock<IModelUpdateNotificationSender> notificationsMock, out Mock<IBackgroundJobClient> jobClientMock,
+        out Mock<IPatreonAPI> patreonMock, out Mock<IRequestCookieCollection> requestCookiesMock,
+        out Mock<HttpContext> httpContextMock)
+    {
+        csrfMock = new Mock<ITokenVerifier>();
+        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(CSRFValue, null, true))
+            .Returns(true).Verifiable();
+        notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        jobClientMock = new Mock<IBackgroundJobClient>();
+        patreonMock = new Mock<IPatreonAPI>();
+        patreonMock.Setup(patreon => patreon.Initialize(PatreonClientId, PatreonClientSecret)).Verifiable();
+        patreonMock.Setup(patreon => patreon.TurnCodeIntoTokens(PatreonReturnCode, It.IsAny<string>()))
+            .Returns(Task.FromResult(testBearerToken)).Verifiable();
+        patreonMock.Setup(patreon => patreon.LoginAsUser(testBearerToken)).Verifiable();
+        patreonMock.Setup(patreon => patreon.GetOwnDetails()).Returns(Task.FromResult(testPatreonUserDetails))
+            .Verifiable();
+
+        var connectionMock = new Mock<ConnectionInfo>();
+        connectionMock.SetupGet(connection => connection.RemoteIpAddress).Returns(testIp);
+
+        requestCookiesMock = new Mock<IRequestCookieCollection>();
+
+        var httpResponseMock = new Mock<HttpResponse>();
+        httpResponseMock.SetupGet(response => response.Cookies).Returns(cookiesMock.Object);
+
+        var httpRequestMock = new Mock<HttpRequest>();
+        httpRequestMock.SetupGet(request => request.Cookies).Returns(requestCookiesMock.Object);
+
+        httpContextMock = new Mock<HttpContext>();
+        httpContextMock.SetupGet(http => http.Response).Returns(httpResponseMock.Object);
+        httpContextMock.SetupGet(http => http.Request).Returns(httpRequestMock.Object);
+        httpContextMock.SetupGet(http => http.Connection).Returns(connectionMock.Object);
+
+        httpRequestMock.SetupGet(request => request.HttpContext).Returns(httpContextMock.Object);
     }
 }
