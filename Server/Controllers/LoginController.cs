@@ -254,7 +254,15 @@ public class LoginController : SSOLoginController
 
         if (user == null || string.IsNullOrEmpty(user.PasswordHash) ||
             !Passwords.CheckPassword(user.PasswordHash, login.Password))
+        {
             return Redirect(QueryHelpers.AddQueryString("/login", "error", "Invalid username or password"));
+        }
+
+        // Suspended user cannot login
+        if (user.Suspended == true)
+        {
+            return CreateSuspendedUserRedirect(user);
+        }
 
         // Login is successful
         await BeginNewSession(user);
@@ -271,7 +279,10 @@ public class LoginController : SSOLoginController
     [NonAction]
     private async Task BeginNewSession(User user)
     {
-        var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+        if (user.Suspended == true)
+            throw new InvalidOperationException("Cannot begin a session for a suspended user");
+
+        var remoteAddress = HttpContext.Connection.RemoteIpAddress;
 
         // Re-use existing session if there is one
         var session = await HttpContext.Request.Cookies.GetSession(Database);
@@ -306,6 +317,16 @@ public class LoginController : SSOLoginController
     private IActionResult CreateResponseForDisabledOption()
     {
         return Redirect(QueryHelpers.AddQueryString("/login", "error", "This login option is not enabled"));
+    }
+
+    [NonAction]
+    private IActionResult CreateSuspendedUserRedirect(User user)
+    {
+        var suspension = user.SuspendedManually == true ?
+            " manually by an admin" :
+            $" with the reason: {user.SuspendedReason ?? "unknown"}";
+
+        return Redirect(QueryHelpers.AddQueryString("/login", "error", $"Your account is suspended {suspension}"));
     }
 
     [NonAction]
@@ -674,9 +695,7 @@ public class LoginController : SSOLoginController
                 " manually" :
                 $" with the reason: {user.SuspendedReason}";
 
-            return (Redirect(QueryHelpers.AddQueryString("/login", "error",
-                    $"Your account is suspended {suspension}")),
-                false);
+            return (CreateSuspendedUserRedirect(user), false);
         }
 
         // Change username from SSO login
@@ -732,7 +751,7 @@ public class LoginController : SSOLoginController
     [NonAction]
     private async Task<IActionResult> FinishSsoLoginToAccount(User user, Session session)
     {
-        var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+        var remoteAddress = HttpContext.Connection.RemoteIpAddress;
 
         var sessionId = session.Id;
 
