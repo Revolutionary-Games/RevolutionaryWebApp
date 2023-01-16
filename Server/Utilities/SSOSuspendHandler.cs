@@ -11,6 +11,8 @@ using Services;
 
 public static class SSOSuspendHandler
 {
+    public const string LoginOptionNoLongerValidText = "login option is no longer valid";
+
     /// <summary>
     ///   Checks (and applies) suspension for an use using SSO
     /// </summary>
@@ -138,7 +140,7 @@ public static class SSOSuspendHandler
             }, cancellationToken);
 
             user.Suspended = true;
-            user.SuspendedReason = $"Used login option is no longer valid {reason}";
+            user.SuspendedReason = $"Used {LoginOptionNoLongerValidText} {reason}";
         }
 
         return true;
