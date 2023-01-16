@@ -34,7 +34,7 @@ public abstract class SSOLoginController : Controller
     {
         session.LastUsed = DateTime.UtcNow;
 
-        var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
+        var remoteAddress = HttpContext.Connection.RemoteIpAddress;
         session.LastUsedFrom = remoteAddress;
         session.SsoNonce = NonceGenerator.GenerateNonce(AppInfo.SsoNonceLength);
         session.StartedSsoLogin = ssoSource;
@@ -56,6 +56,8 @@ public abstract class SSOLoginController : Controller
         if (IsSsoTimedOut(session, out IActionResult? timedOut))
             return (session, timedOut);
 
+        // This is intentionally this way to test that the connection accessed this way is the exact same as
+        // directly from HttpContext
         var remoteAddress = Request.HttpContext.Connection.RemoteIpAddress;
 
         if (session.LastUsedFrom == null)
