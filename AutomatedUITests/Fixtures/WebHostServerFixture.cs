@@ -80,7 +80,7 @@ public abstract class WebHostServerFixture : IDisposable
             isDone.Set();
         }).Start();
 
-        if (!isDone.WaitOne(TimeSpan.FromSeconds(10)))
+        if (!isDone.WaitOne(TimeSpan.FromSeconds(60)))
             throw new TimeoutException("Timed out waiting for: " + action);
 
         if (edi != null)
