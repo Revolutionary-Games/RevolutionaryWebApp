@@ -20,4 +20,6 @@ public class PatronDTO : ClientSideTimedModel
 
     public bool HasForumAccount { get; set; }
     public bool Suspended { get; set; }
+
+    public bool? HasAccountOnDevCenter { get; set; }
 }

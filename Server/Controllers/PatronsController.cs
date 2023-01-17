@@ -8,6 +8,7 @@ using Authorization;
 using BlazorPagination;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
@@ -33,7 +34,7 @@ public class PatronsController : Controller
     [HttpGet]
     public async Task<PagedResult<PatronDTO>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-        [Required] [Range(1, 100)] int pageSize)
+        [Required] [Range(1, 50)] int pageSize, bool includeAccountStatus = false)
     {
         IQueryable<Patron> query;
 
@@ -49,6 +50,22 @@ public class PatronsController : Controller
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
 
-        return objects.ConvertResult(i => i.GetDTO());
+        var converted = objects.ConvertResult(i => i.GetDTO());
+
+        if (includeAccountStatus)
+        {
+            // TODO: Patreon alias handling if that is added
+            var emailsToCheck = converted.Results.Select(p => p.Email).ToHashSet();
+
+            var matched = await database.Users.Where(u => emailsToCheck.Contains(u.Email)).Select(u => u.Email)
+                .ToListAsync();
+
+            foreach (var patronDTO in converted.Results)
+            {
+                patronDTO.HasAccountOnDevCenter = matched.Contains(patronDTO.Email);
+            }
+        }
+
+        return converted;
     }
 }

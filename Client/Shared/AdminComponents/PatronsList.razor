@@ -41,7 +41,19 @@ else
                         <td>@item.PledgeAmountCents</td>
                         <td>@item.EmailAlias</td>
                         <td>@item.HasForumAccount</td>
-                        <td>-</td>
+                        <td>
+                            @if (item.HasAccountOnDevCenter != null)
+                            {
+                                @if (item.HasAccountOnDevCenter.Value)
+                                {
+                                    <span class="badge badge-success">yes</span>
+                                }
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </td>
                     </tr>
                 }
             }
@@ -86,6 +98,15 @@ else
     {
         await base.DisposeAsync();
         await NotificationHandler.Unregister(this);
+    }
+
+    protected override Dictionary<string, string> CreatePageRequestParams()
+    {
+        var result = base.CreatePageRequestParams();
+
+        result["includeAccountStatus"] = "true";
+
+        return result;
     }
 
     protected override Task<PagedResult<PatronDTO>?> StartQuery(Dictionary<string, string> requestParams)
