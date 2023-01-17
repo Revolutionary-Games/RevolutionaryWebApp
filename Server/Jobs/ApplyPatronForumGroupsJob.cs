@@ -20,7 +20,7 @@ public class ApplyPatronForumGroupsJob : PatreonForumGroupBaseJob, IJob
     private readonly ILogger<ApplyPatronForumGroupsJob> logger;
 
     public ApplyPatronForumGroupsJob(ILogger<ApplyPatronForumGroupsJob> logger, ApplicationDbContext database,
-        CommunityForumAPI discourseAPI) : base(database, discourseAPI)
+        ICommunityForumAPI discourseAPI) : base(database, discourseAPI)
     {
         this.logger = logger;
     }

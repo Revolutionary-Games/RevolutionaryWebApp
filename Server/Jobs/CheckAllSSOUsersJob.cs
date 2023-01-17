@@ -1,5 +1,7 @@
 namespace ThriveDevCenter.Server.Jobs;
 
+using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
@@ -17,12 +19,11 @@ public class CheckAllSSOUsersJob : IJob
 {
     private readonly ILogger<CheckAllSSOUsersJob> logger;
     private readonly ApplicationDbContext database;
-    private readonly CommunityForumAPI communityAPI;
-    private readonly DevForumAPI devForumAPI;
+    private readonly ICommunityForumAPI communityAPI;
+    private readonly IDevForumAPI devForumAPI;
 
     public CheckAllSSOUsersJob(ILogger<CheckAllSSOUsersJob> logger, ApplicationDbContext database,
-        CommunityForumAPI communityAPI,
-        DevForumAPI devForumAPI)
+        ICommunityForumAPI communityAPI, IDevForumAPI devForumAPI)
     {
         this.logger = logger;
         this.database = database;
@@ -34,12 +35,20 @@ public class CheckAllSSOUsersJob : IJob
     {
         bool requiresSave = false;
 
+        // As users are async enumerated, we need to fetch the settings first
+        var patreonSettings = await database.PatreonSettings.OrderBy(s => s.Id).FirstOrDefaultAsync(cancellationToken);
+
+        var patreonSettingsRetriever = new Lazy<Task<PatreonSettings>>(() =>
+            Task.FromResult(patreonSettings ?? throw new InvalidOperationException("PatreonSettings not available")));
+
         // TODO: even though batching (Buffer) could be used here, won't the database context keep things in memory?
         foreach (var user in await database.Users.ToListAsync(cancellationToken))
         {
             if (await SSOSuspendHandler.CheckUser(user, database, communityAPI, devForumAPI, logger,
-                    cancellationToken))
+                    patreonSettingsRetriever, cancellationToken))
+            {
                 requiresSave = true;
+            }
         }
 
         if (requiresSave)

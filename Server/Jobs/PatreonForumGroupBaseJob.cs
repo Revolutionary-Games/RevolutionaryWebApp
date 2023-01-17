@@ -14,7 +14,7 @@ using Utilities;
 public abstract class PatreonForumGroupBaseJob
 {
     protected readonly ApplicationDbContext Database;
-    protected readonly CommunityForumAPI DiscourseAPI;
+    protected readonly ICommunityForumAPI DiscourseAPI;
 
     protected readonly List<string> UsernamesToRemoveFromDevBuild = new();
     protected readonly List<string> UsernamesToRemoveFromVIP = new();
@@ -25,7 +25,7 @@ public abstract class PatreonForumGroupBaseJob
     protected DiscourseGroupMembers? devBuildGroupMembers;
     protected DiscourseGroupMembers? vipGroupMembers;
 
-    protected PatreonForumGroupBaseJob(ApplicationDbContext database, CommunityForumAPI discourseAPI)
+    protected PatreonForumGroupBaseJob(ApplicationDbContext database, ICommunityForumAPI discourseAPI)
     {
         Database = database;
         DiscourseAPI = discourseAPI;

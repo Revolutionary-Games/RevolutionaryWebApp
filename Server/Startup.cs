@@ -220,8 +220,8 @@ public class Startup
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<LfsRemoteStorage>();
         services.AddScoped<GeneralRemoteStorage>();
-        services.AddScoped<DevForumAPI>();
-        services.AddScoped<CommunityForumAPI>();
+        services.AddScoped<IDevForumAPI, DevForumAPI>();
+        services.AddScoped<ICommunityForumAPI, CommunityForumAPI>();
         services.AddScoped<RemoteServerHandler>();
         services.AddScoped<IEC2Controller, EC2Controller>();
         services.AddScoped<IControlledServerSSHAccess, ControlledServerSSHAccess>();

@@ -67,6 +67,10 @@ public class RefreshPatronsJob : IJob
 
             logger.LogInformation("Deleted unmarked Patron {Id}", toDelete.Id);
             database.Patrons.Remove(toDelete);
+
+            // The webhook notification should already queue an SSO suspend check, this whole refresh thing is just
+            // a safety measure in case we miss a webhook, so it is not absolutely necessary for us to queue an SSO
+            // check for the email here
         }
 
         await database.SaveChangesAsync(cancellationToken);

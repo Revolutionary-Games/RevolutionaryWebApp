@@ -1,5 +1,7 @@
 namespace ThriveDevCenter.Server.Jobs;
 
+using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
@@ -14,11 +16,11 @@ public class CheckSSOUserSuspensionJob
 {
     private readonly ILogger<CheckSSOUserSuspensionJob> logger;
     private readonly ApplicationDbContext database;
-    private readonly CommunityForumAPI communityAPI;
-    private readonly DevForumAPI devForumAPI;
+    private readonly ICommunityForumAPI communityAPI;
+    private readonly IDevForumAPI devForumAPI;
 
     public CheckSSOUserSuspensionJob(ILogger<CheckSSOUserSuspensionJob> logger, ApplicationDbContext database,
-        CommunityForumAPI communityAPI, DevForumAPI devForumAPI)
+        ICommunityForumAPI communityAPI, IDevForumAPI devForumAPI)
     {
         this.logger = logger;
         this.database = database;
@@ -36,7 +38,13 @@ public class CheckSSOUserSuspensionJob
             return;
         }
 
-        if (await SSOSuspendHandler.CheckUser(user, database, communityAPI, devForumAPI, logger, cancellationToken))
+        var patreonSettingsRetriever = new Lazy<Task<PatreonSettings>>(() =>
+            database.PatreonSettings.OrderBy(s => s.Id).FirstAsync(cancellationToken));
+
+        if (await SSOSuspendHandler.CheckUser(user, database, communityAPI, devForumAPI, logger,
+                patreonSettingsRetriever, cancellationToken))
+        {
             await database.SaveChangesAsync(cancellationToken);
+        }
     }
 }

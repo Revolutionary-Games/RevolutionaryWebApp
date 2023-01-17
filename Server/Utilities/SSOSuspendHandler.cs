@@ -17,8 +17,8 @@ public static class SSOSuspendHandler
     ///   Checks (and applies) suspension for an use using SSO
     /// </summary>
     public static async Task<bool> CheckUser(User user, ApplicationDbContext database,
-        CommunityForumAPI communityAPI, DevForumAPI devForumAPI, ILogger logger,
-        CancellationToken cancellationToken)
+        ICommunityForumAPI communityAPI, IDevForumAPI devForumAPI, ILogger logger,
+        Lazy<Task<PatreonSettings>> patreonSettings, CancellationToken cancellationToken)
     {
         if (user.Local)
             return false;
@@ -44,7 +44,16 @@ public static class SSOSuspendHandler
                 }
                 else
                 {
-                    shouldBeSuspended = false;
+                    var settings = await patreonSettings.Value;
+
+                    if (!settings.IsEntitledToDevBuilds(patron))
+                    {
+                        reason = "Insufficient Patreon reward tier";
+                    }
+                    else
+                    {
+                        shouldBeSuspended = false;
+                    }
                 }
 
                 break;
