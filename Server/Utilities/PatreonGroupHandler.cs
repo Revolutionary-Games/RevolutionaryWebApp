@@ -123,6 +123,11 @@ public static class PatreonGroupHandler
         }
         else if (patron.Suspended == true)
         {
+            await database.LogEntries.AddAsync(new LogEntry
+            {
+                Message = $"A patron ({patron.Id}) is no longer declined on Patreon's side",
+            });
+
             patron.Suspended = false;
             reapplySuspension = true;
 
@@ -133,7 +138,7 @@ public static class PatreonGroupHandler
         {
             // Need to wait for this job as the changes aren't saved immediately
             jobClient.Schedule<CheckSSOUserSuspensionJob>(x => x.Execute(patron.Email, CancellationToken.None),
-                TimeSpan.FromSeconds(30));
+                TimeSpan.FromSeconds(60));
         }
 
         return changes;
