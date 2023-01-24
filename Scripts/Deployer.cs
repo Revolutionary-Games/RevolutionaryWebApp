@@ -13,7 +13,7 @@ using SharedBase.Utilities;
 
 public class Deployer
 {
-    private const string NET_VERSION = "net6.0";
+    private const string NET_VERSION = "net7.0";
 
     private const string MIGRATION_FILE = "migration.sql";
     private const string BLAZOR_BOOT_FILE = "blazor.boot.json";

@@ -108,7 +108,7 @@ git submodule update --init --recursive
 ```
 
 The server computer needs to the following packages
-aspnetcore-runtime-6.0 (at the time of writing), nginx, and git
+aspnetcore-runtime-7.0 (at the time of writing), nginx, and git
 installed. Or you can alternatively have a different proxy
 server than nginx. Additionally of course the database and redis can be ran on
 the same server.
@@ -233,7 +233,7 @@ dotnet user-secrets set IntegrationTestConnection 'User ID=thrivedevcenter_test;
 
 After building the solutions, you need to install the needed playwrigth browsers using:
 ```
-pwsh AutomatedUITests/bin/Debug/net6.0/playwright.ps1 install
+pwsh AutomatedUITests/bin/Debug/net7.0/playwright.ps1 install
 ```
 
 ### Running the tests
@@ -292,7 +292,7 @@ First prepare the server to deploy with all the software.
 
 For Rocky linux / Fedora you can install things with:
 ```sh
-dnf install aspnetcore-runtime-6.0 git postgresql-server redis nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget fontconfig-devel
+dnf install aspnetcore-runtime-7.0 git postgresql-server redis nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget fontconfig-devel
 ```
 Note that some packages are optional but better for a full production setup.
 
