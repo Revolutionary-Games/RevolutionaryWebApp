@@ -35,7 +35,7 @@ public sealed class TerminateLongStoppedServersJobTests : IDisposable
         ec2Mock.Setup(ec2 => ec2.TerminateInstance(Server1InstanceId)).Returns(Task.CompletedTask).Verifiable();
         ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
 
-        var config = new ConfigurationBuilder().AddInMemoryCollection(new KeyValuePair<string, string>[]
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
             new("CI:TerminateStoppedServersDelayHours", "24"),
         }).Build();

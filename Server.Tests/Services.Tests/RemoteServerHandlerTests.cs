@@ -26,7 +26,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
     private readonly XunitLogger<RemoteServerHandler> logger;
 
     private readonly IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(
-        new List<KeyValuePair<string, string>>
+        new List<KeyValuePair<string, string?>>
         {
             new("CI:ServerIdleTimeBeforeStop", "60"),
             new("CI:MaximumConcurrentServers", "3"),

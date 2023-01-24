@@ -172,6 +172,7 @@ public sealed class RegistrationControllerTests : IDisposable
         Assert.Equal("test@example.com", user.Email);
         Assert.Equal("test", user.UserName);
         Assert.NotEqual("password12345", user.PasswordHash);
+        Assert.NotNull(user.PasswordHash);
         Assert.True(Passwords.CheckPassword(user.PasswordHash, "password12345"));
 
         notificationsMock.Verify();

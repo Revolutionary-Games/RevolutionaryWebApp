@@ -504,7 +504,7 @@ public sealed class LoginControllerTests : IDisposable
 
     private static IConfigurationRoot CreateConfiguration(bool allowLocalLogin, bool patreonLogin)
     {
-        var builder = new ConfigurationBuilder().AddInMemoryCollection(new KeyValuePair<string, string>[]
+        var builder = new ConfigurationBuilder().AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
             new("BaseUrl", "http://localhost:5000/"),
             new("Login:Local:Enabled", allowLocalLogin.ToString()),
@@ -512,7 +512,7 @@ public sealed class LoginControllerTests : IDisposable
 
         if (patreonLogin)
         {
-            builder.AddInMemoryCollection(new KeyValuePair<string, string>[]
+            builder.AddInMemoryCollection(new KeyValuePair<string, string?>[]
             {
                 new("Login:Patreon:ClientId", PatreonClientId),
                 new("Login:Patreon:ClientSecret", PatreonClientSecret),

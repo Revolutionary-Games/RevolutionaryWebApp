@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Server.Tests.Fixtures;
 
+using System;
 using Microsoft.Extensions.Configuration;
 
 public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
@@ -33,6 +34,7 @@ public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
         var configuration = new ConfigurationBuilder()
             .AddUserSecrets<RealUnitTestDatabaseFixture>().Build();
 
-        return configuration["UnitTestConnection"];
+        return configuration["UnitTestConnection"] ??
+            throw new Exception("Failed to get unit test DB connection string");
     }
 }

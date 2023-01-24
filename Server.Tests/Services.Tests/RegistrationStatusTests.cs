@@ -24,8 +24,8 @@ public sealed class RegistrationStatusTests : IDisposable
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
         {
-            new KeyValuePair<string, string>("Registration:Enabled", "false"),
-            new KeyValuePair<string, string>("Registration:RegistrationCode", Code),
+            new KeyValuePair<string, string?>("Registration:Enabled", "false"),
+            new KeyValuePair<string, string?>("Registration:RegistrationCode", Code),
         }).Build();
 
         var service = new RegistrationStatus(configuration, logger);
@@ -38,7 +38,7 @@ public sealed class RegistrationStatusTests : IDisposable
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
         {
-            new KeyValuePair<string, string>("Registration:Enabled", "true"),
+            new KeyValuePair<string, string?>("Registration:Enabled", "true"),
         }).Build();
 
         var service = new RegistrationStatus(configuration, logger);
@@ -51,8 +51,8 @@ public sealed class RegistrationStatusTests : IDisposable
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
         {
-            new KeyValuePair<string, string>("Registration:Enabled", "true"),
-            new KeyValuePair<string, string>("Registration:RegistrationCode", string.Empty),
+            new KeyValuePair<string, string?>("Registration:Enabled", "true"),
+            new KeyValuePair<string, string?>("Registration:RegistrationCode", string.Empty),
         }).Build();
 
         var service = new RegistrationStatus(configuration, logger);
@@ -65,8 +65,8 @@ public sealed class RegistrationStatusTests : IDisposable
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
         {
-            new KeyValuePair<string, string>("Registration:Enabled", "true"),
-            new KeyValuePair<string, string>("Registration:RegistrationCode", Code),
+            new KeyValuePair<string, string?>("Registration:Enabled", "true"),
+            new KeyValuePair<string, string?>("Registration:RegistrationCode", Code),
         }).Build();
 
         var service = new RegistrationStatus(configuration, logger);
@@ -79,8 +79,8 @@ public sealed class RegistrationStatusTests : IDisposable
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
         {
-            new KeyValuePair<string, string>("Registration:Enabled", "True"),
-            new KeyValuePair<string, string>("Registration:RegistrationCode", Code),
+            new KeyValuePair<string, string?>("Registration:Enabled", "True"),
+            new KeyValuePair<string, string?>("Registration:RegistrationCode", Code),
         }).Build();
 
         var service = new RegistrationStatus(configuration, logger);
@@ -93,8 +93,8 @@ public sealed class RegistrationStatusTests : IDisposable
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new[]
         {
-            new KeyValuePair<string, string>("Registration:Enabled", "true"),
-            new KeyValuePair<string, string>("Registration:RegistrationCode", Code),
+            new KeyValuePair<string, string?>("Registration:Enabled", "true"),
+            new KeyValuePair<string, string?>("Registration:RegistrationCode", Code),
         }).Build();
 
         var service = new RegistrationStatus(configuration, logger);

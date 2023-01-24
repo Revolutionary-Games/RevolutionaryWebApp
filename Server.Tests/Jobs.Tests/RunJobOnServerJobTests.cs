@@ -71,7 +71,7 @@ public sealed class RunJobOnServerJobTests : IDisposable
         var jobClientMock = new Mock<IBackgroundJobClient>();
 
         var job = new RunJobOnServerJob(logger, new ConfigurationBuilder().AddInMemoryCollection(
-                new KeyValuePair<string, string>[]
+                new KeyValuePair<string, string?>[]
                 {
                     new("BaseUrl", "http://localhost:5000/"),
                     new("CI:ServerCleanUpDiskUsePercentage", "80"),
@@ -154,7 +154,7 @@ public sealed class RunJobOnServerJobTests : IDisposable
         var jobClientMock = new Mock<IBackgroundJobClient>();
 
         var job = new RunJobOnServerJob(logger, new ConfigurationBuilder().AddInMemoryCollection(
-                new KeyValuePair<string, string>[]
+                new KeyValuePair<string, string?>[]
                 {
                     new("BaseUrl", "http://localhost:5000/"),
                     new("CI:ServerCleanUpDiskUsePercentage", "80"),
