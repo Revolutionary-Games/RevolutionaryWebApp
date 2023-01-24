@@ -10,29 +10,29 @@
     <PackageReference Include="AngleSharp" Version="1.0.1" />
     <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
     <PackageReference Include="AspNetCoreRateLimit.Redis" Version="2.0.0" />
-    <PackageReference Include="AWSSDK.EC2" Version="3.7.115" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.101.54" />
+    <PackageReference Include="AWSSDK.EC2" Version="3.7.117.1" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.101.59" />
     <PackageReference Include="Discord.Net" Version="3.9.0" />
-    <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
+    <PackageReference Include="EFCore.NamingConventions" Version="7.0.2" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.32" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.9.9" />
     <PackageReference Include="MailKit" Version="3.4.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="6.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="6.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="6.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="6.0.10" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.10" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.10">
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="7.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="7.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="7.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="7.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="7.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.10">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="6.0.10" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.1" />
     <PackageReference Include="RecursiveDataAnnotationsValidation" Version="2.0.0" />
     <PackageReference Include="SHA3.Net" Version="2.0.0" />
     <PackageReference Include="SharpZipLib" Version="1.4.1" />
@@ -43,10 +43,10 @@
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.3" />
     <PackageReference Include="SmartFormat.NET" Version="3.2.0" />
     <PackageReference Include="SSH.NET" Version="2020.0.2" />
-    <PackageReference Include="StackExchange.Redis" Version="2.6.80" />
+    <PackageReference Include="StackExchange.Redis" Version="2.6.90" />
     <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.28" />
     <PackageReference Include="Svg.Skia" Version="0.5.18" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.25.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.26.0" />
     <PackageReference Include="System.Interactive.Async" Version="6.0.1" />
     <PackageReference Include="System.Security.Principal" Version="4.3.0" />
     <PackageReference Include="YamlDotNet" Version="12.3.1" />
