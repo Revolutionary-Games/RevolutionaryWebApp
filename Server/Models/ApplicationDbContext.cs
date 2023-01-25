@@ -257,8 +257,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.LfsToken).IsRequired(false);
             entity.Property(e => e.LauncherLinkCode).IsRequired(false);
 
-            // TODO: add the non-null constraint later on once old rails data is imported
-            entity.Property(e => e.UserName).HasColumnName("name");
+            entity.Property(e => e.UserName).HasColumnName("name").IsRequired().HasDefaultValue("UNKNOWN");
 
             entity.Property(e => e.Suspended).HasDefaultValue(false);
             entity.Property(e => e.Restricted).HasDefaultValue(false);
