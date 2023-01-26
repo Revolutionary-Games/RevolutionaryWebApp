@@ -87,6 +87,10 @@ public static class BlazorBootFileHandler
 
         foreach (var property in jsonObject.ToList())
         {
+            // Skip descending into unwanted data
+            if (property.Key is "runtime" or "runtimeAssets")
+                continue;
+
             switch (property.Value)
             {
                 case JsonObject childObject:
