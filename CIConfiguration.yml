@@ -53,6 +53,9 @@ jobs:
       - run:
           name: Jetbrains inspectcode
           command: dotnet run --project Scripts -- check inspectcode
+      # - run:
+      #     name: Jetbrains format
+      #     command: dotnet run --project Scripts -- check cleanupcode
       - run:
           when: always
           name: Check cleanup changes
