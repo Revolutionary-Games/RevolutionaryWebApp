@@ -31,6 +31,9 @@ public class CombinedFeed : FeedBase, IUpdateNotifications
     [UpdateFromClientRequest]
     public TimeSpan CacheTime { get; set; }
 
+    [Timestamp]
+    public uint Version { get; set; }
+
     public ICollection<Feed> CombinedFromFeeds { get; set; } = new HashSet<Feed>();
 
     public void ProcessContent(IEnumerable<Feed> dataSources)

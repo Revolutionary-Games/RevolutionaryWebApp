@@ -317,8 +317,6 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(nameof(CiBuild.CiProjectId), nameof(CiBuild.CiBuildId));
 
-            entity.UseXminAsConcurrencyToken();
-
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
 
             entity.HasMany(p => p.CiJobs).WithOne(d => d.Build)
@@ -353,17 +351,10 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.StartedAt).HasDefaultValueSql("timezone('utc', now())");
         });
 
-        modelBuilder.Entity<ControlledServer>(entity =>
-        {
-            entity.UseXminAsConcurrencyToken();
-
-            entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
-        });
+        modelBuilder.Entity<ControlledServer>(entity => { entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1); });
 
         modelBuilder.Entity<ExternalServer>(entity =>
         {
-            entity.UseXminAsConcurrencyToken();
-
             entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
             entity.Property(e => e.Priority).HasDefaultValue(0);
 
@@ -375,8 +366,6 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Cla>(entity =>
         {
-            entity.UseXminAsConcurrencyToken();
-
             entity.HasMany(p => p.Signatures).WithOne(d => d.Cla).OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -388,8 +377,6 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Meeting>(entity =>
         {
-            entity.UseXminAsConcurrencyToken();
-
             entity.HasOne(d => d.Owner)
                 .WithMany(p => p.OwnerOfMeetings).OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(d => d.Secretary)
@@ -402,8 +389,6 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<MeetingMember>(entity =>
         {
-            entity.UseXminAsConcurrencyToken();
-
             entity.HasKey(nameof(MeetingMember.MeetingId), nameof(MeetingMember.UserId));
             entity.HasOne(d => d.User)
                 .WithMany(p => p.MemberOfMeetings).OnDelete(DeleteBehavior.Cascade);
@@ -411,8 +396,6 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<MeetingPoll>(entity =>
         {
-            entity.UseXminAsConcurrencyToken();
-
             entity.HasKey(nameof(MeetingPoll.MeetingId), nameof(MeetingPoll.PollId));
 
             entity.HasOne(p => p.Meeting)
@@ -469,8 +452,6 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<CrashReport>(entity =>
         {
-            entity.UseXminAsConcurrencyToken();
-
             entity.HasOne(d => d.DescriptionLastEditedBy).WithMany(p => p.LastEditedCrashReportDescriptions)
                 .OnDelete(DeleteBehavior.SetNull);
         });
@@ -488,7 +469,6 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Feed>(entity =>
         {
-            entity.UseXminAsConcurrencyToken();
             entity.HasMany(p => p.SeenFeedItems).WithOne(d => d.Feed).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(p => p.DiscordWebhooks).WithOne(d => d.Feed).OnDelete(DeleteBehavior.Cascade);
         });
@@ -505,7 +485,6 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<CombinedFeed>(entity =>
         {
-            entity.UseXminAsConcurrencyToken();
             entity.HasMany(d => d.CombinedFromFeeds).WithMany(p => p.CombinedInto);
         });
 

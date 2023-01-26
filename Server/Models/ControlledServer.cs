@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Models;
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -20,6 +21,9 @@ public class ControlledServer : BaseServer, IUpdateNotifications
     public long CreatedVolumeSize { get; set; }
 
     public string? InstanceId { get; set; }
+
+    [Timestamp]
+    public uint Version { get; set; }
 
     [NotMapped]
     public override bool IsExternal => false;

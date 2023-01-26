@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Server.Models;
 
 using System;
+using System.ComponentModel.DataAnnotations;
 using Shared;
 using Shared.Models;
 
@@ -15,6 +16,9 @@ public class MeetingMember
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 
     public bool CanReviewMinutes { get; set; }
+
+    [Timestamp]
+    public uint Version { get; set; }
 
     public Meeting? Meeting { get; set; }
     public User? User { get; set; }

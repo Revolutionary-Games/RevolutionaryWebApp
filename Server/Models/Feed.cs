@@ -71,6 +71,9 @@ public class Feed : FeedBase, ISoftDeletable, IUpdateNotifications, IDTOCreator<
 
     public int LatestContentHash { get; set; }
 
+    [Timestamp]
+    public uint Version { get; set; }
+
     public ICollection<SeenFeedItem> SeenFeedItems { get; set; } = new HashSet<SeenFeedItem>();
 
     public ICollection<FeedDiscordWebhook> DiscordWebhooks { get; set; } = new HashSet<FeedDiscordWebhook>();

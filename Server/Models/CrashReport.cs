@@ -92,6 +92,9 @@ public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashe
     // to watch reports
     public string? ReporterEmail { get; set; }
 
+    [Timestamp]
+    public uint DbVersion { get; set; }
+
     [NotMapped]
     public string? StoreOrVersion => Store ?? Version;
 

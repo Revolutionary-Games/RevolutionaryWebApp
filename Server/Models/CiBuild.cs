@@ -68,6 +68,9 @@ public class CiBuild : IUpdateNotifications
     /// </summary>
     public string? Commits { get; set; }
 
+    [Timestamp]
+    public uint Version { get; set; }
+
     [NotMapped]
     public List<GithubCommit>? ParsedCommits
     {

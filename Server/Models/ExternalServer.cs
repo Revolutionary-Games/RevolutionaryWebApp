@@ -17,6 +17,9 @@ public class ExternalServer : BaseServer, IUpdateNotifications
 
     public int Priority { get; set; }
 
+    [Timestamp]
+    public uint Version { get; set; }
+
     [NotMapped]
     public override bool IsExternal => true;
 

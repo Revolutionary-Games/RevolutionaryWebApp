@@ -60,6 +60,9 @@ public class MeetingPoll : IUpdateNotifications
 
     public User? ManuallyClosedBy { get; set; }
 
+    [Timestamp]
+    public uint Version { get; set; }
+
     [NotMapped]
     public bool Open => ClosedAt == null;
 

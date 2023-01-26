@@ -49,6 +49,9 @@ public class Meeting : UpdateableModel, IUpdateNotifications
     public long? SecretaryId { get; set; }
     public User? Secretary { get; set; }
 
+    [Timestamp]
+    public uint Version { get; set; }
+
     public ICollection<MeetingMember> MeetingMembers { get; set; } = new HashSet<MeetingMember>();
     public ICollection<MeetingPoll> MeetingPolls { get; set; } = new HashSet<MeetingPoll>();
     public ICollection<MeetingPollVote> MeetingPollVotes { get; set; } = new HashSet<MeetingPollVote>();

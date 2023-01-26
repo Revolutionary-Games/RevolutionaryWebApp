@@ -23,6 +23,9 @@ public class Cla : BaseModel, IUpdateNotifications
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    [Timestamp]
+    public uint Version { get; set; }
+
     public ICollection<ClaSignature> Signatures { get; set; } = new HashSet<ClaSignature>();
 
     public ICollection<InProgressClaSignature> InProgressSignatures { get; set; } =

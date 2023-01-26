@@ -396,7 +396,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("status");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -694,7 +694,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("raw_markdown");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -830,7 +830,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -925,15 +925,15 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasDefaultValue(-1)
                         .HasColumnName("used_disk_space");
 
-                    b.Property<bool>("WantsMaintenance")
-                        .HasColumnType("boolean")
-                        .HasColumnName("wants_maintenance");
-
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
+
+                    b.Property<bool>("WantsMaintenance")
+                        .HasColumnType("boolean")
+                        .HasColumnName("wants_maintenance");
 
                     b.HasKey("Id")
                         .HasName("pk_controlled_servers");
@@ -957,6 +957,12 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<uint>("DbVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<Guid>("DeleteKey")
                         .HasColumnType("uuid")
@@ -1041,12 +1047,6 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Property<string>("WholeCrashDump")
                         .HasColumnType("text")
                         .HasColumnName("whole_crash_dump");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
 
                     b.HasKey("Id")
                         .HasName("pk_crash_reports");
@@ -1368,15 +1368,15 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasDefaultValue(-1)
                         .HasColumnName("used_disk_space");
 
-                    b.Property<bool>("WantsMaintenance")
-                        .HasColumnType("boolean")
-                        .HasColumnName("wants_maintenance");
-
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
+
+                    b.Property<bool>("WantsMaintenance")
+                        .HasColumnType("boolean")
+                        .HasColumnName("wants_maintenance");
 
                     b.HasKey("Id")
                         .HasName("pk_external_servers");
@@ -1463,7 +1463,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("url");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -2322,7 +2322,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -2368,7 +2368,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("joined_at");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -2431,7 +2431,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("title");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
