@@ -40,8 +40,8 @@ public class OAuthReturnController : SSOLoginController
         this.githubLog = githubLog;
         this.claExemptions = claExemptions;
 
-        githubClientId = configuration["Login:Github:ClientId"];
-        githubClientSecret = configuration["Login:Github:ClientSecret"];
+        githubClientId = configuration["Login:Github:ClientId"] ?? string.Empty;
+        githubClientSecret = configuration["Login:Github:ClientSecret"] ?? string.Empty;
 
         if (string.IsNullOrEmpty(githubClientId) || string.IsNullOrEmpty(githubClientSecret))
         {

@@ -147,6 +147,7 @@ public sealed class LoginControllerTests : IDisposable
         {
             Local = true,
             Email = "test+login@example.com",
+            UserName = "test",
             Suspended = false,
             PasswordHash = Passwords.CreateSaltedPasswordHash(password, new byte[] { 55, 12, 55, 50 }),
         };
@@ -212,6 +213,7 @@ public sealed class LoginControllerTests : IDisposable
         {
             Local = true,
             Email = "test+login@example.com",
+            UserName = "test",
             Suspended = true,
             PasswordHash = Passwords.CreateSaltedPasswordHash(password, new byte[] { 55, 12, 55, 50 }),
         };

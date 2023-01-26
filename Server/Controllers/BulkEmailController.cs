@@ -80,7 +80,7 @@ public class BulkEmailController : Controller
         switch (request.ReplyMode)
         {
             case BulkEmailReplyToMode.SendingUser:
-                replyTo = $"{user.NameOrEmail} <{user.Email}>";
+                replyTo = $"{user.Name} <{user.Email}>";
                 break;
             case BulkEmailReplyToMode.DevCenterSendingAddress:
                 // We don't set a reply to so just the plain sender address is who gets the replies
@@ -145,10 +145,10 @@ public class BulkEmailController : Controller
         IEnumerable<string> recipients;
 
         Lazy<Task<List<string>>> devCenterUsers =
-            new(() => database.Users.Select(u => u.Email).ToListAsync());
+            new(() => database.Users.Select(u => u.Email!).ToListAsync());
 
         Lazy<Task<List<string>>> devCenterDevelopers =
-            new(() => database.Users.Where(u => u.Developer == true).Select(u => u.Email)
+            new(() => database.Users.Where(u => u.Developer == true).Select(u => u.Email!)
                 .ToListAsync());
 
         Lazy<Task<List<string>>> associationMembers =

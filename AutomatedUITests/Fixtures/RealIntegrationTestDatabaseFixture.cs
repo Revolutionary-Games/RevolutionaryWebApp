@@ -45,7 +45,8 @@ public sealed class RealIntegrationTestDatabaseFixture
         var configuration = new ConfigurationBuilder()
             .AddUserSecrets<RealIntegrationTestDatabaseFixture>().Build();
 
-        return configuration["IntegrationTestConnection"];
+        return configuration["IntegrationTestConnection"] ??
+            throw new InvalidOperationException("Missing integration test database connection configuration");
     }
 
     public void Dispose()

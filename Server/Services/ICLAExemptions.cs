@@ -17,7 +17,7 @@ public class CLAExemptions : ICLAExemptions
 
     public CLAExemptions(IConfiguration configuration)
     {
-        exemptions = configuration.GetSection("CLA:ExemptGithubUsers").Get<List<string>>();
+        exemptions = configuration.GetSection("CLA:ExemptGithubUsers").Get<List<string>>() ?? new List<string>();
     }
 
     public bool IsExempt(string username)

@@ -22,7 +22,7 @@ public class ControlledServerSSHAccess : BaseSSHAccess, IControlledServerSSHAcce
     public ControlledServerSSHAccess(IConfiguration configuration)
     {
         var keyFile = configuration["CI:SSHKeyFile"];
-        username = configuration["CI:SSHUsername"];
+        username = configuration["CI:SSHUsername"] ?? string.Empty;
 
         if (string.IsNullOrEmpty(keyFile) || string.IsNullOrEmpty(username))
         {

@@ -28,10 +28,11 @@ public class DiscourseAPI : IDiscourseAPI
     private readonly string apiUsername;
     private readonly HttpClient httpClient;
 
-    public DiscourseAPI(string apiBaseUrl, string key, IHttpClientFactory clientFactory, string apiUsername = "system")
+    public DiscourseAPI(string? apiBaseUrl, string? key, IHttpClientFactory clientFactory,
+        string apiUsername = "system")
     {
         this.apiBaseUrl = string.IsNullOrEmpty(apiBaseUrl) ? null : new Uri(apiBaseUrl);
-        this.key = key;
+        this.key = key ?? string.Empty;
         this.apiUsername = apiUsername;
 
         httpClient = clientFactory.CreateClient("discourse");

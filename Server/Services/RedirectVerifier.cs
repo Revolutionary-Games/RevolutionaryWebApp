@@ -13,7 +13,7 @@ public class RedirectVerifier
 
     public RedirectVerifier(IConfiguration configuration)
     {
-        baseUrl = configuration["BaseUrl"];
+        baseUrl = configuration["BaseUrl"] ?? string.Empty;
 
         if (string.IsNullOrEmpty(baseUrl))
             throw new Exception("Base URL is not configured");

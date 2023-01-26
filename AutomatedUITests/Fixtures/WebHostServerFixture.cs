@@ -108,7 +108,7 @@ public class WebHostServerFixture<TStartup> : WebHostServerFixture
         // Looks like for some reason we need to manually build all the appsettings loading here
         var configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json")
             .AddJsonFile("appsettings.Testing.json")
-            .AddInMemoryCollection(new List<KeyValuePair<string, string>>
+            .AddInMemoryCollection(new List<KeyValuePair<string, string?>>
             {
                 new("ConnectionStrings:WebApiConnection", connection),
             })
@@ -125,7 +125,7 @@ public class WebHostServerFixture<TStartup> : WebHostServerFixture
                 // var applicationDirectory = Path.GetDirectoryName(applicationPath);
                 var name = Path.ChangeExtension(applicationPath, ".staticwebassets.runtime.json");
 
-                var inMemoryConfiguration = new Dictionary<string, string>
+                var inMemoryConfiguration = new Dictionary<string, string?>
                 {
                     [WebHostDefaults.StaticWebAssetsKey] = name,
                 };

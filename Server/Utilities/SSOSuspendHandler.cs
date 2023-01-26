@@ -68,7 +68,7 @@ public static class SSOSuspendHandler
                     return false;
                 }
 
-                var discourseUser = await communityAPI.FindUserByEmail(user.Email, cancellationToken);
+                var discourseUser = await communityAPI.FindUserByEmail(user.Email!, cancellationToken);
 
                 if (discourseUser != null)
                 {
@@ -111,7 +111,7 @@ public static class SSOSuspendHandler
                     return false;
                 }
 
-                var discourseUser = await devForumAPI.FindUserByEmail(user.Email, cancellationToken);
+                var discourseUser = await devForumAPI.FindUserByEmail(user.Email!, cancellationToken);
 
                 if (discourseUser != null)
                     shouldBeSuspended = false;

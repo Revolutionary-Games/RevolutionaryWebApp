@@ -22,11 +22,11 @@ public class ExternalServerSSHAccess : BaseSSHAccess, IExternalServerSSHAccess
 
     public ExternalServerSSHAccess(IConfiguration configuration)
     {
-        basePath = configuration["CI:ExternalSSHBasePath"];
-        username = configuration["CI:ExternalSSHUsername"];
+        basePath = configuration["CI:ExternalSSHBasePath"] ?? string.Empty;
+        username = configuration["CI:ExternalSSHUsername"] ?? string.Empty;
 
         if (string.IsNullOrEmpty(username))
-            username = configuration["CI:SSHUsername"];
+            username = configuration["CI:SSHUsername"] ?? string.Empty;
 
         if (string.IsNullOrEmpty(basePath) || string.IsNullOrEmpty(username))
         {

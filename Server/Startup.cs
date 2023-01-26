@@ -53,7 +53,8 @@ public class Startup
 
     public IConfiguration Configuration { get; }
 
-    private string SharedStateRedisConnectionString => Configuration.GetConnectionString("RedisSharedState");
+    private string SharedStateRedisConnectionString =>
+        Configuration.GetConnectionString("RedisSharedState") ?? string.Empty;
 
     // This method gets called by the runtime. Use this method to add services to the container.
     // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -411,9 +412,14 @@ public class Startup
         app.ApplicationServices.GetRequiredService<RedirectVerifier>();
     }
 
-    private static void AddJobHelper<T>(string schedule)
+    private static void AddJobHelper<T>(string? schedule)
         where T : class, IJob
     {
+        // SKip adding the job if the schedule is unset for it (note that this probably leaves the old schedule
+        // hanging around if it was configured at least once)
+        if (string.IsNullOrEmpty(schedule))
+            return;
+
         // If the server restarts very fast this can get locked in a crashing spiral due to
         // Hangfire.PostgreSql.PostgreSqlDistributedLockException
         // TODO: perhaps we should add a try catch here and just log the errors if there are any?

@@ -56,7 +56,7 @@ public class FeedController : Controller
         var cacheKey = $"feed/{name}";
 
         // As we have dynamic expire times, we can't use the normal response caching here
-        if (cache.Cache.TryGetValue(cacheKey, out object rawCacheEntry) && rawCacheEntry is CacheEntry cacheEntry)
+        if (cache.Cache.TryGetValue(cacheKey, out object? rawCacheEntry) && rawCacheEntry is CacheEntry cacheEntry)
         {
             headers.CacheControl = new CacheControlHeaderValue
             {

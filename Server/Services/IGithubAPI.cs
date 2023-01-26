@@ -40,7 +40,7 @@ public class GithubAPI : IGithubAPI
     private readonly ILogger<GithubAPI> logger;
     private readonly HttpClient? client;
 
-    public GithubAPI(ILogger<GithubAPI> logger, string oauthToken)
+    public GithubAPI(ILogger<GithubAPI> logger, string? oauthToken)
     {
         this.logger = logger;
         if (string.IsNullOrEmpty(oauthToken))

@@ -7,7 +7,7 @@ public static class ConfigurationHelpers
 {
     public static Uri GetBaseUrl(this IConfiguration configuration)
     {
-        return new Uri(configuration["BaseUrl"]);
+        return new Uri(configuration["BaseUrl"] ?? throw new InvalidOperationException("Base url is missing"));
     }
 
     /// <summary>

@@ -34,8 +34,11 @@ public class CheckOverallBuildStatusJob
         this.discordNotifications = discordNotifications;
         this.mailQueue = mailQueue;
 
-        discordNotice = Enum.Parse<BuildReportType>(configuration["CI:StatusReporting:Discord"]);
-        sendEmails = Enum.Parse<GithubEmailReportReceivers>(configuration["CI:StatusReporting:Email"]);
+        discordNotice =
+            Enum.Parse<BuildReportType>(configuration["CI:StatusReporting:Discord"] ??
+                BuildReportType.Never.ToString());
+        sendEmails = Enum.Parse<GithubEmailReportReceivers>(configuration["CI:StatusReporting:Email"] ??
+            GithubEmailReportReceivers.None.ToString());
         baseUrl = configuration.GetBaseUrl();
     }
 

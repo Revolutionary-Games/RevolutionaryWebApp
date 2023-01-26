@@ -26,7 +26,7 @@ public class EmailTokens
     {
         this.logger = logger;
 
-        string secret = configuration.GetValue<string>("Email:TokenSecret");
+        string? secret = configuration.GetValue<string>("Email:TokenSecret");
 
         if (string.IsNullOrEmpty(secret))
             throw new ArgumentException("no email token secret defined");

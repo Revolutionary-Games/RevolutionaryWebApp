@@ -3291,7 +3291,9 @@ namespace ThriveDevCenter.Server.Migrations
 
                     b.Property<string>("UserName")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("text")
+                        .HasDefaultValue("UNKNOWN")
                         .HasColumnName("name");
 
                     b.HasKey("Id")

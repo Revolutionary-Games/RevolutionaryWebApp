@@ -328,7 +328,7 @@ public class DevBuildsController : Controller
         logger.LogInformation("BOTD updated");
 
         // TODO: limit this to a couple per hour?
-        discordNotifications.NotifyAboutNewBOTD(build, user.NameOrEmail);
+        discordNotifications.NotifyAboutNewBOTD(build, user.Name);
 
         return Ok();
     }

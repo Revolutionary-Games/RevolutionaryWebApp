@@ -20,7 +20,7 @@ public abstract class BaseCDNDownload : IBaseCDNDownload
 {
     private readonly string? downloadKey;
 
-    protected BaseCDNDownload(string cdnBaseUrl, string downloadKey)
+    protected BaseCDNDownload(string? cdnBaseUrl, string? downloadKey)
     {
         if (string.IsNullOrEmpty(cdnBaseUrl) || string.IsNullOrEmpty(downloadKey))
         {

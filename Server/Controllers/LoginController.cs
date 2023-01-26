@@ -164,8 +164,11 @@ public class LoginController : SSOLoginController
                 if (!DevForumConfigured)
                     return CreateResponseForDisabledOption();
 
-                return await DoDiscourseLoginRedirect(SsoTypeDevForum, configuration["Login:DevForum:SsoSecret"],
-                    configuration["Login:DevForum:BaseUrl"], data.ReturnUrl);
+                return await DoDiscourseLoginRedirect(SsoTypeDevForum,
+                    configuration["Login:DevForum:SsoSecret"] ??
+                    throw new InvalidOperationException("Missing dev forum sso secret config value"),
+                    configuration["Login:DevForum:BaseUrl"] ??
+                    throw new InvalidOperationException("Missing dev forum base url config value"), data.ReturnUrl);
             }
 
             case SsoTypeCommunityForum:
@@ -174,8 +177,10 @@ public class LoginController : SSOLoginController
                     return CreateResponseForDisabledOption();
 
                 return await DoDiscourseLoginRedirect(SsoTypeCommunityForum,
-                    configuration["Login:CommunityForum:SsoSecret"],
-                    configuration["Login:CommunityForum:BaseUrl"], data.ReturnUrl);
+                    configuration["Login:CommunityForum:SsoSecret"] ??
+                    throw new InvalidOperationException("Missing community sso secret config value"),
+                    configuration["Login:CommunityForum:BaseUrl"] ??
+                    throw new InvalidOperationException("Missing community base url config value"), data.ReturnUrl);
             }
 
             case SsoTypePatreon:
@@ -194,7 +199,8 @@ public class LoginController : SSOLoginController
                 var scopes = "identity identity[email]";
 
                 return Redirect(QueryHelpers.AddQueryString(
-                    configuration["Login:Patreon:BaseUrl"],
+                    configuration["Login:Patreon:BaseUrl"] ??
+                    throw new InvalidOperationException("Missing Patreon base url config value"),
                     new Dictionary<string, string?>
                     {
                         { "response_type", "code" },
@@ -438,11 +444,13 @@ public class LoginController : SSOLoginController
         switch (ssoType)
         {
             case SsoTypeDevForum:
-                secret = configuration["Login:DevForum:SsoSecret"];
+                secret = configuration["Login:DevForum:SsoSecret"] ??
+                    throw new InvalidOperationException("Missing dev forum sso secret config value");
                 developer = true;
                 break;
             case SsoTypeCommunityForum:
-                secret = configuration["Login:CommunityForum:SsoSecret"];
+                secret = configuration["Login:CommunityForum:SsoSecret"] ??
+                    throw new InvalidOperationException("Missing community sso secret config value");
                 developer = false;
                 break;
             default:
@@ -540,8 +548,11 @@ public class LoginController : SSOLoginController
 
         try
         {
-            patreonAPI.Initialize(configuration["Login:Patreon:ClientId"],
-                configuration["Login:Patreon:ClientSecret"]);
+            patreonAPI.Initialize(
+                configuration["Login:Patreon:ClientId"] ??
+                throw new InvalidOperationException("Missing PatreonAPI client id"),
+                configuration["Login:Patreon:ClientSecret"] ??
+                throw new InvalidOperationException("Missing PatreonAPI client secret"));
 
             // We need to fetch the actual user email and details directly from Patreon's API
             var token = await patreonAPI.TurnCodeIntoTokens(code,

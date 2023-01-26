@@ -50,24 +50,34 @@ public sealed class EC2Controller : IEC2Controller
         var accessKeyId = configuration["CI:AWSAccessKey"];
         var secretAccessKey = configuration["CI:AWSSecretKey"];
 
-        imageId = configuration["CI:DefaultAMI"];
-        serverKeyId = configuration["CI:SSHKeyPair"];
+        imageId = configuration["CI:DefaultAMI"] ?? string.Empty;
         instanceType = InstanceType.FindValue(configuration["CI:InstanceType"]);
-        subnet = configuration["CI:AWSSubnet"];
-        securityGroup = configuration["CI:AWSSecurityGroup"];
-        rootFileSystemSnap = configuration["CI:RootFileSystemSnap"];
-        rootFileSystemPath = configuration["CI:RootFileSystemPath"];
         defaultVolumeSize = Convert.ToInt32(configuration["CI:DefaultVolumeSizeGiB"]);
         encryptVolumes = Convert.ToBoolean(configuration["CI:EncryptVolumes"]);
         allowHibernate = Convert.ToBoolean(configuration["CI:UseHibernate"]);
 
-        // TODO: should *all* the variables be checked here
         if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(accessKeyId) ||
             string.IsNullOrEmpty(secretAccessKey) || string.IsNullOrEmpty(imageId))
         {
+            serverKeyId = string.Empty;
+            subnet = string.Empty;
+            securityGroup = string.Empty;
+            rootFileSystemSnap = string.Empty;
+            rootFileSystemPath = string.Empty;
             Configured = false;
             return;
         }
+
+        serverKeyId = configuration["CI:SSHKeyPair"] ??
+            throw new InvalidOperationException("Partially set EC2 config, missing ssh key pair");
+        subnet = configuration["CI:AWSSubnet"] ??
+            throw new InvalidOperationException("Partially set EC2 config, missing subnet");
+        securityGroup = configuration["CI:AWSSecurityGroup"] ??
+            throw new InvalidOperationException("Partially set EC2 config, missing security group");
+        rootFileSystemSnap = configuration["CI:RootFileSystemSnap"] ??
+            throw new InvalidOperationException("Partially set EC2 config, missing root file system snap");
+        rootFileSystemPath = configuration["CI:RootFileSystemPath"] ??
+            throw new InvalidOperationException("Partially set EC2 config, missing root file system path");
 
         if (allowHibernate && !encryptVolumes)
             throw new ArgumentException("Encryption must be enabled if hibernate is enabled");

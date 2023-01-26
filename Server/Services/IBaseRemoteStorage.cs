@@ -57,12 +57,18 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     private readonly AmazonS3Client? s3Client;
     private readonly string bucket;
 
-    protected BaseRemoteStorage(string region, string endpoint, string accessKeyId, string secretAccessKey,
-        string bucketName)
+    protected BaseRemoteStorage(string? region, string? endpoint, string? accessKeyId, string? secretAccessKey,
+        string? bucketName)
     {
-        bucket = bucketName;
+        bucket = bucketName ?? string.Empty;
 
         if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(bucketName))
+        {
+            Configured = false;
+            return;
+        }
+
+        if (accessKeyId == null || secretAccessKey == null)
         {
             Configured = false;
             return;

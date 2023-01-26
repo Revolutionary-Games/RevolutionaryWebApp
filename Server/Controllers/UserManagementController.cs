@@ -88,7 +88,7 @@ public class UserManagementController : Controller
     public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
     {
         var users = await database.Users.Where(u => ids.Contains(u.Id))
-            .Select(u => new Tuple<long, string>(u.Id, u.UserName)).ToListAsync();
+            .Select(u => new Tuple<long, string>(u.Id, u.UserName!)).ToListAsync();
 
         Dictionary<long, string> result = new();
 
@@ -120,8 +120,8 @@ public class UserManagementController : Controller
         // TODO: case insensitive matching
         // TODO: fuzzy matching
         var users = await database.Users
-            .Where(u => u.UserName == null ? u.Email.Contains(partialName) : u.UserName.Contains(partialName))
-            .Select(u => new Tuple<long, string>(u.Id, u.UserName)).ToListAsync();
+            .Where(u => u.UserName == null ? u.Email!.Contains(partialName) : u.UserName.Contains(partialName))
+            .Select(u => new Tuple<long, string>(u.Id, u.UserName!)).ToListAsync();
 
         return users.ToDictionary(t => t.Item1, t => t.Item2);
     }

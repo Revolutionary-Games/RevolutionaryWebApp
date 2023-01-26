@@ -26,7 +26,7 @@ public class LocalTempFileLocks : ILocalTempFileLocks
 
     public LocalTempFileLocks(ILogger<LocalTempFileLocks> logger, IConfiguration configuration)
     {
-        string path = configuration["TempFileStorage:Path"];
+        string path = configuration["TempFileStorage:Path"] ?? string.Empty;
 
         if (string.IsNullOrEmpty(path))
         {

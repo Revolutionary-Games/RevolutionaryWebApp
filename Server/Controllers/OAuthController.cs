@@ -38,7 +38,7 @@ public class OAuthController : SSOLoginController
     {
         baseUrl = configuration.GetBaseUrl();
 
-        githubClientId = configuration["Login:Github:ClientId"];
+        githubClientId = configuration["Login:Github:ClientId"] ?? string.Empty;
 
         githubConfigured = !string.IsNullOrEmpty(githubClientId);
     }

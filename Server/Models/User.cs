@@ -83,10 +83,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     public bool IsAuthenticated { get => true; set => throw new NotSupportedException(); }
 
     [NotMapped]
-    public string? Name { get => UserName; set => UserName = value; }
-
-    [NotMapped]
-    public string NameOrEmail => Name ?? Email;
+    public string Name { get => UserName!; set => UserName = value; }
 
     /// <summary>
     ///   Builds verified by this user
@@ -156,7 +153,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
     public static void OnNewUserCreated(User user, IBackgroundJobClient jobClient)
     {
-        jobClient.Schedule<CheckAssociationStatusForUserJob>(x => x.Execute(user.Email, CancellationToken.None),
+        jobClient.Schedule<CheckAssociationStatusForUserJob>(x => x.Execute(user.Email!, CancellationToken.None),
             TimeSpan.FromSeconds(30));
     }
 
@@ -208,7 +205,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
         var info = new UserInfo
         {
             Id = Id,
-            Name = UserName,
+            Name = Name,
             Developer = Developer ?? false,
         };
 

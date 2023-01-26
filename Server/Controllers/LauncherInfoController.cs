@@ -49,7 +49,8 @@ public class LauncherInfoController : Controller
     public static async Task<LauncherThriveInformation> GenerateLauncherInfoObject(ApplicationDbContext database,
         IConfiguration configuration)
     {
-        var launcherDownloads = new Uri(configuration["Launcher:LauncherDownloadsPage"]);
+        var launcherDownloads = new Uri(configuration["Launcher:LauncherDownloadsPage"] ??
+            throw new InvalidOperationException("Missing launcher downloads page config value"));
 
         var mirrors = await database.LauncherDownloadMirrors.ToDictionaryAsync(m => m.Id, m => m);
 

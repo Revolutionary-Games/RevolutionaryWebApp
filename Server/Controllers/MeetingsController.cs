@@ -627,7 +627,7 @@ public class MeetingsController : Controller
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
-            Message = $"Meeting ({meeting.Id}) has now {newChairman.NameOrEmail} ({newChairmanId}) as the chairman",
+            Message = $"Meeting ({meeting.Id}) has now {newChairman.Name} ({newChairmanId}) as the chairman",
             PerformedById = user.Id,
         });
 

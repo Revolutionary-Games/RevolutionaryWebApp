@@ -48,7 +48,7 @@ public class LauncherController : Controller
         Response.ContentType = "application/json";
         var user = await GetUserForNewLink(request.Code);
 
-        return new LauncherConnectionStatus(user.UserName ?? user.Email, user.Email,
+        return new LauncherConnectionStatus(user.UserName ?? user.Email!, user.Email!,
             user.HasAccessLevel(UserAccessLevel.Developer));
     }
 
@@ -99,7 +99,7 @@ public class LauncherController : Controller
         Response.ContentType = "application/json";
         var user = HttpContext.AuthenticatedUser()!;
 
-        return new LauncherConnectionStatus(user.UserName ?? user.Email, user.Email,
+        return new LauncherConnectionStatus(user.UserName ?? user.Email!, user.Email!,
             user.HasAccessLevel(UserAccessLevel.Developer));
     }
 

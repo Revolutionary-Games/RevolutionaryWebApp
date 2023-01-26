@@ -39,10 +39,10 @@ public class MailSender : IMailSender
     {
         this.logger = logger;
 
-        fromAddress = configuration["Email:FromAddress"];
-        senderName = configuration["Email:Name"];
-        emailPassword = configuration["Email:Password"];
-        host = configuration["Email:Host"];
+        fromAddress = configuration["Email:FromAddress"] ?? string.Empty;
+        senderName = configuration["Email:Name"] ?? string.Empty;
+        emailPassword = configuration["Email:Password"] ?? string.Empty;
+        host = configuration["Email:Host"] ?? string.Empty;
         port = Convert.ToInt16(configuration["Email:Port"]);
         requireTls = Convert.ToBoolean(configuration["Email:RequireTls"]);
 

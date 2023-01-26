@@ -13,7 +13,7 @@ public class RegistrationStatus : IRegistrationStatus
 {
     public RegistrationStatus(IConfiguration configuration, ILogger<RegistrationStatus> logger)
     {
-        RegistrationCode = configuration.GetValue("Registration:RegistrationCode", string.Empty);
+        RegistrationCode = configuration["Registration:RegistrationCode"] ?? string.Empty;
 
         if (configuration.GetValue("Registration:Enabled", false) && !string.IsNullOrEmpty(RegistrationCode))
         {

@@ -8,7 +8,7 @@ public class StaticHomePageNotice
 
     public StaticHomePageNotice(IConfiguration configuration)
     {
-        text = configuration["StaticSiteHomePageNotice"];
+        text = configuration["StaticSiteHomePageNotice"] ?? string.Empty;
 
 #if DEBUG
         if (!string.IsNullOrEmpty(text))

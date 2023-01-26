@@ -35,7 +35,7 @@ public class CLAController : Controller
     private readonly ICLASignatureStorage signatureStorage;
     private readonly IMailQueue mailQueue;
     private readonly IBackgroundJobClient jobClient;
-    private readonly string emailSignaturesTo;
+    private readonly string? emailSignaturesTo;
 
     public CLAController(ILogger<CLAController> logger, IConfiguration configuration,
         NotificationsEnabledDb database, ICLASignatureStorage signatureStorage, IMailQueue mailQueue,

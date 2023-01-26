@@ -85,14 +85,18 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         this.httpClientFactory = httpClientFactory;
         this.database = database;
 
-        botToken = configuration["Discord:RevolutionaryBot:Token"];
+        botToken = configuration["Discord:RevolutionaryBot:Token"] ?? string.Empty;
         var guild = configuration["Discord:RevolutionaryBot:PrimaryGuild"];
 
-        wikiUrlBase = new Uri(configuration["Discord:RevolutionaryBot:WikiBaseUrl"]);
-        translationProgressUrl = new Uri(configuration["Discord:RevolutionaryBot:TranslationProgressUrl"]);
-        overallTranslationStatusUrl = new Uri(configuration["Discord:RevolutionaryBot:OverallTranslationStatusUrl"]);
-        wikiDefaultPreviewImage =
-            new Uri(configuration["Discord:RevolutionaryBot:WikiDefaultPreviewImage"]);
+        wikiUrlBase = new Uri(configuration["Discord:RevolutionaryBot:WikiBaseUrl"] ??
+            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
+        translationProgressUrl = new Uri(configuration["Discord:RevolutionaryBot:TranslationProgressUrl"] ??
+            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
+        overallTranslationStatusUrl = new Uri(configuration["Discord:RevolutionaryBot:OverallTranslationStatusUrl"] ??
+            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
+        wikiDefaultPreviewImage = new Uri(configuration["Discord:RevolutionaryBot:WikiDefaultPreviewImage"] ??
+            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
+
         progressFontUrl = configuration.BaseUrlRelative("Discord:RevolutionaryBot:ProgressFont");
         progressImageUrl = configuration.BaseUrlRelative("Discord:RevolutionaryBot:ProgressBackgroundImage");
 

@@ -32,7 +32,8 @@ public class StartStackwalkOnReportJob
         this.stackwalk = stackwalk;
         this.jobClient = jobClient;
         this.symbolPreparer = symbolPreparer;
-        symbolFolder = configuration["Crashes:StackwalkSymbolFolder"];
+        symbolFolder = configuration["Crashes:StackwalkSymbolFolder"] ??
+            throw new InvalidOperationException("Stackwalk symbol folder not configured");
     }
 
     public async Task Execute(long reportId, CancellationToken cancellationToken)

@@ -29,7 +29,8 @@ public class RunStackwalkTaskJob
         this.localTempFileLocks = localTempFileLocks;
         this.stackwalk = stackwalk;
         this.symbolPreparer = symbolPreparer;
-        symbolFolder = configuration["Crashes:StackwalkSymbolFolder"];
+        symbolFolder = configuration["Crashes:StackwalkSymbolFolder"] ??
+            throw new InvalidOperationException("Stackwalk symbol folder not configured");
     }
 
     public async Task Execute(Guid taskId, CancellationToken cancellationToken)

@@ -29,10 +29,10 @@ public abstract class JwtBase
 
     protected JwtBase(IConfiguration configuration)
     {
-        string secret = configuration.GetValue<string>("CSRF:Secret");
+        string secret = configuration["CSRF:Secret"] ?? throw new ArgumentException("Missing CSRF token secret");
 
         if (string.IsNullOrEmpty(secret))
-            throw new ArgumentException("no CSRF token secret defined");
+            throw new ArgumentException("Empty CSRF token secret defined");
 
         CSRFSecret = Encoding.UTF8.GetBytes(secret);
     }
