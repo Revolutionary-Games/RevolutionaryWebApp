@@ -286,6 +286,14 @@ Code checks can be ran with:
 dotnet run --project Scripts -- check
 ```
 
+### CI container
+
+To build a CI container image for running tests in it, use the
+following command (4 is the version number):
+```sh
+dotnet run --project Scripts -- container 4
+```
+
 ## Deploying
 
 First prepare the server to deploy with all the software.

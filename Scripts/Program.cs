@@ -22,13 +22,14 @@ public class Program
         RunFolderChecker.EnsureRightRunningFolder("ThriveDevCenter.sln");
 
         var result = CommandLineHelpers.CreateParser()
-            .ParseArguments<CheckOptions, TestOptions, Deployer.DeployOptions, EFTool.EFOptions, CleanOptions,
-                ChangesOptions>(args)
+            .ParseArguments<CheckOptions, TestOptions, Deployer.DeployOptions, EFTool.EFOptions, ContainerOptions,
+                CleanOptions, ChangesOptions>(args)
             .MapResult(
                 (CheckOptions opts) => RunChecks(opts),
                 (TestOptions opts) => RunTests(opts),
                 (Deployer.DeployOptions opts) => RunDeploy(opts),
                 (EFTool.EFOptions opts) => RunEF(opts),
+                (ContainerOptions options) => RunContainer(options),
                 (CleanOptions opts) => RunClean(opts),
                 (ChangesOptions opts) => RunChangesFinding(opts),
                 CommandLineHelpers.PrintCommandLineErrors);
@@ -94,6 +95,19 @@ public class Program
         return 2;
     }
 
+    private static int RunContainer(ContainerOptions options)
+    {
+        CommandLineHelpers.HandleDefaultOptions(options);
+
+        ColourConsole.WriteDebugLine("Running container tool");
+
+        var tokenSource = ConsoleHelpers.CreateSimpleConsoleCancellationSource();
+
+        var tool = new ContainerTool(options);
+
+        return tool.Run(tokenSource.Token).Result ? 0 : 1;
+    }
+
     private static int RunClean(CleanOptions opts)
     {
         CommandLineHelpers.HandleDefaultOptions(opts);
@@ -148,6 +162,12 @@ public class Program
     [Verb("test", HelpText = "Run tests using 'dotnet' command")]
     public class TestOptions : ScriptOptionsBase
     {
+    }
+
+    public class ContainerOptions : ContainerOptionsBase
+    {
+        [Option('i', "image", Default = ImageType.CI, HelpText = "The image to build")]
+        public ImageType Image { get; set; } = ImageType.CI;
     }
 
     [Verb("clean", HelpText = "Clean binaries (package upgrades can break deploy and this fixes that)")]
