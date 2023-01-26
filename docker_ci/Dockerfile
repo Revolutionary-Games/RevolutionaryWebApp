@@ -4,6 +4,7 @@ ENV DOTNET_VERSION "7.0"
 RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc
 
 # Powershell needs to be installed separately to not mess with the normal sdk install
+# Chromium is installed as a handy way to get all the dependencies Playwright browsers need
 RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} chromium \
     postgresql-server redis git ruby-devel \
     glibc-locale-source glibc-langpack-en langpacks-en && \
