@@ -96,7 +96,7 @@ public class RunStackwalkTaskJob
 
         if (task.DeleteDumpAfterRunning)
         {
-            using var asyncKeyedLock = await localTempFileLocks.LockAsync(baseFolder, cancellationToken)
+            using var baseFolderLock = await localTempFileLocks.LockAsync(baseFolder, cancellationToken)
                 .ConfigureAwait(false);
             File.Delete(filePath);
             logger.LogInformation("Deleted processed file for stackwalk task: {FilePath}", filePath);
