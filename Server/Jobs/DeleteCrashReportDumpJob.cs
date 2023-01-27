@@ -37,24 +37,22 @@ public class DeleteCrashReportDumpJob
 
         var filePath = Path.Combine(baseFolder, report.DumpLocalFileName);
 
-        using (await fileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false))
+        using var asyncKeyedLock = await fileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false);
+        if (!Directory.Exists(baseFolder))
         {
-            if (!Directory.Exists(baseFolder))
-            {
-                logger.LogInformation("Crash report dump folder doesn't exist, skip deleting a dump file");
-                return;
-            }
-
-            if (!File.Exists(filePath))
-            {
-                logger.LogInformation(
-                    "Crash report dump file with name {DumpLocalFileName} doesn't exist, skip trying to delete it",
-                    report.DumpLocalFileName);
-                return;
-            }
-
-            File.Delete(filePath);
+            logger.LogInformation("Crash report dump folder doesn't exist, skip deleting a dump file");
+            return;
         }
+
+        if (!File.Exists(filePath))
+        {
+            logger.LogInformation(
+                "Crash report dump file with name {DumpLocalFileName} doesn't exist, skip trying to delete it",
+                report.DumpLocalFileName);
+            return;
+        }
+
+        File.Delete(filePath);
 
         logger.LogInformation("Deleted crash dump file {DumpLocalFileName}", report.DumpLocalFileName);
     }

@@ -96,11 +96,9 @@ public class RunStackwalkTaskJob
 
         if (task.DeleteDumpAfterRunning)
         {
-            using (await localTempFileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false))
-            {
-                File.Delete(filePath);
-                logger.LogInformation("Deleted processed file for stackwalk task: {FilePath}", filePath);
-            }
+            using var asyncKeyedLock = await localTempFileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false);
+            File.Delete(filePath);
+            logger.LogInformation("Deleted processed file for stackwalk task: {FilePath}", filePath);
         }
 
         if (string.IsNullOrWhiteSpace(result))

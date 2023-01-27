@@ -12,22 +12,23 @@ using Microsoft.Extensions.Logging;
 public interface ILocalTempFileLocks
 {
     /// <summary>
-    ///   Gets a temporary file path. Note that the receiver should lock the returned string while using the path
-    ///   to avoid multiple places using the same temporary folder at once
+    ///   Gets a temporary file path. Note that the receiver should call <see cref="LockAsync(string)"/>
+    ///   to lock the returned string while using the path so as to avoid multiple places using the same
+    ///   temporary folder at once.
     /// </summary>
     /// <param name="suffix">Suffix to add to the temporary folder</param>
     /// <returns>The final result path</returns>
     public string GetTempFilePath(string suffix);
 
     /// <summary>
-    /// Asynchronously lock based on a key.
+    ///   Asynchronously lock based on a key.
     /// </summary>
     /// <param name="path">The file path</param>
     /// <returns>A disposable value.</returns>
     public ValueTask<IDisposable> LockAsync(string path);
 
     /// <summary>
-    /// Asynchronously lock based on a key, while observing a <see cref="CancellationToken"/>.
+    ///   Asynchronously lock based on a key, while observing a <see cref="CancellationToken"/>.
     /// </summary>
     /// <param name="path">The file path</param>
     /// <param name="cancellationToken">A cancellation token</param>
@@ -35,8 +36,8 @@ public interface ILocalTempFileLocks
     public ValueTask<IDisposable> LockAsync(string path, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Asynchronously lock based on a key, setting a limit for the <see cref="TimeSpan"/> to wait,
-    /// while observing a <see cref="CancellationToken"/>.
+    ///   Asynchronously lock based on a key, setting a limit for the <see cref="TimeSpan"/> to wait,
+    ///   while observing a <see cref="CancellationToken"/>.
     /// </summary>
     /// <param name="path">The file path</param>
     /// <param name="timeout">The time limit to wait for</param>
@@ -51,7 +52,7 @@ public class LocalTempFileLocks : ILocalTempFileLocks
     private readonly string baseTempFilePath;
     private readonly AsyncKeyedLocker<string> asyncKeyedLocker = new(o =>
     {
-        o.PoolSize = 20;
+        o.PoolSize = 20; // sets the max number of pooled semaphores; doesn't affect concurrency
         o.PoolInitialFill = 1;
     });
 
