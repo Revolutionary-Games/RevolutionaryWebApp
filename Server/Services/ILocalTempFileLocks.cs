@@ -20,14 +20,14 @@ public interface ILocalTempFileLocks
     public string GetTempFilePath(string suffix);
 
     /// <summary>
-    /// <inheritdoc cref="AsyncKeyedLocker{string}.LockAsync(string)"/>
+    /// Asynchronously lock based on a key.
     /// </summary>
     /// <param name="path">The file path</param>
     /// <returns>A disposable value.</returns>
     public ValueTask<IDisposable> LockAsync(string path);
 
     /// <summary>
-    /// <inheritdoc cref="AsyncKeyedLocker{string}.LockAsync(string, CancellationToken)"/>
+    /// Asynchronously lock based on a key, while observing a <see cref="CancellationToken"/>.
     /// </summary>
     /// <param name="path">The file path</param>
     /// <param name="cancellationToken">A cancellation token</param>
@@ -35,7 +35,8 @@ public interface ILocalTempFileLocks
     public ValueTask<IDisposable> LockAsync(string path, CancellationToken cancellationToken);
 
     /// <summary>
-    /// <inheritdoc cref="AsyncKeyedLocker{string}.LockAsync(string, TimeSpan, CancellationToken)"/>
+    /// Asynchronously lock based on a key, setting a limit for the <see cref="TimeSpan"/> to wait,
+    /// while observing a <see cref="CancellationToken"/>.
     /// </summary>
     /// <param name="path">The file path</param>
     /// <param name="timeout">The time limit to wait for</param>

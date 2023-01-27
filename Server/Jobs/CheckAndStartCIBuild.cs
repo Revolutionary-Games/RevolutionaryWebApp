@@ -60,7 +60,7 @@ public class CheckAndStartCIBuild
         using (await localTempFileLocks.LockAsync(tempPath, cancellationToken).ConfigureAwait(false))
         {
             var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .Build();
+                .Build();
 
             if (build.CiProject == null)
                 throw new NotLoadedModelNavigationException();
