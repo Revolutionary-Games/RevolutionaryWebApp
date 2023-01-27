@@ -52,7 +52,8 @@ public class LocalTempFileLocks : ILocalTempFileLocks
     private readonly string baseTempFilePath;
     private readonly AsyncKeyedLocker<string> asyncKeyedLocker = new(o =>
     {
-        o.PoolSize = 20; // sets the max number of pooled semaphores; doesn't affect concurrency
+        // Sets the max number of pooled semaphores; doesn't affect concurrency
+        o.PoolSize = 20;
         o.PoolInitialFill = 1;
     });
 
