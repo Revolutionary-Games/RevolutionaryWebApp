@@ -41,7 +41,8 @@ public interface ILocalTempFileLocks
     /// <param name="timeout">The time limit to wait for</param>
     /// <param name="cancellationToken">A cancellation token</param>
     /// <returns>A disposable value of type <see cref="AsyncKeyedLockTimeoutReleaser{string}"/>.</returns>
-    public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync(string path, TimeSpan timeout, CancellationToken cancellationToken);
+    public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync
+        (string path, TimeSpan timeout, CancellationToken cancellationToken);
 }
 
 public class LocalTempFileLocks : ILocalTempFileLocks
@@ -81,7 +82,8 @@ public class LocalTempFileLocks : ILocalTempFileLocks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync(string path, TimeSpan timeout, CancellationToken cancellationToken)
+    public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync
+        (string path, TimeSpan timeout, CancellationToken cancellationToken)
     {
         return asyncKeyedLocker.LockAsync(path, timeout, cancellationToken);
     }
