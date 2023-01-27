@@ -41,7 +41,7 @@ public interface ILocalTempFileLocks
     /// <param name="path">The file path</param>
     /// <param name="timeout">The time limit to wait for</param>
     /// <param name="cancellationToken">A cancellation token</param>
-    /// <returns>A disposable value of type <see cref="AsyncKeyedLockTimeoutReleaser{string}"/>.</returns>
+    /// <returns>A disposable value.</returns>
     public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync(
         string path, TimeSpan timeout, CancellationToken cancellationToken);
 }
