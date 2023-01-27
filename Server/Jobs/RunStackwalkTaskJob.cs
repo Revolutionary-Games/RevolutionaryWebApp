@@ -50,23 +50,18 @@ public class RunStackwalkTaskJob
 
         logger.LogInformation("Starting stackwalk on task {TaskId}", taskId);
 
-        var semaphore =
-            localTempFileLocks.GetTempFilePath(task.DumpTempCategory, out string baseFolder);
+        var baseFolder =
+            localTempFileLocks.GetTempFilePath(task.DumpTempCategory);
 
         var filePath = Path.Combine(baseFolder, task.DumpFileName);
 
         FileStream? dump = null;
 
         // On Linux an open file should not impact deleting etc. so I'm pretty sure this is pretty safe
-        await semaphore.WaitAsync(cancellationToken);
-        try
+        using (await localTempFileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false))
         {
             if (File.Exists(filePath))
                 dump = File.OpenRead(filePath);
-        }
-        finally
-        {
-            semaphore.Release();
         }
 
         await symbolPrepareTask;
@@ -101,15 +96,10 @@ public class RunStackwalkTaskJob
 
         if (task.DeleteDumpAfterRunning)
         {
-            await semaphore.WaitAsync(cancellationToken);
-            try
+            using (await localTempFileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false))
             {
                 File.Delete(filePath);
                 logger.LogInformation("Deleted processed file for stackwalk task: {FilePath}", filePath);
-            }
-            finally
-            {
-                semaphore.Release();
             }
         }
 

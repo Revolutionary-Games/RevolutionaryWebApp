@@ -26,8 +26,8 @@ public class DeleteCrashReportDumpJob
     public static async Task DeleteReportTempFile(CrashReport report, ILocalTempFileLocks fileLocks, ILogger logger,
         CancellationToken cancellationToken)
     {
-        var semaphore =
-            fileLocks.GetTempFilePath(CrashReport.CrashReportTempStorageFolderName, out string baseFolder);
+        var baseFolder =
+            fileLocks.GetTempFilePath(CrashReport.CrashReportTempStorageFolderName);
 
         if (string.IsNullOrEmpty(report.DumpLocalFileName))
         {
@@ -37,8 +37,7 @@ public class DeleteCrashReportDumpJob
 
         var filePath = Path.Combine(baseFolder, report.DumpLocalFileName);
 
-        await semaphore.WaitAsync(cancellationToken);
-        try
+        using (await fileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false))
         {
             if (!Directory.Exists(baseFolder))
             {
@@ -55,10 +54,6 @@ public class DeleteCrashReportDumpJob
             }
 
             File.Delete(filePath);
-        }
-        finally
-        {
-            semaphore.Release();
         }
 
         logger.LogInformation("Deleted crash dump file {DumpLocalFileName}", report.DumpLocalFileName);

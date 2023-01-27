@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using AngleSharp.Io;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -44,10 +45,8 @@ public class CreateBackupJob : IJob
 
         var dbWrite = database.SaveChangesAsync(cancellationToken);
 
-        var semaphore = tempFileLocks.GetTempFilePath("backupWorkDir", out var backupFolder);
-        await semaphore.WaitAsync(cancellationToken);
-
-        try
+        var backupFolder = tempFileLocks.GetTempFilePath("backupWorkDir");
+        using (await tempFileLocks.LockAsync(backupFolder, cancellationToken).ConfigureAwait(false))
         {
             string backupFile = Path.Combine(backupFolder, backup.Name);
             string databaseFile = Path.Combine(backupFolder, dbBackupFileName);
@@ -81,10 +80,6 @@ public class CreateBackupJob : IJob
             File.Delete(backupFile);
 
             // TODO: should we delete backupFolder here?
-        }
-        finally
-        {
-            semaphore.Release();
         }
 
         logger.LogInformation("Created backup {Name} of size {Size}", backup.Name, backup.Size);

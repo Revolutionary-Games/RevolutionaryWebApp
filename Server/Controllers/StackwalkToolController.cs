@@ -64,9 +64,8 @@ public class StackwalkToolController : Controller
 
         logger.LogInformation("Starting stackwalk tool run for a request from: {Address}", address);
 
-        var semaphore =
-            localTempFileLocks.GetTempFilePath(StackwalkTask.CrashDumpToolTempStorageFolderName,
-                out string baseFolder);
+        var baseFolder =
+            localTempFileLocks.GetTempFilePath(StackwalkTask.CrashDumpToolTempStorageFolderName);
 
         var task = new StackwalkTask
         {
@@ -82,8 +81,7 @@ public class StackwalkToolController : Controller
 
         var filePath = Path.Combine(baseFolder, task.DumpFileName);
 
-        await semaphore.WaitAsync();
-        try
+        using (await localTempFileLocks.LockAsync(baseFolder).ConfigureAwait(false))
         {
             Directory.CreateDirectory(baseFolder);
 
@@ -91,10 +89,6 @@ public class StackwalkToolController : Controller
             // it probably won't cause any issue even with multiple requests being uploaded in a few seconds
             await using var stream = System.IO.File.Create(filePath);
             await file.CopyToAsync(stream);
-        }
-        finally
-        {
-            semaphore.Release();
         }
 
         try
