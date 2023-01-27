@@ -21,11 +21,9 @@ public static class LFSProjectTreeBuilder
     public static async Task BuildFileTree(ILocalTempFileLocks tempFiles, ApplicationDbContext database,
         LfsProject project, ILogger logger, CancellationToken cancellationToken)
     {
-        var semaphore = tempFiles.GetTempFilePath($"gitFileTrees/{project.Slug}", out string tempPath);
+        var tempPath = tempFiles.GetTempFilePath($"gitFileTrees/{project.Slug}");
 
-        await semaphore.WaitAsync(TimeSpan.FromMinutes(10), cancellationToken);
-
-        try
+        using (await tempFiles.LockAsync(tempPath, TimeSpan.FromMinutes(10), cancellationToken).ConfigureAwait(false))
         {
             await GitRunHelpers.EnsureRepoIsCloned(project.CloneUrl, tempPath, true, cancellationToken);
 
@@ -63,10 +61,6 @@ public static class LFSProjectTreeBuilder
 
             // And then make sure the DB file tree entries are fine
             await UpdateFileTreeForProject(database, tempPath, project, cancellationToken);
-        }
-        finally
-        {
-            semaphore.Release();
         }
 
         project.FileTreeUpdated = DateTime.UtcNow;

@@ -10,6 +10,7 @@
     <PackageReference Include="AngleSharp" Version="1.0.1" />
     <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
     <PackageReference Include="AspNetCoreRateLimit.Redis" Version="2.0.0" />
+    <PackageReference Include="AsyncKeyedLock" Version="6.1.0" />
     <PackageReference Include="AWSSDK.EC2" Version="3.7.118.1" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.102" />
     <PackageReference Include="Discord.Net" Version="3.9.0" />

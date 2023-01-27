@@ -59,23 +59,18 @@ public class StartStackwalkOnReportJob
 
         logger.LogInformation("Starting stackwalk on report {ReportId}", reportId);
 
-        var semaphore =
-            localTempFileLocks.GetTempFilePath(CrashReport.CrashReportTempStorageFolderName, out string baseFolder);
+        var baseFolder =
+            localTempFileLocks.GetTempFilePath(CrashReport.CrashReportTempStorageFolderName);
 
         var filePath = Path.Combine(baseFolder, report.DumpLocalFileName);
 
         FileStream? dump = null;
 
         // On Linux an open file should not impact deleting etc. so I'm pretty sure this is pretty safe
-        await semaphore.WaitAsync(cancellationToken);
-        try
+        using (await localTempFileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false))
         {
             if (File.Exists(filePath))
                 dump = File.OpenRead(filePath);
-        }
-        finally
-        {
-            semaphore.Release();
         }
 
         await symbolPrepareTask;

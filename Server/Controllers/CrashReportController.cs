@@ -378,8 +378,8 @@ public class CrashReportController : Controller
 
         var fileName = Guid.NewGuid() + ".dmp";
 
-        var semaphore =
-            localTempFileLocks.GetTempFilePath(CrashReport.CrashReportTempStorageFolderName, out string baseFolder);
+        var baseFolder =
+            localTempFileLocks.GetTempFilePath(CrashReport.CrashReportTempStorageFolderName);
 
         var filePath = Path.Combine(baseFolder, fileName);
 
@@ -412,8 +412,7 @@ public class CrashReportController : Controller
         await database.CrashReports.AddAsync(report);
         var saveTask = database.SaveChangesAsync();
 
-        await semaphore.WaitAsync();
-        try
+        using (await localTempFileLocks.LockAsync(baseFolder).ConfigureAwait(false))
         {
             Directory.CreateDirectory(baseFolder);
 
@@ -421,10 +420,6 @@ public class CrashReportController : Controller
             // it probably won't cause any issue even with multiple crash reports being uploaded in a few seconds
             await using var stream = System.IO.File.Create(filePath);
             await dump.CopyToAsync(stream);
-        }
-        finally
-        {
-            semaphore.Release();
         }
 
         try

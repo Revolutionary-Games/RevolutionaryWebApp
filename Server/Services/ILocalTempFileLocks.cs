@@ -1,28 +1,61 @@
 namespace ThriveDevCenter.Server.Services;
 
 using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
+using AsyncKeyedLock;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 public interface ILocalTempFileLocks
 {
     /// <summary>
-    ///   Gets a temporary file path. Note that the receiver should lock the returned string while using the path
-    ///   to avoid multiple places using the same temporary folder at once
+    ///   Gets a temporary file path. Note that the receiver should call <see cref="LockAsync(string)"/>
+    ///   to lock the returned string while using the path so as to avoid multiple places using the same
+    ///   temporary folder at once.
     /// </summary>
     /// <param name="suffix">Suffix to add to the temporary folder</param>
-    /// <param name="path">The final result path</param>
-    /// <returns>A semaphore that needs to be locked while using the path</returns>
-    public SemaphoreSlim GetTempFilePath(string suffix, out string path);
+    /// <returns>The final result path</returns>
+    public string GetTempFilePath(string suffix);
+
+    /// <summary>
+    ///   Asynchronously lock based on a key.
+    /// </summary>
+    /// <param name="path">The file path</param>
+    /// <returns>A disposable value.</returns>
+    public ValueTask<IDisposable> LockAsync(string path);
+
+    /// <summary>
+    ///   Asynchronously lock based on a key, while observing a <see cref="CancellationToken"/>.
+    /// </summary>
+    /// <param name="path">The file path</param>
+    /// <param name="cancellationToken">A cancellation token</param>
+    /// <returns>A disposable value.</returns>
+    public ValueTask<IDisposable> LockAsync(string path, CancellationToken cancellationToken);
+
+    /// <summary>
+    ///   Asynchronously lock based on a key, setting a limit for the <see cref="TimeSpan"/> to wait,
+    ///   while observing a <see cref="CancellationToken"/>.
+    /// </summary>
+    /// <param name="path">The file path</param>
+    /// <param name="timeout">The time limit to wait for</param>
+    /// <param name="cancellationToken">A cancellation token</param>
+    /// <returns>A disposable value.</returns>
+    public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync(
+        string path, TimeSpan timeout, CancellationToken cancellationToken);
 }
 
 public class LocalTempFileLocks : ILocalTempFileLocks
 {
     private readonly string baseTempFilePath;
-    private readonly Dictionary<string, SemaphoreSlim> requestedPaths = new();
+    private readonly AsyncKeyedLocker<string> asyncKeyedLocker = new(o =>
+    {
+        // Sets the max number of pooled semaphores; doesn't affect concurrency
+        o.PoolSize = 20;
+        o.PoolInitialFill = 1;
+    });
 
     public LocalTempFileLocks(ILogger<LocalTempFileLocks> logger, IConfiguration configuration)
     {
@@ -39,21 +72,30 @@ public class LocalTempFileLocks : ILocalTempFileLocks
         logger.LogInformation("Temporary files base path: {BaseTempFilePath}", baseTempFilePath);
     }
 
-    public SemaphoreSlim GetTempFilePath(string suffix, out string path)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ValueTask<IDisposable> LockAsync(string path)
+    {
+        return asyncKeyedLocker.LockAsync(path);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ValueTask<IDisposable> LockAsync(string path, CancellationToken cancellationToken)
+    {
+        return asyncKeyedLocker.LockAsync(path, cancellationToken);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync(
+        string path, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        return asyncKeyedLocker.LockAsync(path, timeout, cancellationToken);
+    }
+
+    public string GetTempFilePath(string suffix)
     {
         if (suffix.Length < 1 || suffix.StartsWith('/'))
             throw new ArgumentException("Path suffix is empty or starts with a slash");
 
-        path = Path.Join(baseTempFilePath, suffix);
-
-        lock (requestedPaths)
-        {
-            if (requestedPaths.TryGetValue(path, out SemaphoreSlim? existing))
-                return existing;
-
-            var semaphore = new SemaphoreSlim(1, 1);
-            requestedPaths[path] = semaphore;
-            return semaphore;
-        }
+        return Path.Join(baseTempFilePath, suffix);
     }
 }

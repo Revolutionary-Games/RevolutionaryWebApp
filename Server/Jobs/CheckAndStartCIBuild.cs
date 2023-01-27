@@ -53,46 +53,43 @@ public class CheckAndStartCIBuild
         }
 
         // Update our local repo copy and see what the wanted build config is
-        var semaphore = localTempFileLocks.GetTempFilePath($"ciRepos/{ciProjectId}", out string tempPath);
-
-        await semaphore.WaitAsync(cancellationToken);
-
-        var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .Build();
-
-        if (build.CiProject == null)
-            throw new NotLoadedModelNavigationException();
+        var tempPath = localTempFileLocks.GetTempFilePath($"ciRepos/{ciProjectId}");
 
         CiBuildConfiguration? configuration;
 
-        try
+        using (await localTempFileLocks.LockAsync(tempPath, cancellationToken).ConfigureAwait(false))
         {
-            await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, true,
-                cancellationToken);
+            var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .Build();
 
-            // Fetch the ref
-            await GitRunHelpers.FetchRef(tempPath, build.RemoteRef, cancellationToken);
+            if (build.CiProject == null)
+                throw new NotLoadedModelNavigationException();
 
-            // Then checkout the commit this build is actually for
-            await GitRunHelpers.Checkout(tempPath, build.CommitHash, true, cancellationToken, true);
+            try
+            {
+                await GitRunHelpers.EnsureRepoIsCloned(build.CiProject.RepositoryCloneUrl, tempPath, true,
+                    cancellationToken);
 
-            // Clean out non-ignored files
-            await GitRunHelpers.Clean(tempPath, cancellationToken);
+                // Fetch the ref
+                await GitRunHelpers.FetchRef(tempPath, build.RemoteRef, cancellationToken);
 
-            // Read the build configuration
-            var text = await File.ReadAllTextAsync(Path.Join(tempPath, AppInfo.CIConfigurationFile), Encoding.UTF8,
-                cancellationToken);
+                // Then checkout the commit this build is actually for
+                await GitRunHelpers.Checkout(tempPath, build.CommitHash, true, cancellationToken, true);
 
-            configuration = deserializer.Deserialize<CiBuildConfiguration>(text);
-        }
-        catch (Exception e)
-        {
-            configuration = null;
-            logger.LogError("Error when trying to read repository for starting jobs: {@E}", e);
-        }
-        finally
-        {
-            semaphore.Release();
+                // Clean out non-ignored files
+                await GitRunHelpers.Clean(tempPath, cancellationToken);
+
+                // Read the build configuration
+                var text = await File.ReadAllTextAsync(Path.Join(tempPath, AppInfo.CIConfigurationFile), Encoding.UTF8,
+                    cancellationToken);
+
+                configuration = deserializer.Deserialize<CiBuildConfiguration>(text);
+            }
+            catch (Exception e)
+            {
+                configuration = null;
+                logger.LogError("Error when trying to read repository for starting jobs: {@E}", e);
+            }
         }
 
         if (configuration == null)
