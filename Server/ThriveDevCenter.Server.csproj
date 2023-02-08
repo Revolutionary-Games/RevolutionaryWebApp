@@ -11,7 +11,7 @@
     <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
     <PackageReference Include="AspNetCoreRateLimit.Redis" Version="2.0.0" />
     <PackageReference Include="AsyncKeyedLock" Version="6.1.1" />
-    <PackageReference Include="AWSSDK.EC2" Version="3.7.121.2" />
+    <PackageReference Include="AWSSDK.EC2" Version="3.7.121.3" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.103.4" />
     <PackageReference Include="Discord.Net" Version="3.9.0" />
     <PackageReference Include="EFCore.NamingConventions" Version="7.0.2" />
