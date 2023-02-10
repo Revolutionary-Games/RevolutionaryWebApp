@@ -88,6 +88,16 @@ Now you can use the dotnet tool to setup the local database (run in the Server f
 dotnet ef database update --context ApplicationDbContext
 ```
 
+Note that this repo contains a helper tool that allows more easily
+running the `ef` tool:
+
+```sh
+dotnet run --project Scripts -- ef -m
+```
+
+There's also an option to install or update the `ef` tool to the right
+version.
+
 After that running in development should work if you execute
 the following in the Server folder:
 ```sh
@@ -364,6 +374,25 @@ state file.
 ```sh
 usermod -a -G redis thrivedevcenter
 ```
+
+## Developing
+
+This section has some info on developing the ThriveDevCenter.
+
+### Creating DB migrations
+
+After creating a new model and putting registration of it into
+`ApplicationDbContext`, a database migration needs to be created that
+will actually create the right data in the database about the new
+model. Again, the `ef` helper tool can be used to create the migration:
+
+```sh
+dotnet run --project Scripts -- ef -c AddedSomeStuff
+```
+
+After confirming the migration looks good (the tool also has an option
+to delete and recreate the migration), you need to migrate your local
+database.
 
 ## Maintenance
 
