@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using AngleSharp.Html.Parser;
 using Discord;
 using Discord.Net;
@@ -16,6 +17,7 @@ using Discord.WebSocket;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using Models;
 using Shared.Models;
 using Shared.Utilities;
@@ -67,6 +69,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private readonly Uri progressImageUrl;
     private readonly Uri releaseStatsApiUrl;
 
+    private Regex underwaterCivRegex;
     private DiscordSocketClient? client;
 
     private TimedResourceCache<List<GithubMilestone>>? githubMilestones;
@@ -102,6 +105,11 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         releaseStatsApiUrl = new Uri(configuration.GetBaseUrl(), "/api/v1/ReleaseStats");
 
+        // Probably a bit obsessive for this one joke, as it's still pretty easy to bypass
+        underwaterCivRegex = new Regex(
+            @"(\*|w)(\s|_|\.|\*)*(\*|a)(\s|_|\.|\*)*(\*|t)(\s|_|\.|\*)*(\*|e)(\s|_|\.|\*)*(\*|r)(\s|_|\.|\*)*(\*|c)(\s|_|\.|\*)*(\*|i)(\s|_|\.|\*)*v",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         if (string.IsNullOrEmpty(botToken))
             return;
 
@@ -129,10 +137,17 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             disconnectedSince = DateTime.UtcNow;
 
             logger.LogInformation("Revolutionary Bot for Discord is starting");
-            client = new DiscordSocketClient();
+
+            var config = new DiscordSocketConfig()
+            {
+                GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent
+            };
+
+            client = new DiscordSocketClient(config);
             client.Log += Log;
             client.Ready += ClientReady;
             client.SlashCommandExecuted += SlashCommandHandler;
+            client.MessageReceived += MessageHandler;
             client.Connected += OnConnected;
             client.Disconnected += OnDisconnected;
 
@@ -269,6 +284,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 await guild.CreateApplicationCommandAsync(BuildLanguageCommand().Build());
                 await guild.CreateApplicationCommandAsync(BuildWikiCommand().Build());
                 await guild.CreateApplicationCommandAsync(BuildReleasesCommand().Build());
+                await guild.CreateApplicationCommandAsync(BuildDSUCCommand().Build());
             }
             catch (HttpException e)
             {
@@ -284,6 +300,11 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 2))
             changes = true;
         if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 2))
+            changes = true;
+        if (await RegisterGlobalCommandIfRequired(BuildDSUCCommand(), 2))
+            changes = true;
+
+        if(await RegisterKeywordIfRequired("underwaterciv"))
             changes = true;
 
         if (changes)
@@ -320,6 +341,15 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         return true;
     }
 
+    private async Task<bool> RegisterKeywordIfRequired(String key)
+    {
+        if (await database.WatchedKeywords.FindAsync(key) != null)
+            return false;
+
+        await database.WatchedKeywords.AddAsync(new WatchedKeyword(key));
+        return true;
+    }
+
     private async Task SlashCommandHandler(SocketSlashCommand command)
     {
         switch (command.Data.Name)
@@ -335,6 +365,9 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 break;
             case "releases":
                 await HandleReleasesCommand(command);
+                break;
+            case "dsuc":
+                await HandleDSUCCommand(command);
                 break;
             default:
                 await command.RespondAsync("Unknown command! Type `/` to see available commands");
@@ -612,6 +645,76 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 "Displays current language translation statistics for Thrive.");
     }
 
+    private async Task HandleDSUCCommand(SocketSlashCommand command)
+    {
+        if (!await CheckCanRunAgain(command))
+            return;
+
+        WatchedKeyword? underwaterciv = await database.WatchedKeywords.FindAsync("underwaterciv");
+
+        await command.DeferAsync();
+
+#pragma warning disable CS4014 // we don't want to hold up the command processing
+        PerformSlowDaysSince(command, underwaterciv!, "Underwater Civs");
+#pragma warning restore CS4014
+    }
+
+    private async Task PerformSlowDaysSince(SocketSlashCommand command, WatchedKeyword keyword, String title)
+    {
+        FontCollection fontCollection;
+
+        var fontWaitTask = fonts!.Value;
+        fontCollection = await fontWaitTask;
+
+        using var tempFileData = new MemoryStream();
+
+        await expensiveOperationLimiter.WaitAsync();
+        try
+        {
+            // We assume the size of the background image here
+            int width = 675;
+            int height = 675;
+
+            var titleFont = fontCollection.Families.First().CreateFont(56, FontStyle.Bold);
+
+            using var progressImage = new Image<Rgb24>(width, height, Color.White);
+
+            progressImage.Mutate(x =>
+            {
+                var textBrush = Brushes.Solid(Color.Black);
+                var titlePen = Pens.Solid(Color.Black, 3.0f);
+                var textPen = Pens.Solid(Color.Black, 2.0f);
+
+                x.DrawText(keyword.TotalCount.ToString(), titleFont, textBrush, titlePen, new PointF(60, 60));
+
+                x.Draw(textPen, new RectangularPolygon(25, 25, width - 50, height - 50));
+            });
+
+            await progressImage.SaveAsync(tempFileData, PngFormat.Instance);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "DSUC image drawing problem");
+            return;
+        }
+        finally
+        {
+            expensiveOperationLimiter.Release();
+        }
+
+        tempFileData.Position = 0;
+        await command.RespondWithFileAsync(tempFileData, "DSUC.png", string.Empty);
+    }
+
+
+    private SlashCommandBuilder BuildDSUCCommand()
+    {
+        return new SlashCommandBuilder()
+            .WithName("dsuc")
+            .WithDescription(
+                "Shows how many days have passed since underwater civs were brought up.");
+    }
+
     private async Task HandleWikiCommand(SocketSlashCommand command)
     {
         var pageOption = command.Data.Options.FirstOrDefault();
@@ -852,6 +955,25 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         return new SlashCommandBuilder()
             .WithName("releases")
             .WithDescription("Get download statistics and latest release for Thrive.");
+    }
+
+    private async Task MessageHandler(SocketMessage message)
+    {
+        if (underwaterCivRegex.IsMatch(message.CleanContent))
+        {
+            try
+            {
+                WatchedKeyword? underwaterciv = await database.WatchedKeywords.FindAsync("underwaterciv");
+                underwaterciv!.LastSeen = DateTimeOffset.Now;
+                underwaterciv!.TotalCount += 1;
+
+                await database.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Keyword Update Failed");
+            }
+        }
     }
 
     private Task Log(LogMessage message)
