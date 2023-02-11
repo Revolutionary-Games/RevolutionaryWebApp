@@ -13,8 +13,8 @@ using ThriveDevCenter.Server.Models;
 namespace ThriveDevCenter.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20230210122951_AddSomeStuff")]
-    partial class AddSomeStuff
+    [Migration("20230211182354_AddWatchedKeywords")]
+    partial class AddWatchedKeywords
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
