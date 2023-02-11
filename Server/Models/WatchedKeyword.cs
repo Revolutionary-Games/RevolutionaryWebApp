@@ -2,7 +2,6 @@ namespace ThriveDevCenter.Server.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using Shared;
 
 public class WatchedKeyword
 {
@@ -12,10 +11,9 @@ public class WatchedKeyword
     }
 
     [Key]
-    [AllowSortingBy]
-    public string Keyword { get; set; } = null!;
+    public string Keyword { get; set; }
 
-    public DateTimeOffset? LastSeen { get; set; } = DateTimeOffset.Now;
+    public DateTime LastSeen { get; set; } = DateTime.UtcNow;
 
     public int TotalCount { get; set; } = 0;
 }
