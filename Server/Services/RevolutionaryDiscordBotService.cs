@@ -40,7 +40,6 @@ using Image = SixLabors.ImageSharp.Image;
 public sealed class RevolutionaryDiscordBotService : IDisposable
 {
     private const int SecondsBetweenSameCommand = 10;
-    private const string UnderWaterCivImageTitle = "Underwater Civs";
 
     private static readonly TimeSpan
         CommandIntervalBeforeRunningAgain = TimeSpan.FromSeconds(SecondsBetweenSameCommand);
@@ -71,6 +70,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private readonly Uri progressImageUrl;
     private readonly Uri releaseStatsApiUrl;
     private readonly Regex underWaterCivRegex;
+    private readonly Regex sentientPlantRegex;
 
     private DiscordSocketClient? client;
 
@@ -110,6 +110,10 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         // Probably a bit obsessive for this one joke, as it's still pretty easy to bypass
         underWaterCivRegex = new Regex(
             @"un.*(\*|w)(\s|_|\.|\*)*(\*|a)(\s|_|\.|\*)*(\*|t)(\s|_|\.|\*)*(\*|e)(\s|_|\.|\*)*r(\s|_|\.|\*)*c(\*|i)v",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        sentientPlantRegex = new Regex(
+            @"(sentient(\s|_|\.|\*)*plant|plant(\s|_|\.|\*)*c(\*|i)v)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         if (string.IsNullOrEmpty(botToken))
@@ -287,7 +291,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 await guild.CreateApplicationCommandAsync(BuildLanguageCommand().Build());
                 await guild.CreateApplicationCommandAsync(BuildWikiCommand().Build());
                 await guild.CreateApplicationCommandAsync(BuildReleasesCommand().Build());
-                await guild.CreateApplicationCommandAsync(BuildDsucCommand().Build());
+                await guild.CreateApplicationCommandAsync(BuildDaysSinceCommand().Build());
             }
             catch (HttpException e)
             {
@@ -296,29 +300,39 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         }
 
         await databaseReadWriteLock.WaitAsync();
-
-        // If commands are changed the version numbers here *must* be updated
-        bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 2);
-
-        if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 2))
-            changes = true;
-        if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 2))
-            changes = true;
-        if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 2))
-            changes = true;
-        if (await RegisterGlobalCommandIfRequired(BuildDsucCommand(), 2))
-            changes = true;
-
-        if (await RegisterKeywordIfRequired("underWaterCiv"))
-            changes = true;
-
-        if (changes)
+        try
         {
-            logger.LogInformation("Global commands have been updated, saving info to database");
-            await database.SaveChangesAsync();
-        }
+            // If commands are changed the version numbers here *must* be updated
+            bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 2);
 
-        databaseReadWriteLock.Release();
+            if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 2))
+                changes = true;
+            if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 2))
+                changes = true;
+            if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 2))
+                changes = true;
+            if (await RegisterGlobalCommandIfRequired(BuildDaysSinceCommand(), 2))
+                changes = true;
+
+            if (await RegisterKeywordIfRequired("underWaterCiv", "Underwater Civs"))
+                changes = true;
+            if (await RegisterKeywordIfRequired("sentientPlant", "Sentient Plants"))
+                changes = true;
+
+            if (changes)
+            {
+                logger.LogInformation("Global commands have been updated, saving info to database");
+                await database.SaveChangesAsync();
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Registering global commands failed.");
+        }
+        finally
+        {
+            databaseReadWriteLock.Release();
+        }
     }
 
     private async Task<bool> RegisterGlobalCommandIfRequired(SlashCommandBuilder builder, int version)
@@ -348,18 +362,18 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         return true;
     }
 
-    private async Task<bool> RegisterKeywordIfRequired(string key)
+    private async Task<bool> RegisterKeywordIfRequired(string key, string title)
     {
         if (await database.WatchedKeywords.FindAsync(key) != null)
             return false;
 
-        await database.WatchedKeywords.AddAsync(new WatchedKeyword(key));
+        await database.WatchedKeywords.AddAsync(new WatchedKeyword(key, title));
         return true;
     }
 
     private async Task SlashCommandHandler(SocketSlashCommand command)
     {
-        switch (command.Data.Name)
+        switch (command.CommandName)
         {
             case "progress":
                 await HandleProgressCommand(command);
@@ -373,8 +387,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             case "releases":
                 await HandleReleasesCommand(command);
                 break;
-            case "dsuc":
-                await HandleDsucCommand(command);
+            case "dayssince":
+                await HandleDaysSinceCommand(command);
                 break;
             default:
                 await command.RespondAsync("Unknown command! Type `/` to see available commands");
@@ -652,29 +666,37 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 "Displays current language translation statistics for Thrive.");
     }
 
-    private async Task HandleDsucCommand(SocketSlashCommand command)
+    private async Task HandleDaysSinceCommand(SocketSlashCommand command)
     {
         if (!await CheckCanRunAgain(command))
             return;
 
-        WatchedKeyword? underWaterCiv = await database.WatchedKeywords.FindAsync("underWaterCiv");
+        WatchedKeyword? keyword = await database.WatchedKeywords.FindAsync(
+            command.Data.Options.First().Value);
+
+        if (keyword == null)
+        {
+            logger.LogError($"Watched Keyword is null");
+            await command.RespondAsync("Failed to retrive data");
+            return;
+        }
 
         await command.DeferAsync();
 
 #pragma warning disable CS4014 // we don't want to hold up the command processing
 
         // ReSharper disable once StringLiteralTypo
-        SlowDaysSince(command, underWaterCiv!, UnderWaterCivImageTitle);
+        SlowDaysSince(command, keyword);
 #pragma warning restore CS4014
     }
 
-    private async Task SlowDaysSince(SocketSlashCommand command, WatchedKeyword keyword, string title)
+    private async Task SlowDaysSince(SocketSlashCommand command, WatchedKeyword keyword)
     {
         await expensiveOperationLimiter.WaitAsync();
         try
         {
             using var tempFileData = new MemoryStream();
-            var daysSinceImage = await GenerateSlowDaysSinceImage(keyword, title);
+            var daysSinceImage = await GenerateDaysSinceImage(keyword);
 
             await daysSinceImage.SaveAsync(tempFileData, PngFormat.Instance);
 
@@ -691,13 +713,13 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         }
     }
 
-    private async Task SlowDaysSince(SocketMessage message, WatchedKeyword keyword, string title)
+    private async Task SlowDaysSince(SocketMessage message, WatchedKeyword keyword)
     {
         await expensiveOperationLimiter.WaitAsync();
         try
         {
             using var tempFileData = new MemoryStream();
-            var daysSinceImage = await GenerateSlowDaysSinceImage(keyword, title);
+            var daysSinceImage = await GenerateDaysSinceImage(keyword);
 
             await daysSinceImage.SaveAsync(tempFileData, PngFormat.Instance);
 
@@ -714,7 +736,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         }
     }
 
-    private async Task<Image<Rgb24>> GenerateSlowDaysSinceImage(WatchedKeyword keyword, string title)
+    private async Task<Image<Rgb24>> GenerateDaysSinceImage(WatchedKeyword keyword)
     {
         FontCollection fontCollection;
 
@@ -736,7 +758,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         string tagLine = "Days Since Last Mention Of";
         string subtext = "Unofficial Thrive Release Date: " +
-            (DateTime.Today.Year + 10 + keyword.TotalCount).ToString();
+            (DateTime.Today.Year + 10 + GetAllKeywordMentions()).ToString();
         int dayCount = (DateTime.UtcNow.Date - keyword.LastSeen.Date).Days;
 
         if (dayCount < 1)
@@ -753,7 +775,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             var subtextPen = Pens.Solid(Color.Black, 1.0f);
 
             var titleLineOffset = TextMeasurer.Measure(tagLine, titleLineOptions).Width / 2.0f;
-            var titleOffset = TextMeasurer.Measure(title, titleOptions).Width / 2.0f;
+            var titleOffset = TextMeasurer.Measure(keyword.Title, titleOptions).Width / 2.0f;
             var dayOffset = TextMeasurer.Measure(dayCount.ToString(), dayOptions).Width / 2.0f;
             var subtextOffset = TextMeasurer.Measure(subtext, subtextOptions).Width / 2.0f;
 
@@ -761,7 +783,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             x.Fill(titleBrush, new RectangularPolygon(0, 0, width, 125));
 
             x.DrawText(tagLine, titleLineFont, textBrush, titlePen, new PointF((width / 2.0f) - titleLineOffset, 160));
-            x.DrawText(title, titleFont, textBrush, titlePen, new PointF((width / 2.0f) - titleOffset, 220));
+            x.DrawText(keyword.Title, titleFont, textBrush, titlePen, new PointF((width / 2.0f) - titleOffset, 220));
 
             x.DrawText(dayCount.ToString(), dayFont, textBrush, titlePen, new PointF((width / 2.0f) - dayOffset, 300));
 
@@ -772,12 +794,30 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         return daysSinceImage;
     }
 
-    private SlashCommandBuilder BuildDsucCommand()
+    private SlashCommandBuilder BuildDaysSinceCommand()
     {
         return new SlashCommandBuilder()
-            .WithName("dsuc")
+            .WithName("dayssince")
             .WithDescription(
-                "Displays how many days have passed since \"underWater Civilizations\" were last brought up.");
+                "Displays how many days have passed since a keyword was last brought up")
+            .AddOption(new SlashCommandOptionBuilder()
+                .WithName("keyword")
+                .WithRequired(true)
+                .WithDescription("Sets what keyword to display")
+                .AddChoice("UnderwaterCivs", "underWaterCiv")
+                .AddChoice("SentientPlants", "sentientPlant")
+                .WithType(ApplicationCommandOptionType.String));
+    }
+
+    private int GetAllKeywordMentions()
+    {
+        int mentions = 0;
+        foreach (WatchedKeyword keyword in database.WatchedKeywords)
+        {
+            mentions += keyword.TotalCount;
+        }
+
+        return mentions;
     }
 
     private async Task HandleWikiCommand(SocketSlashCommand command)
@@ -1025,39 +1065,45 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private async Task MessageHandler(SocketMessage message)
     {
         if (underWaterCivRegex.IsMatch(message.CleanContent))
+            await HandleKeywordMessage(message, "underWaterCiv");
+        if (sentientPlantRegex.IsMatch(message.CleanContent))
+            await HandleKeywordMessage(message, "sentientPlant");
+    }
+
+    private async Task HandleKeywordMessage(SocketMessage message, string key)
+    {
+        await databaseReadWriteLock.WaitAsync();
+        try
         {
-            await databaseReadWriteLock.WaitAsync();
-            try
+            WatchedKeyword? keyword = await database.WatchedKeywords.FindAsync(key);
+
+            if (keyword == null)
             {
-                WatchedKeyword? underWaterCiv = await database.WatchedKeywords.FindAsync("underWaterCiv");
-
-                if (underWaterCiv == null)
-                {
-                    logger.LogError("Watched Keyword 'underWaterCiv' is null");
-                    return;
-                }
-
-                var streak = (DateTime.UtcNow.Date - underWaterCiv.LastSeen.Date).Days;
-
-                underWaterCiv.LastSeen = message.CreatedAt.DateTime.ToUniversalTime();
-                underWaterCiv.TotalCount += 1;
-
-                await database.SaveChangesAsync();
-
-                if (streak > 7)
-                {
-                    await message.Channel.SendMessageAsync($"The {streak} Day Streak was Broken");
-                    await SlowDaysSince(message, underWaterCiv, UnderWaterCivImageTitle);
-                }
+                logger.LogError($"Watched Keyword {key} is null");
+                return;
             }
-            catch (Exception e)
+
+            var streak = (DateTime.UtcNow.Date - keyword.LastSeen.Date).Days;
+
+            keyword.LastSeen = message.CreatedAt.DateTime.ToUniversalTime();
+            keyword.TotalCount += 1;
+
+            await database.SaveChangesAsync();
+
+            if (streak > 7)
             {
-                logger.LogError(e, "Keyword Update Failed");
+                await message.Channel.SendMessageAsync(
+                    $"The {streak} Day Streak without bringing up {keyword.Title} was Broken");
+                await SlowDaysSince(message, keyword);
             }
-            finally
-            {
-                databaseReadWriteLock.Release();
-            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Keyword Update Failed");
+        }
+        finally
+        {
+            databaseReadWriteLock.Release();
         }
     }
 
