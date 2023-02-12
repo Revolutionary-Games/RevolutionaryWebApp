@@ -672,13 +672,24 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         if (!await CheckCanRunAgain(command))
             return;
 
-        WatchedKeyword? keyword = await database.WatchedKeywords.FindAsync(
-            command.Data.Options.First().Value);
+        WatchedKeyword? keyword;
 
-        if (keyword == null)
+        try
         {
-            logger.LogError($"Watched Keyword is null");
-            await command.RespondAsync("Failed to retrive data");
+            keyword = await database.WatchedKeywords.FindAsync(
+                command.Data.Options.First().Value);
+
+            if (keyword == null)
+            {
+                logger.LogWarning($"Watched Keyword {command.Data.Options.First().Value} is null");
+                await command.RespondAsync("Failed to retrive data");
+                return;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            logger.LogWarning("Empty Command Options Passed to dayssince");
+            await command.RespondAsync("Empty Command Options Passed to dayssince");
             return;
         }
 
