@@ -40,6 +40,7 @@ using Image = SixLabors.ImageSharp.Image;
 public sealed class RevolutionaryDiscordBotService : IDisposable
 {
     private const int SecondsBetweenSameCommand = 10;
+    private const string UnderWaterCivImageTitle = "Underwater Civs";
 
     private static readonly TimeSpan
         CommandIntervalBeforeRunningAgain = TimeSpan.FromSeconds(SecondsBetweenSameCommand);
@@ -55,6 +56,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     ///   Used to limit how many tasks are at once running expensive operations
     /// </summary>
     private readonly SemaphoreSlim expensiveOperationLimiter = new(1);
+
     private readonly SemaphoreSlim databaseReadWriteLock = new(1);
 
     private readonly Dictionary<string, DateTime> lastRanCommands = new();
@@ -68,8 +70,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private readonly Uri progressFontUrl;
     private readonly Uri progressImageUrl;
     private readonly Uri releaseStatsApiUrl;
+    private readonly Regex underWaterCivRegex;
 
-    private Regex underwaterCivRegex;
     private DiscordSocketClient? client;
 
     private TimedResourceCache<List<GithubMilestone>>? githubMilestones;
@@ -106,7 +108,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         releaseStatsApiUrl = new Uri(configuration.GetBaseUrl(), "/api/v1/ReleaseStats");
 
         // Probably a bit obsessive for this one joke, as it's still pretty easy to bypass
-        underwaterCivRegex = new Regex(
+        underWaterCivRegex = new Regex(
             @"un.*(\*|w)(\s|_|\.|\*)*(\*|a)(\s|_|\.|\*)*(\*|t)(\s|_|\.|\*)*(\*|e)(\s|_|\.|\*)*r(\s|_|\.|\*)*c(\*|i)v",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -307,7 +309,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         if (await RegisterGlobalCommandIfRequired(BuildDsucCommand(), 2))
             changes = true;
 
-        if (await RegisterKeywordIfRequired("underwaterciv"))
+        if (await RegisterKeywordIfRequired("underWaterCiv"))
             changes = true;
 
         if (changes)
@@ -655,12 +657,14 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         if (!await CheckCanRunAgain(command))
             return;
 
-        WatchedKeyword? underwaterciv = await database.WatchedKeywords.FindAsync("underwaterciv");
+        WatchedKeyword? underWaterCiv = await database.WatchedKeywords.FindAsync("underWaterCiv");
 
         await command.DeferAsync();
 
 #pragma warning disable CS4014 // we don't want to hold up the command processing
-        SlowDaysSince(command, underwaterciv!, "Underwater Civs");
+
+        // ReSharper disable once StringLiteralTypo
+        SlowDaysSince(command, underWaterCiv!, UnderWaterCivImageTitle);
 #pragma warning restore CS4014
     }
 
@@ -675,11 +679,11 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             await daysSinceImage.SaveAsync(tempFileData, PngFormat.Instance);
 
             tempFileData.Position = 0;
-            await command.FollowupWithFileAsync(tempFileData, "DSUC.png", string.Empty);
+            await command.FollowupWithFileAsync(tempFileData, "last_said.png", string.Empty);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "DSUC image drawing problem");
+            logger.LogError(e, "Days since image drawing problem");
         }
         finally
         {
@@ -698,11 +702,11 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             await daysSinceImage.SaveAsync(tempFileData, PngFormat.Instance);
 
             tempFileData.Position = 0;
-            await message.Channel.SendFileAsync(tempFileData, "DSUC.png", string.Empty);
+            await message.Channel.SendFileAsync(tempFileData, "last_said.png", string.Empty);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "DSUC image drawing problem");
+            logger.LogError(e, "Days since image drawing problem");
         }
         finally
         {
@@ -773,7 +777,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         return new SlashCommandBuilder()
             .WithName("dsuc")
             .WithDescription(
-                "Displays how many days have passed since \"Underwater Civilizations\" were last brought up.");
+                "Displays how many days have passed since \"underWater Civilizations\" were last brought up.");
     }
 
     private async Task HandleWikiCommand(SocketSlashCommand command)
@@ -1020,30 +1024,30 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task MessageHandler(SocketMessage message)
     {
-        if (underwaterCivRegex.IsMatch(message.CleanContent))
+        if (underWaterCivRegex.IsMatch(message.CleanContent))
         {
             await databaseReadWriteLock.WaitAsync();
             try
             {
-                WatchedKeyword? underwaterciv = await database.WatchedKeywords.FindAsync("underwaterciv");
+                WatchedKeyword? underWaterCiv = await database.WatchedKeywords.FindAsync("underWaterCiv");
 
-                if (underwaterciv == null)
+                if (underWaterCiv == null)
                 {
-                    logger.LogError("Watched Keyword 'underwaterciv' is null");
+                    logger.LogError("Watched Keyword 'underWaterCiv' is null");
                     return;
                 }
 
-                var streak = (DateTime.UtcNow.Date - underwaterciv.LastSeen.Date).Days;
+                var streak = (DateTime.UtcNow.Date - underWaterCiv.LastSeen.Date).Days;
 
-                underwaterciv.LastSeen = message.CreatedAt.DateTime.ToUniversalTime();
-                underwaterciv.TotalCount += 1;
+                underWaterCiv.LastSeen = message.CreatedAt.DateTime.ToUniversalTime();
+                underWaterCiv.TotalCount += 1;
 
                 await database.SaveChangesAsync();
 
                 if (streak > 7)
                 {
-                    await message.Channel.SendMessageAsync("The " + streak.ToString() + " Day Streak was Broken");
-                    await SlowDaysSince(message, underwaterciv, "Underwater Civs");
+                    await message.Channel.SendMessageAsync($"The {streak} Day Streak was Broken");
+                    await SlowDaysSince(message, underWaterCiv, UnderWaterCivImageTitle);
                 }
             }
             catch (Exception e)

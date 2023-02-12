@@ -3324,7 +3324,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("keyword");
 
-                    b.Property<DateTimeOffset?>("LastSeen")
+                    b.Property<DateTime>("LastSeen")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_seen");
 

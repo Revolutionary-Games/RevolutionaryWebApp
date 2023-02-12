@@ -13,7 +13,7 @@ using ThriveDevCenter.Server.Models;
 namespace ThriveDevCenter.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20230211182354_AddWatchedKeywords")]
+    [Migration("20230212094811_AddWatchedKeywords")]
     partial class AddWatchedKeywords
     {
         /// <inheritdoc />
@@ -3327,7 +3327,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("keyword");
 
-                    b.Property<DateTimeOffset?>("LastSeen")
+                    b.Property<DateTime>("LastSeen")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_seen");
 

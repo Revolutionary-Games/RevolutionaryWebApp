@@ -16,7 +16,7 @@ namespace ThriveDevCenter.Server.Migrations
                 columns: table => new
                 {
                     keyword = table.Column<string>(type: "text", nullable: false),
-                    lastseen = table.Column<DateTimeOffset>(name: "last_seen", type: "timestamp with time zone", nullable: true),
+                    lastseen = table.Column<DateTime>(name: "last_seen", type: "timestamp with time zone", nullable: false),
                     totalcount = table.Column<int>(name: "total_count", type: "integer", nullable: false)
                 },
                 constraints: table =>
