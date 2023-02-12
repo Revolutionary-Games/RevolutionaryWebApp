@@ -22,7 +22,26 @@ public class CodeChecks : CodeChecksBase<Program.CheckOptions>
     };
 
     protected override IEnumerable<string> ForceIgnoredJetbrainsInspections =>
-        new[] { "CSharpErrors", "Html.PathError" };
+        new[]
+        {
+            "CSharpErrors",
+            "Html.PathError",
+            "DeclarationIsEmpty",
+            "UnknownCssClass",
+
+            // These refuse to read the right values even when configured by WebStorm.
+            // Perhaps the issue is that Project_Default.xml is not read by the code inspection for some reason?
+            "CssNotResolved",
+            "CssBrowserCompatibility",
+            "Es6Feature",
+
+            // This is probably related to not detecting es6 or not detecting that things should be running in the
+            // browser
+            "UndeclaredGlobalVariableUsing",
+
+            // This check seems to entirely work incorrectly for JavaScript
+            "UnusedParameter",
+        };
 
     protected override IEnumerable<string> ExtraIgnoredJetbrainsInspectWildcards => new[] { "Server/Migrations/*" };
 

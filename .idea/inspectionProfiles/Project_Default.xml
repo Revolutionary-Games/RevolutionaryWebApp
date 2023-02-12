@@ -1,7 +1,29 @@
 <component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
+    <inspection_tool class="CssBrowserCompatibilityForProperties" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="myChromeVersion" value="79" />
+      <option name="myEdgeVersion" value="79" />
+      <option name="myFirefoxVersion" value="65" />
+      <option name="myCheckIE" value="false" />
+      <option name="myOperaVersion" value="58" />
+      <option name="mySafariVersion" value="13" />
+    </inspection_tool>
+    <inspection_tool class="CssMissingSemicolon" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CssUnknownProperty" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="myCustomPropertiesEnabled" value="true" />
+      <option name="myIgnoreVendorSpecificProperties" value="false" />
+      <option name="myCustomPropertiesList">
+        <value>
+          <list size="1">
+            <item index="0" class="java.lang.String" itemvalue="deep" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="CssUnusedSymbol" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="JSUnusedGlobalSymbols" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="JSUnusedLocalSymbols" enabled="false" level="WARNING" enabled_by_default="false" editorAttributes="WARNING_ATTRIBUTES" />
     <inspection_tool class="Rubocop" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="RubyClassModuleNamingConvention" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_minLength" value="2" />

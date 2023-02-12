@@ -120,7 +120,7 @@ function reportFormFileChunksUploaded(fileName) {
 
 function performPut(url, type, body) {
     return new Promise((resolve, _) => {
-        fetch(url, {
+        window.fetch(url, {
             method: 'PUT',
             headers: {
                 "Content-Type": type ?? "application/octet-stream"
