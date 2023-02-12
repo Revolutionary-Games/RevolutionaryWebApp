@@ -15,6 +15,7 @@ using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -758,7 +759,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         string tagLine = "Days Since Last Mention Of";
         string subtext = "Unofficial Thrive Release Date: " +
-            (DateTime.Today.Year + 10 + GetAllKeywordMentions()).ToString();
+            (DateTime.Today.Year + 10 + await database.WatchedKeywords.SumAsync(val => val.TotalCount)).ToString();
         int dayCount = (DateTime.UtcNow.Date - keyword.LastSeen.Date).Days;
 
         if (dayCount < 1)
@@ -807,17 +808,6 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 .AddChoice("UnderwaterCivs", "underWaterCiv")
                 .AddChoice("SentientPlants", "sentientPlant")
                 .WithType(ApplicationCommandOptionType.String));
-    }
-
-    private int GetAllKeywordMentions()
-    {
-        int mentions = 0;
-        foreach (WatchedKeyword keyword in database.WatchedKeywords)
-        {
-            mentions += keyword.TotalCount;
-        }
-
-        return mentions;
     }
 
     private async Task HandleWikiCommand(SocketSlashCommand command)
