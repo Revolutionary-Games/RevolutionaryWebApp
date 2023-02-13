@@ -18,5 +18,5 @@ public class WatchedKeyword
 
     public DateTime LastSeen { get; set; } = DateTime.UtcNow;
 
-    public int TotalCount { get; set; } = 0;
+    public int TotalCount { get; set; }
 }
