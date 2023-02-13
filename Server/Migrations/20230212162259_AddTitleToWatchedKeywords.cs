@@ -5,7 +5,7 @@
 namespace ThriveDevCenter.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateWatchedKeywordValues : Migration
+    public partial class AddTitleToWatchedKeywords : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
