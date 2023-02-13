@@ -1078,9 +1078,16 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     {
         if (!receivedAMessage)
         {
+            var guild = "unknown";
+
+            if (message.Channel is SocketGuildChannel guildChannel)
+            {
+                guild = guildChannel.Guild.Name;
+            }
+
             receivedAMessage = true;
             logger.LogInformation("We have seen a Discord message now from: {Channel} in server: {Guild}",
-                message.Channel.Name, message.Reference.GuildId);
+                message.Channel.Name, guild);
         }
 
         if (underWaterCivRegex.IsMatch(message.CleanContent))
