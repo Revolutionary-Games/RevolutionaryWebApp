@@ -63,6 +63,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Backup> Backups { get; set; } = null!;
     public DbSet<AssociationMember> AssociationMembers { get; set; } = null!;
     public DbSet<GlobalDiscordBotCommand> GlobalDiscordBotCommands { get; set; } = null!;
+    public DbSet<WatchedKeyword> WatchedKeywords { get; set; } = null!;
     public DbSet<RepoForReleaseStats> ReposForReleaseStats { get; set; } = null!;
     public DbSet<Feed> Feeds { get; set; } = null!;
     public DbSet<FeedDiscordWebhook> FeedDiscordWebhooks { get; set; } = null!;
