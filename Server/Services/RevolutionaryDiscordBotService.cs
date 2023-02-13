@@ -328,7 +328,10 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Registering global commands failed.");
+            logger.LogError(e, "Registering global commands failed");
+
+            // If the bot can't register commands, it might as well not run
+            throw;
         }
         finally
         {
