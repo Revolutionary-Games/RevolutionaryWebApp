@@ -1120,7 +1120,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             if (streak > 7)
             {
                 await message.Channel.SendMessageAsync(
-                    $"The {(int)streak} day streak without bringing up {keyword.Title} was broken");
+                    $"The {(int)streak} day streak without bringing up {keyword.Title} has been broken");
                 await OnSlowDaysSinceStreakBroken(message, keyword);
             }
         }
