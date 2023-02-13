@@ -88,6 +88,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private DateTime? disconnectedSince;
 
+    private bool receivedAMessage;
+
     public RevolutionaryDiscordBotService(ILogger<RevolutionaryDiscordBotService> logger, IConfiguration configuration,
         IHttpClientFactory httpClientFactory, ApplicationDbContext database)
     {
@@ -355,7 +357,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         if (await database.GlobalDiscordBotCommands.FindAsync(key) != null)
             return false;
 
-        await database.GlobalDiscordBotCommands.AddAsync(new GlobalDiscordBotCommand(key));
+        var createdCommand = new GlobalDiscordBotCommand(key);
+        await database.GlobalDiscordBotCommands.AddAsync(createdCommand);
 
         try
         {
@@ -364,6 +367,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         catch (HttpException e)
         {
             logger.LogError(e, "Failed to register global command {Key}", key);
+            database.GlobalDiscordBotCommands.Remove(createdCommand);
             return false;
         }
 
@@ -1072,6 +1076,13 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task MessageHandler(SocketMessage message)
     {
+        if (!receivedAMessage)
+        {
+            receivedAMessage = true;
+            logger.LogInformation("We have seen a Discord message now from: {Channel} in server: {Guild}",
+                message.Channel.Name, message.Reference.GuildId);
+        }
+
         if (underWaterCivRegex.IsMatch(message.CleanContent))
             await HandleKeywordMessage(message, UnderwaterCivIdentifier);
 
