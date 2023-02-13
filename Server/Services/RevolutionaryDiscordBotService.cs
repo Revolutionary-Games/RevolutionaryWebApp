@@ -42,6 +42,10 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 {
     private const int SecondsBetweenSameCommand = 10;
 
+    private const string DaysSinceCommand = "dayssince";
+    private const string UnderwaterCivIdentifier = "underWaterCiv";
+    private const string SentientPlantsIdentifier = "sentientPlant";
+
     private static readonly TimeSpan
         CommandIntervalBeforeRunningAgain = TimeSpan.FromSeconds(SecondsBetweenSameCommand);
 
@@ -312,12 +316,13 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 changes = true;
             if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 2))
                 changes = true;
-            if (await RegisterGlobalCommandIfRequired(BuildDaysSinceCommand(), 2))
+            if (await RegisterGlobalCommandIfRequired(BuildDaysSinceCommand(), 1))
                 changes = true;
 
-            if (await RegisterKeywordIfRequired("underWaterCiv", "Underwater Civs"))
+            // ReSharper disable once StringLiteralTypo
+            if (await RegisterKeywordIfRequired(UnderwaterCivIdentifier, "Underwater Civs"))
                 changes = true;
-            if (await RegisterKeywordIfRequired("sentientPlant", "Sentient Plants"))
+            if (await RegisterKeywordIfRequired(SentientPlantsIdentifier, "Sentient Plants"))
                 changes = true;
 
             if (changes)
@@ -391,7 +396,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             case "releases":
                 await HandleReleasesCommand(command);
                 break;
-            case "dayssince":
+            case DaysSinceCommand:
                 await HandleDaysSinceCommand(command);
                 break;
             default:
@@ -675,24 +680,23 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         if (!await CheckCanRunAgain(command))
             return;
 
-        WatchedKeyword? keyword;
-
+        string keywordName;
         try
         {
-            keyword = await database.WatchedKeywords.FindAsync(
-                command.Data.Options.First().Value);
-
-            if (keyword == null)
-            {
-                logger.LogWarning("Watched Keyword {Value} is null", command.Data.Options.First().Value);
-                await command.RespondAsync("Failed to retrieve data");
-                return;
-            }
+            keywordName = (string)command.Data.Options.First().Value;
         }
-        catch (InvalidOperationException)
+        catch (Exception e)
         {
-            logger.LogWarning("Empty Command Options Passed to dayssince");
-            await command.RespondAsync("Empty Command Options Passed to dayssince");
+            logger.LogInformation(e, "User sent invalid command options to days since command");
+            await command.RespondAsync("Empty command options passed to days since");
+            return;
+        }
+
+        var keyword = await database.WatchedKeywords.FindAsync(keywordName);
+
+        if (keyword == null)
+        {
+            await command.RespondAsync("Could not find days since data for the specified keyword");
             return;
         }
 
@@ -728,7 +732,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         }
     }
 
-    private async Task SlowDaysSince(SocketMessage message, WatchedKeyword keyword)
+    private async Task OnSlowDaysSinceStreakBroken(SocketMessage message, WatchedKeyword keyword)
     {
         await expensiveOperationLimiter.WaitAsync();
         try
@@ -753,10 +757,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task<Image<Rgb24>> GenerateDaysSinceImage(WatchedKeyword keyword)
     {
-        FontCollection fontCollection;
-
         var fontWaitTask = fonts!.Value;
-        fontCollection = await fontWaitTask;
+        var fontCollection = await fontWaitTask;
 
         int width = 600;
         int height = 750;
@@ -773,8 +775,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         string tagLine = "Days Since Last Mention Of";
         string subtext = "Unofficial Thrive Release Date: " +
-            (DateTime.Today.Year + 10 + await database.WatchedKeywords.SumAsync(val => val.TotalCount)).ToString();
-        int dayCount = (DateTime.UtcNow.Date - keyword.LastSeen.Date).Days;
+            (DateTime.Today.Year + 10 + await database.WatchedKeywords.SumAsync(w => w.TotalCount));
+        int dayCount = (int)Math.Round((DateTime.UtcNow.Date - keyword.LastSeen.Date).TotalDays);
 
         if (dayCount < 1)
             dayCount = 0;
@@ -812,15 +814,17 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private SlashCommandBuilder BuildDaysSinceCommand()
     {
         return new SlashCommandBuilder()
-            .WithName("dayssince")
+            .WithName(DaysSinceCommand)
             .WithDescription(
                 "Displays how many days have passed since a keyword was last brought up")
             .AddOption(new SlashCommandOptionBuilder()
                 .WithName("keyword")
                 .WithRequired(true)
                 .WithDescription("Sets what keyword to display")
-                .AddChoice("UnderwaterCivs", "underWaterCiv")
-                .AddChoice("SentientPlants", "sentientPlant")
+
+                // ReSharper disable once StringLiteralTypo
+                .AddChoice("UnderwaterCivs", UnderwaterCivIdentifier)
+                .AddChoice("SentientPlants", SentientPlantsIdentifier)
                 .WithType(ApplicationCommandOptionType.String));
     }
 
@@ -1069,9 +1073,10 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private async Task MessageHandler(SocketMessage message)
     {
         if (underWaterCivRegex.IsMatch(message.CleanContent))
-            await HandleKeywordMessage(message, "underWaterCiv");
+            await HandleKeywordMessage(message, UnderwaterCivIdentifier);
+
         if (sentientPlantRegex.IsMatch(message.CleanContent))
-            await HandleKeywordMessage(message, "sentientPlant");
+            await HandleKeywordMessage(message, SentientPlantsIdentifier);
     }
 
     private async Task HandleKeywordMessage(SocketMessage message, string key)
@@ -1079,7 +1084,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         await databaseReadWriteLock.WaitAsync();
         try
         {
-            WatchedKeyword? keyword = await database.WatchedKeywords.FindAsync(key);
+            var keyword = await database.WatchedKeywords.FindAsync(key);
 
             if (keyword == null)
             {
@@ -1087,7 +1092,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 return;
             }
 
-            var streak = (DateTime.UtcNow.Date - keyword.LastSeen.Date).Days;
+            var streak = (DateTime.UtcNow.Date - keyword.LastSeen.Date).TotalDays;
 
             keyword.LastSeen = message.CreatedAt.DateTime.ToUniversalTime();
             keyword.TotalCount += 1;
@@ -1097,13 +1102,13 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             if (streak > 7)
             {
                 await message.Channel.SendMessageAsync(
-                    $"The {streak} Day Streak without bringing up {keyword.Title} was Broken");
-                await SlowDaysSince(message, keyword);
+                    $"The {(int)streak} day streak without bringing up {keyword.Title} was broken");
+                await OnSlowDaysSinceStreakBroken(message, keyword);
             }
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Keyword Update Failed");
+            logger.LogError(e, "WatchedKeyword reacting to said keyword failed");
         }
         finally
         {
