@@ -684,8 +684,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
             if (keyword == null)
             {
-                logger.LogWarning($"Watched Keyword {command.Data.Options.First().Value} is null");
-                await command.RespondAsync("Failed to retrive data");
+                logger.LogWarning("Watched Keyword {Value} is null", command.Data.Options.First().Value);
+                await command.RespondAsync("Failed to retrieve data");
                 return;
             }
         }
@@ -1083,7 +1083,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
             if (keyword == null)
             {
-                logger.LogError($"Watched Keyword {key} is null");
+                logger.LogError("Could not find WatchedKeyword data for: {Key}", key);
                 return;
             }
 
