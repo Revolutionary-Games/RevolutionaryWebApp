@@ -1,7 +1,7 @@
 namespace ThriveDevCenter.Shared.Notifications;
 
 /// <summary>
-///  Specifies what happened in a list change notification
+///   Specifies what happened in a list change notification
 /// </summary>
 public enum ListItemChangeType
 {

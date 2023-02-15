@@ -203,7 +203,7 @@ public class NotificationHandler : IAsyncDisposable
     /// </summary>
     /// <remarks>
     ///   <para>
-    ///      TODO: for performance reasons it would be nice to rate-limit this
+    ///     TODO: for performance reasons it would be nice to rate-limit this
     ///   </para>
     /// </remarks>
     public Task NotifyWantedGroupsChanged()

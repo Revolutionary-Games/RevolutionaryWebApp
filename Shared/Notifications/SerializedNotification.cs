@@ -21,7 +21,7 @@ public abstract class SerializedNotification
 /// </summary>
 /// <remarks>
 ///   <para>
-///      This works by wrapping the given notification object in one more level of object that contains the type.
+///     This works by wrapping the given notification object in one more level of object that contains the type.
 ///   </para>
 /// </remarks>
 public class NotificationJsonConverter : JsonConverter<SerializedNotification>

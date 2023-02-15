@@ -21,8 +21,8 @@ using Utilities;
 /// </summary>
 /// <remarks>
 ///   <para>
-///      This currently used a pretty hacked together approach to get this working, see this issue for improving
-///      things: https://github.com/dotnet/aspnetcore/issues/4892
+///     This currently used a pretty hacked together approach to get this working, see this issue for improving
+///     things: https://github.com/dotnet/aspnetcore/issues/4892
 ///   </para>
 /// </remarks>
 public abstract class WebHostServerFixture : IDisposable

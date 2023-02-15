@@ -45,8 +45,8 @@ public interface IStackwalk
     ///   Takes in a callstack with register and other info present and condenses it
     /// </summary>
     /// <param name="callstack">
-    ///     The callstack to process, for example from <see cref="FindPrimaryCallstack"/>.
-    ///     If null, null is returned.
+    ///   The callstack to process, for example from <see cref="FindPrimaryCallstack"/>.
+    ///   If null, null is returned.
     /// </param>
     /// <returns>The condensed callstack with just the function and location information</returns>
     public string? CondenseCallstack(string? callstack);
