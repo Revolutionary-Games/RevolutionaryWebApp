@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Services;
+﻿namespace ThriveDevCenter.Server.Services;
 
 using System;
 using Renci.SshNet;
@@ -71,14 +71,6 @@ public class BaseSSHAccess : IDisposable, IBaseSSHAccess
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            Client?.Dispose();
-        }
-    }
-
     protected void StartNewConnection(string address, string username, PrivateKeyAuthenticationMethod auth)
     {
         Client?.Dispose();
@@ -99,6 +91,14 @@ public class BaseSSHAccess : IDisposable, IBaseSSHAccess
     {
         if (!Configured)
             throw new Exception("SSH access to external / controlled server is not configured");
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            Client?.Dispose();
+        }
     }
 
     // TODO: move out of this class

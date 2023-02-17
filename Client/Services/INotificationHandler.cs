@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Services;
+﻿namespace ThriveDevCenter.Client.Services;
 
 using System.Collections.Generic;
 using System.Threading;
@@ -9,7 +9,7 @@ using ThriveDevCenter.Shared.Notifications;
 public interface INotificationHandler<in T> : IGroupListener
     where T : SerializedNotification
 {
-    Task Handle(T notification, CancellationToken cancellationToken);
+    public Task Handle(T notification, CancellationToken cancellationToken);
 }
 
 public interface IGroupListener
@@ -19,5 +19,5 @@ public interface IGroupListener
     /// </summary>
     /// <param name="currentAccessLevel">The current access there is to the system</param>
     /// <param name="groups">This is where the groups should be added</param>
-    void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
 }

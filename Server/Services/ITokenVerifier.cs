@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Services;
+﻿namespace ThriveDevCenter.Server.Services;
 
 using System;
 using System.Collections.Generic;
@@ -13,13 +13,13 @@ using Models;
 
 public interface ITokenVerifier
 {
-    bool IsValidCSRFToken(string tokenString, User? requiredUser, bool verifyUser = true);
+    public bool IsValidCSRFToken(string tokenString, User? requiredUser, bool verifyUser = true);
 }
 
 public interface ITokenGenerator
 {
-    string GenerateCSRFToken(User? user);
-    DateTime GetCSRFTokenExpiry();
+    public string GenerateCSRFToken(User? user);
+    public DateTime GetCSRFTokenExpiry();
 }
 
 public abstract class JwtBase

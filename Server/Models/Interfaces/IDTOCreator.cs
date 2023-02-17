@@ -1,6 +1,6 @@
-namespace ThriveDevCenter.Server.Models.Interfaces;
+﻿namespace ThriveDevCenter.Server.Models.Interfaces;
 
 public interface IDTOCreator<T>
 {
-    T GetDTO();
+    public T GetDTO();
 }

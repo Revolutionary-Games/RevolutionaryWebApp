@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Shared;
+﻿namespace ThriveDevCenter.Client.Shared;
 
 using System;
 using Microsoft.Extensions.Logging;
@@ -39,15 +39,15 @@ public class JavaScriptConsoleLogger : ILogger
 
 public class JavaScriptConsoleLoggerProvider : ILoggerProvider
 {
+    public ILogger CreateLogger(string categoryName)
+    {
+        return new JavaScriptConsoleLogger(categoryName);
+    }
+
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    public ILogger CreateLogger(string categoryName)
-    {
-        return new JavaScriptConsoleLogger(categoryName);
     }
 
     protected virtual void Dispose(bool disposing)

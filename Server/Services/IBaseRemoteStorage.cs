@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Services;
+﻿namespace ThriveDevCenter.Server.Services;
 
 using System;
 using System.Collections.Generic;
@@ -491,20 +491,20 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            s3Client?.Dispose();
-        }
-    }
-
     protected void ThrowIfNotConfigured()
     {
         if (!Configured || s3Client == null)
         {
             throw new HttpResponseException
                 { Status = StatusCodes.Status500InternalServerError, Value = "Remote storage is not configured" };
+        }
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            s3Client?.Dispose();
         }
     }
 }

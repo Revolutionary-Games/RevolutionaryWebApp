@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Services;
+﻿namespace ThriveDevCenter.Server.Services;
 
 using System;
 using System.Collections.Generic;
@@ -156,14 +156,6 @@ public class GithubAPI : IGithubAPI
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            client?.Dispose();
-        }
-    }
-
     protected bool CheckIsConfigured()
     {
         if (Configured && client != null)
@@ -182,6 +174,14 @@ public class GithubAPI : IGithubAPI
         var content = await response.Content.ReadAsStringAsync();
         logger.LogError("Failed to access Github API {ReasonPhrase} (code: {StatusCode}): {Content}",
             response.StatusCode, response.ReasonPhrase, content);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            client?.Dispose();
+        }
     }
 
     // ReSharper disable UnusedAutoPropertyAccessor.Local
