@@ -19,6 +19,7 @@ public class CodeChecks : CodeChecksBase<Program.CheckOptions>
 
         // Cleanup doesn't currently work nicely for the DevCenter (due to not working on .razor files)
         // { "cleanupcode", new CleanupCode() },
+        { "rewrite", new RewriteTool() },
     };
 
     protected override IEnumerable<string> ForceIgnoredJetbrainsInspections =>

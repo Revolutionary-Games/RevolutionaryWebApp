@@ -53,9 +53,13 @@ jobs:
       - run:
           name: Jetbrains inspectcode
           command: dotnet run --project Scripts -- check inspectcode
+      # This doesn't work for .razor files so this is disabled
       # - run:
       #     name: Jetbrains format
       #     command: dotnet run --project Scripts -- check cleanupcode
+      - run:
+          name: Code rewrite format only (no JetBrains)
+          command: dotnet run --project Scripts -- check rewrite
       - run:
           when: always
           name: Check cleanup changes
