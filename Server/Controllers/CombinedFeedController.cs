@@ -109,7 +109,7 @@ public class CombinedFeedController : Controller
 
     [HttpPut("{id:long}")]
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-    public async Task<IActionResult> Update([Required] [FromBody] CombinedFeedDTO request)
+    public async Task<IActionResult> UpdateCombinedFeed([Required] [FromBody] CombinedFeedDTO request)
     {
         if (!CheckPollIntervalParameters(request))
             return BadRequest("Cache time is not between 1 minute and 1 hour");
