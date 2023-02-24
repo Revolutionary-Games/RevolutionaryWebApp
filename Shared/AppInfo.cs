@@ -60,6 +60,8 @@ public static class AppInfo
 
     public const int MinimumReportTextSearchLength = 3;
 
+    public const int MaxDiscordMessageLength = 1999;
+
     /// <summary>
     ///   Maximum size of a file to upload through LFS
     /// </summary>
