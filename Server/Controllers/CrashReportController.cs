@@ -239,7 +239,8 @@ public class CrashReportController : Controller
         var results = await query.Select(r => new { r.Id }).OrderByDescending(r => r.Id - report.Id)
             .Take(AppInfo.MaximumSameReporterReports).ToListAsync();
 
-        return results.Select(r => r.Id).ToList();
+        // All reports will be by the same reporter as themselves, so filter that out
+        return results.Where(r => r.Id != report.Id).Select(r => r.Id).ToList();
     }
 
     // For now just admin access to the email
