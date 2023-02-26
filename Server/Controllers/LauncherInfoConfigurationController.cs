@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Controllers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -92,6 +93,27 @@ public class LauncherInfoConfigurationController : Controller
 
         // Everything is configured right
         return Ok();
+    }
+
+    [HttpGet("keyExpiry")]
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    public ActionResult<DateTime> GetSigningExpiry()
+    {
+        var expiry = configuration["Launcher:InfoKeyExpires"];
+
+        if (string.IsNullOrWhiteSpace(expiry))
+            return NotFound();
+
+        if (!DateTime.TryParse(expiry, CultureInfo.InvariantCulture, out var expiryTime))
+        {
+            throw new HttpResponseException
+            {
+                Status = (int)HttpStatusCode.InternalServerError,
+                Value = "Parsing expiry time failed",
+            };
+        }
+
+        return expiryTime;
     }
 
     [HttpGet("mirrors")]

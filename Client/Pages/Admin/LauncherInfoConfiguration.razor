@@ -19,6 +19,35 @@
     {
         <p>Is configured right for launchers to receive the active info: @infoStatus</p>
         <p>Note the above info won't automatically update without refreshing this page</p>
+
+        @if (signingKeyExpiryTime == null)
+        {
+            <span class="badge badge-danger">Launcher signing key expiry is unknown</span>
+        }
+        else
+        {
+            var timeLeft = signingKeyExpiryTime.Value - DateTime.UtcNow;
+            var dayDisplay = Math.Round(timeLeft.TotalDays);
+
+            if (timeLeft > TimeSpan.FromDays(300))
+            {
+                <span class="badge badge-success">Launcher signing key expires in @dayDisplay days</span>
+            }
+            else if (timeLeft > TimeSpan.FromDays(100))
+            {
+                <span class="badge badge-warning">Launcher signing key expires in @dayDisplay days</span>
+            }
+            else if (timeLeft < TimeSpan.FromSeconds(1))
+            {
+                <span class="badge badge-danger">LAUNCHER SIGNING KEY HAS EXPIRED @(-timeLeft) AGO!</span>
+            }
+            else
+            {
+                <span class="badge badge-danger">Launcher signing key expires in @dayDisplay days</span>
+            }
+        }
+
+        <br/>
     }
 
     <h4 class="mt-2">Thrive Versions</h4>
@@ -57,6 +86,8 @@
     private bool fetchingInfoStatus = true;
     private string infoStatus = "unknown";
 
+    private DateTime? signingKeyExpiryTime;
+
     private string? createMessage;
     private SiteNoticeType createMessageType;
 
@@ -72,6 +103,23 @@
         try
         {
             result = await Http.GetAsync("api/v1/LauncherInfoConfiguration");
+
+            try
+            {
+                signingKeyExpiryTime =
+                    await Http.GetFromJsonAsync<DateTime>("api/v1/LauncherInfoConfiguration/keyExpiry");
+            }
+            catch (HttpRequestException e)
+            {
+                if (e.StatusCode == HttpStatusCode.NotFound)
+                {
+                    signingKeyExpiryTime = null;
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
         catch (HttpRequestException e)
         {
