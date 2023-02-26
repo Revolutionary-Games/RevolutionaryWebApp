@@ -198,7 +198,7 @@ public class CrashReportController : Controller
         bool developer = HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
             AuthenticationScopeRestriction.None);
 
-        var report = await WithoutLogs(database.CrashReports, true).Where(r => r.Id == id)
+        var report = await WithoutLogs(database.CrashReports, false).Where(r => r.Id == id)
             .FirstOrDefaultAsync();
 
         if (report == null)
@@ -215,6 +215,29 @@ public class CrashReportController : Controller
         // A maximum limit is imposed on the number of returned rows to not return a ton of data
         var results = await query.Select(r => new { r.Id }).OrderByDescending(r => r.Id)
             .Take(AppInfo.MaximumDuplicateReports).ToListAsync();
+
+        return results.Select(r => r.Id).ToList();
+    }
+
+    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [HttpGet("{id:long}/bySameReporter")]
+    public async Task<ActionResult<List<long>>> ReportsFromSameReporter([Required] long id)
+    {
+        var report = await WithoutLogs(database.CrashReports, true).Where(r => r.Id == id)
+            .FirstOrDefaultAsync();
+
+        if (report == null)
+            return NotFound();
+
+        // Developers can view all items, others can only view public items so also limit the duplicates list
+        var query = !string.IsNullOrEmpty(report.ReporterEmail) ?
+            database.CrashReports.Where(r =>
+                r.ReporterEmail == report.ReporterEmail || r.UploadedFrom == report.UploadedFrom) :
+            database.CrashReports.Where(r => r.UploadedFrom == report.UploadedFrom);
+
+        // A maximum limit is imposed on the number of returned rows to not return a ton of data
+        var results = await query.Select(r => new { r.Id }).OrderByDescending(r => r.Id - report.Id)
+            .Take(AppInfo.MaximumSameReporterReports).ToListAsync();
 
         return results.Select(r => r.Id).ToList();
     }

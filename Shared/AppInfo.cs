@@ -108,6 +108,7 @@ public static class AppInfo
 
     public const int CrashDumpDumpFileRetentionDays = 90;
     public const int MaximumDuplicateReports = 1000;
+    public const int MaximumSameReporterReports = 200;
 
     public const int ShortTableNotificationFetchTimer = 400;
     public const int NormalTableNotificationFetchTimer = 1000;

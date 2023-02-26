@@ -63,7 +63,7 @@
         <div class="row">
             @* TODO: replace max width with something that works better, for now it fixes things to look better
             on really wide monitors *@
-            <div class="@ViewColumnClass()" style="@MinimumWidthLeftSide()">
+            <div class="@ViewColumnClass()" style="@MinimumWidthLeftSide();">
                 <h4>Duplicates</h4>
 
                 @if (fetchingDuplicates)
@@ -111,6 +111,61 @@
                                         OnPressed="@(() => SetDuplicatesFullShowing(true))">
                                     Show All @duplicates.Count Duplicates
                                 </Button>
+                            }
+                        }
+                    }
+                }
+
+                @if (CurrentUserInfo.IsDeveloper)
+                {
+                    <h4 class="mt-3">Reports from same reporter</h4>
+
+                    @if (fetchingSameReporterInfo)
+                    {
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    }
+                    else if (bySameReporter != null)
+                    {
+                        @if (bySameReporter.Count < 1)
+                        {
+                            <span>No other reports by the same reporter.</span>
+                        }
+                        else
+                        {
+                            <ul>
+                                @foreach (var sameReporter in bySameReporter.Take(showAllOthersFromSameReporter ?
+                                    AppInfo.MaximumSameReporterReports : SmallDuplicateAmount))
+                                {
+                                    <li><NavLink href="@($"/reports/{sameReporter}")">Report @sameReporter</NavLink></li>
+                                }
+                            </ul>
+
+                            @if (bySameReporter.Count >= AppInfo.MaximumSameReporterReports)
+                            {
+                                <p>
+                                    This reporter has made so many reports that not all can be shown.
+                                    Only @AppInfo.MaximumSameReporterReports are shown.
+                                </p>
+                            }
+
+                            @if (bySameReporter.Count > SmallDuplicateAmount)
+                            {
+                                @if (showAllOthersFromSameReporter)
+                                {
+                                    <Button ButtonStyle="secondary"
+                                            OnPressed="@(() => SetSameReporterFullShowing(false))">
+                                        Show Only Few Reports From the Same Person
+                                    </Button>
+                                }
+                                else
+                                {
+                                    <Button ButtonStyle="secondary"
+                                            OnPressed="@(() => SetSameReporterFullShowing(true))">
+                                        Show All @bySameReporter.Count Reports by the Same Person
+                                    </Button>
+                                }
                             }
                         }
                     }
@@ -283,6 +338,10 @@
     private List<long>? duplicates;
     private bool showAllDuplicates;
 
+    private bool fetchingSameReporterInfo;
+    private List<long>? bySameReporter;
+    private bool showAllOthersFromSameReporter;
+
     private bool fetchingLogs;
     private string? logs;
 
@@ -320,6 +379,7 @@
 
         if (CurrentUserInfo.IsDeveloper)
         {
+            tasks.Add(FetchReportsBySameReporter());
             tasks.Add(FetchLogs());
             tasks.Add(FetchCrashDump());
         }
@@ -346,6 +406,28 @@
         finally
         {
             fetchingDuplicates = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task FetchReportsBySameReporter()
+    {
+        bySameReporter = null;
+        fetchingSameReporterInfo = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            bySameReporter = await Http.GetFromJsonAsync<List<long>>($"api/v1/CrashReport/{Id}/bySameReporter");
+        }
+        catch (Exception e)
+        {
+            topStatus = $"Fetching reports by same reporter failed: {e.Message}";
+            topStatusType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            fetchingSameReporterInfo = false;
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -437,6 +519,12 @@
     private Task SetDuplicatesFullShowing(bool showAll)
     {
         showAllDuplicates = showAll;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task SetSameReporterFullShowing(bool showAll)
+    {
+        showAllOthersFromSameReporter = showAll;
         return InvokeAsync(StateHasChanged);
     }
 
