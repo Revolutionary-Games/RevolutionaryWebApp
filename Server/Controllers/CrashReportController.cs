@@ -571,6 +571,7 @@ public class CrashReportController : Controller
                     DescriptionLastEditedById = c.DescriptionLastEditedById,
                     DeleteKey = c.DeleteKey,
                     ReporterEmail = c.ReporterEmail,
+                    UploadedFrom = c.UploadedFrom,
                 });
         }
 
@@ -597,6 +598,7 @@ public class CrashReportController : Controller
                 DescriptionLastEditedById = c.DescriptionLastEditedById,
                 DeleteKey = c.DeleteKey,
                 ReporterEmail = c.ReporterEmail,
+                UploadedFrom = c.UploadedFrom,
             });
     }
 }
