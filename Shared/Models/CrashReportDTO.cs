@@ -25,6 +25,8 @@ public class CrashReportDTO : ClientSideTimedModel, ICloneable
     public long? DuplicateOfId { get; set; }
     public bool CanReProcess { get; set; }
 
+    public string? AnonymizedReporterIp { get; set; }
+
     public object Clone()
     {
         return new CrashReportDTO
@@ -43,6 +45,7 @@ public class CrashReportDTO : ClientSideTimedModel, ICloneable
             DescriptionLastEditedById = DescriptionLastEditedById,
             DuplicateOfId = DuplicateOfId,
             CanReProcess = CanReProcess,
+            AnonymizedReporterIp = AnonymizedReporterIp,
         };
     }
 }

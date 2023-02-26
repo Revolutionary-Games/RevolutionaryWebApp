@@ -45,6 +45,11 @@
                 </NavLink></li>
             }
 
+            @if (CurrentUserInfo.IsDeveloper)
+            {
+                <li><strong>Anonymized reporter IP</strong>: @Data.AnonymizedReporterIp</li>
+            }
+
             <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
             <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
         </ul>

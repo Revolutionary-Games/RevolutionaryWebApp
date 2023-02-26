@@ -132,7 +132,8 @@ public class CrashReportController : Controller
             }
         }
 
-        return report.GetDTO();
+        return report.GetDTO(HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
+            AuthenticationScopeRestriction.None));
     }
 
     [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
@@ -485,7 +486,7 @@ public class CrashReportController : Controller
         if (report == null)
             return NotFound("No report found with key");
 
-        return report.GetDTO();
+        return report.GetDTO(false);
     }
 
     [HttpPost("useDeleteKey")]

@@ -128,7 +128,7 @@ public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashe
         };
     }
 
-    public CrashReportDTO GetDTO()
+    public CrashReportDTO GetDTO(bool includeAnonymizedIp)
     {
         return new()
         {
@@ -152,6 +152,8 @@ public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashe
             // TODO: This kind of leaks information to unauthorized users, but there isn't much they can do with this
             // Fixing would require passing the remote user access level to this method as a parameter
             CanReProcess = DumpLocalFileName != null,
+
+            AnonymizedReporterIp = includeAnonymizedIp ? IPHelpers.PartlyAnonymizedIP(UploadedFrom) : null,
         };
     }
 
@@ -172,8 +174,9 @@ public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashe
                 NotificationGroups.CrashReportListUpdatedPrivate);
         }
 
+        // TODO: if really necessary we'll need a separate notification group for developers to join
         yield return new Tuple<SerializedNotification, string>(
-            new CrashReportUpdated { Item = GetDTO() },
+            new CrashReportUpdated { Item = GetDTO(false) },
             NotificationGroups.CrashReportUpdatedPrefix + Id);
     }
 }
