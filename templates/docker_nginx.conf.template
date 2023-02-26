@@ -81,6 +81,8 @@ http {
             proxy_buffering off;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-ClientId "";
+            proxy_set_header X-Real-IP "";
 
             add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0";
         }
@@ -95,6 +97,8 @@ http {
              proxy_set_header Host $host;
              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
              proxy_set_header X-Forwarded-Proto $scheme;
+             proxy_set_header X-ClientId "";
+             proxy_set_header X-Real-IP "";
         }
     }
 }
