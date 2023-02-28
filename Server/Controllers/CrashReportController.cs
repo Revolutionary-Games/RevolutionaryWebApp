@@ -236,7 +236,7 @@ public class CrashReportController : Controller
             database.CrashReports.Where(r => r.UploadedFrom == report.UploadedFrom);
 
         // A maximum limit is imposed on the number of returned rows to not return a ton of data
-        var results = await query.Select(r => new { r.Id }).OrderByDescending(r => r.Id - report.Id)
+        var results = await query.Select(r => new { r.Id }).OrderBy(r => r.Id - report.Id)
             .Take(AppInfo.MaximumSameReporterReports).ToListAsync();
 
         // All reports will be by the same reporter as themselves, so filter that out
