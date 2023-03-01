@@ -24,7 +24,7 @@
             <li><strong>Clone URL</strong>: @Data.CloneUrl</li>
             <li><strong>File Tree Branch</strong>: @Data.BranchToBuildFileTreeFor</li>
             <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
-            <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Settings Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
 
             <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
                 <li><strong>Deleted</strong>: @Data.Deleted</li>
