@@ -1216,6 +1216,6 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         // Reset the stream position after writing, this is very important to make sure this works
         svgAsPngData.Position = 0;
-        return await Image.LoadAsync(svgAsPngData, new PngDecoder());
+        return await Image.LoadAsync(svgAsPngData);
     }
 }
