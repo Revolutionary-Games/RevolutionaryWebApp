@@ -179,3 +179,7 @@ public class LauncherThriveVersionPlatformListUpdated : ListUpdated<LauncherThri
 public class LauncherThriveVersionDownloadListUpdated : ListUpdated<LauncherThriveVersionDownloadDTO>
 {
 }
+
+public class ExecutedMaintenanceOperationListUpdated : ListUpdated<ExecutedMaintenanceOperationDTO>
+{
+}
