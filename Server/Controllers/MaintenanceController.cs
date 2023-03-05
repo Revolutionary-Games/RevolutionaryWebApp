@@ -85,7 +85,7 @@ public class MaintenanceController : Controller
 
         var hourCutoff = DateTime.UtcNow - TimeSpan.FromHours(1);
 
-        // Give a one hour grace period
+        // Give a one hour grace period to retry a failing job
         if (conflict != null && conflict.CreatedAt > hourCutoff)
         {
             return BadRequest("A maintenance operation of that type is already running (please make sure it can " +
