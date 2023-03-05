@@ -412,6 +412,7 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.LauncherDownloadMirrorListUpdated:
             case NotificationGroups.LauncherLauncherVersionListUpdated:
             case NotificationGroups.LauncherThriveVersionListUpdated:
+            case NotificationGroups.ExecutedMaintenanceOperationListUpdated:
                 return RequireAccessLevel(UserAccessLevel.Admin, user);
             case NotificationGroups.PrivateLFSUpdated:
             case NotificationGroups.PrivateCIProjectUpdated:

@@ -79,7 +79,29 @@ public class MaintenanceController : Controller
             return BadRequest("Bad operation type specified");
         }
 
+        // Ensure a maintenance of that type is not running yet
+        var conflict = await database.ExecutedMaintenanceOperations.FirstOrDefaultAsync(o =>
+            o.FinishedAt == null && o.OperationType == operation.Name);
+
+        var hourCutoff = DateTime.UtcNow - TimeSpan.FromHours(1);
+
+        // Give a one hour grace period
+        if (conflict != null && conflict.CreatedAt > hourCutoff)
+        {
+            return BadRequest("A maintenance operation of that type is already running (please make sure it can " +
+                "finish or wait an hour to retry)");
+        }
+
         var user = HttpContext.AuthenticatedUserOrThrow();
+
+        // And also ensure there haven't been too many ran maintenance operations
+        var operationCount = await database.ExecutedMaintenanceOperations.CountAsync(o =>
+            (o.PerformedById == null || o.PerformedById == user.Id) && o.CreatedAt > hourCutoff);
+
+        if (operationCount > 30)
+        {
+            return BadRequest("Too many maintenance operations have ran very recently");
+        }
 
         await database.AdminActions.AddAsync(new AdminAction
         {
@@ -130,7 +152,7 @@ public class MaintenanceController : Controller
     private static IEnumerable<(string Name, string? ExtraDescription, Action<IBackgroundJobClient, long> Start)>
         EnumerateMaintenanceOperations()
     {
-        yield return ("cleanSessions", "Delete all sessions that are older than one day", StartCleanSessions);
+        yield return ("cleanSessions", "Delete all sessions that are older than one hour", StartCleanSessions);
     }
 
     [NonAction]

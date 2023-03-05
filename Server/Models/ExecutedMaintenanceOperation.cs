@@ -56,6 +56,6 @@ public class ExecutedMaintenanceOperation : ModelWithCreationTime, IUpdateNotifi
         {
             Type = entityState.ToChangeType(),
             Item = GetDTO(),
-        }, NotificationGroups.UserListUpdated);
+        }, NotificationGroups.ExecutedMaintenanceOperationListUpdated);
     }
 }

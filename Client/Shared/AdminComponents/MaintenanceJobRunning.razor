@@ -1,0 +1,244 @@
+@using ThriveDevCenter.Shared
+@using System.Net
+@using System.Threading
+@using SharedBase.Utilities
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
+@using ThriveDevCenter.Shared.Notifications
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ThriveDevCenter.Shared.Notifications.ExecutedMaintenanceOperationListUpdated>
+@inherits PaginatedPage<ExecutedMaintenanceOperationDTO>
+<h3>Maintenance</h3>
+
+<p>Running certain server maintenance tasks by administrators is possible here.</p>
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType"/>
+
+<h4>Available Operations</h4>
+@if (loading)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+else
+{
+    // TODO: the following pagination is not tested
+    <PaginatedTable ShowPaginator="@(availableOperations.Count > 0)" CurrentPage="@currentPage" PageCount="@PageCount"
+                    OnPageChanged="@ChangeAvailablePage" Columns="@availableListColumns"
+                    GetSortClass="@(_ => string.Empty)"
+                    ShowNoContent="@(availableOperations.Count == 0)" UseNonFixedColumns="@true">
+        @foreach (var item in CurrentPageContent)
+        {
+            <tr @key="item.Item1">
+                <td>@item.Item1</td>
+                <td>@item.Item2</td>
+                <td>
+                    <Button Enabled="@(!startingMaintenance && !IsProcessing(item.Item1))"
+                            OnPressed="@(async () => await StartOperation(item.Item1))"
+                            Spinner="@startingMaintenance" ButtonStyle="secondary"
+                            class="btn-sm">
+                        Start @item.Item1.Truncate(25)
+                    </Button>
+                </td>
+            </tr>
+        }
+    </PaginatedTable>
+}
+
+<h5>Performed Operations</h5>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="@true">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row">@item.Id</th>
+                    <td>@item.OperationType</td>
+                    <td>@item.ExtendedDescription</td>
+                    <td>
+                        @if (item.Failed)
+                        {
+                            <span class="badge badge-danger">Failed</span>
+                        }
+                    </td>
+                    <td>
+                        @if (item.FinishedAt != null)
+                        {
+                            <RecentTimeShortener Time="@item.FinishedAt.Value" />
+                        }
+                        else
+                        {
+                            <span class="badge badge-success">Running</span>
+                        }
+                    </td>
+                    <td><RecentTimeShortener Time="@item.CreatedAt" /></td>
+                    <td><UsernameDisplayer UserId="@item.PerformedById" /></td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Type", true, "OperationType"),
+        new TableColumn("Extra Info", false),
+        new TableColumn("Failed", false),
+        new TableColumn("Finished At", true, "FinishedAt"),
+        new TableColumn("Started At", true, "CreatedAt"),
+        new TableColumn("Run By", true, "PerformedById"),
+    };
+
+    private readonly List<TableColumn> availableListColumns = new()
+    {
+        new TableColumn("Operation", false),
+        new TableColumn("Description", false),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly int itemsPerPage = 20;
+
+    private readonly Dictionary<string, bool> processingItems = new();
+
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType;
+
+    private bool loading = true;
+    private List<Tuple<string, string>> availableOperations = new();
+
+    private int currentPage;
+
+    private bool startingMaintenance;
+
+    private IEnumerable<Tuple<string, string>> CurrentPageContent =>
+        availableOperations.Skip(currentPage * itemsPerPage).Take(itemsPerPage);
+
+    private int PageCount => (int)Math.Floor(availableOperations.Count / (float)itemsPerPage) + 1;
+
+    public MaintenanceJobRunning() : base(new SortHelper("Id", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        currentPage = 0;
+
+        await base.OnInitializedAsync();
+
+        try
+        {
+            availableOperations = await Http.GetFromJsonAsync<List<Tuple<string, string>>>(
+                "api/v1/Maintenance/available") ?? throw new NullDecodedJsonException();
+        }
+        catch (Exception e)
+        {
+            statusMessage = $"Failed to get available maintenance operations: {e.Message}";
+            loading = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        loading = false;
+
+        await NotificationHandler.Register(this);
+    }
+
+    public Task Handle(ExecutedMaintenanceOperationListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.ExecutedMaintenanceOperationListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<ExecutedMaintenanceOperationDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<ExecutedMaintenanceOperationDTO>>(
+            QueryHelpers.AddQueryString("api/v1/Maintenance", requestParams));
+    }
+
+    private void ChangeAvailablePage(int page)
+    {
+        currentPage = page;
+        StateHasChanged();
+    }
+
+    private bool IsProcessing(string operation)
+    {
+        return processingItems.GetValueOrDefault(operation, false);
+    }
+
+    private async Task StartOperation(string operation)
+    {
+        processingItems[operation] = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        startingMaintenance = true;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/Maintenance/start", operation);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processingItems[operation] = false;
+            startingMaintenance = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        startingMaintenance = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+            processingItems[operation] = false;
+        }
+        else
+        {
+            statusMessage = "Maintenance operation successfully started";
+            statusMessageType = SiteNoticeType.Primary;
+
+            // TODO: keep track of when the operation is finished
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

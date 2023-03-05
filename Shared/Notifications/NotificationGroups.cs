@@ -110,6 +110,8 @@ public static class NotificationGroups
 
     // public const string LauncherThriveVersionPlatformDownloadUpdatedPrefix = "SLaunchThrivePlatformDownload_";
 
+    public const string ExecutedMaintenanceOperationListUpdated = "MaintenanceOps";
+
     /// <summary>
     ///   The client doesn't know their session ID so this is used as-is on the client but with a suffix on the
     ///   server side
