@@ -123,6 +123,8 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     public ICollection<ExecutedMaintenanceOperation> ExecutedMaintenanceOperations { get; set; } =
         new HashSet<ExecutedMaintenanceOperation>();
 
+    public ICollection<UserGroup> Groups { get; set; } = new HashSet<UserGroup>();
+
     /// <summary>
     ///   Active sessions of user
     /// </summary>

@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
 
     // These are automatically initialized by EF, we use null forgiving here to silence warnings
     public DbSet<User> Users { get; set; } = null!;
+    public DbSet<UserGroup> UserGroups { get; set; } = null!;
     public DbSet<Session> Sessions { get; set; } = null!;
     public DbSet<AccessKey> AccessKeys { get; set; } = null!;
     public DbSet<DehydratedObject> DehydratedObjects { get; set; } = null!;
@@ -265,6 +266,33 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Restricted).HasDefaultValue(false);
 
             entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<UserGroup>(entity =>
+        {
+            entity.ToTable(t => t.HasCheckConstraint("id_validity_check",
+                $"id > 0 AND id <> {(int)GroupType.SystemOnly} AND id <> {(int)GroupType.Custom} " +
+                $"AND id <> {(int)GroupType.User}"));
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
+
+            entity.HasMany(d => d.Members).WithMany(p => p.Groups);
+
+            var now = DateTime.UtcNow;
+
+            var defaultGroups = new List<UserGroup>();
+
+            foreach (var enumValue in Enum.GetValues<GroupType>())
+            {
+                // Certain groups never have an associated model
+                if (enumValue is GroupType.NotLoggedIn or GroupType.SystemOnly or GroupType.User or GroupType.Max
+                    or GroupType.Custom)
+                    continue;
+
+                defaultGroups.Add(new UserGroup(enumValue, enumValue.ToString(), now));
+            }
+
+            entity.HasData(defaultGroups);
         });
 
         modelBuilder.Entity<Session>(entity =>
