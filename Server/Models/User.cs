@@ -120,6 +120,9 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     /// </summary>
     public ICollection<ActionLogEntry> PerformedActions { get; set; } = new HashSet<ActionLogEntry>();
 
+    public ICollection<ExecutedMaintenanceOperation> ExecutedMaintenanceOperations { get; set; } =
+        new HashSet<ExecutedMaintenanceOperation>();
+
     /// <summary>
     ///   Active sessions of user
     /// </summary>

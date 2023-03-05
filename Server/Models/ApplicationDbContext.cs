@@ -76,6 +76,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<LauncherThriveVersion> LauncherThriveVersions { get; set; } = null!;
     public DbSet<LauncherThriveVersionPlatform> LauncherThriveVersionPlatforms { get; set; } = null!;
     public DbSet<LauncherThriveVersionDownload> LauncherThriveVersionDownloads { get; set; } = null!;
+    public DbSet<ExecutedMaintenanceOperation> ExecutedMaintenanceOperations { get; set; } = null!;
 
     /// <summary>
     ///   If non-null this will be used to send model update notifications on save
@@ -550,6 +551,12 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(nameof(LauncherThriveVersionDownload.VersionId),
                 nameof(LauncherThriveVersionDownload.Platform), nameof(LauncherThriveVersionDownload.MirrorId));
+        });
+
+        modelBuilder.Entity<ExecutedMaintenanceOperation>(entity =>
+        {
+            entity.HasOne(d => d.PerformedBy).WithMany(p => p.ExecutedMaintenanceOperations)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 
