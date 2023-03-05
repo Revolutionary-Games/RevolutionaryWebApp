@@ -1,6 +1,5 @@
 namespace ThriveDevCenter.Server.Models;
 
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Enums;
@@ -11,11 +10,10 @@ using Shared;
 /// </summary>
 public class UserGroup
 {
-    public UserGroup(GroupType id, string name, DateTime createdAt)
+    public UserGroup(GroupType id, string name)
     {
         Id = id;
         Name = name;
-        CreatedAt = createdAt;
     }
 
     [Key]
@@ -24,8 +22,7 @@ public class UserGroup
 
     public string Name { get; set; }
 
-    [AllowSortingBy]
-    public DateTime CreatedAt { get; set; }
-
     public ICollection<User> Members { get; set; } = new HashSet<User>();
+
+    public UserGroupExtraData? ExtraData { get; set; }
 }

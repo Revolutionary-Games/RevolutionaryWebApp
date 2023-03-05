@@ -20,6 +20,7 @@ public class ApplicationDbContext : DbContext
     // These are automatically initialized by EF, we use null forgiving here to silence warnings
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<UserGroup> UserGroups { get; set; } = null!;
+    public DbSet<UserGroupExtraData> UserGroupsExtraData { get; set; } = null!;
     public DbSet<Session> Sessions { get; set; } = null!;
     public DbSet<AccessKey> AccessKeys { get; set; } = null!;
     public DbSet<DehydratedObject> DehydratedObjects { get; set; } = null!;
@@ -271,14 +272,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<UserGroup>(entity =>
         {
             entity.ToTable(t => t.HasCheckConstraint("id_validity_check",
-                $"id > 0 AND id <> {(int)GroupType.SystemOnly} AND id <> {(int)GroupType.Custom} " +
-                $"AND id <> {(int)GroupType.User}"));
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
+                $"id > 0 AND id != {(int)GroupType.SystemOnly} AND id != {(int)GroupType.Custom} " +
+                $"AND id != {(int)GroupType.User}"));
 
             entity.HasMany(d => d.Members).WithMany(p => p.Groups);
-
-            var now = DateTime.UtcNow;
 
             var defaultGroups = new List<UserGroup>();
 
@@ -289,10 +286,37 @@ public class ApplicationDbContext : DbContext
                     or GroupType.Custom)
                     continue;
 
-                defaultGroups.Add(new UserGroup(enumValue, enumValue.ToString(), now));
+                defaultGroups.Add(new UserGroup(enumValue, enumValue.ToString()));
             }
 
             entity.HasData(defaultGroups);
+        });
+
+        modelBuilder.Entity<UserGroupExtraData>(entity =>
+        {
+            entity.HasOne(d => d.Group).WithOne(p => p.ExtraData).OnDelete(DeleteBehavior.Cascade)
+                .HasForeignKey<UserGroupExtraData>(d => d.GroupId).HasPrincipalKey<UserGroup>(p => p.Id);
+
+            var now = DateTime.UtcNow;
+
+            var defaultExtraData = new List<UserGroupExtraData>();
+
+            foreach (var enumValue in Enum.GetValues<GroupType>())
+            {
+                // See above in the model setup which this needs to match
+                if (enumValue is GroupType.NotLoggedIn or GroupType.SystemOnly or GroupType.User or GroupType.Max
+                    or GroupType.Custom)
+                    continue;
+
+                var data = new UserGroupExtraData(enumValue, now, now)
+                {
+                    CustomDescription = "Inbuilt group, cannot be modified",
+                };
+
+                defaultExtraData.Add(data);
+            }
+
+            entity.HasData(defaultExtraData);
         });
 
         modelBuilder.Entity<Session>(entity =>

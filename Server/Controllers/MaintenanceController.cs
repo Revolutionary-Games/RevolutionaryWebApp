@@ -153,11 +153,20 @@ public class MaintenanceController : Controller
         EnumerateMaintenanceOperations()
     {
         yield return ("cleanSessions", "Delete all sessions that are older than one hour", StartCleanSessions);
+
+        yield return ("migrateToGroups", "IMPORTANT: Migrate old user permission model to groups",
+            StartMigrateUsersToGroups);
     }
 
     [NonAction]
     private static void StartCleanSessions(IBackgroundJobClient jobClient, long operationId)
     {
         jobClient.Enqueue<ClearAllSlightlyInactiveSessions>(x => x.Execute(operationId, CancellationToken.None));
+    }
+
+    [NonAction]
+    private static void StartMigrateUsersToGroups(IBackgroundJobClient jobClient, long operationId)
+    {
+        jobClient.Enqueue<MigrateUserAccessToGroups>(x => x.Execute(operationId, CancellationToken.None));
     }
 }

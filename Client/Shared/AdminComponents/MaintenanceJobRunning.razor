@@ -8,7 +8,7 @@
 @using ThriveDevCenter.Shared.Notifications
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@implements ThriveDevCenter.Client.Services.INotificationHandler<ThriveDevCenter.Shared.Notifications.ExecutedMaintenanceOperationListUpdated>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<ExecutedMaintenanceOperationListUpdated>
 @inherits PaginatedPage<ExecutedMaintenanceOperationDTO>
 <h3>Maintenance</h3>
 
@@ -73,7 +73,7 @@ else
                 <tr @key="item.Id">
                     <th scope="row">@item.Id</th>
                     <td>@item.OperationType</td>
-                    <td>@item.ExtendedDescription</td>
+                    <td>@item.ExtendedDescription.Truncate(150)</td>
                     <td>
                         @if (item.Failed)
                         {

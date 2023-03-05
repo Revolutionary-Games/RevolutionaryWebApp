@@ -13,7 +13,7 @@ using ThriveDevCenter.Server.Models;
 namespace ThriveDevCenter.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20230305175636_AddUserGroupModels")]
+    [Migration("20230305183938_AddUserGroupModels")]
     partial class AddUserGroupModels
     {
         /// <inheritdoc />
@@ -3373,43 +3373,81 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("timezone('utc', now())");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("pk_groups");
+                        .HasName("pk_user_groups");
 
-                    b.ToTable("groups", null, t =>
+                    b.ToTable("user_groups", null, t =>
                         {
-                            t.HasCheckConstraint("id_validity_check", "id > 0 AND id <> 5 AND id <> 10000 AND id <> 2");
+                            t.HasCheckConstraint("id_validity_check", "id > 0 AND id != 5 AND id != 10000 AND id != 2");
                         });
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2023, 3, 5, 17, 56, 35, 745, DateTimeKind.Utc).AddTicks(1729),
                             Name = "RestrictedUser"
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2023, 3, 5, 17, 56, 35, 745, DateTimeKind.Utc).AddTicks(1729),
                             Name = "Developer"
                         },
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2023, 3, 5, 17, 56, 35, 745, DateTimeKind.Utc).AddTicks(1729),
                             Name = "Admin"
+                        });
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.UserGroupExtraData", b =>
+                {
+                    b.Property<int>("GroupId")
+                        .HasColumnType("integer")
+                        .HasColumnName("group_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CustomDescription")
+                        .HasColumnType("text")
+                        .HasColumnName("custom_description");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("GroupId")
+                        .HasName("pk_user_groups_extra_data");
+
+                    b.ToTable("user_groups_extra_data", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            GroupId = 1,
+                            CreatedAt = new DateTime(2023, 3, 5, 18, 39, 38, 313, DateTimeKind.Utc).AddTicks(4002),
+                            CustomDescription = "Inbuilt group, cannot be modified",
+                            UpdatedAt = new DateTime(2023, 3, 5, 18, 39, 38, 313, DateTimeKind.Utc).AddTicks(4002)
+                        },
+                        new
+                        {
+                            GroupId = 3,
+                            CreatedAt = new DateTime(2023, 3, 5, 18, 39, 38, 313, DateTimeKind.Utc).AddTicks(4002),
+                            CustomDescription = "Inbuilt group, cannot be modified",
+                            UpdatedAt = new DateTime(2023, 3, 5, 18, 39, 38, 313, DateTimeKind.Utc).AddTicks(4002)
+                        },
+                        new
+                        {
+                            GroupId = 4,
+                            CreatedAt = new DateTime(2023, 3, 5, 18, 39, 38, 313, DateTimeKind.Utc).AddTicks(4002),
+                            CustomDescription = "Inbuilt group, cannot be modified",
+                            UpdatedAt = new DateTime(2023, 3, 5, 18, 39, 38, 313, DateTimeKind.Utc).AddTicks(4002)
                         });
                 });
 
@@ -4076,6 +4114,18 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("StorageItem");
                 });
 
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.UserGroupExtraData", b =>
+                {
+                    b.HasOne("ThriveDevCenter.Server.Models.UserGroup", "Group")
+                        .WithOne("ExtraData")
+                        .HasForeignKey("ThriveDevCenter.Server.Models.UserGroupExtraData", "GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_groups_extra_data_user_groups_group_id");
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("UserUserGroup", b =>
                 {
                     b.HasOne("ThriveDevCenter.Server.Models.UserGroup", null)
@@ -4083,7 +4133,7 @@ namespace ThriveDevCenter.Server.Migrations
                         .HasForeignKey("GroupsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_user_user_group_groups_groups_id");
+                        .HasConstraintName("fk_user_user_group_user_groups_groups_id");
 
                     b.HasOne("ThriveDevCenter.Server.Models.User", null)
                         .WithMany()
@@ -4249,6 +4299,11 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("TargetedInLogs");
 
                     b.Navigation("VotedInPollsRecords");
+                });
+
+            modelBuilder.Entity("ThriveDevCenter.Server.Models.UserGroup", b =>
+                {
+                    b.Navigation("ExtraData");
                 });
 #pragma warning restore 612, 618
         }
