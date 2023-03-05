@@ -24,17 +24,18 @@ public class SessionCleanupJob : IJob
         logger.LogInformation("Starting database sessions cleanup");
 
         var deleteCutoff = DateTime.UtcNow - TimeSpan.FromSeconds(AppInfo.SessionExpirySeconds);
+        var absoluteCutoff = DateTime.UtcNow - TimeSpan.FromSeconds(AppInfo.AbsoluteMaxSessionDuration);
 
         // Increase timeout, as it might take a while to cleanup the sessions,
         // and being a cancellable job background job this won't cause problems
         // This doesn't need to be reset as the dependency injected instance is exclusive to us
         database.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
 
-        var deleted =
-            await database.Database.ExecuteSqlInterpolatedAsync(
-                $"DELETE FROM sessions WHERE last_used < {deleteCutoff}", cancellationToken);
+        var deleted = await database.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM sessions WHERE last_used < {deleteCutoff} OR started_at < {absoluteCutoff}",
+            cancellationToken);
 
-        // TODO: add absolute (based on creation time) of session cutoff for ClientCookieExpirySeconds
+        // TODO: add session cutoff for ClientCookieExpirySeconds
 
         logger.LogInformation("Session cleanup finished, and deleted: {Deleted} row(s)", deleted);
     }

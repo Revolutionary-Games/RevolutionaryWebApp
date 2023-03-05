@@ -100,6 +100,8 @@ public static class AppInfo
     /// </summary>
     public const int SessionExpirySeconds = 60 * 60 * 24 * 30;
 
+    public const int AbsoluteMaxSessionDuration = 60 * 60 * 24 * 90;
+
     /// <summary>
     ///   Cookies expire 60 days after creation as there is no refresh mechanism this is set higher
     ///   than the session expiry
