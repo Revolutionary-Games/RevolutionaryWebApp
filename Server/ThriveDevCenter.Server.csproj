@@ -50,7 +50,7 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.27.0" />
     <PackageReference Include="System.Interactive.Async" Version="6.0.1" />
     <PackageReference Include="System.Security.Principal" Version="4.3.0" />
-    <PackageReference Include="YamlDotNet" Version="13.0.1" />
+    <PackageReference Include="YamlDotNet" Version="13.0.2" />
   </ItemGroup>
 
   <ItemGroup>
