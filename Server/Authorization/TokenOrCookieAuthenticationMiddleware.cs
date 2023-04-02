@@ -170,6 +170,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
             // Recompute groups here as the link model allows groups to be null (which is different from the main
             // sessions where the opposite design is used)
             await link.User.ComputeUserGroups(database);
+            link.CachedUserGroups = link.User.AccessCachedGroupsOrThrow();
         }
         else
         {
