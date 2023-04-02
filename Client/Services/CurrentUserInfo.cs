@@ -11,18 +11,18 @@ using ThriveDevCenter.Shared.Notifications;
 /// <summary>
 ///   Receives and holds current user info from the server. Currently not designed that the info changes later
 /// </summary>
-public class CurrentUserInfo : INotificationHandler<UserUpdated>, INotificationHandler<UserListUpdated>
+public class CurrentUserInfo : INotificationHandler<UserUpdated>
 {
-    private UserInfo? info;
+    private UserDTO? info;
 
-    public delegate void UserInfoChangedEventHandler(object sender, UserInfo? newInfo);
+    public delegate void UserInfoChangedEventHandler(object sender, UserDTO? newInfo);
 
     public event UserInfoChangedEventHandler? OnUserInfoChanged;
 
     /// <summary>
     ///   When InfoReady is true, this is non-null if currently logged in, and null if client is not logged in
     /// </summary>
-    public UserInfo? Info
+    public UserDTO? Info
     {
         get
         {
@@ -51,20 +51,27 @@ public class CurrentUserInfo : INotificationHandler<UserUpdated>, INotificationH
     /// </summary>
     public bool InfoReady { get; private set; }
 
-    public bool IsAdmin => Info?.Admin ?? false;
-    public bool IsDeveloper => Info?.Developer ?? false;
-    public bool IsUser => LoggedIn;
-
-    public UserAccessLevel AccessLevel => Info?.AccessLevel ?? UserAccessLevel.NotLoggedIn;
+    public bool IsAdmin => HasGroup(GroupType.Admin);
+    public bool IsDeveloper => HasGroup(GroupType.Developer);
+    public IUserGroupData? Groups => Info?.Groups;
 
     public string? Username => Info?.Name;
     public string? Email => Info?.Email;
+
+    public bool HasGroup(GroupType groupType)
+    {
+        // Everyone has public access
+        if (groupType == GroupType.NotLoggedIn)
+            return true;
+
+        return Groups?.HasGroup(groupType) == true;
+    }
 
     /// <summary>
     ///   Call whenever receiving user info objects from the server. Used to react to our own user data changing
     /// </summary>
     /// <param name="user">The user info we received</param>
-    public void OnReceivedAnUsersInfo(UserInfo? user)
+    public void OnReceivedAnUsersInfo(UserDTO? user)
     {
         if (!InfoReady || user == null)
             return;
@@ -75,7 +82,7 @@ public class CurrentUserInfo : INotificationHandler<UserUpdated>, INotificationH
         OnReceivedOurInfo(user);
     }
 
-    public void OnReceivedOurInfo(UserInfo? user)
+    public void OnReceivedOurInfo(UserDTO? user)
     {
         var previousInfo = InfoReady;
 
@@ -95,13 +102,7 @@ public class CurrentUserInfo : INotificationHandler<UserUpdated>, INotificationH
         return Task.CompletedTask;
     }
 
-    public Task Handle(UserListUpdated notification, CancellationToken cancellationToken)
-    {
-        OnReceivedAnUsersInfo(notification.Item);
-        return Task.CompletedTask;
-    }
-
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         if (!InfoReady)
             return;

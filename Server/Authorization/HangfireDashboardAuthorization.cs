@@ -5,6 +5,7 @@ using Hangfire.Dashboard;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
+using Shared.Models;
 using Shared.Models.Enums;
 
 public class HangfireDashboardAuthorization : IDashboardAuthorizationFilter
@@ -30,7 +31,7 @@ public class HangfireDashboardAuthorization : IDashboardAuthorizationFilter
 
         var user = userRaw as User;
 
-        if (user == null || user.Suspended == true || !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (user == null || user.Suspended == true || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Admin))
         {
             OnFailure(remoteAddress);
             return false;

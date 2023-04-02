@@ -13,7 +13,7 @@
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LogEntriesUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LogEntryDTO>
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Server Logs</h3>
 
     @if (!string.IsNullOrEmpty(Error))
@@ -85,7 +85,7 @@
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         // TODO: group for this
         // groups.Add(NotificationGroups.LFSListUpdated);

@@ -44,7 +44,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Get()
     {
         var currentData = await LauncherInfoController.GenerateLauncherInfoObject(database, configuration);
@@ -96,7 +96,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("keyExpiry")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public ActionResult<DateTime> GetSigningExpiry()
     {
         var expiry = configuration["Launcher:InfoKeyExpires"];
@@ -117,7 +117,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("mirrors")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<LauncherDownloadMirrorDTO>> GetMirrors([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -140,7 +140,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("mirrors/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<LauncherDownloadMirrorDTO>> GetMirror(long id)
     {
         var mirror = await database.LauncherDownloadMirrors.FindAsync(id);
@@ -152,7 +152,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPut("mirrors/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdateMirror([Required] [FromBody] LauncherDownloadMirrorDTO request)
     {
         var mirror = await database.LauncherDownloadMirrors.FindAsync(request.Id);
@@ -188,7 +188,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpDelete("mirrors/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteMirror(long id)
     {
         var mirror = await database.LauncherDownloadMirrors.FindAsync(id);
@@ -220,7 +220,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("mirrors")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateMirror([Required] [FromBody] LauncherDownloadMirrorDTO request)
     {
         PreProcessMirrorRequest(request);
@@ -256,7 +256,7 @@ public class LauncherInfoConfigurationController : Controller
     // Launcher launcher versions
 
     [HttpGet("launcherVersions")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<LauncherLauncherVersionDTO>> GetLauncherVersions([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -279,7 +279,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("launcherVersions/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<LauncherLauncherVersionDTO>> GetLauncherVersion(long id)
     {
         var version = await database.LauncherLauncherVersions.FindAsync(id);
@@ -291,7 +291,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpDelete("launcherVersions/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteLauncherVersion(long id)
     {
         var version = await database.LauncherLauncherVersions.FindAsync(id);
@@ -319,7 +319,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("launcherVersions/{id:long}/latest")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> MakeLauncherVersionLatest(long id)
     {
         var version = await database.LauncherLauncherVersions.FindAsync(id);
@@ -364,7 +364,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("launcherVersions")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateLauncherVersion([Required] [FromBody] LauncherLauncherVersionDTO request)
     {
         if (!Version.TryParse(request.Version, out _))
@@ -400,7 +400,7 @@ public class LauncherInfoConfigurationController : Controller
     // Launcher Launcher version channels
 
     [HttpGet("launcherVersions/{id:long}/channels")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<LauncherVersionAutoUpdateChannelDTO>> GetLauncherVersionChannels(long id,
         [Required] string sortColumn, [Required] SortDirection sortDirection,
         [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
@@ -424,7 +424,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("launcherVersions/{id:long}/channels/{channel:int}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<LauncherVersionAutoUpdateChannelDTO>> GetLauncherVersionChannel(long id,
         int channel)
     {
@@ -439,7 +439,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpDelete("launcherVersions/{id:long}/channels/{channel:int}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteLauncherVersionChannel(long id, int channel)
     {
         var channelEnumValue = ChannelFromInt(channel);
@@ -466,7 +466,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("launcherVersions/{id:long}/channels")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateLauncherVersionChannel(long id,
         [Required] [FromBody] LauncherVersionAutoUpdateChannelDTO request)
     {
@@ -507,7 +507,7 @@ public class LauncherInfoConfigurationController : Controller
     // Launcher Launcher version channel downloads
 
     [HttpGet("launcherVersions/{id:long}/channels/{channel:int}/downloads")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<LauncherVersionDownloadDTO>> GetLauncherVersionChannelDownloads(long id,
         int channel, [Required] string sortColumn, [Required] SortDirection sortDirection,
         [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
@@ -534,7 +534,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("launcherVersions/{id:long}/channels/{channel:int}/downloads/{mirrorId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<LauncherVersionDownloadDTO>> GetLauncherVersionChannelDownload(long id,
         int channel, long mirrorId)
     {
@@ -550,7 +550,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpDelete("launcherVersions/{id:long}/channels/{channel:int}/downloads/{mirrorId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteLauncherVersionChannelDownload(long id, int channel, long mirrorId)
     {
         var channelEnumValue = ChannelFromInt(channel);
@@ -581,7 +581,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("launcherVersions/{id:long}/channels/{channel:int}/downloads")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateLauncherVersionChannelDownload(long id, int channel,
         [Required] [FromBody] LauncherVersionDownloadDTO request)
     {
@@ -644,7 +644,7 @@ public class LauncherInfoConfigurationController : Controller
     // Launcher Thrive versions
 
     [HttpGet("thriveVersions")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<LauncherThriveVersionDTO>> GetThriveVersions([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -667,7 +667,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("thriveVersions/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<LauncherThriveVersionDTO>> GetThriveVersion(long id)
     {
         var version = await database.LauncherThriveVersions.FindAsync(id);
@@ -679,7 +679,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPut("thriveVersions/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdateThriveVersion([Required] [FromBody] LauncherThriveVersionDTO request)
     {
         var version = await database.LauncherThriveVersions.FindAsync(request.Id);
@@ -713,7 +713,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpDelete("thriveVersions/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteThriveVersion(long id)
     {
         var version = await database.LauncherThriveVersions.FindAsync(id);
@@ -743,7 +743,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("thriveVersions/{id:long}/latest")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> MakeThriveVersionLatest(long id)
     {
         var version = await database.LauncherThriveVersions.FindAsync(id);
@@ -793,7 +793,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("thriveVersions/{id:long}/enable")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> EnableThriveVersion(long id)
     {
         var version = await database.LauncherThriveVersions.FindAsync(id);
@@ -821,7 +821,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("thriveVersions/{id:long}/disable")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DisableThriveVersion(long id)
     {
         var version = await database.LauncherThriveVersions.FindAsync(id);
@@ -849,7 +849,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("thriveVersions")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateThriveVersion([Required] [FromBody] LauncherThriveVersionDTO request)
     {
         bool stable = true;
@@ -920,7 +920,7 @@ public class LauncherInfoConfigurationController : Controller
     // Launcher Thrive version platforms
 
     [HttpGet("thriveVersions/{id:long}/platforms")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<LauncherThriveVersionPlatformDTO>> GetThriveVersionPlatforms(long id,
         [Required] string sortColumn, [Required] SortDirection sortDirection,
         [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
@@ -944,7 +944,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("thriveVersions/{id:long}/platforms/{platform:int}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<LauncherThriveVersionPlatformDTO>> GetThriveVersionPlatform(long id,
         int platform)
     {
@@ -960,7 +960,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPut("thriveVersions/{id:long}/platforms/{platform:int}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdateThriveVersionPlatform(long id, int platform,
         [Required] [FromBody] LauncherThriveVersionPlatformDTO request)
     {
@@ -1003,7 +1003,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpDelete("thriveVersions/{id:long}/platforms/{platform:int}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteThriveVersionPlatform(long id, int platform)
     {
         var platformEnumValue = PlatformFromInt(platform);
@@ -1031,7 +1031,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("thriveVersions/{id:long}/platforms")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateThriveVersionPlatform(long id,
         [Required] [FromBody] LauncherThriveVersionPlatformDTO request)
     {
@@ -1073,7 +1073,7 @@ public class LauncherInfoConfigurationController : Controller
     // Launcher thrive version platform downloads
 
     [HttpGet("thriveVersions/{id:long}/platforms/{platform:int}/downloads")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<LauncherThriveVersionDownloadDTO>> GetThriveVersionPlatformDownloads(long id,
         int platform, [Required] string sortColumn, [Required] SortDirection sortDirection,
         [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
@@ -1100,7 +1100,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpGet("thriveVersions/{id:long}/platforms/{platform:int}/downloads/{mirrorId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<LauncherThriveVersionDownloadDTO>> GetThriveVersionPlatformDownload(long id,
         int platform, long mirrorId)
     {
@@ -1116,7 +1116,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpDelete("thriveVersions/{id:long}/platforms/{platform:int}/downloads/{mirrorId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteThriveVersionPlatformDownload(long id, int platform, long mirrorId)
     {
         var platformEnumValue = PlatformFromInt(platform);
@@ -1147,7 +1147,7 @@ public class LauncherInfoConfigurationController : Controller
     }
 
     [HttpPost("thriveVersions/{id:long}/platforms/{platform:int}/downloads")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateThriveVersionPlatformDownload(long id, int platform,
         [Required] [FromBody] LauncherThriveVersionDownloadDTO request)
     {

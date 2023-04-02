@@ -153,7 +153,7 @@ private readonly List<TableColumn> columns = new()
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add($"{NotificationGroups.LauncherThriveVersionPlatformDownloadsListUpdatedPrefix}" +
             $"{VersionId}_{(int)Platform}");

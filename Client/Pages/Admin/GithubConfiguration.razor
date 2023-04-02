@@ -2,7 +2,7 @@
 @using ThriveDevCenter.Shared.Models.Enums
 @inject NavigationManager NavManager
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Github Configuration</h3>
 
     <h4>Webhooks</h4>

@@ -12,7 +12,7 @@
 @implements ThriveDevCenter.Client.Services.INotificationHandler<AssociationMemberListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.AssociationMemberInfo>
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Association Members</h3>
 
     @if (!string.IsNullOrEmpty(Error))
@@ -228,7 +228,7 @@ private readonly List<TableColumn> columns = new()
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.AssociationMemberListUpdated);
     }

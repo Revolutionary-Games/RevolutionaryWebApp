@@ -74,7 +74,7 @@ public class MeetingsController : Controller
         return meeting.GetDTO();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost("{id:long}/join")]
     public async Task<IActionResult> JoinMeeting([Required] long id)
     {
@@ -123,7 +123,7 @@ public class MeetingsController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpGet("{id:long}/members")]
     public async Task<ActionResult<PagedResult<MeetingMemberInfo>>> GetMembers([Required] long id,
         [Required] string sortColumn, [Required] SortDirection sortDirection,
@@ -138,7 +138,7 @@ public class MeetingsController : Controller
         // Only meeting owner and admins can view all members
         var user = HttpContext.AuthenticatedUser()!;
 
-        if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (meeting.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return this.WorkingForbid("You don't have permission to view member list of this meeting");
 
         IQueryable<MeetingMember> query;
@@ -158,7 +158,7 @@ public class MeetingsController : Controller
         return objects.ConvertResult(i => i.GetInfo());
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpGet("{id:long}/members/{userId:long}")]
     public async Task<ActionResult<MeetingMemberDTO>> GetMember([Required] long id, [Required] long userId)
     {
@@ -171,8 +171,11 @@ public class MeetingsController : Controller
         // Only meeting owner sees all members, other people can only check their own info
         var user = HttpContext.AuthenticatedUser()!;
 
-        if (meeting.OwnerId != user.Id && userId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (meeting.OwnerId != user.Id && userId != user.Id &&
+            !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+        {
             return this.WorkingForbid("You don't have permission to view other people's join status");
+        }
 
         var member = await GetMeetingMember(meeting.Id, userId);
         if (member == null)
@@ -181,7 +184,7 @@ public class MeetingsController : Controller
         return member.GetDTO();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpGet("{id:long}/polls")]
     public async Task<ActionResult<List<MeetingPollDTO>>> GetPolls([Required] long id,
         [Required] string sortColumn, [Required] SortDirection sortDirection)
@@ -207,7 +210,7 @@ public class MeetingsController : Controller
         return await query.Select(p => p.GetDTO()).ToListAsync();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost("{id:long}/polls/{pollId:long}/vote")]
     public async Task<ActionResult<List<MeetingPollDTO>>> VoteInPoll([Required] long id,
         [Required] long pollId, [Required] [FromBody] PollVoteData request)
@@ -334,7 +337,7 @@ public class MeetingsController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost("{id:long}/polls")]
     public async Task<IActionResult> CreatePoll([Required] long id, [Required] [FromBody] MeetingPollDTO request)
     {
@@ -409,7 +412,7 @@ public class MeetingsController : Controller
         if (member == null)
             return this.WorkingForbid("You need to join a meeting before creating polls in it");
 
-        if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (meeting.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return this.WorkingForbid("You don't have permission to create polls in this meeting");
 
         if (request.AutoCloseAt < DateTime.UtcNow + TimeSpan.FromSeconds(100))
@@ -453,7 +456,7 @@ public class MeetingsController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost("{id:long}/polls/{pollId:long}/recompute")]
     public async Task<IActionResult> RefreshPollResults([Required] long id, [Required] long pollId)
     {
@@ -476,7 +479,7 @@ public class MeetingsController : Controller
         if (DateTime.UtcNow - poll.PollResultsCreatedAt < TimeSpan.FromSeconds(30))
             return BadRequest("The poll has been (re)computed in the past 30 seconds");
 
-        if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (meeting.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return this.WorkingForbid("You don't have permission to recompute polls in this meeting");
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry
@@ -496,7 +499,7 @@ public class MeetingsController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost("{id:long}/polls/{pollId:long}/close")]
     public async Task<IActionResult> ClosePoll([Required] long id, [Required] long pollId)
     {
@@ -516,7 +519,7 @@ public class MeetingsController : Controller
         if (poll.ClosedAt != null)
             return BadRequest("The poll is already closed");
 
-        if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (meeting.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return this.WorkingForbid("You don't have permission to close polls in this meeting");
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry
@@ -539,7 +542,7 @@ public class MeetingsController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost]
     public async Task<IActionResult> CreateNew([Required] [FromBody] MeetingDTO request)
     {
@@ -598,7 +601,7 @@ public class MeetingsController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost("{id:long}/chairman")]
     public async Task<IActionResult> SetMeetingChairman([Required] long id,
         [Required] [FromBody] long newChairmanId)
@@ -616,7 +619,7 @@ public class MeetingsController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (meeting.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return this.WorkingForbid("You don't have permission to modify this meeting");
 
         if (meeting.EndedAt != null)
@@ -641,7 +644,7 @@ public class MeetingsController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost("{id:long}/end")]
     public async Task<IActionResult> EndMeeting([Required] long id)
     {
@@ -653,7 +656,7 @@ public class MeetingsController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        if (meeting.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (meeting.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return this.WorkingForbid("You don't have permission to end this meeting");
 
         if (meeting.EndedAt != null)

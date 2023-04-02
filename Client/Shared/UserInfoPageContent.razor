@@ -20,10 +20,9 @@
 <ul>
     <li><strong>Email</strong>: @User.Email</li>
     <li><strong>Name</strong>: @User.Name</li>
-    <li><strong>Access level</strong>: @User.AccessLevel</li>
+    <li><strong>Primary group</strong>: @User.Groups.ComputePrimaryGroup()</li>
     <li><strong>SSO</strong>: @User.SsoSource</li>
     <li><strong>Local</strong>: @User.Local</li>
-    <li><strong>Session version</strong>: @User.SessionVersion</li>
     <li><strong>Total launcher links</strong>: @User.TotalLauncherLinks</li>
 
     <li><strong>API token</strong>: @User.HasApiToken</li>
@@ -40,10 +39,10 @@
         <UserTokenControls HasThisToken="@User.HasLfsToken" TokenType="LFS" TokenCreateAPI="api/v1/Tokens/lfs/self" />
     }
 
-    <AccessLimited RequiredAccess="UserAccessLevel.Admin">
-        <li><strong>Admin</strong>: @User.Admin</li>
-        <li><strong>Developer</strong>: @User.Developer</li>
-        <li><strong>Restricted</strong>: @User.Restricted</li>
+    <AccessLimited RequiredGroup="GroupType.Admin">
+        <li><strong>Admin</strong>: @User.Groups.HasAccessLevel(GroupType.Admin)</li>
+        <li><strong>Developer</strong>: @User.Groups.HasAccessLevel(GroupType.Developer)</li>
+        <li><strong>Restricted</strong>: @User.Groups.HasAccessLevel(GroupType.RestrictedUser)</li>
         <li><strong>Created At</strong>: @User.CreatedAt.ToLocalTime().ToString("G")</li>
         <li><strong>Updated At</strong>: @User.UpdatedAt.ToLocalTime().ToString("G")</li>
         <li><strong>Suspended</strong>: @User.Suspended</li>
@@ -54,7 +53,7 @@
 
 <h4>Launcher Links</h4>
 
-<AccessLimited RequiredAccess="UserAccessLevel.User">
+<AccessLimited RequiredGroup="GroupType.User">
     <p>
         You can link up to @AppInfo.DefaultMaxLauncherLinks Thrive Launchers to your account to access dev center
         features from the launcher. By linking a launcher you can access devbuilds. Linking the launcher to your
@@ -67,7 +66,7 @@
 <StatusMessageShower Message="@linkResult" Type="@linkResultType" OnClosed="@HideLinkResult" />
 
 <div>
-    <AccessLimited RequiredAccess="UserAccessLevel.User">
+    <AccessLimited RequiredGroup="GroupType.User">
         @if (LookingAtSelf)
         {
             <Button class="mb-2" ButtonStyle="success" Enabled="@(!gettingLauncherLinkCode)"
@@ -87,7 +86,34 @@
 
 <UserSessions Id="@User.Id" LookingAtSelf="@LookingAtSelf"/>
 
-<h4 class="mt-3">Association</h4>
+<h4 class="mt-3">Groups</h4>
+
+<p>Member of following groups:</p>
+<ul>
+    @foreach (var group in User.Groups.Groups.OrderBy(g => g))
+    {
+        @* TODO: displaying custom group names (should be retrieved similarly as user names) *@
+        <li>
+            @if (group > GroupType.Custom)
+            {
+                <span>@($"Custom group: {(int)group}")</span>
+            }
+            else
+            {
+                <span>group.ToString()</span>
+            }
+        </li>
+    }
+</ul>
+
+<AccessLimited RequiredGroup="GroupType.Admin">
+    @if (!LookingAtSelf)
+    {
+        <p>TODO: group management controls</p>
+    }
+</AccessLimited>
+
+<h4 class="mt-2">Association</h4>
 
 @if (User.AssociationMember)
 {
@@ -136,7 +162,7 @@ else
 
 <p>If the information in this section is incorrect, please contact us.</p>
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin">
+<AccessLimited RequiredGroup="GroupType.Admin">
     Association membership can be edited <NavLink href="/association/members">here</NavLink>.
     <br />
     <br />
@@ -152,7 +178,7 @@ else
     <br />
 }
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin">
+<AccessLimited RequiredGroup="GroupType.Admin">
     <p>Force logout action is in the "Sessions" section.</p>
     <br />
     <Button class="mb-1" ButtonStyle="danger" Enabled="@CanClearTokens" Spinner="@clearingTokens"
@@ -187,7 +213,7 @@ else
 
     [Parameter]
     [EditorRequired]
-    public UserInfo User { get; set; } = null!;
+    public UserDTO User { get; set; } = null!;
 
     [Parameter]
     public bool ShowSelfIdentification { get; set; }

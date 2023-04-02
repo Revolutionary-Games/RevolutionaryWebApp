@@ -41,7 +41,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
     protected override ILogger Logger => logger;
     protected override DbSet<LfsProject> Entities => database.LfsProjects;
 
-    protected override UserAccessLevel RequiredViewAccessLevel => UserAccessLevel.NotLoggedIn;
+    protected override GroupType RequiredViewAccessLevel => GroupType.NotLoggedIn;
 
     [HttpGet("{id:long}/files")]
     public async Task<ActionResult<PagedResult<ProjectGitFileDTO>>> GetProjectFiles([Required] long id,
@@ -75,7 +75,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
     }
 
     [HttpGet("{id:long}/raw")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<ActionResult<PagedResult<LfsObjectDTO>>> GetRawObjects([Required] long id,
         [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 200)] int pageSize)
@@ -92,7 +92,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
     }
 
     [HttpPost("{id:long}/refreshFileTree")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> RefreshFileTree([Required] long id)
     {
         var item = await FindAndCheckAccess(id);
@@ -120,7 +120,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
     }
 
     [HttpPost("{id:long}/rebuildFileTree")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> RebuildFileTree([Required] long id)
     {
         var item = await FindAndCheckAccess(id);
@@ -160,7 +160,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
     }
 
     [HttpPut("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdateLFSProject([Required] [FromBody] LFSProjectDTO request)
     {
         var item = await FindAndCheckAccess(request.Id);
@@ -193,7 +193,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
     }
 
     [HttpPost]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult> CreateNew([Required] LFSProjectDTO projectInfo)
     {
         var project = new LfsProject
@@ -255,7 +255,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
         // Only developers can see private projects
         if (!project.Public)
         {
-            if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
+            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.Developer,
                     AuthenticationScopeRestriction.None))
             {
                 return false;

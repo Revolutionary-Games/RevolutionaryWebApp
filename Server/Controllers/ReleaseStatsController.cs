@@ -81,7 +81,7 @@ public class ReleaseStatsController : Controller
     }
 
     [HttpGet("config")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<RepoForReleaseStatsDTO>> GetConfiguration([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -104,7 +104,7 @@ public class ReleaseStatsController : Controller
     }
 
     [HttpGet("config/{name}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<RepoForReleaseStatsDTO>> GetSingleConfig([Required] string name)
     {
         name = name.Replace(":", "/");
@@ -118,7 +118,7 @@ public class ReleaseStatsController : Controller
     }
 
     [HttpPost("config")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Create([Required] [FromBody] RepoForReleaseStatsDTO request)
     {
         // Convert blank regex to null, this is due to how the input forms work on the client, so this makes that
@@ -154,7 +154,7 @@ public class ReleaseStatsController : Controller
     }
 
     [HttpDelete("config/{name}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Delete([Required] string name)
     {
         name = name.Replace(":", "/");

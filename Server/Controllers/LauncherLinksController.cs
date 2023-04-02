@@ -32,7 +32,7 @@ public class LauncherLinksController : Controller
     }
 
     [HttpGet("{userId:long}")]
-    [AuthorizeRoleFilter]
+    [AuthorizeBasicAccessLevelFilter]
     public async Task<ActionResult<PagedResult<LauncherLinkDTO>>> GetLinks([Required] long userId,
         [Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -40,7 +40,7 @@ public class LauncherLinksController : Controller
     {
         // Only admins can view other user's info
         if (userId != HttpContext.AuthenticatedUser()!.Id &&
-            !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
         {
             return Forbid();
         }
@@ -64,14 +64,14 @@ public class LauncherLinksController : Controller
     }
 
     [HttpDelete("{userId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> DeleteAllLinks([Required] long userId)
     {
         var performingUser = HttpContext.AuthenticatedUser()!;
 
         // Only admins can delete other user's links
         if (userId != performingUser.Id &&
-            !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
         {
             return Forbid();
         }
@@ -108,14 +108,14 @@ public class LauncherLinksController : Controller
     }
 
     [HttpDelete("{userId:long}/{linkId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> DeleteSpecificLink([Required] long userId, [Required] long linkId)
     {
         var performingUser = HttpContext.AuthenticatedUser()!;
 
         // Only admins can delete other user's links
         if (userId != performingUser.Id &&
-            !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
         {
             return Forbid();
         }
@@ -152,7 +152,7 @@ public class LauncherLinksController : Controller
     }
 
     [HttpPost]
-    [AuthorizeRoleFilter]
+    [AuthorizeBasicAccessLevelFilter]
     public async Task<IActionResult> CreateLinkCode()
     {
         var user = HttpContext.AuthenticatedUser()!;

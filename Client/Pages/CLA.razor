@@ -73,7 +73,7 @@
     }
 </SingleResourceDisplayer>
 
-<AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
+<AccessLimited RequiredGroup="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
     @if (Data != null)
     {
         <br class="mt-3" />
@@ -117,7 +117,7 @@
         }
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         if(Data != null)
             groups.Add(NotificationGroups.CLAUpdatedPrefix + Data.Id);

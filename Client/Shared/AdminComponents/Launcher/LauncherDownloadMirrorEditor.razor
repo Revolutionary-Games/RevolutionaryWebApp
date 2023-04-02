@@ -35,7 +35,7 @@
             $"api/v1/LauncherInfoConfiguration/mirrors/{Id}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.LauncherDownloadMirrorUpdatedPrefix + Id);
     }

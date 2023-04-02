@@ -39,7 +39,7 @@
         return Http.GetFromJsonAsync<CombinedFeedDTO>($"api/v1/CombinedFeed/{Id}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.CombinedFeedUpdatedPrefix + Id);
     }

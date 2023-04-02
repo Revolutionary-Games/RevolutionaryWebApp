@@ -183,7 +183,7 @@ else
         Upload
     </Button>
 
-    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.RestrictedUser">
+    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredGroup="GroupType.RestrictedUser">
 
         @if (!showNewFolderCreate)
         {
@@ -236,7 +236,7 @@ else
                 </ul>
 
                 @if (!parsedFolderInfo.Special && parsedFolderInfo.WriteAccess.IsAccessibleTo(
-                    CurrentUserInfo.AccessLevel, CurrentUserInfo.Info!.Id, parsedFolderInfo.OwnerId))
+                    CurrentUserInfo.Groups, CurrentUserInfo.Info!.Id, parsedFolderInfo.OwnerId))
                 {
                     <StorageItemFolderEditor Data="@parsedFolderInfo" />
                 }
@@ -372,7 +372,7 @@ else
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         // We can't register for listeners before the folder path is parsed to a folder id
         if (!folderPathParsed)
@@ -391,13 +391,13 @@ else
         // Folder content change listening
         groups.Add(NotificationGroups.FolderContentsUpdatedPublicPrefix + folderId);
 
-        if (currentAccessLevel.HasAccess(UserAccessLevel.RestrictedUser))
+        if (currentUserGroups.HasGroup(GroupType.RestrictedUser))
             groups.Add(NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix + folderId);
-        if (currentAccessLevel.HasAccess(UserAccessLevel.User))
+        if (currentUserGroups.HasGroup(GroupType.User))
             groups.Add(NotificationGroups.FolderContentsUpdatedUserPrefix + folderId);
-        if (currentAccessLevel.HasAccess(UserAccessLevel.Developer))
+        if (currentUserGroups.HasGroup(GroupType.Developer))
             groups.Add(NotificationGroups.FolderContentsUpdatedDeveloperPrefix + folderId);
-        if (currentAccessLevel.HasAccess(UserAccessLevel.Admin) || (parsedFolderInfo?.OwnerId != null &&
+        if (currentUserGroups.HasGroup(GroupType.Admin) || (parsedFolderInfo?.OwnerId != null &&
             CurrentUserInfo?.Info?.Id == parsedFolderInfo.OwnerId))
         {
             groups.Add(NotificationGroups.FolderContentsUpdatedOwnerPrefix + folderId);
@@ -527,11 +527,11 @@ else
         if (parsedFolderId == null)
         {
             // Only admins can write to the root folder
-            newWritable = CurrentUserInfo.AccessLevel.HasAccess(UserAccessLevel.Admin);
+            newWritable = CurrentUserInfo.HasGroup(GroupType.Admin);
         }
         else
         {
-            newWritable = parsedFolderInfo!.WriteAccess.IsAccessibleTo(CurrentUserInfo.AccessLevel,
+            newWritable = parsedFolderInfo!.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups,
                 CurrentUserInfo.Info?.Id, parsedFolderInfo.OwnerId);
         }
 

@@ -2,7 +2,7 @@
 @inject NavigationManager NavManager
 @using ThriveDevCenter.Shared.Models.Enums
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Patreon Settings</h3>
 
     <p>TODO: reimplement settings</p>

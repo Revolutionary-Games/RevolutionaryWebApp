@@ -50,7 +50,7 @@ public class CLAController : Controller
         emailSignaturesTo = configuration["CLA:SignatureEmailBCC"];
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet]
     public async Task<PagedResult<CLAInfo>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -81,7 +81,7 @@ public class CLAController : Controller
         if (cla == null)
             return NotFound();
 
-        if (!cla.Active && HttpContext.AuthenticatedUser()?.Admin != true)
+        if (!cla.Active && HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, null) != true)
             return this.WorkingForbid("Only admins can view non-active CLAs");
 
         return cla.GetDTO();
@@ -98,7 +98,7 @@ public class CLAController : Controller
         return cla.GetDTO();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost]
     public async Task<IActionResult> CreateNew([Required] [FromBody] CLADTO request)
     {
@@ -143,7 +143,7 @@ public class CLAController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost("{id}/activate")]
     public async Task<IActionResult> Activate([Required] long id)
     {
@@ -174,7 +174,7 @@ public class CLAController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost("{id}/deactivate")]
     public async Task<IActionResult> Deactivate([Required] long id)
     {
@@ -197,7 +197,7 @@ public class CLAController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     [HttpGet("{id:long}/search")]
     public async Task<ActionResult<List<CLASignatureSearchResult>>> SearchSignatures([Required] long id,
         string? email, string? githubAccount)
@@ -243,7 +243,7 @@ public class CLAController : Controller
             .ToList();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet("signatures")]
     public async Task<PagedResult<CLASignatureDTO>> GetSignatures([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -273,7 +273,7 @@ public class CLAController : Controller
     /// <returns>
     ///   List of either signed or not signed people in the request, depending on the flags in the request
     /// </returns>
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost("checkSignatures")]
     public async Task<ActionResult<List<string>>> BulkCheckSignatures(
         [Required] [FromBody] BulkCLACheckRequest request)

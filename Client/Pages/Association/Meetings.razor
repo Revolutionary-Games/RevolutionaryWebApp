@@ -47,7 +47,7 @@ else
     </PaginatedTable>
 }
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+<AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
     <hr />
 
     @if (!showNewForm)
@@ -183,7 +183,7 @@ else
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         // TODO: implement
         // groups.Add(NotificationGroups.);

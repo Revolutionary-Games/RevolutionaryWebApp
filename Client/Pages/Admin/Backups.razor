@@ -13,7 +13,7 @@
 @implements ThriveDevCenter.Client.Services.INotificationHandler<BackupListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.BackupDTO>
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Backups</h3>
 
     <StatusMessageShower Message="@topStatusMessage" Type="@topStatusMessageType"/>
@@ -168,7 +168,7 @@
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.BackupListUpdated);
     }

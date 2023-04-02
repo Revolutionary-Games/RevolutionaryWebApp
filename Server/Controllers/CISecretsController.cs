@@ -30,7 +30,7 @@ public class CISecretsController : Controller
     }
 
     [HttpGet("{projectId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<List<CISecretDTO>>> Get([Required] long projectId, [Required] string sortColumn,
         [Required] SortDirection sortDirection)
     {
@@ -56,7 +56,7 @@ public class CISecretsController : Controller
     }
 
     [HttpPost("{projectId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Create([Required] long projectId,
         [Required] [FromBody] CreateCISecretForm request)
     {
@@ -100,7 +100,7 @@ public class CISecretsController : Controller
     }
 
     [HttpDelete("{projectId:long}/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult> DeleteSecret([Required] long projectId, [Required] long id)
     {
         var project = await database.CiProjects.FindAsync(projectId);

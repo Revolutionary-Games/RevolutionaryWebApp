@@ -78,7 +78,7 @@ else
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         // TODO: notifications for this
         // groups.Add(NotificationGroups.LFSListUpdated + StorageItemId.ToString() );

@@ -17,7 +17,7 @@
         CurrentUserInfo.OnUserInfoChanged -= OnUserInfoChanged;
     }
 
-    protected virtual async void OnUserInfoChanged(object? sender, UserInfo? newInfo)
+    protected virtual async void OnUserInfoChanged(object? sender, UserDTO? newInfo)
     {
         await InvokeAsync(StateHasChanged);
     }

@@ -30,7 +30,7 @@ public class PatronsController : Controller
         this.database = database;
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet]
     public async Task<PagedResult<PatronDTO>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,

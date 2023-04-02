@@ -3,12 +3,15 @@ namespace ThriveDevCenter.Server.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Net;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using Shared.Notifications;
 using SharedBase.Converters;
 using Utilities;
@@ -26,9 +29,7 @@ public class Session : IContainsHashedLookUps, IUpdateNotifications
     public long? UserId { get; set; }
     public User? User { get; set; }
 
-    // TODO: remove this and also remove from the User model, we can now invalidate sessions without needing this
-    // variable
-    public long SessionVersion { get; set; } = 1;
+    public string? CachedUserGroupsRaw { get; set; }
 
     public string? SsoNonce { get; set; }
     public string? StartedSsoLogin { get; set; }
@@ -55,6 +56,33 @@ public class Session : IContainsHashedLookUps, IUpdateNotifications
     public IPAddress? LastUsedFrom { get; set; }
 
     public InProgressClaSignature? InProgressClaSignature { get; set; }
+
+    /// <summary>
+    ///   The user groups associated with this session
+    /// </summary>
+    [NotMapped]
+    public CachedUserGroups? CachedUserGroups
+    {
+        get
+        {
+            if (CachedUserGroupsRaw == null || UserId == null)
+                return new CachedUserGroups(GroupType.NotLoggedIn);
+
+            return JsonSerializer.Deserialize<CachedUserGroups>(CachedUserGroupsRaw);
+        }
+        set
+        {
+            // The last check here makes non-logged in users never have groups. That needs to be removed if that
+            // assumption is not correct in the future.
+            if (value == null || UserId == null || !value.HasAccessLevel(GroupType.RestrictedUser))
+            {
+                CachedUserGroupsRaw = null;
+                return;
+            }
+
+            CachedUserGroupsRaw = JsonSerializer.Serialize(value);
+        }
+    }
 
     public bool IsCloseToExpiry()
     {

@@ -37,7 +37,7 @@ public class MaintenanceController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<ExecutedMaintenanceOperationDTO>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -60,7 +60,7 @@ public class MaintenanceController : Controller
     }
 
     [HttpPost("start")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> StartMaintenanceOperation([FromBody] string operationName)
     {
         if (string.IsNullOrWhiteSpace(operationName))
@@ -141,7 +141,7 @@ public class MaintenanceController : Controller
     }
 
     [HttpGet("available")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public IEnumerable<Tuple<string, string>> GetAvailableMaintenanceOperations()
     {
         return EnumerateMaintenanceOperations()
@@ -153,20 +153,11 @@ public class MaintenanceController : Controller
         EnumerateMaintenanceOperations()
     {
         yield return ("cleanSessions", "Delete all sessions that are older than one hour", StartCleanSessions);
-
-        yield return ("migrateToGroups", "IMPORTANT: Migrate old user permission model to groups",
-            StartMigrateUsersToGroups);
     }
 
     [NonAction]
     private static void StartCleanSessions(IBackgroundJobClient jobClient, long operationId)
     {
         jobClient.Enqueue<ClearAllSlightlyInactiveSessions>(x => x.Execute(operationId, CancellationToken.None));
-    }
-
-    [NonAction]
-    private static void StartMigrateUsersToGroups(IBackgroundJobClient jobClient, long operationId)
-    {
-        jobClient.Enqueue<MigrateUserAccessToGroups>(x => x.Execute(operationId, CancellationToken.None));
     }
 }

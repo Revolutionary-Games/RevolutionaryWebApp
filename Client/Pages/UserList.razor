@@ -15,7 +15,7 @@
 
 <h3>Users</h3>
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     @if (!string.IsNullOrEmpty(Error))
     {
         <div class="alert alert-danger" role="alert">
@@ -39,11 +39,10 @@
                         <th scope="row"><NavLink href="@($"users/{item.Id}")">@item.Name</NavLink></th>
                         <td>@item.Suspended</td>
                         <td>@item.SsoSource</td>
-                        <td>@item.Developer</td>
-                        <td>@item.Admin</td>
+                        @* TODO: add back some basic group showing? *@
+                        @*<td>@item.Developer</td>
+                        <td>@item.Admin</td>*@
                         <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
-                        <td>@item.HasApiToken</td>
-                        <td>@item.HasLfsToken</td>
                     </tr>
                 }
             }
@@ -59,11 +58,10 @@
         new TableColumn("Name", true, "UserName"),
         new TableColumn("Suspended", true),
         new TableColumn("SSO", true, "SsoSource"),
-        new TableColumn("Developer", true),
-        new TableColumn("Admin", true),
+
+        // new TableColumn("Developer", false),
+        // new TableColumn("Admin", false),
         new TableColumn("Created At", true, "CreatedAt"),
-        new TableColumn("API Token?", false),
-        new TableColumn("LFS?", false),
     };
 
     public UserList() : base(new SortHelper("CreatedAt", SortDirection.Descending))
@@ -88,9 +86,9 @@
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
-        if (!currentAccessLevel.HasAccess(UserAccessLevel.Admin))
+        if (!currentUserGroups.HasGroup(GroupType.Admin))
             return;
 
         groups.Add(NotificationGroups.UserListUpdated);

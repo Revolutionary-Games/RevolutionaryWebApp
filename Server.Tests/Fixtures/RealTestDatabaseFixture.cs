@@ -1,8 +1,10 @@
 namespace ThriveDevCenter.Server.Tests.Fixtures;
 
 using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Server.Models;
+using Shared.Models.Enums;
 
 /// <summary>
 ///   A real postgresql database used in tests.
@@ -67,7 +69,10 @@ public abstract class RealTestDatabaseFixture : IDisposable
             Email = "test2@example.com",
             Name = "test2",
             Local = true,
-            Developer = true,
+            Groups = new List<UserGroup>
+            {
+                Database.UserGroups.Find(GroupType.Developer) ?? throw new Exception("Developer group missing"),
+            },
         };
 
         Database.Users.Add(user2);
@@ -84,7 +89,10 @@ public abstract class RealTestDatabaseFixture : IDisposable
             Email = "test3@example.com",
             Name = "test3",
             Local = true,
-            Admin = true,
+            Groups = new List<UserGroup>
+            {
+                Database.UserGroups.Find(GroupType.Admin) ?? throw new Exception("Admin group missing"),
+            },
         };
 
         Database.Users.Add(user3);

@@ -2,8 +2,8 @@ namespace ThriveDevCenter.Server.Models;
 
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Enums;
 using Shared;
+using Shared.Models.Enums;
 
 /// <summary>
 ///   A group of users who have certain permissions

@@ -3,7 +3,7 @@
 @using ThriveDevCenter.Shared.Models.Enums
 @inject HttpClient Http
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+<AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
 
     @if (UseErrorDisplay)
     {

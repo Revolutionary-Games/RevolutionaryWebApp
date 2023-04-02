@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ThriveDevCenter.Shared.Models;
 using ThriveDevCenter.Shared.Models.Enums;
 using ThriveDevCenter.Shared.Notifications;
 
@@ -17,7 +18,10 @@ public interface IGroupListener
     /// <summary>
     ///   Gets the groups that this component wants to listen to. Groups are defined in NotificationGroups.cs
     /// </summary>
-    /// <param name="currentAccessLevel">The current access there is to the system</param>
-    /// <param name="groups">This is where the groups should be added</param>
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
+    /// <param name="currentUserGroups">
+    ///   The current groups the user accessing the system has. When not logged in this is initialized with just the
+    ///   <see cref="GroupType.NotLoggedIn"/> group.
+    /// </param>
+    /// <param name="groups">This is where the groups to listen to should be added</param>
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups);
 }

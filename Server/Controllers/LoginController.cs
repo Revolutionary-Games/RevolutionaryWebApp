@@ -23,6 +23,7 @@ using Models;
 using Services;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using SharedBase.Utilities;
 using Utilities;
 
@@ -308,8 +309,8 @@ public class LoginController : SSOLoginController
         }
 
         session.User = user;
-        session.SessionVersion = user.SessionVersion;
         session.LastUsedFrom = remoteAddress;
+        session.CachedUserGroups = user.AccessCachedGroupsOrThrow();
 
         await Database.SaveChangesAsync();
 
@@ -383,7 +384,7 @@ public class LoginController : SSOLoginController
 
             // Force invalidate the logged in as user here for the session
             session.User = null;
-            session.SessionVersion = 1;
+            session.CachedUserGroups = null;
         }
 
         SetupSessionForSSO(ssoSource, returnTo, session);
@@ -634,6 +635,13 @@ public class LoginController : SSOLoginController
 
         var user = await Database.Users.FirstOrDefaultAsync(u => u.Email == email);
 
+        if (user != null)
+            await user.ComputeUserGroups(Database);
+
+        var developerGroup = new Lazy<Task<UserGroup>>(async () =>
+            await Database.UserGroups.FindAsync(GroupType.Developer) ??
+            throw new Exception("Developer group not found"));
+
         if (user == null)
         {
             // New account needed
@@ -646,9 +654,12 @@ public class LoginController : SSOLoginController
                 UserName = username,
                 Local = false,
                 SsoSource = ssoType,
-                Developer = developerLogin,
-                Admin = false,
             };
+
+            if (developerLogin)
+            {
+                user.Groups.Add(await developerGroup.Value);
+            }
 
             await Database.Users.AddAsync(user);
             Models.User.OnNewUserCreated(user, jobClient);
@@ -664,7 +675,7 @@ public class LoginController : SSOLoginController
                 "User logged in with different SSO source than before, new: {SsoType}, old: {SsoSource}", ssoType,
                 user.SsoSource);
 
-            if (user.SsoSource == SsoTypeDevForum || user.Developer == true)
+            if (user.SsoSource == SsoTypeDevForum || user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer))
             {
                 return (Redirect(QueryHelpers.AddQueryString("/login", "error",
                         "Your account is a developer account. You need to login through the Development Forums.")),
@@ -680,7 +691,7 @@ public class LoginController : SSOLoginController
                     TargetUser = user,
                 });
 
-                user.Developer = true;
+                user.Groups.Add(await developerGroup.Value);
                 user.SsoSource = SsoTypeDevForum;
                 user.BumpUpdatedAt();
             }
@@ -788,7 +799,7 @@ public class LoginController : SSOLoginController
 
         session.User = user;
         session.LastUsed = DateTime.UtcNow;
-        session.SessionVersion = user.SessionVersion;
+        session.CachedUserGroups = user.AccessCachedGroupsOrThrow();
 
         ClearSSOParametersFromSession(session);
 

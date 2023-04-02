@@ -8,7 +8,7 @@
 @using ThriveDevCenter.Shared.Notifications
 @implements IAsyncDisposable
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {
@@ -62,7 +62,7 @@
         return Http.GetFromJsonAsync<AssociationMemberDTO>($"api/v1/AssociationMember/{Id}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         // groups.Add(NotificationGroups.AssociationMemberUpdatedPrefix + Id);
     }

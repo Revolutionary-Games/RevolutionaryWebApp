@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Shared.Models.Enums;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class AuthorizeRoleFilterAttribute : Attribute, IAsyncAuthorizationFilter
+public class AuthorizeBasicAccessLevelFilterAttribute : Attribute, IAsyncAuthorizationFilter
 {
     private AuthenticationScopeRestriction? requiredRestriction = AuthenticationScopeRestriction.None;
-    public UserAccessLevel RequiredAccess { get; set; } = UserAccessLevel.User;
+    public GroupType RequiredAccess { get; set; } = GroupType.User;
 
     public string? RequiredRestriction
     {
@@ -30,7 +30,7 @@ public class AuthorizeRoleFilterAttribute : Attribute, IAsyncAuthorizationFilter
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var result =
-            context.HttpContext.HasAuthenticatedUserWithAccessExtended(RequiredAccess, requiredRestriction);
+            context.HttpContext.HasAuthenticatedUserWithGroupExtended(RequiredAccess, requiredRestriction);
 
         switch (result)
         {

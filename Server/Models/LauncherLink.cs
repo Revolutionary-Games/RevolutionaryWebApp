@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -33,6 +35,30 @@ public class LauncherLink : UpdateableModel, IContainsHashedLookUps, IUpdateNoti
 
     public long UserId { get; set; }
     public User? User { get; set; }
+
+    public string? CachedUserGroupsRaw { get; set; }
+
+    [NotMapped]
+    public CachedUserGroups? CachedUserGroups
+    {
+        get
+        {
+            if (CachedUserGroupsRaw == null)
+                return null;
+
+            return JsonSerializer.Deserialize<CachedUserGroups>(CachedUserGroupsRaw);
+        }
+        set
+        {
+            if (value == null)
+            {
+                CachedUserGroupsRaw = null;
+                return;
+            }
+
+            CachedUserGroupsRaw = JsonSerializer.Serialize(value);
+        }
+    }
 
     public LauncherLinkDTO GetDTO()
     {

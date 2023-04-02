@@ -115,12 +115,12 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
 
     public bool IsReadableBy(User? user)
     {
-        return ReadAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId);
+        return ReadAccess.IsAccessibleTo(user?.AccessCachedGroupsOrThrow(), user?.Id, OwnerId);
     }
 
     public bool IsWritableBy(User? user)
     {
-        if (!WriteAccess.IsAccessibleTo(user?.ComputeAccessLevel(), user?.Id, OwnerId))
+        if (!WriteAccess.IsAccessibleTo(user?.AccessCachedGroupsOrThrow(), user?.Id, OwnerId))
             return false;
 
         // Special files aren't writable by anyone, but special folders are writable

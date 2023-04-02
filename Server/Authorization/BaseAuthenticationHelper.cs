@@ -43,6 +43,9 @@ public abstract class BaseAuthenticationHelper : IMiddleware
         if (user == null)
             throw new ArgumentException("can't set authenticated user to null");
 
+        // Ensure groups are computed here as a bunch of code relies on authenticated user groups being available
+        user.AccessCachedGroupsOrThrow();
+
         var identity = new ClaimsIdentity(user);
 
         context.User.AddIdentity(identity);

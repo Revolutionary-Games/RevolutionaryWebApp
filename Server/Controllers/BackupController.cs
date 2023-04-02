@@ -39,7 +39,7 @@ public class BackupController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<BackupDTO>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -62,21 +62,21 @@ public class BackupController : Controller
     }
 
     [HttpGet("status")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public ActionResult<bool> GetStatus()
     {
         return IsConfigured();
     }
 
     [HttpGet("totalSize")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<long>> GetTotalSize()
     {
         return await database.Backups.Where(b => b.Size > 0).SumAsync(b => b.Size);
     }
 
     [HttpPost("{id:long}/download")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<string>> GetDownloadLink([Required] long id)
     {
         if (!IsConfigured())
@@ -105,7 +105,7 @@ public class BackupController : Controller
     }
 
     [HttpDelete("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<string>> Delete([Required] long id)
     {
         if (!IsConfigured())
@@ -149,7 +149,7 @@ public class BackupController : Controller
     }
 
     [HttpPost]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<string>> StartNew()
     {
         if (!IsConfigured())

@@ -177,7 +177,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
+        var resultUser = await response.Content.ReadFromJsonAsync<UserDTO>();
 
         Assert.NotNull(resultUser);
         Assert.Equal(user1.Id, resultUser.Id);
@@ -216,7 +216,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
+        resultUser = await response.Content.ReadFromJsonAsync<UserDTO>();
 
         Assert.NotNull(resultUser);
         Assert.Equal(user2.Id, resultUser.Id);
@@ -247,7 +247,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        resultUser = await response.Content.ReadFromJsonAsync<UserInfo>();
+        resultUser = await response.Content.ReadFromJsonAsync<UserDTO>();
 
         Assert.NotNull(resultUser);
         Assert.Equal(user3.Id, resultUser.Id);

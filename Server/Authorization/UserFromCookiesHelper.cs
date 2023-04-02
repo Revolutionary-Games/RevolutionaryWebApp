@@ -41,8 +41,8 @@ public static class UserFromCookiesHelper
     public static async Task<User?> GetUserFromSession(Session? existingSession, ApplicationDbContext database,
         bool updateLastUsed = true, IPAddress? clientAddress = null)
     {
-        // No user if the session was not found, or the session was invalidated
-        if (existingSession?.User == null || existingSession.SessionVersion != existingSession.User.SessionVersion)
+        // No user if the session was not found
+        if (existingSession?.User == null)
             return null;
 
         // There's now a bunch of code that relies on suspended users being disallowed here

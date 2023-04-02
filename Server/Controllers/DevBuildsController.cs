@@ -80,7 +80,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpGet("list")]
-    [AuthorizeRoleFilter]
+    [AuthorizeBasicAccessLevelFilter]
     public async Task<ActionResult<PagedResult<DevBuildDTO>>> GetBuilds([Required] DevBuildSearchType type,
         [Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -109,7 +109,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpGet("{id:long}")]
-    [AuthorizeRoleFilter]
+    [AuthorizeBasicAccessLevelFilter]
     public async Task<ActionResult<DevBuildDTO>> GetSingleBuild([Required] long id)
     {
         var build = await database.DevBuilds.FindAsync(id);
@@ -121,7 +121,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpGet("{id:long}/siblings")]
-    [AuthorizeRoleFilter]
+    [AuthorizeBasicAccessLevelFilter]
     public async Task<ActionResult<List<long>>> GetBuildSiblingIds([Required] long id)
     {
         var build = await database.DevBuilds.FindAsync(id);
@@ -134,7 +134,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpPost("{id:long}/verify")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> VerifyBuild([Required] long id, bool siblingsAsWell = true)
     {
         var build = await database.DevBuilds.FindAsync(id);
@@ -185,7 +185,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpDelete("{id:long}/verify")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> UnVerifyBuild([Required] long id, bool siblingsAsWell = true)
     {
         var build = await database.DevBuilds.FindAsync(id);
@@ -236,7 +236,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpPut("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> UpdateDevBuild([Required] long id,
         [FromBody] [Required] DevBuildUpdateForm request)
     {
@@ -272,7 +272,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpPost("botd")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> SetBuildOfTheDay([FromBody] [Required] long buildId)
     {
         var build = await database.DevBuilds.FindAsync(buildId);
@@ -334,7 +334,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpDelete("botd")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> RemoveBuildOfTheDay()
     {
         // Unmark all BOTD of the day builds

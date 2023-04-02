@@ -39,7 +39,7 @@ public class BulkEmailController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<SentBulkEmailDTO>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -61,7 +61,7 @@ public class BulkEmailController : Controller
     }
 
     [HttpPost]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> SendBulkEmail([Required] [FromBody] BulkEmailSendRequestForm request)
     {
         // Rate limit to just a few per day
@@ -148,7 +148,8 @@ public class BulkEmailController : Controller
             new(() => database.Users.Select(u => u.Email!).ToListAsync());
 
         Lazy<Task<List<string>>> devCenterDevelopers =
-            new(() => database.Users.Where(u => u.Developer == true).Select(u => u.Email!)
+            new(() => database.UserGroups.Include(g => g.Members).Where(g => g.Id == GroupType.Developer)
+                .SelectMany(g => g.Members).Select(u => u.Email!)
                 .ToListAsync());
 
         Lazy<Task<List<string>>> associationMembers =

@@ -171,7 +171,7 @@ public class StorageFilesController : Controller
     }
 
     [HttpPost("createFolder")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> CreateFolder([Required] [FromBody] CreateFolderForm request)
     {
         if (!CheckNewItemName(request.Name, out var badRequest))
@@ -198,7 +198,7 @@ public class StorageFilesController : Controller
         if (parentFolder == null)
         {
             // Only admin can write to root folder
-            if (!user.HasAccessLevel(UserAccessLevel.Admin))
+            if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
                 return this.WorkingForbid("Only admins can write to root folder");
         }
         else
@@ -249,7 +249,7 @@ public class StorageFilesController : Controller
     }
 
     [HttpGet("{id:long}/versions")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<PagedResult<StorageItemVersionInfo>>> GetVersions([Required] long id,
         [Required] string sortColumn, [Required] SortDirection sortDirection,
         [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
@@ -278,7 +278,7 @@ public class StorageFilesController : Controller
     }
 
     [HttpPut("{id:long}/edit")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> EditItem([Required] long id,
         [Required] [FromBody] StorageItemDTO newData)
     {
@@ -294,7 +294,7 @@ public class StorageFilesController : Controller
         if (item.WriteAccess == FileAccess.Nobody)
             return BadRequest("This item is not writable");
 
-        if (item.OwnerId != user.Id && !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return BadRequest("Only item owners and admins can edit them");
 
         if (newData.ReadAccess == FileAccess.Nobody || newData.WriteAccess == FileAccess.Nobody)
@@ -320,7 +320,7 @@ public class StorageFilesController : Controller
     }
 
     [HttpPost("startUpload")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<UploadFileResponse>> StartFileUpload(
         [Required] [FromBody] UploadFileRequestForm request)
     {
@@ -376,7 +376,7 @@ public class StorageFilesController : Controller
             // Write access required to make a new item
             if (parentFolder == null)
             {
-                if (!user.HasAccessLevel(UserAccessLevel.Admin))
+                if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
                     return this.WorkingForbid("Only admins can write to root folder");
             }
             else

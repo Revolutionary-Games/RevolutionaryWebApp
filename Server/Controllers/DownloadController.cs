@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Services;
 using Shared;
+using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
@@ -68,7 +69,7 @@ public class DownloadController : Controller
             if (wantedVersion == null || latestUploaded == null || wantedVersion.Id != latestUploaded.Id)
             {
                 // Non-latest uploaded file, need access
-                if (user == null || !user.HasAccessLevel(UserAccessLevel.RestrictedUser))
+                if (user == null || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.RestrictedUser))
                     return this.WorkingForbid("You need to login to access non-latest versions of files.");
             }
 
@@ -94,7 +95,7 @@ public class DownloadController : Controller
     }
 
     [HttpGet("patreonCredits")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<PatreonCredits>> DownloadPatronCredits()
     {
         var patrons = await database.Patrons.Where(p => p.Suspended != true).ToListAsync();

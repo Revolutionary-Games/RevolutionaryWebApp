@@ -16,7 +16,7 @@
     <h3>DevBuild (@Id)</h3>
 }
 
-<AccessLimited RequiredAccess="@UserAccessLevel.User">
+<AccessLimited RequiredGroup="@GroupType.User">
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {
@@ -43,7 +43,7 @@
             <h4>Description</h4>
             <pre>@Data.Description</pre>
 
-            <AccessLimited RequiredAccess="UserAccessLevel.Developer">
+            <AccessLimited RequiredGroup="GroupType.Developer">
                 <DevBuildEditor Data="@Data" />
 
                 <br />
@@ -52,7 +52,7 @@
             <h4 class="mt-2">Sibling Builds</h4>
             <DevBuildSiblingList Id="@Id" />
 
-            <AccessLimited RequiredAccess="UserAccessLevel.Developer">
+            <AccessLimited RequiredGroup="GroupType.Developer">
 
                 <h4 class="mt-3">Actions</h4>
 
@@ -106,7 +106,7 @@
         return Http.GetFromJsonAsync<DevBuildDTO>($"api/v1/DevBuilds/{Id}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.DevBuildUpdatedPrefix + Id);
     }

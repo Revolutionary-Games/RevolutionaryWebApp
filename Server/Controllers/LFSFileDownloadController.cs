@@ -33,7 +33,7 @@ public class LFSFileDownloadController : Controller
         var projectObject = await database.LfsProjects.FindAsync(project);
 
         if (projectObject == null || projectObject.Deleted || (!projectObject.Public &&
-                !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer, null)))
+                !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Developer, null)))
         {
             return NotFound("Invalid project specified, or you don't have access. Logging in may help");
         }

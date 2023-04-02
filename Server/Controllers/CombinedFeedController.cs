@@ -32,7 +32,7 @@ public class CombinedFeedController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<CombinedFeedInfo>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -55,7 +55,7 @@ public class CombinedFeedController : Controller
     }
 
     [HttpPost]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Create([Required] [FromBody] CombinedFeedDTO request)
     {
         if (!CheckPollIntervalParameters(request))
@@ -95,7 +95,7 @@ public class CombinedFeedController : Controller
     }
 
     [HttpGet("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<CombinedFeedDTO>> GetSingle([Required] long id)
     {
         var result = await database.CombinedFeeds.Include(f => f.CombinedFromFeeds)
@@ -108,7 +108,7 @@ public class CombinedFeedController : Controller
     }
 
     [HttpPut("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdateCombinedFeed([Required] [FromBody] CombinedFeedDTO request)
     {
         if (!CheckPollIntervalParameters(request))
@@ -166,7 +166,7 @@ public class CombinedFeedController : Controller
     }
 
     [HttpDelete("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Delete([Required] long id)
     {
         var feed = await database.CombinedFeeds.FindAsync(id);

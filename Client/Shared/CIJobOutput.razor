@@ -147,7 +147,7 @@ else
         return Task.CompletedTask;
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         var notificationId = ProjectId + "_" + BuildId + "_" + JobId;
 

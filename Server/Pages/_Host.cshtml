@@ -73,16 +73,19 @@ else
 
     private async Task<string> GenerateUserTokenJSON()
     {
-        var (user, _) = await Request.Cookies.GetUserFromSession(Database,
+        var (user, session) = await Request.Cookies.GetUserFromSession(Database,
             Request.HttpContext.Connection.RemoteIpAddress);
 
-        UserInfo? info = null;
+        UserDTO? info = null;
 
         if (user != null)
         {
-            info = user.GetInfo(user.HasAccessLevel(UserAccessLevel.Admin) ?
-                RecordAccessLevel.Admin :
-                RecordAccessLevel.Private);
+            // This is a database data error
+            if (session?.CachedUserGroups == null)
+                throw new InvalidOperationException("Session groups not set for a user's session");
+
+            info = user.GetDTO(session.CachedUserGroups.HasAccessLevel(GroupType.Admin) ?
+                RecordAccessLevel.Admin : RecordAccessLevel.Private);
         }
 
         var result = new UserToken

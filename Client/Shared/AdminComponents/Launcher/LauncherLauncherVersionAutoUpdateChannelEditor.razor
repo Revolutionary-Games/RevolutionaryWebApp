@@ -38,7 +38,7 @@
             $"api/v1/LauncherInfoConfiguration/launcherVersions/{Id}/channels/{(int)Channel}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add($"{NotificationGroups.LauncherLauncherVersionUpdateChannelUpdatedPrefix}{Id}_{(int)Channel}");
     }

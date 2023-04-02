@@ -48,7 +48,7 @@
             $"api/v1/LauncherInfoConfiguration/thriveVersions/{Id}/platforms/{(int)Platform}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add($"{NotificationGroups.LauncherThriveVersionPlatformUpdatedPrefix}{Id}_{(int)Platform}");
     }

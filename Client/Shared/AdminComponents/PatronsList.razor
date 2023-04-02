@@ -21,7 +21,7 @@
 }
 else
 {
-    <AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="true">
+    <AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="true">
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                         OnPageChanged="async e => await ChangePage(e)"
                         OnSortChanged="async column => await ChangeSort(column)"
@@ -88,7 +88,7 @@ else
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         // TODO: this notification group currently isn't called at all
         groups.Add(NotificationGroups.PatronListUpdated);

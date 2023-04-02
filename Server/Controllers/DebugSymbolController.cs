@@ -49,7 +49,7 @@ public class DebugSymbolController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<ActionResult<PagedResult<DebugSymbolDTO>>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -72,7 +72,7 @@ public class DebugSymbolController : Controller
     }
 
     [HttpPost("offerSymbols")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<ActionResult<DebugSymbolOfferResponse>> OfferSymbols(
         [Required] [FromBody] DebugSymbolOfferRequest request)
     {
@@ -90,7 +90,7 @@ public class DebugSymbolController : Controller
     }
 
     [HttpPost("startUpload")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<ActionResult<DebugSymbolUploadResult>> StartUpload(
         [Required] [FromBody] DebugSymbolUploadRequest request)
     {
@@ -189,7 +189,7 @@ public class DebugSymbolController : Controller
     }
 
     [HttpPost("finishUpload")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<ActionResult<DebugSymbolOfferResponse>> FinishUpload([Required] [FromBody] TokenForm request)
     {
         if (!remoteStorage.Configured)
@@ -237,7 +237,7 @@ public class DebugSymbolController : Controller
     }
 
     [HttpPut("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> UpdateSymbol([Required] [FromBody] DebugSymbolDTO request)
     {
         var symbol = await database.DebugSymbols.FindAsync(request.Id);

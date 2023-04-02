@@ -9,7 +9,7 @@
 @implements ThriveDevCenter.Client.Services.INotificationHandler<ControlledServersUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.ControlledServerDTO>
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     @if (!string.IsNullOrEmpty(Error))
     {
         <div class="alert alert-danger" role="alert">
@@ -138,7 +138,7 @@
         return HandleItemNotification(notification);
     }
 
-    public void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.ControlledServerListUpdated);
     }

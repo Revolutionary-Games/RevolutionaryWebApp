@@ -36,7 +36,7 @@ public class CIBuildManagementController : Controller
     }
 
     [HttpPost("{projectId:long}/{buildId:long}/jobs/{jobId:long}/cancel")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> CancelRunningJob([Required] long projectId,
         [Required] long buildId, [Required] long jobId)
     {
@@ -87,7 +87,7 @@ public class CIBuildManagementController : Controller
     }
 
     [HttpPost("{projectId:long}/{buildId:long}/rerun")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> ReRunBuild([Required] long projectId,
         [Required] long buildId, bool onlyFailed = true)
     {

@@ -27,7 +27,7 @@ public class SiteNotificationsController : Controller
         this.notifications = notifications;
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost("ephemeralNotice")]
     public async Task<IActionResult> SendEphemeralNotice([Required] SiteNoticeFormData data)
     {

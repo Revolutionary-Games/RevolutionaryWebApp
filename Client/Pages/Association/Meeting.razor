@@ -66,7 +66,7 @@
 
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@ClearStatusMessage"/>
 
-        <AccessLimited RequiredAccess="UserAccessLevel.RestrictedUser" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredGroup="GroupType.RestrictedUser" AutoRedirectIfNotLoggedIn="@false">
             @if (!isMemberRetrieved)
             {
                 <div class="spinner-border text-primary" role="status">
@@ -150,7 +150,7 @@
             HttpClientHelpers.GetOptionsWithSerializers());
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.MeetingUpdatedPrefix + Id);
     }

@@ -97,7 +97,7 @@
     <div>Read: @Item.ReadAccess.ToUserReadableString() </div>
     <div>Write: @Item.WriteAccess.ToUserReadableString() </div>
 
-    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.RestrictedUser">
+    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredGroup="GroupType.RestrictedUser">
         <div>
             Owner:
             @if (Item.OwnerId == null)
@@ -116,7 +116,7 @@
     <div>Created: @Item.CreatedAt.ToLocalTime().ToString("G")</div>
     <div>Updated: @Item.UpdatedAt.ToLocalTime().ToString("G")</div>
 
-    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="UserAccessLevel.RestrictedUser">
+    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredGroup="GroupType.RestrictedUser">
         <h3>Versions</h3>
 
         <StorageItemVersions StorageItemId="@Item.Id" />

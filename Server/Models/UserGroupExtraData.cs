@@ -4,8 +4,8 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DevCenterCommunication.Models;
-using Enums;
 using Shared;
+using Shared.Models.Enums;
 
 /// <summary>
 ///   Extra data about a group that is only used when viewing the group, this is separated to make it cheaper to

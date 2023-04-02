@@ -3,8 +3,10 @@ namespace ThriveDevCenter.Server.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using System.Security.Principal;
 using System.Threading;
+using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Enums;
 using Hangfire;
@@ -27,16 +29,6 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
     [AllowSortingBy]
     public string? SsoSource { get; set; }
-
-    // TODO: combine these to a single enum field (replace these 3 properties with UserAccessLevel)
-    [AllowSortingBy]
-    public bool? Developer { get; set; } = false;
-
-    [AllowSortingBy]
-    public bool? Admin { get; set; } = false;
-
-    [AllowSortingBy]
-    public bool Restricted { get; set; }
 
     [HashedLookUp]
     public string? ApiToken { get; set; }
@@ -62,8 +54,6 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     public DateTime? LauncherCodeExpires { get; set; }
 
     public int TotalLauncherLinks { get; set; } = 0;
-
-    public int SessionVersion { get; set; } = 1;
 
     // Need to reimplement these, as we inherit IdentityUser
     [AllowSortingBy]
@@ -156,31 +146,80 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
     public AssociationMember? AssociationMember { get; set; }
 
+    /// <summary>
+    ///   Set to this user's groups once <see cref="ComputeUserGroups"/> has been called
+    /// </summary>
+    [NotMapped]
+    public CachedUserGroups? ResolvedGroups { get; private set; }
+
     public static void OnNewUserCreated(User user, IBackgroundJobClient jobClient)
     {
         jobClient.Schedule<CheckAssociationStatusForUserJob>(x => x.Execute(user.Email!, CancellationToken.None),
             TimeSpan.FromSeconds(30));
     }
 
-    public bool HasAccessLevel(UserAccessLevel level)
+    /// <summary>
+    ///   Loads this user's groups from the database
+    /// </summary>
+    /// <param name="database">The database to load from</param>
+    /// <returns>The loaded group data</returns>
+    public async Task<CachedUserGroups> ComputeUserGroups(ApplicationDbContext database)
     {
-        return ComputeAccessLevel().HasAccess(level);
+        if (ResolvedGroups != null)
+            return ResolvedGroups;
+
+        // TODO: see if this crashes or not:
+        var groupIds =
+            await database.Database
+                .SqlQuery<GroupType>($"SELECT groups_id FROM user_user_group WHERE members_id = {Id}").ToListAsync();
+
+        // var groupIds =
+        //     await database.Database.SqlQuery<int>($"SELECT groups_id FROM user_user_group WHERE members_id = {Id}")
+        //         .Select(g => (GroupType)g).ToListAsync();
+
+        // Add the "user" group automatically if the user is not restricted
+        if (!groupIds.Contains(GroupType.RestrictedUser))
+            groupIds.Add(GroupType.User);
+
+        var cache = new CachedUserGroups(groupIds);
+        ResolvedGroups = cache;
+        return cache;
     }
 
-    public UserAccessLevel ComputeAccessLevel()
+    public CachedUserGroups AccessCachedGroupsOrThrow()
     {
-        // Suspended user has no access
-        if (Suspended == true)
-            return UserAccessLevel.NotLoggedIn;
+        if (ResolvedGroups != null)
+            return ResolvedGroups;
 
-        if (Admin == true)
-            return UserAccessLevel.Admin;
-        if (Developer == true)
-            return UserAccessLevel.Developer;
-        if (Restricted)
-            return UserAccessLevel.RestrictedUser;
+        throw new InvalidOperationException("This user object does not have groups loaded");
+    }
 
-        return UserAccessLevel.User;
+    /// <summary>
+    ///   Gets groups for this user but only if the groups navigation property was accessed
+    /// </summary>
+    public CachedUserGroups ProcessGroupDataFromLoadedGroups()
+    {
+        if (ResolvedGroups != null)
+            return ResolvedGroups;
+
+        return new CachedUserGroups(Groups.Select(g => g.Id));
+    }
+
+    public void SetGroupsFromSessionCache(Session sessionObject)
+    {
+        ResolvedGroups = sessionObject.CachedUserGroups ??
+            throw new ArgumentException("Session doesn't have groups set");
+
+        if (!ResolvedGroups.Groups.Any())
+            throw new ArgumentException("Session object's groups list is empty");
+    }
+
+    public void SetGroupsFromLauncherLinkCache(CachedUserGroups groups)
+    {
+        ResolvedGroups = groups;
+
+        if (!ResolvedGroups.Groups.Any())
+            throw new ArgumentException("Launcher link's groups list is empty");
     }
 
     public AssociationResourceAccess ComputeAssociationAccessLevel()
@@ -188,12 +227,14 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
         // TODO: somehow ensure that the required model was loaded
         if (AssociationMember == null)
         {
-            if (Developer == true)
+            var groupData = AccessCachedGroupsOrThrow();
+
+            if (groupData.HasGroup(GroupType.Developer))
                 return AssociationResourceAccess.Developers;
 
             // Restricted user created for non-association person. Shouldn't happen but let's handle it this way
             // if it does
-            if (Restricted)
+            if (groupData.HasAccessLevel(GroupType.RestrictedUser))
                 return AssociationResourceAccess.Public;
 
             return AssociationResourceAccess.Users;
@@ -205,13 +246,12 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
         return AssociationResourceAccess.AssociationMembers;
     }
 
-    public UserInfo GetInfo(RecordAccessLevel infoLevel)
+    public UserDTO GetDTO(RecordAccessLevel infoLevel)
     {
-        var info = new UserInfo
+        var info = new UserDTO
         {
             Id = Id,
             Name = Name,
-            Developer = Developer ?? false,
         };
 
         switch (infoLevel)
@@ -222,13 +262,11 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
                 info.Suspended = Suspended ?? false;
                 info.SuspendedReason = SuspendedReason;
                 info.SuspendedManually = SuspendedManually ?? false;
-                info.Restricted = Restricted;
 
                 // And also add all the private stuff on top
                 goto case RecordAccessLevel.Private;
             case RecordAccessLevel.Private:
                 info.Email = Email;
-                info.Admin = Admin ?? false;
                 info.TotalLauncherLinks = TotalLauncherLinks;
                 info.CreatedAt = CreatedAt;
                 info.UpdatedAt = UpdatedAt;
@@ -236,11 +274,41 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
                 info.HasLfsToken = !string.IsNullOrEmpty(LfsToken);
                 info.Local = Local;
                 info.SsoSource = SsoSource;
-                info.AccessLevel = ComputeAccessLevel();
-                info.SessionVersion = SessionVersion;
+                info.Groups = AccessCachedGroupsOrThrow();
                 info.AssociationMember = AssociationMember != null;
                 info.BoardMember = AssociationMember?.BoardMember ?? false;
                 info.HasBeenBoardMember = AssociationMember?.HasBeenBoardMember ?? false;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);
+        }
+
+        return info;
+    }
+
+    public UserInfo GetInfo(RecordAccessLevel infoLevel)
+    {
+        var info = new UserInfo
+        {
+            Id = Id,
+            Name = Name,
+        };
+
+        switch (infoLevel)
+        {
+            case RecordAccessLevel.Public:
+                break;
+            case RecordAccessLevel.Admin:
+                info.Suspended = Suspended ?? false;
+
+                // And also add all the private stuff on top
+                goto case RecordAccessLevel.Private;
+            case RecordAccessLevel.Private:
+                info.Email = Email;
+                info.CreatedAt = CreatedAt;
+                info.UpdatedAt = UpdatedAt;
+                info.Local = Local;
+                info.SsoSource = SsoSource;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);
@@ -263,7 +331,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
         {
             yield return new Tuple<SerializedNotification, string>(new UserUpdated
             {
-                Item = GetInfo(RecordAccessLevel.Admin),
+                Item = GetDTO(RecordAccessLevel.Admin),
             }, NotificationGroups.UserUpdatedPrefixAdminInfo + Id);
         }
 
@@ -272,7 +340,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
             yield return new Tuple<SerializedNotification, string>(new UserUpdated
             {
                 // Private is safe here as only admins and the user itself can join this group
-                Item = GetInfo(RecordAccessLevel.Private),
+                Item = GetDTO(RecordAccessLevel.Private),
             }, NotificationGroups.UserUpdatedPrefix + Id);
         }
     }

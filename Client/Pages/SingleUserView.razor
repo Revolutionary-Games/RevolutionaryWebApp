@@ -1,7 +1,7 @@
 @page "/users/{Id:long}"
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@inherits SingleResourcePage<UserInfo, UserUpdated>
+@inherits SingleResourcePage<UserDTO, UserUpdated>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared.Notifications
 @using ThriveDevCenter.Client.Services
@@ -9,7 +9,7 @@
 
 <h3>User: @Id</h3>
 
-<AccessLimited RequiredAccess="@UserAccessLevel.RestrictedUser">
+<AccessLimited RequiredGroup="@GroupType.RestrictedUser">
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {
@@ -21,14 +21,14 @@
 <DevCenterTitle>User @Id</DevCenterTitle>
 
 @code {
-    protected override Task<UserInfo?> StartQuery()
+    protected override Task<UserDTO?> StartQuery()
     {
-        return Http.GetFromJsonAsync<UserInfo>($"api/v1/UserManagement/{Id}");
+        return Http.GetFromJsonAsync<UserDTO>($"api/v1/UserManagement/{Id}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
-        if(currentAccessLevel == UserAccessLevel.Admin)
+        if(currentUserGroups.HasGroup(GroupType.Admin))
             groups.Add(NotificationGroups.UserUpdatedPrefixAdminInfo + Id);
 
         groups.Add(NotificationGroups.UserUpdatedPrefix + Id);

@@ -24,20 +24,20 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
     protected abstract ILogger Logger { get; }
     protected abstract DbSet<TModel> Entities { get; }
 
-    protected abstract UserAccessLevel RequiredViewAccessLevel { get; }
+    protected abstract GroupType RequiredViewAccessLevel { get; }
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<TInfo>>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 50)] int pageSize, bool deleted = false)
     {
-        if (!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel,
+        if (!HttpContext.HasAuthenticatedUserWithGroup(RequiredViewAccessLevel,
                 AuthenticationScopeRestriction.None))
             return Forbid();
 
         // Only admins can view deleted items
         if (deleted &&
-            !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
         {
             throw new HttpResponseException
                 { Status = StatusCodes.Status403Forbidden, Value = "You must be an admin to view this" };
@@ -63,7 +63,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
     [HttpGet("{id:long}")]
     public async Task<ActionResult<TDTO>> GetSingle([Required] long id)
     {
-        if (!HttpContext.HasAuthenticatedUserWithAccess(RequiredViewAccessLevel,
+        if (!HttpContext.HasAuthenticatedUserWithGroup(RequiredViewAccessLevel,
                 AuthenticationScopeRestriction.None))
             return Forbid();
 
@@ -74,7 +74,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
 
         // Only admins can view deleted items
         if (item.Deleted &&
-            !HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None))
+            !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
         {
             return NotFound();
         }
@@ -82,7 +82,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
         return item.GetDTO();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpDelete("{id:long}")]
     public async Task<ActionResult> DeleteResource([Required] long id)
     {
@@ -100,7 +100,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost("{id:long}/restore")]
     public async Task<ActionResult> RestoreResource([Required] long id)
     {

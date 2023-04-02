@@ -13,7 +13,7 @@
 @if (CurrentUserInfo.InfoReady)
 {
     // For now only show something when info is ready, to reduce having infinite number of spinners on one page
-    if (CurrentUserInfo.AccessLevel.HasAccess(RequiredAccess))
+    if (CurrentUserInfo.HasGroup(RequiredGroup))
     {
         if (AuthorizedContent == null)
         {
@@ -49,7 +49,7 @@
 @code {
 
     [Parameter]
-    public UserAccessLevel RequiredAccess { get; set; } = UserAccessLevel.Developer;
+    public GroupType RequiredGroup { get; set; } = GroupType.Developer;
 
     [Parameter]
     public bool ShowDefaultNoAccess { get; set; }

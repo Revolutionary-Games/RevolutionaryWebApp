@@ -12,7 +12,6 @@
 @using System.Text.Json
 @using SharedBase.Utilities
 @using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Models.Enums
 @inherits SingleResourcePage<InProgressClaSignatureDTO, ThriveDevCenter.Shared.Notifications.InProgressClaSignatureUpdated>
 @implements IAsyncDisposable
 
@@ -305,7 +304,7 @@
     private bool CanSign => DataIsValidForStep3(Data) && !string.IsNullOrWhiteSpace(Data!.SignerSignature) &&
         (!string.IsNullOrWhiteSpace(Data.GuardianSignature) || Data.SignerIsMinor == false) && !finished;
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         if (Data != null)
             groups.Add(NotificationGroups.InProgressCLASignatureUpdated);

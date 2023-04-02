@@ -38,7 +38,7 @@ public class AssociationMemberController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<AssociationMemberInfo>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -61,14 +61,14 @@ public class AssociationMemberController : Controller
     }
 
     [HttpGet("total")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<long> GetMemberCount()
     {
         return await database.AssociationMembers.CountAsync();
     }
 
     [HttpGet("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<AssociationMemberDTO>> GetMember([Required] long id)
     {
         var member = await database.AssociationMembers.Where(u => u.Id == id).FirstOrDefaultAsync();
@@ -83,7 +83,7 @@ public class AssociationMemberController : Controller
     }
 
     [HttpPut("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdateMember([Required] [FromBody] AssociationMemberDTO request)
     {
         var member = await database.AssociationMembers.FindAsync(request.Id);
@@ -132,7 +132,7 @@ public class AssociationMemberController : Controller
     }
 
     [HttpDelete("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteMember([Required] long id)
     {
         var member = await database.AssociationMembers.FindAsync(id);
@@ -161,7 +161,7 @@ public class AssociationMemberController : Controller
     }
 
     [HttpPost]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateMember([Required] [FromBody] AssociationMemberDTO request)
     {
         var member = await database.AssociationMembers.Where(a => a.Email == request.Email).FirstOrDefaultAsync();

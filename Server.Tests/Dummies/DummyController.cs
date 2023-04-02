@@ -20,52 +20,52 @@ public class DummyController : Controller
         return NoContent();
     }
 
-    [AuthorizeRoleFilter]
+    [AuthorizeBasicAccessLevelFilter]
     [HttpGet("user")]
-    public UserInfo GetLoggedIn()
+    public UserDTO GetLoggedIn()
     {
         var user = (User?)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
 
-        if (user == null || !user.HasAccessLevel(UserAccessLevel.User))
+        if (user == null || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.User))
             throw new InvalidOperationException("user not retrieved or doesn't have access level");
 
-        return user.GetInfo(RecordAccessLevel.Private);
+        return user.GetDTO(RecordAccessLevel.Private);
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpGet("restrictedUser")]
-    public UserInfo GetRestricted()
+    public UserDTO GetRestricted()
     {
         var user = (User?)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
 
-        if (user == null || !user.HasAccessLevel(UserAccessLevel.RestrictedUser))
+        if (user == null || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.RestrictedUser))
             throw new InvalidOperationException("user not retrieved or doesn't have access level");
 
-        return user.GetInfo(RecordAccessLevel.Private);
+        return user.GetDTO(RecordAccessLevel.Private);
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     [HttpGet("developer")]
-    public UserInfo GetDeveloper()
+    public UserDTO GetDeveloper()
     {
         var user = (User?)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
 
-        if (user == null || !user.HasAccessLevel(UserAccessLevel.Developer))
+        if (user == null || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer))
             throw new InvalidOperationException("user not retrieved or doesn't have access level");
 
-        return user.GetInfo(RecordAccessLevel.Private);
+        return user.GetDTO(RecordAccessLevel.Private);
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet("admin")]
-    public UserInfo GetAdmin()
+    public UserDTO GetAdmin()
     {
         var user = (User?)HttpContext.Items[AppInfo.CurrentUserMiddlewareKey];
 
-        if (user == null || !user.HasAccessLevel(UserAccessLevel.Admin))
+        if (user == null || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Admin))
             throw new InvalidOperationException("user not retrieved or doesn't have access level");
 
-        return user.GetInfo(RecordAccessLevel.Admin);
+        return user.GetDTO(RecordAccessLevel.Admin);
     }
 
     [HttpPost]

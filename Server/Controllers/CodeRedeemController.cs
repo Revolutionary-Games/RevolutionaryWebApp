@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
@@ -26,11 +27,12 @@ public class CodeRedeemController : Controller
         this.database = database;
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost]
     public async Task<IActionResult> Redeem([Required] RedeemCodeData data)
     {
-        var target = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+        var target = await database.Users.Include(u => u.Groups)
+            .FirstAsync(u => u.Id == HttpContext.AuthenticatedUserOrThrow().Id);
 
         if (target == null)
             throw new Exception("User not found after authorization");
@@ -53,21 +55,28 @@ public class CodeRedeemController : Controller
         {
             case "GroupAdmin":
             {
-                if (target.Admin == true)
+                if (target.Groups.Any(g => g.Id == GroupType.Admin))
                     return GetAlreadyGotResult();
 
-                target.Admin = true;
+                var admin = await database.UserGroups.FindAsync(GroupType.Admin) ??
+                    throw new Exception("Admin group not found");
+
+                target.Groups.Add(admin);
                 granted = "admin group membership";
 
                 break;
             }
 
-            case "ForceDeveloper":
+            case "GroupDeveloper":
             {
-                if (target.Admin == true)
-                    target.Admin = false;
-                target.Developer = true;
-                granted = "forced developer group membership";
+                if (target.Groups.Any(g => g.Id == GroupType.Developer))
+                    return GetAlreadyGotResult();
+
+                var developer = await database.UserGroups.FindAsync(GroupType.Developer) ??
+                    throw new Exception("Developer group not found");
+
+                target.Groups.Add(developer);
+                granted = "developer group membership";
 
                 break;
             }

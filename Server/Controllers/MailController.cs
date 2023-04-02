@@ -33,7 +33,7 @@ public class MailController : Controller
         return Ok();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost("test")]
     public async Task<IActionResult> SendTestMail([FromBody] [Required] EmailTestRequestForm request)
     {

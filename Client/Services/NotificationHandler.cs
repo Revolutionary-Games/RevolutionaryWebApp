@@ -14,6 +14,7 @@ using Shared;
 using SharedBase.Utilities;
 using ThriveDevCenter.Shared;
 using ThriveDevCenter.Shared.Models;
+using ThriveDevCenter.Shared.Models.Enums;
 using ThriveDevCenter.Shared.Notifications;
 using Utilities;
 
@@ -281,7 +282,7 @@ public class NotificationHandler : IAsyncDisposable
             OnVersionMismatch?.Invoke(this, EventArgs.Empty);
         });
 
-        hubConnection.On<UserInfo>("ReceiveOwnUserInfo", user => { userInfoReceiver.OnReceivedOurInfo(user); });
+        hubConnection.On<UserDTO>("ReceiveOwnUserInfo", user => { userInfoReceiver.OnReceivedOurInfo(user); });
 
         hubConnection.On<string>("ReceiveNotificationJSON", async json =>
         {
@@ -356,7 +357,7 @@ public class NotificationHandler : IAsyncDisposable
         if (!userInfoRegistered)
         {
             // Due to difficult ordering, we register on behalf of the UserInfoReceiver
-            await Register<UserUpdated>(userInfoReceiver);
+            await Register(userInfoReceiver);
             userInfoRegistered = true;
         }
         else
@@ -420,7 +421,7 @@ public class NotificationHandler : IAsyncDisposable
         await Task.WhenAll(tasks);
     }
 
-    private async void OnUserInfoChanged(object? sender, UserInfo? info)
+    private async void OnUserInfoChanged(object? sender, UserDTO? info)
     {
         // ReSharper disable once HeuristicUnreachableCode
         if (FullMessageLogging)
@@ -460,7 +461,7 @@ public class NotificationHandler : IAsyncDisposable
 
     private async Task PerformGroupApply()
     {
-        var userStatus = userInfoReceiver.AccessLevel;
+        var userStatus = userInfoReceiver.Info?.Groups ?? new CachedUserGroups(GroupType.NotLoggedIn);
 
         var wantedGroups = new HashSet<string>();
 

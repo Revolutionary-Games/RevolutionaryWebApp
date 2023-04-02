@@ -23,21 +23,21 @@ public class TokensController : Controller
     }
 
     [HttpGet("api/self")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public ActionResult<string> GetOwnAPIToken()
     {
         return HttpContext.AuthenticatedUser()!.ApiToken ?? "none";
     }
 
     [HttpGet("lfs/self")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public ActionResult<string> GetOwnLFSToken()
     {
         return HttpContext.AuthenticatedUser()!.LfsToken ?? "none";
     }
 
     [HttpDelete("api/self")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> DeleteOwnAPIToken()
     {
         // We must re-fetch this data to get it from our db context for updating it
@@ -60,7 +60,7 @@ public class TokensController : Controller
     }
 
     [HttpDelete("lfs/self")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> DeleteOwnLFSToken()
     {
         // We must re-fetch this data to get it from our db context for updating it
@@ -83,7 +83,7 @@ public class TokensController : Controller
     }
 
     [HttpPost("api/self")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<string>> CreateOwnAPIToken()
     {
         // We must re-fetch this data to get it from our db context for updating it
@@ -106,7 +106,7 @@ public class TokensController : Controller
     }
 
     [HttpPost("lfs/self")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<string>> CreateOwnLFSToken()
     {
         // We must re-fetch this data to get it from our db context for updating it
@@ -129,7 +129,7 @@ public class TokensController : Controller
     }
 
     [HttpPost("clear")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<string>> ForceClearTokens([FromBody] ForceClearTokensForm request)
     {
         var target = await database.Users.FindAsync(request.TargetUserId);

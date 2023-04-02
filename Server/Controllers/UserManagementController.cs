@@ -37,8 +37,8 @@ public class UserManagementController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
-    public async Task<PagedResult<UserInfo>> Get([Required] string sortColumn,
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
+    public async Task<PagedResult<UserInfo>> GetList([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
     {
@@ -61,11 +61,11 @@ public class UserManagementController : Controller
     }
 
     [HttpGet("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
-    public async Task<ActionResult<UserInfo>> GetUser([Required] long id)
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<ActionResult<UserDTO>> GetUser([Required] long id)
     {
         bool admin =
-            HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
+            HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None);
 
         var user = await database.Users.AsNoTracking().Where(u => u.Id == id).Include(u => u.AssociationMember)
             .FirstOrDefaultAsync();
@@ -77,14 +77,14 @@ public class UserManagementController : Controller
         if (!admin && HttpContext.AuthenticatedUser()!.Id != user.Id)
             return NotFound();
 
-        return user.GetInfo(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
+        return user.GetDTO(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
     }
 
     // TODO: should this be allowed for non-logged in users so that the uploader names in public folder items
     // could be shown?
 
     [HttpPost("usernames")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
     {
         var users = await database.Users.Where(u => ids.Contains(u.Id))
@@ -110,7 +110,7 @@ public class UserManagementController : Controller
     }
 
     [HttpPost("pickUser")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<Dictionary<long, string>>> FindUserToPick(
         [Required]
         [StringLength(300, MinimumLength = AppInfo.MinNameLengthToLookFor)]
@@ -127,14 +127,14 @@ public class UserManagementController : Controller
     }
 
     [HttpGet("{id:long}/sessions")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<PagedResult<SessionDTO>>> GetUserSessions([Required] long id,
         [Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 50)] int pageSize)
     {
         bool admin =
-            HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
+            HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None);
 
         var user = await database.Users.FindAsync(id);
 
@@ -166,11 +166,11 @@ public class UserManagementController : Controller
     }
 
     [HttpDelete("{id:long}/sessions")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteAllUserSessions([Required] long id)
     {
         bool admin =
-            HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
+            HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None);
 
         var user = await database.Users.FindAsync(id);
         var actingUser = HttpContext.AuthenticatedUser()!;
@@ -210,7 +210,7 @@ public class UserManagementController : Controller
     }
 
     [HttpDelete("{id:long}/otherSessions")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteOtherUserSessions([Required] long id)
     {
         var user = await database.Users.FindAsync(id);
@@ -245,12 +245,12 @@ public class UserManagementController : Controller
     }
 
     [HttpDelete("{id:long}/sessions/{sessionId:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.RestrictedUser)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<PagedResult<SessionDTO>>> DeleteSpecificUserSession([Required] long id,
         [Required] long sessionId)
     {
         bool admin =
-            HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Admin, AuthenticationScopeRestriction.None);
+            HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None);
 
         var user = await database.Users.FindAsync(id);
         var actingUser = HttpContext.AuthenticatedUser()!;

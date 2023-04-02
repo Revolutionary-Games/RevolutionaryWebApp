@@ -73,7 +73,7 @@ public class LFSController : Controller
 
         if (!project.Public)
         {
-            if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer, null))
+            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.Developer, null))
             {
                 return NotFound("Not found or project is private");
             }
@@ -325,7 +325,7 @@ public class LFSController : Controller
     [NonAction]
     private bool RequireWriteAccess(out ActionResult? resultIfFailed)
     {
-        switch (HttpContext.HasAuthenticatedUserWithAccessExtended(UserAccessLevel.Developer,
+        switch (HttpContext.HasAuthenticatedUserWithGroupExtended(GroupType.Developer,
                     AuthenticationScopeRestriction.LFSOnly))
         {
             case HttpContextAuthorizationExtensions.AuthenticationResult.NoUser:

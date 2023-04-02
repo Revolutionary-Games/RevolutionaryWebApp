@@ -7,5 +7,5 @@ public class UserToken
     [Required]
     public string CSRF { get; set; } = string.Empty;
 
-    public UserInfo? User { get; set; }
+    public UserDTO? User { get; set; }
 }

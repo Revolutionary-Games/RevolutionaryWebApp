@@ -177,7 +177,7 @@
 
                 <pre>@Data.Description</pre>
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.RestrictedUser">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.RestrictedUser">
                     <AuthorizedContent>
                         @if (Data.DescriptionLastEdited.HasValue)
                         {
@@ -197,7 +197,7 @@
                     </AccessMissingContent>
                 </AccessLimited>
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Developer">
                     <TextEditor Identifier="@($"report-desc-{Id}")" Placeholder="New description..."
                                 FieldLabel="Description" CurrentlySavedText="@Data.Description"
                                 GetSaveRequest="@GetDescriptionSaveRequest" />
@@ -215,7 +215,7 @@
                 <h4>Full Stack Details</h4>
                 <pre>@Data.PrimaryCallstack</pre>
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Developer">
                     <AuthorizedContent>
                         <h3>Logs</h3>
 
@@ -248,7 +248,7 @@
 
                 <StatusMessageShower Type="@emailStatusType" Message="@emailStatus" />
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Admin">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Admin">
 
                     @if (showReporterEmail)
                     {
@@ -276,7 +276,7 @@
             </div>
 
             <div class="@($"{ViewColumnClass()} overflow-auto")">
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="UserAccessLevel.Developer">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Developer">
                     <h3>Crash dump</h3>
                     @if (fetchingCrashDump)
                     {
@@ -358,7 +358,7 @@
         return Http.GetFromJsonAsync<CrashReportDTO>($"api/v1/CrashReport/{Id}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.CrashReportUpdatedPrefix + Id);
     }

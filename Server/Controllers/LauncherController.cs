@@ -49,7 +49,7 @@ public class LauncherController : Controller
         var user = await GetUserForNewLink(request.Code);
 
         return new LauncherConnectionStatus(user.UserName ?? user.Email!, user.Email!,
-            user.HasAccessLevel(UserAccessLevel.Developer));
+            user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Developer));
     }
 
     [HttpPost("link")]
@@ -74,6 +74,7 @@ public class LauncherController : Controller
             LinkCode = code,
             LastIp = remoteAddress?.ToString(),
             LastConnection = DateTime.UtcNow,
+            CachedUserGroups = user.AccessCachedGroupsOrThrow(),
         });
 
         await database.LogEntries.AddAsync(new LogEntry
@@ -93,18 +94,18 @@ public class LauncherController : Controller
     ///   Checks launcher connection status
     /// </summary>
     [HttpGet("status")]
-    [AuthorizeRoleFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
+    [AuthorizeBasicAccessLevelFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
     public ActionResult<LauncherConnectionStatus> CheckStatus()
     {
         Response.ContentType = "application/json";
-        var user = HttpContext.AuthenticatedUser()!;
+        var user = HttpContext.AuthenticatedUserOrThrow();
 
         return new LauncherConnectionStatus(user.UserName ?? user.Email!, user.Email!,
-            user.HasAccessLevel(UserAccessLevel.Developer));
+            user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer));
     }
 
     [HttpDelete("status")]
-    [AuthorizeRoleFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
+    [AuthorizeBasicAccessLevelFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
     public async Task<ActionResult<LauncherUnlinkResult>> Disconnect()
     {
         Response.ContentType = "application/json";
@@ -144,7 +145,7 @@ public class LauncherController : Controller
     }
 
     [HttpGet("builds/download/{buildId:long}")]
-    [AuthorizeRoleFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
+    [AuthorizeBasicAccessLevelFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
     public async Task<ActionResult<DevBuildDownload>> DownloadBuild([Required] long buildId)
     {
         Response.ContentType = "application/json";
@@ -209,7 +210,7 @@ public class LauncherController : Controller
     ///   Gets currently available devbuild information (latest builds)
     /// </summary>
     [HttpPost("builds")]
-    [AuthorizeRoleFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
+    [AuthorizeBasicAccessLevelFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
     public async Task<ActionResult<DevBuildSearchResults>> GetBuilds([Required] [FromBody] DevBuildSearchForm request)
     {
         Response.ContentType = "application/json";
@@ -241,7 +242,7 @@ public class LauncherController : Controller
     ///   Searches for a devbuild based on the commit hash
     /// </summary>
     [HttpPost("search")]
-    [AuthorizeRoleFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
+    [AuthorizeBasicAccessLevelFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
     public async Task<ActionResult<DevBuildSearchResults>> SearchByHash(
         [Required] [FromBody] DevBuildHashSearchForm request)
     {
@@ -274,7 +275,7 @@ public class LauncherController : Controller
     ///   Searches for a devbuild based on it being the build of the day or latest
     /// </summary>
     [HttpPost("find")]
-    [AuthorizeRoleFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
+    [AuthorizeBasicAccessLevelFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
     public async Task<ActionResult<DevBuildLauncherDTO>> SearchByType(
         [Required] [FromBody] DevBuildFindByTypeForm request)
     {
@@ -315,7 +316,7 @@ public class LauncherController : Controller
     ///   Downloads specified list of dehydrated objects
     /// </summary>
     [HttpPost("dehydrated/download")]
-    [AuthorizeRoleFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
+    [AuthorizeBasicAccessLevelFilter(RequiredRestriction = nameof(AuthenticationScopeRestriction.LauncherOnly))]
     public async Task<ActionResult<DehydratedObjectDownloads>> DownloadDehydrated(
         [Required] [FromBody] DevBuildDehydratedObjectDownloadRequest request)
     {
@@ -358,7 +359,9 @@ public class LauncherController : Controller
             };
         }
 
-        if (!user.HasAccessLevel(UserAccessLevel.User))
+        await user.ComputeUserGroups(database);
+
+        if (!user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.User))
         {
             throw new HttpResponseException
             {
@@ -368,6 +371,7 @@ public class LauncherController : Controller
             };
         }
 
+        // TODO: allow 10 links for developers
         if (user.LauncherLinks.Count >= AppInfo.DefaultMaxLauncherLinks)
         {
             throw new HttpResponseException

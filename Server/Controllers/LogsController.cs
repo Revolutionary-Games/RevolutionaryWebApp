@@ -29,7 +29,7 @@ public class LogsController : Controller
         this.database = database;
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet("logs")]
     public async Task<PagedResult<LogEntryDTO>> GetLogs([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -52,7 +52,7 @@ public class LogsController : Controller
         return objects.ConvertResult(i => i.GetDTO());
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet("adminActions")]
     public async Task<PagedResult<AdminActionDTO>> GetAdminActions([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -75,7 +75,7 @@ public class LogsController : Controller
         return objects.ConvertResult(i => i.GetDTO());
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet("actions")]
     public async Task<PagedResult<ActionLogEntryDTO>> GetActions([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,

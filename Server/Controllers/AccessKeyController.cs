@@ -30,7 +30,7 @@ public class AccessKeyController : Controller
         this.database = database;
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet]
     public async Task<PagedResult<AccessKeyDTO>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
@@ -53,7 +53,7 @@ public class AccessKeyController : Controller
         return objects.ConvertResult(i => i.GetDTO());
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost]
     public async Task<IActionResult> CreateNew([Required] [FromBody] AccessKeyDTO newKey)
     {
@@ -83,7 +83,7 @@ public class AccessKeyController : Controller
         return Ok($"Created new key \"{key.Id}\" with code: {key.KeyCode}");
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteKey([Required] long id)
     {

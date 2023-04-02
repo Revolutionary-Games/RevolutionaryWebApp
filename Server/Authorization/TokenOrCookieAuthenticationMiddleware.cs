@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Models;
 using Shared;
@@ -13,10 +14,13 @@ using Utilities;
 
 public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 {
+    private readonly ILogger<TokenOrCookieAuthenticationMiddleware> logger;
     private readonly ApplicationDbContext database;
 
-    public TokenOrCookieAuthenticationMiddleware(ApplicationDbContext database)
+    public TokenOrCookieAuthenticationMiddleware(ILogger<TokenOrCookieAuthenticationMiddleware> logger,
+        ApplicationDbContext database)
     {
+        this.logger = logger;
         this.database = database;
     }
 
@@ -56,6 +60,9 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
             if (user != null && user.Suspended != true)
             {
+                // When using tokens we can't cache the groups list in the session object so we need to load them here
+                await user.ComputeUserGroups(database);
+
                 OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, null);
                 return AuthMethodResult.Authenticated;
             }
@@ -111,6 +118,9 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
         if (user != null && user.Suspended != true)
         {
+            // When using tokens we can't cache the groups list in the session object so we need to load them here
+            await user.ComputeUserGroups(database);
+
             OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, null);
             return AuthMethodResult.Authenticated;
         }
@@ -153,7 +163,20 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
         link.LastIp = context.Connection.RemoteIpAddress.ToString();
         link.TotalApiCalls += 1;
 
-        // TODO: maybe run this part in a task
+        var groups = link.CachedUserGroups;
+
+        if (groups == null)
+        {
+            // Recompute groups here as the link model allows groups to be null (which is different from the main
+            // sessions where the opposite design is used)
+            await link.User.ComputeUserGroups(database);
+        }
+        else
+        {
+            link.User.SetGroupsFromLauncherLinkCache(groups);
+        }
+
+        // TODO: maybe run this part in a task (to block the authentication for less time)
         await database.SaveChangesAsync();
 
         context.Items[AppInfo.LauncherLinkMiddlewareKey] = link;
@@ -172,14 +195,27 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
             if (user != null)
             {
-                // When inside a cookie CSRF needs to have passed
-                // TODO: the download endpoint shouldn't require this, or do we need a separate interactive
-                // TODO: page to offer the proper download button for downloads?
+                if (sessionObject == null)
+                    throw new InvalidOperationException("User was found but no session exists");
 
+                // When inside a cookie CSRF needs to have passed (except for some download endpoints)
                 context.Items[AppInfo.CSRFNeededName] = true;
 
                 if (user.Suspended != true)
                 {
+                    // Ensure groups in session are up to date, if not up to date update them
+                    if (sessionObject.CachedUserGroups == null)
+                    {
+                        // Database data problem, UpdateUserGroupCacheJob should always keep the groups in sessions up
+                        // to date
+                        logger.LogError("Database session data is incorrect for user: {UserId}, session: {Session}",
+                            user.Id, sessionObject.Id);
+                        return AuthMethodResult.Nothing;
+                    }
+
+                    // Can use session cached groups
+                    user.SetGroupsFromSessionCache(sessionObject);
+
                     OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, sessionObject);
                     return AuthMethodResult.Authenticated;
                 }

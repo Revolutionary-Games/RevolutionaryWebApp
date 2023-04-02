@@ -2,39 +2,37 @@ namespace ThriveDevCenter.Shared.Utilities;
 
 using System;
 using DevCenterCommunication.Models.Enums;
+using Models;
 using Models.Enums;
 
 public static class FileAccessHelpers
 {
-    public static bool IsAccessibleTo(this FileAccess access, UserAccessLevel? userAccess, long? userId,
+    public static bool IsAccessibleTo(this FileAccess access, IUserGroupData? userGroups, long? userId,
         long? objectOwnerId)
     {
         // Everyone has access to public
         if (access == FileAccess.Public)
             return true;
 
-        // This is done to make it easier to call this method
-        userAccess ??= UserAccessLevel.NotLoggedIn;
-
         // Unauthenticated users can only view public items
         // False is returned here as public access was checked above
-        if (userId == null || userAccess == UserAccessLevel.NotLoggedIn)
+        if (userId == null || userGroups == null)
             return false;
 
         // Admins can access anything not system-only
-        if (userAccess == UserAccessLevel.Admin)
+        if (userGroups.HasAccessLevel(GroupType.Admin))
             return access != FileAccess.Nobody;
 
         // Object owner access
         if (objectOwnerId != null && userId == objectOwnerId)
             return access != FileAccess.Nobody;
 
-        if (userAccess == UserAccessLevel.Developer)
+        if (userGroups.HasAccessLevel(GroupType.Developer))
         {
             return access is FileAccess.User or FileAccess.RestrictedUser or FileAccess.Developer;
         }
 
-        if (userAccess == UserAccessLevel.RestrictedUser)
+        if (userGroups.HasAccessLevel(GroupType.RestrictedUser))
         {
             return access == FileAccess.RestrictedUser;
         }

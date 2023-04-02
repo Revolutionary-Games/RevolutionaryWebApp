@@ -43,7 +43,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<PagedResult<ExternalServerDTO>>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -66,7 +66,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpGet("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<ExternalServerDTO>> GetSingle(long id)
     {
         var server = await database.ExternalServers.FindAsync(id);
@@ -78,7 +78,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpPost]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Create([Required] [FromBody] ExternalServerDTO request)
     {
         FailIfNotConfigured();
@@ -134,7 +134,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpDelete("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Destroy(long id)
     {
         FailIfNotConfigured();
@@ -164,7 +164,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpPost("{id:long}/offline")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> MarkOffline(long id, [Required] bool offline)
     {
         FailIfNotConfigured();
@@ -206,7 +206,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpPost("{id:long}/priority")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdatePriority(long id,
         [Required] [FromBody] [Range(AppInfo.MinExternalServerPriority, AppInfo.MaxExternalServerPriority)]
         int priority)
@@ -226,7 +226,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpPost("{id:long}/reboot")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> ForceRebootServer(long id)
     {
         FailIfNotConfigured();
@@ -290,7 +290,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpPost("{id:long}/queueCleanUp")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> QueueCleanUp(long id)
     {
         var server = await database.ExternalServers.FindAsync(id);
@@ -315,7 +315,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpPost("{id:long}/queueMaintenance")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> QueueMaintenance(long id)
     {
         FailIfNotConfigured();
@@ -345,7 +345,7 @@ public class ExternalServersController : Controller
     }
 
     [HttpPost("{id:long}/refreshStatus")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> RefreshServerStatus(long id)
     {
         FailIfNotConfigured();

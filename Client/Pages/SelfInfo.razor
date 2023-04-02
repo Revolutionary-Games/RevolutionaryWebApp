@@ -8,7 +8,7 @@
 
 <h3>Your Profile</h3>
 
-<AccessLimited RequiredAccess="@UserAccessLevel.RestrictedUser">
+<AccessLimited RequiredGroup="@GroupType.RestrictedUser">
     <UserInfoPageContent User="@CurrentUserInfo.Info" />
 
     <br />

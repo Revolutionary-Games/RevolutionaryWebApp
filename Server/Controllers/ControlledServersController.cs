@@ -43,7 +43,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpGet]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<ControlledServerDTO>> Get([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -66,7 +66,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpGet("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<ControlledServerDTO>> GetSingle(long id)
     {
         var server = await database.ControlledServers.FindAsync(id);
@@ -78,7 +78,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpPost("{id:long}/stop")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<ControlledServerDTO>> ForceStopServer(long id)
     {
         FailIfNotConfigured();
@@ -137,7 +137,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpPost("{id:long}/terminate")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<ControlledServerDTO>> ForceTerminateServer(long id)
     {
         FailIfNotConfigured();
@@ -190,7 +190,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpPost("{id:long}/start")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<ControlledServerDTO>> ForceStartServer(long id)
     {
         FailIfNotConfigured();
@@ -255,7 +255,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpPost("{id:long}/queueCleanUp")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> QueueCleanUp(long id)
     {
         FailIfNotConfigured();
@@ -281,7 +281,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpPost("{id:long}/refreshStatus")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<ControlledServerDTO>> RefreshServerStatus(long id)
     {
         FailIfNotConfigured();
@@ -333,7 +333,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpPost("refreshStatuses")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<ControlledServerDTO>> RefreshAllStatuses()
     {
         FailIfNotConfigured();
@@ -392,7 +392,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpPost("removeTerminated")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> RemoveTerminated()
     {
         var servers = await database.ControlledServers.Where(s => s.Status == ServerStatus.Terminated)

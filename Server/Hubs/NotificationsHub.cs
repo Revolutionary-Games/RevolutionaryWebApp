@@ -91,9 +91,8 @@ public class NotificationsHub : Hub<INotifications>
             try
             {
                 session = await http.Request.Cookies.GetSession(database);
-                connectedUser = await
-                    UserFromCookiesHelper.GetUserFromSession(session, database, true,
-                        http.Connection.RemoteIpAddress);
+                connectedUser = await UserFromCookiesHelper.GetUserFromSession(session, database, true,
+                    http.Connection.RemoteIpAddress);
             }
             catch (ArgumentException)
             {
@@ -144,8 +143,8 @@ public class NotificationsHub : Hub<INotifications>
             await Groups.AddToGroupAsync(Context.ConnectionId,
                 NotificationGroups.SessionImportantMessage + session.Id);
 
-            await Clients.Caller.ReceiveOwnUserInfo(connectedUser.GetInfo(
-                connectedUser.HasAccessLevel(UserAccessLevel.Admin) ?
+            await Clients.Caller.ReceiveOwnUserInfo(connectedUser.GetDTO(
+                connectedUser.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin) ?
                     RecordAccessLevel.Admin :
                     RecordAccessLevel.Private));
 
@@ -183,15 +182,14 @@ public class NotificationsHub : Hub<INotifications>
 
     public Task WhoAmI()
     {
-        // TODO: reload from Db at some interval
+        // TODO: reload from Db at some interval (especially the groups would be nice to reload)
         var user = Context.Items["User"] as User;
 
-        var accessLevel = RequireAccessLevel(UserAccessLevel.Admin, user) ?
+        var accessLevel = RequireAccessLevel(GroupType.Admin, user) ?
             RecordAccessLevel.Admin :
             RecordAccessLevel.Private;
 
-        return Clients.Caller.ReceiveOwnUserInfo(
-            user?.GetInfo(accessLevel));
+        return Clients.Caller.ReceiveOwnUserInfo(user?.GetDTO(accessLevel));
     }
 
     private static object IdentityMapper(long id)
@@ -290,7 +288,7 @@ public class NotificationsHub : Hub<INotifications>
         return false;
     }
 
-    private static bool CheckFolderContentsAccess(User? user, UserAccessLevel baseAccessLevel, StorageItem? folder)
+    private static bool CheckFolderContentsAccess(User? user, GroupType baseAccessLevel, StorageItem? folder)
     {
         if (!RequireAccessLevel(baseAccessLevel, user))
             return false;
@@ -328,17 +326,17 @@ public class NotificationsHub : Hub<INotifications>
         }
     }
 
-    private static bool RequireAccessLevel(UserAccessLevel level, User? user)
+    private static bool RequireAccessLevel(GroupType level, User? user)
     {
         // All site visitors have the not logged in access level
-        if (level == UserAccessLevel.NotLoggedIn)
+        if (level == GroupType.NotLoggedIn)
             return true;
 
         // All other access levels require a user
         if (user == null)
             return false;
 
-        return user.HasAccessLevel(level);
+        return user.AccessCachedGroupsOrThrow().HasAccessLevel(level);
     }
 
     private async Task<bool> HandleSpecialGroupJoin(string groupName, User? user, Session? session)
@@ -413,18 +411,18 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.LauncherLauncherVersionListUpdated:
             case NotificationGroups.LauncherThriveVersionListUpdated:
             case NotificationGroups.ExecutedMaintenanceOperationListUpdated:
-                return RequireAccessLevel(UserAccessLevel.Admin, user);
+                return RequireAccessLevel(GroupType.Admin, user);
             case NotificationGroups.PrivateLFSUpdated:
             case NotificationGroups.PrivateCIProjectUpdated:
             case NotificationGroups.CrashReportListUpdatedPrivate:
             case NotificationGroups.SymbolListUpdated:
-                return RequireAccessLevel(UserAccessLevel.Developer, user);
+                return RequireAccessLevel(GroupType.Developer, user);
             case NotificationGroups.DevBuildsListUpdated:
-                return RequireAccessLevel(UserAccessLevel.User, user);
+                return RequireAccessLevel(GroupType.User, user);
             case NotificationGroups.LFSListUpdated:
             case NotificationGroups.CIProjectListUpdated:
             case NotificationGroups.CrashReportListUpdatedPublic:
-                return RequireAccessLevel(UserAccessLevel.NotLoggedIn, user);
+                return RequireAccessLevel(GroupType.NotLoggedIn, user);
         }
 
         // Then check prefixes
@@ -436,7 +434,7 @@ public class NotificationsHub : Hub<INotifications>
 
             // Early return if the user is not an admin and not looking at themselves, this prevents user id
             // enumeration from this endpoint
-            if (user?.Id != id && !RequireAccessLevel(UserAccessLevel.Admin, user))
+            if (user?.Id != id && !RequireAccessLevel(GroupType.Admin, user))
                 return false;
 
             // Can't join non-existent user groups
@@ -444,7 +442,7 @@ public class NotificationsHub : Hub<INotifications>
                 return false;
 
             // Admins can see all user info
-            if (RequireAccessLevel(UserAccessLevel.Admin, user))
+            if (RequireAccessLevel(GroupType.Admin, user))
                 return true;
 
             // People can see their own info
@@ -457,7 +455,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.LfsProjects, out var item))
                 return false;
 
-            if (RequireAccessLevel(UserAccessLevel.Admin, user))
+            if (RequireAccessLevel(GroupType.Admin, user))
                 return true;
 
             // Only admins see deleted items
@@ -468,7 +466,7 @@ public class NotificationsHub : Hub<INotifications>
             if (item.Public)
                 return true;
 
-            return RequireAccessLevel(UserAccessLevel.Developer, user);
+            return RequireAccessLevel(GroupType.Developer, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.CIProjectUpdatedPrefix) ||
@@ -477,7 +475,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.CiProjects, out var item))
                 return false;
 
-            if (RequireAccessLevel(UserAccessLevel.Admin, user))
+            if (RequireAccessLevel(GroupType.Admin, user))
                 return true;
 
             // Only admins see deleted items
@@ -490,7 +488,7 @@ public class NotificationsHub : Hub<INotifications>
             if (item.Public)
                 return true;
 
-            return RequireAccessLevel(UserAccessLevel.Developer, user);
+            return RequireAccessLevel(GroupType.Developer, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.CIProjectsBuildUpdatedPrefix) ||
@@ -512,7 +510,7 @@ public class NotificationsHub : Hub<INotifications>
             if (item.CiProject.Public)
                 return true;
 
-            return RequireAccessLevel(UserAccessLevel.Developer, user);
+            return RequireAccessLevel(GroupType.Developer, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.CIProjectsBuildsJobUpdatedPrefix) ||
@@ -535,7 +533,7 @@ public class NotificationsHub : Hub<INotifications>
             if (item.Build.CiProject.Public)
                 return true;
 
-            return RequireAccessLevel(UserAccessLevel.Developer, user);
+            return RequireAccessLevel(GroupType.Developer, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.CIProjectSecretsUpdatedPrefix))
@@ -544,7 +542,7 @@ public class NotificationsHub : Hub<INotifications>
                 return false;
 
             // Only admins see secrets
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.UserLauncherLinksUpdatedPrefix))
@@ -553,7 +551,7 @@ public class NotificationsHub : Hub<INotifications>
                 return false;
 
             // Admin can view other people's launcher links
-            if (RequireAccessLevel(UserAccessLevel.Admin, user))
+            if (RequireAccessLevel(GroupType.Admin, user))
                 return true;
 
             // Users can see their own links
@@ -565,7 +563,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.DevBuilds, out _))
                 return false;
 
-            return RequireAccessLevel(UserAccessLevel.User, user);
+            return RequireAccessLevel(GroupType.User, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.StorageItemUpdatedPrefix))
@@ -581,7 +579,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
                 return false;
 
-            return CheckFolderContentsAccess(user, UserAccessLevel.NotLoggedIn, item);
+            return CheckFolderContentsAccess(user, GroupType.NotLoggedIn, item);
         }
 
         if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix))
@@ -589,7 +587,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
                 return false;
 
-            return CheckFolderContentsAccess(user, UserAccessLevel.RestrictedUser, item);
+            return CheckFolderContentsAccess(user, GroupType.RestrictedUser, item);
         }
 
         if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedUserPrefix))
@@ -597,7 +595,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
                 return false;
 
-            return CheckFolderContentsAccess(user, UserAccessLevel.User, item);
+            return CheckFolderContentsAccess(user, GroupType.User, item);
         }
 
         if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedDeveloperPrefix))
@@ -605,7 +603,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
                 return false;
 
-            return CheckFolderContentsAccess(user, UserAccessLevel.Developer, item);
+            return CheckFolderContentsAccess(user, GroupType.Developer, item);
         }
 
         if (groupName.StartsWith(NotificationGroups.MeetingUpdatedPrefix) ||
@@ -614,7 +612,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.Meetings, out var item))
                 return false;
 
-            if (RequireAccessLevel(UserAccessLevel.Admin, user))
+            if (RequireAccessLevel(GroupType.Admin, user))
                 return true;
 
             if (user == null)
@@ -633,7 +631,7 @@ public class NotificationsHub : Hub<INotifications>
                 return false;
 
             // Admins can act like the owner of any folder for listening to it
-            if (RequireAccessLevel(UserAccessLevel.Admin, user))
+            if (RequireAccessLevel(GroupType.Admin, user))
                 return true;
 
             // Base folder can't be owned by anyone. Only admins can join this group (see above)
@@ -659,7 +657,7 @@ public class NotificationsHub : Hub<INotifications>
                 return true;
 
             // Only admins see other CLA data
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.CrashReportUpdatedPrefix))
@@ -667,7 +665,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.CrashReports, out var item))
                 return false;
 
-            if (RequireAccessLevel(UserAccessLevel.Developer, user))
+            if (RequireAccessLevel(GroupType.Developer, user))
                 return true;
 
             return item!.Public;
@@ -679,7 +677,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.Feeds, out _))
                 return false;
 
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.CombinedFeedUpdatedPrefix))
@@ -687,7 +685,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.CombinedFeeds, out _))
                 return false;
 
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.LauncherDownloadMirrorUpdatedPrefix))
@@ -695,7 +693,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.LauncherDownloadMirrors, out _))
                 return false;
 
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.LauncherLauncherVersionUpdatedPrefix) ||
@@ -704,7 +702,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.LauncherLauncherVersions, out _))
                 return false;
 
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.LauncherLauncherVersionUpdateChannelUpdatedPrefix) ||
@@ -716,7 +714,7 @@ public class NotificationsHub : Hub<INotifications>
                 return false;
             }
 
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.LauncherThriveVersionUpdatedPrefix) ||
@@ -725,7 +723,7 @@ public class NotificationsHub : Hub<INotifications>
             if (!GetTargetModelFromGroup(groupName, database.LauncherThriveVersions, out _))
                 return false;
 
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.LauncherThriveVersionPlatformUpdatedPrefix) ||
@@ -737,12 +735,12 @@ public class NotificationsHub : Hub<INotifications>
                 return false;
             }
 
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
         }
 
         // Only admins see this
         if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo))
-            return RequireAccessLevel(UserAccessLevel.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user);
 
         // Unknown groups are not allowed
         return false;

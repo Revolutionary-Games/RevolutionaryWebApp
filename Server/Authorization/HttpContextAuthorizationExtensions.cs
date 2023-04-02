@@ -19,12 +19,12 @@ public static class HttpContextAuthorizationExtensions
     /// <summary>
     ///   Variant that returns also information if user login details were not provided at all
     /// </summary>
-    public static AuthenticationResult HasAuthenticatedUserWithAccessExtended(this HttpContext context,
-        UserAccessLevel requiredAccess, AuthenticationScopeRestriction? requiredRestriction)
+    public static AuthenticationResult HasAuthenticatedUserWithGroupExtended(this HttpContext context,
+        GroupType requiredGroup, AuthenticationScopeRestriction? requiredRestriction)
     {
         // Non-logged in is always allowed (even if scope restrictions don't match as in that case the user could
         // just not authenticate at all to have access, so preventing that seems a bit silly)
-        if (requiredAccess == UserAccessLevel.NotLoggedIn)
+        if (requiredGroup == GroupType.NotLoggedIn)
             return AuthenticationResult.Success;
 
         var user = context.AuthenticatedUser();
@@ -32,7 +32,7 @@ public static class HttpContextAuthorizationExtensions
         if (user == null)
             return AuthenticationResult.NoUser;
 
-        if (!user.HasAccessLevel(requiredAccess))
+        if (!user.AccessCachedGroupsOrThrow().HasGroup(requiredGroup))
             return AuthenticationResult.NoAccess;
 
         if (requiredRestriction != null)
@@ -46,10 +46,10 @@ public static class HttpContextAuthorizationExtensions
         return AuthenticationResult.Success;
     }
 
-    public static bool HasAuthenticatedUserWithAccess(this HttpContext context, UserAccessLevel requiredAccess,
+    public static bool HasAuthenticatedUserWithGroup(this HttpContext context, GroupType requiredGroup,
         AuthenticationScopeRestriction? requiredRestriction)
     {
-        return context.HasAuthenticatedUserWithAccessExtended(requiredAccess, requiredRestriction) ==
+        return context.HasAuthenticatedUserWithGroupExtended(requiredGroup, requiredRestriction) ==
             AuthenticationResult.Success;
     }
 

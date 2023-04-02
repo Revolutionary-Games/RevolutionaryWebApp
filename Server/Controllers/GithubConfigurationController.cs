@@ -31,7 +31,7 @@ public class GithubConfigurationController : Controller
     }
 
     [HttpGet("viewSecret")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<GithubWebhookDTO> GetSecret()
     {
         logger.LogInformation("Github webhook secret viewed by {Email}", HttpContext.AuthenticatedUser()!.Email);
@@ -39,7 +39,7 @@ public class GithubConfigurationController : Controller
     }
 
     [HttpPost("recreateSecret")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<GithubWebhookDTO> RecreateSecret()
     {
         var existing = await GetOrCreateHook();
@@ -57,7 +57,7 @@ public class GithubConfigurationController : Controller
     }
 
     [HttpGet("autoComments")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<GithubAutoCommentDTO>> GetAutoComments([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
@@ -80,7 +80,7 @@ public class GithubConfigurationController : Controller
     }
 
     [HttpPost("autoComments")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> CreateAutoComment([Required] [FromBody] GithubAutoCommentDTO request)
     {
         var comment = new GithubAutoComment
@@ -108,7 +108,7 @@ public class GithubConfigurationController : Controller
     }
 
     [HttpGet("autoComments/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<GithubAutoCommentDTO>> GetAutoComment([Required] long id)
     {
         var result = await database.GithubAutoComments.FindAsync(id);
@@ -120,7 +120,7 @@ public class GithubConfigurationController : Controller
     }
 
     [HttpPut("autoComments/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdateAutoComment([Required] [FromBody] GithubAutoCommentDTO request)
     {
         var comment = await database.GithubAutoComments.FindAsync(request.Id);
@@ -153,7 +153,7 @@ public class GithubConfigurationController : Controller
     }
 
     [HttpDelete("autoComments/{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteAutoComment([Required] long id)
     {
         var comment = await database.GithubAutoComments.FindAsync(id);

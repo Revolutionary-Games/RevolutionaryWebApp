@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
 using Services;
-using ThriveDevCenter.Shared.Models.Enums;
+using ThriveDevCenter.Shared.Models;
 using ThriveDevCenter.Shared.Notifications;
 
 /// <summary>
@@ -38,7 +38,7 @@ public abstract class SingleResourcePage<T, TNotification> : SingleResourcePage<
         return Task.CompletedTask;
     }
 
-    public abstract void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups);
+    public abstract void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups);
 
     /// <summary>
     ///   Called when an update notification is received for the shown resource

@@ -10,6 +10,7 @@ using Enums;
 using Microsoft.EntityFrameworkCore;
 using Services;
 using Shared;
+using Shared.Models.Enums;
 using Shared.Notifications;
 using Utilities;
 
@@ -264,7 +265,6 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.UserName).HasColumnName("name").IsRequired().HasDefaultValue("UNKNOWN");
 
             entity.Property(e => e.Suspended).HasDefaultValue(false);
-            entity.Property(e => e.Restricted).HasDefaultValue(false);
 
             entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
         });

@@ -13,7 +13,7 @@
     {
         <h3>CI Project @Data.Name</h3>
 
-        <AccessLimited RequiredAccess="UserAccessLevel.Developer" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredGroup="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
             <ul>
                 <li><strong>Repository name</strong>: @Data.RepositoryFullName</li>
                 <li><strong>Type</strong>: @Data.ProjectType</li>
@@ -23,13 +23,13 @@
                 <li><strong>Default Branch</strong>: @Data.DefaultBranch</li>
                 <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
                 <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
-                <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+                <AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
                     <li><strong>Deleted</strong>: @Data.Deleted</li>
                 </AccessLimited>
             </ul>
         </AccessLimited>
 
-        <AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
 
             <Button OnPressed="@ToggleSecrets" class="mr-1 mb-2" ButtonStyle="secondary">
                 @if (showSecretsSection)
@@ -70,7 +70,7 @@
         return Http.GetFromJsonAsync<CIProjectDTO>($"api/v1/CIProject/{Id}");
     }
 
-    public override void GetWantedListenedGroups(UserAccessLevel currentAccessLevel, ISet<string> groups)
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         groups.Add(NotificationGroups.CIProjectUpdatedPrefix + Id);
     }

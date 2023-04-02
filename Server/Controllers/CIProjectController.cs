@@ -37,9 +37,9 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
     protected override ILogger Logger => logger;
     protected override DbSet<CiProject> Entities => database.CiProjects;
 
-    protected override UserAccessLevel RequiredViewAccessLevel => UserAccessLevel.NotLoggedIn;
+    protected override GroupType RequiredViewAccessLevel => GroupType.NotLoggedIn;
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost]
     public async Task<ActionResult> CreateNew([Required] CIProjectDTO projectInfo)
     {
@@ -279,8 +279,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         // Only developers can see private projects
         if (!project.Public)
         {
-            if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
-                    AuthenticationScopeRestriction.None))
+            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.Developer, AuthenticationScopeRestriction.None))
             {
                 return false;
             }

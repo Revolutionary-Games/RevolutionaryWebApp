@@ -35,10 +35,10 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
     protected override ILogger Logger => logger;
     protected override DbSet<Feed> Entities => database.Feeds;
 
-    protected override UserAccessLevel RequiredViewAccessLevel => UserAccessLevel.Admin;
+    protected override GroupType RequiredViewAccessLevel => GroupType.Admin;
 
     [HttpPost]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult> CreateNew([Required] FeedDTO request)
     {
         if (request.Deleted)
@@ -96,7 +96,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
     }
 
     [HttpPut("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> UpdateFeed([Required] [FromBody] FeedDTO request)
     {
         if (!CheckPollIntervalParameters(request, out var badRequest))
@@ -140,7 +140,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
     }
 
     [HttpGet("availableForCombine")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<List<FeedInfo>>> AvailableForCombine()
     {
         var data = await GetEntitiesForJustInfo(false, "Id", SortDirection.Ascending).Take(1000).ToListAsync();
@@ -149,7 +149,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
     }
 
     [HttpGet("{id:long}/discordWebhook")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<PagedResult<FeedDiscordWebhookDTO>>> FeedWebhooks([Required] long id,
         [Required] string sortColumn, [Required] SortDirection sortDirection,
         [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 50)] int pageSize)
@@ -177,7 +177,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
     }
 
     [HttpPost("{id:long}/discordWebhook")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<FeedDiscordWebhookDTO>> CreateFeedWebhook([Required] long id,
         [Required] [FromBody] FeedDiscordWebhookDTO request)
     {
@@ -217,7 +217,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
     // TODO: update webhook endpoint
 
     [HttpDelete("{id:long}/discordWebhook/{webhookUrl}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> DeleteFeedWebhook([Required] long id,
         [Required] [MaxLength(500)] string webhookUrl)
     {

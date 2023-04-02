@@ -14,7 +14,7 @@ public abstract class ModelUpdated<T> : SerializedNotification
 
 // These separate class types are needed for JSON serialization to work
 
-public class UserUpdated : ModelUpdated<UserInfo>
+public class UserUpdated : ModelUpdated<UserDTO>
 {
 }
 

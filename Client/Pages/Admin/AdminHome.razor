@@ -1,7 +1,7 @@
 @page "/admin"
 @using ThriveDevCenter.Shared.Models.Enums
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Admin Area</h3>
 
     <p>This is the site admin area.</p>

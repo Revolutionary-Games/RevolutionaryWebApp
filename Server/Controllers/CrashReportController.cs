@@ -61,8 +61,7 @@ public class CrashReportController : Controller
         IQueryable<CrashReport> query;
 
         // Developers can view all items, others can only view public items
-        if (HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
-                AuthenticationScopeRestriction.None))
+        if (HttpContext.HasAuthenticatedUserWithGroup(GroupType.Developer, AuthenticationScopeRestriction.None))
         {
             // Exclude the output from fetch in DB which might be very large
             query = WithoutLogs(database.CrashReports);
@@ -125,18 +124,17 @@ public class CrashReportController : Controller
 
         if (!report.Public)
         {
-            if (!HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
-                    AuthenticationScopeRestriction.None))
+            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.Developer, AuthenticationScopeRestriction.None))
             {
                 return NotFound("Not found or report is private");
             }
         }
 
-        return report.GetDTO(HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
+        return report.GetDTO(HttpContext.HasAuthenticatedUserWithGroup(GroupType.Developer,
             AuthenticationScopeRestriction.None));
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     [HttpGet("{id:long}/logs")]
     public async Task<ActionResult<string>> GetLogs([Required] long id)
     {
@@ -153,7 +151,7 @@ public class CrashReportController : Controller
         return report.Logs;
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     [HttpGet("{id:long}/decodedDump")]
     public async Task<ActionResult<string>> GetDecodedCrash([Required] long id)
     {
@@ -166,7 +164,7 @@ public class CrashReportController : Controller
         return report.WholeCrashDump ?? string.Empty;
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     [HttpPost("{id:long}/reprocess")]
     public async Task<IActionResult> ReProcessCrashDump([Required] long id)
     {
@@ -195,7 +193,7 @@ public class CrashReportController : Controller
     [HttpGet("{id:long}/duplicates")]
     public async Task<ActionResult<List<long>>> DuplicatesOfThisReport([Required] long id)
     {
-        bool developer = HttpContext.HasAuthenticatedUserWithAccess(UserAccessLevel.Developer,
+        bool developer = HttpContext.HasAuthenticatedUserWithGroup(GroupType.Developer,
             AuthenticationScopeRestriction.None);
 
         var report = await WithoutLogs(database.CrashReports, false).Where(r => r.Id == id)
@@ -219,7 +217,7 @@ public class CrashReportController : Controller
         return results.Select(r => r.Id).ToList();
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     [HttpGet("{id:long}/bySameReporter")]
     public async Task<ActionResult<List<long>>> ReportsFromSameReporter([Required] long id)
     {
@@ -244,7 +242,7 @@ public class CrashReportController : Controller
     }
 
     // For now just admin access to the email
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet("{id:long}/reporterEmail")]
     public async Task<ActionResult<string>> GetReporterEmail([Required] long id)
     {
@@ -257,7 +255,7 @@ public class CrashReportController : Controller
         return report.ReporterEmail ?? "No reporter email known";
     }
 
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpDelete("{id:long}/reporterEmail")]
     public async Task<IActionResult> ClearReporterEmail([Required] long id)
     {
@@ -296,7 +294,7 @@ public class CrashReportController : Controller
     }
 
     [HttpPut("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Developer)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> UpdateSingle([Required] long id, [Required] [FromBody] CrashReportDTO request)
     {
         var report = await database.CrashReports.FindAsync(id);
@@ -339,7 +337,7 @@ public class CrashReportController : Controller
     }
 
     [HttpDelete("{id:long}")]
-    [AuthorizeRoleFilter(RequiredAccess = UserAccessLevel.Admin)]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> Delete([Required] long id)
     {
         var report = await WithoutLogs(database.CrashReports).Where(r => r.Id == id)

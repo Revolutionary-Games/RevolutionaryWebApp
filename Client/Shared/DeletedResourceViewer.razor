@@ -5,7 +5,7 @@
 @using ThriveDevCenter.Shared.Models.Enums
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.SoftDeletedResource>
 
-<AccessLimited RequiredAccess="UserAccessLevel.Admin" AutoRedirectIfNotLoggedIn="@false">
+<AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
     @if(!visible || ShowHideButtonWhenVisible){
         <Button class="@ButtonClass" ButtonStyle="secondary" OnPressed="@TogglePressed">
             @(visible ? "Hide Deleted" : "View Deleted")
