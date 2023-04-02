@@ -271,6 +271,8 @@ public class LoginController : SSOLoginController
             return CreateSuspendedUserRedirect(user);
         }
 
+        await user.ComputeUserGroups(Database);
+
         // Login is successful
         await BeginNewSession(user);
 

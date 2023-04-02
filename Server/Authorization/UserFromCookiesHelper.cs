@@ -66,6 +66,9 @@ public static class UserFromCookiesHelper
             }
         }
 
+        // Allow everything checking accessing user to get info on the user's groups
+        existingSession.User?.SetGroupsFromSessionCache(existingSession);
+
         return existingSession.User;
     }
 
