@@ -10,12 +10,12 @@ using Enums;
 /// </summary>
 public class CachedUserGroups : IUserGroupData
 {
-    [JsonConstructor]
     public CachedUserGroups(List<GroupType> groups)
     {
         Groups = groups;
     }
 
+    [JsonConstructor]
     public CachedUserGroups(IEnumerable<GroupType> groups)
     {
         Groups = groups.ToList();
