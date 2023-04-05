@@ -74,8 +74,8 @@ public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
 
         // If the token is incorrect we'll want to fail with 403 to not cause infinite retries in LFS clients
         await WriteGitLFSJsonError(context,
-            "Invalid credentials (use your email and LFS token from your profile) or your account is suspended",
-            false);
+            "Invalid credentials to ThriveDevCenter (use your email and LFS token from your " +
+            "ThriveDevCenter profile) or your account is suspended", false);
         return false;
     }
 
