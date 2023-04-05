@@ -30,7 +30,7 @@ public class AuthorizeBasicAccessLevelFilterAttribute : Attribute, IAsyncAuthori
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var result =
-            context.HttpContext.HasAuthenticatedUserWithGroupExtended(RequiredAccess, requiredRestriction);
+            context.HttpContext.HasAuthenticatedUserWithAccessLevelExtended(RequiredAccess, requiredRestriction);
 
         switch (result)
         {

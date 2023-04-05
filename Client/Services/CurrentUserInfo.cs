@@ -68,6 +68,20 @@ public class CurrentUserInfo : INotificationHandler<UserUpdated>
     }
 
     /// <summary>
+    ///   This is separate from groups as restricted or above level can't be checked otherwise
+    /// </summary>
+    /// <param name="accessLevel">Access to check for current user</param>
+    /// <returns>True when has access</returns>
+    public bool HasAccessLevel(GroupType accessLevel)
+    {
+        // Everyone has public access
+        if (accessLevel == GroupType.NotLoggedIn)
+            return true;
+
+        return Groups?.HasAccessLevel(accessLevel) == true;
+    }
+
+    /// <summary>
     ///   Call whenever receiving user info objects from the server. Used to react to our own user data changing
     /// </summary>
     /// <param name="user">The user info we received</param>

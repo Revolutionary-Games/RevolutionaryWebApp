@@ -13,7 +13,7 @@
 @if (CurrentUserInfo.InfoReady)
 {
     // For now only show something when info is ready, to reduce having infinite number of spinners on one page
-    if (CurrentUserInfo.HasGroup(RequiredGroup))
+    if (CurrentUserInfo.HasAccessLevel(RequiredGroup))
     {
         if (AuthorizedContent == null)
         {

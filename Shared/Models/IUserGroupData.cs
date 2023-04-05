@@ -53,7 +53,9 @@ public static class UserGroupDataExtensions
         switch (requiredGroup)
         {
             case GroupType.NotLoggedIn:
-            case GroupType.RestrictedUser:
+
+            // Restricted user cannot be checked here as the access level is granted to everyone above it
+            // case GroupType.RestrictedUser:
             case GroupType.User:
             case GroupType.Developer:
             case GroupType.Admin:

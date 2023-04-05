@@ -38,7 +38,7 @@ public sealed class RecomputeHashedColumnsTests : IClassFixture<RealUnitTestData
         // LineLengthCheckDisable
         var changes =
             await database.Database.ExecuteSqlInterpolatedAsync(
-                $"INSERT INTO sessions (id, session_version, last_used, sso_nonce) VALUES ({created.Id}, 1, {created.LastUsed}, {created.SsoNonce});");
+                $"INSERT INTO sessions (id, last_used, sso_nonce) VALUES ({created.Id}, {created.LastUsed}, {created.SsoNonce});");
 
         // LineLengthCheckEnable
 

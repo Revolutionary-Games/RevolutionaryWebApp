@@ -46,6 +46,35 @@ public static class HttpContextAuthorizationExtensions
         return AuthenticationResult.Success;
     }
 
+    /// <summary>
+    ///   Checks for current user access level. This exists to make checking for restricted level or above work, as
+    ///   no higher users can actually be in the restricted group.
+    /// </summary>
+    public static AuthenticationResult HasAuthenticatedUserWithAccessLevelExtended(this HttpContext context,
+        GroupType requiredAccess, AuthenticationScopeRestriction? requiredRestriction)
+    {
+        if (requiredAccess == GroupType.NotLoggedIn)
+            return AuthenticationResult.Success;
+
+        var user = context.AuthenticatedUser();
+
+        if (user == null)
+            return AuthenticationResult.NoUser;
+
+        if (!user.AccessCachedGroupsOrThrow().HasAccessLevel(requiredAccess))
+            return AuthenticationResult.NoAccess;
+
+        if (requiredRestriction != null)
+        {
+            if (context.AuthenticatedUserRestriction() != requiredRestriction)
+            {
+                return AuthenticationResult.NoAccess;
+            }
+        }
+
+        return AuthenticationResult.Success;
+    }
+
     public static bool HasAuthenticatedUserWithGroup(this HttpContext context, GroupType requiredGroup,
         AuthenticationScopeRestriction? requiredRestriction)
     {

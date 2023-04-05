@@ -19,6 +19,8 @@ using Server.Models;
 using Server.Services;
 using Server.Utilities;
 using Shared;
+using Shared.Models;
+using Shared.Models.Enums;
 using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
@@ -151,6 +153,7 @@ public sealed class LoginControllerTests : IDisposable
             Suspended = false,
             PasswordHash = Passwords.CreateSaltedPasswordHash(password, new byte[] { 55, 12, 55, 50 }),
         };
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
 
         await database.SaveChangesAsync();
@@ -217,6 +220,7 @@ public sealed class LoginControllerTests : IDisposable
             Suspended = true,
             PasswordHash = Passwords.CreateSaltedPasswordHash(password, new byte[] { 55, 12, 55, 50 }),
         };
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
 
         await database.SaveChangesAsync();
@@ -278,6 +282,7 @@ public sealed class LoginControllerTests : IDisposable
             SuspendedManually = false,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
         };
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
 
         await database.SaveChangesAsync();
@@ -373,6 +378,7 @@ public sealed class LoginControllerTests : IDisposable
             SuspendedManually = true,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
         };
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
 
         await database.SaveChangesAsync();
@@ -456,6 +462,7 @@ public sealed class LoginControllerTests : IDisposable
             SuspendedManually = false,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
         };
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
 
         await database.SaveChangesAsync();

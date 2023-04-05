@@ -168,14 +168,9 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
         if (ResolvedGroups != null)
             return ResolvedGroups;
 
-        // TODO: see if this crashes or not:
         var groupIds =
             await database.Database
                 .SqlQuery<GroupType>($"SELECT groups_id FROM user_user_group WHERE members_id = {Id}").ToListAsync();
-
-        // var groupIds =
-        //     await database.Database.SqlQuery<int>($"SELECT groups_id FROM user_user_group WHERE members_id = {Id}")
-        //         .Select(g => (GroupType)g).ToListAsync();
 
         // Add the "user" group automatically if the user is not restricted
         if (!groupIds.Contains(GroupType.RestrictedUser))
@@ -220,6 +215,15 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
         if (!ResolvedGroups.Groups.Any())
             throw new ArgumentException("Launcher link's groups list is empty");
+    }
+
+    /// <summary>
+    ///   A testing method to override user groups, needed to make in-memory DB tests work
+    /// </summary>
+    /// <param name="forcedGroups">The groups to force</param>
+    public void ForceResolveGroupsForTesting(CachedUserGroups forcedGroups)
+    {
+        ResolvedGroups = forcedGroups;
     }
 
     public AssociationResourceAccess ComputeAssociationAccessLevel()

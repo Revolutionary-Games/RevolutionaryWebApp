@@ -32,7 +32,7 @@ public static class FileAccessHelpers
             return access is FileAccess.User or FileAccess.RestrictedUser or FileAccess.Developer;
         }
 
-        if (userGroups.HasAccessLevel(GroupType.RestrictedUser))
+        if (userGroups.HasGroup(GroupType.RestrictedUser))
         {
             return access == FileAccess.RestrictedUser;
         }
