@@ -128,8 +128,7 @@
 
     private async Task RestorePressed(long resourceId)
     {
-        if (!statuses.ContainsKey(resourceId))
-            statuses[resourceId] = new ResourceStatus();
+        statuses.TryAdd(resourceId, new ResourceStatus());
 
         statuses[resourceId].Processing = true;
         Error = null;

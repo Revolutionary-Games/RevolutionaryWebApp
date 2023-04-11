@@ -12,8 +12,7 @@ public class ClientSideResourceStatus<T>
     {
         lock (statuses)
         {
-            if (!statuses.ContainsKey(resourceId))
-                statuses[resourceId] = new T();
+            statuses.TryAdd(resourceId, new T());
 
             return statuses[resourceId];
         }
