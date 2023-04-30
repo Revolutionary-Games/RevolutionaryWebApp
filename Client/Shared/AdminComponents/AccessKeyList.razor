@@ -22,7 +22,7 @@
 }
 else
 {
-    <AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="true">
+    <AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="true">
 
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 

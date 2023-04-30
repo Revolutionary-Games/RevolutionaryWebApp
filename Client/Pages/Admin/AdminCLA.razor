@@ -2,7 +2,7 @@
 @using ThriveDevCenter.Shared.Models.Enums
 
 
-<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>CLA Configuration</h3>
     <p>
         This page allows configuring the CLA text that users need to sign. A new version should <strong>not</strong> be

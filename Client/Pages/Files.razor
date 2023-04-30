@@ -183,7 +183,7 @@ else
         Upload
     </Button>
 
-    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredGroup="GroupType.RestrictedUser">
+    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="GroupType.RestrictedUser">
 
         @if (!showNewFolderCreate)
         {
@@ -391,13 +391,13 @@ else
         // Folder content change listening
         groups.Add(NotificationGroups.FolderContentsUpdatedPublicPrefix + folderId);
 
-        if (currentUserGroups.HasGroup(GroupType.RestrictedUser))
+        if (currentUserGroups.HasAccessLevel(GroupType.RestrictedUser))
             groups.Add(NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix + folderId);
-        if (currentUserGroups.HasGroup(GroupType.User))
+        if (currentUserGroups.HasAccessLevel(GroupType.User))
             groups.Add(NotificationGroups.FolderContentsUpdatedUserPrefix + folderId);
-        if (currentUserGroups.HasGroup(GroupType.Developer))
+        if (currentUserGroups.HasAccessLevel(GroupType.Developer))
             groups.Add(NotificationGroups.FolderContentsUpdatedDeveloperPrefix + folderId);
-        if (currentUserGroups.HasGroup(GroupType.Admin) || (parsedFolderInfo?.OwnerId != null &&
+        if (currentUserGroups.HasAccessLevel(GroupType.Admin) || (parsedFolderInfo?.OwnerId != null &&
             CurrentUserInfo?.Info?.Id == parsedFolderInfo.OwnerId))
         {
             groups.Add(NotificationGroups.FolderContentsUpdatedOwnerPrefix + folderId);

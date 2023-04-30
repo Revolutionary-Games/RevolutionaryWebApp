@@ -59,14 +59,14 @@
                 <span class="oi oi-info" aria-hidden="true"></span> About
             </NavLink>
         </li>
-        <AccessLimited RequiredGroup="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
             <li class="nav-item px-3">
                 <NavLink id="leftDebugSymbolsButton" class="nav-link" href="symbols">
                     <span class="oi oi-signpost" aria-hidden="true"></span> Symbols
                 </NavLink>
             </li>
         </AccessLimited>
-        <AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
             <hr/>
             <li class="nav-item px-3">
                 <NavLink id="leftUsersButton" class="nav-link" href="users">

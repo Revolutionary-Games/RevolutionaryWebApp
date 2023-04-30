@@ -15,7 +15,7 @@
 @implements ThriveDevCenter.Client.Services.INotificationHandler<ExternalServersUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.ExternalServerDTO>
 
-<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     @if (!string.IsNullOrEmpty(Error))
     {
         <div class="alert alert-danger" role="alert">

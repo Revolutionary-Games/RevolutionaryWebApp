@@ -12,7 +12,7 @@
 @implements ThriveDevCenter.Client.Services.INotificationHandler<AssociationMemberListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.AssociationMemberInfo>
 
-<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Association Members</h3>
 
     @if (!string.IsNullOrEmpty(Error))

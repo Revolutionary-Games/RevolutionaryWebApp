@@ -47,7 +47,7 @@ else
     </PaginatedTable>
 }
 
-<AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+<AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
     <hr />
 
     @if (!showNewForm)

@@ -43,7 +43,7 @@
             This build is for @Data.ProjectName
         </NavLink>
 
-        <AccessLimited RequiredGroup="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
             <br />
             <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 

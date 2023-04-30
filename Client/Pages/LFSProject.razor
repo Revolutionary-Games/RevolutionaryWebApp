@@ -26,12 +26,12 @@
             <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
             <li><strong>Settings Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
 
-            <AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+            <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
                 <li><strong>Deleted</strong>: @Data.Deleted</li>
             </AccessLimited>
         </ul>
 
-        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Admin">
+        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.Admin">
 
             <LFSProjectEditor Data="@Data" />
 
@@ -67,14 +67,14 @@
                                ProjectRepoURL="@Data.RepoUrl" FileBrowserPath="@FileBrowserPath"
                                ProjectBranch="@Data.BranchToBuildFileTreeFor"/>
 
-        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Developer">
+        <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.Developer">
             <br />
             <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideMessage" />
 
             <Button ButtonStyle="warning" Enabled="@(!processing)" Spinner="@processing" OnPressed="@RequestRefresh">
                 Refresh
             </Button>
-            <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Admin">
+            <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.Admin">
                 <Button class="mx-1" ButtonStyle="danger" Enabled="@(!processing && !rebuildPressed)"
                         Spinner="@processing" OnPressed="@RequestRebuild">
                     Rebuild

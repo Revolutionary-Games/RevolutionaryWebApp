@@ -4,7 +4,7 @@
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models.Enums
 
-<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Access Keys</h3>
 
     <AccessKeyList />

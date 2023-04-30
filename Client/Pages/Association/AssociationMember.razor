@@ -8,7 +8,7 @@
 @using ThriveDevCenter.Shared.Notifications
 @implements IAsyncDisposable
 
-<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {

@@ -11,7 +11,7 @@
             <li class="nav-item">
                 <NavLink href="association/meetings" class="nav-link">Meetings</NavLink>
             </li>
-            <AccessLimited RequiredGroup="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+            <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
                 <li class="nav-item">
                     <NavLink href="association/members" class="nav-link">Members</NavLink>
                 </li>

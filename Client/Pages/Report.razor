@@ -177,7 +177,7 @@
 
                 <pre>@Data.Description</pre>
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.RestrictedUser">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.RestrictedUser">
                     <AuthorizedContent>
                         @if (Data.DescriptionLastEdited.HasValue)
                         {
@@ -197,7 +197,7 @@
                     </AccessMissingContent>
                 </AccessLimited>
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Developer">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.Developer">
                     <TextEditor Identifier="@($"report-desc-{Id}")" Placeholder="New description..."
                                 FieldLabel="Description" CurrentlySavedText="@Data.Description"
                                 GetSaveRequest="@GetDescriptionSaveRequest" />
@@ -215,7 +215,7 @@
                 <h4>Full Stack Details</h4>
                 <pre>@Data.PrimaryCallstack</pre>
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Developer">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.Developer">
                     <AuthorizedContent>
                         <h3>Logs</h3>
 
@@ -248,7 +248,7 @@
 
                 <StatusMessageShower Type="@emailStatusType" Message="@emailStatus" />
 
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Admin">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.Admin">
 
                     @if (showReporterEmail)
                     {
@@ -276,7 +276,7 @@
             </div>
 
             <div class="@($"{ViewColumnClass()} overflow-auto")">
-                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredGroup="GroupType.Developer">
+                <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.Developer">
                     <h3>Crash dump</h3>
                     @if (fetchingCrashDump)
                     {

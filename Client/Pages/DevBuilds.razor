@@ -11,7 +11,7 @@
 <p>
     DevBuilds are preview versions of Thrive with new features and fixes that have been done after the previous release.
 </p>
-<AccessLimited RequiredGroup="GroupType.User" AutoRedirectIfNotLoggedIn="@false">
+<AccessLimited RequiredAccess="GroupType.User" AutoRedirectIfNotLoggedIn="@false">
     <AccessMissingContent>
         <a href="@Navigation.GetLinkToLogin("Login to view DevBuilds")">Login to view builds</a>
 

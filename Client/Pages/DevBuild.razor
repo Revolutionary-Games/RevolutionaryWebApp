@@ -16,7 +16,7 @@
     <h3>DevBuild (@Id)</h3>
 }
 
-<AccessLimited RequiredGroup="@GroupType.User">
+<AccessLimited RequiredAccess="@GroupType.User">
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {
@@ -43,7 +43,7 @@
             <h4>Description</h4>
             <pre>@Data.Description</pre>
 
-            <AccessLimited RequiredGroup="GroupType.Developer">
+            <AccessLimited RequiredAccess="GroupType.Developer">
                 <DevBuildEditor Data="@Data" />
 
                 <br />
@@ -52,7 +52,7 @@
             <h4 class="mt-2">Sibling Builds</h4>
             <DevBuildSiblingList Id="@Id" />
 
-            <AccessLimited RequiredGroup="GroupType.Developer">
+            <AccessLimited RequiredAccess="GroupType.Developer">
 
                 <h4 class="mt-3">Actions</h4>
 

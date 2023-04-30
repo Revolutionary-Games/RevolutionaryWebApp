@@ -39,7 +39,7 @@
         <UserTokenControls HasThisToken="@User.HasLfsToken" TokenType="LFS" TokenCreateAPI="api/v1/Tokens/lfs/self" />
     }
 
-    <AccessLimited RequiredGroup="GroupType.Admin">
+    <AccessLimited RequiredAccess="GroupType.Admin">
         <li><strong>Admin</strong>: @User.Groups.HasAccessLevel(GroupType.Admin)</li>
         <li><strong>Developer</strong>: @User.Groups.HasAccessLevel(GroupType.Developer)</li>
         <li><strong>Restricted</strong>: @User.Groups.HasAccessLevel(GroupType.RestrictedUser)</li>
@@ -53,7 +53,7 @@
 
 <h4>Launcher Links</h4>
 
-<AccessLimited RequiredGroup="GroupType.User">
+<AccessLimited RequiredAccess="GroupType.User">
     <p>
         You can link up to @AppInfo.DefaultMaxLauncherLinks Thrive Launchers to your account to access dev center
         features from the launcher. By linking a launcher you can access devbuilds. Linking the launcher to your
@@ -66,7 +66,7 @@
 <StatusMessageShower Message="@linkResult" Type="@linkResultType" OnClosed="@HideLinkResult" />
 
 <div>
-    <AccessLimited RequiredGroup="GroupType.User">
+    <AccessLimited RequiredAccess="GroupType.User">
         @if (LookingAtSelf)
         {
             <Button class="mb-2" ButtonStyle="success" Enabled="@(!gettingLauncherLinkCode)"
@@ -106,7 +106,7 @@
     }
 </ul>
 
-<AccessLimited RequiredGroup="GroupType.Admin">
+<AccessLimited RequiredAccess="GroupType.Admin">
     @if (!LookingAtSelf)
     {
         <p>TODO: group management controls</p>
@@ -162,7 +162,7 @@ else
 
 <p>If the information in this section is incorrect, please contact us.</p>
 
-<AccessLimited RequiredGroup="GroupType.Admin">
+<AccessLimited RequiredAccess="GroupType.Admin">
     Association membership can be edited <NavLink href="/association/members">here</NavLink>.
     <br />
     <br />
@@ -178,7 +178,7 @@ else
     <br />
 }
 
-<AccessLimited RequiredGroup="GroupType.Admin">
+<AccessLimited RequiredAccess="GroupType.Admin">
     <p>Force logout action is in the "Sessions" section.</p>
     <br />
     <Button class="mb-1" ButtonStyle="danger" Enabled="@CanClearTokens" Spinner="@clearingTokens"

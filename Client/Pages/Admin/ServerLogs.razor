@@ -13,7 +13,7 @@
 @implements ThriveDevCenter.Client.Services.INotificationHandler<LogEntriesUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LogEntryDTO>
 
-<AccessLimited RequiredGroup="GroupType.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Server Logs</h3>
 
     @if (!string.IsNullOrEmpty(Error))

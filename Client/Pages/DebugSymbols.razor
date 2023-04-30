@@ -12,7 +12,7 @@
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.DebugSymbolDTO>
 
 
-<AccessLimited RequiredGroup="GroupType.Developer" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredAccess="GroupType.Developer" RedirectOnInsufficientPermission="@true">
     <h3>Debug Symbols</h3>
 
     <p>
