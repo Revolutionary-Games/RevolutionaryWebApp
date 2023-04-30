@@ -152,6 +152,7 @@ public class MaintenanceController : Controller
     private static IEnumerable<(string Name, string? ExtraDescription, Action<IBackgroundJobClient, long> Start)>
         EnumerateMaintenanceOperations()
     {
+        yield return ("recountFolders", "Recount all folder items (fixes inaccurate counts)", StartFolderRecount);
         yield return ("cleanSessions", "Delete all sessions that are older than one hour", StartCleanSessions);
     }
 
@@ -159,5 +160,11 @@ public class MaintenanceController : Controller
     private static void StartCleanSessions(IBackgroundJobClient jobClient, long operationId)
     {
         jobClient.Enqueue<ClearAllSlightlyInactiveSessions>(x => x.Execute(operationId, CancellationToken.None));
+    }
+
+    [NonAction]
+    private static void StartFolderRecount(IBackgroundJobClient jobClient, long operationId)
+    {
+        jobClient.Enqueue<RecountFolderItemsJob>(x => x.Execute(operationId, CancellationToken.None));
     }
 }
