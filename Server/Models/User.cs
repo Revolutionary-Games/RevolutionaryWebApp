@@ -159,6 +159,17 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     }
 
     /// <summary>
+    ///   Must be called when the user's groups have changed (and at most 30 seconds before saving the data to the DB).
+    ///   If not called the group change will not work!
+    /// </summary>
+    /// <param name="jobClient">This is used to queue maintenance jobs to keep DB data consistent</param>
+    public void OnGroupsChanged(IBackgroundJobClient jobClient)
+    {
+        jobClient.Schedule<UpdateUserGroupCacheJob>(x => x.Execute(Id, CancellationToken.None),
+            TimeSpan.FromSeconds(30));
+    }
+
+    /// <summary>
     ///   Loads this user's groups from the database
     /// </summary>
     /// <param name="database">The database to load from</param>

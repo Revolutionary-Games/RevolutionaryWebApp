@@ -7,7 +7,8 @@ using Microsoft.Extensions.Logging;
 using Models;
 
 /// <summary>
-///   Updates the cached user groups for a user, MUST BE EXECUTED when user's groups change
+///   Updates the cached user groups for a user, MUST BE EXECUTED when user's groups change (done by calling
+///   <see cref="User.OnGroupsChanged"/>)
 /// </summary>
 public class UpdateUserGroupCacheJob
 {

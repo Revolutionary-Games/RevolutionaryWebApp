@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Authorization;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -20,11 +21,14 @@ public class CodeRedeemController : Controller
 {
     private readonly ILogger<CodeRedeemController> logger;
     private readonly NotificationsEnabledDb database;
+    private readonly IBackgroundJobClient jobClient;
 
-    public CodeRedeemController(ILogger<CodeRedeemController> logger, NotificationsEnabledDb database)
+    public CodeRedeemController(ILogger<CodeRedeemController> logger, NotificationsEnabledDb database,
+        IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.database = database;
+        this.jobClient = jobClient;
     }
 
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
@@ -62,6 +66,7 @@ public class CodeRedeemController : Controller
                     throw new Exception("Admin group not found");
 
                 target.Groups.Add(admin);
+                target.OnGroupsChanged(jobClient);
                 granted = "admin group membership";
 
                 break;
@@ -76,6 +81,7 @@ public class CodeRedeemController : Controller
                     throw new Exception("Developer group not found");
 
                 target.Groups.Add(developer);
+                target.OnGroupsChanged(jobClient);
                 granted = "developer group membership";
 
                 break;

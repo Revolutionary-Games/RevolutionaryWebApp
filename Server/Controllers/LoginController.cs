@@ -664,6 +664,7 @@ public class LoginController : SSOLoginController
             if (developerLogin)
             {
                 user.Groups.Add(await developerGroup.Value);
+                user.OnGroupsChanged(jobClient);
             }
 
             await Database.Users.AddAsync(user);
@@ -698,6 +699,7 @@ public class LoginController : SSOLoginController
                 });
 
                 user.Groups.Add(await developerGroup.Value);
+                user.OnGroupsChanged(jobClient);
                 user.SsoSource = SsoTypeDevForum;
                 user.BumpUpdatedAt();
             }
