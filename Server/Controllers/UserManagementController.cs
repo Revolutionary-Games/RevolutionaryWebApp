@@ -77,6 +77,8 @@ public class UserManagementController : Controller
         if (!admin && HttpContext.AuthenticatedUser()!.Id != user.Id)
             return NotFound();
 
+        await user.ComputeUserGroups(database);
+
         return user.GetDTO(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
     }
 
