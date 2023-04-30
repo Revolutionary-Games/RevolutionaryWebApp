@@ -197,7 +197,16 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
         if (ResolvedGroups != null)
             return ResolvedGroups;
 
-        return new CachedUserGroups(Groups.Select(g => g.Id));
+        var groups = Groups.Select(g => g.Id);
+
+        // As the users group doesn't really exist, inject that manually (similarly to ComputeUserGroups)
+        if (Groups.All(g => g.Id != GroupType.RestrictedUser))
+            groups = groups.Append(GroupType.User);
+
+        var cache = new CachedUserGroups(groups);
+
+        ResolvedGroups = cache;
+        return cache;
     }
 
     public void SetGroupsFromSessionCache(Session sessionObject)
