@@ -245,6 +245,12 @@ public class StorageFilesController : Controller
         // Need to queue a job to calculate the folder size
         jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(newFolder.Id, CancellationToken.None));
 
+        // And parent folder also needs to calculate the new size
+        if (parentFolder != null)
+        {
+            jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(parentFolder.Id, CancellationToken.None));
+        }
+
         return Ok($"New folder with id {newFolder.Id} created");
     }
 
