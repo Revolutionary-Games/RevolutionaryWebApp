@@ -311,6 +311,7 @@ public class LoginController : SSOLoginController
         }
 
         session.User = user;
+        session.UserId = user.Id;
         session.LastUsedFrom = remoteAddress;
         session.CachedUserGroups = user.AccessCachedGroupsOrThrow();
 
@@ -363,6 +364,7 @@ public class LoginController : SSOLoginController
             else
             {
                 existingSession.User = null;
+                existingSession.UserId = null;
                 existingSession.LastUsed = DateTime.UtcNow;
                 Logger.LogInformation("Login starting for an existing session {Id}", existingSession.Id);
             }
@@ -386,6 +388,7 @@ public class LoginController : SSOLoginController
 
             // Force invalidate the logged in as user here for the session
             session.User = null;
+            session.UserId = null;
             session.CachedUserGroups = null;
         }
 
@@ -801,6 +804,7 @@ public class LoginController : SSOLoginController
         string? returnUrl = session.SsoReturnUrl;
 
         session.User = user;
+        session.UserId = user.Id;
         session.LastUsed = DateTime.UtcNow;
         session.CachedUserGroups = user.AccessCachedGroupsOrThrow();
 
