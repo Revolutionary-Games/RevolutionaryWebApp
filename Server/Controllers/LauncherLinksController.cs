@@ -155,7 +155,7 @@ public class LauncherLinksController : Controller
     [AuthorizeBasicAccessLevelFilter]
     public async Task<IActionResult> CreateLinkCode()
     {
-        var user = HttpContext.AuthenticatedUser()!;
+        var user = HttpContext.AuthenticatedUserOrThrow();
 
         // Fail if too many links
         if (await database.LauncherLinks.CountAsync(l => l.UserId == user.Id) >= AppInfo.DefaultMaxLauncherLinks)
@@ -170,6 +170,9 @@ public class LauncherLinksController : Controller
             throw new HttpResponseException
                 { Status = StatusCodes.Status500InternalServerError, Value = "Failed to find target user" };
         }
+
+        // Groups need to be loaded for the user to be valid for saving
+        await modifiableUser.ComputeUserGroups(database);
 
         modifiableUser.LauncherLinkCode = Guid.NewGuid().ToString();
         modifiableUser.LauncherCodeExpires = DateTime.UtcNow + AppInfo.LauncherLinkCodeExpireTime;
