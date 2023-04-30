@@ -424,7 +424,7 @@ public class Startup
         // Hangfire.PostgreSql.PostgreSqlDistributedLockException
         // TODO: perhaps we should add a try catch here and just log the errors if there are any?
         // See: https://github.com/frankhommers/Hangfire.PostgreSql/issues/119
-        RecurringJob.AddOrUpdate<T>(x => x.Execute(CancellationToken.None), schedule);
+        RecurringJob.AddOrUpdate<T>(typeof(T).FullName, x => x.Execute(CancellationToken.None), schedule);
     }
 
     private void SetupDefaultJobs(IConfigurationSection configurationSection)
