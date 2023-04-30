@@ -677,7 +677,8 @@ public class LoginController : SSOLoginController
                 "User logged in with different SSO source than before, new: {SsoType}, old: {SsoSource}", ssoType,
                 user.SsoSource);
 
-            if (user.SsoSource == SsoTypeDevForum || user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer))
+            if (user.SsoSource == SsoTypeDevForum ||
+                user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer))
             {
                 return (Redirect(QueryHelpers.AddQueryString("/login", "error",
                         "Your account is a developer account. You need to login through the Development Forums.")),

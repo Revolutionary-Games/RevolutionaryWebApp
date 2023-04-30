@@ -47,7 +47,7 @@ public interface ILocalTempFileLocks
         CancellationToken cancellationToken);
 }
 
-public class LocalTempFileLocks : ILocalTempFileLocks, IDisposable
+public sealed class LocalTempFileLocks : ILocalTempFileLocks, IDisposable
 {
     private readonly string baseTempFilePath;
 

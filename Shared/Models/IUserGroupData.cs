@@ -76,9 +76,13 @@ public static class UserGroupDataExtensions
     ///   Checks certain access level is in groups. Only certain group memberships can be checked like this
     /// </summary>
     /// <param name="currentAccess">The groups that the user has</param>
-    /// <param name="requiredAccess">What the user should have (only admin, logged in, restricted, developer are allowed)</param>
+    /// <param name="requiredAccess">
+    ///   What the user should have (only admin, logged in, restricted, developer are allowed)
+    /// </param>
     /// <returns>True when has enough access</returns>
-    /// <exception cref="ArgumentOutOfRangeException">If the <see cref="requiredAccess"/> is not an allowed value</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   If the <see cref="requiredAccess"/> is not an allowed value
+    /// </exception>
     public static bool HasAccessLevel(this IUserGroupData currentAccess, GroupType requiredAccess)
     {
         // All possible groups and not logged in users are this access level

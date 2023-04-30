@@ -39,8 +39,10 @@ public class UpdateUserGroupCacheJob
 
         dummySession.CachedUserGroups = await targetUser.ComputeUserGroups(database);
 
+        var cachedGroups = dummySession.CachedUserGroupsRaw;
+
         var updated = await database.Database.ExecuteSqlAsync(
-            $"UPDATE sessions SET cached_user_groups_raw = {dummySession.CachedUserGroupsRaw} WHERE user_id = {userId};",
+            $"UPDATE sessions SET cached_user_groups_raw = {cachedGroups} WHERE user_id = {userId};",
             cancellationToken);
 
         logger.LogInformation("Updated {Count} cached groups in sessions for user {UserId}", updated, userId);
@@ -51,6 +53,9 @@ public class UpdateUserGroupCacheJob
             cancellationToken);
 
         if (updated > 0)
-            logger.LogInformation("Updated {Count} cached groups in launcher links for user {UserId}", updated, userId);
+        {
+            logger.LogInformation("Updated {Count} cached groups in launcher links for user {UserId}",
+                updated, userId);
+        }
     }
 }
