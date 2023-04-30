@@ -36,6 +36,8 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 
     protected sealed override void Seed()
     {
+        AddDefaultGroups();
+
         var user1 = new User
         {
             Id = 1,
@@ -90,38 +92,45 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 
         Database.SaveChanges();
 
-        if (user4.ComputeUserGroups(Database).Result.ComputePrimaryGroup() != GroupType.RestrictedUser)
+        if (user4.ProcessGroupDataFromLoadedGroups().ComputePrimaryGroup() != GroupType.RestrictedUser)
             throw new Exception("Unexpected access level for user 4");
 
-        if (user4.ComputeUserGroups(Database).Result.ComputePrimaryGroup() != GroupType.User)
+        if (user1.ProcessGroupDataFromLoadedGroups().ComputePrimaryGroup() != GroupType.User)
+            throw new Exception("Unexpected access level for user 1");
+
+        if (user3.ProcessGroupDataFromLoadedGroups().ComputePrimaryGroup() != GroupType.Admin)
             throw new Exception("Unexpected access level for user 3");
 
         Database.Sessions.Add(new Session
         {
             Id = SessionId1,
             User = user1,
-            CachedUserGroups = user1.ComputeUserGroups(Database).Result,
+            UserId = user1.Id,
+            CachedUserGroups = user1.ProcessGroupDataFromLoadedGroups(),
         });
 
         Database.Sessions.Add(new Session
         {
             Id = SessionId2,
             User = user2,
-            CachedUserGroups = user2.ComputeUserGroups(Database).Result,
+            UserId = user2.Id,
+            CachedUserGroups = user2.ProcessGroupDataFromLoadedGroups(),
         });
 
         Database.Sessions.Add(new Session
         {
             Id = SessionId3,
             User = user3,
-            CachedUserGroups = user3.ComputeUserGroups(Database).Result,
+            UserId = user3.Id,
+            CachedUserGroups = user3.ProcessGroupDataFromLoadedGroups(),
         });
 
         Database.Sessions.Add(new Session
         {
             Id = SessionId4,
             User = user4,
-            CachedUserGroups = user4.ComputeUserGroups(Database).Result,
+            UserId = user4.Id,
+            CachedUserGroups = user4.ProcessGroupDataFromLoadedGroups(),
         });
 
         Database.SaveChanges();

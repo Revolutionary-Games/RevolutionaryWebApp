@@ -4,6 +4,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Server.Models;
 using Server.Services;
+using Shared.Models.Enums;
 
 public abstract class BaseSharedDatabaseFixture : IDisposable
 {
@@ -30,6 +31,13 @@ public abstract class BaseSharedDatabaseFixture : IDisposable
     }
 
     protected abstract void Seed();
+
+    protected void AddDefaultGroups()
+    {
+        Database.UserGroups.Add(new UserGroup(GroupType.Admin, "Admin"));
+        Database.UserGroups.Add(new UserGroup(GroupType.Developer, "Developer"));
+        Database.UserGroups.Add(new UserGroup(GroupType.RestrictedUser, "RestrictedUser"));
+    }
 
     protected virtual void Dispose(bool disposing)
     {
