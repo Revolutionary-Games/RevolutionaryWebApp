@@ -32,15 +32,15 @@ else
                     ShowNoContent="@(availableOperations.Count == 0)" UseNonFixedColumns="@true">
         @foreach (var item in CurrentPageContent)
         {
-            <tr @key="item.Item1">
-                <td>@item.Item1</td>
-                <td>@item.Item2</td>
+            <tr @key="item.Name">
+                <td>@item.Name</td>
+                <td>@item.ExtraDescription</td>
                 <td>
-                    <Button Enabled="@(!startingMaintenance && !IsProcessing(item.Item1))"
-                            OnPressed="@(async () => await StartOperation(item.Item1))"
+                    <Button Enabled="@(!startingMaintenance && !IsProcessing(item.Name))"
+                            OnPressed="@(async () => await StartOperation(item.Name))"
                             Spinner="@startingMaintenance" ButtonStyle="secondary"
                             class="btn-sm">
-                        Start @item.Item1.Truncate(25)
+                        Start @item.Name.Truncate(25)
                     </Button>
                 </td>
             </tr>
@@ -126,13 +126,13 @@ else
     private SiteNoticeType statusMessageType;
 
     private bool loading = true;
-    private List<Tuple<string, string>> availableOperations = new();
+    private List<AvailableMaintenanceOperation> availableOperations = new();
 
     private int currentPage;
 
     private bool startingMaintenance;
 
-    private IEnumerable<Tuple<string, string>> CurrentPageContent =>
+    private IEnumerable<AvailableMaintenanceOperation> CurrentPageContent =>
         availableOperations.Skip(currentPage * itemsPerPage).Take(itemsPerPage);
 
     private int PageCount => (int)Math.Floor(availableOperations.Count / (float)itemsPerPage) + 1;
@@ -151,7 +151,7 @@ else
 
         try
         {
-            availableOperations = await Http.GetFromJsonAsync<List<Tuple<string, string>>>(
+            availableOperations = await Http.GetFromJsonAsync<List<AvailableMaintenanceOperation>>(
                 "api/v1/Maintenance/available") ?? throw new NullDecodedJsonException();
         }
         catch (Exception e)

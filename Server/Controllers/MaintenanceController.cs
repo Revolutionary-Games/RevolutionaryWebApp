@@ -142,10 +142,10 @@ public class MaintenanceController : Controller
 
     [HttpGet("available")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
-    public IEnumerable<Tuple<string, string>> GetAvailableMaintenanceOperations()
+    public IEnumerable<AvailableMaintenanceOperation> GetAvailableMaintenanceOperations()
     {
         return EnumerateMaintenanceOperations()
-            .Select(t => new Tuple<string, string>(t.Name, t.ExtraDescription ?? "No description"));
+            .Select(t => new AvailableMaintenanceOperation(t.Name, t.ExtraDescription ?? "No description"));
     }
 
     [NonAction]
