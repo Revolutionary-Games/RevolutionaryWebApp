@@ -41,9 +41,11 @@ public class TokensController : Controller
     public async Task<IActionResult> DeleteOwnAPIToken()
     {
         // We must re-fetch this data to get it from our db context for updating it
-        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUserOrThrow().Id);
         if (user == null)
             return Problem("Could not find authenticated user in the database");
+
+        await user.ComputeUserGroups(database);
 
         logger.LogInformation("User ({Email}) deleted their own API token", user.Email);
 
@@ -64,9 +66,11 @@ public class TokensController : Controller
     public async Task<IActionResult> DeleteOwnLFSToken()
     {
         // We must re-fetch this data to get it from our db context for updating it
-        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUserOrThrow().Id);
         if (user == null)
             return Problem("Could not find authenticated user in the database");
+
+        await user.ComputeUserGroups(database);
 
         logger.LogInformation("User ({Email}) deleted their own LFS token", user.Email);
 
@@ -87,9 +91,11 @@ public class TokensController : Controller
     public async Task<ActionResult<string>> CreateOwnAPIToken()
     {
         // We must re-fetch this data to get it from our db context for updating it
-        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUserOrThrow().Id);
         if (user == null)
             return Problem("Could not find authenticated user in the database");
+
+        await user.ComputeUserGroups(database);
 
         logger.LogInformation("User ({Email}) created a new API token", user.Email);
 
@@ -110,9 +116,11 @@ public class TokensController : Controller
     public async Task<ActionResult<string>> CreateOwnLFSToken()
     {
         // We must re-fetch this data to get it from our db context for updating it
-        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUser()!.Id);
+        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUserOrThrow().Id);
         if (user == null)
             return Problem("Could not find authenticated user in the database");
+
+        await user.ComputeUserGroups(database);
 
         logger.LogInformation("User ({Email}) created a new LFS token", user.Email);
 
