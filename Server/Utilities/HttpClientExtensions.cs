@@ -2,6 +2,8 @@ namespace ThriveDevCenter.Server.Utilities;
 
 using System;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -44,6 +46,13 @@ public static class HttpClientExtensions
         return httpClient.SendAsync(
             new HttpRequestMessage(HttpMethod.Delete, requestUri) { Content = Serialize(data) },
             cancellationToken);
+    }
+
+    public static void AddDevCenterUserAgent(this HttpClient httpClient)
+    {
+        httpClient.DefaultRequestHeaders.UserAgent.Clear();
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ThriveDevCenter",
+            Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0"));
     }
 
     private static HttpContent Serialize(object data) =>

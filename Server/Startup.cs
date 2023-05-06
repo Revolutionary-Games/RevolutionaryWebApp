@@ -25,6 +25,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Models;
 using Modulight.Modules.Hosting;
@@ -197,16 +198,24 @@ public class Startup
         });
 
         services.AddHttpClient();
+        services.AddHttpClient(Options.DefaultName, httpClient => { httpClient.AddDevCenterUserAgent(); });
         services.AddHttpClient("github", httpClient =>
         {
             httpClient.BaseAddress = new Uri("https://api.github.com/");
             httpClient.DefaultRequestHeaders.Add(
                 HeaderNames.Accept, "application/vnd.github.v3+json");
-            httpClient.DefaultRequestHeaders.Add(
-                HeaderNames.UserAgent, "HttpRequestsSample");
+            httpClient.AddDevCenterUserAgent();
         });
-        services.AddHttpClient("stackwalk", httpClient => { httpClient.Timeout = TimeSpan.FromSeconds(120); });
-        services.AddHttpClient("discourse", httpClient => { httpClient.Timeout = TimeSpan.FromSeconds(80); });
+        services.AddHttpClient("stackwalk", httpClient =>
+        {
+            httpClient.Timeout = TimeSpan.FromSeconds(120);
+            httpClient.AddDevCenterUserAgent();
+        });
+        services.AddHttpClient("discourse", httpClient =>
+        {
+            httpClient.Timeout = TimeSpan.FromSeconds(80);
+            httpClient.AddDevCenterUserAgent();
+        });
 
         services.AddSingleton<IRegistrationStatus, RegistrationStatus>();
         services.AddSingleton<ITokenGenerator, TokenGenerator>();

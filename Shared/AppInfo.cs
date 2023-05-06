@@ -132,7 +132,8 @@ public static class AppInfo
 
     public const int SshServerCommandAttempts = 3;
 
-    public const int Major = 1;
+    // When changed would be nice to also update the value in ThriveDevCenter.Server.csproj
+    public const int Major = 2;
     public const int Minor = 14;
 
     public const int DefaultMaxLauncherLinks = 5;
