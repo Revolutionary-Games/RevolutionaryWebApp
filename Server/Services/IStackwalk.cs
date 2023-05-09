@@ -116,17 +116,21 @@ public class Stackwalk : IStackwalk
         // deal with the fact that the response up to a few megabytes gets buffered here
         var response = await httpClient.PostAsync(url, form, cancellationToken);
 
+        await using var rawReader = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new StreamReader(rawReader, Encoding.UTF8);
+
+        var responseContent = await reader.ReadToEndAsync(cancellationToken);
+
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            throw new Exception($"Stackwalk service responded with unexpected status code: {response.StatusCode}");
+            throw new Exception(
+                $"Stackwalk service responded with unexpected status code ({response.StatusCode}): " +
+                responseContent.Truncate(120));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        await using var rawReader = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var reader = new StreamReader(rawReader, Encoding.UTF8);
-
-        return await reader.ReadToEndAsync();
+        return responseContent;
     }
 
     public string? FindPrimaryCallstack(string decodedDump, bool fallback)
