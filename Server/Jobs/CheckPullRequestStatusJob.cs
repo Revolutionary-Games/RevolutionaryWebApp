@@ -1,10 +1,12 @@
 namespace ThriveDevCenter.Server.Jobs;
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
@@ -16,14 +18,16 @@ public class CheckPullRequestStatusJob
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
     private readonly ICLAExemptions claExemptions;
+    private readonly bool verboseStatusLogging;
 
     public CheckPullRequestStatusJob(ILogger<CheckPullRequestStatusJob> logger, NotificationsEnabledDb database,
-        IBackgroundJobClient jobClient, ICLAExemptions claExemptions)
+        IConfiguration configuration, IBackgroundJobClient jobClient, ICLAExemptions claExemptions)
     {
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
         this.claExemptions = claExemptions;
+        verboseStatusLogging = Convert.ToBoolean(configuration["Github:VerbosePRStatus"]);
     }
 
     public async Task Execute(string repository, long pullRequestNumber, string commit, string githubUsername,
@@ -63,10 +67,13 @@ public class CheckPullRequestStatusJob
             {
                 pullRequest.Open = open;
 
-                await database.LogEntries.AddAsync(new LogEntry
+                if (verboseStatusLogging)
                 {
-                    Message = $"Github pull request open state {repository}/{pullRequestNumber} is now {open}",
-                }, cancellationToken);
+                    await database.LogEntries.AddAsync(new LogEntry
+                    {
+                        Message = $"Github pull request open state {repository}/{pullRequestNumber} is now {open}",
+                    }, cancellationToken);
+                }
             }
 
             pullRequest.ClaSigned =
