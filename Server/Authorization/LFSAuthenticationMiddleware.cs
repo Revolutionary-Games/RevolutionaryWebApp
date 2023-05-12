@@ -6,18 +6,23 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 using Models;
+using Services;
 using Shared;
+using Shared.Models;
 using Utilities;
 
 public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
 {
     private readonly ApplicationDbContext database;
+    private readonly CustomMemoryCache cache;
 
-    public LFSAuthenticationMiddleware(ApplicationDbContext database)
+    public LFSAuthenticationMiddleware(ApplicationDbContext database, CustomMemoryCache cache)
     {
         this.database = database;
+        this.cache = cache;
     }
 
     protected override async Task<bool> PerformAuthentication(HttpContext context)
@@ -68,6 +73,30 @@ public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
         // The given "username" part of the basic auth needs to either match the email or name of the found user
         if (user != null && user.Suspended != true && (user.UserName == parts[0] || user.Email == parts[0]))
         {
+            // Need to load user groups for this to work, we use a short cache time here to reduce the DB loads needed
+            var cacheKey = $"userGroups/{user.Id}";
+
+            if (cache.Cache.TryGetValue(cacheKey, out object? rawCacheEntry) &&
+                rawCacheEntry is CachedUserGroups cachedGroups)
+            {
+                // Not exactly the method meant for this, but logically this does the same thing as the name of the
+                // method implies it is meant for
+                user.SetGroupsFromLauncherLinkCache(cachedGroups);
+            }
+            else
+            {
+                await user.ComputeUserGroups(database);
+
+                // Store the cached groups for later access
+                cachedGroups = user.AccessCachedGroupsOrThrow();
+
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromSeconds(60))
+                    .SetSize(cachedGroups.Groups.Count() * sizeof(long) + cacheKey.Length);
+
+                cache.Cache.Set(cacheKey, cachedGroups, cacheEntryOptions);
+            }
+
             OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.LFSOnly, null);
             return true;
         }
