@@ -77,10 +77,10 @@ public class LauncherController : Controller
             CachedUserGroups = user.AccessCachedGroupsOrThrow(),
         });
 
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"New launcher link created from: {remoteAddress}",
-            TargetUserId = user.Id,
+            PerformedById = user.Id,
         });
 
         await database.SaveChangesAsync();

@@ -99,10 +99,10 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) created a new API token", user.Email);
 
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
-            Message = "API token created by user",
-            TargetUserId = user.Id,
+            Message = "API token created",
+            PerformedById = user.Id,
         });
 
         user.ApiToken = NonceGenerator.GenerateNonce(AppInfo.APITokenByteCount);
@@ -124,10 +124,10 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) created a new LFS token", user.Email);
 
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
-            Message = "LFS token created by user",
-            TargetUserId = user.Id,
+            Message = "LFS token created",
+            PerformedById = user.Id,
         });
 
         user.LfsToken = NonceGenerator.GenerateNonce(AppInfo.APITokenByteCount);

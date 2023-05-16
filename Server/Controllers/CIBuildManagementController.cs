@@ -71,11 +71,10 @@ public class CIBuildManagementController : Controller
         logger.LogInformation("CI job {ProjectId}-{BuildId}-{JobId} canceled by {Email}", projectId, buildId, jobId,
             user.Email);
 
-        // TODO: would be nice to have that non-admin action log type
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
-            Message = $"CI job {projectId}-{buildId}-{jobId} canceled by an user",
-            TargetUserId = user.Id,
+            Message = $"CI job {projectId}-{buildId}-{jobId} canceled",
+            PerformedById = user.Id,
         });
 
         await database.SaveChangesAsync();
@@ -109,11 +108,10 @@ public class CIBuildManagementController : Controller
         var user = HttpContext.AuthenticatedUser()!;
         logger.LogInformation("CI build {ProjectId}-{BuildId} reran by {Email}", projectId, buildId, user.Email);
 
-        // TODO: would be nice to have that non-admin action log type
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
-            Message = $"CI build reran {projectId}-{buildId} by a user",
-            TargetUserId = user.Id,
+            Message = $"CI build reran {projectId}-{buildId}",
+            PerformedById = user.Id,
         });
 
         build.Status = BuildStatus.Running;

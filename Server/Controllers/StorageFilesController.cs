@@ -217,10 +217,10 @@ public class StorageFilesController : Controller
         }
 
         // Folder is fine to be created
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
-            Message = $"New folder \"{request.Name}\" created with owner",
-            TargetUserId = user.Id,
+            Message = $"New folder \"{request.Name}\" created",
+            PerformedById = user.Id,
         });
 
         var newFolder = new StorageItem
