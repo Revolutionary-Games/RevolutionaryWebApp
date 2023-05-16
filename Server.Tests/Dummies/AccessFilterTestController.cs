@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Authorization.Tests;
+namespace ThriveDevCenter.Server.Tests.Dummies;
 
 using Microsoft.AspNetCore.Mvc;
 using Server.Authorization;

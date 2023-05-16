@@ -429,6 +429,63 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId4, HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task Authorization_GroupAttribute()
+    {
+        using var server = new TestServer(new WebHostBuilder()
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton(database);
+                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+
+                services.AddControllers();
+                services.AddRouting();
+                services.AddAuthentication(options =>
+                {
+                    options.DefaultForbidScheme = "forbidScheme";
+                    options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+                });
+            })
+            .Configure(app =>
+            {
+                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                app.UseRouting();
+                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            }));
+
+        // Test that the attributes stack in an expected way
+        await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", null, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", users.SessionId1,
+            HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", users.SessionId2,
+            HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", users.SessionId3,
+            HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", users.SessionId4,
+            HttpStatusCode.Forbidden);
+
+        // "developer" path access
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", null, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId2, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId4, HttpStatusCode.Forbidden);
+
+        // "admin" path access
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", null, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId2, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId4, HttpStatusCode.Forbidden);
+
+        // "system" path access
+        await CheckGetResponseCode(server, "/groupFilterTest/system", null, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId2, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId3, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId4, HttpStatusCode.Forbidden);
+    }
+
     private async Task CheckGetResponseCode(TestServer server, string uri, Guid? sessionId,
         HttpStatusCode requiredStatusCode)
     {

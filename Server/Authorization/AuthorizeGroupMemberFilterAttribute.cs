@@ -7,27 +7,40 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Shared.Models.Enums;
 
 /// <summary>
-///   Verifies that there's an authenticated user with the required access level before the route can be accessed.
-///   Unless the access level is set to <see cref="GroupType.NotLoggedIn"/>. All attributes placed on the class and
-///   accessed route method are executed.
+///   Verifies that there's an authenticated user with the required group before the route can be accessed.
+///   Basic levels like <see cref="GroupType.NotLoggedIn"/> <see cref="GroupType.RestrictedUser"/> are not supported.
+///   Other predefined groups are supported. This can be placed on a class to protect all methods in it, with
+///   optionally placing extra attributes on method to further restrict things.
 /// </summary>
 /// <remarks>
 ///   <para>
-///     If public access is needed to a single route in a controller class, this attribute can't be placed on the class
-///     at all because the class attribute will always be executed before the route specific attributes. The other way
-///     around works, you can add more restrictive attributes on methods than on the class.
+///     See the remark in <see cref="AuthorizeBasicAccessLevelFilterAttribute"/> about how to design classes that have
+///     at least one publicly accessible method.
 ///   </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
-public class AuthorizeBasicAccessLevelFilterAttribute : Attribute, IAsyncAuthorizationFilter
+public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizationFilter
 {
     private AuthenticationScopeRestriction? requiredRestriction = AuthenticationScopeRestriction.None;
-    public GroupType RequiredAccess { get; set; } = GroupType.User;
+    private GroupType requiredGroup = GroupType.User;
 
-    /// <summary>
-    ///   When not null, the user's authentication method must also pass this restriction check. This is used to ensure
-    ///   token for one use can't be used everywhere.
-    /// </summary>
+    public GroupType RequiredGroup
+    {
+        get => requiredGroup;
+        set
+        {
+            requiredGroup = value;
+
+            if (requiredGroup is GroupType.RestrictedUser or GroupType.NotLoggedIn)
+            {
+                throw new ArgumentException(
+                    $"This group filter doesn't support the group type: {RequiredGroup}, " +
+                    "please use the access level filter");
+            }
+        }
+    }
+
+    /// <inheritdoc cref="AuthorizeBasicAccessLevelFilterAttribute.RequiredRestriction"/>
     public string? RequiredRestriction
     {
         get => requiredRestriction.ToString();
@@ -46,7 +59,7 @@ public class AuthorizeBasicAccessLevelFilterAttribute : Attribute, IAsyncAuthori
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var result =
-            context.HttpContext.HasAuthenticatedUserWithAccessLevelExtended(RequiredAccess, requiredRestriction);
+            context.HttpContext.HasAuthenticatedUserWithGroupExtended(RequiredGroup, requiredRestriction);
 
         switch (result)
         {
