@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
+using DevCenterCommunication.Models;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -261,6 +262,8 @@ public class DevBuildsController : Controller
         if (!changes)
             return Ok("No modifications");
 
+        build.BumpUpdatedAt();
+
         var user = HttpContext.AuthenticatedUser()!;
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry
@@ -354,6 +357,104 @@ public class DevBuildsController : Controller
 
         await database.SaveChangesAsync();
         logger.LogInformation("BOTDs cleared by {Email}", user.Email);
+
+        return Ok();
+    }
+
+    [HttpPost("kept")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
+    public async Task<IActionResult> SetAsKept([FromBody] [Required] long buildId)
+    {
+        var build = await database.DevBuilds.FindAsync(buildId);
+
+        if (build == null)
+            return NotFound();
+
+        if (build.Keep)
+            return Ok("Already kept");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        logger.LogInformation("Build {Id} will be set as kept by {Email}", build.Id, user.Email);
+
+        // Also keep sibling builds
+        foreach (var sibling in await GetSiblingBuilds(build))
+        {
+            if (!sibling.Keep)
+            {
+                logger.LogInformation("Marking sibling devbuild {Id} as kept as well", sibling.Id);
+                sibling.Keep = true;
+                sibling.BumpUpdatedAt();
+            }
+        }
+
+        build.Keep = true;
+        build.BumpUpdatedAt();
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"Build {build.Id} is now set as kept",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    [HttpDelete("kept/{buildId:long}")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
+    public async Task<IActionResult> UnsetKeep([Required] long buildId)
+    {
+        var build = await database.DevBuilds.FindAsync(buildId);
+
+        if (build == null)
+            return NotFound();
+
+        if (build.BuildOfTheDay)
+            return BadRequest("Can't unmark a BOTD as kept");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        if (build.Important && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+            return BadRequest("Only admins can unmark important builds as unkept");
+
+        if (!build.Keep)
+            return Ok("Build is already not set as keep");
+
+        logger.LogInformation("Build {Id} will no longer be kept, changed by {Email}", build.Id, user.Email);
+
+        // Also update the sibling builds
+        foreach (var sibling in await GetSiblingBuilds(build))
+        {
+            if (sibling.Keep)
+            {
+                logger.LogInformation("Marking sibling devbuild {Id} as no longer kept as well", sibling.Id);
+                sibling.Keep = false;
+                sibling.Important = false;
+                sibling.BumpUpdatedAt();
+            }
+        }
+
+        if (build.Important)
+        {
+            await database.AdminActions.AddAsync(new AdminAction
+            {
+                Message = $"Build {build.Id} is no longer set as important (due to unmark keep)",
+                PerformedById = user.Id,
+            });
+
+            build.Important = false;
+        }
+
+        build.Keep = false;
+        build.BumpUpdatedAt();
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"Build {build.Id} is no longer kept",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
 
         return Ok();
     }

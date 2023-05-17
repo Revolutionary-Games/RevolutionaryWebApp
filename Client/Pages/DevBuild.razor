@@ -83,8 +83,33 @@
 
                 <hr />
 
-                @* TODO: implement the build delete button *@
-                <Button Enabled="@false" ButtonStyle="danger">Delete</Button>
+                @if (Data.BuildOfTheDay || Data.Important)
+                {
+                    @* TODO: allow admin to remove important status *@
+                    <p>This build is kept as the BOTD or as an important build</p>
+                }
+                else
+                {
+                    @if (Data.Keep)
+                    {
+                        <Button Enabled="@(!processing)" ButtonStyle="warning"
+                                OnPressed="@RemoveKeptStatus">
+                            Remove Kept Status
+                        </Button>
+                    }
+                    else
+                    {
+                        <Button Enabled="@(!processing)" ButtonStyle="primary" OnPressed="@AddKeptStatus">
+                            Mark as Kept
+                        </Button>
+                    }
+                }
+
+                <AccessLimited RequiredAccess="GroupType.Admin">
+                    <br />
+                    @* TODO: implement the build delete button *@
+                    <Button Enabled="@false" ButtonStyle="danger" class="mt-3">Delete</Button>
+                </AccessLimited>
 
             </AccessLimited>
 
@@ -197,6 +222,83 @@
         {
             statusMessage = "All BOTD builds cleared";
             statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddKeptStatus()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/DevBuilds/kept", Id);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Keep status set. This build will not be automatically deleted.";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveKeptStatus()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/DevBuilds/kept/{Id}");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = $"Kept status unset. This will be automatically deleted after " +
+                $"{Math.Round(AppInfo.UnimportantDevBuildKeepDuration.TotalDays)} days.";
+            statusMessageType = SiteNoticeType.Warning;
         }
 
         await InvokeAsync(StateHasChanged);
