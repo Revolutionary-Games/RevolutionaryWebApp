@@ -17,11 +17,14 @@ public class DeleteStorageItemJob
 {
     private readonly ILogger<DeleteStorageItemJob> logger;
     private readonly NotificationsEnabledDb database;
+    private readonly IBackgroundJobClient jobClient;
 
-    public DeleteStorageItemJob(ILogger<DeleteStorageItemJob> logger, NotificationsEnabledDb database)
+    public DeleteStorageItemJob(ILogger<DeleteStorageItemJob> logger, NotificationsEnabledDb database,
+        IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.database = database;
+        this.jobClient = jobClient;
     }
 
     /// <summary>
@@ -67,5 +70,12 @@ public class DeleteStorageItemJob
 
         database.StorageItems.Remove(item);
         await database.SaveChangesAsync(cancellationToken);
+
+        // Requeue counting the parent folder's items job
+        if (item.ParentId != null)
+        {
+            var parentId = item.ParentId.Value;
+            jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(parentId, CancellationToken.None));
+        }
     }
 }
