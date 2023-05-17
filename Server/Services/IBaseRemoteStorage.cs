@@ -323,6 +323,8 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
     public async Task DeleteObject(string path)
     {
+        ThrowIfNotConfigured();
+
         var deleteResult = await s3Client!.DeleteObjectAsync(new DeleteObjectRequest
         {
             BucketName = bucket,
