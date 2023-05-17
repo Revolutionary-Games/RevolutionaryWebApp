@@ -311,7 +311,12 @@ public class ApplicationDbContext : DbContext
                 var data = new UserGroupExtraData(enumValue, now, now)
                 {
                     CustomDescription = "Inbuilt group, cannot be modified",
+
+                    // Need to set a specific time to ensure DB migrations don't update this
+                    CreatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672),
                 };
+
+                data.UpdatedAt = data.CreatedAt;
 
                 defaultExtraData.Add(data);
             }
