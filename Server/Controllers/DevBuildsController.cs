@@ -47,6 +47,11 @@ public class DevBuildsController : Controller
 
         var totalBuilds = await database.DevBuilds.CountAsync();
 
+        var totalDownloads = await database.DevBuilds.SumAsync(b => b.Downloads);
+
+        var deletedBuildInfo = await database.DeletedResourceStats.FirstOrDefaultAsync(
+            r => r.Type == DeletedResourceStats.ResourceType.DevBuild);
+
         DateTime? botdCreated = null;
 
         foreach (var build in await database.DevBuilds.Where(b => b.BuildOfTheDay).ToListAsync())
@@ -66,8 +71,8 @@ public class DevBuildsController : Controller
 
         var result = new DevBuildsStatisticsDTO
         {
-            TotalBuilds = totalBuilds,
-            TotalDownloads = await database.DevBuilds.SumAsync(b => b.Downloads),
+            TotalBuilds = totalBuilds + (int)(deletedBuildInfo?.ItemCount ?? 0),
+            TotalDownloads = totalDownloads + (int)(deletedBuildInfo?.ItemsExtraAttribute ?? 0),
             DehydratedFiles = await database.DehydratedObjects.CountAsync(),
             ImportantBuilds = await database.DevBuilds.CountAsync(b => b.Important),
             BOTDUpdated = botdCreated,
