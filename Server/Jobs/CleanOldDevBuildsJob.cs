@@ -54,6 +54,7 @@ public class CleanOldDevBuildsJob : IJob
 
         Exception? problem = null;
         bool doneSomething = false;
+        int deleted = 0;
 
         foreach (var build in buildsToDelete)
         {
@@ -90,6 +91,7 @@ public class CleanOldDevBuildsJob : IJob
             resourceStats.ItemsExtraAttribute += build.Downloads;
 
             doneSomething = true;
+            ++deleted;
 
             if (cancellationToken.IsCancellationRequested)
                 break;
@@ -97,7 +99,14 @@ public class CleanOldDevBuildsJob : IJob
 
         if (doneSomething)
         {
-            logger.LogDebug("Saving DevBuild clean results to DB");
+            logger.LogDebug("Saving DevBuild clean results (deleted: {Deleted}) to DB", deleted);
+
+            // We want to save anyway, so adding the log message anyway also seems like a good idea
+            // ReSharper disable once MethodSupportsCancellation
+            await database.LogEntries.AddAsync(new LogEntry
+            {
+                Message = $"Cleaned old DevBuilds, deleted: {deleted}",
+            });
 
             // We *really* don't want to lose info on what files we have deleted from remote storage
             // ReSharper disable once MethodSupportsCancellation
