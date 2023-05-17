@@ -25,7 +25,7 @@ public class DeleteDebugSymbolIfUploadFailedJob
     }
 
     public static async Task<DebugSymbol?> DeleteDebugSymbolFinal(long symbolId, ApplicationDbContext database,
-        CancellationToken cancellationToken)
+        IBackgroundJobClient jobClient, CancellationToken cancellationToken)
     {
         var symbol = await database.DebugSymbols.Include(s => s.StoredInItem!)
             .ThenInclude(i => i.StorageItemVersions).Where(s => s.Id == symbolId)
@@ -43,6 +43,13 @@ public class DeleteDebugSymbolIfUploadFailedJob
         // These need to be deleted in this order to not cause a constraint error
         database.DebugSymbols.Remove(symbol);
         database.StorageItems.Remove(symbol.StoredInItem);
+
+        if (symbol.StoredInItem.ParentId != null)
+        {
+            var parentId = symbol.StoredInItem.ParentId.Value;
+            jobClient.Schedule<CountFolderItemsJob>(x => x.Execute(parentId, CancellationToken.None),
+                TimeSpan.FromSeconds(90));
+        }
 
         return symbol;
     }
@@ -86,7 +93,7 @@ public class DeleteDebugSymbolIfUploadFailedJob
 
     public async Task PerformFinalDelete(long symbolId, CancellationToken cancellationToken)
     {
-        var symbol = await DeleteDebugSymbolFinal(symbolId, database, cancellationToken);
+        var symbol = await DeleteDebugSymbolFinal(symbolId, database, jobClient, cancellationToken);
 
         if (symbol == null)
         {

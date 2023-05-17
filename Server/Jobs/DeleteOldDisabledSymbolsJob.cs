@@ -68,8 +68,8 @@ public class DeleteOldDisabledSymbolsJob : IJob
 
     public async Task PerformFinalDelete(long symbolId, CancellationToken cancellationToken)
     {
-        var symbol =
-            await DeleteDebugSymbolIfUploadFailedJob.DeleteDebugSymbolFinal(symbolId, database, cancellationToken);
+        var symbol = await DeleteDebugSymbolIfUploadFailedJob.DeleteDebugSymbolFinal(symbolId, database, jobClient,
+            cancellationToken);
 
         if (symbol == null)
         {
