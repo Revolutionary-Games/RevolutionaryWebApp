@@ -50,7 +50,7 @@ else
                     <td><RecentTimeShortener Time="@item.CreatedAt"/></td>
                     <td>@item.Downloads</td>
                     <td>
-                        @if (item.Keep || item.Important)
+                        @if (item.Keep || item.Important || item.BuildOfTheDay)
                         {
                             <span class="badge badge-success">yes</span>
                         }
