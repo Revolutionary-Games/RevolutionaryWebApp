@@ -15,11 +15,11 @@ using Models;
 public class DeleteUnneededDehydratedObjectsJob : IJob
 {
     private readonly ILogger<DeleteUnneededDehydratedObjectsJob> logger;
-    private readonly NotificationsEnabledDb database;
+    private readonly ApplicationDbContext database;
     private readonly IBackgroundJobClient jobClient;
 
     public DeleteUnneededDehydratedObjectsJob(ILogger<DeleteUnneededDehydratedObjectsJob> logger,
-        NotificationsEnabledDb database, IBackgroundJobClient jobClient)
+        ApplicationDbContext database, IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.database = database;

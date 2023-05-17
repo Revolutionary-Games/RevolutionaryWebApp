@@ -17,10 +17,10 @@ using Shared;
 public class CleanOldDevBuildsJob : IJob
 {
     private readonly ILogger<CleanOldDevBuildsJob> logger;
-    private readonly NotificationsEnabledDb database;
+    private readonly ApplicationDbContext database;
     private readonly IBackgroundJobClient jobClient;
 
-    public CleanOldDevBuildsJob(ILogger<CleanOldDevBuildsJob> logger, NotificationsEnabledDb database,
+    public CleanOldDevBuildsJob(ILogger<CleanOldDevBuildsJob> logger, ApplicationDbContext database,
         IBackgroundJobClient jobClient)
     {
         this.logger = logger;
@@ -32,7 +32,8 @@ public class CleanOldDevBuildsJob : IJob
     {
         var cutoff = DateTime.UtcNow - AppInfo.UnimportantDevBuildKeepDuration;
 
-        var buildsToDelete = await database.DevBuilds.Where(b => !b.Important && !b.Keep && b.UpdatedAt < cutoff)
+        var buildsToDelete = await database.DevBuilds
+            .Where(b => !b.Important && !b.Keep && !b.BuildOfTheDay && b.UpdatedAt < cutoff)
             .Include(b => b.StorageItem).ThenInclude(s => s!.StorageItemVersions).ThenInclude(v => v.StorageFile)
             .OrderBy(b => b.Id).Take(AppInfo.MaxDevBuildsToCleanAtOnce).ToListAsync(cancellationToken);
 
@@ -107,7 +108,7 @@ public class CleanOldDevBuildsJob : IJob
 
         if (problem != null)
         {
-            throw problem;
+            throw new AggregateException(problem);
         }
     }
 }

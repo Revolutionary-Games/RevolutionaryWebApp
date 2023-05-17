@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures;
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Server.Models;
 using Shared.Models.Enums;
@@ -32,6 +33,44 @@ public abstract class RealTestDatabaseFixture : IDisposable
     public static Guid SessionId3 { get; } = Guid.NewGuid();
 
     public ApplicationDbContext Database { get; }
+
+    /// <summary>
+    ///   Creates a test storage item (doesn't call save on the db context)
+    /// </summary>
+    /// <returns>The created item</returns>
+    public async Task<StorageItem> CreateTestStorageItem(bool uploaded = true, Random? random = null)
+    {
+        random ??= new Random();
+
+        var name = $"DummyTest-{random.Next()}-{random.Next()}";
+
+        var versionFile = new StorageFile
+        {
+            StoragePath = name,
+            Size = 123,
+            Uploading = !uploaded,
+        };
+
+        await Database.StorageFiles.AddAsync(versionFile);
+
+        var itemVersion = new StorageItemVersion
+        {
+            StorageFile = versionFile,
+            Uploading = !uploaded,
+        };
+
+        await Database.StorageItemVersions.AddAsync(itemVersion);
+
+        var item = new StorageItem
+        {
+            Name = name,
+            StorageItemVersions = new List<StorageItemVersion> { itemVersion },
+        };
+
+        await Database.StorageItems.AddAsync(item);
+
+        return item;
+    }
 
     public void Dispose()
     {
