@@ -137,9 +137,17 @@ public static class AppInfo
     /// </summary>
     public const int MaxDevBuildsToCleanAtOnce = 500;
 
+    /// <summary>
+    ///   Needs to be high enough to remove as many dehydrated objects as needed. The dehydrated delete is only
+    ///   triggered when a devbuild is deleted so in a worst case scenario this should on average be high enough to
+    ///   allow deleting enough objects for <see cref="MaxDevBuildsToCleanAtOnce"/> (or at least over a few deletion
+    ///   cycles on average)
+    /// </summary>
+    public const int MaxDehydratedToDeleteAtOnce = 5000;
+
     // When changed would be nice to also update the value in ThriveDevCenter.Server.csproj
     public const int Major = 2;
-    public const int Minor = 14;
+    public const int Minor = 15;
 
     public const int DefaultMaxLauncherLinks = 5;
 

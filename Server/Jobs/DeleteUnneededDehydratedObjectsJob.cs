@@ -1,12 +1,14 @@
 namespace ThriveDevCenter.Server.Jobs;
 
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
+using Shared;
 
 /// <summary>
 ///   Deletes dehydrated objects that are no longer needed by any builds
@@ -33,7 +35,8 @@ public class DeleteUnneededDehydratedObjectsJob : IJob
         var dehydratedToDelete = await database.DehydratedObjects
             .FromSqlRaw(
                 "SELECT * FROM dehydrated_objects WHERE NOT EXISTS (SELECT * FROM dehydrated_objects_dev_builds " +
-                "WHERE dehydrated_objects.id = dehydrated_objects_dev_builds.dehydrated_objects_id);")
+                "WHERE dehydrated_objects.id = dehydrated_objects_dev_builds.dehydrated_objects_id)")
+            .OrderBy(d => d.Id).Take(AppInfo.MaxDehydratedToDeleteAtOnce)
             .ToListAsync(cancellationToken);
 
         if (dehydratedToDelete.Count < 1)
@@ -45,9 +48,15 @@ public class DeleteUnneededDehydratedObjectsJob : IJob
         logger.LogInformation("Deleting {Count} dehydrated objects that are no longer needed",
             dehydratedToDelete.Count);
 
+        if (dehydratedToDelete.Count >= AppInfo.MaxDehydratedToDeleteAtOnce)
+        {
+            logger.LogWarning(
+                "Ran into max delete limit at once, hopefully over multiple days enough objects are deleted");
+        }
+
         foreach (var dehydratedObject in dehydratedToDelete)
         {
-            logger.LogInformation("Enqueueing job to delete storage item ({Id}) used by dehydrated object",
+            logger.LogDebug("Enqueueing job to delete storage item ({Id}) used by dehydrated object",
                 dehydratedObject.StorageItemId);
 
             // This is scheduled much later to ensure that this delete triggers only after the dehydrated object has
