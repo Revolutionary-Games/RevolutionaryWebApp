@@ -460,6 +460,7 @@ public class Startup
         AddJobHelper<CreateBackupJob>(configurationSection["CreateBackup"]);
         AddJobHelper<RunMarkedServerMaintenanceJob>(configurationSection["RunMarkedServerMaintenance"]);
         AddJobHelper<RefreshFeedsJob>(configurationSection["RefreshFeeds"]);
+        AddJobHelper<CleanOldDevBuildsJob>(configurationSection["CleanOldDevBuilds"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

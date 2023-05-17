@@ -132,6 +132,11 @@ public static class AppInfo
 
     public const int SshServerCommandAttempts = 3;
 
+    /// <summary>
+    ///   Should be as high as the number of builds that can happen in a day
+    /// </summary>
+    public const int MaxDevBuildsToCleanAtOnce = 500;
+
     // When changed would be nice to also update the value in ThriveDevCenter.Server.csproj
     public const int Major = 2;
     public const int Minor = 14;
@@ -184,4 +189,6 @@ public static class AppInfo
     public static readonly TimeSpan DeleteFailedStackwalkAttemptsAfter = TimeSpan.FromHours(8);
 
     public static readonly TimeSpan InactiveSymbolKeepDuration = TimeSpan.FromDays(180);
+
+    public static readonly TimeSpan UnimportantDevBuildKeepDuration = TimeSpan.FromDays(90);
 }
