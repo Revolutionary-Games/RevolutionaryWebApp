@@ -80,6 +80,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<LauncherThriveVersionPlatform> LauncherThriveVersionPlatforms { get; set; } = null!;
     public DbSet<LauncherThriveVersionDownload> LauncherThriveVersionDownloads { get; set; } = null!;
     public DbSet<ExecutedMaintenanceOperation> ExecutedMaintenanceOperations { get; set; } = null!;
+    public DbSet<DeletedResourceStats> DeletedResourceStats { get; set; } = null!;
 
     /// <summary>
     ///   If non-null this will be used to send model update notifications on save
