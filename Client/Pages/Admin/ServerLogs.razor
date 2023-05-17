@@ -38,7 +38,7 @@
                 {
                     <tr @key="item.Id">
                         <td>@item.Message</td>
-                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td><RecentTimeShortener Time="@item.CreatedAt"/></td>
                         <td>
                             @if (item.TargetUserId != null)
                             {
