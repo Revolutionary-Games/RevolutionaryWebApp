@@ -38,13 +38,23 @@ else
                     <td>@item.BuildHash</td>
                     <td>@item.Branch.Truncate()</td>
                     <td>@item.Platform</td>
-                    <td>@item.Verified</td>
+                    <td>
+                        @if (item.Verified)
+                        {
+                            <span class="badge badge-success">yes</span>
+                        }
+                    </td>
                     <td>@item.Score</td>
                     <td>@item.Description.Truncate()</td>
                     <td></td>
-                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td><RecentTimeShortener Time="@item.CreatedAt"/></td>
                     <td>@item.Downloads</td>
-                    <td>@item.Keep</td>
+                    <td>
+                        @if (item.Keep)
+                        {
+                            <span class="badge badge-success">yes</span>
+                        }
+                    </td>
                 </tr>
             }
         }
