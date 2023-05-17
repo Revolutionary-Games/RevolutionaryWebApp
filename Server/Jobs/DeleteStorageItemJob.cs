@@ -40,11 +40,12 @@ public class DeleteStorageItemJob
                 x.Execute(storageItemVersion.Id, CancellationToken.None));
         }
 
-        jobClient.Schedule<DeleteStorageItemJob>(x => x.Execute(item.Id, CancellationToken.None),
+        jobClient.Schedule<DeleteStorageItemJob>(x => x.ExecutePrivate(item.Id, CancellationToken.None),
             TimeSpan.FromSeconds(60));
     }
 
-    private async Task Execute(long itemId, CancellationToken cancellationToken)
+    // This is only public as Hangfire will not execute private methods
+    public async Task ExecutePrivate(long itemId, CancellationToken cancellationToken)
     {
         var item = await database.StorageItems.Include(i => i.StorageItemVersions)
             .FirstOrDefaultAsync(i => i.Id == itemId, cancellationToken);
