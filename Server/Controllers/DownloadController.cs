@@ -71,6 +71,13 @@ public class DownloadController : Controller
                 // Non-latest uploaded file, need access
                 if (user == null || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.RestrictedUser))
                     return this.WorkingForbid("You need to login to access non-latest versions of files.");
+
+                // For deleted files, write access is needed to the item to download them
+                if (wantedVersion?.Deleted == true)
+                {
+                    if (!item.IsWritableBy(user))
+                        return this.WorkingForbid("Accessing a deleted version requires write access to the file.");
+                }
             }
 
             toDownload = wantedVersion;

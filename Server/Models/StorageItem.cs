@@ -164,29 +164,35 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
         return true;
     }
 
-    public Task<StorageItemVersion?> GetHighestVersion(ApplicationDbContext database)
+    public Task<StorageItemVersion?> GetHighestVersion(ApplicationDbContext database, bool includeDeleted = false)
     {
-        return database.StorageItemVersions.Where(v => v.StorageItemId == Id)
+        if (includeDeleted)
+        {
+            return database.StorageItemVersions.Where(v => v.StorageItemId == Id)
+                .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
+        }
+
+        return database.StorageItemVersions.Where(v => v.StorageItemId == Id && !v.Deleted)
             .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
     }
 
     public Task<StorageItemVersion?> GetHighestUploadedVersion(ApplicationDbContext database)
     {
         return database.StorageItemVersions.Include(v => v.StorageFile)
-            .Where(v => v.StorageItemId == Id && v.Uploading != true)
+            .Where(v => v.StorageItemId == Id && v.Uploading != true && !v.Deleted)
             .OrderByDescending(v => v.Version).FirstOrDefaultAsync();
     }
 
     public Task<StorageItemVersion?> GetLowestUploadedVersion(ApplicationDbContext database)
     {
         return database.StorageItemVersions.Include(v => v.StorageFile)
-            .Where(v => v.StorageItemId == Id && v.Uploading != true)
+            .Where(v => v.StorageItemId == Id && v.Uploading != true && !v.Deleted)
             .OrderBy(v => v.Version).FirstOrDefaultAsync();
     }
 
     public async Task<int> GetNextVersionNumber(ApplicationDbContext database)
     {
-        var highest = await GetHighestVersion(database);
+        var highest = await GetHighestVersion(database, true);
 
         if (highest == null)
             return 1;
