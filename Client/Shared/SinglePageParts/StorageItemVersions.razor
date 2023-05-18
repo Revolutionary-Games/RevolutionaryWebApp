@@ -25,23 +25,40 @@ else
                     OnSortChanged="async column => await ChangeSort(column)"
                     GetSortClass="@SortClass"
                     ShowContentSpinner="@VisibleFetchInProgress"
-                    Columns="@columns"
+                    Columns="@(ExpandedView ? expandedColumns : columns)"
                     ShowNoContent="@NoItemsFound"
                     UseNonFixedColumns="@true">
         @if (Data != null)
         {
             @foreach (var item in Data.Results)
             {
-                <tr @key="item.Id">
+                <tr @key="item.Id" class="@(item.Deleted ? "bg-danger" : string.Empty)">
                     <th scope="row"><a href="@GetDownloadURL(item.Version)" target="_blank">@item.Version</a></th>
-                    <td>@(item.Size != null ? item.Size.Value.BytesToMiB() : "unknown")</td>
-                    <td>@item.Keep</td>
-                    <td>@item.Protected</td>
-                    <td>@(!item.Uploading)</td>
-                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
-                    <td>
-                        <Button Enabled="@false" ButtonStyle="danger" class="btn-sm">Delete</Button>
-                    </td>
+
+                    @if (!ExpandedView)
+                    {
+                        <td>@(item.Size != null ? item.Size.Value.BytesToMiB() : "unknown")</td>
+                        <td><UsernameDisplayer UserId="@item.UploadedById"/></td>
+                        <td>@item.Keep</td>
+                        <td>@(!item.Uploading)</td>
+                        <td><RecentTimeShortener Time="@item.UpdatedAt"/></td>
+                        <td>
+                            <Button Enabled="@false" ButtonStyle="danger" class="btn-sm">Delete</Button>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>@(item.Size != null ? item.Size.Value.BytesToMiB() : "unknown")</td>
+                        <td><UsernameDisplayer UserId="@item.UploadedById" ShowNavLink="@true"/></td>
+                        <td>@item.Keep</td>
+                        <td>@item.Protected</td>
+                        <td>@(!item.Uploading)</td>
+                        <td><RecentTimeShortener Time="@item.UpdatedAt"/></td>
+                        <td><RecentTimeShortener Time="@item.CreatedAt"/></td>
+                        <td>
+                            <Button Enabled="@false" ButtonStyle="danger" class="btn-sm">Delete</Button>
+                        </td>
+                    }
                 </tr>
             }
         }
@@ -53,15 +70,31 @@ else
     {
         new TableColumn("Version", true),
         new TableColumn("Size", false),
+        new TableColumn("Uploader", false),
         new TableColumn("Keep", true),
-        new TableColumn("Protected", true),
         new TableColumn("Uploaded", false),
         new TableColumn("Updated At", true, "UpdatedAt"),
         new TableColumn("Actions", false),
     };
 
+    private readonly List<TableColumn> expandedColumns = new()
+    {
+        new TableColumn("Version", true),
+        new TableColumn("Size", false),
+        new TableColumn("Uploader", false),
+        new TableColumn("Keep", true),
+        new TableColumn("Protected", true),
+        new TableColumn("Uploaded", false),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Actions", false),
+    };
+
     [Parameter]
     public long StorageItemId { get; set; }
+
+    [Parameter]
+    public bool ExpandedView { get; set; }
 
     public StorageItemVersions() : base(new SortHelper("Version", SortDirection.Descending))
     {

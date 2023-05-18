@@ -168,7 +168,7 @@ table.non-fixed {
     border: 1px solid black;
     min-width: 100%;
     max-width: 100%;
-    background-color: rgba(220, 220, 220, 0.95);
+    background-color: rgba(220, 220, 220, 0.98);
     z-index: 5;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
@@ -183,11 +183,20 @@ table.non-fixed {
         min-width: 300px;
         background-color: rgba(220, 220, 220, 0.85);
     }
+
+    .item-sidebar.expanded {
+        min-width: 100%;
+        background-color: rgba(220, 220, 220, 0.98);
+    }
 }
 
 @media (min-width: 950px) {
     .item-sidebar {
         width: 35%;
+    }
+
+    .item-sidebar.expanded {
+        min-width: 100%;
     }
 }
 

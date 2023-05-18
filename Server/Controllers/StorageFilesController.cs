@@ -300,7 +300,13 @@ public class StorageFilesController : Controller
         try
         {
             query = database.StorageItemVersions.Include(v => v.StorageFile)
-                .Where(v => v.StorageItemId == item.Id).OrderBy(sortColumn, sortDirection);
+                .Where(v => v.StorageItemId == item.Id);
+
+            // If no write access, hide deleted versions
+            if (!item.IsWritableBy(HttpContext.AuthenticatedUser()))
+                query = query.Where(v => !v.Deleted);
+
+            query = query.OrderBy(sortColumn, sortDirection);
         }
         catch (ArgumentException e)
         {

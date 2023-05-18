@@ -10,7 +10,7 @@
 @using ThriveDevCenter.Shared.Models.Enums
 @using ThriveDevCenter.Shared.Utilities
 
-<div class="item-sidebar">
+<div class="item-sidebar @ExpandedClass">
     <button type="button" class="close" data-dismiss="alert" aria-label="Close"
             @onclick="CloseSideBar" @onclick:preventDefault="true" @onclick:stopPropagation="true">
         <span aria-hidden="true">&times;</span>
@@ -88,40 +88,57 @@
         </Button>
     </div>
 
-    <h3>Information</h3>
+    <div class="mx-1">
+        <h3>Information</h3>
+        <div>Size: @(Item.Size != null ? Item.Size.Value.BytesToMiB() : "unknown")</div>
+        <div>Read: @Item.ReadAccess.ToUserReadableString() </div>
+        <div>Write: @Item.WriteAccess.ToUserReadableString() </div>
 
-    <div>Name: @Item.Name</div>
-    <div>Type: @Item.Ftype</div>
-    <div>ID: @Item.Id</div>
-    <div>Can be parentless: @Item.AllowParentless</div>
-    <div>Size: @(Item.Size != null ? Item.Size.Value.BytesToMiB() : "unknown")</div>
-    <div>Read: @Item.ReadAccess.ToUserReadableString() </div>
-    <div>Write: @Item.WriteAccess.ToUserReadableString() </div>
+        <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="GroupType.RestrictedUser">
+            <div>
+                Owner: <UsernameDisplayer UserId="@Item.OwnerId"/>
+            </div>
+        </AccessLimited>
 
-    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="GroupType.RestrictedUser">
-        <div>
-            Owner:
-            @if (Item.OwnerId == null)
-            {
-                <span>system</span>
-            }
-            else
-            {
-                <UsernameDisplayer UserId="@Item.OwnerId"/>
-            }
-        </div>
-    </AccessLimited>
+        <div>Created: <RecentTimeShortener Time="@Item.CreatedAt"/></div>
+        <div>Updated: <RecentTimeShortener Time="@Item.UpdatedAt"/></div>
 
-    <div>Parent folder: @Item.ParentId</div>
-    <div>Special: @Item.Special</div>
-    <div>Created: @Item.CreatedAt.ToLocalTime().ToString("G")</div>
-    <div>Updated: @Item.UpdatedAt.ToLocalTime().ToString("G")</div>
+        @if (expanded)
+        {
+            <Button ButtonStyle="primary" class="btn-sm" OnPressed="@ToggleExpand">
+                Shrink Panel
+            </Button>
+        }
+        else
+        {
+            <Button ButtonStyle="primary" class="btn-sm" OnPressed="@ToggleExpand">
+                Expand Versions View
+            </Button>
+        }
 
-    <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="GroupType.RestrictedUser">
-        <h3>Versions</h3>
+        <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="GroupType.RestrictedUser">
 
-        <StorageItemVersions StorageItemId="@Item.Id" />
-    </AccessLimited>
+            <Button ButtonStyle="secondary" Enabled="@false" class="btn-sm ml-1">Edit</Button>
+
+            <Button ButtonStyle="secondary" Enabled="@false" class="btn-sm ml-1">Move</Button>
+
+            <Button ButtonStyle="danger" Enabled="@false" class="btn-sm ml-1">Delete</Button>
+
+            @* TODO: admin immediate purge button *@
+
+            <h3 class="mt-2">Versions</h3>
+
+            <StorageItemVersions StorageItemId="@Item.Id" ExpandedView="@expanded"/>
+        </AccessLimited>
+
+        <h4 class="mt-2">Extended Info</h4>
+        <div>Name: @Item.Name</div>
+        <div>ID: @Item.Id</div>
+        <div>Type: @Item.Ftype</div>
+        <div>Can be parentless: @Item.AllowParentless</div>
+        <div>Parent folder: @Item.ParentId</div>
+        <div>Special: @Item.Special</div>
+    </div>
 </div>
 
 @code {
@@ -137,6 +154,8 @@
 
     private bool linkCopied;
 
+    private bool expanded;
+
     [Parameter]
     [EditorRequired]
     public StorageItemDTO Item { get; set; } = null!;
@@ -145,6 +164,8 @@
     public bool PreventClose { get; set; }
 
     private string Extension => Path.GetExtension(Item.Name);
+
+    private string ExpandedClass => expanded ? "expanded" : string.Empty;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -183,6 +204,11 @@
 
         // Navigate to the parent path, as that should close the file showing
         NavManager.NavigateTo(PathParser.GetParentPath(NavManager.Uri));
+    }
+
+    private void ToggleExpand()
+    {
+        expanded = !expanded;
     }
 
     private string GetDownloadURL(int version = -1)
