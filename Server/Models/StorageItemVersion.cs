@@ -2,6 +2,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;
@@ -9,7 +10,7 @@ using Utilities;
 
 [Index(nameof(StorageFileId))]
 [Index(nameof(StorageItemId), nameof(Version), IsUnique = true)]
-public class StorageItemVersion : UpdateableModel
+public class StorageItemVersion : UpdateableModel, ISoftDeletable
 {
     [AllowSortingBy]
     public int Version { get; set; } = 1;
@@ -21,13 +22,18 @@ public class StorageItemVersion : UpdateableModel
     public StorageFile? StorageFile { get; set; }
 
     [AllowSortingBy]
-    public bool Keep { get; set; } = false;
+    public bool Keep { get; set; }
 
     [AllowSortingBy]
-    public bool Protected { get; set; } = false;
+    public bool Protected { get; set; }
 
     [AllowSortingBy]
     public bool Uploading { get; set; } = true;
+
+    public long? UploadedById { get; set; }
+    public User? UploadedBy { get; set; }
+
+    public bool Deleted { get; set; }
 
     public async Task<string> ComputeStoragePath(ApplicationDbContext database)
     {

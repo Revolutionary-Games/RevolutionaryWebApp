@@ -34,6 +34,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ProjectGitFile> ProjectGitFiles { get; set; } = null!;
     public DbSet<StorageFile> StorageFiles { get; set; } = null!;
     public DbSet<StorageItem> StorageItems { get; set; } = null!;
+    public DbSet<StorageItemDeleteInfo> StorageItemDeleteInfos { get; set; } = null!;
     public DbSet<StorageItemVersion> StorageItemVersions { get; set; } = null!;
     public DbSet<RedeemableCode> RedeemableCodes { get; set; } = null!;
     public DbSet<AdminAction> AdminActions { get; set; } = null!;
@@ -238,9 +239,24 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(d => d.Owner)
                 .WithMany(p => p.StorageItems).OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(d => d.LastModifiedBy)
+                .WithMany(p => p.LastModifiedStorageItems).OnDelete(DeleteBehavior.SetNull);
+
             entity.HasOne(d => d.Parent)
                 .WithMany(p => p.Children)
                 .HasForeignKey(d => d.ParentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<StorageItemDeleteInfo>(entity =>
+        {
+            entity.HasOne(d => d.StorageItem)
+                .WithOne(p => p.DeleteInfo).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(p => p.OriginalFolder)
+                .WithMany(d => d.OriginalFolderOfDeleted).OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.OriginalFolderOwner)
+                .WithMany(p => p.OwnerOfOriginalFolderOfDeleted).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<StorageItemVersion>(entity =>
@@ -252,6 +268,9 @@ public class ApplicationDbContext : DbContext
 
             entity.HasOne(d => d.StorageItem)
                 .WithMany(p => p.StorageItemVersions).OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.UploadedBy)
+                .WithMany(p => p.UploadedStorageItemVersions).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<User>(entity =>

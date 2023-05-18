@@ -91,6 +91,23 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     public ICollection<StorageItem> StorageItems { get; set; } = new HashSet<StorageItem>();
 
     /// <summary>
+    ///   Stored file versions uploaded by this user
+    /// </summary>
+    public ICollection<StorageItemVersion> UploadedStorageItemVersions { get; set; } =
+        new HashSet<StorageItemVersion>();
+
+    /// <summary>
+    ///   Stored files last modified by this user
+    /// </summary>
+    public ICollection<StorageItem> LastModifiedStorageItems { get; set; } = new HashSet<StorageItem>();
+
+    /// <summary>
+    ///   Deleted files that used to be in a folder owned by this user
+    /// </summary>
+    public ICollection<StorageItemDeleteInfo> OwnerOfOriginalFolderOfDeleted { get; set; } =
+        new HashSet<StorageItemDeleteInfo>();
+
+    /// <summary>
     ///   Automated server actions that have targeted this user
     /// </summary>
     public ICollection<LogEntry> TargetedInLogs { get; set; } = new HashSet<LogEntry>();

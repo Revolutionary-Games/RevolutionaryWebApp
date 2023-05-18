@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using DevCenterCommunication.Models.Enums;
+using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Notifications;
@@ -19,18 +20,22 @@ using Utilities;
 
 // TODO: is this a duplicate index that is not needed?
 [Index(nameof(ParentId))]
-public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
+public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications, ISoftDeletable
 {
     // TODO: is there a threat from timing attack trying to enumerate existing files?
     [AllowSortingBy]
     [Required]
     public string Name { get; set; } = string.Empty;
 
-    // TODO: change to required
     // TODO: rename this to "FileType"
     // ReSharper disable once IdentifierTypo
     public FileType Ftype { get; set; }
-    public bool Special { get; set; } = false;
+    public bool Special { get; set; }
+
+    /// <summary>
+    ///   Important files can't be deleted and their versions will all be kept
+    /// </summary>
+    public bool Important { get; set; }
 
     [AllowSortingBy]
     public long? Size { get; set; }
@@ -39,8 +44,29 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
 
     public FileAccess WriteAccess { get; set; } = FileAccess.Developer;
 
+    /// <summary>
+    ///   When set this item can't be modified itself. For a folder this means the folder can't be modified but it can
+    ///   have new items added to it. For files this means that new versions can be uploaded but the file name and
+    ///   other properties can't be modified on the file itself.
+    /// </summary>
+    public bool ModificationLocked { get; set; }
+
+    /// <summary>
+    ///   Deleted files are stored in the trash folder before they are permanently purged. When in deleted state
+    ///   there's an extra data in <see cref="DeleteInfo"/>
+    /// </summary>
+    public bool Deleted { get; set; }
+
+    /// <summary>
+    ///   Stores the previous location this item was at. Allows undoing a file move
+    /// </summary>
+    public string? MovedFromLocation { get; set; }
+
     public long? OwnerId { get; set; }
     public User? Owner { get; set; }
+
+    public long? LastModifiedById { get; set; }
+    public User? LastModifiedBy { get; set; }
 
     public long? ParentId { get; set; }
     public StorageItem? Parent { get; set; }
@@ -56,6 +82,14 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
     public ICollection<CiJobArtifact> CiJobArtifacts { get; set; } = new HashSet<CiJobArtifact>();
 
     public ICollection<DebugSymbol> DebugSymbols { get; set; } = new HashSet<DebugSymbol>();
+
+    /// <summary>
+    ///   Info about where this item was deleted from to allow restoring this, even if the original folder was deleted
+    /// </summary>
+    public StorageItemDeleteInfo? DeleteInfo { get; set; }
+
+    public ICollection<StorageItemDeleteInfo> OriginalFolderOfDeleted { get; set; } =
+        new HashSet<StorageItemDeleteInfo>();
 
     public static Task<StorageItem> GetDevBuildsFolder(ApplicationDbContext database)
     {
