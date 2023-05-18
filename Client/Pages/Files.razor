@@ -364,6 +364,9 @@ else
     [Parameter]
     public long ProjectId { get; set; }
 
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
     private bool ShouldShowUploaderOverlay => showUploadOverlay || uploadInProgress || uploadErrors.Count > 0;
 
     public Files()
@@ -799,17 +802,74 @@ else
         // First get the upload URL from the server
         try
         {
+            // Before uploading make sure the file would not be a duplicate version
+            // TODO: could make this a lot better with actual hash calculations but then also on the client we'd need
+            // to do that
+            var duplicate = await CheckIsFileToUploadDuplicate(toUpload, parsedFolderInfo);
+            if (duplicate != null)
+            {
+                // Show confirmation first (in case someone has changed file with the same size they really want to
+                // upload
+                var parameters = new ModalParameters
+                {
+                    { nameof(ConfirmDuplicateUpload.Name), toUpload.Name },
+                    { nameof(ConfirmDuplicateUpload.UploadSize), duplicate.PreviousVersionSize },
+                    { nameof(ConfirmDuplicateUpload.PreviousVersionTime), duplicate.PreviousVersionTime },
+                };
+
+                var modal = Modal.Show<ConfirmDuplicateUpload>("Upload a duplicate file?", parameters);
+
+                var result = await modal.Result;
+
+                if (result.Cancelled)
+                {
+                    // Skip to the next upload (if there is one)
+                    await BeginNextUpload();
+                    return;
+                }
+            }
+
             var url = await GetFileUploadUrl(toUpload, parsedFolderInfo);
 
             // Then begin the file upload
             await UploadFile(toUpload, url);
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             uploadErrors.Add($"Exception while uploading \"{toUpload.Name}\": {e.Message}");
         }
 
         // And start the next upload if we still have files to upload
         await BeginNextUpload();
+    }
+
+    private async Task<FileDuplicateCheckResponse?> CheckIsFileToUploadDuplicate(IBrowserFile file, StorageItemDTO? parentFolder)
+    {
+        var result = await Http.PostAsJsonAsync("api/v1/Files/checkUploadDuplicate",
+            new UploadFileRequestForm
+            {
+                Name = file.Name,
+                Size = file.Size,
+
+                // TODO: could maybe pass the last modified here to detect uploading the same file again
+
+                MimeType = string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,
+                ParentFolder = parentFolder?.Id,
+            });
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            throw new Exception(
+                $"Failed to check file duplicate status before upload: {content}, {result.StatusCode}");
+        }
+
+        if (result.StatusCode == HttpStatusCode.NoContent)
+            return null;
+
+        return JsonSerializer.Deserialize<FileDuplicateCheckResponse>(content,
+            HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
     }
 
     private async Task<UploadFileResponse> GetFileUploadUrl(IBrowserFile file, StorageItemDTO? parentFolder)
@@ -819,8 +879,6 @@ else
             {
                 Name = file.Name,
                 Size = file.Size,
-
-                // TODO: could maybe pass the last modified here to detect uploading the same file again
 
                 MimeType = string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,
                 ParentFolder = parentFolder?.Id,

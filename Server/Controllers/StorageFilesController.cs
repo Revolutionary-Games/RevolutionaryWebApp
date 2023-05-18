@@ -356,6 +356,44 @@ public class StorageFilesController : Controller
         return Ok();
     }
 
+    [HttpPost("checkUploadDuplicate")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<ActionResult<FileDuplicateCheckResponse>> CheckDuplicateBeforeUpload(
+        [Required] [FromBody] UploadFileRequestForm request)
+    {
+        // Don't bother checking with bad names
+        if (string.IsNullOrEmpty(request.Name))
+            return NoContent();
+
+        var existingItem =
+            await database.StorageItems.FirstOrDefaultAsync(i =>
+                i.ParentId == request.ParentFolder && i.Name == request.Name);
+
+        if (existingItem == null)
+        {
+            // No existing item, won't be a duplicate
+            return NoContent();
+        }
+
+        var latestVersion = await existingItem.GetHighestUploadedVersion(database);
+
+        if (latestVersion == null)
+            return NoContent();
+
+        // Now we can finally do the duplicate check
+        if (latestVersion.StorageFile!.Size == request.Size)
+        {
+            // It is a duplicate
+            return new FileDuplicateCheckResponse
+            {
+                PreviousVersionSize = latestVersion.StorageFile!.Size.Value,
+                PreviousVersionTime = latestVersion.CreatedAt,
+            };
+        }
+
+        return NoContent();
+    }
+
     [HttpPost("startUpload")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<UploadFileResponse>> StartFileUpload(

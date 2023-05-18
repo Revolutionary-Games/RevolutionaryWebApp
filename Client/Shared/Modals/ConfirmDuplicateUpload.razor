@@ -1,0 +1,50 @@
+@using SharedBase.Utilities
+<BootstrapModal OnCancel="@Cancel">
+    <div class="modal-body">
+        <p>You are potentially uploading a duplicate file "@Name".</p>
+
+        <p>
+            There already exists a version of this file uploaded at <RecentTimeShortener Time="PreviousVersionTime"/>
+            with a size of @UploadSize.BytesToMiB(3).
+        </p>
+
+        <p>
+            In most cases you should skip uploading a duplicate file. However, if you know that your file is different
+            but happens to be the same size you may proceed uploading it.
+        </p>
+
+    </div>
+    <div class="modal-footer">
+        <Button class="mr-1" ButtonStyle="secondary" OnPressed="@Cancel">Skip</Button>
+        <Button class="mr-1" ButtonStyle="warning" OnPressed="@Confirm">Upload Anyway</Button>
+    </div>
+</BootstrapModal>
+
+@code {
+
+    [CascadingParameter]
+    BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public string Name { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public long UploadSize { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public DateTime PreviousVersionTime { get; set; }
+
+    private void Confirm()
+    {
+        ModalInstance.CloseAsync(ModalResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        ModalInstance.CloseAsync(ModalResult.Cancel());
+    }
+
+}
