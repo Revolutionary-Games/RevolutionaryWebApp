@@ -16,7 +16,7 @@ public class StorageFile : UpdateableModel
     // TODO: make non-nullable
     public long? Size { get; set; }
 
-    public bool AllowParentless { get; set; } = false;
+    public bool AllowParentless { get; set; }
 
     public bool Uploading { get; set; } = true;
     public DateTime? UploadExpires { get; set; }
