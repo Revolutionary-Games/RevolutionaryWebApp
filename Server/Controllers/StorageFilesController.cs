@@ -750,7 +750,12 @@ public class StorageFilesController : Controller
                 .MaxAsync(s => s.Version))
         {
             item.Size = version.StorageFile.Size;
-            item.BumpUpdatedAt();
+
+            // We explicitly don't bump the version here as otherwise to be logically consistent we'd need to overwrite
+            // the file last modifier which could lose info as for the version we already know who uploaded it, but in
+            // addition we can keep the info on for example who renamed the file or moved it to trash
+            // item.LastModifiedById = version.UploadedById;
+            // item.BumpUpdatedAt();
         }
 
         await remoteStorage.PerformFileUploadSuccessActions(version.StorageFile, database);

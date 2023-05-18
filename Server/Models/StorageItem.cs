@@ -304,6 +304,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
             AllowParentless = AllowParentless,
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
+            LastModifiedById = LastModifiedById,
         };
     }
 

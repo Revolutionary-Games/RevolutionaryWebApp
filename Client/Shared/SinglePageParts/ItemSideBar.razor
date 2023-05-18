@@ -103,6 +103,15 @@
         <div>Created: <RecentTimeShortener Time="@Item.CreatedAt"/></div>
         <div>Updated: <RecentTimeShortener Time="@Item.UpdatedAt"/></div>
 
+        <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="GroupType.RestrictedUser">
+            @if (Item.LastModifiedById != null)
+            {
+                <div>
+                    Last modified by (excluding versions): <UsernameDisplayer UserId="@Item.LastModifiedById"/>
+                </div>
+            }
+        </AccessLimited>
+
         @if (expanded)
         {
             <Button ButtonStyle="primary" class="btn-sm" OnPressed="@ToggleExpand">
