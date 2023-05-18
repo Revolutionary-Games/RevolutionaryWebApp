@@ -681,11 +681,10 @@ else
 
     private async Task OnInputFilesChanged(InputFileChangeEventArgs args)
     {
+        filesToBeUploaded.Clear();
+
         if (args.FileCount < 1)
-        {
-            filesToBeUploaded.Clear();
             return;
-        }
 
         try
         {
