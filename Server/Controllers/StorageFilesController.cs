@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Net;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -168,6 +169,36 @@ public class StorageFilesController : Controller
         var objects = await query.ToPagedResultAsync(page, pageSize);
 
         return objects.ConvertResult(i => i.GetInfo());
+    }
+
+    [ResponseCache(Duration = 1800)]
+    [HttpGet("totalUsed")]
+    public async Task<StorageUsageStats> CalculateTotalStorage()
+    {
+        // Fetch the IDs for the DevBuild folders to ignore their sizes
+        long dehydratedId;
+        long buildsId;
+        try
+        {
+            dehydratedId = (await StorageItem.GetDehydratedFolder(database)).Id;
+            buildsId = (await StorageItem.GetDevBuildBuildsFolder(database)).Id;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get dehydrated data for total usage calculation");
+            throw new HttpResponseException
+            {
+                Status = (int)HttpStatusCode.InternalServerError,
+                Value = "Could not detect folders that should be excluded",
+            };
+        }
+
+        // Calculate all version sizes while ignoring the devbuild files
+        var bytes = await database.StorageItemVersions.Include(v => v.StorageFile).Include(v => v.StorageItem)
+            .Where(v => v.StorageItem!.ParentId != dehydratedId && v.StorageItem!.ParentId != buildsId &&
+                v.StorageFile!.Size != null && v.StorageFile!.Size > 0).SumAsync(v => v.StorageFile!.Size!.Value);
+
+        return new StorageUsageStats(bytes);
     }
 
     [HttpPost("createFolder")]

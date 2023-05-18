@@ -286,6 +286,26 @@ else
     </AccessLimited>
 }
 
+<h4 class="mt-4">Storage Statistics</h4>
+
+@if (loadingStats)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+else if (usageStats == null)
+{
+    <span>Error: @usageStatsLoadError</span>
+}
+else
+{
+    <span>
+        Used total storage: @usageStats.UsedBytes.BytesToGiB() (note: only updated every 30 minutes and
+        excluding DevBuilds)
+    </span>
+}
+
 @code {
     private readonly List<TableColumn> columns = new()
     {
@@ -335,6 +355,10 @@ else
     /// </summary>
     private bool uploading;
 
+    private StorageUsageStats? usageStats;
+    private bool loadingStats = true;
+    private string usageStatsLoadError = string.Empty;
+
     private ElementReference dropArea;
 
     [Parameter]
@@ -357,7 +381,12 @@ else
     {
         await NotificationHandler.Register(this);
         await base.OnParametersSetAsync();
-        await ParseCurrentPath();
+        var pathParseTask = ParseCurrentPath();
+
+        if (usageStats == null)
+            await FetchStorageStats();
+
+        await pathParseTask;
     }
 
     public override Task SetParametersAsync(ParameterView parameters)
@@ -1010,6 +1039,25 @@ else
         {
             throw new Exception($"Failed to report finished upload: {content}, {result.StatusCode}");
         }
+    }
+
+    private async Task FetchStorageStats()
+    {
+        loadingStats = true;
+        usageStatsLoadError = string.Empty;
+        usageStats = null;
+
+        try
+        {
+            usageStats = await Http.GetFromJsonAsync<StorageUsageStats>("api/v1/Files/totalUsed");
+        }
+        catch (Exception e)
+        {
+            usageStatsLoadError = e.Message;
+        }
+
+        loadingStats = false;
+        await InvokeAsync(StateHasChanged);
     }
 
 }
