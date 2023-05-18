@@ -264,7 +264,7 @@ public class DevBuildUploadController : Controller
             throw new NotLoadedModelNavigationException();
 
         // Upload a version of the build
-        var version = await existing.StorageItem.CreateNextVersion(database);
+        var version = await existing.StorageItem.CreateNextVersion(database, null);
         var file = await version.CreateStorageFile(database,
             DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime,
             request.BuildSize);
@@ -370,7 +370,7 @@ public class DevBuildUploadController : Controller
             if (dehydrated.StorageItem == null)
                 throw new NotLoadedModelNavigationException();
 
-            var version = await dehydrated.StorageItem.CreateNextVersion(database);
+            var version = await dehydrated.StorageItem.CreateNextVersion(database, null);
             var file = await version.CreateStorageFile(database, expiresAt, obj.Size);
 
             if (file.Size == null)

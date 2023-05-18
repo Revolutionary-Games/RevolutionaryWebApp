@@ -203,7 +203,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
     /// <summary>
     ///   Creates the next StorageItemVersion for this object. Doesn't save the database
     /// </summary>
-    public async Task<StorageItemVersion> CreateNextVersion(ApplicationDbContext database)
+    public async Task<StorageItemVersion> CreateNextVersion(ApplicationDbContext database, User? uploader)
     {
         var number = await GetNextVersionNumber(database);
 
@@ -211,6 +211,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
         {
             Version = number,
             StorageItemId = Id,
+            UploadedById = uploader?.Id,
         };
 
         StorageItemVersions.Add(version);

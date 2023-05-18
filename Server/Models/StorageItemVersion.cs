@@ -89,6 +89,8 @@ public class StorageItemVersion : UpdateableModel, ISoftDeletable
             Size = StorageFile?.Size,
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
+            UploadedById = UploadedById,
+            Deleted = Deleted,
         };
     }
 }

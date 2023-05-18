@@ -477,7 +477,7 @@ public class StorageFilesController : Controller
             await database.StorageItems.AddAsync(existingItem);
         }
 
-        var version = await existingItem.CreateNextVersion(database);
+        var version = await existingItem.CreateNextVersion(database, user);
         var file = await version.CreateStorageFile(database,
             DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime, request.Size);
 

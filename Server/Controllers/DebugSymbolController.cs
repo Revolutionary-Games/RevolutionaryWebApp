@@ -162,7 +162,7 @@ public class DebugSymbolController : Controller
             symbol.RelativePath, user.Email);
 
         // Create a version to upload to
-        var version = await symbol.StoredInItem.CreateNextVersion(database);
+        var version = await symbol.StoredInItem.CreateNextVersion(database, user);
 
         var file = await version.CreateStorageFile(database,
             DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime,
