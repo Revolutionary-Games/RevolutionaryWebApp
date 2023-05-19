@@ -305,6 +305,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
             LastModifiedById = LastModifiedById,
+            ModificationLocked = ModificationLocked,
         };
     }
 

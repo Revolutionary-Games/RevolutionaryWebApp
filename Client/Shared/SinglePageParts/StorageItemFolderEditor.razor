@@ -7,10 +7,10 @@
 
 @if (showForm)
 {
-    <form>
+    <form class="@FormClass">
         <div class="form-row">
             <div class="form-group">
-                <label for="editedFolderName">Description</label>
+                <label for="editedFolderName">Name</label>
                 <input type="text" class="form-control" id="editedFolderName" @bind="folderName"
                        @bind:event="oninput" placeholder="Name">
             </div>
@@ -44,10 +44,11 @@
 
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
-        <Button class="my-1 mr-1" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing" ButtonStyle="primary">
+        <Button class="@($"my-1 mr-1 {ButtonClass}")" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing"
+                ButtonStyle="primary">
             Save
         </Button>
-        <Button ButtonStyle="secondary" OnPressed="@Cancel">
+        <Button class="@ButtonClass" ButtonStyle="secondary" OnPressed="@Cancel">
             Cancel
         </Button>
     </form>
@@ -56,7 +57,7 @@ else
 {
     <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
 
-    <Button ButtonStyle="secondary" OnPressed="@ShowForm">Edit</Button>
+    <Button class="@ButtonClass" ButtonStyle="secondary" OnPressed="@ShowForm">Edit</Button>
 }
 
 @code {
@@ -73,6 +74,12 @@ else
     [Parameter]
     [EditorRequired]
     public StorageItemDTO Data { get; set; } = null!;
+
+    [Parameter]
+    public string FormClass { get; set; } = string.Empty;
+
+    [Parameter]
+    public string ButtonClass { get; set; } = string.Empty;
 
     private bool CanSave => GetErrors().Count < 1;
 

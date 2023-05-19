@@ -1,11 +1,13 @@
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IClipboard Clipboard
+@inject CurrentUserInfo CurrentUserInfo
 @using ThriveDevCenter.Shared.Models
 @using System.IO
 @using DevCenterCommunication.Models
 @using SharedBase.Utilities
 @using TextCopy
+@using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models.Enums
 @using ThriveDevCenter.Shared.Utilities
@@ -114,20 +116,24 @@
 
         @if (expanded)
         {
-            <Button ButtonStyle="primary" class="btn-sm" OnPressed="@ToggleExpand">
+            <Button ButtonStyle="primary" class="btn-sm mr-1" OnPressed="@ToggleExpand">
                 Shrink Panel
             </Button>
         }
         else
         {
-            <Button ButtonStyle="primary" class="btn-sm" OnPressed="@ToggleExpand">
+            <Button ButtonStyle="primary" class="btn-sm mr-1" OnPressed="@ToggleExpand">
                 Expand Versions View
             </Button>
         }
 
         <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="GroupType.RestrictedUser">
 
-            <Button ButtonStyle="secondary" Enabled="@false" class="btn-sm ml-1">Edit</Button>
+            @if (!Item.Special && !Item.ModificationLocked && Item.WriteAccess.IsAccessibleTo(
+                CurrentUserInfo.Groups, CurrentUserInfo.Info!.Id, Item.OwnerId))
+            {
+                <StorageItemFolderEditor Data="@Item" ButtonClass="btn-sm" FormClass="ml-3"/>
+            }
 
             <Button ButtonStyle="secondary" Enabled="@false" class="btn-sm ml-1">Move</Button>
 

@@ -332,23 +332,58 @@ public class StorageFilesController : Controller
         if (item.Special)
             return BadRequest("Special items can't be edited");
 
-        var user = HttpContext.AuthenticatedUserOrThrow();
+        if (item.ModificationLocked)
+            return BadRequest("Item info is set as non-modifiable");
 
         if (item.WriteAccess == FileAccess.Nobody)
             return BadRequest("This item is not writable");
 
-        if (item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
-            return BadRequest("Only item owners and admins can edit them");
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        // When editing access only the owner can do so
+        if (item.WriteAccess != newData.WriteAccess || item.ReadAccess != newData.ReadAccess)
+        {
+            if (item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+                return BadRequest("Only item owners and admins can edit item access");
+        }
+        else
+        {
+            // Other modification just needs write access
+            if (!item.IsWritableBy(user))
+                return BadRequest("Missing write access to this item");
+        }
 
         if (newData.ReadAccess == FileAccess.Nobody || newData.WriteAccess == FileAccess.Nobody)
             return BadRequest("Only system can set system readable/writable status");
 
+        if (item.WriteAccess == newData.WriteAccess && item.ReadAccess == newData.ReadAccess &&
+            item.Name == newData.Name)
+        {
+            // No changes
+            return Ok();
+        }
+
         if (!CheckNewItemName(newData.Name, out var badRequest))
             return badRequest!;
+
+        // Check the new name doesn't conflict
+        if (item.Name != newData.Name)
+        {
+            var duplicate = await database.StorageItems.FirstOrDefaultAsync(i =>
+                i.Name == newData.Name && i.ParentId == item.ParentId);
+
+            if (duplicate != null)
+            {
+                return BadRequest("The new name is already in use, please select a unique name in the folder");
+            }
+        }
 
         item.Name = newData.Name;
         item.ReadAccess = newData.ReadAccess;
         item.WriteAccess = newData.WriteAccess;
+
+        item.LastModifiedById = user.Id;
+        item.BumpUpdatedAt();
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {

@@ -20,6 +20,7 @@
 @using ThriveDevCenter.Shared.Models.Enums
 @using ThriveDevCenter.Shared.Utilities
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
+@implements ThriveDevCenter.Client.Services.INotificationHandler<StorageItemUpdated>
 @inherits BaseFileBrowser<DevCenterCommunication.Models.StorageItemInfo>
 <h3>Files</h3>
 
@@ -235,8 +236,9 @@ else
                     <li><strong>Allow Parentless</strong>: @parsedFolderInfo.AllowParentless</li>
                 </ul>
 
-                @if (!parsedFolderInfo.Special && parsedFolderInfo.WriteAccess.IsAccessibleTo(
-                    CurrentUserInfo.Groups, CurrentUserInfo.Info!.Id, parsedFolderInfo.OwnerId))
+                @if (!parsedFolderInfo.Special && !parsedFolderInfo.ModificationLocked &&
+                    parsedFolderInfo.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups, CurrentUserInfo.Info!.Id,
+                        parsedFolderInfo.OwnerId))
                 {
                     <StorageItemFolderEditor Data="@parsedFolderInfo" />
                 }
@@ -382,7 +384,8 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        await NotificationHandler.Register(this);
+        await NotificationHandler.Register<FolderContentsUpdated>(this);
+        await NotificationHandler.Register<StorageItemUpdated>(this);
         await base.OnParametersSetAsync();
         var pathParseTask = ParseCurrentPath();
 
@@ -402,6 +405,23 @@ else
     public Task Handle(FolderContentsUpdated notification, CancellationToken cancellationToken)
     {
         return HandleItemNotification(notification);
+    }
+
+    public Task Handle(StorageItemUpdated notification, CancellationToken cancellationToken)
+    {
+        // Detect current folder and shown sidebar item changes
+        if (notification.Item.Id == parsedFolderInfo?.Id)
+        {
+            parsedFolderInfo = notification.Item;
+            StateHasChanged();
+        }
+        else if (notification.Item.Id == shownFile?.Id)
+        {
+            shownFile = notification.Item;
+            StateHasChanged();
+        }
+
+        return Task.CompletedTask;
     }
 
     public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
@@ -439,7 +459,8 @@ else
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await NotificationHandler.Unregister(this);
+        await NotificationHandler.Unregister<FolderContentsUpdated>(this);
+        await NotificationHandler.Unregister<StorageItemUpdated>(this);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
