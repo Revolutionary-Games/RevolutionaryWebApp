@@ -114,6 +114,8 @@
             }
         </AccessLimited>
 
+        <StatusMessageShower Message="@actionStatusMessage" Type="@actionStatusMessageType"/>
+        
         @if (expanded)
         {
             <Button ButtonStyle="primary" class="btn-sm mr-1" OnPressed="@ToggleExpand">
@@ -137,6 +139,40 @@
 
             <Button ButtonStyle="secondary" Enabled="@false" class="btn-sm ml-1">Move</Button>
 
+            @if (!Item.Special && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) ||
+                CurrentUserInfo.Info!.Id == Item.OwnerId))
+            {
+                if (Item.ModificationLocked)
+                {
+                    <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1" 
+                            ButtonStyle="warning" OnPressed="@UnlockItem">
+                        Unlock Properties
+                    </Button>
+                }
+                else
+                {
+                    <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1" 
+                            ButtonStyle="secondary" OnPressed="@LockItem">
+                        Lock Properties
+                    </Button>
+                }
+
+                if (Item.Important)
+                {
+                    <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                            ButtonStyle="warning" OnPressed="@UnmarkImportant">
+                        Remove Important Status
+                    </Button>
+                }
+                else
+                {
+                    <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                            ButtonStyle="secondary" OnPressed="@MarkImportant">
+                        Mark Important
+                    </Button>
+                }
+            }
+
             <Button ButtonStyle="danger" Enabled="@false" class="btn-sm ml-1">Delete</Button>
 
             @* TODO: admin immediate purge button *@
@@ -154,6 +190,7 @@
         <div>Can be parentless: @Item.AllowParentless</div>
         <div>Parent folder: @Item.ParentId</div>
         <div>Special: @Item.Special</div>
+        <div>Important: @Item.Important</div>
     </div>
 </div>
 
@@ -161,6 +198,10 @@
 
     private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private bool processingAction;
+    private string? actionStatusMessage;
+    private SiteNoticeType actionStatusMessageType = SiteNoticeType.Danger;
 
     private string? downloadCheckedFilename;
     private bool downloadingData = true;
@@ -290,4 +331,154 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private async void LockItem()
+    {
+        processingAction = true;
+        actionStatusMessage = null;
+        actionStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/Files/{Item.Id}/lock", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            actionStatusMessage = $"Network request failed: {e.Message}";
+            processingAction = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingAction = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            actionStatusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionStatusMessage = "File properties (name, read access, write access) are now locked against " +
+                "modifications. This also can't be deleted.";
+            actionStatusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void UnlockItem()
+    {
+        processingAction = true;
+        actionStatusMessage = null;
+        actionStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/Files/{Item.Id}/lock");
+        }
+        catch (HttpRequestException e)
+        {
+            actionStatusMessage = $"Network request failed: {e.Message}";
+            processingAction = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingAction = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            actionStatusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionStatusMessage = "This file is no longer locked against modifications";
+            actionStatusMessageType = SiteNoticeType.Secondary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void MarkImportant()
+    {
+        processingAction = true;
+        actionStatusMessage = null;
+        actionStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/Files/{Item.Id}/important", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            actionStatusMessage = $"Network request failed: {e.Message}";
+            processingAction = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingAction = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            actionStatusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionStatusMessage = "This file is now important. All uploaded versions will be kept (normally only " +
+                "the last few versions are kept and other are automatically deleted) and this " +
+                "can't be deleted.";
+            actionStatusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void UnmarkImportant()
+    {
+        processingAction = true;
+        actionStatusMessage = null;
+        actionStatusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/Files/{Item.Id}/important");
+        }
+        catch (HttpRequestException e)
+        {
+            actionStatusMessage = $"Network request failed: {e.Message}";
+            processingAction = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingAction = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            actionStatusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionStatusMessage = "This file is no longer marked important";
+            actionStatusMessageType = SiteNoticeType.Warning;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 }

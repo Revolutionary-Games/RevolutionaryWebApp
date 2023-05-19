@@ -475,6 +475,88 @@ public class StorageFilesController : Controller
         return Ok();
     }
 
+    [HttpPost("{id:long}/important")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<IActionResult> MarkImportant([Required] long id)
+    {
+        StorageItem? item = await FindAndCheckAccess(id);
+        if (item == null)
+            return NotFound();
+
+        if (item.Special)
+            return BadRequest("Special items can't be edited");
+
+        if (item.WriteAccess == FileAccess.Nobody)
+            return BadRequest("This item is not writable");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        // Only owner can change important status
+        if (item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+            return BadRequest("Only item owners and admins can change important status");
+
+        // For now only files can be made important
+        if (item.Ftype != FileType.File)
+            return BadRequest("Only files can be marked as important");
+
+        // Exit if already in right status
+        if (item.Important)
+            return Ok();
+
+        item.Important = true;
+
+        item.LastModifiedById = user.Id;
+        item.BumpUpdatedAt();
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"StorageItem {item.Id} is now important",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpDelete("{id:long}/important")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<IActionResult> RemoveImportantStatus([Required] long id)
+    {
+        StorageItem? item = await FindAndCheckAccess(id);
+        if (item == null)
+            return NotFound();
+
+        if (item.Special)
+            return BadRequest("Special items can't be edited");
+
+        if (item.WriteAccess == FileAccess.Nobody)
+            return BadRequest("This item is not writable");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        // Only owner can change important status
+        if (item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+            return BadRequest("Only item owners and admins can change important status");
+
+        // Exit if already in right status
+        if (!item.Important)
+            return Ok();
+
+        item.Important = false;
+
+        item.LastModifiedById = user.Id;
+        item.BumpUpdatedAt();
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"StorageItem {item.Id} is no longer marked important",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+        return Ok();
+    }
+
     [HttpPost("checkUploadDuplicate")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<FileDuplicateCheckResponse>> CheckDuplicateBeforeUpload(

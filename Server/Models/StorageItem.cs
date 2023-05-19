@@ -296,16 +296,17 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
             Name = Name,
             Ftype = Ftype,
             Special = Special,
+            Important = Important,
             Size = Size,
             ReadAccess = ReadAccess,
             WriteAccess = WriteAccess,
+            ModificationLocked = ModificationLocked,
             OwnerId = OwnerId,
             ParentId = ParentId,
             AllowParentless = AllowParentless,
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
             LastModifiedById = LastModifiedById,
-            ModificationLocked = ModificationLocked,
         };
     }
 
