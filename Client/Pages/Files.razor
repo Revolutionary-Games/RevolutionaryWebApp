@@ -188,10 +188,12 @@ else
 
         @if (!showNewFolderCreate)
         {
-            <StatusMessageShower Message="@createMessage" Type="@createMessageType" ExtraCSS="mt-1" />
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" ExtraCSS="mt-1"
+                                 OnClosed="@ClearCreateMessage" />
         }
 
-        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" ExtraCSS="mt-1"/>
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" ExtraCSS="mt-1"
+                             OnClosed="@ClearStatusMessage"/>
 
         <Button Enabled="@(parsedFolderInfo != null)" class="mr-1" ButtonStyle="info"
                 OnPressed="@(() => showFolderInfo = !showFolderInfo)">
@@ -208,24 +210,20 @@ else
             New Folder
         </Button>
 
-        @if (parsedFolderInfo != null && !parsedFolderInfo.Special &&
-            (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) ||
-                CurrentUserInfo.Info!.Id == parsedFolderInfo.OwnerId))
+        @* Always show this to reduce flicker of the buttons *@
+        @if (parsedFolderInfo?.ModificationLocked == true)
         {
-            if (parsedFolderInfo.ModificationLocked)
-            {
-                <Button Enabled="@(!processing)" Spinner="@processing" class="mr-1" ButtonStyle="warning"
-                        OnPressed="@UnlockCurrentFolder">
-                    Unlock Folder Properties
-                </Button>
-            }
-            else
-            {
-                <Button Enabled="@(!processing)" Spinner="@processing" class="mr-1" ButtonStyle="secondary"
-                        OnPressed="@LockCurrentFolder">
-                    Lock Folder Properties
-                </Button>
-            }
+            <Button Enabled="@CanEditLockedStatus" Spinner="@processing" class="mr-1"
+                ButtonStyle="@EditLockedStatusButtonType" OnPressed="@UnlockCurrentFolder">
+                Unlock Folder Properties
+            </Button>
+        }
+        else
+        {
+            <Button Enabled="@CanEditLockedStatus" Spinner="@processing" class="mr-1"
+                ButtonStyle="@EditLockedStatusButtonType" OnPressed="@LockCurrentFolder">
+                Lock Folder Properties
+            </Button>
         }
 
         @if (showFolderInfo)
@@ -411,6 +409,23 @@ else
     public IModalService Modal { get; set; } = null!;
 
     private bool ShouldShowUploaderOverlay => showUploadOverlay || uploadInProgress || uploadErrors.Count > 0;
+
+    private bool CanEditLockedStatus => !processing && parsedFolderInfo is {Special: false } &&
+        (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || CurrentUserInfo.Info!.Id == parsedFolderInfo.OwnerId);
+
+    private string EditLockedStatusButtonType
+    {
+        get
+        {
+            if (parsedFolderInfo == null)
+                return "secondary";
+
+            if (parsedFolderInfo.ModificationLocked)
+                return "warning";
+
+            return "secondary";
+        }
+    }
 
     public Files()
     {
@@ -1252,5 +1267,15 @@ else
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private void ClearCreateMessage()
+    {
+        createMessage = null;
     }
 }
