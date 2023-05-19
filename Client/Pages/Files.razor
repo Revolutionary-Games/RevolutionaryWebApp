@@ -191,6 +191,8 @@ else
             <StatusMessageShower Message="@createMessage" Type="@createMessageType" ExtraCSS="mt-1" />
         }
 
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" ExtraCSS="mt-1"/>
+
         <Button Enabled="@(parsedFolderInfo != null)" class="mr-1" ButtonStyle="info"
                 OnPressed="@(() => showFolderInfo = !showFolderInfo)">
             @if (!showFolderInfo)
@@ -205,6 +207,26 @@ else
         <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="success" OnPressed="@ToggleNewFolderCreate">
             New Folder
         </Button>
+
+        @if (parsedFolderInfo != null && !parsedFolderInfo.Special &&
+            (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) ||
+                CurrentUserInfo.Info!.Id == parsedFolderInfo.OwnerId))
+        {
+            if (parsedFolderInfo.ModificationLocked)
+            {
+                <Button Enabled="@(!processing)" Spinner="@processing" class="mr-1" ButtonStyle="warning"
+                        OnPressed="@UnlockCurrentFolder">
+                    Unlock Folder Properties
+                </Button>
+            }
+            else
+            {
+                <Button Enabled="@(!processing)" Spinner="@processing" class="mr-1" ButtonStyle="secondary"
+                        OnPressed="@LockCurrentFolder">
+                    Lock Folder Properties
+                </Button>
+            }
+        }
 
         @if (showFolderInfo)
         {
@@ -352,6 +374,14 @@ else
     private string? newFolderName;
     private FileAccess newFolderReadAccess;
     private FileAccess newFolderWriteAccess;
+
+    /// <summary>
+    ///   Processing flag for <see cref="parsedFolderInfo"/>
+    /// </summary>
+    private bool processing;
+
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType;
 
     private bool showUploadOverlay;
     private bool uploadInProgress;
@@ -1149,4 +1179,78 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
+    private async void LockCurrentFolder()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/Files/{parsedFolderId}/lock", new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Folder properties (name, read access, write access) are now locked against deleting. " +
+                "The folder also can't be deleted.";
+            statusMessageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void UnlockCurrentFolder()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/Files/{parsedFolderId}/lock");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Folder can now be edited again";
+            statusMessageType = SiteNoticeType.Secondary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 }
