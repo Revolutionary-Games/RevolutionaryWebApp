@@ -233,7 +233,18 @@ else
                             <UsernameDisplayer UserId="@parsedFolderInfo.OwnerId"/>
                         }
                     </li>
+                    <li><strong>Created</strong>: <RecentTimeShortener Time="@parsedFolderInfo.CreatedAt"/></li>
+                    <li><strong>Updated</strong>: <RecentTimeShortener Time="@parsedFolderInfo.UpdatedAt"/></li>
+                    @if (parsedFolderInfo.LastModifiedById != null)
+                    {
+                        <li>
+                            <strong>Properties modified by</strong> (excluding contained files):
+                            <UsernameDisplayer UserId="@parsedFolderInfo.LastModifiedById"/>
+                        </li>
+                    }
+
                     <li><strong>Allow Parentless</strong>: @parsedFolderInfo.AllowParentless</li>
+                    <li><strong>Properties Locked</strong>: @parsedFolderInfo.ModificationLocked</li>
                 </ul>
 
                 @if (!parsedFolderInfo.Special && !parsedFolderInfo.ModificationLocked &&
