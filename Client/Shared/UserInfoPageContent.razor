@@ -42,7 +42,7 @@
     <AccessLimited RequiredAccess="GroupType.Admin">
         <li><strong>Admin</strong>: @User.Groups.HasAccessLevel(GroupType.Admin)</li>
         <li><strong>Developer</strong>: @User.Groups.HasAccessLevel(GroupType.Developer)</li>
-        <li><strong>Restricted</strong>: @User.Groups.HasAccessLevel(GroupType.RestrictedUser)</li>
+        <li><strong>Restricted</strong>: @User.Groups.HasGroup(GroupType.RestrictedUser)</li>
         <li><strong>Created At</strong>: @User.CreatedAt.ToLocalTime().ToString("G")</li>
         <li><strong>Updated At</strong>: @User.UpdatedAt.ToLocalTime().ToString("G")</li>
         <li><strong>Suspended</strong>: @User.Suspended</li>
