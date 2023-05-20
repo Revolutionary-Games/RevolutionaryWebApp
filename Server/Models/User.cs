@@ -171,6 +171,8 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
     public static void OnNewUserCreated(User user, IBackgroundJobClient jobClient)
     {
+        user.ProcessGroupDataFromLoadedGroups();
+
         jobClient.Schedule<CheckAssociationStatusForUserJob>(x => x.Execute(user.Email!, CancellationToken.None),
             TimeSpan.FromSeconds(30));
     }
