@@ -141,9 +141,9 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private enum ProgressCommandType
     {
-        Default,
-        Days,
-        Items,
+        Default = 0,
+        Days = 1,
+        Items = 2,
     }
 
     public bool Configured { get; }
@@ -425,29 +425,31 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task HandleProgressCommand(SocketSlashCommand command)
     {
-        var versionOption = command.Data.Options.FirstOrDefault();
-
         string? version = null;
-
-        if (versionOption is { Type: ApplicationCommandOptionType.String })
-        {
-            version = (string)versionOption.Value;
-
-            if (string.IsNullOrWhiteSpace(version))
-            {
-                version = null;
-            }
-        }
-
         var type = ProgressCommandType.Default;
 
-        var typeOption = command.Data.Options.Skip(1).FirstOrDefault();
-
-        if (typeOption is { Type: ApplicationCommandOptionType.Integer })
+        foreach (var option in command.Data.Options)
         {
-            // TODO: should we ensure the enum value is in range? for now it doesn't really matter, just gets handled
-            // as default
-            type = (ProgressCommandType)(long)typeOption.Value;
+            if (option is { Name: "version", Type: ApplicationCommandOptionType.String })
+            {
+                version = (string)option.Value;
+
+                if (string.IsNullOrWhiteSpace(version))
+                {
+                    version = null;
+                }
+            }
+            else if (option is { Name: "type", Type: ApplicationCommandOptionType.Integer })
+            {
+                // TODO: should we ensure the enum value is in range? for now it doesn't really matter, just gets
+                // handled as default
+                type = (ProgressCommandType)(long)option.Value;
+            }
+            else
+            {
+                await command.RespondAsync($"Unknown option sent: {option.Name}");
+                return;
+            }
         }
 
         if (!await CheckCanRunAgain(command, $"progress-{version}"))
@@ -609,6 +611,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 x.Fill(barBrush, new RectangularPolygon(30, 150, (width - 60) * completionFraction, 50));
                 x.Draw(barPen, new RectangularPolygon(30, 150, width - 60, 50));
 
+                // TODO: maybe for the days mode this should also say (the days left here to not let people be
+                // confused about why the items don't match the percentage)?
                 // Percentage
                 x.DrawText($"{percentage}%", percentageFont, textBrush, textPen, new PointF(50, 210));
             });
