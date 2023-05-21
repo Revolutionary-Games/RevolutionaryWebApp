@@ -1,14 +1,19 @@
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Notifications
 @using System.Threading
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
 @using System.Text.Json
+@using DevCenterCommunication.Models
 @using SharedBase.Utilities
+@using ThriveDevCenter.Client.Models
+@using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models.Enums
+@using ThriveDevCenter.Shared.Utilities
 @implements ThriveDevCenter.Client.Services.INotificationHandler<StorageItemVersionListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.StorageItemVersionInfo>
 
@@ -20,6 +25,8 @@
 }
 else
 {
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"/>
+
     <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                     OnPageChanged="async e => await ChangePage(e)"
                     OnSortChanged="async column => await ChangeSort(column)"
@@ -33,30 +40,45 @@ else
             @foreach (var item in Data.Results)
             {
                 <tr @key="item.Id" class="@(item.Deleted ? "bg-danger" : string.Empty)">
-                    <th scope="row"><a href="@GetDownloadURL(item.Version)" target="_blank">@item.Version</a></th>
+                    <th scope="row">
+                        <a href="@GetDownloadURL(item.Version)" target="_blank">@item.Version</a>
+                    </th>
 
                     @if (!ExpandedView)
                     {
                         <td>@(item.Size != null ? item.Size.Value.BytesToMiB() : "unknown")</td>
-                        <td><UsernameDisplayer UserId="@item.UploadedById"/></td>
-                        <td>@item.Keep</td>
-                        <td>@(!item.Uploading)</td>
-                        <td><RecentTimeShortener Time="@item.UpdatedAt"/></td>
                         <td>
-                            <Button Enabled="@false" ButtonStyle="danger" class="btn-sm">Delete</Button>
+                            <UsernameDisplayer UserId="@item.UploadedById"/>
+                        </td>
+                        <td>@(item.Keep || item.Protected)</td>
+                        <td>@(!item.Uploading)</td>
+                        <td>
+                            <RecentTimeShortener Time="@item.UpdatedAt"/>
+                        </td>
+                        <td>
+                            @if (!item.Keep || item.Deleted)
+                            {
+                                @DeleteOrRestoreButton(item)
+                            }
                         </td>
                     }
                     else
                     {
                         <td>@(item.Size != null ? item.Size.Value.BytesToMiB() : "unknown")</td>
-                        <td><UsernameDisplayer UserId="@item.UploadedById" ShowNavLink="@true"/></td>
+                        <td>
+                            <UsernameDisplayer UserId="@item.UploadedById" ShowNavLink="@true"/>
+                        </td>
                         <td>@item.Keep</td>
                         <td>@item.Protected</td>
                         <td>@(!item.Uploading)</td>
-                        <td><RecentTimeShortener Time="@item.UpdatedAt"/></td>
-                        <td><RecentTimeShortener Time="@item.CreatedAt"/></td>
                         <td>
-                            <Button Enabled="@false" ButtonStyle="danger" class="btn-sm">Delete</Button>
+                            <RecentTimeShortener Time="@item.UpdatedAt"/>
+                        </td>
+                        <td>
+                            <RecentTimeShortener Time="@item.CreatedAt"/>
+                        </td>
+                        <td>
+                            @DeleteOrRestoreButton(item)
                         </td>
                     }
                 </tr>
@@ -66,6 +88,7 @@ else
 }
 
 @code {
+
     private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Version", true),
@@ -90,11 +113,19 @@ else
         new TableColumn("Actions", false),
     };
 
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
+
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
     [Parameter]
-    public long StorageItemId { get; set; }
+    [EditorRequired]
+    public StorageItemDTO StorageItem { get; set; } = null!;
 
     [Parameter]
     public bool ExpandedView { get; set; }
+
+    public long StorageItemId => StorageItem.Id;
 
     public StorageItemVersions() : base(new SortHelper("Version", SortDirection.Descending))
     {
@@ -136,4 +167,143 @@ else
         return QueryHelpers.AddQueryString(new Uri(new Uri(NavManager.BaseUri),
             $"api/v1/download/{StorageItemId}").ToString(), urlParams);
     }
+
+    private bool CanChangeDeleteStatus(StorageItemVersionInfo item)
+    {
+        if (IsProcessingItem(item))
+            return false;
+
+        if (item.Protected)
+            return false;
+
+        if (item.Keep && CurrentUserInfo.Info?.Id != StorageItem.OwnerId &&
+            CurrentUserInfo.Groups?.HasGroup(GroupType.Admin) != true)
+        {
+            return false;
+        }
+
+        if (StorageItem.Important)
+            return false;
+
+        if (!StorageItem.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups, CurrentUserInfo.Info?.Id,
+            StorageItem.OwnerId))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool IsProcessingItem(StorageItemVersionInfo item)
+    {
+        if (resourceStatus.GetStatus(item.Version).Processing)
+            return true;
+
+        return false;
+    }
+
+    private void SetProcessing(StorageItemVersionInfo item, bool processing)
+    {
+        resourceStatus.GetStatus(item.Version).Processing = processing;
+    }
+
+    private async Task RestoreVersion(StorageItemVersionInfo item)
+    {
+        SetProcessing(item, true);
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/Files/{StorageItemId}/versions/{item.Version}/restore",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            SetProcessing(item, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessing(item, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = $"Version {item.Version} restored";
+            statusMessageType = SiteNoticeType.Success;
+
+            // For now we manually modify the deleted status here
+            // TODO: https://github.com/Revolutionary-Games/ThriveDevCenter/issues/632
+            item.Deleted = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteVersion(StorageItemVersionInfo item)
+    {
+        SetProcessing(item, true);
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/Files/{StorageItemId}/versions/{item.Version}");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            SetProcessing(item, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessing(item, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = $"Version {item.Version} deleted. It can still be restored. " +
+                "It will be permanently deleted after some time.";
+            statusMessageType = SiteNoticeType.Primary;
+
+            item.Deleted = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private RenderFragment DeleteOrRestoreButton(StorageItemVersionInfo item)
+    {
+        if (item.Deleted)
+        {
+            return @<Button Enabled="@CanChangeDeleteStatus(item)" Spinner="@IsProcessingItem(item)"
+                            OnPressed="@(async () => await RestoreVersion(item))" ButtonStyle="success" class="btn-sm">
+                       Restore
+                   </Button>;
+        }
+
+        return @<Button Enabled="@CanChangeDeleteStatus(item)" Spinner="@IsProcessingItem(item)"
+                        OnPressed="@(async () => await DeleteVersion(item))" ButtonStyle="danger" class="btn-sm">
+                   Delete
+               </Button>;
+    }
+
 }
+

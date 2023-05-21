@@ -320,6 +320,89 @@ public class StorageFilesController : Controller
         return objects.ConvertResult(i => i.GetInfo());
     }
 
+    [HttpDelete("{id:long}/versions/{version:int}")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<IActionResult> MarkVersionAsDeleted([Required] long id, [Required] int version)
+    {
+        StorageItem? item = await FindAndCheckAccess(id);
+        if (item == null)
+            return NotFound();
+
+        var versionItem =
+            await database.StorageItemVersions.FirstOrDefaultAsync(v => v.Version == version && v.StorageItem == item);
+
+        if (versionItem == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        // Specific item states / version info prevents deleting
+        // TODO: should special status prevent deleting a version?
+        if (item.Important || versionItem.Protected)
+            return BadRequest("This item or version is protected or important and can't be deleted");
+
+        // Disallow if no write access
+        if (!item.IsWritableBy(user))
+            return BadRequest("Missing write access to this item");
+
+        if (versionItem.Keep && item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+            return BadRequest("Only item owners and admins can delete versions marked as keep");
+
+        // Skip if already deleted
+        if (versionItem.Deleted)
+            return Ok();
+
+        versionItem.Deleted = true;
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"StorageItem {item.Id} ({item.Name.Truncate()}) version {versionItem.Version} deleted",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpPost("{id:long}/versions/{version:int}/restore")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<IActionResult> RestoreVersion([Required] long id, [Required] int version)
+    {
+        StorageItem? item = await FindAndCheckAccess(id);
+        if (item == null)
+            return NotFound();
+
+        var versionItem =
+            await database.StorageItemVersions.FirstOrDefaultAsync(v => v.Version == version && v.StorageItem == item);
+
+        if (versionItem == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        if (item.Important)
+            return BadRequest("The item this is in is marked as important, versions can't be restored");
+
+        // Disallow if no write access
+        if (!item.IsWritableBy(user))
+            return BadRequest("Missing write access to this item");
+
+        // Skip if already non-deleted
+        if (!versionItem.Deleted)
+            return Ok();
+
+        versionItem.Deleted = false;
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"StorageItem {item.Id} version {versionItem.Version} restored",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+        return Ok();
+    }
+
     [HttpPut("{id:long}/edit")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> EditItem([Required] long id,
