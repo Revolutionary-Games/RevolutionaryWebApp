@@ -42,6 +42,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 {
     private const int SecondsBetweenSameCommand = 10;
 
+    private const int ReportDaysSinceStreakBreakAfter = 2;
+
     private const string DaysSinceCommand = "dayssince";
     private const string UnderwaterCivIdentifier = "underWaterCiv";
     private const string SentientPlantsIdentifier = "sentientPlant";
@@ -1117,7 +1119,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
             await database.SaveChangesAsync();
 
-            if (streak > 7)
+            if (streak > ReportDaysSinceStreakBreakAfter)
             {
                 await message.Channel.SendMessageAsync(
                     $"The {(int)streak} day streak without bringing up {keyword.Title} has been broken");
