@@ -324,7 +324,7 @@ public class StorageFilesController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> MarkVersionAsDeleted([Required] long id, [Required] int version)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
@@ -340,10 +340,6 @@ public class StorageFilesController : Controller
         // TODO: should special status prevent deleting a version?
         if (item.Important || versionItem.Protected)
             return BadRequest("This item or version is protected or important and can't be deleted");
-
-        // Disallow if no write access
-        if (!item.IsWritableBy(user))
-            return BadRequest("Missing write access to this item");
 
         if (versionItem.Keep && item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return BadRequest("Only item owners and admins can delete versions marked as keep");
@@ -369,7 +365,7 @@ public class StorageFilesController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> RestoreVersion([Required] long id, [Required] int version)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
@@ -383,10 +379,6 @@ public class StorageFilesController : Controller
 
         if (item.Important)
             return BadRequest("The item this is in is marked as important, versions can't be restored");
-
-        // Disallow if no write access
-        if (!item.IsWritableBy(user))
-            return BadRequest("Missing write access to this item");
 
         // Skip if already non-deleted
         if (!versionItem.Deleted)
@@ -409,7 +401,7 @@ public class StorageFilesController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> MarkVersionKeep([Required] long id, [Required] int version)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
@@ -420,9 +412,6 @@ public class StorageFilesController : Controller
             return NotFound();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-
-        if (!item.IsWritableBy(user))
-            return BadRequest("Missing write access to this item");
 
         if (versionItem.Deleted)
             return BadRequest("Deleted version can't be marked as kep");
@@ -450,7 +439,7 @@ public class StorageFilesController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> UnmarkVersionKeep([Required] long id, [Required] int version)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
@@ -461,9 +450,6 @@ public class StorageFilesController : Controller
             return NotFound();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-
-        if (!item.IsWritableBy(user))
-            return BadRequest("Missing write access to this item");
 
         if (item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
         {
@@ -498,7 +484,7 @@ public class StorageFilesController : Controller
     public async Task<IActionResult> EditItem([Required] long id,
         [Required] [FromBody] StorageItemDTO newData)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
@@ -518,12 +504,6 @@ public class StorageFilesController : Controller
         {
             if (item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
                 return BadRequest("Only item owners and admins can edit item access");
-        }
-        else
-        {
-            // Other modification just needs write access
-            if (!item.IsWritableBy(user))
-                return BadRequest("Missing write access to this item");
         }
 
         if (newData.ReadAccess == FileAccess.Nobody || newData.WriteAccess == FileAccess.Nobody)
@@ -574,7 +554,7 @@ public class StorageFilesController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> LockItem([Required] long id)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
@@ -613,7 +593,7 @@ public class StorageFilesController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> RemoveItemLock([Required] long id)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
@@ -652,7 +632,7 @@ public class StorageFilesController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> MarkImportant([Required] long id)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
@@ -695,7 +675,7 @@ public class StorageFilesController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<IActionResult> RemoveImportantStatus([Required] long id)
     {
-        StorageItem? item = await FindAndCheckAccess(id);
+        StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
 
