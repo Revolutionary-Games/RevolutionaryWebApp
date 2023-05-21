@@ -531,14 +531,14 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
             embedBuilder =
                 embedBuilder.WithDescription(
-                    $"{"day".PrintCount(daysRemaining)} remaining with {openText} {closedText}");
+                    $"{"day".PrintCount(daysRemaining)} remaining with {openText} and {closedText}");
         }
         else
         {
             completionFraction = totalIssues > 0 ? (float)milestone.ClosedIssues / totalIssues : 0.0f;
             percentage = (float)Math.Round(completionFraction * 100);
 
-            embedBuilder = embedBuilder.WithDescription($"{percentage}% done with {openText} {closedText}");
+            embedBuilder = embedBuilder.WithDescription($"{percentage}% done with {openText} and {closedText}");
         }
 
         if (milestone.DueOn != null)
