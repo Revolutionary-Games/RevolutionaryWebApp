@@ -79,6 +79,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private readonly Regex underWaterCivRegex;
     private readonly Regex sentientPlantRegex;
 
+    private readonly bool preferDayProgressForRelease;
+
     private DiscordSocketClient? client;
 
     private TimedResourceCache<List<GithubMilestone>>? githubMilestones;
@@ -101,6 +103,9 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         botToken = configuration["Discord:RevolutionaryBot:Token"] ?? string.Empty;
         var guild = configuration["Discord:RevolutionaryBot:PrimaryGuild"];
+
+        preferDayProgressForRelease =
+            Convert.ToBoolean(configuration["Discord:RevolutionaryBot:PreferDayProgressForRelease"]);
 
         wikiUrlBase = new Uri(configuration["Discord:RevolutionaryBot:WikiBaseUrl"] ??
             throw new InvalidOperationException("Bot default variables need to exist when when not used"));
@@ -132,6 +137,13 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             primaryGuild = ulong.Parse(guild);
 
         Configured = true;
+    }
+
+    private enum ProgressCommandType
+    {
+        Default,
+        Days,
+        Items,
     }
 
     public bool Configured { get; }
@@ -312,7 +324,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         try
         {
             // If commands are changed the version numbers here *must* be updated
-            bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 2);
+            bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 3);
 
             if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 2))
                 changes = true;
@@ -427,17 +439,28 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             }
         }
 
+        var type = ProgressCommandType.Default;
+
+        var typeOption = command.Data.Options.Skip(1).FirstOrDefault();
+
+        if (typeOption is { Type: ApplicationCommandOptionType.Integer })
+        {
+            // TODO: should we ensure the enum value is in range? for now it doesn't really matter, just gets handled
+            // as default
+            type = (ProgressCommandType)(long)typeOption.Value;
+        }
+
         if (!await CheckCanRunAgain(command, $"progress-{version}"))
             return;
 
         await command.DeferAsync();
 
 #pragma warning disable CS4014 // we don't want to hold up the command processing
-        PerformSlowProgressPart(command, version);
+        PerformSlowProgressPart(command, version, type);
 #pragma warning restore CS4014
     }
 
-    private async Task PerformSlowProgressPart(SocketSlashCommand command, string? version)
+    private async Task PerformSlowProgressPart(SocketSlashCommand command, string? version, ProgressCommandType type)
     {
         List<GithubMilestone> milestones;
         try
@@ -477,15 +500,46 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         var totalIssues = milestone.OpenIssues + milestone.ClosedIssues;
 
-        var completionFraction = totalIssues > 0 ? (float)milestone.ClosedIssues / totalIssues : 0.0f;
-        var percentage = (float)Math.Round(completionFraction * 100);
-
-        var openText = "open issue".PrintCount(milestone.OpenIssues);
-        var closedText = "closed issue".PrintCount(milestone.ClosedIssues);
-
         var embedBuilder = new EmbedBuilder().WithTitle(milestone.Title)
-            .WithDescription($"{percentage}% done with {openText} {closedText}")
             .WithTimestamp(milestone.UpdatedAt).WithUrl(milestone.HtmlUrl);
+
+        var openText = "open item".PrintCount(milestone.OpenIssues);
+        var closedText = "closed item".PrintCount(milestone.ClosedIssues);
+
+        float completionFraction;
+        float percentage;
+        if (milestone.DueOn != null && (type == ProgressCommandType.Days ||
+                (type == ProgressCommandType.Default && preferDayProgressForRelease)))
+        {
+            var timeRemaining = milestone.DueOn.Value - DateTime.UtcNow;
+            var daysRemaining = (int)Math.Round(timeRemaining.TotalDays);
+
+            // TODO: find some better way to count the start time of a milestone
+            var totalTime = milestone.DueOn.Value - milestone.CreatedAt;
+            var timeElapsed = DateTime.UtcNow - milestone.CreatedAt;
+
+            if (totalTime < TimeSpan.FromSeconds(1) || timeElapsed < TimeSpan.FromSeconds(1))
+            {
+                completionFraction = 1;
+            }
+            else
+            {
+                completionFraction = Math.Min(1, (float)(timeElapsed / totalTime));
+            }
+
+            percentage = (float)Math.Round(completionFraction * 100);
+
+            embedBuilder =
+                embedBuilder.WithDescription(
+                    $"{"day".PrintCount(daysRemaining)} remaining with {openText} {closedText}");
+        }
+        else
+        {
+            completionFraction = totalIssues > 0 ? (float)milestone.ClosedIssues / totalIssues : 0.0f;
+            percentage = (float)Math.Round(completionFraction * 100);
+
+            embedBuilder = embedBuilder.WithDescription($"{percentage}% done with {openText} {closedText}");
+        }
 
         if (milestone.DueOn != null)
             embedBuilder.WithFooter($"Due by {milestone.DueOn.Value:yyyy-MM-dd}");
@@ -582,11 +636,26 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private SlashCommandBuilder BuildProgressCommand()
     {
+        var enumTypeSelection = new SlashCommandOptionBuilder()
+            .WithName("type")
+            .WithDescription("The way progress is shown")
+            .WithRequired(false)
+            .WithType(ApplicationCommandOptionType.Integer);
+
+        foreach (var commandType in Enum.GetNames<ProgressCommandType>())
+        {
+            if (!Enum.TryParse(commandType, out ProgressCommandType value))
+                throw new Exception("unexpected enum parse failure");
+
+            enumTypeSelection = enumTypeSelection.AddChoice(commandType.ToLowerInvariant(), (int)value);
+        }
+
         return new SlashCommandBuilder()
             .WithName("progress")
             .WithDescription(
                 "Displays the progress to the next release or, if a version number is specified, for that version.")
             .AddOption("version", ApplicationCommandOptionType.String, "The version to display progress for", false)
+            .AddOption(enumTypeSelection)
             .WithDMPermission(false);
     }
 
@@ -1168,6 +1237,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             return false;
         }
 
+        // TODO: we should probably prune the keys somehow to ensure users spamming don't cause a bunch of extra memory
+        // usage here
         lastRanCommands[key] = now;
         return true;
     }
