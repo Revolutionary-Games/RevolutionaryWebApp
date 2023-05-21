@@ -683,9 +683,6 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task HandleDaysSinceCommand(SocketSlashCommand command)
     {
-        if (!await CheckCanRunAgain(command))
-            return;
-
         string keywordName;
         try
         {
@@ -693,7 +690,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         }
         catch (Exception e)
         {
-            logger.LogInformation(e, "User sent invalid command options to days since command");
+            logger.LogTrace(e, "User sent invalid command options to days since command");
             await command.RespondAsync("Empty command options passed to days since");
             return;
         }
@@ -705,6 +702,11 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             await command.RespondAsync("Could not find days since data for the specified keyword");
             return;
         }
+
+        // This is done this way to allow the different keyword commands to run very quickly as users are often
+        // interested in checking all the keywords in a row
+        if (!await CheckCanRunAgain(command, command.CommandName + keyword.Keyword))
+            return;
 
         await command.DeferAsync();
 
