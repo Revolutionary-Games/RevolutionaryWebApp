@@ -512,7 +512,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 (type == ProgressCommandType.Default && preferDayProgressForRelease)))
         {
             var timeRemaining = milestone.DueOn.Value - DateTime.UtcNow;
-            var daysRemaining = (int)Math.Round(timeRemaining.TotalDays);
+            var daysRemaining = Math.Max(0, (int)Math.Round(timeRemaining.TotalDays));
 
             // TODO: find some better way to count the start time of a milestone
             var totalTime = milestone.DueOn.Value - milestone.CreatedAt;
