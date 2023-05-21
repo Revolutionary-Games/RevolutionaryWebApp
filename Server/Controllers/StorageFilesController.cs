@@ -353,6 +353,7 @@ public class StorageFilesController : Controller
             return Ok();
 
         versionItem.Deleted = true;
+        versionItem.BumpUpdatedAt();
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
@@ -392,10 +393,99 @@ public class StorageFilesController : Controller
             return Ok();
 
         versionItem.Deleted = false;
+        versionItem.BumpUpdatedAt();
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
             Message = $"StorageItem {item.Id} version {versionItem.Version} restored",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpPost("{id:long}/versions/{version:int}/keep")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<IActionResult> MarkVersionKeep([Required] long id, [Required] int version)
+    {
+        StorageItem? item = await FindAndCheckAccess(id);
+        if (item == null)
+            return NotFound();
+
+        var versionItem =
+            await database.StorageItemVersions.FirstOrDefaultAsync(v => v.Version == version && v.StorageItem == item);
+
+        if (versionItem == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        if (!item.IsWritableBy(user))
+            return BadRequest("Missing write access to this item");
+
+        if (versionItem.Deleted)
+            return BadRequest("Deleted version can't be marked as kep");
+
+        if (item.Special)
+            return BadRequest("Special item can't have a version set as keep");
+
+        if (versionItem.Keep)
+            return Ok();
+
+        versionItem.Keep = true;
+        versionItem.BumpUpdatedAt();
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"StorageItem {item.Id} version {versionItem.Version} is now marked keep",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpDelete("{id:long}/versions/{version:int}/keep")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<IActionResult> UnmarkVersionKeep([Required] long id, [Required] int version)
+    {
+        StorageItem? item = await FindAndCheckAccess(id);
+        if (item == null)
+            return NotFound();
+
+        var versionItem =
+            await database.StorageItemVersions.FirstOrDefaultAsync(v => v.Version == version && v.StorageItem == item);
+
+        if (versionItem == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        if (!item.IsWritableBy(user))
+            return BadRequest("Missing write access to this item");
+
+        if (item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+        {
+            if (versionItem.UploadedById == null || versionItem.UploadedById != user.Id)
+                return BadRequest("Only item owners, version uploaders and admins can unmark kept versions");
+        }
+
+        if (versionItem.Deleted)
+            return BadRequest("Deleted version can't have their kept marking change");
+
+        if (item.Special)
+            return BadRequest("Special item can't have a version unset as keep");
+
+        if (!versionItem.Keep)
+            return Ok();
+
+        versionItem.Keep = false;
+        versionItem.BumpUpdatedAt();
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"StorageItem {item.Id} version {versionItem.Version} is no longer marked keep",
             PerformedById = user.Id,
         });
 

@@ -50,7 +50,12 @@ else
                         <td>
                             <UsernameDisplayer UserId="@item.UploadedById"/>
                         </td>
-                        <td>@(item.Keep || item.Protected)</td>
+                        <td>
+                            @if (item.Keep || item.Protected)
+                            {
+                                <span class="badge badge-success">yes</span>
+                            }
+                        </td>
                         <td>@(!item.Uploading)</td>
                         <td>
                             <RecentTimeShortener Time="@item.UpdatedAt"/>
@@ -68,8 +73,18 @@ else
                         <td>
                             <UsernameDisplayer UserId="@item.UploadedById" ShowNavLink="@true"/>
                         </td>
-                        <td>@item.Keep</td>
-                        <td>@item.Protected</td>
+                        <td>
+                            @if (item.Keep)
+                            {
+                                <span class="badge badge-success">yes</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.Protected)
+                            {
+                                <span class="badge badge-success">yes</span>
+                            }
+                        </td>
                         <td>@(!item.Uploading)</td>
                         <td>
                             <RecentTimeShortener Time="@item.UpdatedAt"/>
@@ -79,6 +94,23 @@ else
                         </td>
                         <td>
                             @DeleteOrRestoreButton(item)
+
+                            @if (item.Keep)
+                            {
+                                <Button Enabled="@CanChangeMarkedStatus(item)" Spinner="@IsProcessingItem(item)"
+                                        OnPressed="@(async () => await UnmarkVersionKept(item))" ButtonStyle="warning"
+                                        class="btn-sm ml-1">
+                                    Unmark Kept
+                                </Button>
+                            }
+                            else
+                            {
+                                <Button Enabled="@CanChangeMarkedStatus(item)" Spinner="@IsProcessingItem(item)"
+                                        OnPressed="@(async () => await MarkVersionKept(item))" ButtonStyle="primary"
+                                        class="btn-sm ml-1">
+                                    Keep
+                                </Button>
+                            }
                         </td>
                     }
                 </tr>
@@ -194,6 +226,30 @@ else
         return true;
     }
 
+    private bool CanChangeMarkedStatus(StorageItemVersionInfo item)
+    {
+        if (IsProcessingItem(item))
+            return false;
+
+        if (item.Deleted)
+            return false;
+
+        if (item.Keep && CurrentUserInfo.Info?.Id != StorageItem.OwnerId &&
+            CurrentUserInfo.Groups?.HasGroup(GroupType.Admin) != true)
+        {
+            if(item.UploadedById == null || item.UploadedById != CurrentUserInfo.Info?.Id)
+                return false;
+        }
+
+        if (!StorageItem.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups, CurrentUserInfo.Info?.Id,
+            StorageItem.OwnerId))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private bool IsProcessingItem(StorageItemVersionInfo item)
     {
         if (resourceStatus.GetStatus(item.Version).Processing)
@@ -284,6 +340,87 @@ else
             statusMessageType = SiteNoticeType.Primary;
 
             item.Deleted = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task MarkVersionKept(StorageItemVersionInfo item)
+    {
+        SetProcessing(item, true);
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/Files/{StorageItemId}/versions/{item.Version}/keep",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            SetProcessing(item, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessing(item, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = $"Version {item.Version} is now kept. It will not be automatically deleted even if " +
+                "there are newer versions uploaded.";
+            statusMessageType = SiteNoticeType.Primary;
+
+            // TODO: https://github.com/Revolutionary-Games/ThriveDevCenter/issues/632
+            item.Keep = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UnmarkVersionKept(StorageItemVersionInfo item)
+    {
+        SetProcessing(item, true);
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/Files/{StorageItemId}/versions/{item.Version}/keep");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            SetProcessing(item, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessing(item, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = $"Version {item.Version} is no longer kept";
+            statusMessageType = SiteNoticeType.Primary;
+
+            item.Keep = false;
         }
 
         await InvokeAsync(StateHasChanged);
