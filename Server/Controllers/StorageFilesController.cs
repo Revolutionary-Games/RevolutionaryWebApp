@@ -710,6 +710,63 @@ public class StorageFilesController : Controller
         return Ok();
     }
 
+    [HttpDelete("{id:long}")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<IActionResult> DeleteOrTrash([Required] long id)
+    {
+        StorageItem? item = await FindAndCheckAccess(id, false, true);
+        if (item == null)
+            return NotFound();
+
+        if (item.Special)
+            return BadRequest("Special items can't be deleted");
+
+        if (item.ModificationLocked)
+            return BadRequest("Item with properties lock on can't be deleted");
+
+        if (item.Important)
+            return BadRequest("Important items can't be deleted");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        // Folders are immediately deleted, but only if they are empty
+        if (item.Ftype == FileType.Folder)
+        {
+            if (await database.StorageItems.AnyAsync(i => i.OwnerId == item.Id))
+            {
+                return BadRequest(
+                    "Only empty folders can be deleted. Please delete all child items first and try again.");
+            }
+
+            database.StorageItems.Remove(item);
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry
+            {
+                Message = $"Storage folder {item.Id} is now permanently deleted",
+                PerformedById = user.Id,
+            });
+
+            logger.LogInformation("Storage folder {Id} ({Name}) permanently deleted by {Email}", item.Id, item.Name,
+                user.Email);
+
+            await database.SaveChangesAsync();
+            return Ok();
+        }
+
+        if (item.Ftype == FileType.File)
+        {
+            var trash = await StorageItem.GetTrashFolder(database);
+
+            if (item.ParentId == trash.Id)
+                return BadRequest("Item is already in trash");
+
+            await MoveFileToTrash(item, trash, user);
+            return Ok();
+        }
+
+        return Problem("Unknown item type to delete");
+    }
+
     [HttpPost("checkUploadDuplicate")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<FileDuplicateCheckResponse>> CheckDuplicateBeforeUpload(
@@ -1129,9 +1186,18 @@ public class StorageFilesController : Controller
     }
 
     [NonAction]
-    private async Task<StorageItem?> FindAndCheckAccess(long id, bool read = true)
+    private async Task<StorageItem?> FindAndCheckAccess(long id, bool read = true, bool loadParentFolder = false)
     {
-        var item = await database.StorageItems.FindAsync(id);
+        StorageItem? item;
+
+        if (loadParentFolder)
+        {
+            item = await database.StorageItems.Include(i => i.Parent).FirstOrDefaultAsync(i => i.Id == id);
+        }
+        else
+        {
+            item = await database.StorageItems.FindAsync(id);
+        }
 
         if (item == null)
             return null;
@@ -1159,6 +1225,45 @@ public class StorageFilesController : Controller
         }
 
         return item;
+    }
+
+    [NonAction]
+    private async Task MoveFileToTrash(StorageItem item, StorageItem trashFolder, User user)
+    {
+        if (trashFolder.Name != "Trash" || !trashFolder.Special || trashFolder.Ftype != FileType.Folder)
+            throw new InvalidOperationException("Wrong trash folder entry passed");
+
+        if (item.ParentId == trashFolder.Id)
+            throw new InvalidOperationException("File is already in the trash");
+
+        var originalPath = await item.ComputeStoragePath(database);
+
+        // Generate the delete info
+        var deleteInfo = new StorageItemDeleteInfo(item, originalPath);
+
+        await database.StorageItemDeleteInfos.AddAsync(deleteInfo);
+
+        // Modify the item to fit in the trash folder
+        item.DeleteInfo = deleteInfo;
+        item.Parent = trashFolder;
+        item.LastModifiedById = user.Id;
+        item.WriteAccess = FileAccess.Nobody;
+        item.ReadAccess = FileAccess.OwnerOrAdmin;
+        item.BumpUpdatedAt();
+
+        // If the filename is already in the trash we need to come up with a unique one
+        if (await database.StorageItems.AnyAsync(i => i.ParentId == trashFolder.Id && i.Name == item.Name))
+        {
+            await item.MakeNameUniqueInFolder(database);
+        }
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"StorageItem {item.Id} ({item.Name.Truncate()}) moved to trash",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
     }
 
     [NonAction]

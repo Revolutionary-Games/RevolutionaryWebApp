@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
@@ -13,6 +14,7 @@ using Shared;
 using Shared.Notifications;
 using Shared.Utilities;
 using Utilities;
+using FileAccess = DevCenterCommunication.Models.Enums.FileAccess;
 
 [Index(nameof(Name), nameof(ParentId), IsUnique = true)]
 [Index(nameof(AllowParentless))]
@@ -113,6 +115,11 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
     public static Task<StorageItem> GetSymbolsFolder(ApplicationDbContext database)
     {
         return database.StorageItems.FirstAsync(i => i.ParentId == null && i.Name == "Symbols");
+    }
+
+    public static Task<StorageItem> GetTrashFolder(ApplicationDbContext database)
+    {
+        return database.StorageItems.FirstAsync(i => i.ParentId == null && i.Name == "Trash");
     }
 
     public static async Task<StorageItem?> FindByPath(ApplicationDbContext database, string path)
@@ -274,6 +281,42 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
         }
 
         return result;
+    }
+
+    /// <summary>
+    ///   Makes sure the name of this item is unique within the parent
+    /// </summary>
+    /// <param name="database">Where to load the info on conflicts</param>
+    /// <param name="parentFolderId">
+    ///   If set uses this as the parent folder ID, otherwise the one in this object set currently is used
+    /// </param>
+    public async Task MakeNameUniqueInFolder(NotificationsEnabledDb database, long? parentFolderId = null)
+    {
+        parentFolderId ??= Parent?.Id ?? ParentId;
+
+        if (!await database.StorageItems.AnyAsync(i => i.ParentId == parentFolderId && i.Name == Name))
+            return;
+
+        // TODO: if there is a truly huge number of names we'd have no other way than to query the DB each time
+        var names = await database.StorageItems.Where(i => i.ParentId == parentFolderId).Select(i => i.Name)
+            .ToListAsync();
+
+        var oldName = Name;
+
+        var extension = Path.GetExtension(oldName);
+        var nameWithoutExtension = Path.GetFileNameWithoutExtension(oldName);
+
+        int suffixCounter = 1;
+
+        while (names.Contains(Name))
+        {
+            Name = $"{nameWithoutExtension}_{++suffixCounter}{extension}";
+        }
+
+        if (oldName == Name)
+            throw new InvalidOperationException("Could not find a unique name, failed to detect original name as used");
+
+        this.BumpUpdatedAt();
     }
 
     public StorageItemInfo GetInfo()
