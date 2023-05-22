@@ -16,7 +16,7 @@ using Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class StorageFileDeleteTests : IDisposable
+public sealed class StorageFileDeleteTests : IDisposable
 {
     private const long TestParentFolderId = 675000;
     private const long EmptyFolderId = 675001;
