@@ -229,7 +229,7 @@ public class Startup
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<LfsRemoteStorage>();
-        services.AddScoped<GeneralRemoteStorage>();
+        services.AddScoped<IGeneralRemoteStorage, GeneralRemoteStorage>();
         services.AddScoped<IDevForumAPI, DevForumAPI>();
         services.AddScoped<ICommunityForumAPI, CommunityForumAPI>();
         services.AddScoped<RemoteServerHandler>();

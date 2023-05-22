@@ -43,11 +43,11 @@ public class DevBuildUploadController : Controller
     private readonly ILogger<DevBuildUploadController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
-    private readonly GeneralRemoteStorage remoteStorage;
+    private readonly IGeneralRemoteStorage remoteStorage;
     private readonly IDataProtector dataProtector;
 
     public DevBuildUploadController(ILogger<DevBuildUploadController> logger, NotificationsEnabledDb database,
-        IBackgroundJobClient jobClient, GeneralRemoteStorage remoteStorage,
+        IBackgroundJobClient jobClient, IGeneralRemoteStorage remoteStorage,
         IDataProtectionProvider dataProtectionProvider)
     {
         this.logger = logger;

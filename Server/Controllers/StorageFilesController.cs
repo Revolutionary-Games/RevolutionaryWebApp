@@ -40,13 +40,13 @@ public class StorageFilesController : Controller
 
     private readonly ILogger<StorageFilesController> logger;
     private readonly NotificationsEnabledDb database;
-    private readonly GeneralRemoteStorage remoteStorage;
+    private readonly IGeneralRemoteStorage remoteStorage;
     private readonly IBackgroundJobClient jobClient;
     private readonly ITimeLimitedDataProtector dataProtector;
     private readonly ITimeLimitedDataProtector chunkDataProtector;
 
     public StorageFilesController(ILogger<StorageFilesController> logger, NotificationsEnabledDb database,
-        GeneralRemoteStorage remoteStorage, IDataProtectionProvider dataProtectionProvider,
+        IGeneralRemoteStorage remoteStorage, IDataProtectionProvider dataProtectionProvider,
         IBackgroundJobClient jobClient)
     {
         this.logger = logger;

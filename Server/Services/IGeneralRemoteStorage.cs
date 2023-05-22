@@ -2,7 +2,11 @@ namespace ThriveDevCenter.Server.Services;
 
 using Microsoft.Extensions.Configuration;
 
-public class GeneralRemoteStorage : BaseRemoteStorage
+public interface IGeneralRemoteStorage : IBaseRemoteStorage
+{
+}
+
+public class GeneralRemoteStorage : BaseRemoteStorage, IGeneralRemoteStorage
 {
     public GeneralRemoteStorage(IConfiguration configuration) : base(configuration["GeneralStorage:S3Region"],
         configuration["GeneralStorage:S3Endpoint"], configuration["GeneralStorage:S3AccessKey"],

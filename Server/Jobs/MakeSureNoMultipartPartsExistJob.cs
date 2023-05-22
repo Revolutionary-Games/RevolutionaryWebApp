@@ -10,11 +10,11 @@ using Services;
 public class MakeSureNoMultipartPartsExistJob
 {
     private readonly ILogger<MakeSureNoMultipartPartsExistJob> logger;
-    private readonly GeneralRemoteStorage remoteStorage;
+    private readonly IGeneralRemoteStorage remoteStorage;
     private readonly IBackgroundJobClient jobClient;
 
     public MakeSureNoMultipartPartsExistJob(ILogger<MakeSureNoMultipartPartsExistJob> logger,
-        GeneralRemoteStorage remoteStorage, IBackgroundJobClient jobClient)
+        IGeneralRemoteStorage remoteStorage, IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.remoteStorage = remoteStorage;

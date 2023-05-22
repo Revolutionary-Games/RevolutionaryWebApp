@@ -13,11 +13,11 @@ public class DeleteNonFinishedMultipartUploadJob
 {
     private readonly ILogger<DeleteNonFinishedMultipartUploadJob> logger;
     private readonly ApplicationDbContext database;
-    private readonly GeneralRemoteStorage remoteStorage;
+    private readonly IGeneralRemoteStorage remoteStorage;
     private readonly IBackgroundJobClient jobClient;
 
     public DeleteNonFinishedMultipartUploadJob(ILogger<DeleteNonFinishedMultipartUploadJob> logger,
-        ApplicationDbContext database, GeneralRemoteStorage remoteStorage, IBackgroundJobClient jobClient)
+        ApplicationDbContext database, IGeneralRemoteStorage remoteStorage, IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.database = database;

@@ -13,10 +13,10 @@ public class DeleteStorageItemVersionJob
 {
     private readonly ILogger<DeleteStorageItemVersionJob> logger;
     private readonly NotificationsEnabledDb database;
-    private readonly GeneralRemoteStorage remoteStorage;
+    private readonly IGeneralRemoteStorage remoteStorage;
 
     public DeleteStorageItemVersionJob(ILogger<DeleteStorageItemVersionJob> logger, NotificationsEnabledDb database,
-        GeneralRemoteStorage remoteStorage)
+        IGeneralRemoteStorage remoteStorage)
     {
         this.logger = logger;
         this.database = database;

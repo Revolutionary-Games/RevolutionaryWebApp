@@ -32,6 +32,14 @@ public interface IBaseRemoteStorage : IDisposable
 
     public string CreatePreSignedDownloadURL(string path, TimeSpan expiresIn);
     public string CreatePresignedPostURL(string path, string mimeType, TimeSpan expiresIn);
+
+    public Task<string> CreateMultipartUpload(string path, string mimeType);
+    public string CreatePresignedUploadURL(string path, string uploadId, int partNumber, TimeSpan expiresIn);
+    public Task FinishMultipartUpload(string path, string uploadId, List<PartETag> parts);
+    public Task AbortMultipartUpload(string path, string uploadId);
+    public Task<List<PartDetail>> ListMultipartUploadParts(string path, string uploadId);
+    public Task<List<(string Key, string UploadId)>> ListMultipartUploads(CancellationToken cancellationToken);
+
     public Task<long> GetObjectSize(string path);
     public Task MoveObject(string currentPath, string newPath);
 
@@ -118,9 +126,6 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
         return response.UploadId;
     }
 
-    /// <summary>
-    ///   Creates a pre-signed upload URL that is part of a multipart upload
-    /// </summary>
     public string CreatePresignedUploadURL(string path, string uploadId, int partNumber, TimeSpan expiresIn)
     {
         ThrowIfNotConfigured();

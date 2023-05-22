@@ -33,12 +33,12 @@ public class DebugSymbolController : Controller
 
     private readonly ILogger<DebugSymbolController> logger;
     private readonly NotificationsEnabledDb database;
-    private readonly GeneralRemoteStorage remoteStorage;
+    private readonly IGeneralRemoteStorage remoteStorage;
     private readonly IBackgroundJobClient jobClient;
     private readonly IDataProtector dataProtector;
 
     public DebugSymbolController(ILogger<DebugSymbolController> logger, NotificationsEnabledDb database,
-        GeneralRemoteStorage remoteStorage, IBackgroundJobClient jobClient,
+        IGeneralRemoteStorage remoteStorage, IBackgroundJobClient jobClient,
         IDataProtectionProvider dataProtectionProvider)
     {
         this.logger = logger;
