@@ -729,6 +729,17 @@ public class StorageFilesController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
+        if (item.Parent == null)
+        {
+            // Only admins can delete top level stuff
+            if (user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+                return this.WorkingForbid("Only admins can delete top level items");
+        }
+        else if (item.Parent.IsWritableBy(user))
+        {
+            return this.WorkingForbid("You don't have write access to this item's parent folder");
+        }
+
         // Folders are immediately deleted, but only if they are empty
         if (item.Ftype == FileType.Folder)
         {
