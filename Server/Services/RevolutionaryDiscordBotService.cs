@@ -1187,9 +1187,15 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 return;
             }
 
-            var streak = (DateTime.UtcNow.Date - keyword.LastSeen.Date).TotalDays;
+            var now = DateTime.UtcNow.Date;
 
-            keyword.LastSeen = message.CreatedAt.DateTime.ToUniversalTime();
+            var streak = (now - keyword.LastSeen.Date).TotalDays;
+
+            // Using discord message time here could mean that the streak broken message shows 1 days instead of 0
+            // At least that problem was triggered at least once and this is the only likely thing to have caused it
+            // and it makes anyway more sense to rely on our time keeping everywhere instead of grabbing the discord
+            // message time here in this one place -hhyyrylainen
+            keyword.LastSeen = now;
             keyword.TotalCount += 1;
 
             await database.SaveChangesAsync();
