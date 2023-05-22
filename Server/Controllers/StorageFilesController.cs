@@ -735,7 +735,7 @@ public class StorageFilesController : Controller
             if (user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
                 return this.WorkingForbid("Only admins can delete top level items");
         }
-        else if (item.Parent.IsWritableBy(user))
+        else if (!item.Parent.IsWritableBy(user))
         {
             return this.WorkingForbid("You don't have write access to this item's parent folder");
         }
@@ -743,7 +743,7 @@ public class StorageFilesController : Controller
         // Folders are immediately deleted, but only if they are empty
         if (item.Ftype == FileType.Folder)
         {
-            if (await database.StorageItems.AnyAsync(i => i.OwnerId == item.Id))
+            if (await database.StorageItems.AnyAsync(i => i.ParentId == item.Id))
             {
                 return BadRequest(
                     "Only empty folders can be deleted. Please delete all child items first and try again.");
