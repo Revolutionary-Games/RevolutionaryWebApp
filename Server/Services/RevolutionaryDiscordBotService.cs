@@ -534,8 +534,15 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 embedBuilder.WithDescription(
                     $"{"day".PrintCount(daysRemaining)} remaining with {openText} and {closedText}");
 
-            percentageInfoText =
-                $"{percentage}% ({Math.Round(timeElapsed.TotalDays)}/{Math.Round(totalTime.TotalDays)} days)";
+            if (completionFraction >= 1)
+            {
+                percentageInfoText = $"{percentage}%";
+            }
+            else
+            {
+                percentageInfoText =
+                    $"{percentage}% ({Math.Round(timeElapsed.TotalDays)}/{Math.Round(totalTime.TotalDays)} days)";
+            }
         }
         else
         {
