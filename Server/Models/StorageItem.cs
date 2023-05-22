@@ -412,4 +412,9 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
             Item = GetDTO(),
         }, NotificationGroups.StorageItemUpdatedPrefix + Id);
     }
+
+    public override string ToString()
+    {
+        return $"{Id} ({Name})";
+    }
 }
