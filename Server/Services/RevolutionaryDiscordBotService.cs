@@ -500,16 +500,15 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             return;
         }
 
-        var totalIssues = milestone.OpenIssues + milestone.ClosedIssues;
-
         var embedBuilder = new EmbedBuilder().WithTitle(milestone.Title)
             .WithTimestamp(milestone.UpdatedAt).WithUrl(milestone.HtmlUrl);
 
         var openText = "open item".PrintCount(milestone.OpenIssues);
         var closedText = "closed item".PrintCount(milestone.ClosedIssues);
 
+        string percentageInfoText;
+
         float completionFraction;
-        float percentage;
         if (milestone.DueOn != null && (type == ProgressCommandType.Days ||
                 (type == ProgressCommandType.Default && preferDayProgressForRelease)))
         {
@@ -529,18 +528,28 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 completionFraction = Math.Min(1, (float)(timeElapsed / totalTime));
             }
 
-            percentage = (float)Math.Round(completionFraction * 100);
+            var percentage = (float)Math.Round(completionFraction * 100);
 
             embedBuilder =
                 embedBuilder.WithDescription(
                     $"{"day".PrintCount(daysRemaining)} remaining with {openText} and {closedText}");
+
+            percentageInfoText =
+                $"{percentage}% ({Math.Round(timeElapsed.TotalDays)}/{Math.Round(totalTime.TotalDays)} days)";
         }
         else
         {
+            var totalIssues = milestone.OpenIssues + milestone.ClosedIssues;
             completionFraction = totalIssues > 0 ? (float)milestone.ClosedIssues / totalIssues : 0.0f;
-            percentage = (float)Math.Round(completionFraction * 100);
+            var percentage = (float)Math.Round(completionFraction * 100);
 
             embedBuilder = embedBuilder.WithDescription($"{percentage}% done with {openText} and {closedText}");
+
+            // Maybe this kind of display is not the best...
+            // percentageInfoText =
+            //     $"{percentage}% ({milestone.ClosedIssues}/{{{milestone.OpenIssues}+{milestone.ClosedIssues}}})";
+
+            percentageInfoText = $"{percentage}% ({milestone.ClosedIssues}/{totalIssues} total items)";
         }
 
         if (milestone.DueOn != null)
@@ -614,7 +623,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 // TODO: maybe for the days mode this should also say (the days left here to not let people be
                 // confused about why the items don't match the percentage)?
                 // Percentage
-                x.DrawText($"{percentage}%", percentageFont, textBrush, textPen, new PointF(50, 210));
+                x.DrawText(percentageInfoText, percentageFont, textBrush, textPen, new PointF(50, 210));
             });
 
             await progressImage.SaveAsync(tempFileData, PngFormat.Instance);
