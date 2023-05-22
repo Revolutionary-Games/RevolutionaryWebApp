@@ -27,6 +27,7 @@ public static class AppInfo
     public const string CSRFStatusName = "CSRF";
     public const string CurrentUserMiddlewareKey = "AuthenticatedUser";
     public const string CurrentUserSessionMiddleWareKey = "AuthenticatedUserSessionIfBrowser";
+    public const string AuthenticationScopeRestrictionMiddleWareKey = "AuthenticatedUserScopeRestriction";
     public const string AccessKeyMiddlewareKey = "UsedAccessKey";
     public const string LauncherLinkMiddlewareKey = "UsedLauncherLink";
 

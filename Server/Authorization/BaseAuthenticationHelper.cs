@@ -54,6 +54,6 @@ public abstract class BaseAuthenticationHelper : IMiddleware
         // When using cookie authentication, there exist a session for the login, we store it here for a few
         // special actions that use the knowledge of which of the user's session was used to authenticate
         context.Items[AppInfo.CurrentUserSessionMiddleWareKey] = session;
-        context.Items["AuthenticatedUserScopeRestriction"] = restriction;
+        context.Items[AppInfo.AuthenticationScopeRestrictionMiddleWareKey] = restriction;
     }
 }

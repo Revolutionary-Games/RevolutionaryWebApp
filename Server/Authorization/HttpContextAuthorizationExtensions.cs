@@ -115,7 +115,7 @@ public static class HttpContextAuthorizationExtensions
     /// </exception>
     public static AuthenticationScopeRestriction AuthenticatedUserRestriction(this HttpContext context)
     {
-        if (!context.Items.TryGetValue("AuthenticatedUserScopeRestriction",
+        if (!context.Items.TryGetValue(AppInfo.AuthenticationScopeRestrictionMiddleWareKey,
                 out object? restrictionRaw) || restrictionRaw == null)
             throw new InvalidOperationException("authentication scope restriction was not set");
 
