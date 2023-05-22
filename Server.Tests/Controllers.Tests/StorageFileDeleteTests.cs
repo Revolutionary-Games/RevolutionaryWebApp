@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using DevCenterCommunication.Models.Enums;
 using Hangfire;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
