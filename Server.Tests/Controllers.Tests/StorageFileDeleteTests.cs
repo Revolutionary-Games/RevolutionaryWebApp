@@ -240,7 +240,7 @@ public sealed class StorageFileDeleteTests : IDisposable
     {
         var jobClientMock = new Mock<IBackgroundJobClient>();
 
-        var database = await GetWritableDatabase(nameof(StorageFilesController_CanDeleteEmptyFolder));
+        await using var database = await GetWritableDatabase(nameof(StorageFilesController_CanDeleteEmptyFolder));
         var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
 
         var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
@@ -268,7 +268,8 @@ public sealed class StorageFileDeleteTests : IDisposable
     {
         var jobClientMock = new Mock<IBackgroundJobClient>();
 
-        var database = await GetWritableDatabase(nameof(StorageFilesController_CanDeleteFullFolderAfterClear));
+        await using var database =
+            await GetWritableDatabase(nameof(StorageFilesController_CanDeleteFullFolderAfterClear));
         var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
 
         var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
@@ -304,7 +305,7 @@ public sealed class StorageFileDeleteTests : IDisposable
     {
         var jobClientMock = new Mock<IBackgroundJobClient>();
 
-        var database = await GetWritableDatabase(nameof(StorageFilesController_AdminCanDeleteRootItem));
+        await using var database = await GetWritableDatabase(nameof(StorageFilesController_AdminCanDeleteRootItem));
         var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
 
         var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
@@ -332,7 +333,7 @@ public sealed class StorageFileDeleteTests : IDisposable
     {
         var jobClientMock = new Mock<IBackgroundJobClient>();
 
-        var database = await GetWritableDatabase(nameof(StorageFilesController_DeletingFileWorks));
+        await using var database = await GetWritableDatabase(nameof(StorageFilesController_DeletingFileWorks));
         var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
 
         var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
@@ -385,7 +386,8 @@ public sealed class StorageFileDeleteTests : IDisposable
     {
         var jobClientMock = new Mock<IBackgroundJobClient>();
 
-        var database = await GetWritableDatabase(nameof(StorageFilesController_AdminSeesEveryoneDeletedFiles));
+        await using var database =
+            await GetWritableDatabase(nameof(StorageFilesController_AdminSeesEveryoneDeletedFiles));
         var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
 
         var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
@@ -431,7 +433,8 @@ public sealed class StorageFileDeleteTests : IDisposable
     {
         var jobClientMock = new Mock<IBackgroundJobClient>();
 
-        var database = await GetWritableDatabase(nameof(StorageFilesController_UserDoesNotSeeOtherPeopleDeletedFiles));
+        await using var database =
+            await GetWritableDatabase(nameof(StorageFilesController_UserDoesNotSeeOtherPeopleDeletedFiles));
         var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
 
         var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
