@@ -1265,6 +1265,21 @@ public class StorageFilesController : Controller
         item.LastModifiedById = user.Id;
         item.WriteAccess = FileAccess.Nobody;
         item.ReadAccess = FileAccess.OwnerOrAdmin;
+
+        // If the file has no owner, then set the deleter as the owner to make sure someone can see it
+        // The special check here is just for extra safety, this should never trigger with a special
+        // file, but in case this does we don't want to give ownership of system files to someone
+        if (item.OwnerId == null && !item.Special)
+        {
+            item.OwnerId = user.Id;
+
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry
+            {
+                Message = $"StorageItem {item.Id} ownership was transferred from nobody due to move to trash",
+                PerformedById = user.Id,
+            });
+        }
+
         item.BumpUpdatedAt();
 
         // If the filename is already in the trash we need to come up with a unique one
