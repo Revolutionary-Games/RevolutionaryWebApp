@@ -290,7 +290,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
     /// <param name="parentFolderId">
     ///   If set uses this as the parent folder ID, otherwise the one in this object set currently is used
     /// </param>
-    public async Task MakeNameUniqueInFolder(NotificationsEnabledDb database, long? parentFolderId = null)
+    public async Task MakeNameUniqueInFolder(ApplicationDbContext database, long? parentFolderId = null)
     {
         parentFolderId ??= Parent?.Id ?? ParentId;
 
@@ -307,6 +307,15 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
         var nameWithoutExtension = Path.GetFileNameWithoutExtension(oldName);
 
         int suffixCounter = 1;
+
+        // Detect an existing counter and resume it
+        var nameParts = nameWithoutExtension.Split('_');
+
+        if (nameParts.Length > 1 && int.TryParse(nameParts.Last(), out var parsed))
+        {
+            nameWithoutExtension = string.Join('_', nameParts.Take(nameParts.Length - 1));
+            suffixCounter = parsed;
+        }
 
         while (names.Contains(Name))
         {
