@@ -766,6 +766,9 @@ public class StorageFilesController : Controller
 
         if (item.Ftype == FileType.File)
         {
+            if (item.Deleted)
+                return BadRequest("Item is already deleted");
+
             var trash = await StorageItem.GetTrashFolder(database);
 
             if (item.ParentId == trash.Id)
@@ -1256,7 +1259,9 @@ public class StorageFilesController : Controller
 
         // Modify the item to fit in the trash folder
         item.DeleteInfo = deleteInfo;
+        item.Deleted = true;
         item.Parent = trashFolder;
+        item.ParentId = trashFolder.Id;
         item.LastModifiedById = user.Id;
         item.WriteAccess = FileAccess.Nobody;
         item.ReadAccess = FileAccess.OwnerOrAdmin;
