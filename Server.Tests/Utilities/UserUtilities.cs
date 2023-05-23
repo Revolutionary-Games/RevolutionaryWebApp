@@ -24,4 +24,32 @@ public static class UserUtilities
 
         return user;
     }
+
+    public static User CreateNormalUser(long id)
+    {
+        var user = new User
+        {
+            Id = id,
+            Email = "test@example.com",
+            Name = "Test User",
+        };
+
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
+
+        return user;
+    }
+
+    public static User CreateAdminUser(long id)
+    {
+        var user = new User
+        {
+            Id = id,
+            Email = "test@example.com",
+            Name = "Example admin",
+        };
+
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.Developer, GroupType.Admin, GroupType.User));
+
+        return user;
+    }
 }

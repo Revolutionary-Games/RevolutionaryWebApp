@@ -732,7 +732,7 @@ public class StorageFilesController : Controller
         if (item.Parent == null)
         {
             // Only admins can delete top level stuff
-            if (user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+            if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
                 return this.WorkingForbid("Only admins can delete top level items");
         }
         else if (!item.Parent.IsWritableBy(user))
