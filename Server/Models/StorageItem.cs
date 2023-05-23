@@ -317,8 +317,14 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
             suffixCounter = parsed;
         }
 
+        // TODO: if the names are checked from the DB this should be lowered to 50
+        int attempts = 1000;
+
         while (names.Contains(Name))
         {
+            if (--attempts <= 0)
+                throw new InvalidOperationException("Could not generate a unique name, too many names were attempted");
+
             Name = $"{nameWithoutExtension}_{++suffixCounter}{extension}";
         }
 
