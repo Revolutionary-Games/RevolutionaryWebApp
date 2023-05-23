@@ -35,7 +35,7 @@ public class CreateDefaultFoldersJob : IJob
     {
         var itemsToRecompute = new List<StorageItem?>
         {
-            await CreateDefaultFolder("Trash", null, FileAccess.Developer, FileAccess.Nobody,
+            await CreateDefaultFolder("Trash", null, FileAccess.RestrictedUser, FileAccess.Nobody,
                 cancellationToken),
         };
 
