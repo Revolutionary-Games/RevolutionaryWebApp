@@ -259,8 +259,6 @@ public sealed class StorageFileDeleteTests : IDisposable
 
         var item = await database.StorageItems.FindAsync(EmptyFolderId);
         Assert.Null(item);
-
-        jobClientMock.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -296,8 +294,6 @@ public sealed class StorageFileDeleteTests : IDisposable
 
         item = await database.StorageItems.FindAsync(NonEmptyFolderId);
         Assert.Null(item);
-
-        jobClientMock.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -377,8 +373,6 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotNull(deletedInfo);
         Assert.Equal(TestParentFolderId, deletedInfo.OriginalFolderId);
         Assert.Equal("StorageFileDeleteTestParent/A file", deletedInfo.OriginalFolderPath);
-
-        jobClientMock.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -425,7 +419,8 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotEmpty(trashContents.Value.Results);
         Assert.Equal(FileToDeleteId, trashContents.Value.Results.First().Id);
 
-        jobClientMock.VerifyNoOtherCalls();
+        // The job to recount the folder items gets queued so we can't check that the code hasn't also accidentally
+        // enqueued a job to try to delete storage files or something like that
     }
 
     [Fact]
@@ -469,8 +464,6 @@ public sealed class StorageFileDeleteTests : IDisposable
 
         Assert.NotNull(trashContents.Value);
         Assert.Empty(trashContents.Value.Results);
-
-        jobClientMock.VerifyNoOtherCalls();
     }
 
     public void Dispose()

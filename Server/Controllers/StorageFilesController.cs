@@ -761,6 +761,11 @@ public class StorageFilesController : Controller
                 user.Email);
 
             await database.SaveChangesAsync();
+
+            // Recount items in the parent folder
+            if (item.ParentId != null)
+                jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(item.ParentId.Value, CancellationToken.None));
+
             return Ok();
         }
 
@@ -1295,6 +1300,10 @@ public class StorageFilesController : Controller
         });
 
         await database.SaveChangesAsync();
+
+        // Recount the items in the folder
+        if (item.ParentId != null)
+            jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(item.ParentId.Value, CancellationToken.None));
     }
 
     [NonAction]
