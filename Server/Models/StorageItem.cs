@@ -359,6 +359,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
             ReadAccess = ReadAccess,
             WriteAccess = WriteAccess,
             ModificationLocked = ModificationLocked,
+            Deleted = Deleted,
             OwnerId = OwnerId,
             ParentId = ParentId,
             AllowParentless = AllowParentless,
