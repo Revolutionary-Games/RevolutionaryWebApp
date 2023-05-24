@@ -226,6 +226,12 @@ else
             </Button>
         }
 
+        @* Always show this to reduce flicker of the buttons *@
+        <Button Enabled="@CanDeleteFolder" Spinner="@processing" class="mr-1"
+            ButtonStyle="danger" OnPressed="@StartFolderDelete">
+            Delete This Folder
+        </Button>
+
         @if (showFolderInfo)
         {
             @if (parsedFolderInfo == null)
@@ -412,6 +418,11 @@ else
 
     private bool CanEditLockedStatus => !processing && parsedFolderInfo is {Special: false } &&
         (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || CurrentUserInfo.Info!.Id == parsedFolderInfo.OwnerId);
+
+    private bool CanDeleteFolder => !processing && parsedFolderInfo is {Special: false, ModificationLocked: false,
+        Important: false } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
+            && parsedFolderInfo.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups, CurrentUserInfo.Info?.Id,
+                parsedFolderInfo.OwnerId)));
 
     private string EditLockedStatusButtonType
     {
@@ -1264,6 +1275,65 @@ else
         {
             statusMessage = "Folder can now be edited again";
             statusMessageType = SiteNoticeType.Secondary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void StartFolderDelete()
+    {
+        var folder = parsedFolderId;
+
+        if (folder == null)
+            return;
+
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmDuplicateUpload.Name), parsedFolderInfo?.Name ?? folder.Value.ToString() },
+        };
+
+        var modal = Modal.Show<ConfirmDelete>("Delete this folder?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await ConfirmDeleteCurrentFolder(folder.Value);
+    }
+
+    private async Task ConfirmDeleteCurrentFolder(long id)
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/Files/{id}");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Current folder has been deleted";
+            statusMessageType = SiteNoticeType.Warning;
         }
 
         await InvokeAsync(StateHasChanged);
