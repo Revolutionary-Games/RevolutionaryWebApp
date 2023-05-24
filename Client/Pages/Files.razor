@@ -213,14 +213,14 @@ else
         @* Always show this to reduce flicker of the buttons *@
         @if (parsedFolderInfo?.ModificationLocked == true)
         {
-            <Button Enabled="@CanEditLockedStatus" Spinner="@processing" class="mr-1"
+            <Button Enabled="@CanEditLockedStatus" Spinner="@processing" class="mx-1"
                 ButtonStyle="@EditLockedStatusButtonType" OnPressed="@UnlockCurrentFolder">
                 Unlock Folder Properties
             </Button>
         }
         else
         {
-            <Button Enabled="@CanEditLockedStatus" Spinner="@processing" class="mr-1"
+            <Button Enabled="@CanEditLockedStatus" Spinner="@processing" class="mx-1"
                 ButtonStyle="@EditLockedStatusButtonType" OnPressed="@LockCurrentFolder">
                 Lock Folder Properties
             </Button>
@@ -273,9 +273,7 @@ else
                     <li><strong>Properties Locked</strong>: @parsedFolderInfo.ModificationLocked</li>
                 </ul>
 
-                @if (!parsedFolderInfo.Special && !parsedFolderInfo.ModificationLocked &&
-                    parsedFolderInfo.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups, CurrentUserInfo.Info!.Id,
-                        parsedFolderInfo.OwnerId))
+                @if (!parsedFolderInfo.Special && !parsedFolderInfo.ModificationLocked && folderIsWritable)
                 {
                     <StorageItemFolderEditor Data="@parsedFolderInfo" />
                 }
@@ -421,8 +419,7 @@ else
 
     private bool CanDeleteFolder => !processing && parsedFolderInfo is {Special: false, ModificationLocked: false,
         Important: false } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
-            && parsedFolderInfo.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups, CurrentUserInfo.Info?.Id,
-                parsedFolderInfo.OwnerId)));
+            && folderIsWritable));
 
     private string EditLockedStatusButtonType
     {
