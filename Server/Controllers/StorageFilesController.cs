@@ -75,7 +75,7 @@ public class StorageFilesController : Controller
         }
 
         // Return root folder if the path is empty
-        if (string.IsNullOrEmpty(path))
+        if (string.IsNullOrWhiteSpace(path))
         {
             return new PathParseResult
             {
@@ -90,6 +90,9 @@ public class StorageFilesController : Controller
 
         foreach (var part in pathParts)
         {
+            // Note that if the logic is modified here there's also very similar logic in
+            // ParsePathAsFarAsPossible
+
             // Skip empty parts to support starting with a slash or having multiple in a row
             if (string.IsNullOrEmpty(part))
                 continue;
@@ -808,6 +811,104 @@ public class StorageFilesController : Controller
         return Problem("Unknown item type to delete");
     }
 
+    [HttpGet("{id:long}/deleteStatus")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<ActionResult<StorageItemDeleteInfoDTO>> GetDeleteStatus([Required] long id)
+    {
+        StorageItem? item = await FindAndCheckAccess(id, true, false, true);
+        if (item == null)
+            return NotFound();
+
+        if (!item.Deleted)
+            return NotFound();
+
+        return item.DeleteInfo?.GetDTO() ?? throw new Exception("Missing deleted info");
+    }
+
+    [HttpPost("{id:long}/restore")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<IActionResult> RestoreFile([Required] long id, [FromBody] string? customPath)
+    {
+        bool usesCustomPath = true;
+
+        if (string.IsNullOrWhiteSpace(customPath))
+        {
+            customPath = null;
+            usesCustomPath = false;
+        }
+
+        var item = await database.StorageItems.Include(i => i.DeleteInfo).Include(i => i.Parent)
+            .FirstOrDefaultAsync(i => i.Id == id);
+        var trash = await StorageItem.GetTrashFolder(database);
+
+        if (item == null)
+            return NotFound();
+
+        // Can't restore an item that is not deleted
+        if (!item.Deleted)
+            return NotFound();
+
+        if (item.DeleteInfo == null)
+            throw new Exception("Delete info doesn't exist for a deleted file");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        // Item can only be undeleted by having read access (this is overridden to just file owner), being admin
+        // or being the user who deleted the item
+        if (!item.IsReadableBy(user) && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin) &&
+            user.Id != item.DeleteInfo.DeletedById)
+        {
+            return this.WorkingForbid("You lack the permissions required to restore this file");
+        }
+
+        if (trash.Id != item.ParentId)
+            throw new Exception("Deleted file is not in the trash folder");
+
+        if (item.Special)
+            return BadRequest("Special item can't be restored by a user");
+
+        // Currently only files are soft deleted
+        if (item.Ftype != FileType.File)
+            return Problem("Unknown item type category to restore");
+
+        // File is good to be restored
+
+        var originalPathParts = item.DeleteInfo.OriginalFolderPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        // Restore original file status
+        var deleteInfo = item.DeleteInfo;
+        item.DeleteInfo = null;
+
+        // Restore the original name in case the file was renamed when moved to trash
+        item.Name = originalPathParts.Last();
+
+        item.Deleted = false;
+        item.LastModifiedById = user.Id;
+        item.WriteAccess = deleteInfo.OriginalWriteAccess;
+        item.ReadAccess = deleteInfo.OriginalReadAccess;
+
+        item.BumpUpdatedAt();
+
+        // figure out where to put it
+        var pathToRestoreAt = customPath ?? string.Join('/', originalPathParts.Take(originalPathParts.Length - 1));
+
+        // This fails with an exception if the move is not valid
+        var restoredPath = await MoveFile(item, pathToRestoreAt, !usesCustomPath ? deleteInfo : null, user, true);
+
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        {
+            Message = $"StorageItem {item.Id} ({item.Name.Truncate()}) restored from trash",
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Restored StorageItem {Id} ({Name}) to {RestoredPath} by {Email}", item.Id, item.Name,
+            restoredPath, user.Email);
+
+        return Ok(restoredPath);
+    }
+
     [HttpPost("checkUploadDuplicate")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<FileDuplicateCheckResponse>> CheckDuplicateBeforeUpload(
@@ -1342,6 +1443,188 @@ public class StorageFilesController : Controller
     }
 
     [NonAction]
+    private async Task<string> MoveFile(StorageItem item, string targetFolder,
+        StorageItemDeleteInfo? targetFolderInfoToCreateWith, User user, bool restore)
+    {
+        // Find the target folder first to determine if it exists and the current user has access, or if it doesn't
+        // and we can create a new folder based on targetFolderInfoToCreateWith (if that is not null)
+
+        var parsed = await ParsePathAsFarAsPossible(targetFolder, user);
+
+        StorageItem? finalFolderToMoveTo;
+        string finalFolderPath;
+
+        if (parsed.Parsed)
+        {
+            finalFolderToMoveTo = parsed.FullyParsed;
+            finalFolderPath = targetFolder;
+
+            // Check status of the parsed folder if it isn't the root folder
+            if (parsed.FullyParsed != null)
+            {
+                if (parsed.FullyParsed.Ftype != FileType.Folder)
+                {
+                    throw new HttpResponseException
+                    {
+                        Status = (int)HttpStatusCode.Conflict,
+                        Value = "Target path to move to leads a file, not a folder",
+                    };
+                }
+
+                if (!parsed.FullyParsed.IsWritableBy(user))
+                {
+                    throw new HttpResponseException
+                    {
+                        Status = (int)HttpStatusCode.Conflict,
+                        Value = "Target path to move to leads to a folder you do not have write access to",
+                    };
+                }
+            }
+        }
+        else if (targetFolderInfoToCreateWith != null)
+        {
+            // Create the folder with the info if possible
+            // Starting at the folder we left off in the parsing
+            var createFoldersStart = parsed.ParsedUntil;
+            var parsedPrefix = parsed.PartiallyParsedPath;
+
+            throw new NotImplementedException();
+        }
+        else
+        {
+            throw new HttpResponseException
+            {
+                Status = (int)HttpStatusCode.Conflict,
+                Value = "Target path to move to doesn't lead to a valid folder (or you don't have even read access)",
+            };
+        }
+
+        var nameConflict =
+            await database.StorageItems.FirstOrDefaultAsync(i =>
+                i.Parent == finalFolderToMoveTo && i.Name == item.Name);
+
+        if (nameConflict != null)
+        {
+            throw new HttpResponseException
+            {
+                Status = (int)HttpStatusCode.Conflict,
+                Value = $"Target folder already has an item named {nameConflict.Name}",
+            };
+        }
+
+        if (finalFolderToMoveTo == null)
+        {
+            if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+            {
+                throw new HttpResponseException
+                {
+                    Status = (int)HttpStatusCode.Conflict,
+                    Value = "Only admins can write to the root folder",
+                };
+            }
+
+            if (restore)
+            {
+                await database.ActionLogEntries.AddAsync(new ActionLogEntry
+                {
+                    Message = $"Storage item {item.Id} is now restored to root folder",
+                    PerformedById = user.Id,
+                });
+            }
+            else
+            {
+                await database.ActionLogEntries.AddAsync(new ActionLogEntry
+                {
+                    Message = $"Storage item {item.Id} was moved to root folder",
+                    PerformedById = user.Id,
+                });
+            }
+        }
+        else
+        {
+            if (restore)
+            {
+                await database.ActionLogEntries.AddAsync(new ActionLogEntry
+                {
+                    Message = $"Storage item {item.Id} is now restored to folder {finalFolderToMoveTo.Id}",
+                    PerformedById = user.Id,
+                });
+            }
+            else
+            {
+                await database.ActionLogEntries.AddAsync(new ActionLogEntry
+                {
+                    Message = $"Storage item {item.Id} was moved to folder {finalFolderToMoveTo.Id}",
+                    PerformedById = user.Id,
+                });
+            }
+        }
+
+        // Queue job to recount the old folder contents
+        if (item.ParentId != null)
+        {
+            jobClient.Schedule<CountFolderItemsJob>(x => x.Execute(item.ParentId.Value, CancellationToken.None),
+                TimeSpan.FromSeconds(60));
+        }
+
+        item.Parent = finalFolderToMoveTo;
+
+        // Queue job to recount the old and the new folder contents
+        if (item.Parent != null)
+        {
+            var parentId = item.Parent.Id;
+            jobClient.Schedule<CountFolderItemsJob>(x => x.Execute(parentId, CancellationToken.None),
+                TimeSpan.FromSeconds(60));
+        }
+
+        return finalFolderPath;
+    }
+
+    [NonAction]
+    private async Task<InternalPathParseResult> ParsePathAsFarAsPossible(string path, User? accessibleTo)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return new InternalPathParseResult(null);
+
+        var pathParts = path.Split('/');
+
+        StorageItem? lastSuccessfullyParsed = null;
+
+        for (int i = 0; i < pathParts.Length; ++i)
+        {
+            // Note that if the logic is modified here there's also very similar logic in
+            // ParsePath
+
+            var part = pathParts[i];
+
+            // Skip empty parts to support starting with a slash or having multiple in a row
+            if (string.IsNullOrEmpty(part))
+                continue;
+
+            // If we have already found a file, then further path parts are invalid
+            if (lastSuccessfullyParsed?.Ftype == FileType.File)
+                return new InternalPathParseResult(pathParts.Take(i), lastSuccessfullyParsed);
+
+            var currentId = lastSuccessfullyParsed?.Id;
+            var nextItem =
+                await database.StorageItems.FirstOrDefaultAsync(s => s.ParentId == currentId && s.Name == part);
+
+            if (nextItem == null || (accessibleTo != null && !nextItem.IsReadableBy(accessibleTo)))
+            {
+                // Non-existing / unreadable path
+                return new InternalPathParseResult(pathParts.Take(i), lastSuccessfullyParsed);
+            }
+
+            lastSuccessfullyParsed = nextItem;
+        }
+
+        if (lastSuccessfullyParsed == null)
+            throw new Exception("Logic error in internal path parse");
+
+        return new InternalPathParseResult(lastSuccessfullyParsed);
+    }
+
+    [NonAction]
     private IEnumerable<MultipartFileUpload.FileChunk> ComputeChunksForFile(long fileSize)
     {
         if (fileSize < 1)
@@ -1386,6 +1669,29 @@ public class StorageFilesController : Controller
         }
 
         return AppInfo.MultipartUploadChunkSizeLarge;
+    }
+
+    private class InternalPathParseResult
+    {
+        public StorageItem? FullyParsed;
+
+        public StorageItem? ParsedUntil;
+
+        public string? PartiallyParsedPath;
+
+        public bool Parsed;
+
+        public InternalPathParseResult(StorageItem? fullyParsed)
+        {
+            FullyParsed = fullyParsed;
+            Parsed = true;
+        }
+
+        public InternalPathParseResult(IEnumerable<string> fullyParsed, StorageItem? lastSuccessfullyParsed)
+        {
+            PartiallyParsedPath = string.Join('/', fullyParsed);
+            ParsedUntil = lastSuccessfullyParsed;
+        }
     }
 
     private class UploadVerifyToken
