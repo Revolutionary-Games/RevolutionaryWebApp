@@ -200,4 +200,7 @@ public static class AppInfo
     public static readonly TimeSpan InactiveSymbolKeepDuration = TimeSpan.FromDays(180);
 
     public static readonly TimeSpan UnimportantDevBuildKeepDuration = TimeSpan.FromDays(90);
+
+    public static readonly TimeSpan DeleteTrashedItemsAfter = TimeSpan.FromDays(90);
+    public static readonly TimeSpan DeleteFileVersionsAfter = TimeSpan.FromDays(90);
 }

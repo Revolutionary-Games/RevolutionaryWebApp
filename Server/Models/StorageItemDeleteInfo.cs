@@ -87,4 +87,15 @@ public class StorageItemDeleteInfo
 
     public long? OriginalFolderOwnerId { get; set; }
     public User? OriginalFolderOwner { get; set; }
+
+    public StorageItemDeleteInfoDTO GetDTO()
+    {
+        return new()
+        {
+            StorageItemId = StorageItemId,
+            DeletedAt = DeletedAt,
+            OriginalPath = OriginalFolderPath,
+            DeletedById = DeletedById,
+        };
+    }
 }
