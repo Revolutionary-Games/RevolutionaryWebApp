@@ -875,25 +875,27 @@ public class StorageFilesController : Controller
 
         var originalPathParts = item.DeleteInfo.OriginalFolderPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-        // Restore original file status
-        var deleteInfo = item.DeleteInfo;
-        item.DeleteInfo = null;
-
         // Restore the original name in case the file was renamed when moved to trash
         item.Name = originalPathParts.Last();
-
-        item.Deleted = false;
-        item.LastModifiedById = user.Id;
-        item.WriteAccess = deleteInfo.OriginalWriteAccess;
-        item.ReadAccess = deleteInfo.OriginalReadAccess;
-
-        item.BumpUpdatedAt();
 
         // figure out where to put it
         var pathToRestoreAt = customPath ?? string.Join('/', originalPathParts.Take(originalPathParts.Length - 1));
 
         // This fails with an exception if the move is not valid
-        var restoredPath = await MoveFile(item, pathToRestoreAt, !usesCustomPath ? deleteInfo : null, user, true);
+        var restoredPath = await MoveFile(item, pathToRestoreAt, !usesCustomPath ? item.DeleteInfo = null : null, user, true);
+
+        // Due to tests having in-memory data we do this modification only after the move has succeeded
+        // Restore original file status
+
+        item.Deleted = false;
+        item.LastModifiedById = user.Id;
+        item.WriteAccess = item.DeleteInfo!.OriginalWriteAccess;
+        item.ReadAccess = item.DeleteInfo.OriginalReadAccess;
+
+        database.StorageItemDeleteInfos.Remove(item.DeleteInfo);
+        item.DeleteInfo = null;
+
+        item.BumpUpdatedAt();
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
