@@ -108,6 +108,12 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
         new HashSet<StorageItemDeleteInfo>();
 
     /// <summary>
+    ///   Deleted files that still exist in the DB that were deleted by this user
+    /// </summary>
+    public ICollection<StorageItemDeleteInfo> DeleterOfFile { get; set; } =
+        new HashSet<StorageItemDeleteInfo>();
+
+    /// <summary>
     ///   Automated server actions that have targeted this user
     /// </summary>
     public ICollection<LogEntry> TargetedInLogs { get; set; } = new HashSet<LogEntry>();

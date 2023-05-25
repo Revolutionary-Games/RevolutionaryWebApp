@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 using DevCenterCommunication.Models.Enums;
+using Shared.Models;
 
 /// <summary>
 ///   Stores extra data about a file that was deleted to facilitate restoring the item
@@ -43,12 +44,12 @@ public class StorageItemDeleteInfo
     [Key]
     public long StorageItemId { get; set; }
 
+    public StorageItem? StorageItem { get; set; }
+
     /// <summary>
     ///   The time this item was deleted at, used to track when the item needs to be permanently purged
     /// </summary>
     public DateTime DeletedAt { get; set; } = DateTime.UtcNow;
-
-    public StorageItem? StorageItem { get; set; }
 
     public long? OriginalFolderId { get; set; }
 
@@ -64,6 +65,13 @@ public class StorageItemDeleteInfo
     public FileAccess OriginalReadAccess { get; set; }
 
     public FileAccess OriginalWriteAccess { get; set; }
+
+    /// <summary>
+    ///   Id of the user who deleted this item
+    /// </summary>
+    public long? DeletedById { get; set; }
+
+    public User? DeletedBy { get; set; }
 
     /// <summary>
     ///   The original path the item was at, can be used if <see cref="StorageItem"/> is null. If this is empty the

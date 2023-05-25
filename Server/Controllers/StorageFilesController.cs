@@ -369,6 +369,9 @@ public class StorageFilesController : Controller
         if (item == null)
             return NotFound();
 
+        if (item.Deleted)
+            return BadRequest("Can't restore versions in a deleted item. Please restore the item itself first.");
+
         var versionItem =
             await database.StorageItemVersions.FirstOrDefaultAsync(v => v.Version == version && v.StorageItem == item);
 
@@ -404,6 +407,13 @@ public class StorageFilesController : Controller
         StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
+
+        if (item.Deleted)
+        {
+            return BadRequest(
+                "Can't mark versions as keep within deleted items (the versions will be deleted when the item is " +
+                "cleaned from the database)");
+        }
 
         var versionItem =
             await database.StorageItemVersions.FirstOrDefaultAsync(v => v.Version == version && v.StorageItem == item);
@@ -488,6 +498,9 @@ public class StorageFilesController : Controller
         if (item == null)
             return NotFound();
 
+        if (item.Deleted)
+            return BadRequest("Deleted items can't be edited");
+
         if (item.Special)
             return BadRequest("Special items can't be edited");
 
@@ -557,6 +570,9 @@ public class StorageFilesController : Controller
         StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
+
+        if (item.Deleted)
+            return BadRequest("Can't lock a deleted item");
 
         if (item.Special)
             return BadRequest("Special items can't be edited");
@@ -636,6 +652,9 @@ public class StorageFilesController : Controller
         if (item == null)
             return NotFound();
 
+        if (item.Deleted)
+            return BadRequest("Can't mark a deleted item as important");
+
         if (item.Special)
             return BadRequest("Special items can't be edited");
 
@@ -678,6 +697,9 @@ public class StorageFilesController : Controller
         StorageItem? item = await FindAndCheckAccess(id, false);
         if (item == null)
             return NotFound();
+
+        if (item.Deleted)
+            return BadRequest("Can't remove important status from a deleted item");
 
         if (item.Special)
             return BadRequest("Special items can't be edited");
@@ -1205,11 +1227,21 @@ public class StorageFilesController : Controller
     }
 
     [NonAction]
-    private async Task<StorageItem?> FindAndCheckAccess(long id, bool read = true, bool loadParentFolder = false)
+    private async Task<StorageItem?> FindAndCheckAccess(long id, bool read = true, bool loadParentFolder = false,
+        bool loadDeleteInfo = false)
     {
         StorageItem? item;
 
-        if (loadParentFolder)
+        if (loadParentFolder && loadDeleteInfo)
+        {
+            item = await database.StorageItems.Include(i => i.Parent).Include(i => i.DeleteInfo)
+                .FirstOrDefaultAsync(i => i.Id == id);
+        }
+        else if (loadDeleteInfo)
+        {
+            item = await database.StorageItems.Include(i => i.DeleteInfo).FirstOrDefaultAsync(i => i.Id == id);
+        }
+        else if (loadParentFolder)
         {
             item = await database.StorageItems.Include(i => i.Parent).FirstOrDefaultAsync(i => i.Id == id);
         }
@@ -1258,7 +1290,10 @@ public class StorageFilesController : Controller
         var originalPath = await item.ComputeStoragePath(database);
 
         // Generate the delete info
-        var deleteInfo = new StorageItemDeleteInfo(item, originalPath);
+        var deleteInfo = new StorageItemDeleteInfo(item, originalPath)
+        {
+            DeletedById = user.Id,
+        };
 
         await database.StorageItemDeleteInfos.AddAsync(deleteInfo);
 

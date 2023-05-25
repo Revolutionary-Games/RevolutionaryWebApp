@@ -257,6 +257,9 @@ public class ApplicationDbContext : DbContext
 
             entity.HasOne(d => d.OriginalFolderOwner)
                 .WithMany(p => p.OwnerOfOriginalFolderOfDeleted).OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.DeletedBy)
+                .WithMany(p => p.DeleterOfFile).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<StorageItemVersion>(entity =>
