@@ -837,7 +837,8 @@ public class StorageFilesController : Controller
             usesCustomPath = false;
         }
 
-        var item = await database.StorageItems.Include(i => i.DeleteInfo).Include(i => i.Parent)
+        var item = await database.StorageItems.Include(i => i.DeleteInfo).ThenInclude(d => d!.OriginalFolderOwner)
+            .Include(i => i.Parent)
             .FirstOrDefaultAsync(i => i.Id == id);
         var trash = await StorageItem.GetTrashFolder(database);
 
@@ -1470,6 +1471,8 @@ public class StorageFilesController : Controller
         StorageItem? finalFolderToMoveTo;
         string finalFolderPath;
 
+        bool countTargetFolderSize = true;
+
         if (parsed.Parsed)
         {
             finalFolderToMoveTo = parsed.FullyParsed;
@@ -1499,12 +1502,32 @@ public class StorageFilesController : Controller
         }
         else if (targetFolderInfoToCreateWith != null)
         {
-            // Create the folder with the info if possible
             // Starting at the folder we left off in the parsing
             var createFoldersStart = parsed.ParsedUntil;
             var parsedPrefix = parsed.PartiallyParsedPath;
 
-            throw new NotImplementedException();
+            var remainingPathToCreate = targetFolder;
+
+            if (parsedPrefix != null)
+            {
+                // +1 is here to get past the last path separator character
+                remainingPathToCreate = remainingPathToCreate.Substring(parsedPrefix.Length + 1);
+            }
+
+            // Create the folder with the info if possible
+            finalFolderToMoveTo = await CreateMultipleFolders(createFoldersStart, remainingPathToCreate, user,
+                targetFolderInfoToCreateWith.OriginalFolderReadAccess,
+                targetFolderInfoToCreateWith.OriginalFolderWriteAccess,
+                targetFolderInfoToCreateWith.OriginalFolderOwner ?? user,
+                targetFolderInfoToCreateWith.OriginalFolderImportant,
+                targetFolderInfoToCreateWith.OriginalFolderModificationLocked, restore);
+
+            // Target folder is now created (as we didn't hit an exception)
+            finalFolderPath = targetFolder;
+
+            // The target folder is not saved in the DB yet, so we don't want to count its size (as we don't have an
+            // id to give to the job). This is fine as the folder create already set the size to 1
+            countTargetFolderSize = false;
         }
         else
         {
@@ -1585,8 +1608,8 @@ public class StorageFilesController : Controller
 
         item.Parent = finalFolderToMoveTo;
 
-        // Queue job to recount the old and the new folder contents
-        if (item.Parent != null)
+        // Queue job to recount the new folder contents
+        if (item.Parent != null && countTargetFolderSize)
         {
             var parentId = item.Parent.Id;
             jobClient.Schedule<CountFolderItemsJob>(x => x.Execute(parentId, CancellationToken.None),
@@ -1632,6 +1655,11 @@ public class StorageFilesController : Controller
                 return new InternalPathParseResult(pathParts.Take(i), lastSuccessfullyParsed);
             }
 
+            // Do a bit of manual switching together here to keep the parent object data without needing to load it
+            // again from the database
+            nextItem.ParentId = currentId;
+            nextItem.Parent = lastSuccessfullyParsed;
+
             lastSuccessfullyParsed = nextItem;
         }
 
@@ -1639,6 +1667,111 @@ public class StorageFilesController : Controller
             throw new Exception("Logic error in internal path parse");
 
         return new InternalPathParseResult(lastSuccessfullyParsed);
+    }
+
+    [NonAction]
+    private async Task<StorageItem> CreateMultipleFolders(StorageItem? startFolder, string pathToCreate, User user,
+        FileAccess readAccessToCreateWith, FileAccess writeAccessToCreateWith, User ownerToCreateWith,
+        bool finalFolderIsImportant, bool finalFolderIsPropertiesLocked,
+        bool restore, bool lastFolderWillReceiveAnItem = true)
+    {
+        var pathsToCreate = pathToCreate.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (pathsToCreate.Length < 1)
+            throw new ArgumentException("No paths to create specified");
+
+        StorageItem? currentFolder = startFolder;
+
+        foreach (var pathPart in pathsToCreate)
+        {
+            // Don't accidentally add subfolders to files
+            if (currentFolder != null && currentFolder.Ftype != FileType.Folder)
+            {
+                throw new HttpResponseException
+                {
+                    Status = (int)HttpStatusCode.Conflict,
+                    Value = $"While creating target path encountered a non-folder item {currentFolder.Name}",
+                };
+            }
+
+            // Try to create this element
+            if (currentFolder == null)
+            {
+                if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+                {
+                    throw new HttpResponseException
+                    {
+                        Status = (int)HttpStatusCode.Conflict,
+                        Value =
+                            "While creating target path, folder creating failed because only admins can create root " +
+                            $"items, path part: {pathPart}",
+                    };
+                }
+            }
+            else if (!currentFolder.IsWritableBy(user))
+            {
+                throw new HttpResponseException
+                {
+                    Status = (int)HttpStatusCode.Conflict,
+                    Value = $"While creating target path part \"{pathPart}\" an unwritable folder was encountered",
+                };
+            }
+
+            if (string.IsNullOrEmpty(pathPart))
+                throw new ArgumentException("Encountered an empty folder name to create");
+
+            // Creating the folder is allowed
+            var newFolder = new StorageItem
+            {
+                Name = pathPart,
+                Ftype = FileType.Folder,
+                AllowParentless = currentFolder == null,
+                ReadAccess = readAccessToCreateWith,
+                WriteAccess = writeAccessToCreateWith,
+                OwnerId = user.Id,
+                Parent = currentFolder,
+
+                // We can actually assume the size to be 1 here as the final folder will have the moved / restored item
+                // (or we can reset that at the end) and each intermediate path item will have the next path folder in
+                // it
+                Size = 1,
+            };
+
+            await database.StorageItems.AddAsync(newFolder);
+
+            if (restore)
+            {
+                await database.ActionLogEntries.AddAsync(new ActionLogEntry
+                {
+                    Message = $"Created a new storage folder named \"{pathPart}\" to perform a file restore",
+                    PerformedById = user.Id,
+                });
+            }
+            else
+            {
+                await database.ActionLogEntries.AddAsync(new ActionLogEntry
+                {
+                    Message = $"Created a new storage folder named \"{pathPart}\" to perform an item move",
+                    PerformedById = user.Id,
+                });
+            }
+
+            currentFolder = newFolder;
+        }
+
+        if (currentFolder == null)
+            throw new Exception("Logic error in creating multiple folders");
+
+        // Only the last folder has the original user restored as the owner
+        currentFolder.OwnerId = ownerToCreateWith.Id;
+        currentFolder.Important = finalFolderIsImportant;
+        currentFolder.ModificationLocked = finalFolderIsPropertiesLocked;
+        currentFolder.LastModifiedById = user.Id;
+
+        if (!lastFolderWillReceiveAnItem)
+            currentFolder.Size = 0;
+
+        return currentFolder;
     }
 
     [NonAction]
