@@ -299,17 +299,20 @@ public sealed class StorageFileRestoreTests : IDisposable
             HttpContext = httpContextMock.Object,
         };
 
-        var result = await controller.RestoreFile(FileToRestoreId2, null);
+        var result = await controller.RestoreFile(FileToRestoreId5, null);
 
         var resultPath = Assert.IsType<string>(Assert.IsAssignableFrom<OkObjectResult>(result).Value);
 
-        Assert.Equal("/File1", resultPath);
+        Assert.Equal("StorageFileRestoreTestParent/CreateFolder/File 3", resultPath);
 
-        var item = await database.StorageItems.FindAsync(FileToRestoreId2);
+        var item = await database.StorageItems.FindAsync(FileToRestoreId5);
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
-        Assert.Null(await database.StorageItemDeleteInfos.FindAsync(FileToRestoreId2));
+        Assert.Null(await database.StorageItemDeleteInfos.FindAsync(FileToRestoreId5));
+
+        // Verify the actual path matches what the API said to ensure there isn't an internal bug
+        Assert.Equal(await item.ComputeStoragePath(database), resultPath);
     }
 
     public void Dispose()
