@@ -858,6 +858,8 @@ public class StorageFilesController : Controller
         if (!item.IsReadableBy(user) && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin) &&
             user.Id != item.DeleteInfo.DeletedById)
         {
+            // TODO: should this require not found if no read access?
+
             return this.WorkingForbid("You lack the permissions required to restore this file");
         }
 
@@ -882,14 +884,14 @@ public class StorageFilesController : Controller
         var pathToRestoreAt = customPath ?? string.Join('/', originalPathParts.Take(originalPathParts.Length - 1));
 
         // This fails with an exception if the move is not valid
-        var restoredPath = await MoveFile(item, pathToRestoreAt, !usesCustomPath ? item.DeleteInfo = null : null, user, true);
+        var restoredPath = await MoveFile(item, pathToRestoreAt, !usesCustomPath ? item.DeleteInfo : null, user, true);
 
         // Due to tests having in-memory data we do this modification only after the move has succeeded
         // Restore original file status
 
         item.Deleted = false;
         item.LastModifiedById = user.Id;
-        item.WriteAccess = item.DeleteInfo!.OriginalWriteAccess;
+        item.WriteAccess = item.DeleteInfo.OriginalWriteAccess;
         item.ReadAccess = item.DeleteInfo.OriginalReadAccess;
 
         database.StorageItemDeleteInfos.Remove(item.DeleteInfo);
@@ -1444,6 +1446,18 @@ public class StorageFilesController : Controller
             jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(item.ParentId.Value, CancellationToken.None));
     }
 
+    /// <summary>
+    ///   Moves a file to a target folder if possible
+    /// </summary>
+    /// <param name="item">The moved item</param>
+    /// <param name="targetFolder">Path to the target folder</param>
+    /// <param name="targetFolderInfoToCreateWith">
+    ///   If the target folder doesn't exist it will attempted to be created with this info
+    /// </param>
+    /// <param name="user">The acting user doing the move whose permissions matter</param>
+    /// <param name="restore">If true then this acts in restore mode rather than just pure file move mode</param>
+    /// <returns>The path the file is now at (including the file's own name)</returns>
+    /// <exception cref="HttpResponseException">If the user does not have the right permissions</exception>
     [NonAction]
     private async Task<string> MoveFile(StorageItem item, string targetFolder,
         StorageItemDeleteInfo? targetFolderInfoToCreateWith, User user, bool restore)
@@ -1579,7 +1593,8 @@ public class StorageFilesController : Controller
                 TimeSpan.FromSeconds(60));
         }
 
-        return finalFolderPath;
+        // This format should be fine also for root path items to start with "/"
+        return $"{finalFolderPath}/{item.Name}";
     }
 
     [NonAction]
