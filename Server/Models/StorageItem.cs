@@ -72,7 +72,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
 
     public long? ParentId { get; set; }
     public StorageItem? Parent { get; set; }
-    public bool AllowParentless { get; set; } = false;
+    public bool AllowParentless { get; set; }
 
     // TODO: can this be named something else? This is the children of this item
     public ICollection<StorageItem> Children { get; set; } = new HashSet<StorageItem>();
