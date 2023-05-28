@@ -15,6 +15,8 @@ using ThriveDevCenter.Shared.Notifications;
 public abstract class PaginatedPage<T> : DataPage<T, PagedResult<T>>
     where T : class, IIdentifiable, new()
 {
+    private bool defaultPageSizeApplied;
+
     protected PaginatedPage(SortHelper sort) : base(sort)
     {
     }
@@ -32,7 +34,11 @@ public abstract class PaginatedPage<T> : DataPage<T, PagedResult<T>>
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
-        PageSize = DefaultPageSize;
+        if (!defaultPageSizeApplied)
+        {
+            defaultPageSizeApplied = true;
+            PageSize = DefaultPageSize;
+        }
 
         return base.SetParametersAsync(parameters);
     }
