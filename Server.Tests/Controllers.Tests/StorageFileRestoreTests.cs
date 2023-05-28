@@ -35,6 +35,10 @@ public sealed class StorageFileRestoreTests : IDisposable
     private const long FileToRestoreId3 = 676010;
     private const long FileToRestoreId4 = 676011;
     private const long FileToRestoreId5 = 676012;
+    private const long FileToRestoreId6 = 676013;
+    private const string FileToRestore6ChangedName = "A file";
+    private const string FileToRestore6OriginalName = "A different name";
+    private const long FileToRestoreId7 = 676014;
 
     private static readonly Mock<IModelUpdateNotificationSender> ReadonlyDbNotifications = new();
 
@@ -115,6 +119,37 @@ public sealed class StorageFileRestoreTests : IDisposable
     }
 
     [Fact]
+    public async Task StorageFilesController_JustSlashesPathResultsInRootFolder()
+    {
+        var jobClientMock = new Mock<IBackgroundJobClient>();
+
+        var database = NonWritingTestDb.Value;
+        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+
+        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
+            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+
+        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock.Object,
+        };
+
+        var result =
+            await Assert.ThrowsAsync<HttpResponseException>(() => controller.RestoreFile(FileToRestoreId2, "////"));
+
+        Assert.Equal((int)HttpStatusCode.Conflict, result.Status);
+        Assert.Contains("admins can write", Assert.IsType<string>(result.Value));
+
+        var item = await database.StorageItems.FindAsync(FileToRestoreId2);
+        Assert.NotNull(item);
+        Assert.True(item.Deleted);
+
+        jobClientMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task StorageFilesController_CannotRestoreToFolderWithoutWriteAccess()
     {
         var jobClientMock = new Mock<IBackgroundJobClient>();
@@ -173,6 +208,37 @@ public sealed class StorageFileRestoreTests : IDisposable
         Assert.Contains("permissions required to restore", Assert.IsType<string>(result.Value));
 
         var item = await database.StorageItems.FindAsync(FileToRestoreId4);
+        Assert.NotNull(item);
+        Assert.True(item.Deleted);
+
+        jobClientMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task StorageFilesController_CantCreateMissingFolderWithoutWriteAccess()
+    {
+        var jobClientMock = new Mock<IBackgroundJobClient>();
+
+        var database = NonWritingTestDb.Value;
+        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+
+        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
+            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+
+        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(RandomNormalUser);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock.Object,
+        };
+
+        var result =
+            await Assert.ThrowsAsync<HttpResponseException>(() => controller.RestoreFile(FileToRestoreId7, null));
+
+        Assert.Equal((int)HttpStatusCode.Forbidden, result.Status);
+        Assert.Contains("permissions required to restore", Assert.IsType<string>(result.Value));
+
+        var item = await database.StorageItems.FindAsync(FileToRestoreId7);
         Assert.NotNull(item);
         Assert.True(item.Deleted);
 
@@ -292,7 +358,7 @@ public sealed class StorageFileRestoreTests : IDisposable
         var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
             new EphemeralDataProtectionProvider(), jobClientMock.Object);
 
-        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(AdminUser);
+        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
@@ -311,7 +377,78 @@ public sealed class StorageFileRestoreTests : IDisposable
 
         Assert.Null(await database.StorageItemDeleteInfos.FindAsync(FileToRestoreId5));
 
-        // Verify the actual path matches what the API said to ensure there isn't an internal bug
+        // Verify the actual path matches what the API said to ensure there isn't an internal problem
+        Assert.Equal(await item.ComputeStoragePath(database), resultPath);
+    }
+
+    [Fact]
+    public async Task StorageFilesController_RestoreRestoresOriginalName()
+    {
+        var jobClientMock = new Mock<IBackgroundJobClient>();
+
+        await using var database =
+            await GetWritableDatabase(nameof(StorageFilesController_RestoreRestoresOriginalName));
+        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+
+        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
+            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+
+        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock.Object,
+        };
+
+        var result = await controller.RestoreFile(FileToRestoreId6, null);
+
+        var item = await database.StorageItems.FindAsync(FileToRestoreId6);
+        Assert.NotNull(item);
+        Assert.Equal(FileToRestore6OriginalName, item.Name);
+
+        // Fix up the in-memory object back to what it should be
+        item.Name = FileToRestore6ChangedName;
+
+        Assert.False(item.Deleted);
+
+        var resultPath = Assert.IsType<string>(Assert.IsAssignableFrom<OkObjectResult>(result).Value);
+
+        Assert.Equal($"StorageFileRestoreTestParent/{FileToRestore6OriginalName}", resultPath);
+
+        Assert.Null(await database.StorageItemDeleteInfos.FindAsync(FileToRestoreId6));
+    }
+
+    [Fact]
+    public async Task StorageFilesController_CustomRestorePathWorks()
+    {
+        var jobClientMock = new Mock<IBackgroundJobClient>();
+
+        await using var database =
+            await GetWritableDatabase(nameof(StorageFilesController_CustomRestorePathWorks));
+        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+
+        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
+            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+
+        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock.Object,
+        };
+
+        var result = await controller.RestoreFile(FileToRestoreId2, "StorageFileRestoreTestParent/EmptyFolder");
+
+        var resultPath = Assert.IsType<string>(Assert.IsAssignableFrom<OkObjectResult>(result).Value);
+
+        Assert.Equal("StorageFileRestoreTestParent/EmptyFolder/File1", resultPath);
+
+        var item = await database.StorageItems.FindAsync(FileToRestoreId2);
+        Assert.NotNull(item);
+        Assert.False(item.Deleted);
+
+        Assert.Null(await database.StorageItemDeleteInfos.FindAsync(FileToRestoreId2));
+
         Assert.Equal(await item.ComputeStoragePath(database), resultPath);
     }
 
@@ -491,6 +628,34 @@ public sealed class StorageFileRestoreTests : IDisposable
 
         await database.StorageItems.AddAsync(deleted5);
 
+        var deleted6 = new StorageItem
+        {
+            Id = FileToRestoreId6,
+            Name = FileToRestore6ChangedName,
+            Ftype = FileType.File,
+            ParentId = trashId,
+            ReadAccess = FileAccess.OwnerOrAdmin,
+            WriteAccess = FileAccess.Nobody,
+            OwnerId = DeveloperUser.Id,
+            Deleted = true,
+        };
+
+        await database.StorageItems.AddAsync(deleted6);
+
+        var deleted7 = new StorageItem
+        {
+            Id = FileToRestoreId7,
+            Name = "Some name",
+            Ftype = FileType.File,
+            ParentId = trashId,
+            ReadAccess = FileAccess.OwnerOrAdmin,
+            WriteAccess = FileAccess.Nobody,
+            OwnerId = NormalUser.Id,
+            Deleted = true,
+        };
+
+        await database.StorageItems.AddAsync(deleted7);
+
         await database.SaveChangesAsync();
 
         // Setup the deleted data
@@ -511,6 +676,12 @@ public sealed class StorageFileRestoreTests : IDisposable
 
         await database.StorageItemDeleteInfos.AddAsync(new StorageItemDeleteInfo(deleted5.Id, FileAccess.User,
             FileAccess.User, "StorageFileRestoreTestParent/CreateFolder/File 3"));
+
+        await database.StorageItemDeleteInfos.AddAsync(new StorageItemDeleteInfo(deleted6.Id, FileAccess.User,
+            FileAccess.User, $"StorageFileRestoreTestParent/{FileToRestore6OriginalName}"));
+
+        await database.StorageItemDeleteInfos.AddAsync(new StorageItemDeleteInfo(deleted7.Id, FileAccess.User,
+            FileAccess.User, $"StorageFileRestoreTestParent/DevOnly/Some name"));
 
         await database.SaveChangesAsync();
     }

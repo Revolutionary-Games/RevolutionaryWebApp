@@ -831,7 +831,7 @@ public class StorageFilesController : Controller
     {
         bool usesCustomPath = true;
 
-        if (string.IsNullOrWhiteSpace(customPath))
+        if (string.IsNullOrWhiteSpace(customPath) || customPath == "/")
         {
             customPath = null;
             usesCustomPath = false;
@@ -1630,6 +1630,8 @@ public class StorageFilesController : Controller
 
         StorageItem? lastSuccessfullyParsed = null;
 
+        bool partSeen = false;
+
         for (int i = 0; i < pathParts.Length; ++i)
         {
             // Note that if the logic is modified here there's also very similar logic in
@@ -1640,6 +1642,8 @@ public class StorageFilesController : Controller
             // Skip empty parts to support starting with a slash or having multiple in a row
             if (string.IsNullOrEmpty(part))
                 continue;
+
+            partSeen = true;
 
             // If we have already found a file, then further path parts are invalid
             if (lastSuccessfullyParsed?.Ftype == FileType.File)
@@ -1662,6 +1666,10 @@ public class StorageFilesController : Controller
 
             lastSuccessfullyParsed = nextItem;
         }
+
+        // If no parts were seen, then just return the root folder
+        if (!partSeen)
+            return new InternalPathParseResult(null);
 
         if (lastSuccessfullyParsed == null)
             throw new Exception("Logic error in internal path parse");
