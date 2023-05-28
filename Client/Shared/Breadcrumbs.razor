@@ -1,5 +1,6 @@
 @using System.Text
 @inject NavigationManager NavigationManager
+@inherits NonNavigatingBreadCrumbs
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -21,87 +22,12 @@
     [EditorRequired]
     public string BasePath { get; set; } = null!;
 
-    /// <summary>
-    ///   The currently shown path
-    /// </summary>
-    [Parameter]
-    public string? CurrentPath { get; set; }
-
-    /// <summary>
-    ///   The name of the root item in the paths
-    /// </summary>
-    [Parameter]
-    public string RootPathName { get; set; } = "Home";
-
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
 
         if (BasePath == null || BasePath.Last() != '/')
             throw new ArgumentException("BasePath needs to end with a slash");
-    }
-
-    private class PathItem
-    {
-        public PathItem(string name, string pathSoFar)
-        {
-            ItemName = name;
-            PathSoFar = pathSoFar;
-        }
-
-        public readonly string ItemName;
-        public readonly string PathSoFar;
-        public bool Active = false;
-        public bool Root = false;
-    }
-
-    private List<PathItem> SplitPath()
-    {
-        var pathToCheck = CurrentPath ?? string.Empty;
-
-        var parts = pathToCheck.Split('/');
-
-        var result = new List<PathItem>();
-
-        if (parts.Length == 0)
-        {
-            // Only root path here
-            result.Add(new PathItem(RootPathName, "")
-            {
-                Active = true,
-                Root = true,
-            });
-        }
-        else
-        {
-            // Add root path first
-            result.Add(new PathItem(RootPathName, "")
-            {
-                Root = true,
-            });
-
-            string pathSoFar = "";
-
-            foreach (var item in parts)
-            {
-                // Skip empty path parts
-                if(string.IsNullOrWhiteSpace(item))
-                    continue;
-
-                result.Add(new PathItem(item, pathSoFar));
-
-                if (pathSoFar.Length > 0)
-                    pathSoFar += "/";
-
-                pathSoFar += item;
-            }
-
-            // Last item is active
-            var last = result.Last();
-            last.Active = true;
-        }
-
-        return result;
     }
 
     private string PathForItem(PathItem item)
@@ -144,12 +70,4 @@
         return builder.ToString();
     }
 
-    private string ActiveClassForItem(PathItem item)
-    {
-        // Return "active" for the last part of a path
-        if (item.Active)
-            return "active";
-
-        return "";
-    }
 }
