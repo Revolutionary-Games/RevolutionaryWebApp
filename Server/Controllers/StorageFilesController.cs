@@ -344,6 +344,9 @@ public class StorageFilesController : Controller
         if (item.Important || versionItem.Protected)
             return BadRequest("This item or version is protected or important and can't be deleted");
 
+        if (versionItem.Uploading)
+            return BadRequest("Cannot delete an uploading version. Failed uploads will be automatically deleted");
+
         if (versionItem.Keep && item.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return BadRequest("Only item owners and admins can delete versions marked as keep");
 
