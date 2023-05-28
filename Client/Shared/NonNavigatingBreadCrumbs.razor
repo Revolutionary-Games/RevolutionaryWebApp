@@ -6,10 +6,9 @@
         @foreach (var item in SplitPath())
         {
             <li class="breadcrumb-item @ActiveClassForItem(item)">
-                <NavLink href="#" Match="NavLinkMatch.All" @onclick="@(() => NavigateToPath(item))"
-                         @onclick:preventDefault="true">
+                <a href="#" @onclick="@(() => NavigateToPath(item))" @onclick:preventDefault="true">
                     @item.ItemName
-                </NavLink>
+                </a>
             </li>
         }
     </ol>
@@ -32,8 +31,7 @@
     public string RootPathName { get; set; } = "Home";
 
     [Parameter]
-    [EditorRequired]
-    public EventCallback<string?> OnPathSelected { get; set; }
+    public EventCallback<string?>? OnPathSelected { get; set; }
 
     protected class PathItem
     {
@@ -138,6 +136,9 @@
 
     private Task NavigateToPath(PathItem item)
     {
-        return OnPathSelected.InvokeAsync(PathForItem(item));
+        if (OnPathSelected == null)
+            throw new InvalidOperationException("Non-navigating crumbs has to have the path change callback set");
+
+        return OnPathSelected.Value.InvokeAsync(PathForItem(item));
     }
 }
