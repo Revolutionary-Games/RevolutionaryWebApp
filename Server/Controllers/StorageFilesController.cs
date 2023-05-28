@@ -837,7 +837,7 @@ public class StorageFilesController : Controller
 
     [HttpPost("{id:long}/restore")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<IActionResult> RestoreFile([Required] long id, [FromBody] string? customPath)
+    public async Task<IActionResult> RestoreFile([Required] long id, [FromForm] string? customPath)
     {
         bool usesCustomPath = true;
 

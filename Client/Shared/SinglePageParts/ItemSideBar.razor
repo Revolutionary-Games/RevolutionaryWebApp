@@ -19,7 +19,13 @@
         <span aria-hidden="true">&times;</span>
     </button>
 
-    <h2>@Item.Name</h2>
+    <h2>
+        @Item.Name
+        @if (Item.Deleted)
+        {
+            <span class="badge badge-danger ml-1">DELETED</span>
+        }
+    </h2>
 
     <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
@@ -78,7 +84,6 @@
 
     @if (Item.Deleted)
     {
-        <div class="badge badge-danger">DELETED</div>
         <p>
             This file is deleted and will be automatically cleaned from the storage after
             @AppInfo.DeleteTrashedItemsAfter.TotalDays days. This file can only be downloaded by users with write
@@ -181,44 +186,44 @@
                 <StorageItemFolderEditor Data="@Item" ButtonClass="btn-sm" FormClass="ml-3"/>
             }
 
-            <Button ButtonStyle="secondary" Enabled="@false" class="btn-sm ml-1">Move</Button>
-
-            @if (!Item.Special && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) ||
-                CurrentUserInfo.Info!.Id == Item.OwnerId))
-            {
-                if (Item.ModificationLocked)
-                {
-                    <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1" 
-                            ButtonStyle="warning" OnPressed="@UnlockItem">
-                        Unlock Properties
-                    </Button>
-                }
-                else
-                {
-                    <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1" 
-                            ButtonStyle="secondary" OnPressed="@LockItem">
-                        Lock Properties
-                    </Button>
-                }
-
-                if (Item.Important)
-                {
-                    <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
-                            ButtonStyle="warning" OnPressed="@UnmarkImportant">
-                        Remove Important Status
-                    </Button>
-                }
-                else
-                {
-                    <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
-                            ButtonStyle="secondary" OnPressed="@MarkImportant">
-                        Mark Important
-                    </Button>
-                }
-            }
-
             @if (!Item.Deleted)
             {
+                <Button ButtonStyle="secondary" Enabled="@false" class="btn-sm ml-1">Move</Button>
+
+                @if (!Item.Special && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) ||
+                    CurrentUserInfo.Info!.Id == Item.OwnerId))
+                {
+                    if (Item.ModificationLocked)
+                    {
+                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                                ButtonStyle="warning" OnPressed="@UnlockItem">
+                            Unlock Properties
+                        </Button>
+                    }
+                    else
+                    {
+                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                                ButtonStyle="secondary" OnPressed="@LockItem">
+                            Lock Properties
+                        </Button>
+                    }
+
+                    if (Item.Important)
+                    {
+                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                                ButtonStyle="warning" OnPressed="@UnmarkImportant">
+                            Remove Important Status
+                        </Button>
+                    }
+                    else
+                    {
+                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                                ButtonStyle="secondary" OnPressed="@MarkImportant">
+                            Mark Important
+                        </Button>
+                    }
+                }
+
                 <Button ButtonStyle="danger" Enabled="@CanDeleteItem" Spinner="@processingAction" class="btn-sm ml-1"
                         OnPressed="@DeleteItem">
                     Delete
