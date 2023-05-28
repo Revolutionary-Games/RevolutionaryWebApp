@@ -1,0 +1,126 @@
+@using ThriveDevCenter.Shared
+@using Microsoft.EntityFrameworkCore.Storage.ValueConversion
+@using DevCenterCommunication.Models
+@using System.Net
+@using System.Threading
+@using DevCenterCommunication.Models.Enums
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Notifications
+@inject HttpClient Http
+@implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
+@inherits PaginatedPage<DevCenterCommunication.Models.StorageItemInfo>
+
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+
+        <NonNavigatingBreadCrumbs CurrentPath="@CurrentPath" OnPathSelected="@OnFolderChange"/>
+
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    @* TODO: navlink on the name *@
+                    <th scope="row">@item.Name</th>
+                    <td>@item.ReadAccess</td>
+                    <td>@item.WriteAccess</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true),
+        new TableColumn("Read Access", false),
+        new TableColumn("Write Access", false),
+    };
+
+    private bool fetchedData;
+    private string? lastFetchedPath;
+
+    public FolderSelector() : base(new SortHelper("Name", SortDirection.Ascending))
+    {
+        DefaultPageSize = 100;
+        AutoFetchDataOnInit = false;
+    }
+
+    /// <summary>
+    ///   The currently shown path. Should be updated when <see cref="OnFolderChange"/> is triggered
+    /// </summary>
+    [Parameter]
+    public string? CurrentPath { get; set; }
+
+    [Parameter]
+    public bool NonWritableWarning { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public EventCallback<string?> OnFolderChange { get; set; }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        // TODO: should this component listen for folder changes?
+    }
+
+    public Task Handle(FolderContentsUpdated notification, CancellationToken cancellationToken)
+    {
+        // Start fetching data again if something in the folder we cared about changed
+        if (notification.Item.Ftype == FileType.Folder)
+            WantsToFetchDataAgain = true;
+
+        return Task.CompletedTask;
+    }
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        await base.SetParametersAsync(parameters);
+
+        if (!fetchedData || lastFetchedPath != CurrentPath)
+        {
+            // TODO: parse path first
+
+            await FetchData();
+        }
+    }
+
+    protected override Dictionary<string, string> CreatePageRequestParams()
+    {
+        var request = base.CreatePageRequestParams();
+
+        // TODO: parsing the folder path to get the folder ID
+        request["parentId"] = string.Empty;
+
+        return request;
+    }
+
+    protected override Task<PagedResult<StorageItemInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<StorageItemInfo>>(
+            QueryHelpers.AddQueryString("api/v1/Files/folderFolders", requestParams));
+    }
+
+    protected override Task OnDataReceived()
+    {
+        fetchedData = true;
+        return base.OnDataReceived();
+    }
+
+}
