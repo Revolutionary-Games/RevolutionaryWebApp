@@ -203,4 +203,6 @@ public static class AppInfo
 
     public static readonly TimeSpan DeleteTrashedItemsAfter = TimeSpan.FromDays(90);
     public static readonly TimeSpan DeleteFileVersionsAfter = TimeSpan.FromDays(90);
+
+    public static readonly TimeSpan DeleteFailedVersionUploadAfter = TimeSpan.FromHours(24);
 }
