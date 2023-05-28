@@ -1576,7 +1576,7 @@ public class StorageFilesController : Controller
             {
                 await database.ActionLogEntries.AddAsync(new ActionLogEntry
                 {
-                    Message = $"Storage item {item.Id} is now restored to root folder",
+                    Message = $"StorageItem {item.Id} is now restored to root folder",
                     PerformedById = user.Id,
                 });
             }
@@ -1584,7 +1584,7 @@ public class StorageFilesController : Controller
             {
                 await database.ActionLogEntries.AddAsync(new ActionLogEntry
                 {
-                    Message = $"Storage item {item.Id} was moved to root folder",
+                    Message = $"StorageItem {item.Id} was moved to root folder",
                     PerformedById = user.Id,
                 });
             }
@@ -1595,7 +1595,7 @@ public class StorageFilesController : Controller
             {
                 await database.ActionLogEntries.AddAsync(new ActionLogEntry
                 {
-                    Message = $"Storage item {item.Id} is now restored to folder {finalFolderToMoveTo.Id}",
+                    Message = $"StorageItem {item.Id} is now restored to folder {finalFolderToMoveTo.Id}",
                     PerformedById = user.Id,
                 });
             }
@@ -1603,7 +1603,7 @@ public class StorageFilesController : Controller
             {
                 await database.ActionLogEntries.AddAsync(new ActionLogEntry
                 {
-                    Message = $"Storage item {item.Id} was moved to folder {finalFolderToMoveTo.Id}",
+                    Message = $"StorageItem {item.Id} was moved to folder {finalFolderToMoveTo.Id}",
                     PerformedById = user.Id,
                 });
             }
