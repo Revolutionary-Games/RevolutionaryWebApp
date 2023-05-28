@@ -354,6 +354,13 @@ public class StorageFilesController : Controller
         if (versionItem.Deleted)
             return Ok();
 
+        // Disallow deleting the last version in a file
+        if (!await database.StorageItemVersions.AnyAsync(v =>
+                v.Version != versionItem.Version && v.StorageItem == item && !v.Deleted && !v.Uploading))
+        {
+            return BadRequest("Cannot delete the last version of a file, delete the entire file instead");
+        }
+
         versionItem.Deleted = true;
         versionItem.BumpUpdatedAt();
 
