@@ -56,6 +56,18 @@ public class DownloadController : Controller
         if (item == null || !item.IsReadableBy(user))
             return NotFound("File not found or you don't have access to it. Logging in may help.");
 
+        if (item.Deleted)
+        {
+            // Disallow downloading deleted items to make it more likely someone notices if an important file is
+            // deleted
+            if (user != null)
+            {
+                return NotFound("The specified file is currently in Trash (deleted) and can't be downloaded.");
+            }
+
+            return NotFound("File not found or you don't have access to it. Logging in may help.");
+        }
+
         var latestUploaded = await item.GetHighestUploadedVersion(database);
 
         StorageItemVersion? toDownload;
