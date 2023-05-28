@@ -343,6 +343,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
             Ftype = Ftype,
             Size = Size,
             ReadAccess = ReadAccess,
+            WriteAccess = WriteAccess,
         };
     }
 
