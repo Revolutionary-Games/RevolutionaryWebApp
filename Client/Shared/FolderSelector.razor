@@ -2,14 +2,20 @@
 @using Microsoft.EntityFrameworkCore.Storage.ValueConversion
 @using DevCenterCommunication.Models
 @using System.Net
+@using System.Text.Json
 @using System.Threading
 @using DevCenterCommunication.Models.Enums
+@using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
 @using ThriveDevCenter.Shared.Notifications
+@using ThriveDevCenter.Shared.Utilities
 @inject HttpClient Http
+@inject CurrentUserInfo CurrentUserInfo
 @implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
 @inherits PaginatedPage<DevCenterCommunication.Models.StorageItemInfo>
 
+<NonNavigatingBreadCrumbs CurrentPath="@CurrentPath" OnPathSelected="@OnFolderChange"/>
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -27,21 +33,27 @@ else
                     Columns="@columns"
                     ShowNoContent="@NoItemsFound">
 
-        <NonNavigatingBreadCrumbs CurrentPath="@CurrentPath" OnPathSelected="@OnFolderChange"/>
-
         @if (Data != null)
         {
             @foreach (var item in Data.Results)
             {
                 <tr @key="item.Id">
-                    @* TODO: navlink on the name *@
-                    <th scope="row">@item.Name</th>
+                    <th scope="row">
+                        <a href="#" @onclick="@(() => NavigateToPath(item))" @onclick:preventDefault="true">
+                            @item.Name
+                        </a>
+                    </th>
                     <td>@item.ReadAccess</td>
                     <td>@item.WriteAccess</td>
                 </tr>
             }
         }
     </PaginatedTable>
+
+    @if (hasWriteAccess == false && NonWritableWarning && parsedFolderId != null)
+    {
+        <StatusMessageShower Type="SiteNoticeType.Warning" Message="You do not have write access to this folder"/>
+    }
 }
 
 @code {
@@ -55,6 +67,9 @@ else
 
     private bool fetchedData;
     private string? lastFetchedPath;
+
+    private long? parsedFolderId;
+    private bool? hasWriteAccess;
 
     public FolderSelector() : base(new SortHelper("Name", SortDirection.Ascending))
     {
@@ -95,9 +110,7 @@ else
 
         if (!fetchedData || lastFetchedPath != CurrentPath)
         {
-            // TODO: parse path first
-
-            await FetchData();
+            await ParseCurrentPath();
         }
     }
 
@@ -105,8 +118,8 @@ else
     {
         var request = base.CreatePageRequestParams();
 
-        // TODO: parsing the folder path to get the folder ID
-        request["parentId"] = string.Empty;
+        // We rely on the fact that ParseCurrentPath calls FetchData to make sure this is setup right
+        request["parentId"] = parsedFolderId?.ToString() ?? string.Empty;
 
         return request;
     }
@@ -121,6 +134,89 @@ else
     {
         fetchedData = true;
         return base.OnDataReceived();
+    }
+
+    private async Task NavigateToPath(StorageItemInfo subFolder)
+    {
+        if (string.IsNullOrEmpty(CurrentPath))
+        {
+            await OnFolderChange.InvokeAsync(subFolder.Name);
+        }
+        else
+        {
+            await OnFolderChange.InvokeAsync(CurrentPath + '/' + subFolder.Name);
+        }
+    }
+
+    private async Task ParseCurrentPath()
+    {
+        lastFetchedPath = CurrentPath;
+        parsedFolderId = null;
+        VisibleFetchInProgress = true;
+        Error = null;
+
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.GetAsync(QueryHelpers.AddQueryString(
+                "api/v1/Files/itemFromPath","path", CurrentPath ?? string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            Error = $"Network request failed: {e.Message}";
+            VisibleFetchInProgress = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var content = await result.Content.ReadAsStringAsync();
+        VisibleFetchInProgress = false;
+
+        if (result.StatusCode != HttpStatusCode.OK)
+        {
+            Error = $"Failed to process current path: {content}";
+            if (string.IsNullOrEmpty(content))
+                Error += result.StatusCode.ToString();
+        }
+        else
+        {
+            var parsedResult = JsonSerializer.Deserialize<PathParseResult>(content,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            if (parsedResult != null)
+            {
+                if (parsedResult.FinalItem != null && parsedResult.FinalItem.Ftype != FileType.Folder)
+                {
+                    // This is a file
+                    Error = "Current path is a file somehow";
+                }
+                else
+                {
+                    parsedFolderId = parsedResult.FinalItem?.Id;
+
+                    if (parsedResult.FinalItem == null)
+                    {
+                        hasWriteAccess = CurrentUserInfo.HasGroup(GroupType.Admin);
+                    }
+                    else
+                    {
+                        hasWriteAccess = parsedResult.FinalItem.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups,
+                            CurrentUserInfo.Info?.Id, parsedResult.FinalItem.OwnerId);;
+                    }
+                }
+
+                VisibleFetchInProgress = true;
+
+                // await NotificationHandler.NotifyWantedGroupsChanged();
+                await FetchData();
+            }
+            else
+            {
+                Error = "Failed to parse response JSON";
+            }
+        }
     }
 
 }

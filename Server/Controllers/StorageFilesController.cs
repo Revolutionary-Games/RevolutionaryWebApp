@@ -132,18 +132,10 @@ public class StorageFilesController : Controller
         // NOTE: we don't verify the parent accesses recursively, so for example if a folder has public read, but
         // it is contained in a private folder, the contents can be read through this if the parent id is known.
 
-        StorageItem? item = null;
-        if (parentId != null)
-        {
-            item = await FindAndCheckAccess(parentId.Value);
-
-            if (item == null)
-                return NotFound("Folder doesn't exist, or you don't have access to it");
-        }
-        else
-        {
-            // Everyone has read access to the root folder
-        }
+        // Check read access if accessing non-root folder (everyone has read access to the root folder)
+        var (item, actionResult) = await FindFolderWithReadAccess(parentId);
+        if (actionResult != null)
+            return actionResult;
 
         IAsyncEnumerable<StorageItem> query;
 
@@ -159,16 +151,39 @@ public class StorageFilesController : Controller
         }
 
         // Filter out objects not readable by current user
-        // NOTE: that as a special case folder owner always sees all items, even if their contents are not readable
-        // (this is to make things consistent with the notifications hub)
-        var reader = HttpContext.AuthenticatedUser();
-
-        if (item == null || item.OwnerId == null || item.OwnerId != reader?.Id)
-        {
-            query = query.Where(i => i.IsReadableBy(reader));
-        }
+        query = FilterNonReadableEntries(item, query);
 
         // And then return the contents of this folder to the requester
+        var objects = await query.ToPagedResultAsync(page, pageSize);
+
+        return objects.ConvertResult(i => i.GetInfo());
+    }
+
+    [HttpGet("folderFolders")]
+    public async Task<ActionResult<PagedResult<StorageItemInfo>>> GetFolderFolders([Required] string sortColumn,
+        [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+        [Required] [Range(1, 500)] int pageSize, long? parentId = null)
+    {
+        var (item, actionResult) = await FindFolderWithReadAccess(parentId);
+        if (actionResult != null)
+            return actionResult;
+
+        // This is async enumerable as IsReadableBy call can't be translated to the DB
+        IAsyncEnumerable<StorageItem> query;
+
+        try
+        {
+            query = database.StorageItems.Where(i => i.ParentId == parentId && i.Ftype == FileType.Folder)
+                .OrderBy(sortColumn, sortDirection).ToAsyncEnumerable();
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
+        }
+
+        query = FilterNonReadableEntries(item, query);
+
         var objects = await query.ToPagedResultAsync(page, pageSize);
 
         return objects.ConvertResult(i => i.GetInfo());
@@ -1392,6 +1407,48 @@ public class StorageFilesController : Controller
         }
 
         return item;
+    }
+
+    /// <summary>
+    ///   Note that this doesn't verify read access to all parents, just the top parent.
+    ///   See <see cref="GetFolderContents"/>.
+    /// </summary>
+    /// <param name="parentId">The parent folder id</param>
+    /// <returns>
+    ///   The item if good to access in a tuple, or a failed action result (if this is not null the find failed)
+    /// </returns>
+    [NonAction]
+    private async Task<(StorageItem? Item, ActionResult? ActionResult)> FindFolderWithReadAccess(long? parentId)
+    {
+        if (parentId != null)
+        {
+            var item = await FindAndCheckAccess(parentId.Value);
+
+            if (item == null)
+            {
+                return (null, NotFound("Folder doesn't exist, or you don't have access to it"));
+            }
+
+            return (item, null);
+        }
+
+        return (null, null);
+    }
+
+    [NonAction]
+    private IAsyncEnumerable<StorageItem> FilterNonReadableEntries(StorageItem? folder,
+        IAsyncEnumerable<StorageItem> query)
+    {
+        // NOTE: that as a special case folder owner always sees all items, even if their contents are not readable
+        // (this is to make things consistent with the notifications hub)
+        var reader = HttpContext.AuthenticatedUser();
+
+        if (folder?.OwnerId == null || folder.OwnerId != reader?.Id)
+        {
+            query = query.Where(i => i.IsReadableBy(reader));
+        }
+
+        return query;
     }
 
     [NonAction]

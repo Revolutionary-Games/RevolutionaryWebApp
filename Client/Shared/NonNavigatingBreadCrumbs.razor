@@ -6,7 +6,8 @@
         @foreach (var item in SplitPath())
         {
             <li class="breadcrumb-item @ActiveClassForItem(item)">
-                <a href="#" @onclick="@(() => NavigateToPath(item))" @onclick:preventDefault="true">
+                <a href="#" class="@ActiveClassForItem(item)"
+                   @onclick="@(() => NavigateToPath(item))" @onclick:preventDefault="true">
                     @item.ItemName
                 </a>
             </li>
