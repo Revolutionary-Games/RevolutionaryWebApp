@@ -1403,8 +1403,8 @@ else
 
         try
         {
-            result = await Http.PostAsync($"api/v1/Files/{parsedFolderId}/move",
-                new StringContent(targetMovePath ?? string.Empty));
+            result = await Http.PostAsJsonAsync($"api/v1/Files/{parsedFolderId}/move",
+                targetMovePath ?? string.Empty);
         }
         catch (HttpRequestException e)
         {

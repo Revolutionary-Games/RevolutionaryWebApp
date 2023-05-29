@@ -38,6 +38,8 @@ public class StorageFilesController : Controller
     private const string FileUploadProtectionPurposeString = "StorageFilesController.Upload.v1";
     private const string FileUploadChunkProtectionPurposeString = "StorageFilesController.UploadChunk.v1";
 
+    private const string AlreadyInTargetFolderMessage = "Item is already in the target folder";
+
     private readonly ILogger<StorageFilesController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IGeneralRemoteStorage remoteStorage;
@@ -939,6 +941,40 @@ public class StorageFilesController : Controller
         return Ok(restoredPath);
     }
 
+    [HttpPost("{id:long}/move")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<ActionResult> MoveItem([Required] long id, [FromBody] string? targetFolder)
+    {
+        if (string.IsNullOrWhiteSpace(targetFolder))
+            targetFolder = string.Empty;
+
+        StorageItem? item = await FindAndCheckAccess(id, false, true);
+        if (item == null)
+            return NotFound("Item to move not found or you don't have (write) access to it");
+
+        if (item.Special)
+            return BadRequest("Special items can't be moved");
+
+        if (item.ModificationLocked)
+            return BadRequest("Item with properties lock on can't be moved");
+
+        // Sanity check to make sure no one tries to move an item from the trash
+        if (item.Deleted)
+            return BadRequest("Deleted item can't be moved. Restore the item first.");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        var result = await MoveFile(item, targetFolder, null, user, false);
+
+        if (result != AlreadyInTargetFolderMessage)
+        {
+            // We need to save the changes to make them stick
+            await database.SaveChangesAsync();
+        }
+
+        return Ok(result);
+    }
+
     [HttpPost("checkUploadDuplicate")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<FileDuplicateCheckResponse>> CheckDuplicateBeforeUpload(
@@ -1605,6 +1641,14 @@ public class StorageFilesController : Controller
             };
         }
 
+        if (item.Parent == finalFolderToMoveTo)
+        {
+            if (restore)
+                throw new Exception("Cannot restore to the same folder item is already in");
+
+            return AlreadyInTargetFolderMessage;
+        }
+
         var nameConflict =
             await database.StorageItems.FirstOrDefaultAsync(i =>
                 i.Parent == finalFolderToMoveTo && i.Name == item.Name);
@@ -1666,6 +1710,25 @@ public class StorageFilesController : Controller
             }
         }
 
+        if (finalFolderToMoveTo == item)
+        {
+            throw new HttpResponseException
+            {
+                Status = (int)HttpStatusCode.Conflict,
+                Value = "Cannot move an item into itself",
+            };
+        }
+
+        // Store the old path to allow users the chance to put things back when this is a move
+        if (!restore)
+        {
+            var fullOldPath = await item.ComputeStoragePath(database);
+            item.MovedFromLocation = fullOldPath;
+
+            logger.LogInformation("StorageItem {Id} ({Name}) moved to {Id2} ({Name2}) from {FullOldPath} by {Email}",
+                item.Id, item.Name, finalFolderToMoveTo?.Id, finalFolderToMoveTo?.Name, fullOldPath, user.Email);
+        }
+
         // Queue job to recount the old folder contents
         if (item.ParentId != null)
         {
@@ -1674,6 +1737,8 @@ public class StorageFilesController : Controller
         }
 
         item.Parent = finalFolderToMoveTo;
+        item.LastModifiedById = user.Id;
+        item.BumpUpdatedAt();
 
         // Queue job to recount the new folder contents
         if (item.Parent != null && countTargetFolderSize)
