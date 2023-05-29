@@ -209,6 +209,9 @@ else
         <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="success" OnPressed="@ToggleNewFolderCreate">
             New Folder
         </Button>
+        <Button Enabled="@CanMoveFolder" class="mr-1" ButtonStyle="secondary" OnPressed="@ToggleFolderMove">
+            Move
+        </Button>
 
         @* Always show this to reduce flicker of the buttons *@
         @if (parsedFolderInfo?.ModificationLocked == true)
@@ -278,6 +281,18 @@ else
                     <StorageItemFolderEditor Data="@parsedFolderInfo" />
                 }
             }
+        }
+
+        @if (showMoveFolder)
+        {
+            <p class="mt-2">Select the folder to move this folder to:</p>
+
+            <FolderSelector CurrentPath="@targetMovePath" NonWritableWarning="@true" OnFolderChange="@BrowseMoveFolder"/>
+
+            <Button Enabled="@(!processing)" class="mb-1" ButtonStyle="primary" OnPressed="@PerformMove"
+                    Spinner="@processing">
+                Move
+            </Button>
         }
 
         @if (showNewFolderCreate)
@@ -377,6 +392,9 @@ else
     private FileAccess newFolderReadAccess;
     private FileAccess newFolderWriteAccess;
 
+    private bool showMoveFolder;
+    private string? targetMovePath;
+
     /// <summary>
     ///   Processing flag for <see cref="parsedFolderInfo"/>
     /// </summary>
@@ -420,6 +438,10 @@ else
     private bool CanDeleteFolder => !processing && parsedFolderInfo is {Special: false, ModificationLocked: false,
         Important: false } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
             && folderIsWritable));
+
+   private bool CanMoveFolder => parsedFolderInfo is {Special: false, ModificationLocked: false,
+       Important: false } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
+           && folderIsWritable));
 
     private string EditLockedStatusButtonType
     {
@@ -733,6 +755,24 @@ else
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleFolderMove()
+    {
+        if (showMoveFolder)
+        {
+            showMoveFolder = false;
+        }
+        else
+        {
+            showMoveFolder = true;
+
+            // TODO: should there be a way to make the target folder "sticky" to allow quickly putting things in the
+            // same place
+            targetMovePath = null;
+        }
+
+        StateHasChanged();
     }
 
     private void HandleDragEnter()
@@ -1344,5 +1384,50 @@ else
     private void ClearCreateMessage()
     {
         createMessage = null;
+    }
+
+    private void BrowseMoveFolder(string? newFolder)
+    {
+        targetMovePath = newFolder;
+        StateHasChanged();
+    }
+
+    private async Task PerformMove()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/Files/{parsedFolderId}/move",
+                new StringContent(targetMovePath ?? string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = $"Folder has been successfully moved to {content}";
+            statusMessageType = SiteNoticeType.Primary;
+            showMoveFolder = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }
