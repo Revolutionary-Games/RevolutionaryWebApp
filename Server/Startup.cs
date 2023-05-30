@@ -14,6 +14,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Hubs;
 using Jobs;
+using Jobs.RegularlyScheduled;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -462,6 +463,7 @@ public class Startup
         AddJobHelper<RefreshFeedsJob>(configurationSection["RefreshFeeds"]);
         AddJobHelper<CleanOldDevBuildsJob>(configurationSection["CleanOldDevBuilds"]);
         AddJobHelper<DeleteFailedItemVersionUploadsJob>(configurationSection["DeleteFailedItemVersionUploads"]);
+        AddJobHelper<ItemMovedLocationClearJob>(configurationSection["ItemMovedLocationClear"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

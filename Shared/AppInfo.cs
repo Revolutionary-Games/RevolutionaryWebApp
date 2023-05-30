@@ -205,4 +205,6 @@ public static class AppInfo
     public static readonly TimeSpan DeleteFileVersionsAfter = TimeSpan.FromDays(90);
 
     public static readonly TimeSpan DeleteFailedVersionUploadAfter = TimeSpan.FromHours(24);
+
+    public static readonly TimeSpan RemoveMovedFromInfoAfter = TimeSpan.FromDays(30);
 }
