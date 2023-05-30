@@ -958,6 +958,9 @@ public class StorageFilesController : Controller
         if (item.ModificationLocked)
             return BadRequest("Item with properties lock on can't be moved");
 
+        if (item.Important)
+            return BadRequest("Important items can't be moved");
+
         // Sanity check to make sure no one tries to move an item from the trash
         if (item.Deleted)
             return BadRequest("Deleted item can't be moved. Restore the item first.");
@@ -1716,6 +1719,15 @@ public class StorageFilesController : Controller
             {
                 Status = (int)HttpStatusCode.Conflict,
                 Value = "Cannot move an item into itself",
+            };
+        }
+
+        if (finalFolderToMoveTo != null && finalFolderToMoveTo.Special)
+        {
+            throw new HttpResponseException
+            {
+                Status = (int)HttpStatusCode.Conflict,
+                Value = "Cannot move an item into a special folder",
             };
         }
 
