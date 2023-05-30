@@ -274,6 +274,14 @@ else
 
                     <li><strong>Allow Parentless</strong>: @parsedFolderInfo.AllowParentless</li>
                     <li><strong>Properties Locked</strong>: @parsedFolderInfo.ModificationLocked</li>
+
+                    @if (parsedFolderInfo.MovedFromLocation != null)
+                    {
+                        <li>
+                            <strong>Previous item location</strong> (this was recently moved):
+                            @parsedFolderInfo.MovedFromLocation
+                        </li>
+                    }
                 </ul>
 
                 @if (!parsedFolderInfo.Special && !parsedFolderInfo.ModificationLocked && folderIsWritable)
