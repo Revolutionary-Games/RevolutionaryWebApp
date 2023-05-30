@@ -1722,6 +1722,33 @@ public class StorageFilesController : Controller
             };
         }
 
+        // When not restoring user must have write access to the old parent folder
+        if (!restore)
+        {
+            if (item.Parent == null)
+            {
+                if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+                {
+                    throw new HttpResponseException
+                    {
+                        Status = (int)HttpStatusCode.Forbidden,
+                        Value = "Cannot move an item from the root folder without being an admin",
+                    };
+                }
+            }
+            else
+            {
+                if (!item.Parent.IsWritableBy(user))
+                {
+                    throw new HttpResponseException
+                    {
+                        Status = (int)HttpStatusCode.Forbidden,
+                        Value = "Cannot move an item from a folder you don't have write access to",
+                    };
+                }
+            }
+        }
+
         if (finalFolderToMoveTo != null && finalFolderToMoveTo.Special)
         {
             throw new HttpResponseException
