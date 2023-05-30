@@ -1592,7 +1592,7 @@ public class StorageFilesController : Controller
                     throw new HttpResponseException
                     {
                         Status = (int)HttpStatusCode.Conflict,
-                        Value = "Target path to move to leads a file, not a folder",
+                        Value = "Target path to move to leads to a file, not a folder",
                     };
                 }
 
