@@ -606,6 +606,10 @@ else
         VisibleFetchInProgress = true;
         Error = null;
 
+        // When changing paths stop showing the folder move and old item related data
+        showMoveFolder = false;
+        statusMessage = null;
+
         await InvokeAsync(StateHasChanged);
 
         HttpResponseMessage result;
