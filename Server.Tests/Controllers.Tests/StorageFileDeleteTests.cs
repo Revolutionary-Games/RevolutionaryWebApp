@@ -33,6 +33,7 @@ public sealed class StorageFileDeleteTests : IDisposable
     private const long SpecialFolderId = 675007;
 
     private const long FileToDeleteId = 675008;
+    private const long FileToDeleteId2 = 675009;
 
     private static readonly Mock<IModelUpdateNotificationSender> ReadonlyDbNotifications = new();
 
@@ -229,6 +230,39 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.Contains("Special item", responseString);
 
         var item = await database.StorageItems.FindAsync(SpecialFolderId);
+        Assert.NotNull(item);
+        Assert.False(item.Deleted);
+
+        jobClientMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task StorageFilesController_CannotDeleteImportantFile()
+    {
+        var jobClientMock = new Mock<IBackgroundJobClient>();
+
+        var database = NonWritingTestDb.Value;
+        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+
+        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
+            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+
+        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock.Object,
+        };
+
+        var result = await controller.DeleteOrTrash(FileToDeleteId2);
+
+        var response = Assert.IsAssignableFrom<BadRequestObjectResult>(result);
+
+        var responseString = Assert.IsType<string>(response.Value);
+
+        Assert.Contains("Important items can't be deleted", responseString);
+
+        var item = await database.StorageItems.FindAsync(FileToDeleteId2);
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
@@ -585,6 +619,17 @@ public sealed class StorageFileDeleteTests : IDisposable
             Parent = parentFolder,
             ReadAccess = FileAccess.User,
             WriteAccess = FileAccess.User,
+        });
+
+        await database.StorageItems.AddAsync(new StorageItem
+        {
+            Id = FileToDeleteId2,
+            Name = "A file 2",
+            Ftype = FileType.File,
+            Parent = parentFolder,
+            ReadAccess = FileAccess.User,
+            WriteAccess = FileAccess.User,
+            Important = true,
         });
 
         await TestFileUtilities.CreateTrashFolder(database);
