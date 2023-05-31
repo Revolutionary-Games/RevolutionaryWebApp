@@ -132,12 +132,32 @@
                 </p>
             }
 
-            <Button ButtonStyle="success" Enabled="@(!processingAction)" Spinner="@processingAction" class="mb-1"
-                    OnPressed="@(() => RestoreItem(null))">
-                Restore
-            </Button>
+            @if (showAlternativeRestorePath)
+            {
+                <p>Select a different folder to restore to:</p>
 
-            @* TODO: admin immediate purge button *@
+                <FolderSelector CurrentPath="@newRestorePath" NonWritableWarning="@true"
+                                OnFolderChange="@ChangeNewRestorePath"/>
+
+                <Button ButtonStyle="primary" Enabled="@(!processingAction && !string.IsNullOrEmpty(newRestorePath))"
+                        Spinner="@processingAction" class="mb-1 mr-1" OnPressed="@(() => RestoreItem(newRestorePath))">
+                    Retry Restore
+                </Button>
+
+                <Button ButtonStyle="warning" Enabled="@(!processingAction)"
+                        Spinner="@processingAction" class="mb-1" OnPressed="@CancelRetryRestore">
+                    Cancel
+                </Button>
+            }
+            else
+            {
+                <Button ButtonStyle="success" Enabled="@(!processingAction)" Spinner="@processingAction" class="mb-1"
+                        OnPressed="@(() => RestoreItem(null))">
+                    Restore
+                </Button>
+
+                @* TODO: admin immediate purge button *@
+            }
         }
 
         <h3>Information</h3>
@@ -286,6 +306,9 @@
     private bool showMoveControls;
     private string? targetMovePath;
 
+    private bool showAlternativeRestorePath;
+    private string? newRestorePath;
+
     private bool expanded;
 
     [Parameter]
@@ -294,6 +317,9 @@
 
     [Parameter]
     public bool PreventClose { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
 
     private string Extension => Path.GetExtension(Item.Name);
 
@@ -676,13 +702,15 @@
 
             if (result.StatusCode == HttpStatusCode.Conflict)
             {
-                // TODO: offer to restore to a custom folder
+                await OfferRestoreToDifferentFolder(content,
+                    customPath ?? loadedDeleteInfo?.OriginalPath ?? "unknown");
             }
         }
         else
         {
             actionStatusMessage = "This file is now restored to: " + content;
             actionStatusMessageType = SiteNoticeType.Success;
+            showAlternativeRestorePath = false;
         }
 
         await InvokeAsync(StateHasChanged);
@@ -742,6 +770,40 @@
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OfferRestoreToDifferentFolder(string errorContent, string triedRestorePath)
+    {
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmFileRestoreRetry.Name), Item.Name.Truncate() },
+            { nameof(ConfirmFileRestoreRetry.TriedPath), triedRestorePath },
+            { nameof(ConfirmFileRestoreRetry.ErrorMessage), errorContent },
+        };
+
+        var modal = Modal.Show<ConfirmFileRestoreRetry>("Restore to previous location failed", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        // Show the controls to retry the restore to a different place. This is not in the modal itself as having
+        // a table in it causes an error
+        showAlternativeRestorePath = true;
+        newRestorePath = null;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ChangeNewRestorePath(string? newPath)
+    {
+        newRestorePath = newPath;
+    }
+
+    private void CancelRetryRestore()
+    {
+        showAlternativeRestorePath = false;
     }
 
 }

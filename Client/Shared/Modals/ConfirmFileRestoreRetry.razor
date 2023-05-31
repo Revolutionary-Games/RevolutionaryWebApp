@@ -1,0 +1,46 @@
+<BootstrapModal OnCancel="@Cancel">
+    <div class="modal-body">
+        <p>
+            Restoring "@Name" to the location it was deleted from failed. This can happen when the folder is deleted
+            (and you don't have required access to recreate it) or modified so that you no longer have access to it.
+            You can retry restoring this item to a different path to hopefully successfully restore this.
+        </p>
+
+        <p>Restore was tried to path: @TriedPath</p>
+
+        <p>Restore failed with error: @ErrorMessage:</p>
+
+    </div>
+    <div class="modal-footer">
+        <Button class="mr-1" ButtonStyle="warning" OnPressed="@Cancel">Cancel Restore</Button>
+        <Button class="mr-1" ButtonStyle="primary" OnPressed="@Confirm">Retry Restore</Button>
+    </div>
+</BootstrapModal>
+
+@code {
+
+    [CascadingParameter]
+    BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public string Name { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public string TriedPath { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public string ErrorMessage { get; set; } = null!;
+
+    private void Confirm()
+    {
+        ModalInstance.CloseAsync(ModalResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        ModalInstance.CloseAsync(ModalResult.Cancel());
+    }
+}
