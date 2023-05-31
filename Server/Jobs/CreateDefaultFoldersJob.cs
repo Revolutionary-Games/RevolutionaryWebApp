@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using DevCenterCommunication.Models;
 using DevCenterCommunication.Models.Enums;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -36,10 +37,10 @@ public class CreateDefaultFoldersJob : IJob
         var itemsToRecompute = new List<StorageItem?>
         {
             await CreateDefaultFolder("Trash", null, FileAccess.RestrictedUser, FileAccess.Nobody,
-                cancellationToken),
+                true, cancellationToken),
         };
 
-        var builds = await CreateDefaultFolder(DevBuildFolderName, null, FileAccess.User, FileAccess.Nobody,
+        var builds = await CreateDefaultFolder(DevBuildFolderName, null, FileAccess.User, FileAccess.Nobody, true,
             cancellationToken);
 
         itemsToRecompute.Add(builds);
@@ -53,18 +54,18 @@ public class CreateDefaultFoldersJob : IJob
                 throw new NullReferenceException("devbuilds folder failed to be retrieved");
         }
 
-        itemsToRecompute.Add(await CreateDefaultFolder("Objects", builds, FileAccess.User, FileAccess.Nobody,
+        itemsToRecompute.Add(await CreateDefaultFolder("Objects", builds, FileAccess.User, FileAccess.Nobody, true,
             cancellationToken));
-        itemsToRecompute.Add(await CreateDefaultFolder("Dehydrated", builds, FileAccess.User, FileAccess.Nobody,
-            cancellationToken));
-
-        itemsToRecompute.Add(await CreateDefaultFolder("Public", null, FileAccess.Public, FileAccess.Developer,
+        itemsToRecompute.Add(await CreateDefaultFolder("Dehydrated", builds, FileAccess.User, FileAccess.Nobody, true,
             cancellationToken));
 
-        itemsToRecompute.Add(await CreateDefaultFolder("Symbols", null, FileAccess.Developer, FileAccess.Nobody,
+        itemsToRecompute.Add(await CreateDefaultFolder("Public", null, FileAccess.Public, FileAccess.Developer, false,
             cancellationToken));
 
-        var ci = await CreateDefaultFolder(CIFolderName, null, FileAccess.Developer, FileAccess.Developer,
+        itemsToRecompute.Add(await CreateDefaultFolder("Symbols", null, FileAccess.Developer, FileAccess.Nobody, false,
+            cancellationToken));
+
+        var ci = await CreateDefaultFolder(CIFolderName, null, FileAccess.Developer, FileAccess.Developer, true,
             cancellationToken);
 
         itemsToRecompute.Add(ci);
@@ -77,7 +78,7 @@ public class CreateDefaultFoldersJob : IJob
                 throw new NullReferenceException("ci folder failed to be retrieved");
         }
 
-        itemsToRecompute.Add(await CreateDefaultFolder("Images", ci, FileAccess.Developer, FileAccess.Developer,
+        itemsToRecompute.Add(await CreateDefaultFolder("Images", ci, FileAccess.Developer, FileAccess.Developer, true,
             cancellationToken));
 
         await database.SaveChangesAsync(cancellationToken);
@@ -99,7 +100,7 @@ public class CreateDefaultFoldersJob : IJob
     }
 
     private async Task<StorageItem?> CreateDefaultFolder(string name, StorageItem? parent, FileAccess read,
-        FileAccess write, CancellationToken cancellationToken)
+        FileAccess write, bool selfLocked, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested)
             return null;
@@ -119,6 +120,7 @@ public class CreateDefaultFoldersJob : IJob
                 ReadAccess = read,
                 WriteAccess = write,
                 Special = true,
+                ModificationLocked = selfLocked,
             };
 
             await database.StorageItems.AddAsync(newItem, cancellationToken);
@@ -126,12 +128,18 @@ public class CreateDefaultFoldersJob : IJob
         }
 
         // Update access if incorrect
-        if (existing.ReadAccess != read || existing.WriteAccess != write || existing.Special != true)
+        if (existing.ReadAccess != read || existing.WriteAccess != write || existing.ModificationLocked != selfLocked ||
+            existing.Special != true)
         {
-            logger.LogInformation("Correcting incorrect access on default folder \"{Name}\"", name);
+            logger.LogInformation("Correcting incorrect access (or write lock) on default folder \"{Name}\"", name);
             existing.ReadAccess = read;
             existing.WriteAccess = write;
+            existing.ModificationLocked = selfLocked;
             existing.Special = true;
+
+            // Keep track of some modification properties
+            existing.LastModifiedById = null;
+            existing.BumpUpdatedAt();
         }
 
         return null;
