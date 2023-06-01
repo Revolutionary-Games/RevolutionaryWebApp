@@ -146,6 +146,10 @@ public static class AppInfo
     /// </summary>
     public const int MaxDehydratedToDeleteAtOnce = 5000;
 
+    public const long SmallFileSizeVersionsKeepLimit = GlobalConstants.MEBIBYTE * 10;
+    public const long MediumFileSizeVersionsKeepLimit = GlobalConstants.MEBIBYTE * 50;
+    public const long LargeFileSizeVersionsKeepLimit = GlobalConstants.MEBIBYTE * 200;
+
     // When changed would be nice to also update the value in ThriveDevCenter.Server.csproj
     public const int Major = 2;
     public const int Minor = 15;
