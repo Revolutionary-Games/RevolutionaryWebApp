@@ -16,7 +16,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public class PurgeOldDeletedFileVersionsJobTests : IDisposable
+public sealed class PurgeOldDeletedFileVersionsJobTests : IDisposable
 {
     private static readonly TimeSpan OldVersion = AppInfo.DeleteFileVersionsAfter * 2;
     private static readonly TimeSpan NotOldVersionTime = AppInfo.DeleteFileVersionsAfter / 2;

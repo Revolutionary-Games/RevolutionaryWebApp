@@ -464,6 +464,9 @@ public class Startup
         AddJobHelper<CleanOldDevBuildsJob>(configurationSection["CleanOldDevBuilds"]);
         AddJobHelper<DeleteFailedItemVersionUploadsJob>(configurationSection["DeleteFailedItemVersionUploads"]);
         AddJobHelper<ItemMovedLocationClearJob>(configurationSection["ItemMovedLocationClear"]);
+        AddJobHelper<CleanOldFileVersionsJob>(configurationSection["CleanOldFileVersions"]);
+        AddJobHelper<PurgeOldDeletedFileVersionsJob>(configurationSection["PurgeOldDeletedFileVersions"]);
+        AddJobHelper<PurgeOldDeletedFilesJob>(configurationSection["PurgeOldDeletedFiles"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

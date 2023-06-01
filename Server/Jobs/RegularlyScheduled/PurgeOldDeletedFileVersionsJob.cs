@@ -34,9 +34,7 @@ public class PurgeOldDeletedFileVersionsJob : IJob
 
         var versionsToPurge = await database.StorageItemVersions
             .Where(v => v.Deleted && !v.Uploading && v.UpdatedAt < cutoff)
-            .ToListAsync(cancellationToken);
-
-        // AsNoTracking can't be used as tests won't pass otherwise (see below for the comment on delete)
+            .AsNoTracking().ToListAsync(cancellationToken);
 
         if (versionsToPurge.Count < 1)
             return;
