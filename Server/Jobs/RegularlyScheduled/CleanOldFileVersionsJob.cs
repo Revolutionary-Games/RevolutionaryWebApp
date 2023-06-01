@@ -81,8 +81,8 @@ public class CleanOldFileVersionsJob : IJob
                 versionsToKeep = 9;
             }
 
-            // TODO: don't count uploading items in the current count
-            int versionCount = item.StorageItemVersions.Count;
+            // Don't count uploading versions as taking up limit
+            int versionCount = item.StorageItemVersions.Count - item.StorageItemVersions.Count(v => v.Uploading);
 
             if (versionCount <= versionsToKeep)
             {

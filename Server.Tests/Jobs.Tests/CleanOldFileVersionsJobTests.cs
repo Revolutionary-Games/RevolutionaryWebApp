@@ -143,6 +143,17 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
         await database.StorageItemVersions.AddAsync(version3);
         item.StorageItemVersions.Add(version3);
 
+        var version4 = new StorageItemVersion
+        {
+            Version = 4,
+            Uploading = false,
+            UpdatedAt = DateTime.UtcNow,
+            StorageFile = await CreateDummyStorageFile(database, AppInfo.LargeFileSizeVersionsKeepLimit + 1),
+        };
+
+        await database.StorageItemVersions.AddAsync(version4);
+        item.StorageItemVersions.Add(version4);
+
         await database.StorageItems.AddAsync(item);
 
         await database.SaveChangesAsync();
@@ -154,6 +165,7 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
         Assert.True(version1.Deleted);
         Assert.False(version2.Deleted);
         Assert.False(version3.Deleted);
+        Assert.False(version4.Deleted);
 
         jobClientMock.Verify();
     }
