@@ -29,58 +29,65 @@
 
     <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
-    <div class="preview-box">
-        @switch (Extension)
-        {
-            case ".jpg":
-            case ".jpeg":
-            case ".gif":
-            case ".webp":
-            case ".png":
-            case ".svg":
+    @if (!Item.Deleted)
+    {
+        <div class="preview-box">
+            @switch (Extension)
             {
-                <img src="@GetDownloadURL()" alt="@Item.Name" class="preview-image" />
-                break;
-            }
-            case ".mkv":
-            case ".webm":
-            case ".mp4":
-            {
-                <video src="@GetDownloadURL()" alt="@Item.Name" class="preview-video" controls></video>
-                break;
-            }
-            case ".flac":
-            case ".ogg":
-            {
-                <audio src="@GetDownloadURL()" alt="@Item.Name" class="preview-audio" controls></audio>
-                break;
-            }
-            case ".json":
-            case ".md":
-            case ".txt":
-            {
-                @if (downloadingData)
+                case ".jpg":
+                case ".jpeg":
+                case ".gif":
+                case ".webp":
+                case ".png":
+                case ".svg":
                 {
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="sr-only">Loading...</span>
+                    <img src="@GetDownloadURL()" alt="@Item.Name" class="preview-image"/>
+                    break;
+                }
+                case ".mkv":
+                case ".webm":
+                case ".mp4":
+                {
+                    <video src="@GetDownloadURL()" alt="@Item.Name" class="preview-video" controls></video>
+                    break;
+                }
+                case ".flac":
+                case ".ogg":
+                {
+                    <audio src="@GetDownloadURL()" alt="@Item.Name" class="preview-audio" controls></audio>
+                    break;
+                }
+                case ".json":
+                case ".md":
+                case ".txt":
+                {
+                    if (downloadingData)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
                         </div>
-                    </div>
-                }
-                else
-                {
-                    <pre>@downloadedTextContent</pre>
-                }
+                    }
+                    else
+                    {
+                        <pre>@downloadedTextContent</pre>
+                    }
 
-                break;
+                    break;
+                }
+                default:
+                {
+                    <span>No preview available for this file type (@Extension)</span>
+                    break;
+                }
             }
-            default:
-            {
-                <span>No preview available for this file type (@Extension)</span>
-                break;
-            }
-        }
-    </div>
+        </div>
+    }
+    else
+    {
+        <span>Deleted items can't be previewed</span>
+    }
 
     @if (Item.Deleted)
     {
@@ -350,7 +357,7 @@
     {
         await base.OnAfterRenderAsync(firstRender);
 
-        if (downloadCheckedFilename != Item.Name)
+        if (downloadCheckedFilename != Item.Name && !Item.Deleted)
         {
             downloadCheckedFilename = Item.Name;
 
