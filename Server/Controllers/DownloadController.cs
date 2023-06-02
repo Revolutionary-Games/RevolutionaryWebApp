@@ -53,19 +53,29 @@ public class DownloadController : Controller
 
         var item = await database.StorageItems.FindAsync(id);
 
+        // Deleted files are modified to only allow the owning user to have read access to it (so everyone else will
+        // get a not found
         if (item == null || !item.IsReadableBy(user))
             return NotFound("File not found or you don't have access to it. Logging in may help.");
 
         if (item.Deleted)
         {
-            // Disallow downloading deleted items to make it more likely someone notices if an important file is
-            // deleted
+            // Disallow downloading deleted items when not logged in
             if (user != null)
             {
-                return NotFound("The specified file is currently in Trash (deleted) and can't be downloaded.");
-            }
+                if (version == null)
+                {
+                    return NotFound("The specified file is currently in Trash (deleted) and can only have specific " +
+                        "versions downloaded.");
+                }
 
-            return NotFound("File not found or you don't have access to it. Logging in may help.");
+                // User with write access accessing a specific version of a deleted file can access it (just so to look
+                // at it without having to undelete a it).
+            }
+            else
+            {
+                return NotFound("File not found or you don't have access to it. Logging in may help.");
+            }
         }
 
         var latestUploaded = await item.GetHighestUploadedVersion(database);
