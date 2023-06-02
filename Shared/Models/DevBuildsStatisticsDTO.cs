@@ -12,4 +12,5 @@ public class DevBuildsStatisticsDTO
     public long DevBuildsSize { get; set; }
     public DateTime? BOTDUpdated { get; set; }
     public DateTime? LatestBuild { get; set; }
+    public int DeletedBuilds { get; set; }
 }

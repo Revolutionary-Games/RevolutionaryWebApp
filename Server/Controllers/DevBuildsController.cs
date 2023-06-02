@@ -80,6 +80,7 @@ public class DevBuildsController : Controller
             LatestBuild = latestBuild,
             DevBuildsSize = buildsSize,
             TotalSpaceUsed = buildsSize + dehydratedSize,
+            DeletedBuilds = (int)(deletedBuildInfo?.ItemCount ?? 0),
         };
 
         return result;
