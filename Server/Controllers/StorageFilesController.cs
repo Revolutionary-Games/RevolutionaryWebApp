@@ -552,6 +552,9 @@ public class StorageFilesController : Controller
         if (newData.ReadAccess == FileAccess.Nobody || newData.WriteAccess == FileAccess.Nobody)
             return BadRequest("Only system can set system readable/writable status");
 
+        // Ensure renamed things don't get extra whitespace in the names
+        newData.Name = newData.Name.Trim();
+
         if (item.WriteAccess == newData.WriteAccess && item.ReadAccess == newData.ReadAccess &&
             item.Name == newData.Name)
         {
@@ -1021,6 +1024,9 @@ public class StorageFilesController : Controller
     public async Task<ActionResult<UploadFileResponse>> StartFileUpload(
         [Required] [FromBody] UploadFileRequestForm request)
     {
+        // Ensure files don't have preceding or trailing whitespace
+        request.Name = request.Name.Trim();
+
         if (!CheckNewItemName(request.Name, out var badRequest))
             return badRequest!;
 
@@ -1384,6 +1390,13 @@ public class StorageFilesController : Controller
     [NonAction]
     private bool CheckNewItemName(string name, out ActionResult? badRequest)
     {
+        // Ensure no preceding or trailing spaces in storage items
+        if (name != name.Trim())
+        {
+            badRequest = BadRequest("You specified a name that has preceding or trailing whitespace");
+            return false;
+        }
+
         // Purely numeric names (that are short) or starting with '@' are disallowed
         // TODO: would be nice to do this validation also on the client side form
         if (name.StartsWith('@') || (name.Length <= 5 && int.TryParse(name, out int _)))
