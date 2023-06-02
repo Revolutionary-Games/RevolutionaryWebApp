@@ -188,8 +188,15 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     ///   If not called the group change will not work!
     /// </summary>
     /// <param name="jobClient">This is used to queue maintenance jobs to keep DB data consistent</param>
-    public void OnGroupsChanged(IBackgroundJobClient jobClient)
+    /// <param name="accountIsBeingCreated">
+    ///   True when the account is still being created, ensures no jobs that rely on the user existing right at
+    ///   this second are triggered. This is fine as a new user won't have outdated data the jobs would try to correct.
+    /// </param>
+    public void OnGroupsChanged(IBackgroundJobClient jobClient, bool accountIsBeingCreated = false)
     {
+        if (accountIsBeingCreated)
+            return;
+
         jobClient.Schedule<UpdateUserGroupCacheJob>(x => x.Execute(Id, CancellationToken.None),
             TimeSpan.FromSeconds(30));
     }

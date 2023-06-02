@@ -664,7 +664,7 @@ public class LoginController : SSOLoginController
             if (developerLogin)
             {
                 user.Groups.Add(await developerGroup.Value);
-                user.OnGroupsChanged(jobClient);
+                user.OnGroupsChanged(jobClient, true);
             }
 
             await Database.Users.AddAsync(user);
