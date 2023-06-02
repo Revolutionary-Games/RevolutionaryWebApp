@@ -152,7 +152,7 @@ public static class AppInfo
 
     // When changed would be nice to also update the value in ThriveDevCenter.Server.csproj
     public const int Major = 2;
-    public const int Minor = 15;
+    public const int Minor = 16;
 
     public const int DefaultMaxLauncherLinks = 5;
 
