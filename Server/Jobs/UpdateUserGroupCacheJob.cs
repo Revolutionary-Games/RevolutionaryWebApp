@@ -12,10 +12,10 @@ using Models;
 /// </summary>
 public class UpdateUserGroupCacheJob
 {
-    private readonly Logger<UpdateUserGroupCacheJob> logger;
+    private readonly ILogger<UpdateUserGroupCacheJob> logger;
     private readonly ApplicationDbContext database;
 
-    public UpdateUserGroupCacheJob(Logger<UpdateUserGroupCacheJob> logger, ApplicationDbContext database)
+    public UpdateUserGroupCacheJob(ILogger<UpdateUserGroupCacheJob> logger, ApplicationDbContext database)
     {
         this.logger = logger;
         this.database = database;
