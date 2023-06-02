@@ -326,8 +326,9 @@
 
     private string ExpandedClass => expanded ? "expanded" : string.Empty;
 
-    private bool CanDeleteItem => !Item.Special && !Item.ModificationLocked && Item.WriteAccess.IsAccessibleTo(
-        CurrentUserInfo.Groups, CurrentUserInfo.Info!.Id, Item.OwnerId) && !processingAction;
+    private bool CanDeleteItem => !Item.Special && !Item.ModificationLocked && !Item.Important &&
+        Item.WriteAccess.IsAccessibleTo(CurrentUserInfo.Groups, CurrentUserInfo.Info!.Id, Item.OwnerId) &&
+        !processingAction;
 
     // TODO: can we somehow check the writability of the parent folder?
     private bool CanMoveItem => Item is {Special: false, ModificationLocked: false,
