@@ -36,8 +36,8 @@ public sealed class SessionCleanupJobTests : IClassFixture<RealUnitTestDatabaseF
         await database.SaveChangesAsync();
 
         // Store count before we add the to be deleted items
-        // Raw SQL needs to be used here as the tested job uses SQL, so we otherwise wouldn't see the changes
-        var countBefore = await database.Database.ExecuteSqlRawAsync("SELECT COUNT(*) FROM sessions;");
+        // This doesn't need raw SQL as the count async seems to always go to the DB anyway
+        var countBefore = await database.Sessions.CountAsync();
 
         var created2 = new Session
         {
@@ -64,7 +64,7 @@ public sealed class SessionCleanupJobTests : IClassFixture<RealUnitTestDatabaseF
             .FromSqlInterpolated($"SELECT * FROM sessions WHERE id = {created2.Id}").FirstOrDefaultAsync();
 
         Assert.Null(retrieved2);
-        Assert.Equal(countBefore, await database.Database.ExecuteSqlRawAsync("SELECT COUNT(*) FROM sessions;"));
+        Assert.Equal(countBefore, await database.Sessions.CountAsync());
     }
 
     public void Dispose()
