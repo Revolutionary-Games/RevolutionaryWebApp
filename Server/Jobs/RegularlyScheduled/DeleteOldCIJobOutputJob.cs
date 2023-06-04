@@ -4,11 +4,13 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
 
+[DisableConcurrentExecution(1800)]
 public class DeleteOldCIJobOutputJob : IJob
 {
     private readonly ILogger<DeleteOldCIJobOutputJob> logger;

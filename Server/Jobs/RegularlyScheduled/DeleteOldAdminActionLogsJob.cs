@@ -3,11 +3,13 @@ namespace ThriveDevCenter.Server.Jobs.RegularlyScheduled;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
 
+[DisableConcurrentExecution(900)]
 public class DeleteOldAdminActionLogsJob : IJob
 {
     private readonly ILogger<DeleteOldAdminActionLogsJob> logger;
