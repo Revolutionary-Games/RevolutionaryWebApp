@@ -68,11 +68,20 @@
 
         <h4>Output</h4>
 
-        <CIJobOutput ProjectId="@Data.CiProjectId" BuildId="@Data.CiBuildId" JobId="@Data.CiJobId" />
+        @if (Data.OutputPurged)
+        {
+            <p>This job is so old that the output has been cleared</p>
+        }
+        else
+        {
+            <CIJobOutput ProjectId="@Data.CiProjectId" BuildId="@Data.CiBuildId" JobId="@Data.CiJobId"/>
+        }
 
         <br />
 
         <h4>Artifacts</h4>
+
+        <p>Artifact support has not been implemented. It might bet done in the future if there is a need.</p>
 
 
         @* TODO: would be pretty cool to change the favicon based on the job status *@
