@@ -146,6 +146,12 @@ public static class AppInfo
     /// </summary>
     public const int MaxDehydratedToDeleteAtOnce = 5000;
 
+    /// <summary>
+    ///   Used to ensure that we don't completely blow up the process memory (as this loads each section's text into
+    ///   memory)
+    /// </summary>
+    public const int MaxCiJobOutputsToDeleteAtOnce = 500;
+
     public const long SmallFileSizeVersionsKeepLimit = GlobalConstants.MEBIBYTE * 10;
     public const long MediumFileSizeVersionsKeepLimit = GlobalConstants.MEBIBYTE * 50;
     public const long LargeFileSizeVersionsKeepLimit = GlobalConstants.MEBIBYTE * 200;
@@ -211,4 +217,12 @@ public static class AppInfo
     public static readonly TimeSpan DeleteFailedVersionUploadAfter = TimeSpan.FromHours(24);
 
     public static readonly TimeSpan RemoveMovedFromInfoAfter = TimeSpan.FromDays(30);
+
+    public static readonly TimeSpan DeleteSuccessfulJobLogsAfter = TimeSpan.FromDays(180);
+    public static readonly TimeSpan DeleteFailedJobLogsAfter = TimeSpan.FromDays(365);
+    public static readonly TimeSpan DeleteCIBuildsAfter = TimeSpan.FromDays(365 * 5);
+
+    public static readonly TimeSpan DeleteServerLogsAfter = TimeSpan.FromDays(365);
+    public static readonly TimeSpan DeleteActionLogsAfter = TimeSpan.FromDays(365 * 2);
+    public static readonly TimeSpan DeleteAdminActionLogsAfter = TimeSpan.FromDays(365 * 5);
 }
