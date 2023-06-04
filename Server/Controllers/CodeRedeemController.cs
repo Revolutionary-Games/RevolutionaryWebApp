@@ -103,10 +103,10 @@ public class CodeRedeemController : Controller
             validCode.Uses += 1;
         }
 
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry
         {
-            Message = $"Granted {granted} for redeeming a redeemable code",
-            TargetUserId = target.Id,
+            Message = $"Granted {granted} for redeeming a redeemable code to self",
+            PerformedById = target.Id,
         });
 
         await database.SaveChangesAsync();
