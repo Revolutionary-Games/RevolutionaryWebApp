@@ -26,6 +26,11 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
 
     public bool Succeeded { get; set; }
 
+    /// <summary>
+    ///   When true the <see cref="CiJobOutputSections"/> have been deleted from the DB
+    /// </summary>
+    public bool OutputPurged { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? FinishedAt { get; set; }
 
@@ -130,6 +135,7 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
             JobName = JobName,
             State = State,
             Succeeded = Succeeded,
+            OutputPurged = OutputPurged,
             RanOnServer = RanOnServer,
             TimeWaitingForServer = TimeWaitingForServer,
             ProjectName = Build?.CiProject?.Name ?? CiProjectId.ToString(),

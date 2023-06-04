@@ -23,6 +23,7 @@ public class CIJobDTO : IIdentifiable
     public string ProjectName { get; set; } = string.Empty;
 
     public bool Succeeded { get; set; }
+    public bool OutputPurged { get; set; }
     public string? RanOnServer { get; set; }
     public TimeSpan? TimeWaitingForServer { get; set; }
 
