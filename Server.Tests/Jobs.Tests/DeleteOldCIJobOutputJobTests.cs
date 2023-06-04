@@ -9,7 +9,6 @@ using Server.Jobs.RegularlyScheduled;
 using Server.Models;
 using Server.Services;
 using Shared;
-using Shared.Models;
 using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
