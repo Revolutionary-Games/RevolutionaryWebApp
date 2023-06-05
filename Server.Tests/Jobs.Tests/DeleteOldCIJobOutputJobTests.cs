@@ -33,7 +33,6 @@ public sealed class DeleteOldCIJobOutputJobTests : IDisposable
                 .Options, notificationsMock.Object);
 
         var ciProject = new CiProject();
-
         await database.CiProjects.AddAsync(ciProject);
 
         var ciBuild = new CiBuild

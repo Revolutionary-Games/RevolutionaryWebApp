@@ -84,6 +84,19 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
 
     public ICollection<CiJobOutputSection> CiJobOutputSections { get; set; } = new HashSet<CiJobOutputSection>();
 
+    /// <summary>
+    ///   Correctly deletes a set of CI jobs
+    /// </summary>
+    /// <param name="database">The database the jobs are from</param>
+    /// <param name="jobs">The jobs to delete</param>
+    public static void DeleteJobs(ApplicationDbContext database, ICollection<CiJob> jobs)
+    {
+        // TODO: implement deleting job artifacts if those exist
+
+        // Delete the jobs from the database
+        database.CiJobs.RemoveRange(jobs);
+    }
+
     public void SetFinishSuccess(bool success)
     {
         Succeeded = success;

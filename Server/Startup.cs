@@ -471,6 +471,7 @@ public class Startup
         AddJobHelper<DeleteOldActionLogsJob>(configurationSection["DeleteOldActionLogs"]);
         AddJobHelper<DeleteOldAdminActionLogsJob>(configurationSection["DeleteOldAdminActionLogs"]);
         AddJobHelper<DeleteOldCIJobOutputJob>(configurationSection["DeleteOldCIJobOutput"]);
+        AddJobHelper<DeleteOldCIBuildsJob>(configurationSection["DeleteOldCIBuilds"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

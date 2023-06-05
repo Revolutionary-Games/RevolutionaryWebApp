@@ -154,9 +154,7 @@ public class CIBuildManagementController : Controller
             await database.CiJobs.AddAsync(newJob);
         }
 
-        // TODO: implement deleting job artifacts if those exist
-
-        database.CiJobs.RemoveRange(toRerun);
+        CiJob.DeleteJobs(database, toRerun);
 
         await database.SaveChangesAsync();
 
