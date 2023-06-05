@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
@@ -15,7 +16,6 @@ using Amazon.S3.Model;
 using Amazon.S3.Util;
 using DevCenterCommunication.Models;
 using Filters;
-using ICSharpCode.SharpZipLib.GZip;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Models;
@@ -411,7 +411,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
         var sha3 = Sha3.Sha3256();
 
-        await using var unzipped = new GZipInputStream(dataStream);
+        await using var unzipped = new GZipStream(dataStream, CompressionMode.Decompress);
 
         var hash = await sha3.ComputeHashAsync(unzipped);
 

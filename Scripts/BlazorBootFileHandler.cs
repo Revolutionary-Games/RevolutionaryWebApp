@@ -8,7 +8,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
-using ICSharpCode.SharpZipLib.GZip;
 using SharedBase.Utilities;
 
 public static class BlazorBootFileHandler
@@ -54,8 +53,7 @@ public static class BlazorBootFileHandler
 
         await using (var stream = File.Open(gzipped, FileMode.Create, FileAccess.Write))
         {
-            await using var compressedStream = new GZipOutputStream(stream);
-            compressedStream.SetLevel(9);
+            await using var compressedStream = new GZipStream(stream, CompressionLevel.Optimal);
 
             await compressedStream.WriteAsync(content, 0, content.Length, cancellationToken);
         }

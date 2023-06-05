@@ -37,7 +37,6 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.4" />
     <PackageReference Include="RecursiveDataAnnotationsValidation" Version="2.0.0" />
     <PackageReference Include="SHA3.Net" Version="2.0.0" />
-    <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="SimpleBase" Version="4.0.0" />
     <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta19" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
