@@ -58,9 +58,8 @@ public static class BlazorBootFileHandler
             await compressedStream.WriteAsync(content, 0, content.Length, cancellationToken);
         }
 
-        var gzippedFileAttributes = new FileInfo(gzipped);
-        gzippedFileAttributes.LastWriteTime = fileAttributes.LastWriteTime;
-        gzippedFileAttributes.LastAccessTime = fileAttributes.LastAccessTime;
+        File.SetLastWriteTime(gzipped, fileAttributes.LastWriteTime);
+        File.SetLastAccessTime(gzipped, fileAttributes.LastAccessTime);
 
         var brotliProcessed = $"{file}.br";
         if (File.Exists(brotliProcessed))
@@ -73,9 +72,8 @@ public static class BlazorBootFileHandler
             await compressedStream.WriteAsync(content, 0, content.Length, cancellationToken);
         }
 
-        var brotliFileAttributes = new FileInfo(brotliProcessed);
-        brotliFileAttributes.LastWriteTime = fileAttributes.LastWriteTime;
-        brotliFileAttributes.LastAccessTime = fileAttributes.LastAccessTime;
+        File.SetLastWriteTime(brotliProcessed, fileAttributes.LastWriteTime);
+        File.SetLastAccessTime(brotliProcessed, fileAttributes.LastAccessTime);
     }
 
     private static async Task<bool> ProcessHashHelper(string baseFolder, JsonObject jsonObject,
