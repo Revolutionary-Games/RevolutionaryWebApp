@@ -222,7 +222,7 @@ public static class AppInfo
     public static readonly TimeSpan DeleteFailedJobLogsAfter = TimeSpan.FromDays(365);
     public static readonly TimeSpan DeleteCIBuildsAfter = TimeSpan.FromDays(365 * 5);
 
-    public static readonly TimeSpan DeleteServerLogsAfter = TimeSpan.FromDays(365);
-    public static readonly TimeSpan DeleteActionLogsAfter = TimeSpan.FromDays(365 * 2);
-    public static readonly TimeSpan DeleteAdminActionLogsAfter = TimeSpan.FromDays(365 * 5);
+    public static readonly TimeSpan DeleteServerLogsAfter = TimeSpan.FromDays(365 * 2);
+    public static readonly TimeSpan DeleteActionLogsAfter = TimeSpan.FromDays(365 * 3);
+    public static readonly TimeSpan DeleteAdminActionLogsAfter = TimeSpan.FromDays(365 * 10);
 }
