@@ -73,9 +73,8 @@ public class CiJobBuildStep
 
 public class CiJobBuildStepRun
 {
-    [Required]
     [StringLength(90, MinimumLength = 2)]
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
 
     [Required]
     [StringLength(4000, MinimumLength = 1)]
