@@ -32,7 +32,7 @@ public sealed class DeleteOldAdminActionLogsJobTests : IClassFixture<RealUnitTes
         var log1 = new AdminAction
         {
             Message = "Log message 1",
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow - TimeSpan.FromSeconds(30),
         };
         await database.AdminActions.AddAsync(log1);
 
@@ -46,14 +46,14 @@ public sealed class DeleteOldAdminActionLogsJobTests : IClassFixture<RealUnitTes
         var log3 = new AdminAction
         {
             Message = "Log message 3",
-            CreatedAt = DateTime.UtcNow - AppInfo.DeleteAdminActionLogsAfter,
+            CreatedAt = DateTime.UtcNow - AppInfo.DeleteAdminActionLogsAfter - TimeSpan.FromSeconds(30),
         };
         await database.AdminActions.AddAsync(log3);
 
         var log4 = new AdminAction
         {
             Message = "Log message 4",
-            CreatedAt = DateTime.UtcNow - AppInfo.DeleteServerLogsAfter,
+            CreatedAt = DateTime.UtcNow - AppInfo.DeleteServerLogsAfter - TimeSpan.FromSeconds(30),
         };
         await database.AdminActions.AddAsync(log4);
 

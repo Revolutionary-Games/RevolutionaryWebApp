@@ -32,7 +32,7 @@ public sealed class DeleteOldServerLogsJobTests : IClassFixture<RealUnitTestData
         var log1 = new LogEntry
         {
             Message = "Log message 1",
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow - TimeSpan.FromSeconds(30),
         };
         await database.LogEntries.AddAsync(log1);
 
@@ -46,7 +46,7 @@ public sealed class DeleteOldServerLogsJobTests : IClassFixture<RealUnitTestData
         var log3 = new LogEntry
         {
             Message = "Log message 3",
-            CreatedAt = DateTime.UtcNow - AppInfo.DeleteServerLogsAfter,
+            CreatedAt = DateTime.UtcNow - AppInfo.DeleteServerLogsAfter - TimeSpan.FromSeconds(30),
         };
         await database.LogEntries.AddAsync(log3);
 
