@@ -10,6 +10,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
+using RecursiveDataAnnotationsValidation;
 
 /// <summary>
 ///   The V2 oauth patreon API, used when using oauth login, the creator API is used with a static creator token
@@ -107,7 +108,9 @@ public class PatreonAPI : IPatreonAPI
                 { "fields[user]", "email,full_name,vanity,url" },
             }));
 
-        if (result == null || !Validator.TryValidateObject(result, new ValidationContext(result), null))
+        var validator = new RecursiveDataAnnotationValidator();
+
+        if (result == null || !validator.TryValidateObjectRecursive(result, new ValidationContext(result), null))
         {
             throw new InvalidDataException("invalid identity object returned from Patreon API");
         }

@@ -14,6 +14,7 @@ using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
+using RecursiveDataAnnotationsValidation;
 using Services;
 using Shared;
 using Shared.Models;
@@ -99,8 +100,10 @@ public class CheckAndStartCIBuild
         }
 
         // Check that configuration is valid
+        var validator = new RecursiveDataAnnotationValidator();
+
         var errors = new List<ValidationResult>();
-        if (!Validator.TryValidateObject(configuration, new ValidationContext(configuration), errors))
+        if (!validator.TryValidateObjectRecursive(configuration, new ValidationContext(configuration), errors))
         {
             logger.LogError("Build configuration object didn't pass validations, see following errors:");
 

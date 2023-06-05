@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
+using RecursiveDataAnnotationsValidation;
 using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
@@ -353,8 +354,10 @@ public class MeetingsController : Controller
             return BadRequest("Invalid poll data");
         }
 
+        var validator = new RecursiveDataAnnotationValidator();
+
         var errors = new List<ValidationResult>();
-        if (!Validator.TryValidateObject(parsedData, new ValidationContext(parsedData), errors))
+        if (!validator.TryValidateObjectRecursive(parsedData, new ValidationContext(parsedData), errors))
         {
             logger.LogError("New poll data didn't pass validation:");
 
