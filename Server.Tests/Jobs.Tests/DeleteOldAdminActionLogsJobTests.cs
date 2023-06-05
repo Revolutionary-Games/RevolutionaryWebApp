@@ -68,7 +68,7 @@ public sealed class DeleteOldAdminActionLogsJobTests : IClassFixture<RealUnitTes
         Assert.NotNull(await ReadWithRawSql(log2.Id));
         Assert.Null(await ReadWithRawSql(log3.Id));
         Assert.NotNull(await ReadWithRawSql(log4.Id));
-        Assert.Equal(countBefore - 2, await database.AdminActions.CountAsync());
+        Assert.Equal(countBefore - 1, await database.AdminActions.CountAsync());
     }
 
     public void Dispose()
