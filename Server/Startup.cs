@@ -259,12 +259,6 @@ public class Startup
             options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
         });
 
-        // Required by rate limiting
-        services.AddHttpContextAccessor();
-
-        // Make dynamic rate limit configuration available
-        services.AddSingleton<IRateLimitConfiguration, CustomRateLimitConfiguration>();
-
         // Always running discord bot in the background (only runs if configured in app settings)
         services.AddScoped<RevolutionaryDiscordBotService>();
         services.AddHostedService<BotServiceRunner>();
