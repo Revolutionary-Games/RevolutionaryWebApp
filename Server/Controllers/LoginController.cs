@@ -14,6 +14,7 @@ using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -250,6 +251,7 @@ public class LoginController : SSOLoginController
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitCategories.LoginLimit)]
     public async Task<IActionResult> PerformLocalLogin([FromForm] LoginFormData login)
     {
         if (!localLoginEnabled)

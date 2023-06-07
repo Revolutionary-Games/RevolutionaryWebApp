@@ -4,8 +4,6 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AspNetCoreRateLimit;
-using AspNetCoreRateLimit.Redis;
 using Authorization;
 using Controllers;
 using Filters;
@@ -87,7 +85,6 @@ public class Startup
             });
         }
 
-        // Used for rate limit storage (when not using redis)
         services.AddMemoryCache();
 
         // Our custom cache where we limit the total size, used only by our controllers we can make use this cache
@@ -134,20 +131,19 @@ public class Startup
                 new[] { "application/octet-stream" });
         });
 
-        // Rate limit
-        services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
-        services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
+        // Built in aspnet rate limit configuration
+        var limitOptions = new MyRateLimitOptions();
+        Configuration.GetSection("RateLimits").Bind(limitOptions);
 
-        // Rate limit service setup
-        if (!string.IsNullOrEmpty(SharedStateRedisConnectionString) &&
-            Convert.ToBoolean(Configuration["RateLimitStorageAllowRedis"]))
+        services.AddRateLimiter(limiterOptions =>
         {
-            services.AddRedisRateLimiting();
-        }
-        else
-        {
-            services.AddInMemoryRateLimiting();
-        }
+            limiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            limiterOptions.OnRejected = CustomRateLimiter.OnRejected;
+
+            limiterOptions.GlobalLimiter = CustomRateLimiter.CreateGlobalLimiter(limitOptions);
+
+            CustomRateLimiter.CreateLoginLimiter(limiterOptions, limitOptions);
+        });
 
         services.AddDbContextPool<ApplicationDbContext>(opts =>
         {

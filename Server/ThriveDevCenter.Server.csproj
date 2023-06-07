@@ -9,8 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.0.2" />
-    <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
-    <PackageReference Include="AspNetCoreRateLimit.Redis" Version="2.0.0" />
     <PackageReference Include="AsyncKeyedLock" Version="6.2.1" />
     <PackageReference Include="AWSSDK.EC2" Version="3.7.135.9" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.104.27" />
@@ -23,6 +21,7 @@
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="7.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="7.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="7.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.RateLimiting" Version="7.0.0-rc.2.22476.2" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="7.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.5">
