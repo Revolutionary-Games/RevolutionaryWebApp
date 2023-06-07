@@ -84,7 +84,8 @@ public static class UserFromCookiesHelper
         }
         catch (Exception)
         {
-            throw new ArgumentException("invalid session format");
+            // Instead of spamming exceptions on invalid data, just ignore
+            return null;
         }
 
         return await database.Sessions.WhereHashed(nameof(Session.Id), sessionId).Include(s => s.User)
