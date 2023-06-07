@@ -20,10 +20,11 @@ public class CustomRateLimiter
         {
             context.HttpContext.Response.StatusCode = 429;
 
-            if (context.Lease.TryGetMetadata(MetadataName.ReasonPhrase, out var reason))
-            {
-                context.HttpContext.Response.Headers.Add("X-RateLimit-Reason", reason);
-            }
+            // This seems to only be global or endpoint, so not very useful
+            // if (context.Lease.TryGetMetadata(MetadataName.ReasonPhrase, out var reason))
+            // {
+            //     context.HttpContext.Response.Headers.Add("X-RateLimit-Reason", reason);
+            // }
 
             if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
             {
@@ -54,39 +55,37 @@ public class CustomRateLimiter
             // probably better to move the auth reading to be earlier but add a tiny bit of memory caching there
             var user = httpContext.AuthenticatedUser();
 
-            if (user == null)
+            if (user != null)
+                return CreateUserPartition(limitOptions, user, isGet, methodString);
+
+            // TODO: check for specific access keys like ones used to upload devbuilds
+
+            // Anonymous access
+            var ip = httpContext.Connection.RemoteIpAddress;
+
+            string ipStr;
+            if (ip != null)
             {
-                // TODO: check for specific access keys like ones used to upload devbuilds
+                // Access from server localhost is unlimited
+                if (limitOptions.AllowUnlimitedFromLocalhost && IPAddress.IsLoopback(ip))
+                    return RateLimitPartition.GetNoLimiter<string>("loopback");
 
-                // Anonymous access
-                var ip = httpContext.Connection.RemoteIpAddress;
-
-                string ipStr;
-                if (ip != null)
-                {
-                    // Access from server localhost is unlimited
-                    if (limitOptions.AllowUnlimitedFromLocalhost && IPAddress.IsLoopback(ip))
-                        return RateLimitPartition.GetNoLimiter<string>("loopback");
-
-                    // Microsoft documentation doesn't recommend to partition by IP, but we already have an nginx proxy
-                    // in front of us, and there doesn't seem to be a recommended other approach (except screwing over all
-                    // anonymous users if one is behaving badly)
-                    ipStr = methodString + ip;
-                }
-                else
-                {
-                    ipStr = methodString + "unknownIp";
-                }
-
-                if (isGet)
-                {
-                    return CreateGetLimit(limitOptions, ipStr);
-                }
-
-                return CreatePostLimit(limitOptions, ipStr);
+                // Microsoft documentation doesn't recommend to partition by IP, but we already have an nginx proxy
+                // in front of us, and there doesn't seem to be a recommended other approach (except screwing over all
+                // anonymous users if one is behaving badly)
+                ipStr = methodString + ip;
+            }
+            else
+            {
+                ipStr = methodString + "unknownIp";
             }
 
-            return CreateUserPartition(limitOptions, user, isGet, methodString);
+            if (isGet)
+            {
+                return CreateGetLimit(limitOptions, ipStr);
+            }
+
+            return CreatePostLimit(limitOptions, ipStr);
         });
     }
 
@@ -110,12 +109,11 @@ public class CustomRateLimiter
 
     private static RateLimitPartition<string> CreateGetLimit(MyRateLimitOptions limitOptions, string ip)
     {
-        return RateLimitPartition.GetSlidingWindowLimiter(ip, _ =>
-            new SlidingWindowRateLimiterOptions
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ =>
+            new FixedWindowRateLimiterOptions
             {
                 PermitLimit = limitOptions.GlobalGetLimit,
                 Window = TimeSpan.FromSeconds(limitOptions.GlobalWindowSeconds),
-                SegmentsPerWindow = limitOptions.SegmentsPerWindow,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = limitOptions.QueueLimit,
             });
@@ -123,12 +121,11 @@ public class CustomRateLimiter
 
     private static RateLimitPartition<string> CreatePostLimit(MyRateLimitOptions limitOptions, string ip)
     {
-        return RateLimitPartition.GetSlidingWindowLimiter(ip, _ =>
-            new SlidingWindowRateLimiterOptions
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ =>
+            new FixedWindowRateLimiterOptions
             {
                 PermitLimit = limitOptions.GlobalPostLimit,
                 Window = TimeSpan.FromSeconds(limitOptions.GlobalWindowSeconds),
-                SegmentsPerWindow = limitOptions.SegmentsPerWindow,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = limitOptions.QueueLimit,
             });
@@ -139,12 +136,11 @@ public class CustomRateLimiter
     {
         var userPartition = string.Concat(methodString, "u:", user.Id);
 
-        return RateLimitPartition.GetSlidingWindowLimiter(userPartition, _ =>
-            new SlidingWindowRateLimiterOptions
+        return RateLimitPartition.GetFixedWindowLimiter(userPartition, _ =>
+            new FixedWindowRateLimiterOptions
             {
                 PermitLimit = get ? limitOptions.UserGlobalGetLimit : limitOptions.UserGlobalPostLimit,
                 Window = TimeSpan.FromSeconds(limitOptions.GlobalWindowSeconds),
-                SegmentsPerWindow = limitOptions.SegmentsPerWindow,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = limitOptions.QueueLimit,
             });
