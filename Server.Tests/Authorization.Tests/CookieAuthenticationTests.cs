@@ -45,6 +45,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
                         // ReSharper disable once AccessToDisposedClosure
                         services.AddSingleton(database);
                         services.AddSingleton(csrfMock.Object);
+                        services.AddSingleton<CustomMemoryCache>();
                         services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                         services.AddScoped<CSRFCheckerMiddleware>();
 
@@ -78,6 +79,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
             {
                 services.AddSingleton(database);
                 services.AddSingleton(csrfMock.Object);
+                services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
 
@@ -119,6 +121,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
             {
                 services.AddSingleton(database);
                 services.AddSingleton(csrfMock.Object);
+                services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
 
@@ -159,6 +162,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
             {
                 services.AddSingleton(database);
                 services.AddSingleton(csrfMock.Object);
+                services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
 

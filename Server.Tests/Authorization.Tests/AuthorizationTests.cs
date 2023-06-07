@@ -46,6 +46,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
                     {
                         services.AddSingleton(database);
                         services.AddSingleton(csrfMock.Object);
+                        services.AddSingleton<CustomMemoryCache>();
                         services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                         services.AddScoped<CSRFCheckerMiddleware>();
 
@@ -95,6 +96,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             {
                 services.AddSingleton(database);
                 services.AddSingleton(csrfMock.Object);
+                services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
 
@@ -149,6 +151,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             {
                 services.AddSingleton(database);
                 services.AddSingleton(csrfMock.Object);
+                services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
 
@@ -314,6 +317,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             .ConfigureServices(services =>
             {
                 services.AddSingleton(database);
+                services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
                 services.AddControllers();
@@ -383,6 +387,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             .ConfigureServices(services =>
             {
                 services.AddSingleton(database);
+                services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
                 services.AddControllers();
@@ -436,6 +441,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             .ConfigureServices(services =>
             {
                 services.AddSingleton(database);
+                services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
                 services.AddControllers();
