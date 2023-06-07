@@ -2,18 +2,20 @@ namespace ThriveDevCenter.Server.Tests.Fixtures;
 
 using System;
 using System.Collections.Generic;
+using Moq;
 using Server.Models;
+using Server.Services;
 using Shared.Models;
 using Shared.Models.Enums;
 
 public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 {
-    private static readonly object Lock = new();
+    internal static readonly Guid StaticSessionId1 = Guid.NewGuid();
+    internal static readonly Guid StaticSessionId2 = Guid.NewGuid();
+    internal static readonly Guid StaticSessionId3 = Guid.NewGuid();
+    internal static readonly Guid StaticSessionId4 = Guid.NewGuid();
 
-    private static readonly Guid StaticSessionId1 = Guid.NewGuid();
-    private static readonly Guid StaticSessionId2 = Guid.NewGuid();
-    private static readonly Guid StaticSessionId3 = Guid.NewGuid();
-    private static readonly Guid StaticSessionId4 = Guid.NewGuid();
+    private static readonly object Lock = new();
 
     private static bool databaseInitialized;
 
@@ -34,10 +36,8 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
     public Guid SessionId3 => StaticSessionId3;
     public Guid SessionId4 => StaticSessionId4;
 
-    protected sealed override void Seed()
+    internal static void SeedUsers(ApplicationDbContext database)
     {
-        AddDefaultGroups();
-
         var user1 = new User
         {
             Id = 1,
@@ -46,7 +46,7 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
             Local = true,
         };
 
-        Database.Users.Add(user1);
+        database.Users.Add(user1);
 
         var user2 = new User
         {
@@ -56,11 +56,11 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
             Local = true,
             Groups = new List<UserGroup>
             {
-                Database.UserGroups.Find(GroupType.Developer) ?? throw new Exception("Developer group missing"),
+                database.UserGroups.Find(GroupType.Developer) ?? throw new Exception("Developer group missing"),
             },
         };
 
-        Database.Users.Add(user2);
+        database.Users.Add(user2);
 
         var user3 = new User
         {
@@ -70,11 +70,11 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
             Local = true,
             Groups = new List<UserGroup>
             {
-                Database.UserGroups.Find(GroupType.Admin) ?? throw new Exception("Admin group missing"),
+                database.UserGroups.Find(GroupType.Admin) ?? throw new Exception("Admin group missing"),
             },
         };
 
-        Database.Users.Add(user3);
+        database.Users.Add(user3);
 
         var user4 = new User
         {
@@ -84,13 +84,13 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
             Local = true,
             Groups = new List<UserGroup>
             {
-                Database.UserGroups.Find(GroupType.RestrictedUser) ?? throw new Exception("Restricted group missing"),
+                database.UserGroups.Find(GroupType.RestrictedUser) ?? throw new Exception("Restricted group missing"),
             },
         };
 
-        Database.Users.Add(user4);
+        database.Users.Add(user4);
 
-        Database.SaveChanges();
+        database.SaveChanges();
 
         if (user4.ProcessGroupDataFromLoadedGroups().ComputePrimaryGroup() != GroupType.RestrictedUser)
             throw new Exception("Unexpected access level for user 4");
@@ -101,38 +101,71 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
         if (user3.ProcessGroupDataFromLoadedGroups().ComputePrimaryGroup() != GroupType.Admin)
             throw new Exception("Unexpected access level for user 3");
 
-        Database.Sessions.Add(new Session
+        database.Sessions.Add(new Session
         {
-            Id = SessionId1,
+            Id = StaticSessionId1,
             User = user1,
             UserId = user1.Id,
             CachedUserGroups = user1.ProcessGroupDataFromLoadedGroups(),
         });
 
-        Database.Sessions.Add(new Session
+        database.Sessions.Add(new Session
         {
-            Id = SessionId2,
+            Id = StaticSessionId2,
             User = user2,
             UserId = user2.Id,
             CachedUserGroups = user2.ProcessGroupDataFromLoadedGroups(),
         });
 
-        Database.Sessions.Add(new Session
+        database.Sessions.Add(new Session
         {
-            Id = SessionId3,
+            Id = StaticSessionId3,
             User = user3,
             UserId = user3.Id,
             CachedUserGroups = user3.ProcessGroupDataFromLoadedGroups(),
         });
 
-        Database.Sessions.Add(new Session
+        database.Sessions.Add(new Session
         {
-            Id = SessionId4,
+            Id = StaticSessionId4,
             User = user4,
             UserId = user4.Id,
             CachedUserGroups = user4.ProcessGroupDataFromLoadedGroups(),
         });
 
-        Database.SaveChanges();
+        database.SaveChanges();
+    }
+
+    protected sealed override void Seed()
+    {
+        AddDefaultGroups();
+
+        SeedUsers(Database);
+    }
+}
+
+public class SimpleFewUsersDatabaseWithNotifications : BaseSharedDatabaseFixtureWithNotifications
+{
+    private static readonly object Lock = new();
+    private static bool databaseInitialized;
+
+    public SimpleFewUsersDatabaseWithNotifications() : base(
+        new Mock<IModelUpdateNotificationSender>().Object, "SimpleFewUsersDatabaseWithNotifications")
+    {
+        lock (Lock)
+        {
+            if (!databaseInitialized)
+            {
+                Seed();
+                databaseInitialized = true;
+            }
+        }
+    }
+
+    protected sealed override void Seed()
+    {
+        AddDefaultGroups();
+
+        SimpleFewUsersDatabase.SeedUsers(Database);
     }
 }
