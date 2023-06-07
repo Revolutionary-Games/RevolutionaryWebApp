@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Models;
+using Services;
 using Shared;
 using Shared.Models;
 using Utilities;
@@ -18,7 +19,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
     private readonly ApplicationDbContext database;
 
     public TokenOrCookieAuthenticationMiddleware(ILogger<TokenOrCookieAuthenticationMiddleware> logger,
-        ApplicationDbContext database)
+        ApplicationDbContext database, CustomMemoryCache memoryCache) : base(memoryCache)
     {
         this.logger = logger;
         this.database = database;
@@ -54,6 +55,24 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
         if (foundToken && !string.IsNullOrEmpty(queryToken[0]))
         {
+            if (queryToken[0]!.Length > 100)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Invalid token (too long)");
+
+                return AuthMethodResult.Error;
+            }
+
+            var cacheKey = "api:" + queryToken[0];
+
+            if (IsNegativeAuthenticationAttemptCached(cacheKey))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Invalid token");
+
+                return AuthMethodResult.Error;
+            }
+
             var user = await database.Users.WhereHashed(nameof(User.ApiToken), queryToken[0]!)
                 .Include(u => u.AssociationMember).AsAsyncEnumerable()
                 .FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
@@ -66,6 +85,8 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
                 OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, null);
                 return AuthMethodResult.Authenticated;
             }
+
+            RememberFailedAuthentication(cacheKey);
 
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsync("Invalid token");
@@ -91,7 +112,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
                 return await CheckBearerToken(context, tokenValue);
             }
 
-            if (!tokenValue.Contains(' '))
+            if (!tokenValue.Contains(' ') && tokenValue.Length < AppInfo.MaxTokenLength)
             {
                 // In another format (only check launcher link if no spaces, as that might be basic authentication
                 // (handled separately in the LFS authentication middleware)
@@ -106,10 +127,19 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
     {
         var apiToken = tokenValue.Split(' ').LastOrDefault();
 
-        if (string.IsNullOrEmpty(apiToken))
+        if (string.IsNullOrEmpty(apiToken) || apiToken.Length > AppInfo.MaxTokenLength)
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsync("Authorization header format is invalid.");
+            return AuthMethodResult.Error;
+        }
+
+        var cacheKey = "api:" + apiToken;
+
+        if (IsNegativeAuthenticationAttemptCached(cacheKey))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync("Invalid token");
             return AuthMethodResult.Error;
         }
 
@@ -125,6 +155,8 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
             return AuthMethodResult.Authenticated;
         }
 
+        RememberFailedAuthentication(cacheKey);
+
         context.Response.StatusCode = StatusCodes.Status403Forbidden;
         await context.Response.WriteAsync("Invalid token");
         return AuthMethodResult.Error;
@@ -134,12 +166,25 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
     {
         // TODO: should maybe move the launcher to use a more standard format
 
+        var cacheKey = "launcher:" + tokenValue;
+
+        if (IsNegativeAuthenticationAttemptCached(cacheKey))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(new BasicJSONErrorResult("Invalid token", "Access token is invalid")
+                .ToString());
+            return AuthMethodResult.Error;
+        }
+
         var link = await database.LauncherLinks.WhereHashed(nameof(LauncherLink.LinkCode), tokenValue)
             .Include(l => l.User)
             .FirstOrDefaultAsync(l => l.LinkCode == tokenValue);
 
         if (link?.User == null || link.User.Suspended == true)
         {
+            RememberFailedAuthentication(cacheKey);
+
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(new BasicJSONErrorResult("Invalid token", "Access token is invalid")
@@ -191,6 +236,21 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
         if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out var session) &&
             !string.IsNullOrEmpty(session))
         {
+            if (session.Length > AppInfo.MaxTokenLength)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Invalid session cookie (too long)");
+                return AuthMethodResult.Error;
+            }
+
+            var cacheKey = "sessionKey:" + session;
+
+            // Don't load DB data if we remember this data being bad
+            if (IsNegativeAuthenticationAttemptCached(cacheKey))
+            {
+                return AuthMethodResult.Nothing;
+            }
+
             var (user, sessionObject) = await context.Request.Cookies.GetUserFromSession(database,
                 context.Connection.RemoteIpAddress);
 
@@ -225,6 +285,8 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
                 await context.Response.WriteAsync("Invalid session cookie");
                 return AuthMethodResult.Error;
             }
+
+            RememberFailedAuthentication(cacheKey);
         }
 
         return AuthMethodResult.Nothing;

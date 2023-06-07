@@ -19,7 +19,7 @@ public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
     private readonly ApplicationDbContext database;
     private readonly CustomMemoryCache cache;
 
-    public LFSAuthenticationMiddleware(ApplicationDbContext database, CustomMemoryCache cache)
+    public LFSAuthenticationMiddleware(ApplicationDbContext database, CustomMemoryCache cache) : base(cache)
     {
         this.database = database;
         this.cache = cache;
@@ -67,6 +67,24 @@ public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
             return false;
         }
 
+        if (parts[1].Length > 100)
+        {
+            await WriteGitLFSJsonError(context, "Invalid format for Authorization header (token is too long)", true);
+            return false;
+        }
+
+        var errorMessage = "Invalid credentials to ThriveDevCenter (use your email and LFS token from your " +
+            "ThriveDevCenter profile) or your account is suspended";
+
+        var authNegativeCacheKey = "lfs:" + parts[1];
+
+        // Don't load DB data if we remember this data being bad
+        if (IsNegativeAuthenticationAttemptCached(authNegativeCacheKey))
+        {
+            await WriteGitLFSJsonError(context, errorMessage, false);
+            return false;
+        }
+
         var user = await database.Users.WhereHashed(nameof(User.LfsToken), parts[1]).AsAsyncEnumerable()
             .FirstOrDefaultAsync(u => u.LfsToken == parts[1]);
 
@@ -101,10 +119,10 @@ public class LFSAuthenticationMiddleware : BaseAuthenticationHelper
             return true;
         }
 
+        RememberFailedAuthentication(authNegativeCacheKey);
+
         // If the token is incorrect we'll want to fail with 403 to not cause infinite retries in LFS clients
-        await WriteGitLFSJsonError(context,
-            "Invalid credentials to ThriveDevCenter (use your email and LFS token from your " +
-            "ThriveDevCenter profile) or your account is suspended", false);
+        await WriteGitLFSJsonError(context, errorMessage, false);
         return false;
     }
 

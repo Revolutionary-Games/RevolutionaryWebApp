@@ -4,11 +4,20 @@ using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Models;
+using Services;
 using Shared;
 
 public abstract class BaseAuthenticationHelper : IMiddleware
 {
+    private readonly CustomMemoryCache memoryCache;
+
+    public BaseAuthenticationHelper(CustomMemoryCache memoryCache)
+    {
+        this.memoryCache = memoryCache;
+    }
+
     protected enum AuthMethodResult
     {
         Authenticated,
@@ -55,5 +64,25 @@ public abstract class BaseAuthenticationHelper : IMiddleware
         // special actions that use the knowledge of which of the user's session was used to authenticate
         context.Items[AppInfo.CurrentUserSessionMiddleWareKey] = session;
         context.Items[AppInfo.AuthenticationScopeRestrictionMiddleWareKey] = restriction;
+    }
+
+    protected bool IsNegativeAuthenticationAttemptCached(string key)
+    {
+        if (memoryCache.Cache.TryGetValue(key, out var value) && value is true)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected void RememberFailedAuthentication(string key)
+    {
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetSlidingExpiration(AppInfo.NegativeAuthCacheTime)
+            .SetAbsoluteExpiration(DateTimeOffset.UtcNow + AppInfo.NegativeAuthCacheTimeMax)
+            .SetPriority(CacheItemPriority.Low).SetSize(key.Length);
+
+        memoryCache.Cache.Set(key, true, cacheEntryOptions);
     }
 }

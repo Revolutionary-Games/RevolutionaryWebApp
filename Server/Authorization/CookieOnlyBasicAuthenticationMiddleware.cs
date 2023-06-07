@@ -3,6 +3,7 @@ namespace ThriveDevCenter.Server.Authorization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Models;
+using Services;
 using Shared;
 
 /// <summary>
@@ -13,7 +14,8 @@ public class CookieOnlyBasicAuthenticationMiddleware : BaseAuthenticationHelper
 {
     private readonly ApplicationDbContext database;
 
-    public CookieOnlyBasicAuthenticationMiddleware(ApplicationDbContext database)
+    public CookieOnlyBasicAuthenticationMiddleware(ApplicationDbContext database, CustomMemoryCache memoryCache) :
+        base(memoryCache)
     {
         this.database = database;
     }
@@ -23,6 +25,14 @@ public class CookieOnlyBasicAuthenticationMiddleware : BaseAuthenticationHelper
         if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) &&
             !string.IsNullOrEmpty(session))
         {
+            var cacheKey = "sessionKey:" + session;
+
+            // Don't load DB data if we remember this data being bad
+            if (IsNegativeAuthenticationAttemptCached(cacheKey))
+            {
+                return true;
+            }
+
             var (user, sessionObject) = await context.Request.Cookies.GetUserFromSession(database,
                 context.Connection.RemoteIpAddress);
 
@@ -40,6 +50,8 @@ public class CookieOnlyBasicAuthenticationMiddleware : BaseAuthenticationHelper
                 await context.Response.WriteAsync("Invalid session cookie");
                 return false;
             }
+
+            RememberFailedAuthentication(cacheKey);
         }
 
         return true;

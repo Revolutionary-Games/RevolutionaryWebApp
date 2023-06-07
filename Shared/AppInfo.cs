@@ -156,6 +156,12 @@ public static class AppInfo
     public const long MediumFileSizeVersionsKeepLimit = GlobalConstants.MEBIBYTE * 50;
     public const long LargeFileSizeVersionsKeepLimit = GlobalConstants.MEBIBYTE * 200;
 
+    /// <summary>
+    ///   Maximum length any tokens to this application are allowed to be (to not create absolutely massive DB queries
+    ///   on bad client input)
+    /// </summary>
+    public const int MaxTokenLength = 128;
+
     // When changed would be nice to also update the value in ThriveDevCenter.Server.csproj
     public const int Major = 2;
     public const int Minor = 16;
@@ -225,4 +231,7 @@ public static class AppInfo
     public static readonly TimeSpan DeleteServerLogsAfter = TimeSpan.FromDays(365 * 2);
     public static readonly TimeSpan DeleteActionLogsAfter = TimeSpan.FromDays(365 * 3);
     public static readonly TimeSpan DeleteAdminActionLogsAfter = TimeSpan.FromDays(365 * 10);
+
+    public static readonly TimeSpan NegativeAuthCacheTimeMax = TimeSpan.FromSeconds(15);
+    public static readonly TimeSpan NegativeAuthCacheTime = TimeSpan.FromSeconds(5);
 }
