@@ -40,7 +40,7 @@ public class EmailVerificationController : Controller
     }
 
     [HttpPost]
-    public async Task<ActionResult<EmailVerifyResult>> StartEmailVerifyForCLA(
+    public async Task<ActionResult<EmailVerifyResult>> FinishEmailVerification(
         [Required] [FromBody] EmailVerificationFinishForm request)
     {
         var verifiedToken = emailTokens.ReadAndVerify(request.Token);
