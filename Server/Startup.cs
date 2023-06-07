@@ -317,9 +317,45 @@ public class Startup
             await next();
         });
 
-        app.UseResponseCompression();
+        if (!env.IsDevelopment())
+        {
+            // Response compression causes watch browser refresh middleware to fail to inject
+            app.UseResponseCompression();
+        }
 
-        app.UseIpRateLimiting();
+        // Routing has to be initialized before the rate limiter is invoked
+        app.UseRouting();
+
+        // Authentication to specific routes setup
+        app.UseWhen(
+            context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
+            appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
+
+        app.UseWhen(
+            context => context.Request.Path.StartsWithSegments("/api/v1/devbuild"),
+            appBuilder => { appBuilder.UseMiddleware<AccessCodeAuthenticationMiddleware>(); });
+
+        app.UseWhen(
+            context => context.Request.Path.StartsWithSegments("/hangfire"),
+            appBuilder => { appBuilder.UseMiddleware<CookieOnlyBasicAuthenticationMiddleware>(); });
+
+        app.UseWhen(
+            context => context.Request.Path.StartsWithSegments("/api"),
+            appBuilder => { appBuilder.UseMiddleware<TokenOrCookieAuthenticationMiddleware>(); });
+
+        app.UseWhen(
+            context => context.Request.Path.StartsWithSegments("/api"),
+            appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
+
+        // Auth for generated pages (non-API page gets)
+        app.UseWhen(
+            context => !context.Request.Path.StartsWithSegments("/api") &&
+                !context.Request.Path.StartsWithSegments("/hangfire"),
+            appBuilder => { appBuilder.UseMiddleware<CookieOnlyBasicAuthenticationMiddleware>(); });
+
+        // Enable our configured rate limiting options
+        // This requires authentication to be already performed
+        app.UseRateLimiter();
 
         app.UseWebSockets(new WebSocketOptions
         {
@@ -347,26 +383,6 @@ public class Startup
 
         app.UseResponseCaching();
 
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
-            appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
-
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/api/v1/devbuild"),
-            appBuilder => { appBuilder.UseMiddleware<AccessCodeAuthenticationMiddleware>(); });
-
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/hangfire"),
-            appBuilder => { appBuilder.UseMiddleware<CookieOnlyBasicAuthenticationMiddleware>(); });
-
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/api"),
-            appBuilder => { appBuilder.UseMiddleware<TokenOrCookieAuthenticationMiddleware>(); });
-
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/api"),
-            appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
-
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
             Authorization = new[]
@@ -375,8 +391,6 @@ public class Startup
                     app.ApplicationServices.GetRequiredService<ILogger<HangfireDashboardAuthorization>>()),
             },
         });
-
-        SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));
 
         app.Use(async (context, next) =>
         {
@@ -391,8 +405,6 @@ public class Startup
                 await next();
             }
         });
-
-        app.UseRouting();
 
         app.UseEndpoints(endpoints =>
         {
@@ -414,6 +426,8 @@ public class Startup
             // For other routes the client side app loads and then that displays the path not found
             endpoints.MapFallbackToPage("/_Host");
         });
+
+        SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));
 
         // Early load the registration status
         app.ApplicationServices.GetRequiredService<IRegistrationStatus>();

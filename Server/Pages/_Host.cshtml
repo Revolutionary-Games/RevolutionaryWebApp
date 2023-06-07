@@ -1,10 +1,8 @@
 ﻿@page
 @inject ITokenGenerator Jwt
-@inject ApplicationDbContext Database
 @inject StaticHomePageNotice StaticHomePageNotice
 @using System.Text.Json
 @using ThriveDevCenter.Server.Authorization
-@using ThriveDevCenter.Server.Models
 @using ThriveDevCenter.Server.Services
 @using ThriveDevCenter.Shared
 @using ThriveDevCenter.Shared.Models
@@ -23,7 +21,7 @@
 </head>
 <body>
 
-<input type="hidden" id="csrfUserToken" value="@(await GenerateUserTokenJSON())" />
+<input type="hidden" id="csrfUserToken" value="@(GenerateUserTokenJSON())" />
 <input type="hidden" id="csrfTokenExpiryTimestamp" value="@GenerateExpiryTimeString()" />
 
 @if (StaticHomePageNotice.Enabled)
@@ -71,20 +69,15 @@ else
         return expiry.ToString("O");
     }
 
-    private async Task<string> GenerateUserTokenJSON()
+    private string GenerateUserTokenJSON()
     {
-        var (user, session) = await Request.Cookies.GetUserFromSession(Database,
-            Request.HttpContext.Connection.RemoteIpAddress);
+        var user = Request.HttpContext.AuthenticatedUser();
 
         UserDTO? info = null;
 
         if (user != null)
         {
-            // This is a database data error
-            if (session?.CachedUserGroups == null)
-                throw new InvalidOperationException("Session groups not set for a user's session");
-
-            info = user.GetDTO(session.CachedUserGroups.HasAccessLevel(GroupType.Admin) ?
+            info = user.GetDTO(user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Admin) ?
                 RecordAccessLevel.Admin : RecordAccessLevel.Private);
         }
 
