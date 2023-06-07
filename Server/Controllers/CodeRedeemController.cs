@@ -5,8 +5,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Authorization;
+using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -31,8 +33,9 @@ public class CodeRedeemController : Controller
         this.jobClient = jobClient;
     }
 
-    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     [HttpPost]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    [EnableRateLimiting(RateLimitCategories.CodeRedeemLimit)]
     public async Task<IActionResult> Redeem([Required] RedeemCodeData data)
     {
         var target = await database.Users.Include(u => u.Groups)

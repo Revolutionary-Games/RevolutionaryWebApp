@@ -6,10 +6,12 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Filters;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -47,6 +49,7 @@ public class StackwalkToolController : Controller
     }
 
     [HttpPost("submit")]
+    [EnableRateLimiting(RateLimitCategories.Stackwalk)]
     public async Task<ActionResult<Guid>> Submit([Required] [FromForm] IFormFile file)
     {
         if (!enabled)

@@ -143,6 +143,11 @@ public class Startup
             limiterOptions.GlobalLimiter = CustomRateLimiter.CreateGlobalLimiter(limitOptions);
 
             CustomRateLimiter.CreateLoginLimiter(limiterOptions, limitOptions);
+            CustomRateLimiter.CreateRegistrationLimiter(limiterOptions, limitOptions);
+            CustomRateLimiter.CreateCodeRedeemLimiter(limiterOptions, limitOptions);
+            CustomRateLimiter.CreateEmailVerificationLimiter(limiterOptions, limitOptions);
+            CustomRateLimiter.CreateCrashReportLimiter(limiterOptions, limitOptions);
+            CustomRateLimiter.CreateStackwalkLimiter(limiterOptions, limitOptions);
         });
 
         services.AddDbContextPool<ApplicationDbContext>(opts =>

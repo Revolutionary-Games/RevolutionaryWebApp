@@ -2,8 +2,10 @@ namespace ThriveDevCenter.Server.Controllers;
 
 using System.Threading.Tasks;
 using Authorization;
+using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -41,6 +43,7 @@ public class RegistrationController : Controller
     }
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitCategories.RegistrationLimit)]
     public async Task<IActionResult> Post(RegistrationFormData request)
     {
         if (!csrfVerifier.IsValidCSRFToken(request.CSRF, null, false))

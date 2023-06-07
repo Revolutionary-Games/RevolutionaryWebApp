@@ -91,18 +91,79 @@ public class CustomRateLimiter
 
     public static void CreateLoginLimiter(RateLimiterOptions limiterOptions, MyRateLimitOptions limitOptions)
     {
-        limiterOptions.AddPolicy(RateLimitCategories.LoginLimit, httpContext =>
+        CreateAreaRelatedFixedLimiter(limiterOptions, RateLimitCategories.LoginLimit,
+            limitOptions.LoginLimit, limitOptions.LoginWindowSeconds, limitOptions.ShortWindowQueueLimit);
+    }
+
+    public static void CreateRegistrationLimiter(RateLimiterOptions limiterOptions, MyRateLimitOptions limitOptions)
+    {
+        CreateAreaRelatedFixedLimiter(limiterOptions, RateLimitCategories.RegistrationLimit,
+            limitOptions.RegistrationLimit, limitOptions.RegistrationWindowSeconds, limitOptions.ShortWindowQueueLimit);
+    }
+
+    public static void CreateCodeRedeemLimiter(RateLimiterOptions limiterOptions, MyRateLimitOptions limitOptions)
+    {
+        // TODO: this would make a lot more sense to be user specific, but this is good enough for now to prevent
+        // hopefully most brute-forcing (if someone wanted to brute-force they could even have multiple accounts)
+        CreateAreaRelatedFixedLimiter(limiterOptions, RateLimitCategories.CodeRedeemLimit,
+            limitOptions.CodeRedeemLimit, limitOptions.CodeRedeemWindowSeconds, limitOptions.ShortWindowQueueLimit);
+    }
+
+    public static void CreateEmailVerificationLimiter(RateLimiterOptions limiterOptions,
+        MyRateLimitOptions limitOptions)
+    {
+        CreateAreaRelatedTokenLimiter(limiterOptions, RateLimitCategories.EmailVerification,
+            limitOptions.EmailVerificationTokens, limitOptions.EmailVerificationRefreshSeconds,
+            limitOptions.EmailVerificationRefreshAmount);
+    }
+
+    public static void CreateCrashReportLimiter(RateLimiterOptions limiterOptions, MyRateLimitOptions limitOptions)
+    {
+        CreateAreaRelatedTokenLimiter(limiterOptions, RateLimitCategories.CrashReport,
+            limitOptions.CrashReportTokens, limitOptions.CrashReportRefreshSeconds,
+            limitOptions.CrashReportRefreshAmount);
+    }
+
+    public static void CreateStackwalkLimiter(RateLimiterOptions limiterOptions, MyRateLimitOptions limitOptions)
+    {
+        CreateAreaRelatedTokenLimiter(limiterOptions, RateLimitCategories.Stackwalk,
+            limitOptions.StackwalkTokens, limitOptions.StackwalkRefreshSeconds,
+            limitOptions.StackwalkRefreshAmount);
+    }
+
+    private static void CreateAreaRelatedFixedLimiter(RateLimiterOptions limiterOptions, string category, int limit,
+        int windowSeconds, int queueSize)
+    {
+        limiterOptions.AddPolicy(category, httpContext =>
         {
-            var partitionKey =
-                RateLimitCategories.LoginLimit + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+            var partitionKey = category + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
 
             return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ =>
                 new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = limitOptions.LoginAndRegistrationLimit,
-                    Window = TimeSpan.FromSeconds(limitOptions.LoginWindowSeconds),
+                    PermitLimit = limit,
+                    Window = TimeSpan.FromSeconds(windowSeconds),
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = limitOptions.ShortWindowQueueLimit,
+                    QueueLimit = queueSize,
+                });
+        });
+    }
+
+    private static void CreateAreaRelatedTokenLimiter(RateLimiterOptions limiterOptions, string category, int limit,
+        int refreshSeconds, int refreshAmount)
+    {
+        limiterOptions.AddPolicy(category, httpContext =>
+        {
+            var partitionKey = category + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+
+            return RateLimitPartition.GetTokenBucketLimiter(partitionKey, _ =>
+                new TokenBucketRateLimiterOptions
+                {
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(refreshSeconds),
+                    TokensPerPeriod = refreshAmount,
+                    TokenLimit = limit,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
                 });
         });
     }

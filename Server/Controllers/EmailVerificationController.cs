@@ -5,7 +5,9 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using Filters;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -97,6 +99,7 @@ public class EmailVerificationController : Controller
     }
 
     [HttpPost("start/cla")]
+    [EnableRateLimiting(RateLimitCategories.EmailVerification)]
     public async Task<ActionResult> StartEmailVerifyForCLA([Required] [FromBody] EmailVerificationRequestForm request)
     {
         var (inProgressSign, session, error) = await GetActiveSignature();

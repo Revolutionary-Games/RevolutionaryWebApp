@@ -16,6 +16,7 @@ using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -365,6 +366,7 @@ public class CrashReportController : Controller
     }
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitCategories.CrashReport)]
     public async Task<ActionResult<CreateCrashReportResponse>> CreateReport(
         [Required] [FromForm] CreateCrashReportData request, [Required] IFormFile dump)
     {
