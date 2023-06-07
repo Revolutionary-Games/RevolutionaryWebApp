@@ -2,7 +2,7 @@ namespace ThriveDevCenter.Server.Filters;
 
 public class MyRateLimitOptions
 {
-    public int GlobalGetLimit { get; set; } = 500;
+    public int GlobalGetLimit { get; set; } = 300;
     public int GlobalPostLimit { get; set; } = 100;
     public int GlobalWindowSeconds { get; set; } = 500;
 
@@ -40,7 +40,7 @@ public class MyRateLimitOptions
 
     // Logged in limits
 
-    public int UserGlobalGetLimit { get; set; } = 2000;
+    public int UserGlobalGetLimit { get; set; } = 1000;
     public int UserGlobalPostLimit { get; set; } = 800;
 
     /// <summary>

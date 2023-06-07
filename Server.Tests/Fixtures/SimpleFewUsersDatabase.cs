@@ -162,6 +162,11 @@ public class SimpleFewUsersDatabaseWithNotifications : BaseSharedDatabaseFixture
         }
     }
 
+    public Guid SessionId1 => SimpleFewUsersDatabase.StaticSessionId1;
+    public Guid SessionId2 => SimpleFewUsersDatabase.StaticSessionId2;
+    public Guid SessionId3 => SimpleFewUsersDatabase.StaticSessionId3;
+    public Guid SessionId4 => SimpleFewUsersDatabase.StaticSessionId4;
+
     protected sealed override void Seed()
     {
         AddDefaultGroups();

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using AngleSharp.Io;
 using Fixtures;
 using Hangfire;
 using Microsoft.AspNetCore.Builder;
@@ -18,11 +19,17 @@ using Server.Authorization;
 using Server.Filters;
 using Server.Models;
 using Server.Services;
+using Shared;
 using Xunit;
 
 public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotifications>
 {
     private const string CSRF = "randomCSRF";
+
+    private const int LoginCountEnsuredToHitLimit = 20;
+    private const int NonLoggedInUserEnsuredToHitLimit = 500;
+    private const int LoggedInNotYetLimit = 700;
+    private const int LoggedInUserEnsuredToHitLimit = 1100;
 
     private readonly ApplicationDbContext database;
     private readonly SimpleFewUsersDatabaseWithNotifications users;
@@ -58,7 +65,7 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
 
         bool found = false;
 
-        for (int i = 0; i < 20; ++i)
+        for (int i = 0; i < LoginCountEnsuredToHitLimit; ++i)
         {
             response = await client.PostAsync("/LoginController/login", requestContent);
 
@@ -76,6 +83,138 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
 
         csrfMock.Verify();
         csrfMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RateLimit_NonLoggedInRunsIntoLimit()
+    {
+        var csrfMock = new Mock<ITokenVerifier>();
+        using var host = await CreateHost(csrfMock);
+
+        var client = host.GetTestClient();
+
+        var response = await client.GetAsync("/dummy");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        bool found = false;
+
+        for (int i = 0; i < NonLoggedInUserEnsuredToHitLimit; ++i)
+        {
+            response = await client.GetAsync("/dummy");
+
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            Assert.Fail("Expected to hit rate limit, but didn't hit it");
+        }
+
+        csrfMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RateLimit_LoggedInUserHasHigherLimit()
+    {
+        Assert.True(LoggedInNotYetLimit > NonLoggedInUserEnsuredToHitLimit);
+
+        var user1 = await database.Users.FindAsync(1L);
+
+        var csrfMock = new Mock<ITokenVerifier>();
+        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(CSRF, user1, true))
+            .Returns(true).Verifiable();
+
+        using var host = await CreateHost(csrfMock);
+
+        var client = host.GetTestClient();
+
+        client.DefaultRequestHeaders.Add(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        client.DefaultRequestHeaders.Add("X-CSRF-Token", CSRF);
+
+        var response = await client.GetAsync("/dummy");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        bool found = false;
+
+        for (int i = 0; i < LoggedInUserEnsuredToHitLimit; ++i)
+        {
+            response = await client.GetAsync("/dummy");
+
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                if (i <= LoggedInNotYetLimit)
+                {
+                    Assert.Fail("Logged in user hit rate limit too soon");
+                }
+
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            Assert.Fail("Expected to hit user rate limit, didn't hit it");
+        }
+
+        csrfMock.Verify();
+        csrfMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RateLimit_UserCanDoActionsEvenIfAnonymousIsBlocked()
+    {
+        var user1 = await database.Users.FindAsync(1L);
+
+        var csrfMock = new Mock<ITokenVerifier>();
+        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(CSRF, user1, true))
+            .Returns(true).Verifiable();
+
+        using var host = await CreateHost(csrfMock);
+
+        var client = host.GetTestClient();
+
+        var response = await client.GetAsync("/dummy");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        bool found = false;
+
+        for (int i = 0; i < NonLoggedInUserEnsuredToHitLimit; ++i)
+        {
+            response = await client.GetAsync("/dummy");
+
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            Assert.Fail("Expected to hit rate limit, but didn't hit it");
+        }
+
+        client.DefaultRequestHeaders.Add(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        client.DefaultRequestHeaders.Add("X-CSRF-Token", CSRF);
+
+        response = await client.GetAsync("/dummy");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        for (int i = 0; i < LoggedInNotYetLimit; ++i)
+        {
+            response = await client.GetAsync("/dummy");
+
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, response.StatusCode);
+        }
     }
 
     private async Task<IHost> CreateHost(Mock<ITokenVerifier> csrfMock)
