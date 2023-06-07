@@ -33,11 +33,11 @@ public class CustomRateLimiter
                     seconds.ToString(CultureInfo.InvariantCulture));
 
                 await context.HttpContext.Response.WriteAsync(
-                    $"Too many requests. Please try again in {"second".PrintCount(seconds)}.", token);
+                    $"Too many requests. Please try again in {"second".PrintCount(seconds)}", token);
             }
             else
             {
-                await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", token);
+                await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later", token);
             }
         };
 
