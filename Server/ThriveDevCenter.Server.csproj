@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="1.0.2" />
+    <PackageReference Include="AngleSharp" Version="1.0.3" />
     <PackageReference Include="AsyncKeyedLock" Version="6.2.1" />
     <PackageReference Include="AWSSDK.EC2" Version="3.7.135.9" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.104.27" />
