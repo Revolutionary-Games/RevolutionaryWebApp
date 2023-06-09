@@ -147,10 +147,8 @@ function performPut(url, type, body) {
     });
 }
 
-// TODO: when moving to .NET 6 update this to use a more efficient approach
 // The following function is copied from:
 // https://www.meziantou.net/generating-and-downloading-a-file-in-a-blazor-webassembly-application.htm
-// Use it for .NET 6+
 function downloadFileFromBytes(filename, contentType, content) {
     // Create the URL
     const file = new File([content], filename, {type: contentType});
