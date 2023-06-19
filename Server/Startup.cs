@@ -101,7 +101,11 @@ public class Startup
         if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))
         {
             services.AddSignalR().AddStackExchangeRedis(SharedStateRedisConnectionString,
-                options => { options.Configuration.ChannelPrefix = "ThriveDevNotifications"; });
+                options =>
+                {
+                    options.Configuration.ChannelPrefix =
+                        new RedisChannel("ThriveDevNotifications", RedisChannel.PatternMode.Literal);
+                });
         }
         else
         {
