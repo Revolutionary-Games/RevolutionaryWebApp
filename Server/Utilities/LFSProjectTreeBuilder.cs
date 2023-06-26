@@ -29,7 +29,7 @@ public static class LFSProjectTreeBuilder
 
             try
             {
-                await GitRunHelpers.Checkout(tempPath, project.BranchToBuildFileTreeFor, true, cancellationToken);
+                await GitRunHelpers.Checkout(tempPath, project.BranchToBuildFileTreeFor, true, cancellationToken, true);
             }
             catch (Exception)
             {
