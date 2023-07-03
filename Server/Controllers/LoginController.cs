@@ -306,15 +306,29 @@ public class LoginController : SSOLoginController
         }
         else
         {
-            Logger.LogInformation("Repurposing session ({Id}) for new login", session.Id);
+            // Just for extra safety clear the session user info here, just in case a mistake slips into the login
+            // code
+            session.User = null;
+            session.UserId = null;
+            session.CachedUserGroups = null;
+
+            // Create a new ID for the session to make the negative session user cache not mess with the freshly
+            // logged in user
+            var oldId = session.Id;
+            session.Id = Guid.NewGuid();
+
+            Logger.LogInformation("Repurposing session {OldId} for a new login, but it will be renamed to {Id}",
+                oldId, session.Id);
 
             session.SsoNonce = null;
-            session.LastUsed = DateTime.UtcNow;
         }
+
+        session.LastLoggedIn = DateTime.UtcNow;
 
         session.User = user;
         session.UserId = user.Id;
         session.LastUsedFrom = remoteAddress;
+        session.LastUsed = DateTime.UtcNow;
         session.CachedUserGroups = user.AccessCachedGroupsOrThrow();
 
         await Database.SaveChangesAsync();
@@ -358,7 +372,7 @@ public class LoginController : SSOLoginController
 
         if (existingSession != null)
         {
-            // If there is an existing session, end it (if it is close to expiring)
+            // If there is an existing session, end it if it is close to expiring
             if (existingSession.IsCloseToExpiry())
             {
                 Logger.LogInformation(
@@ -368,9 +382,10 @@ public class LoginController : SSOLoginController
             }
             else
             {
-                existingSession.User = null;
-                existingSession.UserId = null;
+                // This used to clear the logged in data, but for SSO start we don't really want to do that yet (only
+                // on return / success)
                 existingSession.LastUsed = DateTime.UtcNow;
+
                 Logger.LogInformation("Login starting for an existing session {Id}", existingSession.Id);
             }
         }
@@ -389,12 +404,9 @@ public class LoginController : SSOLoginController
         }
         else
         {
-            Logger.LogInformation("Repurposing session ({Id} for SSO login", session.Id);
+            Logger.LogInformation("SSO login will use an existing session ({Id})", session.Id);
 
-            // Force invalidate the logged in as user here for the session
-            session.User = null;
-            session.UserId = null;
-            session.CachedUserGroups = null;
+            // As SSO start might not be protected by a CSRF, don't delete the login session here yet
         }
 
         SetupSessionForSSO(ssoSource, returnTo, session);
