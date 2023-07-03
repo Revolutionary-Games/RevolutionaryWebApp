@@ -42,6 +42,11 @@ public class Session : IContainsHashedLookUps, IUpdateNotifications
     public DateTime? SsoStartTime { get; set; }
 
     /// <summary>
+    ///   Used to track sessions where the user has recently logged in (for gating extremely dangerous actions)
+    /// </summary>
+    public DateTime? LastLoggedIn { get; set; }
+
+    /// <summary>
     ///   Used to clear old sessions
     /// </summary>
     [AllowSortingBy]
