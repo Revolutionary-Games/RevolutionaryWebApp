@@ -46,9 +46,11 @@ public class CSRFCheckerMiddleware : IMiddleware
         else if (context.Items.ContainsKey(AppInfo.CSRFNeededName))
         {
             // Download endpoints (for usability with direct links) don't require this
+            // Login doesn't need this either as the endpoints in login that want to enforce a token do so manually
             if (!context.Request.Path.StartsWithSegments("/api/v1/download") &&
                 !context.Request.Path.StartsWithSegments("/api/v1/download_lfs") &&
-                !context.Request.Path.StartsWithSegments("/api/v1/feed"))
+                !context.Request.Path.StartsWithSegments("/api/v1/feed") &&
+                !context.Request.Path.StartsWithSegments("/LoginController/"))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsync("CSRF token is required for this request.");

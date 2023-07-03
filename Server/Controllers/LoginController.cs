@@ -346,11 +346,14 @@ public class LoginController : SSOLoginController
     {
         var existingSession = await HttpContext.Request.Cookies.GetSession(Database);
 
-        // TODO: verify that the client making the request had up to date token
+        // TODO: could maybe relax the CSRF requirement for SSO login?
         if (!csrfVerifier.IsValidCSRFToken(csrf, existingSession?.User))
         {
             throw new HttpResponseException
-                { Value = "Invalid CSRF token. Please refresh the previous page and try logging in again" };
+            {
+                Value = "Invalid CSRF token. Please go to the previous page, refresh it fully " +
+                    "and then try logging in again.",
+            };
         }
 
         if (existingSession != null)
