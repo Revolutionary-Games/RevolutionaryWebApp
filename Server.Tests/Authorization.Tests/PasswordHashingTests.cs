@@ -36,7 +36,7 @@ public class PasswordHashingTests
         var result3 = Passwords.CreateSaltedPasswordHash("test1234");
 
         if (result1 == result2 && result2 == result3)
-            Assert.True(false, "subsequently created hashes without set salt should be different");
+            Assert.Fail("subsequently created hashes without set salt should be different");
     }
 
     [Fact]
