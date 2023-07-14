@@ -4,6 +4,8 @@ ENV DOTNET_VERSION "7.0"
 
 RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} && dnf clean all
 
+RUN dotnet workload install wasm-tools
+
 #
 # The following is very outdated and likely doesn't work very well!:
 #

@@ -7,6 +7,7 @@ obj
 /Server/appsettings.Development.json
 /db_backup*.txt
 /migration.sql
+/build
 /.idea/.idea.ThriveDevCenter/.idea/contentModel.xml
 /.idea/.idea.ThriveDevCenter/.idea/dataSources/
 /.idea/.idea.ThriveDevCenter/.idea/dataSources.local.xml

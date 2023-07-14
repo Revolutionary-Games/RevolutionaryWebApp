@@ -15,12 +15,19 @@ public class Deployer
 {
     private const string NET_VERSION = "net7.0";
 
+    private const string BUILD_DATA_FOLDER = "build";
+    private const string CONTAINER_NUGET_CACHE_HOST = "build/nuget";
+    private const string CONTAINER_NUGET_CACHE_TARGET = "/root/.nuget";
+    private const string BUILDER_CONTAINER_NAME = "thrive/devcenter-builder:latest";
+
     private const string MIGRATION_FILE = "migration.sql";
     private const string BLAZOR_BOOT_FILE = "blazor.boot.json";
 
-    private const string CLIENT_BUILT_WEBROOT = "Client/bin/{0}/{1}/publish/wwwroot/";
-    private const string SERVER_BUILT_BASE = "Server/bin/{0}/{1}/publish/";
-    private const string CI_EXECUTOR_BUILT_FILE = "CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor";
+    private const string CLIENT_BUILT_WEBROOT = BUILD_DATA_FOLDER + "/Client/bin/{0}/{1}/publish/wwwroot/";
+    private const string SERVER_BUILT_BASE = BUILD_DATA_FOLDER + "/Server/bin/{0}/{1}/publish/";
+
+    private const string CI_EXECUTOR_BUILT_FILE =
+        BUILD_DATA_FOLDER + "/CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor";
 
     private const string DEFAULT_TARGET_HOST_WWW_ROOT = "/var/www/thrivedevcenter/{0}";
     private const string DEFAULT_TARGET_HOST_APP_ROOT = "/opt/thrivedevcenter/{0}";
@@ -38,6 +45,39 @@ public class Deployer
     private static readonly IReadOnlyList<string> CIExecutorExtraResources = new[]
     {
         "CIExecutor/bin/{0}/{1}/linux-x64/libMonoPosixHelper.so",
+    };
+
+    private static readonly IReadOnlyList<string> PathsToCopyInContainer = new[]
+    {
+        "AutomatedUITests",
+        "CIExecutor",
+        "Client",
+        "Client.Tests",
+        "RevolutionaryGamesCommon",
+        "Scripts",
+        "Server",
+        "Server.Common",
+        "Server.Tests",
+        "Shared",
+        "Shared.Tests",
+        "Directory.Build.props",
+        "global.json",
+        "ThriveDevCenter.sln",
+        "ThriveDevCenter.sln.DotSettings",
+    };
+
+    private static readonly IReadOnlyList<string> PathsToDeleteInContainerAfterCopy = new[]
+    {
+        "CIExecutor/bin",
+        "CIExecutor/obj",
+        "Client/bin",
+        "Client/obj",
+        "Server/bin",
+        "Server/obj",
+        "Server.Common/bin",
+        "Server.Common/obj",
+        "Shared/bin",
+        "Shared/obj",
     };
 
     private readonly DeployOptions options;
@@ -90,7 +130,7 @@ public class Deployer
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        ColourConsole.WriteNormalLine($"Building {options.BuildMode} files");
+        ColourConsole.WriteNormalLine($"Building {options.BuildMode} files in a container");
         if (!await PerformBuild(cancellationToken))
         {
             return false;
@@ -125,6 +165,8 @@ public class Deployer
 
     private async Task<bool> PerformMigration(string targetHost, CancellationToken cancellationToken)
     {
+        // This is ran before the build and is optional, so for now this is not build inside the build container
+
         var startInfo = new ProcessStartInfo("dotnet");
         startInfo.ArgumentList.Add("ef");
         startInfo.ArgumentList.Add("migrations");
@@ -200,15 +242,15 @@ public class Deployer
         sshCommandStringBuilder.Clear();
         sshCommandStringBuilder.Append("su - postgres -c ");
 
-        sshCommandStringBuilder.Append("\"");
+        sshCommandStringBuilder.Append('"');
         sshCommandStringBuilder.Append("psql -d ");
         sshCommandStringBuilder.Append(database);
         sshCommandStringBuilder.Append(" -c ");
-        sshCommandStringBuilder.Append("'");
+        sshCommandStringBuilder.Append('\'');
         sshCommandStringBuilder.Append(GetGrantFromType("TABLES", database));
         sshCommandStringBuilder.Append(GetGrantFromType("SEQUENCES", database));
-        sshCommandStringBuilder.Append("'");
-        sshCommandStringBuilder.Append("\"");
+        sshCommandStringBuilder.Append('\'');
+        sshCommandStringBuilder.Append('"');
 
         startInfo.ArgumentList.Add(sshCommandStringBuilder.ToString());
 
@@ -229,18 +271,70 @@ public class Deployer
 
     private async Task<bool> PerformBuild(CancellationToken cancellationToken)
     {
-        var startInfo = new ProcessStartInfo("dotnet");
-        startInfo.ArgumentList.Add("publish");
+        Directory.CreateDirectory(BUILD_DATA_FOLDER);
+        Directory.CreateDirectory(CONTAINER_NUGET_CACHE_HOST);
+
+        var nugetCache = Path.GetFullPath(CONTAINER_NUGET_CACHE_HOST);
+
+        var sourceDirectory = Path.GetFullPath(".");
+        var buildTarget = Path.GetFullPath(BUILD_DATA_FOLDER);
+
+        ColourConsole.WriteDebugLine("Storing build result in: " + buildTarget);
+
+        var startInfo = new ProcessStartInfo("podman");
+        startInfo.ArgumentList.Add("run");
+        startInfo.ArgumentList.Add("--rm");
+        startInfo.ArgumentList.Add("-t");
+        startInfo.ArgumentList.Add("-e");
+
+        // ReSharper disable once StringLiteralTypo
+        startInfo.ArgumentList.Add("DOTNET_NOLOGO=true");
+
+        startInfo.ArgumentList.Add($"--mount=type=bind,src={sourceDirectory},dst=/src,relabel=shared,ro=true");
+        startInfo.ArgumentList.Add($"--mount=type=bind,src={buildTarget},dst=/build,relabel=shared");
+        startInfo.ArgumentList.Add(
+            $"--mount=type=bind,src={nugetCache},dst={CONTAINER_NUGET_CACHE_TARGET},relabel=shared");
+
+        ColourConsole.WriteDebugLine($"Nuget cache inside container: {CONTAINER_NUGET_CACHE_TARGET}");
+
+        startInfo.ArgumentList.Add(BUILDER_CONTAINER_NAME);
+
+        startInfo.ArgumentList.Add("bash");
         startInfo.ArgumentList.Add("-c");
-        startInfo.ArgumentList.Add(options.BuildMode);
+
+        var commandInContainer = new StringBuilder(500);
+        commandInContainer.Append("set -e\n");
+
+        foreach (var pathToCopy in PathsToCopyInContainer)
+        {
+            commandInContainer.Append($"cp -r '/src/{pathToCopy}' /build/\n");
+        }
+
+        foreach (var pathToDelete in PathsToDeleteInContainerAfterCopy)
+        {
+            commandInContainer.Append($"rm -rf /build/{pathToDelete}\n");
+        }
+
+        commandInContainer.Append("echo Nuget uses the following caches inside the container:\n");
+        commandInContainer.Append("dotnet nuget locals all --list\n");
+
+        commandInContainer.Append(
+            $"cd /build && dotnet publish -c {options.BuildMode} && echo 'Success for build in container'");
+
+        ColourConsole.WriteDebugLine($"Build command inside the container: \n{commandInContainer}");
+
+        startInfo.ArgumentList.Add(commandInContainer.ToString());
 
         var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken, false);
 
         if (result.ExitCode != 0)
         {
-            ColourConsole.WriteErrorLine("Failed to build");
+            ColourConsole.WriteErrorLine(
+                "Failed to build within container. Has the build container been built with the 'container' tool?");
             return false;
         }
+
+        ColourConsole.WriteSuccessLine("Build within the build container succeeded");
 
         ColourConsole.WriteNormalLine("Making sure blazor.boot.json has correct hashes");
 
