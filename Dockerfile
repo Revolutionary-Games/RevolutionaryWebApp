@@ -1,7 +1,13 @@
-FROM fedora:35 as builder
-ENV DOTNET_VERSION "6.0"
+# If the image version is updated here also Scripts/ContainerTool.cs needs to be updated
+FROM rockylinux:9 as builder
+ENV DOTNET_VERSION "7.0"
 
 RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} && dnf clean all
+
+#
+# The following is very outdated and likely doesn't work very well!:
+#
+FROM builder as build
 
 COPY ThriveDevCenter.sln /root/build/
 # Causes a bunch of extra layers because docker folder copy is terrible
@@ -22,7 +28,7 @@ RUN PATH="$PATH:/root/.dotnet/tools" dotnet ef migrations script --idempotent \
     -o /migration.sql
 
 FROM fedora:35 as proxy
-ENV DOTNET_VERSION "6.0"
+ENV DOTNET_VERSION "7.0"
 
 RUN dnf install -y --setopt=deltarpm=false nginx && dnf clean all
 
@@ -39,7 +45,7 @@ ENTRYPOINT ["/entrypoint.sh"]
 CMD ["nginx"]
 
 FROM fedora:35 as application
-ENV DOTNET_VERSION "6.0"
+ENV DOTNET_VERSION "7.0"
 
 RUN dnf install -y --setopt=deltarpm=false aspnetcore-runtime-${DOTNET_VERSION} postgresql \
     fontconfig-devel && dnf clean all

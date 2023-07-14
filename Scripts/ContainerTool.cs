@@ -1,6 +1,7 @@
 namespace Scripts;
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using ScriptsBase.ToolBases;
 using ScriptsBase.Utilities;
@@ -15,14 +16,16 @@ public class ContainerTool : ContainerToolBase<Program.ContainerOptions>
     protected override string ExportFileNameBase => options.Image switch
     {
         ImageType.CI => "devcenter-ci",
+        ImageType.Builder => "devcenter-builder",
         _ => throw new InvalidOperationException("Unknown image type"),
     };
 
     protected override string ImagesAndConfigsFolder => "./";
 
-    protected override string DefaultImageToBuild => options.Image switch
+    protected override (string BuildRelativeFolder, string? TargetToStopAt) DefaultImageToBuild => options.Image switch
     {
-        ImageType.CI => "docker_ci",
+        ImageType.CI => ("docker_ci", null),
+        ImageType.Builder => (".", "builder"),
         _ => throw new InvalidOperationException("Unknown image type"),
     };
 
@@ -31,5 +34,14 @@ public class ContainerTool : ContainerToolBase<Program.ContainerOptions>
     protected override Task<bool> PostCheckBuild(string tagOrId)
     {
         return CheckDotnetSdkWasInstalled(tagOrId);
+    }
+
+    protected override IEnumerable<string> ImagesToPullIfTheyAreOld()
+    {
+        if (options.Image == ImageType.Builder)
+        {
+            // ReSharper disable once StringLiteralTypo
+            yield return "rockylinux:9";
+        }
     }
 }
