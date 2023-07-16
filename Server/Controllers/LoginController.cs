@@ -306,21 +306,7 @@ public class LoginController : SSOLoginController
         }
         else
         {
-            // Just for extra safety clear the session user info here, just in case a mistake slips into the login
-            // code
-            session.User = null;
-            session.UserId = null;
-            session.CachedUserGroups = null;
-
-            // Create a new ID for the session to make the negative session user cache not mess with the freshly
-            // logged in user
-            var oldId = session.Id;
-            session.Id = Guid.NewGuid();
-
-            Logger.LogInformation("Repurposing session {OldId} for a new login, but it will be renamed to {Id}",
-                oldId, session.Id);
-
-            session.SsoNonce = null;
+            RenameSessionForLogin(session);
         }
 
         session.LastLoggedIn = DateTime.UtcNow;
@@ -337,6 +323,28 @@ public class LoginController : SSOLoginController
             remoteAddress, session.Id);
 
         SetSessionCookie(session, Response, useSecureCookies);
+    }
+
+    [NonAction]
+    private void RenameSessionForLogin(Session session)
+    {
+        // Just for extra safety clear the session user info here, just in case a mistake slips into the login
+        // code
+        session.User = null;
+        session.UserId = null;
+        session.CachedUserGroups = null;
+        session.SsoNonce = null;
+
+        // Create a new ID for the session to make the negative session user cache not mess with the freshly
+        // logged in user
+        var oldId = session.Id;
+        session.Id = Guid.NewGuid();
+
+        // Clear the hashed id to force it to be recomputed
+        session.HashedId = null;
+
+        Logger.LogInformation("Repurposing session {OldId} for a new login, but it will be renamed to {Id}",
+            oldId, session.Id);
     }
 
     [NonAction]
@@ -818,9 +826,9 @@ public class LoginController : SSOLoginController
     {
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
 
-        var sessionId = session.Id;
-
         string? returnUrl = session.SsoReturnUrl;
+
+        RenameSessionForLogin(session);
 
         session.User = user;
         session.UserId = user.Id;
@@ -833,7 +841,10 @@ public class LoginController : SSOLoginController
 
         // Need to print here to get user id for new users working (after the DB save)
         Logger.LogInformation("SSO login succeeded to user id: {Id}, from: {RemoteAddress}, session: {SessionId}",
-            user.Id, remoteAddress, sessionId);
+            user.Id, remoteAddress, session.Id);
+
+        // Send updated cookie in the response
+        SetSessionCookie(session, Response, useSecureCookies);
 
         if (string.IsNullOrEmpty(returnUrl) ||
             !redirectVerifier.SanitizeRedirectUrl(returnUrl, out string? redirect))
