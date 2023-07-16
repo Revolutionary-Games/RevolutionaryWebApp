@@ -2,7 +2,10 @@
 FROM rockylinux:9 as builder
 ENV DOTNET_VERSION "7.0"
 
-RUN dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} && dnf clean all
+# Update used here to have slightly less outdated rocky packages (this'll only really matter if
+# some of the system libs from this build will be used in the final output, which might be the case
+# if the dotnet runtime is bundled with the output)
+RUN dnf update -y && dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} && dnf clean all
 
 RUN dotnet workload install wasm-tools
 
@@ -29,10 +32,11 @@ RUN PATH="$PATH:/root/.dotnet/tools" dotnet ef migrations script --idempotent \
     --project Server/ThriveDevCenter.Server.csproj --context ApplicationDbContext \
     -o /migration.sql
 
-FROM fedora:35 as proxy
+FROM rockylinux:9 as proxy
 ENV DOTNET_VERSION "7.0"
 
-RUN dnf install -y --setopt=deltarpm=false nginx && dnf clean all
+# Update used here to have slightly less outdated rocky packages
+RUN dnf update -y && dnf install -y --setopt=deltarpm=false nginx && dnf clean all
 
 COPY --from=builder /root/build/Client/bin/Release/net${DOTNET_VERSION}/publish/wwwroot/ \
     /var/www/html/thrivedevcenter
@@ -46,10 +50,11 @@ RUN ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["nginx"]
 
-FROM fedora:35 as application
+FROM rockylinux:9 as application
 ENV DOTNET_VERSION "7.0"
 
-RUN dnf install -y --setopt=deltarpm=false aspnetcore-runtime-${DOTNET_VERSION} postgresql \
+# Update used here to have slightly less outdated rocky packages
+RUN dnf update -y && dnf install -y --setopt=deltarpm=false aspnetcore-runtime-${DOTNET_VERSION} postgresql \
     fontconfig-devel && dnf clean all
 
 RUN useradd thrivedevcenter -m
