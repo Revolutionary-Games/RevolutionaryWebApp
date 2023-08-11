@@ -8,7 +8,7 @@ public class CodeChecks : CodeChecksBase<Program.CheckOptions>
 {
     public CodeChecks(Program.CheckOptions opts) : base(opts)
     {
-        FilePathsToAlwaysIgnore.Add(new Regex(@"Server/Migrations/"));
+        FilePathsToAlwaysIgnore.Add(new Regex("Server/Migrations/"));
     }
 
     protected override Dictionary<string, CodeCheck> ValidChecks { get; } = new()

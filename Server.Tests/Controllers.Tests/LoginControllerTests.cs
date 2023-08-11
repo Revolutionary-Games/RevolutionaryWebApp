@@ -183,7 +183,8 @@ public sealed class LoginControllerTests : IDisposable
         Assert.NotEmpty(database.Sessions);
 
         Assert.NotNull(seenSessionId);
-        var session = await database.Sessions.FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+        var session = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
 
         Assert.NotNull(session);
 
@@ -313,7 +314,8 @@ public sealed class LoginControllerTests : IDisposable
         Assert.Contains("state", data);
 
         Assert.NotNull(seenSessionId);
-        var session = await database.Sessions.FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+        var session = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
 
         Assert.NotNull(session);
         Assert.Null(session.User);
@@ -402,7 +404,8 @@ public sealed class LoginControllerTests : IDisposable
         IReadOnlyDictionary<string, string> data = QueryHelpers.ParseQuery(redirectResult.Url).SelectFirstStringValue();
 
         Assert.NotNull(seenSessionId);
-        var session = await database.Sessions.FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+        var session = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
 
         Assert.NotNull(session);
         Assert.Null(session.User);
@@ -486,7 +489,8 @@ public sealed class LoginControllerTests : IDisposable
         var data = QueryHelpers.ParseQuery(redirectResult.Url).SelectFirstStringValue();
 
         Assert.NotNull(seenSessionId);
-        var session = await database.Sessions.FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+        var session = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
 
         Assert.NotNull(session);
 

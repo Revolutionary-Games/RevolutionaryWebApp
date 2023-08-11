@@ -24,10 +24,8 @@ public class RateLimitingTests : IClassFixture<WebHostServerFixture<Startup>>
     {
         var root = server.RootUri;
 
-        using var client = new HttpClient
-        {
-            BaseAddress = root,
-        };
+        using var client = new HttpClient();
+        client.BaseAddress = root;
 
         // Set this to just get this one test IP rate limited
         client.DefaultRequestHeaders.Add("X-Forwarded-For", "172.16.2.47");

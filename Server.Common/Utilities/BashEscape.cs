@@ -10,7 +10,7 @@ public static class BashEscape
         var result = commandPart.Replace(@"\", @"\\").Replace(@"""", @"\""");
 
         if (!allowVariables)
-            result = result.Replace(@"$", @"\$");
+            result = result.Replace("$", @"\$");
 
         return result;
     }
