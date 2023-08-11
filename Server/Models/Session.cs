@@ -99,6 +99,27 @@ public class Session : IContainsHashedLookUps, IUpdateNotifications
         return SelectByHashedProperty.DoubleHashAsIdStandIn(Id.ToString(), HashedId);
     }
 
+    /// <summary>
+    ///   Creates a copy of this session but with a different ID
+    /// </summary>
+    /// <returns>The copied session</returns>
+    public Session CreateSessionCopy()
+    {
+        return new Session
+        {
+            UserId = UserId,
+            User = User,
+            SsoNonce = SsoNonce,
+            StartedSsoLogin = StartedSsoLogin,
+            SsoReturnUrl = SsoReturnUrl,
+            SsoStartTime = SsoStartTime,
+            LastLoggedIn = LastLoggedIn,
+            StartedAt = StartedAt,
+            LastUsedFrom = LastUsedFrom,
+            InProgressClaSignature = InProgressClaSignature,
+        };
+    }
+
     public SessionDTO GetDTO(bool current)
     {
         return new()

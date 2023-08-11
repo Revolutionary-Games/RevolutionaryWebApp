@@ -306,7 +306,7 @@ public class LoginController : SSOLoginController
         }
         else
         {
-            RenameSessionForLogin(session);
+            session = await CreateDerivedSessionForLogin(session);
         }
 
         session.LastLoggedIn = DateTime.UtcNow;
@@ -326,8 +326,20 @@ public class LoginController : SSOLoginController
     }
 
     [NonAction]
-    private void RenameSessionForLogin(Session session)
+    private async Task<Session> CreateDerivedSessionForLogin(Session session)
     {
+        var oldSession = session;
+
+        // Create a duplicate of the session with a different ID to make the negative session user cache not mess
+        // with the freshly logged in user
+        session = session.CreateSessionCopy();
+        await Database.Sessions.AddAsync(session);
+
+        await UpdateSessionDependentResources(oldSession.Id, session.Id);
+
+        // Delete the old session to make sure it is no longer valid
+        Database.Sessions.Remove(oldSession);
+
         // Just for extra safety clear the session user info here, just in case a mistake slips into the login
         // code
         session.User = null;
@@ -335,16 +347,33 @@ public class LoginController : SSOLoginController
         session.CachedUserGroups = null;
         session.SsoNonce = null;
 
-        // Create a new ID for the session to make the negative session user cache not mess with the freshly
-        // logged in user
-        var oldId = session.Id;
-        session.Id = Guid.NewGuid();
-
         // Clear the hashed id to force it to be recomputed
         session.HashedId = null;
 
         Logger.LogInformation("Repurposing session {OldId} for a new login, but it will be renamed to {Id}",
-            oldId, session.Id);
+            oldSession.Id, session.Id);
+
+        return session;
+    }
+
+    /// <summary>
+    ///   Updates all <see cref="Session"/> dependent resources to point to a new session
+    /// </summary>
+    /// <param name="oldSessionId">The old ID to modify from</param>
+    /// <param name="sessionId">The new ID to put in the dependent resources</param>
+    [NonAction]
+    private async Task UpdateSessionDependentResources(Guid oldSessionId, Guid sessionId)
+    {
+        var inProgressSignatures =
+            await Database.InProgressClaSignatures.Where(s => s.SessionId == oldSessionId).ToListAsync();
+
+        foreach (var inProgressCla in inProgressSignatures)
+        {
+            Logger.LogInformation(
+                "Re-attaching in-progress CLA signature {Id} from session {OldSessionId} to {SessionId}",
+                inProgressCla.Id, oldSessionId, sessionId);
+            inProgressCla.SessionId = sessionId;
+        }
     }
 
     [NonAction]
@@ -828,7 +857,7 @@ public class LoginController : SSOLoginController
 
         string? returnUrl = session.SsoReturnUrl;
 
-        RenameSessionForLogin(session);
+        session = await CreateDerivedSessionForLogin(session);
 
         session.User = user;
         session.UserId = user.Id;
