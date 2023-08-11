@@ -139,11 +139,15 @@ public class CheckOverallBuildStatusJob
             {
                 foreach (var commit in build.ParsedCommits ?? throw new ArgumentNullException())
                 {
+                    // Properties are loaded from a JSON dump
+                    // ReSharper disable EntityFramework.NPlusOne.IncompleteDataUsage
                     if ((sendEmails & GithubEmailReportReceivers.Author) != 0)
                         await QueueEmailNotification(build, commit.Author?.Email, checkLink);
 
                     if ((sendEmails & GithubEmailReportReceivers.Committer) != 0)
                         await QueueEmailNotification(build, commit.Committer?.Email, checkLink);
+
+                    // ReSharper restore EntityFramework.NPlusOne.IncompleteDataUsage
                 }
             }
             catch (ArgumentNullException e)

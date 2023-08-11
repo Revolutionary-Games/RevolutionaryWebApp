@@ -61,8 +61,8 @@ public class LauncherThriveVersionPlatform : IUpdateNotifications
         }, NotificationGroups.LauncherThriveVersionPlatformListUpdatedPrefix + VersionId);
 
         yield return new Tuple<SerializedNotification, string>(new LauncherThriveVersionPlatformUpdated
-        {
-            Item = GetDTO(),
-        }, $"{NotificationGroups.LauncherThriveVersionPlatformUpdatedPrefix}{VersionId}_{(int)Platform}");
+            {
+                Item = GetDTO(),
+            }, $"{NotificationGroups.LauncherThriveVersionPlatformUpdatedPrefix}{VersionId}_{(int)Platform}");
     }
 }

@@ -54,10 +54,11 @@ public class LauncherThriveVersionDownload : IUpdateNotifications
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return new Tuple<SerializedNotification, string>(new LauncherThriveVersionDownloadListUpdated
-        {
-            Type = entityState.ToChangeType(),
-            Item = GetDTO(),
-        }, $"{NotificationGroups.LauncherThriveVersionPlatformDownloadsListUpdatedPrefix}{VersionId}_{(int)Platform}");
+            {
+                Type = entityState.ToChangeType(),
+                Item = GetDTO(),
+            },
+            $"{NotificationGroups.LauncherThriveVersionPlatformDownloadsListUpdatedPrefix}{VersionId}_{(int)Platform}");
 
         // yield return new Tuple<SerializedNotification, string>(new LauncherThriveVersionDownloadUpdated
         // {

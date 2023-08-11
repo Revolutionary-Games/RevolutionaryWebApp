@@ -245,6 +245,8 @@ public class MeetingsController : Controller
         if (member == null)
             return this.WorkingForbid("You need to join a meeting before voting in it");
 
+        // This is included in the JSON data dump parsed by ParsedData
+        // ReSharper disable once EntityFramework.NPlusOne.IncompleteDataQuery
         var poll = await database.MeetingPolls.FindAsync(id, pollId);
 
         if (poll == null)
@@ -255,6 +257,8 @@ public class MeetingsController : Controller
 
         var parsedData = poll.ParsedData;
 
+        // See the comment on FindAsync above
+        // ReSharper disable EntityFramework.NPlusOne.IncompleteDataUsage
         if (parsedData.WeightedChoices != null)
         {
             if (request.SelectedOptions.Count < 1 && !parsedData.WeightedChoices.CanSelectNone)
@@ -275,6 +279,8 @@ public class MeetingsController : Controller
             if (request.SelectedOptions.Count < 1 && parsedData.SingleChoiceOption.CanSelectNone != true)
                 return BadRequest("You must select at least one option");
         }
+
+        // ReSharper restore EntityFramework.NPlusOne.IncompleteDataUsage
 
         long? president = null;
 

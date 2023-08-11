@@ -51,8 +51,8 @@ public class LauncherVersionAutoUpdateChannel : IUpdateNotifications
         }, NotificationGroups.LauncherLauncherVersionUpdateChannelListUpdatedPrefix + VersionId);
 
         yield return new Tuple<SerializedNotification, string>(new LauncherVersionAutoUpdateChannelUpdated
-        {
-            Item = GetDTO(),
-        }, $"{NotificationGroups.LauncherLauncherVersionUpdateChannelUpdatedPrefix}{VersionId}_{(int)Channel}");
+            {
+                Item = GetDTO(),
+            }, $"{NotificationGroups.LauncherLauncherVersionUpdateChannelUpdatedPrefix}{VersionId}_{(int)Channel}");
     }
 }
