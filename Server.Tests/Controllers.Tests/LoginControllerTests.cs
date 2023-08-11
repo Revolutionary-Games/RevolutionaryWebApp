@@ -317,6 +317,8 @@ public sealed class LoginControllerTests : IDisposable
         var session = await database.Sessions.Include(s => s.User)
             .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
 
+        var firstSessionId = seenSessionId;
+
         Assert.NotNull(session);
         Assert.Null(session.User);
         Assert.True(user.Suspended);
@@ -337,11 +339,23 @@ public sealed class LoginControllerTests : IDisposable
         Assert.False(redirectResult.Permanent);
         Assert.Equal("/", redirectResult.Url);
 
-        Assert.Null(session.StartedSsoLogin);
-        Assert.Null(session.SsoNonce);
+        // Session gets renamed on successful login
+        Assert.NotEqual(firstSessionId, seenSessionId);
+        var newSession = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+
+        Assert.NotNull(newSession);
+
+        Assert.NotEqual(session, newSession);
+
+        // First session is deleted
+        Assert.Null(await database.Sessions.FirstOrDefaultAsync(s => s.Id == session.Id));
+
+        Assert.Null(newSession.StartedSsoLogin);
+        Assert.Null(newSession.SsoNonce);
         Assert.False(user.Suspended);
 
-        Assert.Equal(user, session.User);
+        Assert.Equal(user, newSession.User);
 
         patreonMock.Verify();
         patreonMock.VerifyNoOtherCalls();
