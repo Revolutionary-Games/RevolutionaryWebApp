@@ -888,10 +888,10 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             var textPen = Pens.Solid(Color.Black, 2.0f);
             var subtextPen = Pens.Solid(Color.Black, 1.0f);
 
-            var titleLineOffset = TextMeasurer.Measure(tagLine, titleLineOptions).Width / 2.0f;
-            var titleOffset = TextMeasurer.Measure(keyword.Title, titleOptions).Width / 2.0f;
-            var dayOffset = TextMeasurer.Measure(dayCount.ToString(), dayOptions).Width / 2.0f;
-            var subtextOffset = TextMeasurer.Measure(subtext, subtextOptions).Width / 2.0f;
+            var titleLineOffset = TextMeasurer.MeasureSize(tagLine, titleLineOptions).Width / 2.0f;
+            var titleOffset = TextMeasurer.MeasureSize(keyword.Title, titleOptions).Width / 2.0f;
+            var dayOffset = TextMeasurer.MeasureSize(dayCount.ToString(), dayOptions).Width / 2.0f;
+            var subtextOffset = TextMeasurer.MeasureSize(subtext, subtextOptions).Width / 2.0f;
 
             x.Draw(textPen, new RectangularPolygon(0, 0, width, height));
             x.Fill(titleBrush, new RectangularPolygon(0, 0, width, 125));
