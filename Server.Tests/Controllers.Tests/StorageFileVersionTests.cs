@@ -8,7 +8,7 @@ using Hangfire;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Controllers;
 using Server.Models;
 using Server.Services;
@@ -27,7 +27,8 @@ public sealed class StorageFileVersionTests : IDisposable
     private const long File3Id = 676012;
     private const long File4Id = 676013;
 
-    private static readonly Mock<IModelUpdateNotificationSender> ReadonlyDbNotifications = new();
+    private static readonly IModelUpdateNotificationSender ReadonlyDbNotifications =
+        Substitute.For<IModelUpdateNotificationSender>();
 
     private static readonly Lazy<NotificationsEnabledDb> NonWritingTestDb = new(CreateReadOnlyDatabase);
 
@@ -46,19 +47,19 @@ public sealed class StorageFileVersionTests : IDisposable
     [Fact]
     public async Task StorageFilesController_CannotRestoreDeletedVersionInDeletedFile()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(NormalUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.RestoreVersion(DeletedFile1, 1);
@@ -74,25 +75,25 @@ public sealed class StorageFileVersionTests : IDisposable
 
         Assert.True(version1.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotDeleteUploadingVersion()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MarkVersionAsDeleted(File3Id, 3);
@@ -108,25 +109,25 @@ public sealed class StorageFileVersionTests : IDisposable
 
         Assert.False(version3.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotDeleteTheLastVersionInFile()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MarkVersionAsDeleted(File3Id, 2);
@@ -142,25 +143,25 @@ public sealed class StorageFileVersionTests : IDisposable
 
         Assert.False(version3.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_OthersCannotSetImportantStatus()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MarkImportant(File4Id);
@@ -172,26 +173,26 @@ public sealed class StorageFileVersionTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Important);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_RestoringFileVersionWorks()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database =
             await GetWritableDatabase(nameof(StorageFilesController_RestoringFileVersionWorks));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.RestoreVersion(File2Id, 1);
@@ -211,26 +212,26 @@ public sealed class StorageFileVersionTests : IDisposable
         Assert.False(version2.Deleted);
         Assert.True(version3.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CanDeleteVersionAndRestore()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database =
             await GetWritableDatabase(nameof(StorageFilesController_CanDeleteVersionAndRestore));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(NormalUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MarkVersionAsDeleted(File4Id, 2);
@@ -255,26 +256,26 @@ public sealed class StorageFileVersionTests : IDisposable
         Assert.False(version1.Deleted);
         Assert.False(version2.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_DeletingVersionInImportantItemFails()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database =
             await GetWritableDatabase(nameof(StorageFilesController_DeletingVersionInImportantItemFails));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(NormalUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MarkImportant(File4Id);
@@ -295,26 +296,26 @@ public sealed class StorageFileVersionTests : IDisposable
 
         Assert.False(version2.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_SettingVersionAsKeepPreventsDeleting()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database =
             await GetWritableDatabase(nameof(StorageFilesController_SettingVersionAsKeepPreventsDeleting));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MarkVersionKeep(File4Id, 2);
@@ -334,26 +335,26 @@ public sealed class StorageFileVersionTests : IDisposable
 
         Assert.False(version2.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_OwnerCanDeleteKeptVersion()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database =
             await GetWritableDatabase(nameof(StorageFilesController_OwnerCanDeleteKeptVersion));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(NormalUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MarkVersionKeep(File4Id, 2);
@@ -372,7 +373,7 @@ public sealed class StorageFileVersionTests : IDisposable
 
         Assert.True(version2.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     public void Dispose()
@@ -384,18 +385,18 @@ public sealed class StorageFileVersionTests : IDisposable
     {
         var database = new NotificationsEnabledDb(
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase("StorageFileVersionTestDB")
-                .Options, ReadonlyDbNotifications.Object);
+                .Options, ReadonlyDbNotifications);
         CreateDefaultItems(database).Wait();
         return database;
     }
 
     private static async Task<NotificationsEnabledDb> GetWritableDatabase(string testName)
     {
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         var database = new NotificationsEnabledDb(
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(testName).Options,
-            notificationsMock.Object);
+            notificationsMock);
         await CreateDefaultItems(database);
         return database;
     }

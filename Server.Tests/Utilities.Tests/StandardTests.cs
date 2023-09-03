@@ -3,6 +3,9 @@ namespace ThriveDevCenter.Server.Tests.Utilities.Tests;
 using System;
 using System.Globalization;
 using System.Text;
+using NSubstitute;
+using NSubstitute.Exceptions;
+using TestUtilities.Utilities;
 using Xunit;
 
 /// <summary>
@@ -11,6 +14,11 @@ using Xunit;
 public class StandardTests
 {
     private static readonly byte[] TestBytes = { 45, 60, 52, 50 };
+
+    public interface IRandomTest
+    {
+        public void DoForString(string? someStuff);
+    }
 
     [Fact]
     public void StringEncoding_GetBytesRoundtrip()
@@ -46,5 +54,23 @@ public class StandardTests
         var parsed2 = DateTime.Parse("2022-04-30 17:10:02+0").ToUniversalTime();
 
         Assert.Equal(parsed, parsed2);
+    }
+
+    [Fact]
+    public void NSubstitute_CustomArgWorks()
+    {
+        var mock = Substitute.For<IRandomTest>();
+
+        mock.DoForString(null);
+
+        // This normal variant doesn't catch null
+        mock.Received().DoForString(Arg.Any<string>());
+
+        Assert.Throws<ReceivedCallsException>(() => mock.Received().DoForString(ArgExtension.IsNotNull<string>()));
+
+        mock.DoForString("stuff");
+
+        mock.Received().DoForString(Arg.Any<string>());
+        mock.Received().DoForString(ArgExtension.IsNotNull<string>());
     }
 }

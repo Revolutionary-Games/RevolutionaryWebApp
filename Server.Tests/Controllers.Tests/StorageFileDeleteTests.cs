@@ -8,7 +8,7 @@ using Hangfire;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Controllers;
 using Server.Filters;
 using Server.Models;
@@ -35,7 +35,8 @@ public sealed class StorageFileDeleteTests : IDisposable
     private const long FileToDeleteId = 675008;
     private const long FileToDeleteId2 = 675009;
 
-    private static readonly Mock<IModelUpdateNotificationSender> ReadonlyDbNotifications = new();
+    private static readonly IModelUpdateNotificationSender ReadonlyDbNotifications =
+        Substitute.For<IModelUpdateNotificationSender>();
 
     private static readonly Lazy<NotificationsEnabledDb> NonWritingTestDb = new(CreateReadOnlyDatabase);
 
@@ -53,19 +54,19 @@ public sealed class StorageFileDeleteTests : IDisposable
     [Fact]
     public async Task StorageFilesController_NonEmptyFolderDeleteFails()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(NonEmptyFolderId);
@@ -80,25 +81,25 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_NonLoggedInCannotDelete()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(null);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(EmptyFolderId);
@@ -109,25 +110,25 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotDeleteWithoutRightPermissions()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(NormalUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(DeveloperOnlyFolderId);
@@ -138,25 +139,25 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_RootContentNotDeletableByNonAdmin()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(NormalUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var exception = await Assert.ThrowsAsync<HttpResponseException>(() => controller.DeleteOrTrash(FolderInRootId));
@@ -167,25 +168,25 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotDeleteSelfLockedFolder()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(SelfLockedFolderId);
@@ -200,25 +201,25 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotDeleteSpecialFolder()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(AdminUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(SpecialFolderId);
@@ -233,25 +234,25 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotDeleteImportantFile()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(FileToDeleteId2);
@@ -266,25 +267,25 @@ public sealed class StorageFileDeleteTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CanDeleteEmptyFolder()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database = await GetWritableDatabase(nameof(StorageFilesController_CanDeleteEmptyFolder));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(EmptyFolderId);
@@ -298,20 +299,20 @@ public sealed class StorageFileDeleteTests : IDisposable
     [Fact]
     public async Task StorageFilesController_CanDeleteFullFolderAfterClear()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database =
             await GetWritableDatabase(nameof(StorageFilesController_CanDeleteFullFolderAfterClear));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         await controller.DeleteOrTrash(SubFolderId);
@@ -333,19 +334,19 @@ public sealed class StorageFileDeleteTests : IDisposable
     [Fact]
     public async Task StorageFilesController_AdminCanDeleteRootItem()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database = await GetWritableDatabase(nameof(StorageFilesController_AdminCanDeleteRootItem));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(AdminUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(FolderInRootId);
@@ -355,25 +356,25 @@ public sealed class StorageFileDeleteTests : IDisposable
         var item = await database.StorageItems.FindAsync(FolderInRootId);
         Assert.Null(item);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_DeletingFileWorks()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database = await GetWritableDatabase(nameof(StorageFilesController_DeletingFileWorks));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var trashContents = await controller.GetFolderContents(nameof(StorageItem.Id), SortDirection.Ascending, 0, 10,
@@ -412,14 +413,14 @@ public sealed class StorageFileDeleteTests : IDisposable
     [Fact]
     public async Task StorageFilesController_AdminSeesEveryoneDeletedFiles()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database =
             await GetWritableDatabase(nameof(StorageFilesController_AdminSeesEveryoneDeletedFiles));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
@@ -427,7 +428,7 @@ public sealed class StorageFileDeleteTests : IDisposable
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(FileToDeleteId);
@@ -443,7 +444,7 @@ public sealed class StorageFileDeleteTests : IDisposable
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var trashContents = await controller.GetFolderContents(nameof(StorageItem.Id), SortDirection.Ascending, 0, 10,
@@ -460,14 +461,14 @@ public sealed class StorageFileDeleteTests : IDisposable
     [Fact]
     public async Task StorageFilesController_UserDoesNotSeeOtherPeopleDeletedFiles()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database =
             await GetWritableDatabase(nameof(StorageFilesController_UserDoesNotSeeOtherPeopleDeletedFiles));
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(NormalUser);
 
@@ -475,7 +476,7 @@ public sealed class StorageFileDeleteTests : IDisposable
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.DeleteOrTrash(FileToDeleteId);
@@ -490,7 +491,7 @@ public sealed class StorageFileDeleteTests : IDisposable
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var trashContents = await controller.GetFolderContents(nameof(StorageItem.Id), SortDirection.Ascending, 0, 10,
@@ -509,18 +510,18 @@ public sealed class StorageFileDeleteTests : IDisposable
     {
         var database = new NotificationsEnabledDb(
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase("StorageFileDeleteTestsRO").Options,
-            ReadonlyDbNotifications.Object);
+            ReadonlyDbNotifications);
         CreateDefaultItems(database).Wait();
         return database;
     }
 
     private static async Task<NotificationsEnabledDb> GetWritableDatabase(string testName)
     {
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         var database = new NotificationsEnabledDb(
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(testName).Options,
-            notificationsMock.Object);
+            notificationsMock);
         await CreateDefaultItems(database);
         return database;
     }

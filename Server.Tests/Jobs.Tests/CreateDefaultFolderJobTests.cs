@@ -7,7 +7,7 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Jobs;
 using TestUtilities.Utilities;
 using Xunit;
@@ -27,8 +27,7 @@ public sealed class CreateDefaultFolderJobTests : IClassFixture<RealUnitTestData
     [Fact]
     public async Task CreateDefaultFolders_InCleanDatabase()
     {
-        var clientMock = new Mock<IBackgroundJobClient>();
-        clientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var clientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = fixture.Database;
         await using var transaction = await database.Database.BeginTransactionAsync();
@@ -36,14 +35,14 @@ public sealed class CreateDefaultFolderJobTests : IClassFixture<RealUnitTestData
         Assert.Null(
             await database.StorageItems.FirstOrDefaultAsync(i => i.Name == "Trash" && i.ParentId == null));
 
-        var instance = new CreateDefaultFoldersJob(logger, database, clientMock.Object);
+        var instance = new CreateDefaultFoldersJob(logger, database, clientMock);
 
         await instance.Execute(CancellationToken.None);
 
         Assert.NotNull(
             await database.StorageItems.FirstOrDefaultAsync(i => i.Name == "Trash" && i.ParentId == null));
 
-        clientMock.Verify();
+        clientMock.Received().Create(Arg.Any<Job>(), Arg.Any<IState>());
     }
 
     public void Dispose()

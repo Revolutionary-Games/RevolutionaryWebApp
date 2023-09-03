@@ -11,12 +11,13 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
-using Moq;
+using NSubstitute;
 using Server.Authorization;
 using Server.Models;
 using Server.Services;
 using Shared;
 using Shared.Models;
+using TestUtilities.Utilities;
 using Xunit;
 
 public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
@@ -33,9 +34,8 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
     [Fact]
     public async Task Authorization_NonLoggedInCannotAccess()
     {
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(It.IsNotNull<string>(), null, false))
-            .Returns(false);
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(ArgExtension.IsNotNull<string>(), null, false).Returns(false);
 
         using var host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -45,7 +45,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
                     .ConfigureServices(services =>
                     {
                         services.AddSingleton(database);
-                        services.AddSingleton(csrfMock.Object);
+                        services.AddSingleton(csrfMock);
                         services.AddSingleton<CustomMemoryCache>();
                         services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                         services.AddScoped<CSRFCheckerMiddleware>();
@@ -87,15 +87,14 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         var user1 = await database.Users.FindAsync(1L);
 
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user1, true))
-            .Returns(true).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(csrfValue, user1, true).Returns(true);
 
         using var server = new TestServer(new WebHostBuilder()
             .ConfigureServices(services =>
             {
                 services.AddSingleton(database);
-                services.AddSingleton(csrfMock.Object);
+                services.AddSingleton(csrfMock);
                 services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
@@ -119,7 +118,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        csrfMock.Verify();
+        csrfMock.Received().IsValidCSRFToken(csrfValue, user1, true);
     }
 
     [Fact]
@@ -136,21 +135,17 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         var user4 = await database.Users.FindAsync(4L);
         Assert.NotNull(user4);
 
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user1, true))
-            .Returns(true).Verifiable();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user2, true))
-            .Returns(true).Verifiable();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user3, true))
-            .Returns(true).Verifiable();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user4, true))
-            .Returns(true).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(csrfValue, user1, true).Returns(true);
+        csrfMock.IsValidCSRFToken(csrfValue, user2, true).Returns(true);
+        csrfMock.IsValidCSRFToken(csrfValue, user3, true).Returns(true);
+        csrfMock.IsValidCSRFToken(csrfValue, user4, true).Returns(true);
 
         using var server = new TestServer(new WebHostBuilder()
             .ConfigureServices(services =>
             {
                 services.AddSingleton(database);
-                services.AddSingleton(csrfMock.Object);
+                services.AddSingleton(csrfMock);
                 services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
@@ -306,8 +301,10 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
         // Check that all the users got passed correctly csrf checking
-        csrfMock.Verify();
-        csrfMock.VerifyNoOtherCalls();
+        csrfMock.Received().IsValidCSRFToken(csrfValue, user1, true);
+        csrfMock.Received().IsValidCSRFToken(csrfValue, user2, true);
+        csrfMock.Received().IsValidCSRFToken(csrfValue, user3, true);
+        csrfMock.Received().IsValidCSRFToken(csrfValue, user4, true);
     }
 
     [Fact]

@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Moq;
+using NSubstitute;
 using Server.Jobs;
 using Server.Models;
 using Server.Services;
@@ -31,20 +31,20 @@ public sealed class TerminateLongStoppedServersJobTests : IDisposable
     [Fact]
     public async Task TerminateStoppedServers_TerminatesLongStoppedServers()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.TerminateInstance(Server1InstanceId)).Returns(Task.CompletedTask).Verifiable();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.TerminateInstance(Server1InstanceId).Returns(Task.CompletedTask);
+        ec2Mock.Configured.Returns(true);
 
         var config = new ConfigurationBuilder().AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
             new("CI:TerminateStoppedServersDelayHours", "24"),
         }).Build();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("TerminateLongStoppedServersTerminates")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         var server1 = new ControlledServer
         {
@@ -78,21 +78,23 @@ public sealed class TerminateLongStoppedServersJobTests : IDisposable
         Assert.Equal(ServerStatus.Stopped, server2.Status);
         Assert.Equal(ServerStatus.Running, server3.Status);
 
-        await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock.Object).Execute(CancellationToken
+        await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock).Execute(CancellationToken
             .None);
 
         Assert.Equal(ServerStatus.Terminated, server1.Status);
         Assert.Equal(ServerStatus.Stopped, server2.Status);
         Assert.Equal(ServerStatus.Running, server3.Status);
 
-        await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock.Object).Execute(CancellationToken
+        await new TerminateLongStoppedServersJob(logger, config, database, ec2Mock).Execute(CancellationToken
             .None);
 
         Assert.Equal(ServerStatus.Terminated, server1.Status);
         Assert.Equal(ServerStatus.Stopped, server2.Status);
         Assert.Equal(ServerStatus.Running, server3.Status);
 
-        ec2Mock.Verify();
+#pragma warning disable CS4014
+        ec2Mock.Received().TerminateInstance(Server1InstanceId);
+#pragma warning restore CS4014
     }
 
     public void Dispose()

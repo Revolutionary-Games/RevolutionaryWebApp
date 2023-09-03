@@ -9,7 +9,7 @@ using Fixtures;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Moq;
+using NSubstitute;
 using Server.Jobs;
 using Server.Models;
 using Server.Services;
@@ -38,45 +38,43 @@ public sealed class RunJobOnServerJobTests : IDisposable
         var address = IPAddress.Parse("1.2.3.4");
         var keyName = "ssh_key_name.pem";
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("RunJobRunsOnExternalServer")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
-        var controlledSSHMock = new Mock<IControlledServerSSHAccess>();
+        var controlledSSHMock = Substitute.For<IControlledServerSSHAccess>();
 
-        var externalSSHMock = new Mock<IExternalServerSSHAccess>();
-        externalSSHMock.Setup(ssh => ssh.RunCommand(BaseCIJobManagingJob.DiskUsageCheckCommand)).Returns(
-                new BaseSSHAccess.CommandResult
-                {
-                    Result = DiskUsageResult,
-                    ExitCode = 0,
-                })
-            .Verifiable();
-        externalSSHMock.Setup(ssh => ssh.RunCommand(It.Is<string>(s => s.Contains("~/CIExecutor")))).Returns(
+        var externalSSHMock = Substitute.For<IExternalServerSSHAccess>();
+        externalSSHMock.RunCommand(BaseCIJobManagingJob.DiskUsageCheckCommand).Returns(
+            new BaseSSHAccess.CommandResult
+            {
+                Result = DiskUsageResult,
+                ExitCode = 0,
+            });
+        externalSSHMock.RunCommand(Arg.Is<string>(s => s.Contains("~/CIExecutor"))).Returns(
             new BaseSSHAccess.CommandResult
             {
                 ExitCode = 0,
-            }).Verifiable();
-        externalSSHMock.Setup(ssh => ssh.ConnectTo(address.ToString(), keyName)).Verifiable();
+            });
 
-        var remoteDownloadsMock = new Mock<IGeneralRemoteDownloadUrls>();
+        var remoteDownloadsMock = Substitute.For<IGeneralRemoteDownloadUrls>();
         remoteDownloadsMock
-            .Setup(download => download.CreateDownloadFor(It.IsAny<StorageFile>(), It.IsAny<TimeSpan>()))
-            .Returns("https://dummy.download/url").Verifiable();
+            .CreateDownloadFor(Arg.Any<StorageFile>(), Arg.Any<TimeSpan>())
+            .Returns("https://dummy.download/url");
 
-        var githubStatusAPI = new Mock<IGithubCommitStatusReporter>();
-        var hashMock = new Mock<IRemoteResourceHashCalculator>();
+        var githubStatusAPI = Substitute.For<IGithubCommitStatusReporter>();
+        var hashMock = Substitute.For<IRemoteResourceHashCalculator>();
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var job = new RunJobOnServerJob(logger, new ConfigurationBuilder().AddInMemoryCollection(
                 new KeyValuePair<string, string?>[]
                 {
                     new("BaseUrl", "http://localhost:5000/"),
                     new("CI:ServerCleanUpDiskUsePercentage", "80"),
-                }).Build(), database, controlledSSHMock.Object, externalSSHMock.Object, jobClientMock.Object,
-            githubStatusAPI.Object, remoteDownloadsMock.Object, hashMock.Object);
+                }).Build(), database, controlledSSHMock, externalSSHMock, jobClientMock,
+            githubStatusAPI, remoteDownloadsMock, hashMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var buildJob = new CiJob
@@ -110,10 +108,14 @@ public sealed class RunJobOnServerJobTests : IDisposable
 
         Assert.Equal(CIJobState.Running, buildJob.State);
 
-        controlledSSHMock.VerifyNoOtherCalls();
-        externalSSHMock.Verify();
-        remoteDownloadsMock.Verify();
-        githubStatusAPI.VerifyNoOtherCalls();
+        controlledSSHMock.DidNotReceiveWithAnyArgs().RunCommand(default!);
+
+        externalSSHMock.Received().RunCommand(BaseCIJobManagingJob.DiskUsageCheckCommand);
+        externalSSHMock.Received().RunCommand(Arg.Is<string>(s => s.Contains("~/CIExecutor")));
+        externalSSHMock.Received().ConnectTo(address.ToString(), keyName);
+
+        remoteDownloadsMock.Received()
+            .CreateDownloadFor(Arg.Any<StorageFile>(), Arg.Any<TimeSpan>());
     }
 
     [Fact]
@@ -121,45 +123,42 @@ public sealed class RunJobOnServerJobTests : IDisposable
     {
         var address = IPAddress.Parse("1.2.3.4");
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("RunJobRunsOnInternalServer")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
-        var controlledSSHMock = new Mock<IControlledServerSSHAccess>();
-        controlledSSHMock.Setup(ssh => ssh.RunCommand(BaseCIJobManagingJob.DiskUsageCheckCommand)).Returns(
-                new BaseSSHAccess.CommandResult
-                {
-                    Result = DiskUsageResult,
-                    ExitCode = 0,
-                })
-            .Verifiable();
-        controlledSSHMock.Setup(ssh => ssh.RunCommand(It.Is<string>(s => s.Contains("~/CIExecutor")))).Returns(
+        var controlledSSHMock = Substitute.For<IControlledServerSSHAccess>();
+        controlledSSHMock.RunCommand(BaseCIJobManagingJob.DiskUsageCheckCommand).Returns(
+            new BaseSSHAccess.CommandResult
+            {
+                Result = DiskUsageResult,
+                ExitCode = 0,
+            });
+        controlledSSHMock.RunCommand(Arg.Is<string>(s => s.Contains("~/CIExecutor"))).Returns(
             new BaseSSHAccess.CommandResult
             {
                 ExitCode = 0,
-            }).Verifiable();
-        controlledSSHMock.Setup(ssh => ssh.ConnectTo(address.ToString())).Verifiable();
+            });
 
-        var externalSSHMock = new Mock<IExternalServerSSHAccess>();
+        var externalSSHMock = Substitute.For<IExternalServerSSHAccess>();
 
-        var remoteDownloadsMock = new Mock<IGeneralRemoteDownloadUrls>();
-        remoteDownloadsMock
-            .Setup(download => download.CreateDownloadFor(It.IsAny<StorageFile>(), It.IsAny<TimeSpan>()))
-            .Returns("https://dummy.download/url").Verifiable();
+        var remoteDownloadsMock = Substitute.For<IGeneralRemoteDownloadUrls>();
+        remoteDownloadsMock.CreateDownloadFor(Arg.Any<StorageFile>(), Arg.Any<TimeSpan>())
+            .Returns("https://dummy.download/url");
 
-        var githubStatusAPI = new Mock<IGithubCommitStatusReporter>();
-        var hashMock = new Mock<IRemoteResourceHashCalculator>();
+        var githubStatusAPI = Substitute.For<IGithubCommitStatusReporter>();
+        var hashMock = Substitute.For<IRemoteResourceHashCalculator>();
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var job = new RunJobOnServerJob(logger, new ConfigurationBuilder().AddInMemoryCollection(
                 new KeyValuePair<string, string?>[]
                 {
                     new("BaseUrl", "http://localhost:5000/"),
                     new("CI:ServerCleanUpDiskUsePercentage", "80"),
-                }).Build(), database, controlledSSHMock.Object, externalSSHMock.Object, jobClientMock.Object,
-            githubStatusAPI.Object, remoteDownloadsMock.Object, hashMock.Object);
+                }).Build(), database, controlledSSHMock, externalSSHMock, jobClientMock,
+            githubStatusAPI, remoteDownloadsMock, hashMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var buildJob = new CiJob
@@ -192,10 +191,13 @@ public sealed class RunJobOnServerJobTests : IDisposable
 
         Assert.Equal(CIJobState.Running, buildJob.State);
 
-        controlledSSHMock.Verify();
-        externalSSHMock.VerifyNoOtherCalls();
-        remoteDownloadsMock.Verify();
-        githubStatusAPI.VerifyNoOtherCalls();
+        controlledSSHMock.Received().RunCommand(BaseCIJobManagingJob.DiskUsageCheckCommand);
+        controlledSSHMock.Received().RunCommand(Arg.Is<string>(s => s.Contains("~/CIExecutor")));
+        controlledSSHMock.Received().ConnectTo(address.ToString());
+
+        externalSSHMock.DidNotReceiveWithAnyArgs().RunCommand(default!);
+
+        remoteDownloadsMock.Received().CreateDownloadFor(Arg.Any<StorageFile>(), Arg.Any<TimeSpan>());
     }
 
     public void Dispose()

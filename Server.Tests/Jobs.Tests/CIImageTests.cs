@@ -10,7 +10,8 @@ using Dummies;
 using Fixtures;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
+using NSubstitute.ClearExtensions;
 using Server.Jobs;
 using Server.Models;
 using Server.Services;
@@ -31,9 +32,9 @@ public sealed class CIImageTests : IDisposable
     [Fact]
     public async Task LockCIImageItem_DeletesRightVersions()
     {
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
         var database =
-            new EditableInMemoryDatabaseFixtureWithNotifications(notificationsMock.Object,
+            new EditableInMemoryDatabaseFixtureWithNotifications(notificationsMock,
                 "LockCIImageDeleteRightVersion");
 
         var item1Version1 = new StorageItemVersion
@@ -99,24 +100,19 @@ public sealed class CIImageTests : IDisposable
         database.Database.StorageItemVersions.Add(item2Version2);
 
         await database.Database.SaveChangesAsync();
-        notificationsMock.Reset();
+        notificationsMock.ClearSubstitute();
 
         var dummyList = new List<Tuple<SerializedNotification, string>>
         {
             new(new DummyUpdated(), DummyUpdated.UpdateGroup),
         };
 
-        notificationsMock
-            .Setup(notifications => notifications.OnChangesDetected(EntityState.Modified, imageItem1, false))
-            .Returns(dummyList).Verifiable();
+        notificationsMock.OnChangesDetected(EntityState.Modified, imageItem1, false)
+            .Returns(dummyList);
 
-        notificationsMock.Setup(notifications =>
-            notifications.SendNotifications(
-                It.Is<IEnumerable<Tuple<SerializedNotification, string>>>(l => l.Any()))).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-
-        var job = new LockCIImageItemJob(logger, database.NotificationsEnabledDatabase, jobClientMock.Object);
+        var job = new LockCIImageItemJob(logger, database.NotificationsEnabledDatabase, jobClientMock);
 
         Assert.False(imageItem1.Special);
         Assert.Equal(FileAccess.Developer, imageItem1.WriteAccess);
@@ -152,7 +148,9 @@ public sealed class CIImageTests : IDisposable
         Assert.False(item2Version2.Keep);
         Assert.False(item2Version2.Protected);
 
-        notificationsMock.Verify();
+        notificationsMock.Received().OnChangesDetected(EntityState.Modified, imageItem1, false);
+        await notificationsMock.Received()
+            .SendNotifications(Arg.Is<IEnumerable<Tuple<SerializedNotification, string>>>(l => l.Any()));
     }
 
     public void Dispose()

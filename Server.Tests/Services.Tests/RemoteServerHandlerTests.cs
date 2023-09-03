@@ -2,6 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Services.Tests;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ using Fixtures;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Moq;
+using NSubstitute;
 using Server.Models;
 using Server.Services;
 using Shared.Models;
@@ -41,24 +42,23 @@ public sealed class RemoteServerHandlerTests : IDisposable
     [Fact]
     public async Task ServerControl_NewInstancesAreCreated()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.LaunchNewInstance())
-            .Returns(Task.FromResult(new List<string> { NewInstanceId })).Verifiable();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.LaunchNewInstance().Returns(Task.FromResult(new List<string> { NewInstanceId }));
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ControlledServersNewInstancesCreate")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.Empty(database.ControlledServers);
         Assert.False(handler.NewServersAdded);
@@ -75,7 +75,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(NewInstanceId, server.InstanceId);
         Assert.Equal(ServerStatus.Provisioning, server.Status);
 
-        ec2Mock.Verify();
+        await ec2Mock.Received().LaunchNewInstance();
     }
 
     [Fact]
@@ -83,17 +83,17 @@ public sealed class RemoteServerHandlerTests : IDisposable
     {
         const string instanceId1 = "id-1111";
 
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.ResumeInstance(instanceId1)).Returns(Task.CompletedTask).Verifiable();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.ResumeInstance(instanceId1).Returns(Task.CompletedTask);
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ControlledServersStartExisting")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -118,7 +118,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.False(await handler.HandleCIJobs(new List<CiJob> { job }));
 
@@ -128,23 +128,22 @@ public sealed class RemoteServerHandlerTests : IDisposable
 
         Assert.NotEqual(ServerStatus.WaitingForStartup, server2.Status);
 
-        ec2Mock.Verify();
+        await ec2Mock.Received().ResumeInstance(instanceId1);
     }
 
     [Fact]
     public async Task ServerControl_RunningServerIsUsedForJobs()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.ResumeInstance(It.IsAny<string>())).Throws<InvalidOperationException>();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ControlledServersRunOnExisting")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -169,7 +168,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
@@ -183,23 +182,22 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
         Assert.Equal(job.CiJobId, server2.ReservedFor);
 
-        ec2Mock.Verify();
+        await ec2Mock.DidNotReceiveWithAnyArgs().ResumeInstance(Arg.Any<string>());
     }
 
     [Fact]
     public async Task ServerControl_JobIsNotStartedOnMultipleServers()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.ResumeInstance(It.IsAny<string>())).Throws<InvalidOperationException>();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ControlledServersJobNotStartedOnMultiple")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -224,7 +222,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
@@ -242,7 +240,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(ServerReservationType.None, server2.ReservationType);
 
-        ec2Mock.Verify();
+        await ec2Mock.DidNotReceiveWithAnyArgs().ResumeInstance(Arg.Any<string>());
     }
 
     [Fact]
@@ -250,9 +248,9 @@ public sealed class RemoteServerHandlerTests : IDisposable
     {
         const string instanceId1 = "id-1111";
 
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 =>
-                ec2.GetInstanceStatuses(new List<string> { instanceId1 }, It.IsAny<CancellationToken>()))
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.GetInstanceStatuses(Arg.Is<List<string>>(l => l.SequenceEqual(new List<string> { instanceId1 })),
+                Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new List<Instance>
             {
                 new()
@@ -265,17 +263,16 @@ public sealed class RemoteServerHandlerTests : IDisposable
                         Name = InstanceStateName.Running,
                     },
                 },
-            }))
-            .Verifiable();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+            }));
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ControlledServersDetectRunning")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -302,7 +299,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.Equal(ServerStatus.WaitingForStartup, server1.Status);
         await handler.CheckServerStatuses(CancellationToken.None);
@@ -320,7 +317,9 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(ServerReservationType.None, server2.ReservationType);
         Assert.Null(server2.ReservedFor);
 
-        ec2Mock.Verify();
+        await ec2Mock.Received()
+            .GetInstanceStatuses(Arg.Is<List<string>>(l => l.SequenceEqual(new List<string> { instanceId1 })),
+                Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -328,10 +327,10 @@ public sealed class RemoteServerHandlerTests : IDisposable
     {
         const string instanceId1 = "id-1111";
 
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.StopInstance(instanceId1, false)).Returns(Task.CompletedTask).Verifiable();
-        ec2Mock.Setup(ec2 =>
-                ec2.GetInstanceStatuses(new List<string> { instanceId1 }, It.IsAny<CancellationToken>()))
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.StopInstance(instanceId1, false).Returns(Task.CompletedTask);
+        ec2Mock.GetInstanceStatuses(Arg.Is<List<string>>(l => l.SequenceEqual(new List<string> { instanceId1 })),
+                Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new List<Instance>
             {
                 new()
@@ -343,17 +342,16 @@ public sealed class RemoteServerHandlerTests : IDisposable
                         Name = InstanceStateName.Stopped,
                     },
                 },
-            }))
-            .Verifiable();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+            }));
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ControlledServersIdleStop")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         await AddTestJob(database);
@@ -381,7 +379,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.Equal(ServerStatus.Running, server1.Status);
         Assert.Equal(ServerStatus.Running, server2.Status);
@@ -401,23 +399,22 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(ServerStatus.Stopped, server1.Status);
         Assert.Equal(ServerStatus.Running, server2.Status);
 
-        ec2Mock.Verify();
+        await ec2Mock.Received().StopInstance(instanceId1, false);
     }
 
     [Fact]
     public async Task ServerControl_TotalServerLimitIsRespectedWhenCreating()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.LaunchNewInstance()).Throws<InvalidOperationException>();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ControlledServersNewInstancesFull")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -457,7 +454,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.False(await handler.HandleCIJobs(new List<CiJob> { job }));
 
@@ -468,23 +465,22 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(123, server2.ReservedFor);
         Assert.Equal(123, server3.ReservedFor);
 
-        ec2Mock.Verify();
+        await ec2Mock.DidNotReceive().LaunchNewInstance();
     }
 
     [Fact]
     public async Task ServerControl_ExtraProvisioningServersAreNotStarted()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.LaunchNewInstance()).Throws<InvalidOperationException>();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ControlledServersProvisionExistingCount")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -511,7 +507,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.False(await handler.HandleCIJobs(new List<CiJob> { job }));
 
@@ -522,22 +518,22 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Null(server2.ReservedFor);
         Assert.Equal(ServerStatus.Provisioning, server2.Status);
 
-        ec2Mock.Verify();
+        await ec2Mock.DidNotReceive().LaunchNewInstance();
     }
 
     [Fact]
     public async Task ServerControl_ExternalServersAreUsedBeforeEC2()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(true);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.Configured.Returns(true);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ExternalServersBeforeEC2")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -575,7 +571,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
@@ -593,22 +589,22 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
         Assert.Equal(job2.CiJobId, server2.ReservedFor);
 
-        ec2Mock.VerifyNoOtherCalls();
+        await ec2Mock.DidNotReceiveWithAnyArgs().LaunchNewInstance();
     }
 
     [Fact]
     public async Task ServerControl_EC2NotBeingConfiguredAllowsExternalToRun()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(false).Verifiable();
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.Configured.Returns(false);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ExternalRunEC2NotConfiguredForMore")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -637,7 +633,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
@@ -649,22 +645,22 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(job.CiJobId, server1.ReservedFor);
 
-        ec2Mock.Verify();
+        _ = ec2Mock.Received().Configured;
     }
 
     [Fact]
     public async Task ServerControl_ExternalServersPriorityWorks()
     {
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.SetupGet(ec2 => ec2.Configured).Returns(false);
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.Configured.Returns(false);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("ExternalServerPriority")
-            .Options, notificationsMock.Object);
+            .Options, notificationsMock);
 
         CIProjectTestDatabaseData.Seed(database);
         var job = await AddTestJob(database);
@@ -704,7 +700,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.SaveChangesAsync();
 
         var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock.Object, jobClientMock.Object);
+            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
@@ -722,7 +718,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(job2.CiJobId, server1.ReservedFor);
 
-        ec2Mock.VerifyNoOtherCalls();
+        await ec2Mock.DidNotReceiveWithAnyArgs().LaunchNewInstance();
     }
 
     public void Dispose()

@@ -6,7 +6,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Fixtures;
-using Moq;
+using NSubstitute;
+using NSubstitute.Core;
 using Server.Services;
 using TestUtilities.Utilities;
 using Xunit;
@@ -30,21 +31,21 @@ public sealed class StackwalkSymbolPreparerTests : IClassFixture<SimpleFewDebugS
     [Fact]
     public async void SymbolPreparer_CreatesRightFolderStructure()
     {
-        var downloadUrlsMock = new Mock<IGeneralRemoteDownloadUrls>();
-        downloadUrlsMock.SetupGet(d => d.Configured).Returns(true).Verifiable();
-        downloadUrlsMock.Setup(d => d.CreateDownloadFor(symbolsDatabase.StorageFile1, It.IsAny<TimeSpan>()))
-            .Returns(DownloadUrl1).Verifiable();
-        downloadUrlsMock.Setup(d => d.CreateDownloadFor(symbolsDatabase.StorageFile2, It.IsAny<TimeSpan>()))
-            .Returns(DownloadUrl2).Verifiable();
+        var downloadUrlsMock = Substitute.For<IGeneralRemoteDownloadUrls>();
+        downloadUrlsMock.Configured.Returns(true);
+        downloadUrlsMock.CreateDownloadFor(symbolsDatabase.StorageFile1, Arg.Any<TimeSpan>())
+            .Returns(DownloadUrl1);
+        downloadUrlsMock.CreateDownloadFor(symbolsDatabase.StorageFile2, Arg.Any<TimeSpan>())
+            .Returns(DownloadUrl2);
 
-        var downloaderMock = new Mock<IFileDownloader>();
-        downloaderMock.Setup(d => d.DownloadFile(DownloadUrl1, It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<string, string, CancellationToken>(WriteDummyFile).Verifiable();
-        downloaderMock.Setup(d => d.DownloadFile(DownloadUrl2, It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<string, string, CancellationToken>(WriteDummyFile).Verifiable();
+        var downloaderMock = Substitute.For<IFileDownloader>();
+        downloaderMock.DownloadFile(DownloadUrl1, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(WriteDummyFile);
+        downloaderMock.DownloadFile(DownloadUrl2, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(WriteDummyFile);
 
-        var symbolPreparer = new StackwalkSymbolPreparer(logger, symbolsDatabase.Database, downloadUrlsMock.Object,
-            downloaderMock.Object);
+        var symbolPreparer = new StackwalkSymbolPreparer(logger, symbolsDatabase.Database, downloadUrlsMock,
+            downloaderMock);
 
         var folder = "stackwalk_symbol_test_right_structure";
 
@@ -63,11 +64,12 @@ public sealed class StackwalkSymbolPreparerTests : IClassFixture<SimpleFewDebugS
 
         Assert.False(File.Exists(dummyFile));
 
-        downloadUrlsMock.Verify();
-        downloadUrlsMock.VerifyNoOtherCalls();
+        downloadUrlsMock.Received().CreateDownloadFor(symbolsDatabase.StorageFile1, Arg.Any<TimeSpan>());
+        downloadUrlsMock.Received().CreateDownloadFor(symbolsDatabase.StorageFile2, Arg.Any<TimeSpan>());
+        _ = downloadUrlsMock.Received().Configured;
 
-        downloaderMock.Verify();
-        downloaderMock.VerifyNoOtherCalls();
+        await downloaderMock.Received().DownloadFile(DownloadUrl1, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await downloaderMock.Received().DownloadFile(DownloadUrl2, Arg.Any<string>(), Arg.Any<CancellationToken>());
 
         Assert.True(File.Exists(Path.Join(folder, symbolsDatabase.Path1)));
         Assert.True(File.Exists(Path.Join(folder, symbolsDatabase.Path2)));
@@ -80,14 +82,14 @@ public sealed class StackwalkSymbolPreparerTests : IClassFixture<SimpleFewDebugS
         symbolsDatabase.Dispose();
     }
 
-    private static Task WriteDummyFile(string url, string file, CancellationToken cancellationToken)
+    private static Task WriteDummyFile(CallInfo x)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        x.Arg<CancellationToken>().ThrowIfCancellationRequested();
 
-        Directory.CreateDirectory(Path.GetDirectoryName(file) ?? throw new Exception());
+        Directory.CreateDirectory(Path.GetDirectoryName(x.ArgAt<string>(1)) ?? throw new Exception());
 
-        using var writer = File.Open(file, FileMode.Create);
-        writer.Write(Encoding.UTF8.GetBytes(url));
+        using var writer = File.Open(x.ArgAt<string>(1), FileMode.Create);
+        writer.Write(Encoding.UTF8.GetBytes(x.ArgAt<string>(0)));
         return Task.CompletedTask;
     }
 }

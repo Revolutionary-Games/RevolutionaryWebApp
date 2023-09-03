@@ -1,11 +1,12 @@
 namespace ThriveDevCenter.Server.Tests.Jobs.Tests;
 
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models.Enums;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Jobs;
 using Server.Models;
 using Server.Services;
@@ -38,11 +39,7 @@ public sealed class DeleteFailedItemVersionUploadsJobTests : IDisposable
     [Fact]
     public async Task DeleteFailedItemVersionUploadsJob_DeletesRightVersions()
     {
-        var storageMock = new Mock<IGeneralRemoteStorage>();
-        storageMock.Setup(storage => storage.DeleteObject(FilePath2)).Verifiable();
-        storageMock.Setup(storage => storage.DeleteObject($"@upload/{FilePath2}")).Verifiable();
-        storageMock.Setup(storage => storage.DeleteObject(FilePath3)).Verifiable();
-        storageMock.Setup(storage => storage.DeleteObject($"@upload/{FilePath3}")).Verifiable();
+        var storageMock = Substitute.For<IGeneralRemoteStorage>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase("DeleteFailedUploadVersion").Options);
@@ -116,7 +113,7 @@ public sealed class DeleteFailedItemVersionUploadsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new DeleteFailedItemVersionUploadsJob(logger, database, storageMock.Object);
+        var job = new DeleteFailedItemVersionUploadsJob(logger, database, storageMock);
 
         await job.Execute(CancellationToken.None);
 
@@ -137,8 +134,13 @@ public sealed class DeleteFailedItemVersionUploadsJobTests : IDisposable
         Assert.False(version4.Deleted);
         Assert.False(version5.Deleted);
 
-        storageMock.Verify();
-        storageMock.VerifyNoOtherCalls();
+        await storageMock.Received().DeleteObject(FilePath2);
+        await storageMock.Received().DeleteObject($"@upload/{FilePath2}");
+        await storageMock.Received().DeleteObject(FilePath3);
+        await storageMock.Received().DeleteObject($"@upload/{FilePath3}");
+
+        // Check no other delete calls
+        Assert.Equal(4, storageMock.ReceivedCalls().Count());
     }
 
     public void Dispose()

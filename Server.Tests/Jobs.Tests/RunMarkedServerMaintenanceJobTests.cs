@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Fixtures;
 using Hangfire;
-using Moq;
+using NSubstitute;
 using Server.Jobs;
 using Server.Models;
 using Server.Services;
@@ -29,15 +29,15 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
     {
         const string secondServerInstance = "5678";
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
-        var database = new EditableInMemoryDatabaseFixtureWithNotifications(notificationsMock.Object,
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        var database = new EditableInMemoryDatabaseFixtureWithNotifications(notificationsMock,
             "MarkedServerMaintenanceIgnoreReserved");
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.TerminateInstance(secondServerInstance)).Returns(Task.CompletedTask).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.TerminateInstance(secondServerInstance).Returns(Task.CompletedTask);
 
-        var sshMock = new Mock<IExternalServerSSHAccess>();
+        var sshMock = Substitute.For<IExternalServerSSHAccess>();
 
         var server1 = new ControlledServer
         {
@@ -61,8 +61,8 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
         await database.Database.ControlledServers.AddAsync(server2);
         await database.Database.SaveChangesAsync();
 
-        var job = new RunMarkedServerMaintenanceJob(logger, database.NotificationsEnabledDatabase, jobClientMock.Object,
-            ec2Mock.Object, sshMock.Object);
+        var job = new RunMarkedServerMaintenanceJob(logger, database.NotificationsEnabledDatabase, jobClientMock,
+            ec2Mock, sshMock);
 
         await job.Execute(CancellationToken.None);
 
@@ -70,9 +70,12 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
         Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(ServerStatus.Terminated, server2.Status);
 
-        ec2Mock.Verify();
-        ec2Mock.VerifyNoOtherCalls();
-        sshMock.VerifyNoOtherCalls();
+        await ec2Mock.Received().TerminateInstance(secondServerInstance);
+        await ec2Mock.DidNotReceiveWithAnyArgs().LaunchNewInstance();
+        await ec2Mock.DidNotReceiveWithAnyArgs().ResumeInstance(default!);
+
+        sshMock.DidNotReceiveWithAnyArgs().ConnectTo(default!, default!);
+        sshMock.DidNotReceiveWithAnyArgs().RunCommand(default!);
     }
 
     [Fact]
@@ -82,25 +85,24 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
         const string keyName2 = "server-ssh-key2";
 
         const string firstServerInstance = "5678";
-        const string secondServerInstance = "5678";
+        const string secondServerInstance = "9007";
 
         const string firstExternalAddress = "127.0.0.1";
         const string secondExternalAddress = "168.0.0.1";
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
-        var database = new EditableInMemoryDatabaseFixtureWithNotifications(notificationsMock.Object,
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        var database = new EditableInMemoryDatabaseFixtureWithNotifications(notificationsMock,
             "MarkedServerMaintenanceOnlyFirstOfType");
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var ec2Mock = new Mock<IEC2Controller>();
-        ec2Mock.Setup(ec2 => ec2.TerminateInstance(firstServerInstance)).Returns(Task.CompletedTask).Verifiable();
+        var ec2Mock = Substitute.For<IEC2Controller>();
+        ec2Mock.TerminateInstance(firstServerInstance).Returns(Task.CompletedTask);
 
-        var sshMock = new Mock<IExternalServerSSHAccess>();
-        sshMock.Setup(ssh => ssh.ConnectTo(firstExternalAddress, keyName)).Verifiable();
-        sshMock.Setup(ssh => ssh.RunCommand(It.IsAny<string>())).Returns(new BaseSSHAccess.CommandResult
-            { ExitCode = 0, Result = "Output would go here" }).Verifiable();
-        sshMock.Setup(ssh => ssh.Reboot()).Verifiable();
+        var sshMock = Substitute.For<IExternalServerSSHAccess>();
+        sshMock.ConnectTo(firstExternalAddress, keyName);
+        sshMock.RunCommand(Arg.Any<string>()).Returns(new BaseSSHAccess.CommandResult
+            { ExitCode = 0, Result = "Output would go here" });
 
         var server1 = new ControlledServer
         {
@@ -143,8 +145,8 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
         await database.Database.SaveChangesAsync();
 
         // Only first server of each type should get processed initially
-        var job = new RunMarkedServerMaintenanceJob(logger, database.NotificationsEnabledDatabase, jobClientMock.Object,
-            ec2Mock.Object, sshMock.Object);
+        var job = new RunMarkedServerMaintenanceJob(logger, database.NotificationsEnabledDatabase, jobClientMock,
+            ec2Mock, sshMock);
 
         await job.Execute(CancellationToken.None);
 
@@ -153,15 +155,16 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
         Assert.Equal(ServerStatus.Stopping, server3.Status);
         Assert.Equal(ServerStatus.Running, server4.Status);
 
-        ec2Mock.Verify();
-        ec2Mock.VerifyNoOtherCalls();
-        sshMock.Verify();
-        sshMock.VerifyNoOtherCalls();
+        await ec2Mock.Received().TerminateInstance(firstServerInstance);
+        await ec2Mock.DidNotReceive().TerminateInstance(secondServerInstance);
+        sshMock.Received().ConnectTo(firstExternalAddress, keyName);
+        sshMock.Received().RunCommand(Arg.Any<string>());
+        sshMock.Received().Reboot();
+
+        sshMock.DidNotReceive().ConnectTo(secondExternalAddress, keyName2);
 
         // When running the job the second time it processes the second set of servers
-        ec2Mock.Setup(ec2 => ec2.TerminateInstance(secondServerInstance)).Returns(Task.CompletedTask).Verifiable();
-
-        sshMock.Setup(ssh => ssh.ConnectTo(secondExternalAddress, keyName2)).Verifiable();
+        ec2Mock.TerminateInstance(secondServerInstance).Returns(Task.CompletedTask);
 
         await job.Execute(CancellationToken.None);
 
@@ -170,10 +173,9 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
         Assert.Equal(ServerStatus.Stopping, server3.Status);
         Assert.Equal(ServerStatus.Stopping, server4.Status);
 
-        ec2Mock.Verify();
-        ec2Mock.VerifyNoOtherCalls();
-        sshMock.Verify();
-        sshMock.VerifyNoOtherCalls();
+        await ec2Mock.Received().TerminateInstance(secondServerInstance);
+
+        sshMock.Received().ConnectTo(secondExternalAddress, keyName2);
     }
 
     public void Dispose()

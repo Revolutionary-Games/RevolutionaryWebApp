@@ -6,7 +6,7 @@ using Dummies;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Authorization;
 using Server.Controllers;
 using Server.Models;
@@ -38,42 +38,42 @@ public sealed class RegistrationControllerTests : IDisposable
     [Fact]
     public async Task Get_ReturnsRegistrationEnabledStatus()
     {
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
+        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock);
 
         var controller = new RegistrationController(logger, new DummyRegistrationStatus
         {
             RegistrationEnabled = true,
             RegistrationCode = "abc123",
-        }, Mock.Of<ITokenVerifier>(), database, jobClientMock.Object);
+        }, Substitute.For<ITokenVerifier>(), database, jobClientMock);
 
         var result = controller.Get();
 
         Assert.True(result);
 
-        notificationsMock.VerifyNoOtherCalls();
+        notificationsMock.DidNotReceiveWithAnyArgs().OnChangesDetected(default, default!, default);
     }
 
     [Fact]
     public async Task Get_ReturnsRegistrationDisabledStatus()
     {
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
+        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock);
 
         var controller = new RegistrationController(logger, new DummyRegistrationStatus
         {
             RegistrationEnabled = false,
-        }, Mock.Of<ITokenVerifier>(), database, jobClientMock.Object);
+        }, Substitute.For<ITokenVerifier>(), database, jobClientMock);
 
         var result = controller.Get();
 
         Assert.False(result);
 
-        notificationsMock.VerifyNoOtherCalls();
+        notificationsMock.DidNotReceiveWithAnyArgs().OnChangesDetected(default, default!, default);
     }
 
     [Theory]
@@ -81,17 +81,16 @@ public sealed class RegistrationControllerTests : IDisposable
     [InlineData(null)]
     public async Task Registration_FailsOnInvalidCSRF(string csrfValue)
     {
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, null, false))
-            .Returns(false).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(csrfValue, null, false).Returns(false);
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
+        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock);
 
-        var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database,
-            jobClientMock.Object);
+        var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock, database,
+            jobClientMock);
 
         var result = await controller.Post(new RegistrationFormData
         {
@@ -104,23 +103,22 @@ public sealed class RegistrationControllerTests : IDisposable
         Assert.Equal(400, objectResult.StatusCode);
         Assert.Empty(database.Users);
 
-        csrfMock.Verify();
+        csrfMock.Received().IsValidCSRFToken(csrfValue, null, false);
     }
 
     [Fact]
     public async Task Registration_FailsOnInvalidCode()
     {
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(It.IsNotNull<string>(), null, false))
-            .Returns(true).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(ArgExtension.IsNotNull<string>(), null, false).Returns(true);
 
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
+        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock);
 
         var controller = new RegistrationController(logger, dummyRegistrationStatus,
-            csrfMock.Object, database, jobClientMock.Object);
+            csrfMock, database, jobClientMock);
 
         var result = await controller.Post(new RegistrationFormData
         {
@@ -133,7 +131,7 @@ public sealed class RegistrationControllerTests : IDisposable
         Assert.Equal(400, objectResult.StatusCode);
         Assert.Empty(database.Users);
 
-        csrfMock.Verify();
+        csrfMock.Received().IsValidCSRFToken(ArgExtension.IsNotNull<string>(), null, false);
     }
 
     [Fact]
@@ -141,20 +139,15 @@ public sealed class RegistrationControllerTests : IDisposable
     {
         var csrfValue = "JustSomeRandomString";
 
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, null, false))
-            .Returns(true).Verifiable();
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(csrfValue, null, false).Returns(true);
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        notificationsMock
-            .Setup(notifications => notifications.OnChangesDetected(EntityState.Added,
-                It.IsAny<User>(), false)).Verifiable();
+        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock);
 
-        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
-
-        var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock.Object, database,
-            jobClientMock.Object);
+        var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock, database,
+            jobClientMock);
 
         var result = await controller.Post(new RegistrationFormData
         {
@@ -175,7 +168,7 @@ public sealed class RegistrationControllerTests : IDisposable
         Assert.NotNull(user.PasswordHash);
         Assert.True(Passwords.CheckPassword(user.PasswordHash, "password12345"));
 
-        notificationsMock.Verify();
+        notificationsMock.OnChangesDetected(EntityState.Added, Arg.Any<User>(), false);
     }
 
     public void Dispose()

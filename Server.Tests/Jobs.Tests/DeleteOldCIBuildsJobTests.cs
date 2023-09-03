@@ -7,7 +7,7 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Jobs.RegularlyScheduled;
 using Server.Models;
 using Shared;
@@ -35,8 +35,7 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(DeleteOldCIBuildsJob_DeletesAnOldBuild)).Options);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        jobClientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var ciProject = new CiProject();
         await database.CiProjects.AddAsync(ciProject);
@@ -78,12 +77,11 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock.Object);
+        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
-        jobClientMock.Verify(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()), Times.Once);
-        jobClientMock.VerifyNoOtherCalls();
+        jobClientMock.Received(1).Create(Arg.Any<Job>(), Arg.Any<IState>());
     }
 
     [Fact]
@@ -92,8 +90,7 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(DeleteOldCIBuildsJob_OneOldBuildIsDeletedWithNewPresent)).Options);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        jobClientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var ciProject = new CiProject();
         await database.CiProjects.AddAsync(ciProject);
@@ -152,12 +149,11 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock.Object);
+        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
-        jobClientMock.Verify(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()), Times.Once);
-        jobClientMock.VerifyNoOtherCalls();
+        jobClientMock.Received(1).Create(Arg.Any<Job>(), Arg.Any<IState>());
     }
 
     [Fact]
@@ -166,7 +162,7 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(DeleteOldCIBuildsJob_SingleBuildIsNotDeleted)).Options);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var ciProject = new CiProject();
         await database.CiProjects.AddAsync(ciProject);
@@ -191,11 +187,11 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock.Object);
+        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
@@ -204,7 +200,7 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(DeleteOldCIBuildsJob_NewBuildIsNotDeleted)).Options);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var ciProject = new CiProject();
         await database.CiProjects.AddAsync(ciProject);
@@ -246,11 +242,11 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock.Object);
+        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
@@ -259,8 +255,7 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(DeleteOldCIBuildsJob_BuildsWithNonPurgedOutputAreSkipped)).Options);
 
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        jobClientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var ciProject = new CiProject();
         await database.CiProjects.AddAsync(ciProject);
@@ -302,11 +297,11 @@ public sealed class DeleteOldCIBuildsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock.Object);
+        var job = new DeleteOldCIBuildsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     public void Dispose()

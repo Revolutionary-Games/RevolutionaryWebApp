@@ -7,7 +7,7 @@ using Fixtures;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
-using Moq;
+using NSubstitute;
 using Server.Jobs;
 using Server.Models;
 using Shared;
@@ -97,8 +97,7 @@ public sealed class CleanOldDevBuildsTests : IClassFixture<RealUnitTestDatabaseF
     [Fact]
     public async Task DevBuildClean_RightBuildsAndDehydratedGetDeleted()
     {
-        var clientMock = new Mock<IBackgroundJobClient>();
-        clientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var clientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = fixture.Database;
         await using var transaction = await database.Database.BeginTransactionAsync();
@@ -112,7 +111,7 @@ public sealed class CleanOldDevBuildsTests : IClassFixture<RealUnitTestDatabaseF
         Assert.NotNull(await database.DevBuilds.FindAsync(Build5Id));
         Assert.NotNull(await database.DevBuilds.FindAsync(Build6Id));
 
-        var instance = new CleanOldDevBuildsJob(logger, database, clientMock.Object);
+        var instance = new CleanOldDevBuildsJob(logger, database, clientMock);
 
         await instance.Execute(CancellationToken.None);
 
@@ -130,9 +129,10 @@ public sealed class CleanOldDevBuildsTests : IClassFixture<RealUnitTestDatabaseF
         Assert.NotNull(await database.DehydratedObjects.FindAsync(DehydratedId5));
         Assert.NotNull(await database.DehydratedObjects.FindAsync(DehydratedId6));
 
-        clientMock.Verify();
+        clientMock.Received().Create(Arg.Any<Job>(), Arg.Any<IState>());
+        clientMock.ClearReceivedCalls();
 
-        var dehydratedClean = new DeleteUnneededDehydratedObjectsJob(logger2, database, clientMock.Object);
+        var dehydratedClean = new DeleteUnneededDehydratedObjectsJob(logger2, database, clientMock);
 
         await dehydratedClean.Execute(CancellationToken.None);
 
@@ -150,7 +150,7 @@ public sealed class CleanOldDevBuildsTests : IClassFixture<RealUnitTestDatabaseF
         Assert.NotNull(await database.DehydratedObjects.FindAsync(DehydratedSharedId5));
         Assert.NotNull(await database.DehydratedObjects.FindAsync(DehydratedSharedId6));
 
-        clientMock.Verify();
+        clientMock.Received().Create(Arg.Any<Job>(), Arg.Any<IState>());
     }
 
     public void Dispose()

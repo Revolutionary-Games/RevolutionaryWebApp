@@ -2,7 +2,7 @@ namespace ThriveDevCenter.Server.Tests.Fixtures;
 
 using System;
 using System.Collections.Generic;
-using Moq;
+using NSubstitute;
 using Server.Models;
 using Server.Services;
 using Shared.Models;
@@ -150,7 +150,7 @@ public class SimpleFewUsersDatabaseWithNotifications : BaseSharedDatabaseFixture
     private static bool databaseInitialized;
 
     public SimpleFewUsersDatabaseWithNotifications() : base(
-        new Mock<IModelUpdateNotificationSender>().Object, "SimpleFewUsersDatabaseWithNotifications")
+        Substitute.For<IModelUpdateNotificationSender>(), "SimpleFewUsersDatabaseWithNotifications")
     {
         lock (Lock)
         {

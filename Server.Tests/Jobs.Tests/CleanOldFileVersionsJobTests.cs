@@ -8,7 +8,7 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Jobs.RegularlyScheduled;
 using Server.Models;
 using Shared;
@@ -33,8 +33,7 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
     [Fact]
     public async Task CleanOldFileVersionsJob_DeletesRightVersionsInLargeFile()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        jobClientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(CleanOldFileVersionsJob_DeletesRightVersionsInLargeFile)).Options);
@@ -83,7 +82,7 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new CleanOldFileVersionsJob(logger, database, jobClientMock.Object);
+        var job = new CleanOldFileVersionsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
@@ -91,14 +90,13 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
         Assert.True(version2.Deleted);
         Assert.False(version3.Deleted);
 
-        jobClientMock.Verify();
+        jobClientMock.Received().Create(Arg.Any<Job>(), Arg.Any<IState>());
     }
 
     [Fact]
     public async Task CleanOldFileVersionsJob_UploadingVersionsAreNotDeleted()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        jobClientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(CleanOldFileVersionsJob_UploadingVersionsAreNotDeleted)).Options);
@@ -158,7 +156,7 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new CleanOldFileVersionsJob(logger, database, jobClientMock.Object);
+        var job = new CleanOldFileVersionsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
@@ -167,13 +165,13 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
         Assert.False(version3.Deleted);
         Assert.False(version4.Deleted);
 
-        jobClientMock.Verify();
+        jobClientMock.Received().Create(Arg.Any<Job>(), Arg.Any<IState>());
     }
 
     [Fact]
     public async Task CleanOldFileVersionsJob_NewItemsAreNotDeleted()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(CleanOldFileVersionsJob_NewItemsAreNotDeleted)).Options);
@@ -222,7 +220,7 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new CleanOldFileVersionsJob(logger, database, jobClientMock.Object);
+        var job = new CleanOldFileVersionsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
@@ -230,14 +228,13 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
         Assert.False(version2.Deleted);
         Assert.False(version3.Deleted);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task CleanOldFileVersionsJob_DeletesRightVersionsInSmallFile()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        jobClientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(CleanOldFileVersionsJob_DeletesRightVersionsInSmallFile)).Options);
@@ -332,7 +329,7 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new CleanOldFileVersionsJob(logger, database, jobClientMock.Object);
+        var job = new CleanOldFileVersionsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
@@ -343,7 +340,7 @@ public sealed class CleanOldFileVersionsJobTests : IDisposable
         Assert.False(version5.Deleted);
         Assert.False(version6.Deleted);
 
-        jobClientMock.Verify();
+        jobClientMock.Received().Create(Arg.Any<Job>(), Arg.Any<IState>());
 
         database.StorageItemVersions.Remove(version1);
         await database.SaveChangesAsync();

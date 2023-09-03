@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Fixtures;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
-using Moq;
+using NSubstitute;
 using Server.Controllers;
 using Server.Services;
 using Shared;
@@ -28,12 +28,12 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
     [Fact]
     public async Task CLASearch_ReturnsExactEmailResults()
     {
-        var mailMock = new Mock<IMailQueue>();
-        var storageMock = new Mock<ICLASignatureStorage>();
-        var jobsMock = new Mock<IBackgroundJobClient>();
+        var mailMock = Substitute.For<IMailQueue>();
+        var storageMock = Substitute.For<ICLASignatureStorage>();
+        var jobsMock = Substitute.For<IBackgroundJobClient>();
 
         var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-            fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
+            fixture.NotificationsEnabledDatabase, storageMock, mailMock, jobsMock);
 
         var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA2Signature1Email, null);
 
@@ -59,12 +59,12 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
     [Fact]
     public async Task CLASearch_ReturnsExactGithubResults()
     {
-        var mailMock = new Mock<IMailQueue>();
-        var storageMock = new Mock<ICLASignatureStorage>();
-        var jobsMock = new Mock<IBackgroundJobClient>();
+        var mailMock = Substitute.For<IMailQueue>();
+        var storageMock = Substitute.For<ICLASignatureStorage>();
+        var jobsMock = Substitute.For<IBackgroundJobClient>();
 
         var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-            fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
+            fixture.NotificationsEnabledDatabase, storageMock, mailMock, jobsMock);
 
         var result = await controller.SearchSignatures(fixture.CLA2Id, null, fixture.CLA2Signature1Github);
 
@@ -90,12 +90,12 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
     [Fact]
     public async Task CLASearch_ReturnsExactBothResults()
     {
-        var mailMock = new Mock<IMailQueue>();
-        var storageMock = new Mock<ICLASignatureStorage>();
-        var jobsMock = new Mock<IBackgroundJobClient>();
+        var mailMock = Substitute.For<IMailQueue>();
+        var storageMock = Substitute.For<ICLASignatureStorage>();
+        var jobsMock = Substitute.For<IBackgroundJobClient>();
 
         var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-            fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
+            fixture.NotificationsEnabledDatabase, storageMock, mailMock, jobsMock);
 
         var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA2Signature1Email,
             fixture.CLA2Signature1Github);
@@ -123,12 +123,12 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
     [Fact]
     public async Task CLASearch_DoesNotQueryWrongCLA()
     {
-        var mailMock = new Mock<IMailQueue>();
-        var storageMock = new Mock<ICLASignatureStorage>();
-        var jobsMock = new Mock<IBackgroundJobClient>();
+        var mailMock = Substitute.For<IMailQueue>();
+        var storageMock = Substitute.For<ICLASignatureStorage>();
+        var jobsMock = Substitute.For<IBackgroundJobClient>();
 
         var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-            fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
+            fixture.NotificationsEnabledDatabase, storageMock, mailMock, jobsMock);
 
         var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA1Signature1Email, null);
 
@@ -148,12 +148,12 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
     [Fact]
     public async Task CLASearch_ReturnsExactPartialReturnsOtherResults()
     {
-        var mailMock = new Mock<IMailQueue>();
-        var storageMock = new Mock<ICLASignatureStorage>();
-        var jobsMock = new Mock<IBackgroundJobClient>();
+        var mailMock = Substitute.For<IMailQueue>();
+        var storageMock = Substitute.For<ICLASignatureStorage>();
+        var jobsMock = Substitute.For<IBackgroundJobClient>();
 
         var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-            fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
+            fixture.NotificationsEnabledDatabase, storageMock, mailMock, jobsMock);
 
         var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA2Signature1Email,
             fixture.CLA2Signature1Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLenght));
@@ -182,12 +182,12 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
     [Fact]
     public async Task CLASearch_NearMatchReturnsNothing()
     {
-        var mailMock = new Mock<IMailQueue>();
-        var storageMock = new Mock<ICLASignatureStorage>();
-        var jobsMock = new Mock<IBackgroundJobClient>();
+        var mailMock = Substitute.For<IMailQueue>();
+        var storageMock = Substitute.For<ICLASignatureStorage>();
+        var jobsMock = Substitute.For<IBackgroundJobClient>();
 
         var controller = new CLAController(logger, new ConfigurationBuilder().Build(),
-            fixture.NotificationsEnabledDatabase, storageMock.Object, mailMock.Object, jobsMock.Object);
+            fixture.NotificationsEnabledDatabase, storageMock, mailMock, jobsMock);
 
         var result = await controller.SearchSignatures(fixture.CLA2Id,
             fixture.CLA2Signature1Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLenght),

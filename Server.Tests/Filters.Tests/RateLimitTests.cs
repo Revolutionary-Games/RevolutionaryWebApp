@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Moq;
+using NSubstitute;
 using Server.Authorization;
 using Server.Filters;
 using Server.Models;
@@ -43,9 +43,8 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
     [Fact]
     public async Task RateLimit_LoginEndpointHasLowLimit()
     {
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(CSRF, null, true))
-            .Returns(true).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(CSRF, null, true).Returns(true);
 
         using var host = await CreateHost(csrfMock);
 
@@ -81,14 +80,13 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
             Assert.Fail("Expected to hit login rate limit, didn't hit it");
         }
 
-        csrfMock.Verify();
-        csrfMock.VerifyNoOtherCalls();
+        csrfMock.Received().IsValidCSRFToken(CSRF, null, true);
     }
 
     [Fact]
     public async Task RateLimit_NonLoggedInRunsIntoLimit()
     {
-        var csrfMock = new Mock<ITokenVerifier>();
+        var csrfMock = Substitute.For<ITokenVerifier>();
         using var host = await CreateHost(csrfMock);
 
         var client = host.GetTestClient();
@@ -115,7 +113,7 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
             Assert.Fail("Expected to hit rate limit, but didn't hit it");
         }
 
-        csrfMock.VerifyNoOtherCalls();
+        csrfMock.DidNotReceiveWithAnyArgs().IsValidCSRFToken(default!, default, default);
     }
 
     [Fact]
@@ -125,9 +123,8 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
 
         var user1 = await database.Users.FindAsync(1L);
 
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(CSRF, user1, true))
-            .Returns(true).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(CSRF, user1, true).Returns(true);
 
         using var host = await CreateHost(csrfMock);
 
@@ -163,8 +160,7 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
             Assert.Fail("Expected to hit user rate limit, didn't hit it");
         }
 
-        csrfMock.Verify();
-        csrfMock.VerifyNoOtherCalls();
+        csrfMock.Received().IsValidCSRFToken(CSRF, user1, true);
     }
 
     [Fact]
@@ -172,9 +168,8 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
     {
         var user1 = await database.Users.FindAsync(1L);
 
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(CSRF, user1, true))
-            .Returns(true).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(CSRF, user1, true).Returns(true);
 
         using var host = await CreateHost(csrfMock);
 
@@ -217,11 +212,11 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
         }
     }
 
-    private async Task<IHost> CreateHost(Mock<ITokenVerifier> csrfMock)
+    private async Task<IHost> CreateHost(ITokenVerifier csrfMock)
     {
         var limitOptions = new MyRateLimitOptions();
-        var patreonMock = new Mock<IPatreonAPI>();
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var patreonMock = Substitute.For<IPatreonAPI>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         return await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -238,9 +233,9 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
                     {
                         services.AddSingleton(database);
                         services.AddSingleton(users.NotificationsEnabledDatabase);
-                        services.AddSingleton(csrfMock.Object);
-                        services.AddSingleton(patreonMock.Object);
-                        services.AddSingleton(jobClientMock.Object);
+                        services.AddSingleton(csrfMock);
+                        services.AddSingleton(patreonMock);
+                        services.AddSingleton(jobClientMock);
 
                         services.AddSingleton<RedirectVerifier>();
                         services.AddSingleton<CustomMemoryCache>();

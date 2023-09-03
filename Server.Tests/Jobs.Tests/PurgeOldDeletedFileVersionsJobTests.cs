@@ -8,7 +8,7 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Jobs.RegularlyScheduled;
 using Server.Models;
 using Shared;
@@ -34,7 +34,7 @@ public sealed class PurgeOldDeletedFileVersionsJobTests : IDisposable
     [Fact]
     public async Task PurgeOldDeletedFileVersionsJob_NewOrUndeletedVersionsAreNotDeleted()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(PurgeOldDeletedFileVersionsJob_NewOrUndeletedVersionsAreNotDeleted)).Options);
@@ -85,19 +85,18 @@ public sealed class PurgeOldDeletedFileVersionsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new PurgeOldDeletedFileVersionsJob(logger, database, jobClientMock.Object);
+        var job = new PurgeOldDeletedFileVersionsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
         // This test relies on this to detect if something was deleted or not
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task PurgeOldDeletedFileVersionsJob_OldVersionIsDeleted()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
-        jobClientMock.Setup(client => client.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>())).Verifiable();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(PurgeOldDeletedFileVersionsJob_OldVersionIsDeleted)).Options);
@@ -124,17 +123,17 @@ public sealed class PurgeOldDeletedFileVersionsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new PurgeOldDeletedFileVersionsJob(logger, database, jobClientMock.Object);
+        var job = new PurgeOldDeletedFileVersionsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
-        jobClientMock.Verify();
+        jobClientMock.Received().Create(Arg.Any<Job>(), Arg.Any<IState>());
     }
 
     [Fact]
     public async Task PurgeOldDeletedFileVersionsJob_UploadingIsNotDeleted()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(PurgeOldDeletedFileVersionsJob_UploadingIsNotDeleted)).Options);
@@ -161,17 +160,17 @@ public sealed class PurgeOldDeletedFileVersionsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new PurgeOldDeletedFileVersionsJob(logger, database, jobClientMock.Object);
+        var job = new PurgeOldDeletedFileVersionsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task PurgeOldDeletedFileVersionsJob_RecentDeletedIsNotDeleted()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(nameof(PurgeOldDeletedFileVersionsJob_RecentDeletedIsNotDeleted)).Options);
@@ -222,11 +221,11 @@ public sealed class PurgeOldDeletedFileVersionsJobTests : IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new PurgeOldDeletedFileVersionsJob(logger, database, jobClientMock.Object);
+        var job = new PurgeOldDeletedFileVersionsJob(logger, database, jobClientMock);
 
         await job.Execute(CancellationToken.None);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     public void Dispose()

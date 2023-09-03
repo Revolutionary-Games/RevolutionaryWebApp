@@ -3,7 +3,7 @@ namespace ThriveDevCenter.Server.Tests.Jobs.Tests;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Controllers;
 using Server.Jobs;
 using Server.Models;
@@ -41,8 +41,8 @@ public sealed class CheckSSOUserSuspensionJobTests : System.IDisposable
     public async Task SSOSuspensionCheck_SuspendsBasedOnPatreonPledgeLevel(bool startSuspended,
         bool patreonDeclined, bool shouldBeSuspended, string reward)
     {
-        var communityDiscourseMock = new Mock<ICommunityForumAPI>();
-        var devDiscourseMock = new Mock<IDevForumAPI>();
+        var communityDiscourseMock = Substitute.For<ICommunityForumAPI>();
+        var devDiscourseMock = Substitute.For<IDevForumAPI>();
 
         await using var database =
             await CreatePatronsDb(nameof(SSOSuspensionCheck_SuspendsBasedOnPatreonPledgeLevel) + ++dbNameCounter,
@@ -64,8 +64,8 @@ public sealed class CheckSSOUserSuspensionJobTests : System.IDisposable
 
         await database.SaveChangesAsync();
 
-        var job = new CheckSSOUserSuspensionJob(logger, database, communityDiscourseMock.Object,
-            devDiscourseMock.Object);
+        var job = new CheckSSOUserSuspensionJob(logger, database, communityDiscourseMock,
+            devDiscourseMock);
 
         if (!startSuspended)
             Assert.Null(user.SuspendedReason);
@@ -88,12 +88,12 @@ public sealed class CheckSSOUserSuspensionJobTests : System.IDisposable
 
     private async Task<NotificationsEnabledDb> CreatePatronsDb(string dbName, string rewardId, bool suspended)
     {
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         var dbOptions =
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(dbName).Options;
 
-        var database = new NotificationsEnabledDb(dbOptions, notificationsMock.Object);
+        var database = new NotificationsEnabledDb(dbOptions, notificationsMock);
 
         await database.Patrons.AddAsync(new Patron
         {

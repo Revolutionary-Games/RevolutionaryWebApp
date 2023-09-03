@@ -8,7 +8,7 @@ using Hangfire;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Controllers;
 using Server.Filters;
 using Server.Models;
@@ -38,7 +38,8 @@ public sealed class StorageFileMoveTests : IDisposable
 
     private const long FileToRestoreId1 = 676008;
 
-    private static readonly Mock<IModelUpdateNotificationSender> ReadonlyDbNotifications = new();
+    private static readonly IModelUpdateNotificationSender ReadonlyDbNotifications =
+        Substitute.For<IModelUpdateNotificationSender>();
 
     private static readonly Lazy<NotificationsEnabledDb> NonWritingTestDb = new(CreateReadOnlyDatabase);
 
@@ -57,19 +58,19 @@ public sealed class StorageFileMoveTests : IDisposable
     [Fact]
     public async Task StorageFilesController_CannotMoveFileOverExistingOne()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await Assert.ThrowsAsync<HttpResponseException>(() =>
@@ -83,25 +84,25 @@ public sealed class StorageFileMoveTests : IDisposable
         Assert.Null(item.MovedFromLocation);
         Assert.Null(item.LastModifiedById);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_NonAdminCannotMoveToRootFolder()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result =
@@ -115,25 +116,25 @@ public sealed class StorageFileMoveTests : IDisposable
         Assert.Null(item.MovedFromLocation);
         Assert.Null(item.LastModifiedById);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_NonAdminCannotMoveRootItem()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await Assert.ThrowsAsync<HttpResponseException>(() =>
@@ -147,25 +148,25 @@ public sealed class StorageFileMoveTests : IDisposable
         Assert.Null(item.MovedFromLocation);
         Assert.Null(item.LastModifiedById);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotMoveWithPathEndingToAFile()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result =
@@ -180,25 +181,25 @@ public sealed class StorageFileMoveTests : IDisposable
         Assert.Null(item.MovedFromLocation);
         Assert.Null(item.LastModifiedById);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotMoveToFolderWithoutWriteAccess()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(NormalUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result =
@@ -213,25 +214,25 @@ public sealed class StorageFileMoveTests : IDisposable
         Assert.Null(item.MovedFromLocation);
         Assert.Null(item.LastModifiedById);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotMoveLockedItem()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MoveItem(FileToMove3Id, "StorageFileMoveTestParent/EmptyFolder");
@@ -244,25 +245,25 @@ public sealed class StorageFileMoveTests : IDisposable
         Assert.Null(item.MovedFromLocation);
         Assert.Null(item.LastModifiedById);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotMoveImportantItem()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MoveItem(FileToMove4Id, "StorageFileMoveTestParent/EmptyFolder");
@@ -275,25 +276,25 @@ public sealed class StorageFileMoveTests : IDisposable
         Assert.Null(item.MovedFromLocation);
         Assert.Null(item.LastModifiedById);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CannotMoveSpecialItem()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MoveItem(FileToMove5Id, "StorageFileMoveTestParent/EmptyFolder");
@@ -306,25 +307,25 @@ public sealed class StorageFileMoveTests : IDisposable
         Assert.Null(item.MovedFromLocation);
         Assert.Null(item.LastModifiedById);
 
-        jobClientMock.VerifyNoOtherCalls();
+        Assert.Empty(jobClientMock.ReceivedCalls());
     }
 
     [Fact]
     public async Task StorageFilesController_CanDoSimpleMove()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(DeveloperUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MoveItem(FileToMove1Id, "StorageFileMoveTestParent/EmptyFolder");
@@ -349,19 +350,19 @@ public sealed class StorageFileMoveTests : IDisposable
     [Fact]
     public async Task StorageFilesController_AdminCanMoveToRoot()
     {
-        var jobClientMock = new Mock<IBackgroundJobClient>();
+        var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         var database = NonWritingTestDb.Value;
-        var remoteStorageMock = new Mock<IGeneralRemoteStorage>();
+        var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
-        var controller = new StorageFilesController(logger, database, remoteStorageMock.Object,
-            new EphemeralDataProtectionProvider(), jobClientMock.Object);
+        var controller = new StorageFilesController(logger, database, remoteStorageMock,
+            new EphemeralDataProtectionProvider(), jobClientMock);
 
         var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(AdminUser);
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContextMock.Object,
+            HttpContext = httpContextMock,
         };
 
         var result = await controller.MoveItem(FileToMove1Id, null);
@@ -390,18 +391,18 @@ public sealed class StorageFileMoveTests : IDisposable
     {
         var database = new NotificationsEnabledDb(
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase("StorageFileMoveTestsRO")
-                .Options, ReadonlyDbNotifications.Object);
+                .Options, ReadonlyDbNotifications);
         CreateDefaultItems(database).Wait();
         return database;
     }
 
     private static async Task<NotificationsEnabledDb> GetWritableDatabase(string testName)
     {
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         var database = new NotificationsEnabledDb(
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(testName).Options,
-            notificationsMock.Object);
+            notificationsMock);
         await CreateDefaultItems(database);
         return database;
     }

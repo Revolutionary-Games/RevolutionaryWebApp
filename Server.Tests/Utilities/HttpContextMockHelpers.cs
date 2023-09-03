@@ -3,14 +3,15 @@ namespace ThriveDevCenter.Server.Tests.Utilities;
 using System.Collections.Generic;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Moq;
+using NSubstitute;
+using NSubstitute.Extensions;
 using Server.Authorization;
 using Server.Models;
 using Shared;
 
 public static class HttpContextMockHelpers
 {
-    public static Mock<HttpContext> CreateContextWithUser(User? user, bool? csrf = true,
+    public static HttpContext CreateContextWithUser(User? user, bool? csrf = true,
         AuthenticationScopeRestriction scopeRestriction = AuthenticationScopeRestriction.None)
     {
         ClaimsPrincipal principal;
@@ -33,9 +34,9 @@ public static class HttpContextMockHelpers
             contextItems.Add(AppInfo.CSRFStatusName, csrf.Value);
         }
 
-        var mock = new Mock<HttpContext>();
-        mock.Setup(c => c.User).Returns(principal);
-        mock.Setup(c => c.Items).Returns(contextItems);
+        var mock = Substitute.ForPartsOf<HttpContext>();
+        mock.Configure().User.Returns(principal);
+        mock.Configure().Items.Returns(contextItems);
 
         return mock;
     }

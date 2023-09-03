@@ -4,7 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Server.Jobs.RegularlyScheduled;
 using Server.Models;
 using Server.Services;
@@ -25,12 +25,12 @@ public sealed class DeleteOldCIJobOutputJobTests : IDisposable
     [Fact]
     public async Task DeleteOldCIJobOutputJob_PurgesRightSections()
     {
-        var notificationsMock = new Mock<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
 
         await using var database = new NotificationsEnabledDb(
             new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(nameof(DeleteOldCIJobOutputJob_PurgesRightSections))
-                .Options, notificationsMock.Object);
+                .Options, notificationsMock);
 
         var ciProject = new CiProject();
         await database.CiProjects.AddAsync(ciProject);

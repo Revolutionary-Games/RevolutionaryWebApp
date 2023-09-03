@@ -10,11 +10,12 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
-using Moq;
+using NSubstitute;
 using Server.Authorization;
 using Server.Models;
 using Server.Services;
 using Shared;
+using TestUtilities.Utilities;
 using Xunit;
 
 public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
@@ -31,9 +32,8 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
     [Fact]
     public async Task CookieAuthentication_CSRFNotNeededWithoutCookies()
     {
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(It.IsNotNull<string>(), null, false))
-            .Returns(false);
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(ArgExtension.IsNotNull<string>(), null, false).Returns(false);
 
         using var host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -44,7 +44,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
                     {
                         // ReSharper disable once AccessToDisposedClosure
                         services.AddSingleton(database);
-                        services.AddSingleton(csrfMock.Object);
+                        services.AddSingleton(csrfMock);
                         services.AddSingleton<CustomMemoryCache>();
                         services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                         services.AddScoped<CSRFCheckerMiddleware>();
@@ -70,15 +70,14 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
     [Fact]
     public async Task CookieAuthentication_CSRFIsNeeded()
     {
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(It.IsNotNull<string>(), null, false))
-            .Returns(false);
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(ArgExtension.IsNotNull<string>(), null, false).Returns(false);
 
         using var server = new TestServer(new WebHostBuilder()
             .ConfigureServices(services =>
             {
                 services.AddSingleton(database);
-                services.AddSingleton(csrfMock.Object);
+                services.AddSingleton(csrfMock);
                 services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
@@ -112,15 +111,14 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
 
         var user = await database.Users.FindAsync(1L);
 
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user, true))
-            .Returns(true).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(csrfValue, user, true).Returns(true);
 
         using var server = new TestServer(new WebHostBuilder()
             .ConfigureServices(services =>
             {
                 services.AddSingleton(database);
-                services.AddSingleton(csrfMock.Object);
+                services.AddSingleton(csrfMock);
                 services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
@@ -143,7 +141,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
         var response = await requestBuilder.GetAsync();
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-        csrfMock.Verify();
+        csrfMock.Received().IsValidCSRFToken(csrfValue, user, true);
     }
 
     [Fact]
@@ -153,15 +151,14 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
 
         var user = await database.Users.FindAsync(1L);
 
-        var csrfMock = new Mock<ITokenVerifier>();
-        csrfMock.Setup(csrf => csrf.IsValidCSRFToken(csrfValue, user, true))
-            .Returns(true).Verifiable();
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken(csrfValue, user, true).Returns(true);
 
         using var server = new TestServer(new WebHostBuilder()
             .ConfigureServices(services =>
             {
                 services.AddSingleton(database);
-                services.AddSingleton(csrfMock.Object);
+                services.AddSingleton(csrfMock);
                 services.AddSingleton<CustomMemoryCache>();
                 services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
                 services.AddScoped<CSRFCheckerMiddleware>();
@@ -184,6 +181,6 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
         var response = await requestBuilder.GetAsync();
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-        csrfMock.Verify();
+        csrfMock.Received().IsValidCSRFToken(csrfValue, user, true);
     }
 }
