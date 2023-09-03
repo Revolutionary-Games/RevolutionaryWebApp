@@ -15,7 +15,7 @@ public class LoginTests : TestContext
     [Fact]
     public void LoginLocal_IsNotRenderedWhenDisabled()
     {
-        var mockCSRF = new CSRFMock();
+        var mockCSRF = CSRFMockFactory.Create();
 
         var http = Services.AddMockHttpClient();
         http.When("/api/v1/Registration").RespondJson(false);
@@ -40,7 +40,7 @@ public class LoginTests : TestContext
             },
         });
 
-        Services.AddSingleton(mockCSRF.Object);
+        Services.AddSingleton(mockCSRF);
         var cut = RenderComponent<Login>();
 
         cut.WaitForAssertion(() => cut.FindIsNull(".spinner-border"));
@@ -51,7 +51,7 @@ public class LoginTests : TestContext
     [Fact]
     public void LoginLocal_LoginButtonEnablesWhenTextInput()
     {
-        var mockCSRF = new CSRFMock();
+        var mockCSRF = CSRFMockFactory.Create();
 
         var http = Services.AddMockHttpClient();
         http.When("/api/v1/Registration").RespondJson(false);
@@ -76,7 +76,7 @@ public class LoginTests : TestContext
             },
         });
 
-        Services.AddSingleton(mockCSRF.Object);
+        Services.AddSingleton(mockCSRF);
         var cut = RenderComponent<Login>();
 
         cut.WaitForAssertion(() => cut.FindIsNull(".spinner-border"));
