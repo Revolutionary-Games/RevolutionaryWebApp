@@ -44,7 +44,7 @@ public class FileDownloader : IFileDownloader
 
         try
         {
-            await using var writer = File.OpenWrite(file);
+            await using var writer = File.Open(file, FileMode.Create);
             await content.CopyToAsync(writer, cancellationToken);
         }
         catch (OperationCanceledException e)

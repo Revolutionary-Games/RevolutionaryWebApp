@@ -86,7 +86,7 @@ public sealed class StackwalkSymbolPreparerTests : IClassFixture<SimpleFewDebugS
 
         Directory.CreateDirectory(Path.GetDirectoryName(file) ?? throw new Exception());
 
-        using var writer = File.OpenWrite(file);
+        using var writer = File.Open(file, FileMode.Create);
         writer.Write(Encoding.UTF8.GetBytes(url));
         return Task.CompletedTask;
     }
