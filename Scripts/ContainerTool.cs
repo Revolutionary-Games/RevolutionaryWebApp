@@ -30,6 +30,7 @@ public class ContainerTool : ContainerToolBase<Program.ContainerOptions>
     };
 
     protected override string ImageNameBase => $"thrive/{ExportFileNameBase}";
+    protected override bool SaveByDefault => options.Image != ImageType.Builder;
 
     protected override Task<bool> PostCheckBuild(string tagOrId)
     {
