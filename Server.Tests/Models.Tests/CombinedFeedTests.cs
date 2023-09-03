@@ -18,13 +18,13 @@ public class CombinedFeedTests
         {
             MaxItems = 1,
         };
-        part1.ProcessContent(FeedTests.TestGithubFeedContent);
+        part1.ProcessContent(ExampleFeedData.TestGithubFeedContent);
 
         var part2 = new Feed("test", "test2", TimeSpan.FromMinutes(1))
         {
             MaxItems = 1,
         };
-        part2.ProcessContent(FeedTests.TestDiscourseFeedContent);
+        part2.ProcessContent(ExampleFeedData.TestDiscourseFeedContent);
 
         // LineLengthCheckDisable
         var feed = new CombinedFeed("all", @"<div class=""custom-feed-item-class feed-{FeedName}"">
