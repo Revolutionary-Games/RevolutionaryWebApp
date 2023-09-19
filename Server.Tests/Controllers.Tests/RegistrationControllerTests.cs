@@ -88,6 +88,7 @@ public sealed class RegistrationControllerTests : IDisposable
         var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
         await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock);
+        Assert.Empty(database.Users);
 
         var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock, database,
             jobClientMock);
@@ -144,7 +145,9 @@ public sealed class RegistrationControllerTests : IDisposable
         var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
         var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        await using var database = new NotificationsEnabledDb(dbOptions, notificationsMock);
+        await using var database = new NotificationsEnabledDb(
+            new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase("RegistrationTestDBWritable")
+                .Options, notificationsMock);
 
         var controller = new RegistrationController(logger, dummyRegistrationStatus, csrfMock, database,
             jobClientMock);
