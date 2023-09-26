@@ -181,7 +181,11 @@ public class Startup
         // For now the same DB is used for jobs
         services.AddHangfire(opts =>
         {
-            opts.UsePostgreSqlStorage(Configuration.GetConnectionString("WebApiConnection"),
+            opts.UsePostgreSqlStorage(
+                sqlOptions =>
+                {
+                    sqlOptions.UseNpgsqlConnection(Configuration.GetConnectionString("WebApiConnection"));
+                },
                 new PostgreSqlStorageOptions
                 {
                     QueuePollInterval = TimeSpan.FromSeconds(3),
