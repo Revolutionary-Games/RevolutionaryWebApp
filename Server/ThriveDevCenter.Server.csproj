@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.0.5" />
-    <PackageReference Include="AsyncKeyedLock" Version="6.2.1" />
+    <PackageReference Include="AsyncKeyedLock" Version="6.2.2" />
     <PackageReference Include="AWSSDK.EC2" Version="3.7.215.1" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.204.2" />
     <PackageReference Include="Discord.Net" Version="3.12.0" />
