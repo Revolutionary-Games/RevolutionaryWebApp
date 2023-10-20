@@ -76,6 +76,14 @@
 
                     break;
                 }
+                case ".pdf":
+                {
+                    <object data="@GetDownloadURL()" type="application/pdf" height="800" width="100%">
+                        <embed src="@GetDownloadURL()" type="application/pdf" height="800" width="100%">
+                    </object>
+
+                    break;
+                }
                 default:
                 {
                     <span>No preview available for this file type (@Extension)</span>
