@@ -1397,11 +1397,24 @@ public class StorageFilesController : Controller
             return false;
         }
 
+        // 32 is ' ' (space) and all character codes below it are control codes
+        if (name.Any(c => c < 32))
+        {
+            badRequest = BadRequest("Name contains a control character or a null byte");
+            return false;
+        }
+
+        if (name.Contains('/'))
+        {
+            badRequest = BadRequest("Name may not contain '/' character");
+            return false;
+        }
+
         // Purely numeric names (that are short) or starting with '@' are disallowed
         // TODO: would be nice to do this validation also on the client side form
         if (name.StartsWith('@') || (name.Length <= 5 && int.TryParse(name, out int _)))
         {
-            badRequest = BadRequest("You specified a disallowed folder name");
+            badRequest = BadRequest("You specified a disallowed name");
             return false;
         }
 
