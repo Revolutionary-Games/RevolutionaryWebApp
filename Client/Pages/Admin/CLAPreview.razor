@@ -39,7 +39,7 @@
             }
 
             <h4>Agreement Text Preview</h4>
-            <div><MarkdownRenderer Value="@Data.RawMarkdown" /></div>
+            <div><MarkdownRenderer MarkdownText="@Data.RawMarkdown" AllMarkdownFeatures="@true"/></div>
 
             <DevCenterTitle>CLA @Data.Id</DevCenterTitle>
         }

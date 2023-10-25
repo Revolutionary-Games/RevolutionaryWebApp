@@ -11,9 +11,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
-using Modulight.Modules.Hosting;
 using Services;
-using StardustDL.RazorComponents.Markdown;
 using TextCopy;
 using ThriveDevCenter.Shared;
 
@@ -30,15 +28,13 @@ public class Program
 
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
-        builder.Services.AddModules(moduleHostBuilder =>
-        {
-            moduleHostBuilder.UseRazorComponentClientModules().AddMarkdownModule();
-        });
-
         builder.Services.AddSingleton(_ => new CurrentUserInfo());
 
         builder.Services.AddSingleton<ICSRFTokenReader>(sp =>
             new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>(), sp.GetRequiredService<CurrentUserInfo>()));
+
+        builder.Services.AddSingleton<HtmlSanitizerService>();
+        builder.Services.AddSingleton(sp => new MarkdownService(sp.GetRequiredService<HtmlSanitizerService>()));
 
         builder.Services.AddScoped(sp => new HttpClient
         {
@@ -86,6 +82,6 @@ public class Program
         await concreteReader.ReportInitialUserIdToLocalStorage(app.Services
             .GetRequiredService<ILocalStorageService>());
 
-        await app.RunAsyncWithModules();
+        await app.RunAsync();
     }
 }

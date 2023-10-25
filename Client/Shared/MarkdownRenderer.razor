@@ -1,0 +1,116 @@
+@using ThriveDevCenter.Client.Services
+@inject MarkdownService Markdown
+
+<!--suppress CssMissingSemicolon -->
+<article class="@Class" style="@Style">
+    @((MarkupString)renderedMarkdown)
+</article>
+
+@code {
+    private static TimeSpan zeroSeconds = TimeSpan.FromSeconds(0);
+
+    private bool renderScheduled;
+
+    private string renderedMarkdown = string.Empty;
+    private DateTime lastRenderTime;
+
+    /// <summary>
+    ///   Used to detect when text is changed
+    /// </summary>
+    private string? currentlyRenderedRawText;
+
+    /// <summary>
+    ///   The markdown text this component should display
+    /// </summary>
+    [Parameter]
+    [EditorRequired]
+    public string? MarkdownText { get; set; }
+
+    [Parameter]
+    public bool AllMarkdownFeatures { get; set; }
+
+    [Parameter]
+    public string? Style { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public bool SanitizeHtml { get; set; } = true;
+
+    /// <summary>
+    ///   If set then there's this much delay between the text updating and it being re-rendered on subsequent updates
+    /// </summary>
+    [Parameter]
+    public TimeSpan? UpdateRenderDelay { get; set; }
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        await base.SetParametersAsync(parameters);
+
+        if (string.IsNullOrWhiteSpace(MarkdownText))
+        {
+            renderedMarkdown = string.Empty;
+        }
+        else if (MarkdownText != currentlyRenderedRawText)
+        {
+            // Update text to render
+            if (UpdateRenderDelay == null)
+            {
+                // Never delay option set
+                await RenderMarkdown();
+            }
+            else if (!renderScheduled)
+            {
+                renderScheduled = true;
+                var elapsedSinceRender = DateTime.Now - lastRenderTime;
+
+                var timeLeft = UpdateRenderDelay.Value - elapsedSinceRender;
+
+                if (timeLeft > zeroSeconds)
+                {
+                    // Wait until time to render
+                    await Task.Delay(timeLeft);
+                }
+
+                // Time to render now
+                await RenderMarkdown();
+                renderScheduled = false;
+            }
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        // TODO: trigger JS needed to make the markdown fully work
+    }
+
+    private async Task RenderMarkdown()
+    {
+        currentlyRenderedRawText = MarkdownText;
+
+        if (currentlyRenderedRawText == null)
+        {
+            renderedMarkdown = string.Empty;
+
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (AllMarkdownFeatures)
+        {
+            renderedMarkdown = Markdown.MarkdownToHtmlWithAllFeatures(currentlyRenderedRawText, SanitizeHtml);
+        }
+        else
+        {
+            renderedMarkdown = Markdown.MarkdownToHtmlLimited(currentlyRenderedRawText, SanitizeHtml);
+        }
+
+        lastRenderTime = DateTime.Now;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

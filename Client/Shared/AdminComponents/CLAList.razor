@@ -62,8 +62,9 @@ else
             </div>
             <div class="form-group col-xl-6">
                 <label for="newCIProjectName">Markdown Preview</label>
-                <div id="newCIProjectName"><MarkdownRenderer Value="@(newText ?? string.Empty)"
-                                                             RenderInterval="@TimeSpan.FromSeconds(1)" /></div>
+                <div id="newCIProjectName"><MarkdownRenderer MarkdownText="@(newText ?? string.Empty)"
+                                                             AllMarkdownFeatures="@true"
+                                                             UpdateRenderDelay="@TimeSpan.FromSeconds(1)"/></div>
             </div>
         </div>
         <div class="form-row">
