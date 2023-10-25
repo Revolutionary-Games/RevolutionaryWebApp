@@ -274,7 +274,7 @@ public class CrashReportController : Controller
         {
             Message = $"Crash report {report.Id} reporter email cleared",
 
-            // TODO: there could be an extra info property where the description is stored
+            // TODO: there could be an extra info property where the old description is stored
             PerformedById = user.Id,
         });
 
@@ -431,7 +431,8 @@ public class CrashReportController : Controller
 
         if (!string.IsNullOrWhiteSpace(request.ExtraDescription))
         {
-            report.Description = $"Reporter provided description:\n{request.ExtraDescription}\n";
+            // Just one change line here to not cause the text to go into a new markdown paragraph
+            report.Description = $"Reporter provided description:\n{request.ExtraDescription}\n\n";
         }
 
         await database.CrashReports.AddAsync(report);

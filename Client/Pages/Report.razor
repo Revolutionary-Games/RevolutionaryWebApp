@@ -173,9 +173,7 @@
 
                 <h3>Description</h3>
 
-                @* TODO: move this to markdown once the XSS resistant version is in nuget *@
-
-                <pre>@Data.Description</pre>
+                <MarkdownRenderer MarkdownText="@Data.Description" AllMarkdownFeatures="@false"/>
 
                 <AccessLimited AutoRedirectIfNotLoggedIn="false" RequiredAccess="GroupType.RestrictedUser">
                     <AuthorizedContent>

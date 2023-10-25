@@ -124,7 +124,10 @@ public class CheckCrashReportDuplicatesJob
             }
             else
             {
-                report.Description += "\n" + automaticText;
+                if (!report.Description.EndsWith("\n"))
+                    report.Description += "\n";
+
+                report.Description += "\n" + automaticText + "\n";
             }
         }
 
@@ -137,6 +140,6 @@ public class CheckCrashReportDuplicatesJob
 
     private static string GetAutomaticText(long duplicate)
     {
-        return $"Automatically detected as duplicate of report {duplicate} from callstack";
+        return $"Automatically detected as **duplicate of report {duplicate}** from callstack";
     }
 }
