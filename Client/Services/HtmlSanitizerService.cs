@@ -1,5 +1,6 @@
 namespace ThriveDevCenter.Client.Services;
 
+using System;
 using Ganss.Xss;
 
 public class HtmlSanitizerService
@@ -8,11 +9,24 @@ public class HtmlSanitizerService
 
     public HtmlSanitizerService()
     {
-        // sanitizer.AllowedTags.Add("math");
+        sanitizer.AllowedAttributes.Add("class");
+        sanitizer.AllowedClasses.Add("math");
     }
 
     public string SanitizeHtml(string html)
     {
-        return sanitizer.Sanitize(html);
+        // Uncomment for debugging why output is not working well
+        // return DebugSanitize(html);
+
+        var result = sanitizer.Sanitize(html);
+        return result;
+    }
+
+    private string DebugSanitize(string html)
+    {
+        Console.WriteLine("Sanitizing: " + html);
+        var result = sanitizer.Sanitize(html);
+        Console.WriteLine("Result: " + result);
+        return result;
     }
 }
