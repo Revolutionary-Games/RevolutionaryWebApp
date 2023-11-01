@@ -39,7 +39,7 @@
     <PackageReference Include="SimpleBase" Version="4.0.0" />
     <PackageReference Include="SixLabors.Fonts" Version="2.0.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.0.2" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.0.0" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.0.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.6" />
     <PackageReference Include="SmartFormat.NET" Version="3.3.0" />
     <PackageReference Include="SSH.NET" Version="2023.0.0" />
