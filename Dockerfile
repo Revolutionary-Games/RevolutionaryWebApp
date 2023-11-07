@@ -1,5 +1,5 @@
 # If the image version is updated here also Scripts/ContainerTool.cs needs to be updated
-FROM rockylinux:9 as builder
+FROM almalinux:9 as builder
 ENV DOTNET_VERSION "7.0"
 
 # Update used here to have slightly less outdated rocky packages (this'll only really matter if

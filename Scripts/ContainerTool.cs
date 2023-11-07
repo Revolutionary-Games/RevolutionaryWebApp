@@ -42,7 +42,7 @@ public class ContainerTool : ContainerToolBase<Program.ContainerOptions>
         if (options.Image == ImageType.Builder)
         {
             // ReSharper disable once StringLiteralTypo
-            yield return "rockylinux:9";
+            yield return "almalinux:9";
         }
     }
 }
