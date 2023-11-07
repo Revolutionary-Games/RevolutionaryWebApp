@@ -33,7 +33,9 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
     {
         if (!HttpContext.HasAuthenticatedUserWithGroup(RequiredViewAccessLevel,
                 AuthenticationScopeRestriction.None))
+        {
             return Forbid();
+        }
 
         // Only admins can view deleted items
         if (deleted &&
@@ -65,7 +67,9 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
     {
         if (!HttpContext.HasAuthenticatedUserWithGroup(RequiredViewAccessLevel,
                 AuthenticationScopeRestriction.None))
+        {
             return Forbid();
+        }
 
         var item = await FindAndCheckAccess(id);
 

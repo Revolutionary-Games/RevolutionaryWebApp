@@ -85,6 +85,9 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
 
     public ICollection<DebugSymbol> DebugSymbols { get; set; } = new HashSet<DebugSymbol>();
 
+    public ICollection<PrecompiledObjectVersion> PrecompiledObjectVersions { get; set; } =
+        new HashSet<PrecompiledObjectVersion>();
+
     /// <summary>
     ///   Info about where this item was deleted from to allow restoring this, even if the original folder was deleted
     /// </summary>

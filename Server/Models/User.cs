@@ -165,6 +165,9 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
     public ICollection<DebugSymbol> CreatedDebugSymbols { get; set; } = new HashSet<DebugSymbol>();
 
+    public ICollection<PrecompiledObjectVersion> CreatedPrecompiledObjects { get; set; } =
+        new HashSet<PrecompiledObjectVersion>();
+
     public ICollection<MeetingPoll> ManuallyClosedPolls { get; set; } = new HashSet<MeetingPoll>();
 
     public AssociationMember? AssociationMember { get; set; }
