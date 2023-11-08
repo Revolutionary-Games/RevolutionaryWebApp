@@ -416,12 +416,14 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.PrivateCIProjectUpdated:
             case NotificationGroups.CrashReportListUpdatedPrivate:
             case NotificationGroups.SymbolListUpdated:
+            case NotificationGroups.PrivatePrecompiledObjectUpdated:
                 return RequireAccessLevel(GroupType.Developer, user);
             case NotificationGroups.DevBuildsListUpdated:
                 return RequireAccessLevel(GroupType.User, user);
             case NotificationGroups.LFSListUpdated:
             case NotificationGroups.CIProjectListUpdated:
             case NotificationGroups.CrashReportListUpdatedPublic:
+            case NotificationGroups.PrecompiledObjectListUpdated:
                 return RequireAccessLevel(GroupType.NotLoggedIn, user);
         }
 
@@ -543,6 +545,25 @@ public class NotificationsHub : Hub<INotifications>
 
             // Only admins see secrets
             return RequireAccessLevel(GroupType.Admin, user);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.PrecompiledObjectUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroup(groupName, database.PrecompiledObjects, out var item))
+                return false;
+
+            if (RequireAccessLevel(GroupType.Admin, user))
+                return true;
+
+            // Only admins see deleted items
+            if (item!.Deleted)
+                return false;
+
+            // Everyone sees public projects
+            if (item.Public)
+                return true;
+
+            return RequireAccessLevel(GroupType.Developer, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.UserLauncherLinksUpdatedPrefix))

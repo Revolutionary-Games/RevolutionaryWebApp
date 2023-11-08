@@ -87,6 +87,10 @@ public static class NotificationGroups
     public const string CombinedFeedListUpdated = "CombinedFeeds";
     public const string CombinedFeedUpdatedPrefix = "SCombinedFeed_";
 
+    public const string PrecompiledObjectListUpdated = "PrecompiledObjects";
+    public const string PrivatePrecompiledObjectUpdated = "PrecompiledObjects_Developer";
+    public const string PrecompiledObjectUpdatedPrefix = "PrecompiledObject_";
+
     // Launcher info modification models
     public const string LauncherDownloadMirrorListUpdated = "LaunchMirrors";
     public const string LauncherDownloadMirrorUpdatedPrefix = "SLaunchMirror_";

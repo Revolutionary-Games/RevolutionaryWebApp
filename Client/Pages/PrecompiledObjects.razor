@@ -1,0 +1,212 @@
+@page "/precompiled"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Notifications
+@using System.Threading
+@using DevCenterCommunication.Models
+@using SharedBase.Utilities
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
+@implements ThriveDevCenter.Client.Services.INotificationHandler<PrecompiledObjectListUpdated>
+@inherits PaginatedPage<ThriveDevCenter.Shared.Models.PrecompiledObjectInfo>
+
+<h3>Precompiled Objects</h3>
+
+<p>
+    These are precompiled resources related to Thrive. These provide an easier way to use some things without having to
+    compile them locally. With the slight caveat that developing the features implemented inside the precompiled
+    objects requires compiling them locally to be able to change them.
+</p>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row"><NavLink href="@($"precompiled/{item.Name}")">@item.Name</NavLink></th>
+                    <td>@item.TotalStorageSize.BytesToMiB(3)</td>
+                    <td>@item.Public</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+
+
+<AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+    <hr />
+
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+    }
+
+    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+        New
+    </Button>
+
+    @if (showNewForm)
+    {
+        <PrecompiledObjectDataForm EditContext="@editContext" EditedData="@newData" Processing="@processingNewForm"
+                      ControlIdSuffix="-new" StatusMessage="@createMessage"
+                      StatusMessageType="@createMessageType" OnValidSubmit="@CreateNew" OverrideSaveText="Create">
+            <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">
+                Cancel
+            </Button>
+        </PrecompiledObjectDataForm>
+    }
+
+    <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/PrecompiledObject?deleted=true"
+                           RestoreEndpoint="api/v1/PrecompiledObject/{0}/restore" />
+
+</AccessLimited>
+
+<DevCenterTitle>Precompiled Objects</DevCenterTitle>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Name", true),
+        new TableColumn("Size", false),
+        new TableColumn("Public", false),
+        new TableColumn("Created At", false),
+    };
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+
+    private EditContext editContext = null!;
+
+    private PrecompiledObjectDTO? newData;
+
+    public PrecompiledObjects() : base(new SortHelper("Name", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(PrecompiledObjectListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.PrecompiledObjectListUpdated);
+
+        if (currentUserGroups.HasGroup(GroupType.Developer))
+            groups.Add(NotificationGroups.PrivatePrecompiledObjectUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<PrecompiledObjectInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<PrecompiledObjectInfo>>(
+            QueryHelpers.AddQueryString("api/v1/PrecompiledObject", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            newData = new PrecompiledObjectDTO();
+
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/PrecompiledObject", newData!);
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New PrecompiledObject created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

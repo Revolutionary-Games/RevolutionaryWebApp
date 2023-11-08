@@ -106,3 +106,7 @@ public class LauncherThriveVersionPlatformUpdated : ModelUpdated<LauncherThriveV
 public class LauncherThriveVersionDownloadUpdated : ModelUpdated<LauncherThriveVersionDownloadDTO>
 {
 }
+
+public class PrecompiledObjectUpdated : ModelUpdated<PrecompiledObjectDTO>
+{
+}

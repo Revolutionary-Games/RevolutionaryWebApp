@@ -183,3 +183,7 @@ public class LauncherThriveVersionDownloadListUpdated : ListUpdated<LauncherThri
 public class ExecutedMaintenanceOperationListUpdated : ListUpdated<ExecutedMaintenanceOperationDTO>
 {
 }
+
+public class PrecompiledObjectListUpdated : ListUpdated<PrecompiledObjectInfo>
+{
+}

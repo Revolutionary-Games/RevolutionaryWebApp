@@ -1,0 +1,45 @@
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models
+@using FeedParser.Shared.Models
+@inherits EditFormBase<DevCenterCommunication.Models.PrecompiledObjectDTO>
+<EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
+    <DataAnnotationsValidator />
+
+    <div class="form-row">
+        <div class="form-group col-12">
+            <label for="@($"precompiledFormName-{ControlIdSuffix}")">Name</label>
+            <CustomInputText class="form-control" id="@($"precompiledFormName-{ControlIdSuffix}")"
+                             @bind-Value="EditedData.Name"
+                             placeholder=
+                             "Precompiled Object name (should not contain any version or platform information)" />
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-12">
+            <div class="form-check">
+                <InputCheckbox class="form-check-input" type="checkbox" id="@($"precompiledFormPublic-{ControlIdSuffix}")"
+                               @bind-Value="EditedData.Public"/>
+                <label class="form-check-label" for="@($"precompiledFormPublic-{ControlIdSuffix}")">
+                    Visible to non-developers?
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <ValidationSummary />
+
+    <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
+    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+        @SaveButtonText
+    </Button>
+
+    @ChildContent
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+}

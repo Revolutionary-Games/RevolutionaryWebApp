@@ -33,7 +33,7 @@ public class PrecompiledObjectController : BaseSoftDeletedResourceController<Pre
     protected override DbSet<PrecompiledObject> Entities => database.PrecompiledObjects;
     protected override GroupType RequiredViewAccessLevel => GroupType.NotLoggedIn;
 
-    [HttpPost("create")]
+    [HttpPost]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]
     public async Task<ActionResult> Create([Required] [FromBody] PrecompiledObjectDTO request)
     {
