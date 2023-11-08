@@ -30,7 +30,17 @@
                                     DeleteURLBase="api/v1/PrecompiledObject"
                                     DeletePromptTitle="Delete this Precompiled Object?" />
 
-        <p> todo: edit button</p>
+        <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+            @if (!showEdit)
+            {
+                <Button ButtonStyle="secondary" OnPressed="@ToggleEdit" class="mb-3 ml-1">Edit</Button>
+            }
+            else
+            {
+                <PrecompiledObjectEditor Id="@Data!.Id" ColumnSpan="0" />
+                <Button ButtonStyle="secondary" OnPressed="@ToggleEdit" class="mb-3">Cancel</Button>
+            }
+        </AccessLimited>
 
         <h3>Versions of This Object</h3>
 
@@ -42,6 +52,8 @@
 </SingleResourceDisplayer>
 
 @code {
+    private bool showEdit;
+
     protected override Task<PrecompiledObjectDTO?> StartQuery()
     {
         return Http.GetFromJsonAsync<PrecompiledObjectDTO>($"api/v1/PrecompiledObject/byName/{Id}");
@@ -60,5 +72,10 @@
     protected override Task OnFirstDataReceived()
     {
         return NotificationHandler.Register(this);
+    }
+
+    private void ToggleEdit()
+    {
+        showEdit = !showEdit;
     }
 }

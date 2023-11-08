@@ -17,8 +17,7 @@ using Utilities;
 /// </summary>
 [Index(nameof(Name), IsUnique = true)]
 public class PrecompiledObject : UpdateableModel, IUpdateNotifications, ISoftDeletable,
-    IDTOCreator<PrecompiledObjectDTO>,
-    IInfoCreator<PrecompiledObjectInfo>
+    IDTOCreator<PrecompiledObjectDTO>, IInfoCreator<PrecompiledObjectInfo>
 {
     public PrecompiledObject(string name)
     {
@@ -27,6 +26,7 @@ public class PrecompiledObject : UpdateableModel, IUpdateNotifications, ISoftDel
 
     [Required]
     [AllowSortingBy]
+    [UpdateFromClientRequest]
     public string Name { get; set; }
 
     public long TotalStorageSize { get; set; }
@@ -34,6 +34,7 @@ public class PrecompiledObject : UpdateableModel, IUpdateNotifications, ISoftDel
     /// <summary>
     ///   Non-public are only visible to developers
     /// </summary>
+    [UpdateFromClientRequest]
     public bool Public { get; set; } = true;
 
     /// <summary>

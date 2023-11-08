@@ -15,6 +15,7 @@ using RecursiveDataAnnotationsValidation;
 using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
+using Utilities;
 
 [ApiController]
 [Route("api/v1/[controller]")]
@@ -102,6 +103,53 @@ public class PrecompiledObjectController : BaseSoftDeletedResourceController<Pre
         Logger.LogInformation("New precompiled object {Id} ({Name}) created by {Email}", precompiledObject.Id,
             precompiledObject.Name, user.Email);
 
+        return Ok();
+    }
+
+    [HttpPut("{id:long}")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
+    public async Task<IActionResult> Update([Required] long id, [Required] [FromBody] PrecompiledObjectDTO request)
+    {
+        var validator = new RecursiveDataAnnotationValidator();
+
+        var results = new List<ValidationResult>();
+        if (!validator.TryValidateObjectRecursive(request, new ValidationContext(request), results))
+        {
+            return BadRequest("Precompiled object data failed validation");
+        }
+
+        if (request.Id != id)
+            return BadRequest("ID in model doesn't match URL");
+
+        var precompiledObject = await Entities.FindAsync(request.Id);
+
+        if (precompiledObject == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(precompiledObject, request);
+
+        if (!changes)
+            return Ok();
+
+        if (await Entities.AnyAsync(p => p.Name == request.Name && p.Id != request.Id))
+            return BadRequest("Name is already in use");
+
+        precompiledObject.BumpUpdatedAt();
+
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"PrecompiledObject {precompiledObject.Id} edited",
+
+            // TODO: there could be an extra info property where the description is stored
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        Logger.LogInformation("PrecompiledObject {Id} edited by {Email}, changes: {Description}", precompiledObject.Id,
+            user.Email, description);
         return Ok();
     }
 

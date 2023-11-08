@@ -1,0 +1,42 @@
+@inherits ResourceEditorBase<PrecompiledObjectDTO, PrecompiledObjectUpdated, long>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared
+@using ThriveDevCenter.Shared.Models.Enums
+@using ThriveDevCenter.Shared.Notifications
+@using DevCenterCommunication.Models
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <PrecompiledObjectDataForm EditContext="@editContext" EditedData="@editedData"
+                      ControlIdSuffix="@Id.ToString()" StatusMessage="@statusMessage" Processing="@processing"
+                      StatusMessageType="@statusMessageType" OnValidSubmit="@Save"/>
+    }
+</SingleResourceDisplayer>
+
+@code {
+
+    protected override string ElementIdPrefix => $"{Id}-precompiledDetails";
+
+    protected override Task<PrecompiledObjectDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<PrecompiledObjectDTO>($"api/v1/PrecompiledObject/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.PrecompiledObjectUpdatedPrefix + Id);
+    }
+
+    protected override PrecompiledObjectDTO CreateEditData(PrecompiledObjectDTO serverData)
+    {
+        return serverData.Clone();
+    }
+
+    protected override string GetSaveEndpoint(PrecompiledObjectDTO serverData)
+    {
+        return $"api/v1/PrecompiledObject/{serverData.Id}";
+    }
+}
