@@ -33,6 +33,36 @@ public class PrecompiledObjectController : BaseSoftDeletedResourceController<Pre
     protected override DbSet<PrecompiledObject> Entities => database.PrecompiledObjects;
     protected override GroupType RequiredViewAccessLevel => GroupType.NotLoggedIn;
 
+    [HttpGet("byName/{name}")]
+    public async Task<ActionResult<PrecompiledObjectDTO>> GetSingleByName([Required] string name)
+    {
+        if (name.Length > 200)
+            return BadRequest("Too long name");
+
+        if (!HttpContext.HasAuthenticatedUserWithGroup(RequiredViewAccessLevel,
+                AuthenticationScopeRestriction.None))
+        {
+            return Forbid();
+        }
+
+        var item = await Entities.FirstOrDefaultAsync(p => p.Name == name);
+
+        if (item == null)
+            return NotFound();
+
+        if (!CheckExtraAccess(item))
+            return NotFound();
+
+        // Only admins can view deleted items
+        if (item.Deleted &&
+            !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
+        {
+            return NotFound();
+        }
+
+        return item.GetDTO();
+    }
+
     [HttpPost]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]
     public async Task<ActionResult> Create([Required] [FromBody] PrecompiledObjectDTO request)
@@ -104,6 +134,7 @@ public class PrecompiledObjectController : BaseSoftDeletedResourceController<Pre
     [NonAction]
     protected override Task SaveResourceChanges(PrecompiledObject resource)
     {
-        throw new NotImplementedException();
+        resource.BumpUpdatedAt();
+        return database.SaveChangesAsync();
     }
 }

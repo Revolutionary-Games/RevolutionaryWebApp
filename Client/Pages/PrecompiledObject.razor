@@ -1,0 +1,64 @@
+@page "/precompiled/{Id}"
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inherits SingleResourcePage<PrecompiledObjectDTO, PrecompiledObjectUpdated, string>
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Shared.Models.Enums
+@using ThriveDevCenter.Shared.Notifications
+@using DevCenterCommunication.Models
+@implements IAsyncDisposable
+
+<SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+    @if (Data != null)
+    {
+        <h3>Precompiled Object @Data.Name</h3>
+
+        <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
+            <ul>
+                <li><strong>Name</strong>: @Data.Name</li>
+                <li><strong>Public</strong>: @Data.Public</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+                <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+                    <li><strong>Deleted</strong>: @Data.Deleted</li>
+                </AccessLimited>
+            </ul>
+        </AccessLimited>
+
+        <AdminResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Name" Id="@Data.Id"
+                                    DeleteURLBase="api/v1/PrecompiledObject"
+                                    DeletePromptTitle="Delete this Precompiled Object?" />
+
+        <p> todo: edit button</p>
+
+        <h3>Versions of This Object</h3>
+
+        <p> todo: </p>
+        @*<CIBuildsList ProjectId="@Data.Id" ProjectType="@Data.ProjectType" ProjectFullName="@Data.RepositoryFullName" />*@
+
+        <DevCenterTitle>Precompiled Object @Data.Name</DevCenterTitle>
+    }
+</SingleResourceDisplayer>
+
+@code {
+    protected override Task<PrecompiledObjectDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<PrecompiledObjectDTO>($"api/v1/PrecompiledObject/byName/{Id}");
+    }
+
+    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.PrecompiledObjectUpdatedPrefix + Data!.Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return NotificationHandler.Register(this);
+    }
+}
