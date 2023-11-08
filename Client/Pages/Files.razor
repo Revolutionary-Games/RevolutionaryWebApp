@@ -1338,7 +1338,7 @@ else
 
         var parameters = new ModalParameters
         {
-            { nameof(ConfirmDuplicateUpload.Name), parsedFolderInfo?.Name ?? folder.Value.ToString() },
+            { nameof(ConfirmDelete.Name), parsedFolderInfo?.Name ?? folder.Value.ToString() },
         };
 
         var modal = Modal.Show<ConfirmDelete>("Delete this folder?", parameters);

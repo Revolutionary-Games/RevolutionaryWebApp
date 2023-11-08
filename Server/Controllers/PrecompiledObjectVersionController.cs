@@ -286,32 +286,27 @@ public class PrecompiledObjectVersionController : Controller
         if (version.Length > 200)
             return BadRequest("Too long version provided");
 
-        if (!remoteStorage.Configured)
-        {
-            throw new HttpResponseException
-            {
-                Status = StatusCodes.Status500InternalServerError,
-                Value = "Remote storage is not configured",
-            };
-        }
-
-        var parsedPlatform = (PackagePlatform)platform;
-        var parsedTags = (PrecompiledTag)tags;
-
-        var precompiled = await TryGetVisiblePrecompiled(objectId);
-
-        if (precompiled == null)
-            return NotFound();
-
-        var objectVersion = await database.PrecompiledObjectVersions.Include(v => v.StoredInItem)
-            .ThenInclude(i => i.StorageItemVersions).FirstOrDefaultAsync(
-                v => v.OwnedById == precompiled.Id && v.Version == version && v.Platform == parsedPlatform &&
-                    v.Tags == parsedTags);
+        var objectVersion = await GetVersionForDownload(objectId, version, platform, tags);
 
         if (objectVersion == null)
             return NotFound();
 
-        return await RedirectToDownload(objectVersion);
+        return Redirect(await GetDownloadLink(objectVersion));
+    }
+
+    [HttpGet("{version}/{platform:int}/{tags:int}/link")]
+    public async Task<IActionResult> GetDownloadUrl([Required] long objectId,
+        [Required] string version, [Required] int platform, [Required] int tags)
+    {
+        if (version.Length > 200)
+            return BadRequest("Too long version provided");
+
+        var objectVersion = await GetVersionForDownload(objectId, version, platform, tags);
+
+        if (objectVersion == null)
+            return NotFound();
+
+        return Ok(await GetDownloadLink(objectVersion));
     }
 
     [HttpGet("{version}/{platform:int}/{tags:int}/info")]
@@ -337,7 +332,7 @@ public class PrecompiledObjectVersionController : Controller
         return objectVersion.GetDTO(true);
     }
 
-    [HttpDelete("{id:long}")]
+    [HttpDelete("{version}/{platform:int}/{tags:int}")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
     public async Task<IActionResult> DeleteVersion([Required] long objectId,
         [Required] string version, [Required] int platform, [Required] int tags)
@@ -419,15 +414,57 @@ public class PrecompiledObjectVersionController : Controller
     }
 
     [NonAction]
-    private async Task<IActionResult> RedirectToDownload(PrecompiledObjectVersion objectVersion)
+    private async Task<PrecompiledObjectVersion?> GetVersionForDownload(long objectId, string version, int platform,
+        int tags)
     {
+        if (!remoteStorage.Configured)
+        {
+            throw new HttpResponseException
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Value = "Remote storage is not configured",
+            };
+        }
+
+        var parsedPlatform = (PackagePlatform)platform;
+        var parsedTags = (PrecompiledTag)tags;
+
+        var precompiled = await TryGetVisiblePrecompiled(objectId);
+
+        if (precompiled == null)
+            return null;
+
+        return await database.PrecompiledObjectVersions.Include(v => v.StoredInItem)
+            .ThenInclude(i => i.StorageItemVersions).FirstOrDefaultAsync(
+                v => v.OwnedById == precompiled.Id && v.Version == version && v.Platform == parsedPlatform &&
+                    v.Tags == parsedTags);
+    }
+
+    [NonAction]
+    private async Task<string> GetDownloadLink(PrecompiledObjectVersion objectVersion)
+    {
+        if (!remoteStorage.Configured)
+        {
+            throw new HttpResponseException
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Value = "Remote storage is not configured",
+            };
+        }
+
         var versionToDownload =
             objectVersion.StoredInItem.StorageItemVersions.OrderByDescending(v => v.Version).First();
 
         var file = await database.StorageFiles.FindAsync(versionToDownload.StorageFileId);
 
         if (file == null)
-            return Problem("Internal file is missing for this version");
+        {
+            throw new HttpResponseException
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Value = "Internal file is missing for this version",
+            };
+        }
 
         if (objectVersion.LastDownload == null ||
             DateTime.UtcNow - objectVersion.LastDownload.Value > TimeSpan.FromSeconds(60))
@@ -437,6 +474,6 @@ public class PrecompiledObjectVersionController : Controller
             await database.SaveChangesAsync();
         }
 
-        return Redirect(downloadUrls.CreateDownloadFor(file, AppInfo.RemoteStorageDownloadExpireTime));
+        return downloadUrls.CreateDownloadFor(file, AppInfo.RemoteStorageDownloadExpireTime);
     }
 }

@@ -28,6 +28,8 @@
 }
 else
 {
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@ClearStatusMessage"/>
+
     <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                     OnPageChanged="async e => await ChangePage(e)"
                     OnSortChanged="async column => await ChangeSort(column)"
@@ -69,10 +71,16 @@ else
                         }
                     </td>
                     <td>
-                        <Button Small="@true" ButtonStyle="primary" Enabled="@false">Download</Button>
+                        <Button Small="@true" ButtonStyle="primary" Enabled="@item.Uploaded"
+                                OnPressed="@(() => RedirectToDownloadUrl(item))">
+                            Download
+                        </Button>
 
                         <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
-                            <Button Small="@true" ButtonStyle="danger" Enabled="@false">Delete</Button>
+                            <Button Small="@true" ButtonStyle="danger" Enabled="@CanDelete(item)"
+                                    OnPressed="@(() => AskDeleteConfirm(item))" Spinner="@processing">
+                                Delete
+                            </Button>
                         </AccessLimited>
                     </td>
                 </tr>
@@ -119,9 +127,17 @@ else
 
     private readonly StringBuilder tagDisplayBuilder = new();
 
+    private bool processing;
+
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType;
+
     [Parameter]
     [EditorRequired]
     public long ObjectId { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
 
     public PrecompiledObjectVersionsList() : base(new SortHelper("CreatedAt", SortDirection.Descending))
     {
@@ -144,6 +160,76 @@ else
     protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private bool CanDelete(PrecompiledObjectVersionDTO version)
+    {
+        if (processing)
+            return false;
+
+        if (CurrentUserInfo.HasGroup(GroupType.Admin) || version.CreatedById == CurrentUserInfo.Info?.Id)
+            return true;
+
+        return false;
+    }
+
+    private async void AskDeleteConfirm(PrecompiledObjectVersionDTO version)
+    {
+        var parameters = new ModalParameters
+        {
+            {
+                nameof(ConfirmDelete.Name),
+                $"{version.OwnedById}:{version.Version}:{version.Platform}:{ConvertTagsForDisplay(version.Tags)}"
+            },
+        };
+
+        var modal = Modal.Show<ConfirmDelete>("Delete this precompiled object version?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await ConfirmDeleteVersion(version);
+    }
+
+    private async Task ConfirmDeleteVersion(PrecompiledObjectVersionDTO version)
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync(
+                $"api/v1/PrecompiledObject/{version.OwnedById}/versions/{version.Version}/" +
+                    $"{(int)version.Platform}/{(int)version.Tags}");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Precompiled object version has been deleted";
+            statusMessageType = SiteNoticeType.Danger;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private string ConvertTagsForDisplay(PrecompiledTag tag)
@@ -169,5 +255,60 @@ else
             tagDisplayBuilder.Append(" + UNKNOWN");
 
         return tagDisplayBuilder.ToString();
+    }
+
+    private async void RedirectToDownloadUrl(PrecompiledObjectVersionDTO version)
+    {
+        // Need to fetch the download URL to redirect to first (as redirecting to the primary URL wouldn't work for
+        // users with cookies)
+        var url = await GetDownloadLink(version);
+
+        if (string.IsNullOrEmpty(url))
+        {
+            return;
+        }
+
+        NavManager.NavigateTo(url);
+    }
+
+    private async Task<string> GetDownloadLink(PrecompiledObjectVersionDTO version)
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.GetAsync(
+                $"api/v1/PrecompiledObject/{version.OwnedById}/versions/{version.Version}/" +
+                    $"{(int)version.Platform}/{(int)version.Tags}/link");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return string.Empty;
+        }
+
+        processing = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+            await InvokeAsync(StateHasChanged);
+            return string.Empty;
+        }
+
+        return content;
+    }
+
+    private void ClearStatusMessage()
+    {
+        statusMessage = null;
     }
 }
