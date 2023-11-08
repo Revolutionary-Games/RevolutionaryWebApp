@@ -29,7 +29,7 @@ using SharedBase.Models;
 using Utilities;
 
 [ApiController]
-[Route("api/v1/PrecompiledObject/{objectName}")]
+[Route("api/v1/PrecompiledObject/{objectId:long}/versions")]
 public class PrecompiledObjectVersionController : Controller
 {
     private const string SymbolUploadProtectionPurposeString = "PrecompiledObject.Upload.v1";
@@ -54,12 +54,11 @@ public class PrecompiledObjectVersionController : Controller
     }
 
     [HttpGet]
-    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<ActionResult<PagedResult<PrecompiledObjectVersionDTO>>> Get([Required] string objectName,
+    public async Task<ActionResult<PagedResult<PrecompiledObjectVersionDTO>>> Get([Required] long objectId,
         [Required] string sortColumn, [Required] SortDirection sortDirection,
         [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
     {
-        var precompiled = await TryGetVisiblePrecompiled(objectName);
+        var precompiled = await TryGetVisiblePrecompiled(objectId);
 
         if (precompiled == null)
             return NotFound();
@@ -80,12 +79,13 @@ public class PrecompiledObjectVersionController : Controller
         var objects = await query.ToPagedResultAsync(page, pageSize);
 
         return objects.ConvertResult(i =>
-            i.GetDTO(HttpContext.HasAuthenticatedUserWithGroup(GroupType.RestrictedUser, null)));
+            i.GetDTO(HttpContext.HasAuthenticatedUserWithAccessLevelExtended(GroupType.RestrictedUser, null) ==
+                HttpContextAuthorizationExtensions.AuthenticationResult.Success));
     }
 
     [HttpPost("offerVersion")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
-    public async Task<ActionResult> OfferVersion([Required] string objectName,
+    public async Task<ActionResult> OfferVersion([Required] long objectId,
         [Required] [FromBody] PrecompiledObjectVersionDTO request)
     {
         var validator = new RecursiveDataAnnotationValidator();
@@ -96,7 +96,7 @@ public class PrecompiledObjectVersionController : Controller
             return BadRequest("Bad offered version data");
         }
 
-        var precompiled = await TryGetVisiblePrecompiled(objectName);
+        var precompiled = await TryGetVisiblePrecompiled(objectId);
 
         if (precompiled == null)
             return NotFound();
@@ -111,7 +111,7 @@ public class PrecompiledObjectVersionController : Controller
 
     [HttpPost("startUpload")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
-    public async Task<ActionResult<UploadRequestResponse>> StartUpload([Required] string objectName,
+    public async Task<ActionResult<UploadRequestResponse>> StartUpload([Required] long objectId,
         [Required] [FromBody] PrecompiledObjectVersionDTO request)
     {
         var validator = new RecursiveDataAnnotationValidator();
@@ -125,7 +125,7 @@ public class PrecompiledObjectVersionController : Controller
         if (request.Size < 10)
             return BadRequest("Size must be specified before upload");
 
-        var precompiled = await TryGetVisiblePrecompiled(objectName);
+        var precompiled = await TryGetVisiblePrecompiled(objectId);
 
         if (precompiled == null)
             return NotFound();
@@ -280,8 +280,7 @@ public class PrecompiledObjectVersionController : Controller
     }
 
     [HttpGet("{version}/{platform:int}/{tags:int}")]
-    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<IActionResult> DownloadVersion([Required] string objectName,
+    public async Task<IActionResult> DownloadVersion([Required] long objectId,
         [Required] string version, [Required] int platform, [Required] int tags)
     {
         if (version.Length > 200)
@@ -299,7 +298,7 @@ public class PrecompiledObjectVersionController : Controller
         var parsedPlatform = (PackagePlatform)platform;
         var parsedTags = (PrecompiledTag)tags;
 
-        var precompiled = await TryGetVisiblePrecompiled(objectName);
+        var precompiled = await TryGetVisiblePrecompiled(objectId);
 
         if (precompiled == null)
             return NotFound();
@@ -317,13 +316,13 @@ public class PrecompiledObjectVersionController : Controller
 
     [HttpGet("{version}/{platform:int}/{tags:int}/info")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<ActionResult<PrecompiledObjectVersionDTO>> GetSingle([Required] string objectName,
+    public async Task<ActionResult<PrecompiledObjectVersionDTO>> GetSingle([Required] long objectId,
         [Required] string version, [Required] int platform, [Required] int tags)
     {
         if (version.Length > 200)
             return BadRequest("Too long version provided");
 
-        var precompiled = await TryGetVisiblePrecompiled(objectName);
+        var precompiled = await TryGetVisiblePrecompiled(objectId);
 
         if (precompiled == null)
             return NotFound();
@@ -340,7 +339,7 @@ public class PrecompiledObjectVersionController : Controller
 
     [HttpDelete("{id:long}")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
-    public async Task<IActionResult> DeleteVersion([Required] string objectName,
+    public async Task<IActionResult> DeleteVersion([Required] long objectId,
         [Required] string version, [Required] int platform, [Required] int tags)
     {
         if (version.Length > 200)
@@ -349,7 +348,7 @@ public class PrecompiledObjectVersionController : Controller
         var parsedPlatform = (PackagePlatform)platform;
         var parsedTags = (PrecompiledTag)tags;
 
-        var precompiled = await TryGetVisiblePrecompiled(objectName);
+        var precompiled = await TryGetVisiblePrecompiled(objectId);
 
         if (precompiled == null)
             return NotFound();
@@ -394,16 +393,10 @@ public class PrecompiledObjectVersionController : Controller
     }
 
     [NonAction]
-    private async Task<PrecompiledObject?> TryGetVisiblePrecompiled(string objectName)
+    private async Task<PrecompiledObject?> TryGetVisiblePrecompiled(long objectId)
     {
-        // Check to not pass massive strings to the database for search
-        if (objectName.Length > 200)
-        {
-            return null;
-        }
-
         var precompiled =
-            await database.PrecompiledObjects.FirstOrDefaultAsync(p => p.Name == objectName && !p.Deleted);
+            await database.PrecompiledObjects.FirstOrDefaultAsync(p => p.Id == objectId && !p.Deleted);
 
         if (precompiled == null)
             return null;

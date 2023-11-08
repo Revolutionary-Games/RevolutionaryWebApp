@@ -1,0 +1,173 @@
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
+@using DevCenterCommunication.Models.Enums
+@using ThriveDevCenter.Shared
+@using DevCenterCommunication.Models
+@using System.Net
+@using System.Net.Http
+@using System.Text
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.JSInterop
+@using SharedBase.Utilities
+@using ThriveDevCenter.Client.Services
+@using ThriveDevCenter.Client.Shared
+@using ThriveDevCenter.Shared.Models
+@using ThriveDevCenter.Shared.Models.Enums
+@inherits ThriveDevCenter.Client.Shared.PaginatedPage<PrecompiledObjectVersionDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns" UseNonFixedColumns="@true"
+                    ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                <tr @key="item.Id">
+                    <th scope="row">@item.Version</th>
+                    <td>@item.Platform</td>
+                    <td>@ConvertTagsForDisplay(item.Tags)</td>
+                    <td><RecentTimeShortener Time="@item.CreatedAt"/></td>
+                    <td>
+                        @if (item.Uploaded)
+                        {
+                            <span>yes</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-danger">no</span>
+                        }
+                    </td>
+
+                    <td>@item.Size.BytesToMiB()</td>
+                    <td>
+                        @if (item.LastDownload != null)
+                        {
+                            <RecentTimeShortener Time="@item.LastDownload.Value"/>
+                        }
+                    </td>
+                    <td>
+                        @if(CurrentUserInfo.LoggedIn)
+                        {
+                            <UsernameDisplayer UserId="@item.CreatedById"/>
+                        }
+                    </td>
+                    <td>
+                        <Button Small="@true" ButtonStyle="primary" Enabled="@false">Download</Button>
+
+                        <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
+                            <Button Small="@true" ButtonStyle="danger" Enabled="@false">Delete</Button>
+                        </AccessLimited>
+                    </td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+
+    <p>Note: the above list doesn't update without refresh</p>
+}
+
+<p>(*) Tags explanation key:</p>
+<table class="table table-bordered col-12">
+    <thead>
+    <tr><th>Abbreviation Letter</th><th>Explanation</th></tr>
+    </thead>
+    @foreach (var entry in TagDisplayMapping)
+    {
+        <tr>
+            <td>@entry.Value.Letter</td>
+            <td>@entry.Value.Explanation</td>
+        </tr>
+    }
+</table>
+
+@code {
+
+    private static readonly Dictionary<PrecompiledTag, (char Letter, string Explanation)> TagDisplayMapping = new()
+    {
+        {PrecompiledTag.Debug,  ('D', "Debug mode binary")},
+    };
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Version", true),
+        new TableColumn("Platform", true),
+        new TableColumn("Tags (*)", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Uploaded", false),
+        new TableColumn("Size", false),
+        new TableColumn("Last Download", false),
+        new TableColumn("Created By", false),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly StringBuilder tagDisplayBuilder = new();
+
+    [Parameter]
+    [EditorRequired]
+    public long ObjectId { get; set; }
+
+    public PrecompiledObjectVersionsList() : base(new SortHelper("CreatedAt", SortDirection.Descending))
+    {
+        DefaultPageSize = 100;
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    protected override Task<PagedResult<PrecompiledObjectVersionDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<PrecompiledObjectVersionDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/PrecompiledObject/{ObjectId}/versions", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    {
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private string ConvertTagsForDisplay(PrecompiledTag tag)
+    {
+        // To reduce visual clutter, empty tags are empty
+        if (tag == PrecompiledTag.None)
+            return string.Empty;
+
+        tagDisplayBuilder.Clear();
+
+        var builtTag = PrecompiledTag.None;
+
+        foreach (var entry in TagDisplayMapping)
+        {
+            if ((tag & entry.Key) != 0)
+            {
+                builtTag |= entry.Key;
+                tagDisplayBuilder.Append(entry.Value.Letter);
+            }
+        }
+
+        if (builtTag != tag)
+            tagDisplayBuilder.Append(" + UNKNOWN");
+
+        return tagDisplayBuilder.ToString();
+    }
+}
