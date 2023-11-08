@@ -1,13 +1,16 @@
 namespace ThriveDevCenter.Server.Models;
 
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using DevCenterCommunication.Models;
 using DevCenterCommunication.Models.Enums;
-using Microsoft.EntityFrameworkCore;
 using Shared;
 using SharedBase.Models;
 
-[Index(nameof(OwnedById), nameof(Version), nameof(Platform), nameof(Tags), IsUnique = true)]
+/// <summary>
+///   Version of a precompiled object for specific platform (and tags). This is actually what is downloadable from a
+///   precompiled object.
+/// </summary>
 public class PrecompiledObjectVersion
 {
     public PrecompiledObjectVersion(long ownedById, string version)
@@ -45,10 +48,13 @@ public class PrecompiledObjectVersion
     public DateTime? LastDownload { get; set; }
 
     public long StoredInItemId { get; set; }
-    public StorageItem? StoredInItem { get; set; }
+    public StorageItem StoredInItem { get; set; } = null!;
 
     public long? CreatedById { get; set; }
     public User? CreatedBy { get; set; }
+
+    [NotMapped]
+    public string StorageFileName => $"{OwnedById}:{Platform}:{Tags}:{Version}.br";
 
     public PrecompiledObjectVersionDTO GetDTO(bool loggedIn)
     {

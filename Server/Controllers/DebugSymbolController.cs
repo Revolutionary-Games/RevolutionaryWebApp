@@ -190,7 +190,7 @@ public class DebugSymbolController : Controller
 
     [HttpPost("finishUpload")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
-    public async Task<ActionResult<DebugSymbolOfferResponse>> FinishUpload([Required] [FromBody] TokenForm request)
+    public async Task<ActionResult> FinishUpload([Required] [FromBody] TokenForm request)
     {
         if (!remoteStorage.Configured)
         {

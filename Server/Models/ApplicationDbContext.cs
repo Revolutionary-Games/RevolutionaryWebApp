@@ -82,6 +82,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<LauncherThriveVersionDownload> LauncherThriveVersionDownloads { get; set; } = null!;
     public DbSet<ExecutedMaintenanceOperation> ExecutedMaintenanceOperations { get; set; } = null!;
     public DbSet<DeletedResourceStats> DeletedResourceStats { get; set; } = null!;
+    public DbSet<PrecompiledObject> PrecompiledObjects { get; set; } = null!;
+    public DbSet<PrecompiledObjectVersion> PrecompiledObjectVersions { get; set; } = null!;
 
     /// <summary>
     ///   If non-null this will be used to send model update notifications on save
@@ -637,6 +639,22 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasOne(d => d.PerformedBy).WithMany(p => p.ExecutedMaintenanceOperations)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PrecompiledObject>(entity =>
+        {
+            entity.HasMany(p => p.Versions).WithOne(p => p.OwnedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PrecompiledObjectVersion>(entity =>
+        {
+            entity.HasKey(nameof(PrecompiledObjectVersion.OwnedById), nameof(PrecompiledObjectVersion.Version),
+                nameof(PrecompiledObjectVersion.Platform), nameof(PrecompiledObjectVersion.Tags));
+
+            entity.HasOne(d => d.StoredInItem).WithMany(p => p.PrecompiledObjectVersions)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(d => d.CreatedBy).WithMany(p => p.CreatedPrecompiledObjects).OnDelete(DeleteBehavior.SetNull);
         });
     }
 

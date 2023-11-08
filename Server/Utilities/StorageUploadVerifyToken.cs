@@ -51,6 +51,13 @@ public class StorageUploadVerifyToken
     /// </summary>
     public string? PlainFileHash { get; set; }
 
+    /// <summary>
+    ///   Place to store extra data in situations where <see cref="ParentId"/> (and other fields) are not enough. For
+    ///   example when the upload is related to a model that doesn't have a primary ID but a composite key. Needs to be
+    ///   really careful with the data format here to ensure there's no potential parsing bugs with user provided data.
+    /// </summary>
+    public string? ExtraDataStore { get; set; }
+
     public static StorageUploadVerifyToken? TryToLoadFromString(IDataProtector dataProtector, string tokenStr)
     {
         try

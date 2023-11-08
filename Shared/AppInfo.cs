@@ -232,6 +232,8 @@ public static class AppInfo
     public static readonly TimeSpan DeleteActionLogsAfter = TimeSpan.FromDays(365 * 3);
     public static readonly TimeSpan DeleteAdminActionLogsAfter = TimeSpan.FromDays(365 * 10);
 
+    public static readonly TimeSpan DeleteUnusedPrecompiledAfter = TimeSpan.FromDays(500);
+
     public static readonly TimeSpan NegativeAuthCacheTimeMax = TimeSpan.FromSeconds(15);
     public static readonly TimeSpan NegativeAuthCacheTime = TimeSpan.FromSeconds(5);
 }

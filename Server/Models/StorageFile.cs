@@ -24,6 +24,7 @@ public class StorageFile : UpdateableModel
     public ICollection<StorageItemVersion> StorageItemVersions { get; set; } =
         new HashSet<StorageItemVersion>();
 
+    // TODO: add a random number suffix here to ensure this cannot conflict if the same file is uploaded again?
     /// <summary>
     ///   The path to allow clients to upload this files to.
     ///   This is separate from final path to not allow potential attacks where the client uses the still valid put

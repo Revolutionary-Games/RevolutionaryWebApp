@@ -65,6 +65,9 @@ public class CreateDefaultFoldersJob : IJob
         itemsToRecompute.Add(await CreateDefaultFolder("Symbols", null, FileAccess.Developer, FileAccess.Nobody, false,
             cancellationToken));
 
+        itemsToRecompute.Add(await CreateDefaultFolder("Precompiled", null, FileAccess.User, FileAccess.Nobody, true,
+            cancellationToken));
+
         var ci = await CreateDefaultFolder(CIFolderName, null, FileAccess.Developer, FileAccess.Developer, true,
             cancellationToken);
 

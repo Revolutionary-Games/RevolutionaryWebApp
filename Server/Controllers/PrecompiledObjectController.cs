@@ -22,37 +22,16 @@ public class PrecompiledObjectController : BaseSoftDeletedResourceController<Pre
     PrecompiledObjectDTO>
 {
     private readonly NotificationsEnabledDb database;
-    private readonly PrecompiledObjectVersionController versionController;
 
-    public PrecompiledObjectController(ILogger<PrecompiledObjectController> logger, NotificationsEnabledDb database,
-        PrecompiledObjectVersionController versionController)
+    public PrecompiledObjectController(ILogger<PrecompiledObjectController> logger, NotificationsEnabledDb database)
     {
         Logger = logger;
         this.database = database;
-        this.versionController = versionController;
     }
 
     protected override ILogger Logger { get; }
     protected override DbSet<PrecompiledObject> Entities => database.PrecompiledObjects;
     protected override GroupType RequiredViewAccessLevel => GroupType.NotLoggedIn;
-
-    [HttpGet("{name}/download")]
-    public async Task<ActionResult> DownloadLatestVersion([Required] string name)
-    {
-        if (name.Length > 200)
-            return BadRequest("Too long name");
-
-        var resource = await Entities.FirstOrDefaultAsync(p => p.Name == name && !p.Deleted);
-
-        if (resource == null)
-            return NotFound("Not found or no access");
-
-        if (!CheckExtraAccess(resource))
-            return NotFound("Not found or no access");
-
-        // TODO: implement getting a download through PrecompiledObjectVersionController
-        throw new NotImplementedException();
-    }
 
     [HttpPost("create")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]

@@ -41,6 +41,13 @@ public class DeleteStorageItemVersionJob
         logger.LogInformation("Deleting remote storage object queued for deletion: {StoragePath}",
             version.StorageFile.StoragePath);
 
+        if (version.Uploading)
+        {
+            logger.LogInformation(
+                "Deleting still in uploading state version, higher level code needs to make sure no valid " +
+                "write tokens still exist or storage is cleaned again with an extra delay");
+        }
+
         await remoteStorage.DeleteObject(version.StorageFile.StoragePath);
 
         database.StorageItemVersions.Remove(version);

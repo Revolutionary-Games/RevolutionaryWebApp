@@ -125,6 +125,11 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
         return database.StorageItems.FirstAsync(i => i.ParentId == null && i.Name == "Trash");
     }
 
+    public static Task<StorageItem> GetPrecompiledFolder(ApplicationDbContext database)
+    {
+        return database.StorageItems.FirstAsync(i => i.ParentId == null && i.Name == "Precompiled");
+    }
+
     public static async Task<StorageItem?> FindByPath(ApplicationDbContext database, string path)
     {
         if (string.IsNullOrEmpty(path))
