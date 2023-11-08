@@ -1,7 +1,7 @@
 @page "/ci/{Id:long}"
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@inherits SingleResourcePage<CIProjectDTO, CIProjectUpdated>
+@inherits SingleResourcePage<CIProjectDTO, CIProjectUpdated, long>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models.Enums

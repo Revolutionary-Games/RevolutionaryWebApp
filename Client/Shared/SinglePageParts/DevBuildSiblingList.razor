@@ -1,6 +1,6 @@
 @inject HttpClient Http
 @inject NavigationManager NavManager
-@inherits SingleResourcePage<List<long>>
+@inherits SingleResourcePage<List<long>, long>
 
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
     @if (Data != null)

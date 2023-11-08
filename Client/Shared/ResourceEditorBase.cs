@@ -11,9 +11,10 @@ using Services;
 using ThriveDevCenter.Shared;
 using ThriveDevCenter.Shared.Notifications;
 
-public abstract class ResourceEditorBase<T, TNotification> : SingleResourcePage<T, TNotification>
+public abstract class ResourceEditorBase<T, TNotification, TID> : SingleResourcePage<T, TNotification, TID>
     where T : class, IIdentifiable, new()
     where TNotification : ModelUpdated<T>
+    where TID : IEquatable<TID>
 {
     protected bool processing;
     protected string? statusMessage;

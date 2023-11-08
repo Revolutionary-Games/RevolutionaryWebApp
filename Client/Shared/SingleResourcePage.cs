@@ -15,10 +15,11 @@ using ThriveDevCenter.Shared.Notifications;
 /// <summary>
 ///   Base class for blazor pages that show a single resource
 /// </summary>
-public abstract class SingleResourcePage<T, TNotification> : SingleResourcePage<T>,
+public abstract class SingleResourcePage<T, TNotification, TID> : SingleResourcePage<T, TID>,
     INotificationHandler<TNotification>
     where T : class, IIdentifiable, new()
     where TNotification : ModelUpdated<T>
+    where TID : IEquatable<TID>
 {
     public Task Handle(TNotification notification, CancellationToken cancellationToken)
     {
@@ -54,22 +55,24 @@ public abstract class SingleResourcePage<T, TNotification> : SingleResourcePage<
 /// <summary>
 ///   Base class for blazor pages that show a single resource without update notifications
 /// </summary>
-public abstract class SingleResourcePage<T> : SimpleResourceFetcher<T>
+public abstract class SingleResourcePage<T, TID> : SimpleResourceFetcher<T>
     where T : class
+    where TID : IEquatable<TID>
 {
-    private long? previouslyFetchedId;
+    private TID? previouslyFetchedId;
 
     /// <summary>
     ///   Id of the resource to show
     /// </summary>
     [Parameter]
-    public long Id { get; set; }
+    [EditorRequired]
+    public TID Id { get; set; } = default!;
 
     protected override Task OnParametersSetAsync()
     {
         base.OnParametersSetAsync();
 
-        if (Id != previouslyFetchedId)
+        if (!Id.Equals(previouslyFetchedId))
         {
             // Changed to showing a different entity
             dataReceived = false;

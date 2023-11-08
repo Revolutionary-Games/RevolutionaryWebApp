@@ -1,7 +1,7 @@
 @page "/association/members/{Id:long}"
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@inherits SingleResourcePage<AssociationMemberDTO, AssociationMemberUpdated>
+@inherits SingleResourcePage<AssociationMemberDTO, AssociationMemberUpdated, long>
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Shared.Models.Enums
