@@ -20,6 +20,11 @@ public class Deployer
     private const string CONTAINER_NUGET_CACHE_TARGET = "/root/.nuget";
     private const string BUILDER_CONTAINER_NAME = "thrive/devcenter-builder:latest";
 
+    /// <summary>
+    ///   Seems that for some reason subsequent container builds fail if this is not deleted
+    /// </summary>
+    private const string BUILD_FOLDER_TO_ALWAYS_DELETE = "build/Client";
+
     private const string MIGRATION_FILE = "migration.sql";
     private const string BLAZOR_BOOT_FILE = "blazor.boot.json";
 
@@ -273,6 +278,9 @@ public class Deployer
     {
         Directory.CreateDirectory(BUILD_DATA_FOLDER);
         Directory.CreateDirectory(CONTAINER_NUGET_CACHE_HOST);
+
+        if (Directory.Exists(BUILD_FOLDER_TO_ALWAYS_DELETE))
+            Directory.Delete(BUILD_FOLDER_TO_ALWAYS_DELETE, true);
 
         var nugetCache = Path.GetFullPath(CONTAINER_NUGET_CACHE_HOST);
 
