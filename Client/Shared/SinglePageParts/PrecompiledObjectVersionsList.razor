@@ -312,6 +312,8 @@ else
             return string.Empty;
         }
 
+        // Prevent button being stuck on
+        await InvokeAsync(StateHasChanged);
         return content;
     }
 
