@@ -26,6 +26,7 @@ using Shared.Forms;
 using Shared.Models;
 using Shared.Models.Enums;
 using SharedBase.Models;
+using SharedBase.Utilities;
 using Utilities;
 
 [ApiController]
@@ -124,6 +125,9 @@ public class PrecompiledObjectVersionController : Controller
 
         if (request.Size < 10)
             return BadRequest("Size must be specified before upload");
+
+        if (request.Size > GlobalConstants.MEBIBYTE * 1000)
+            return BadRequest("Precompiled size is too large. Max is 1000 Mebibytes");
 
         var precompiled = await TryGetVisiblePrecompiled(objectId);
 
@@ -463,6 +467,15 @@ public class PrecompiledObjectVersionController : Controller
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Value = "Internal file is missing for this version",
+            };
+        }
+
+        if (file.Uploading)
+        {
+            throw new HttpResponseException
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Value = "Internal file is not uploaded for this version",
             };
         }
 
