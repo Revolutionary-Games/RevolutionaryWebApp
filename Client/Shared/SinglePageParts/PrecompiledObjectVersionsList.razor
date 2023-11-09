@@ -14,8 +14,10 @@
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.JSInterop
 @using SharedBase.Utilities
+@using ThriveDevCenter.Client.Models
 @using ThriveDevCenter.Client.Services
 @using ThriveDevCenter.Client.Shared
+@using ThriveDevCenter.Client.Utilities
 @using ThriveDevCenter.Shared.Models
 @using ThriveDevCenter.Shared.Models.Enums
 @inherits ThriveDevCenter.Client.Shared.PaginatedPage<PrecompiledObjectVersionDTO>
@@ -41,6 +43,9 @@ else
         {
             @foreach (var item in Data.Results)
             {
+                if (resourceStatus.IsDeleted(item.Id))
+                    continue;
+
                 <tr @key="item.Id">
                     <th scope="row">@item.Version</th>
                     <td>@item.Platform</td>
@@ -71,14 +76,15 @@ else
                         }
                     </td>
                     <td>
-                        <Button Small="@true" ButtonStyle="primary" Enabled="@item.Uploaded"
+                        <Button Small="@true" ButtonStyle="primary"
+                                Enabled="@(item.Uploaded && !IsProcessingItem(item))"
                                 OnPressed="@(() => RedirectToDownloadUrl(item))">
                             Download
                         </Button>
 
                         <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
                             <Button Small="@true" ButtonStyle="danger" Enabled="@CanDelete(item)"
-                                    OnPressed="@(() => AskDeleteConfirm(item))" Spinner="@processing">
+                                    OnPressed="@(() => AskDeleteConfirm(item))" Spinner="@IsProcessingItem(item)">
                                 Delete
                             </Button>
                         </AccessLimited>
@@ -112,6 +118,7 @@ else
         {PrecompiledTag.Debug,  ('D', "Debug mode binary")},
     };
 
+    // TODO: when not logged in hide the "created by" column entirely as it doesn't have any data
     private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Version", true),
@@ -125,9 +132,9 @@ else
         new TableColumn("Actions", false),
     };
 
-    private readonly StringBuilder tagDisplayBuilder = new();
+    private readonly ClientSideResourceStatus<DeletedResourceStatus> resourceStatus = new();
 
-    private bool processing;
+    private readonly StringBuilder tagDisplayBuilder = new();
 
     private string? statusMessage;
     private SiteNoticeType statusMessageType;
@@ -164,7 +171,7 @@ else
 
     private bool CanDelete(PrecompiledObjectVersionDTO version)
     {
-        if (processing)
+        if (IsProcessingItem(version))
             return false;
 
         if (CurrentUserInfo.HasGroup(GroupType.Admin) || version.CreatedById == CurrentUserInfo.Info?.Id)
@@ -195,7 +202,7 @@ else
 
     private async Task ConfirmDeleteVersion(PrecompiledObjectVersionDTO version)
     {
-        processing = true;
+        SetProcessing(version, true);
         statusMessage = null;
         statusMessageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -211,12 +218,12 @@ else
         catch (HttpRequestException e)
         {
             statusMessage = $"Network request failed: {e.Message}";
-            processing = false;
+            SetProcessing(version, false);
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        processing = false;
+        SetProcessing(version, false);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -225,8 +232,9 @@ else
         }
         else
         {
-            statusMessage = "Precompiled object version has been deleted";
+            statusMessage = "Precompiled object version has been queued to be deleted in a few minutes";
             statusMessageType = SiteNoticeType.Danger;
+            resourceStatus.SetDeletedStatus(version.Id);
         }
 
         await InvokeAsync(StateHasChanged);
@@ -273,7 +281,7 @@ else
 
     private async Task<string> GetDownloadLink(PrecompiledObjectVersionDTO version)
     {
-        processing = true;
+        SetProcessing(version, true);
         statusMessage = null;
         statusMessageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
@@ -289,12 +297,12 @@ else
         catch (HttpRequestException e)
         {
             statusMessage = $"Network request failed: {e.Message}";
-            processing = false;
+            SetProcessing(version, false);
             await InvokeAsync(StateHasChanged);
             return string.Empty;
         }
 
-        processing = false;
+        SetProcessing(version, false);
         var content = await result.Content.ReadAsStringAsync();
 
         if (!result.IsSuccessStatusCode)
@@ -305,6 +313,19 @@ else
         }
 
         return content;
+    }
+
+    private bool IsProcessingItem(PrecompiledObjectVersionDTO item)
+    {
+        if (resourceStatus.GetStatus(item.Id).Processing)
+            return true;
+
+        return false;
+    }
+
+    private void SetProcessing(PrecompiledObjectVersionDTO item, bool processing)
+    {
+        resourceStatus.GetStatus(item.Id).Processing = processing;
     }
 
     private void ClearStatusMessage()
