@@ -393,6 +393,8 @@ public class Startup
                 new HangfireDashboardAuthorization(
                     app.ApplicationServices.GetRequiredService<ILogger<HangfireDashboardAuthorization>>()),
             },
+            DefaultRecordsPerPage = 50,
+            FaviconPath = "/favicon.ico",
         });
 
         app.Use(async (context, next) =>
