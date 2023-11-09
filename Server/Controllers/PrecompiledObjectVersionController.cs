@@ -223,8 +223,8 @@ public class PrecompiledObjectVersionController : Controller
             {
                 // Version is last here to make sure version having ':' can't break the parsing
                 ExtraDataStore =
-                    $"{precompiledVersion.OwnedById}:{precompiledVersion.Platform}:{precompiledVersion.Tags}:" +
-                    $"{precompiledVersion.Version}",
+                    $"{precompiledVersion.OwnedById}:{(int)precompiledVersion.Platform}:" +
+                    $"{(int)precompiledVersion.Tags}:{precompiledVersion.Version}",
             }.ToString(),
         };
     }
@@ -244,7 +244,7 @@ public class PrecompiledObjectVersionController : Controller
 
         var decodedToken = StorageUploadVerifyToken.TryToLoadFromString(dataProtector, request.Token);
 
-        if (decodedToken?.ExtraDataStore == null || decodedToken.ExtraDataStore.Count(c => c == ':') < 4)
+        if (decodedToken?.ExtraDataStore == null || decodedToken.ExtraDataStore.Count(c => c == ':') < 3)
             return BadRequest("Invalid finished upload token");
 
         StorageFile file;
@@ -263,7 +263,7 @@ public class PrecompiledObjectVersionController : Controller
 
         var parentId = long.Parse(parts[0]);
         var platform = (PackagePlatform)int.Parse(parts[1]);
-        var tags = int.Parse(parts[2]);
+        var tags = (PrecompiledTag)int.Parse(parts[2]);
         var versionStr = parts[3];
 
         var version = await database.PrecompiledObjectVersions.FindAsync(parentId, versionStr, platform, tags);
