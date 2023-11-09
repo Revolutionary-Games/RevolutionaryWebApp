@@ -12,6 +12,7 @@ using Models;
 using SharedBase.Models;
 using Utilities;
 
+[DisableConcurrentExecution(100)]
 public class DeletePrecompiledObjectVersionIfUploadFailed
 {
     private readonly ILogger<DeletePrecompiledObjectVersionIfUploadFailed> logger;
@@ -108,6 +109,11 @@ public class DeletePrecompiledObjectVersionIfUploadFailed
 
         if (objectVersion.StoredInItem == null)
             throw new NotLoadedModelNavigationException();
+
+        if (DateTime.UtcNow - objectVersion.CreatedAt < TimeSpan.FromSeconds(60))
+        {
+            throw new Exception("Cannot try to delete a version created less than 60 seconds ago");
+        }
 
         logger.LogWarning("Precompiled object {Identifier} has not been uploaded successfully, deleting it",
             objectVersion.StorageFileName);
