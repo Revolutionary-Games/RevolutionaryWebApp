@@ -147,7 +147,7 @@ dotnet run --project Scripts -- ef -m
 To get the first admin account, first setup the DB then run this SQL
 on it (replace the id with a uuid):
 ```sql
-INSERT INTO redeemable_codes (id, hashed_id, granted_resource) VALUES ('UUID_GOES_HERE', 'HASH', 'Group_Admin');
+INSERT INTO redeemable_codes (id, hashed_id, granted_resource) VALUES ('UUID_GOES_HERE', 'HASH', 'GroupAdmin');
 ```
 
 The `HASH` value needs to be replaced by the sha256 hash of the `id`
