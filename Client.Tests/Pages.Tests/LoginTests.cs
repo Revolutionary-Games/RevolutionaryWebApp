@@ -1,6 +1,7 @@
 namespace ThriveDevCenter.Client.Tests.Pages.Tests;
 
 using System.Collections.Generic;
+using AngleSharp.Dom;
 using Bunit;
 using Client.Pages;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,11 +82,17 @@ public class LoginTests : TestContext
 
         cut.WaitForAssertion(() => cut.FindIsNull(".spinner-border"));
 
-        Assert.Contains(cut.Find("form button").Attributes, i => i.Name == "disabled");
+        // Need to use a non-wrapped access to the nodes for now
+        // See: https://github.com/bUnit-dev/bUnit/issues/1262
+        Assert.NotNull(cut.Nodes.QuerySelector("form button"));
+        Assert.Contains(cut.Nodes.QuerySelector("form button")!.Attributes, i => i.Name == "disabled");
 
-        cut.Find("input[type=email]").Input("test@example.com");
-        cut.Find("input[type=password]").Input("12345");
+        Assert.NotNull(cut.Nodes.QuerySelector("input[type=email]"));
+        cut.Nodes.QuerySelector("input[type=email]")!.Input("test@example.com");
 
-        Assert.DoesNotContain(cut.Find("form button").Attributes, i => i.Name == "disabled");
+        Assert.NotNull(cut.Nodes.QuerySelector("input[type=password]"));
+        cut.Nodes.QuerySelector("input[type=password]")!.Input("12345");
+
+        Assert.DoesNotContain(cut.Nodes.QuerySelector("form button")!.Attributes, i => i.Name == "disabled");
     }
 }
