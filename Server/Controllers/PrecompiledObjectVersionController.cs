@@ -176,7 +176,7 @@ public class PrecompiledObjectVersionController : Controller
             Parent = folder,
             Ftype = FileType.File,
             Special = true,
-            ReadAccess = FileAccess.Developer,
+            ReadAccess = FileAccess.User,
             WriteAccess = FileAccess.Nobody,
         };
 
