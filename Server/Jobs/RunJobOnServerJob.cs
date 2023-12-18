@@ -134,7 +134,7 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
         // For example bumping the ":v1" to a ":v2" suffix
         var version = await imageItem.GetLowestUploadedVersion(Database);
 
-        if (version == null || version.StorageFile == null)
+        if (version?.StorageFile == null)
         {
             Logger.LogError("Image with no uploaded version specified for CI job: {Image}", job.Image);
             job.SetFinishSuccess(false);

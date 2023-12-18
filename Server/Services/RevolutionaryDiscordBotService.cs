@@ -1309,7 +1309,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         using var svg = new SKSvg();
         using var svgAsPngData = new MemoryStream();
 
-        if (!(svg.Load(content) is { }))
+        if (svg.Load(content) is null)
             throw new Exception("Failed to load the svg data");
 
         svg.Picture!.ToImage(svgAsPngData, SKColor.Empty, SKEncodedImageFormat.Png, 100, 1.0f, 1.0f,

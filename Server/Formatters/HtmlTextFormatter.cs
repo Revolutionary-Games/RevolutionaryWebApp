@@ -27,5 +27,8 @@ public class HtmlTextFormatter : TextOutputFormatter
         return httpContext.Response.WriteAsync((string)context.Object, selectedEncoding);
     }
 
-    protected override bool CanWriteType(Type? type) => typeof(string).IsAssignableFrom(type);
+    protected override bool CanWriteType(Type? type)
+    {
+        return typeof(string).IsAssignableFrom(type);
+    }
 }

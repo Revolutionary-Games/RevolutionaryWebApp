@@ -132,7 +132,7 @@
     private long? newChairman;
 
     private bool CanControl => Data != null && (Data.OwnerId == CurrentUserInfo.Info?.Id || CurrentUserInfo.IsAdmin);
-    private bool IsEnded => Data is {EndedAt: { } };
+    private bool IsEnded => Data is {EndedAt: not null };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

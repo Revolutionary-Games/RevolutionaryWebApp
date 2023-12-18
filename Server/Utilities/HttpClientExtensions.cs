@@ -55,7 +55,9 @@ public static class HttpClientExtensions
             Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0"));
     }
 
-    private static HttpContent Serialize(object data) =>
-        new StringContent(JsonSerializer.Serialize(data, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+    private static HttpContent Serialize(object data)
+    {
+        return new StringContent(JsonSerializer.Serialize(data, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
             Encoding.UTF8, "application/json");
+    }
 }
