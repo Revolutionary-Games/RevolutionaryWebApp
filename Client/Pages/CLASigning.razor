@@ -434,7 +434,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/OAuth/start/github/cla", new StringContent(string.Empty));
+            result = await Http.PostAsync("api/v1/OAuth/start/github/cla", new StringContent(string.Empty));
         }
         catch (HttpRequestException e)
         {
