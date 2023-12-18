@@ -58,7 +58,7 @@
                     account to your signature here.
                 </p>
 
-                @if(!Data.GithubSkipped)
+                @if (!Data.GithubSkipped)
                 {
                     if (!string.IsNullOrEmpty(Data.GithubAccount))
                     {
@@ -70,6 +70,14 @@
                         <Button ButtonStyle="warning" class="mb-1 mr-1" Enabled="@(!processingGithub)"
                                 Spinner="@processingGithub" OnPressed="@BeginGithubVerification">
                             Link Different Account
+                        </Button>
+                    }
+                    else if (!string.IsNullOrEmpty(githubAuthorizationUrl))
+                    {
+                        <a href="@githubAuthorizationUrl">Click Here to Authorize on GitHub</a>
+
+                        <Button ButtonStyle="danger" class="mb-1 ml-1" OnPressed="@ClearGithubAuthorizationUrl">
+                            Cancel
                         </Button>
                     }
                     else
@@ -259,6 +267,8 @@
     private int step = -1;
 
     private bool processingGithub;
+    private string? githubAuthorizationUrl;
+
     private bool processingEmail;
 
     private bool processingCancel;
@@ -428,6 +438,7 @@
         processingGithub = true;
         statusMessage = null;
         statusMessageType = SiteNoticeType.Danger;
+        githubAuthorizationUrl = null;
         await InvokeAsync(StateHasChanged);
 
         HttpResponseMessage result;
@@ -460,18 +471,33 @@
                 data = JsonSerializer.Deserialize<JSONWrappedRedirect>(content,
                     HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
             }
-            catch (JsonException e)
+            catch (Exception e)
             {
                 statusMessage = $"Error, deserializing server response: {e}";
             }
 
             if (data != null)
             {
-                NavManager.NavigateTo(data.RedirectTo);
+                try
+                {
+                    NavManager.NavigateTo(data.RedirectTo, true);
+                }
+                catch (Exception e)
+                {
+                    githubAuthorizationUrl = data.RedirectTo;
+                    Console.WriteLine("Direct redirect to GitHub failed: " + e);
+                    statusMessage = "Error: cannot directly navigate to authorization URL, please click the link";
+                    statusMessageType = SiteNoticeType.Warning;
+                }
             }
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearGithubAuthorizationUrl()
+    {
+        githubAuthorizationUrl = null;
     }
 
     private async void NextPressed()
