@@ -21,7 +21,7 @@ public class DevBuildTests : IClassFixture<EmptyDatabaseFixture>
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("\t")]
-    public void DevBuildVerification_FailsToSetBOTDWithoutDescription(string description)
+    public void DevBuildVerification_FailsToSetBOTDWithoutDescription(string? description)
     {
         var build = new DevBuild
         {

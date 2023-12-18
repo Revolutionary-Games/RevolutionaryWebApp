@@ -78,11 +78,12 @@ public sealed class RegistrationControllerTests : IDisposable
 
     [Theory]
     [InlineData("1234")]
+    [InlineData("")]
     [InlineData(null)]
-    public async Task Registration_FailsOnInvalidCSRF(string csrfValue)
+    public async Task Registration_FailsOnInvalidCSRF(string? csrfValue)
     {
         var csrfMock = Substitute.For<ITokenVerifier>();
-        csrfMock.IsValidCSRFToken(csrfValue, null, false).Returns(false);
+        csrfMock.IsValidCSRFToken(csrfValue!, null, false).Returns(false);
 
         var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
         var jobClientMock = Substitute.For<IBackgroundJobClient>();
@@ -95,7 +96,7 @@ public sealed class RegistrationControllerTests : IDisposable
 
         var result = await controller.Post(new RegistrationFormData
         {
-            CSRF = csrfValue, Email = "test@example.com", Name = "test", Password = "password12345",
+            CSRF = csrfValue!, Email = "test@example.com", Name = "test", Password = "password12345",
             RegistrationCode = RegistrationCode,
         });
 
@@ -104,7 +105,7 @@ public sealed class RegistrationControllerTests : IDisposable
         Assert.Equal(400, objectResult.StatusCode);
         Assert.Empty(database.Users);
 
-        csrfMock.Received().IsValidCSRFToken(csrfValue, null, false);
+        csrfMock.Received().IsValidCSRFToken(csrfValue!, null, false);
     }
 
     [Fact]
