@@ -8,6 +8,8 @@ updates:
       - "review"
       - "dependencies"
   - package-ecosystem: gitsubmodule
+    directory: "/"
     schedule:
         interval: "daily"
-    directory: /
+    labels:
+      - "review"
