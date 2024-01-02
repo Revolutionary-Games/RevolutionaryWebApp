@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <LangVersion>10</LangVersion>
     <Nullable>enable</Nullable>
     <Version>2.17.0</Version>
@@ -9,41 +9,41 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.0.7" />
-    <PackageReference Include="AsyncKeyedLock" Version="6.2.4" />
-    <PackageReference Include="AWSSDK.EC2" Version="3.7.309.4" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.304.9" />
+    <PackageReference Include="AsyncKeyedLock" Version="6.2.6" />
+    <PackageReference Include="AWSSDK.EC2" Version="3.7.310.6" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.305.3" />
     <PackageReference Include="Discord.Net" Version="3.13.0" />
-    <PackageReference Include="EFCore.NamingConventions" Version="7.0.2" />
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.6" />
-    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.4" />
+    <PackageReference Include="EFCore.NamingConventions" Version="8.0.0-rc.2" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.7" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.5" />
     <PackageReference Include="MailKit" Version="4.3.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="7.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="7.0.13" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="7.0.13" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="7.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.RateLimiting" Version="7.0.0-rc.2.22476.2" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="7.0.14" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.14" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.13">
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.13">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.13" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
     <PackageReference Include="RecursiveDataAnnotationsValidation" Version="2.0.0" />
     <PackageReference Include="SHA3.Net" Version="2.0.0" />
     <PackageReference Include="SimpleBase" Version="4.0.0" />
     <PackageReference Include="SixLabors.Fonts" Version="2.0.1" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.6" />
     <PackageReference Include="SmartFormat.NET" Version="3.3.0" />
-    <PackageReference Include="SSH.NET" Version="2023.0.0" />
-    <PackageReference Include="StackExchange.Redis" Version="2.7.4" />
+    <PackageReference Include="SSH.NET" Version="2023.0.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.7.10" />
     <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.28" />
     <PackageReference Include="Svg.Skia" Version="1.0.0.9" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.3" />
