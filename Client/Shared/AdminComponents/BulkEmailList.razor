@@ -89,13 +89,13 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<SentBulkEmailDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<SentBulkEmailDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<SentBulkEmailDTO>>(
             QueryHelpers.AddQueryString("api/v1/BulkEmail", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

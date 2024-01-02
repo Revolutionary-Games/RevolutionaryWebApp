@@ -87,8 +87,9 @@ public class RealTimeBuildMessageSocket
 
         try
         {
-            var message = JsonSerializer.Deserialize<RealTimeBuildMessage>(Encoding.UTF8.GetString(
-                messageBuffer, 0, readResult.Count));
+            var message =
+                JsonSerializer.Deserialize<RealTimeBuildMessage>(
+                    Encoding.UTF8.GetString(messageBuffer, 0, readResult.Count));
 
             if (message == null)
                 throw new NullReferenceException("parsed realTimeBuildMessage is null");
@@ -119,50 +120,38 @@ public class RealTimeBuildMessageSocket
 public class WebSocketProtocolException : Exception
 {
     public WebSocketProtocolException() { }
-    public WebSocketProtocolException(string message) : base(message) { }
-    public WebSocketProtocolException(string message, Exception inner) : base(message, inner) { }
 
-    protected WebSocketProtocolException(SerializationInfo info,
-        StreamingContext context) : base(info, context)
-    {
-    }
+    public WebSocketProtocolException(string message) : base(message) { }
+
+    public WebSocketProtocolException(string message, Exception inner) : base(message, inner) { }
 }
 
 [Serializable]
 public class WebSocketBuildMessageTooLongException : Exception
 {
     public WebSocketBuildMessageTooLongException() { }
-    public WebSocketBuildMessageTooLongException(string message) : base(message) { }
-    public WebSocketBuildMessageTooLongException(string message, Exception inner) : base(message, inner) { }
 
-    protected WebSocketBuildMessageTooLongException(SerializationInfo info,
-        StreamingContext context) : base(info, context)
-    {
-    }
+    public WebSocketBuildMessageTooLongException(string message) : base(message) { }
+
+    public WebSocketBuildMessageTooLongException(string message, Exception inner) : base(message, inner) { }
 }
 
 [Serializable]
 public class WebSocketBuildMessageLengthMisMatchException : Exception
 {
     public WebSocketBuildMessageLengthMisMatchException() { }
-    public WebSocketBuildMessageLengthMisMatchException(string message) : base(message) { }
-    public WebSocketBuildMessageLengthMisMatchException(string message, Exception inner) : base(message, inner) { }
 
-    protected WebSocketBuildMessageLengthMisMatchException(SerializationInfo info,
-        StreamingContext context) : base(info, context)
-    {
-    }
+    public WebSocketBuildMessageLengthMisMatchException(string message) : base(message) { }
+
+    public WebSocketBuildMessageLengthMisMatchException(string message, Exception inner) : base(message, inner) { }
 }
 
 [Serializable]
 public class InvalidWebSocketBuildMessageFormatException : Exception
 {
     public InvalidWebSocketBuildMessageFormatException() { }
-    public InvalidWebSocketBuildMessageFormatException(string message) : base(message) { }
-    public InvalidWebSocketBuildMessageFormatException(string message, Exception inner) : base(message, inner) { }
 
-    protected InvalidWebSocketBuildMessageFormatException(SerializationInfo info,
-        StreamingContext context) : base(info, context)
-    {
-    }
+    public InvalidWebSocketBuildMessageFormatException(string message) : base(message) { }
+
+    public InvalidWebSocketBuildMessageFormatException(string message, Exception inner) : base(message, inner) { }
 }

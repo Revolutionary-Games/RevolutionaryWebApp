@@ -109,7 +109,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherLinkDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LauncherLinkDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<LauncherLinkDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LauncherLinks/{UserId}", requestParams));

@@ -165,7 +165,7 @@ private readonly List<TableColumn> columns = new()
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherThriveVersionDownloadDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LauncherThriveVersionDownloadDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<LauncherThriveVersionDownloadDTO>>(
             QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/thriveVersions/" +

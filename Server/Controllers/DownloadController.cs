@@ -151,7 +151,7 @@ public class DownloadController : Controller
             SupporterPatrons = PreparePatronGroup(other),
         };
 
-        Response.Headers.Add("Content-Disposition", "attachment; filename=\"patrons.json\"");
+        Response.Headers["Content-Disposition"] = "attachment; filename=\"patrons.json\"";
         return result;
     }
 

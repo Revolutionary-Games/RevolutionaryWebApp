@@ -114,13 +114,13 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<AccessKeyDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<AccessKeyDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<AccessKeyDTO>>(
             QueryHelpers.AddQueryString("api/v1/AccessKey", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

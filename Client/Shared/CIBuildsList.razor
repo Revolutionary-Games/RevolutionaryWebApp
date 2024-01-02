@@ -114,13 +114,13 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<CIBuildDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CIBuildDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<CIBuildDTO>>(
             QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

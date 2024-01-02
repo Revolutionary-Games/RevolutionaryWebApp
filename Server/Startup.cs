@@ -316,7 +316,7 @@ public class Startup
 
         app.Use(async (context, next) =>
         {
-            context.Response.Headers.Add("X-Frame-Options", "DENY");
+            context.Response.Headers["X-Frame-Options"] = "DENY";
             await next();
         });
 

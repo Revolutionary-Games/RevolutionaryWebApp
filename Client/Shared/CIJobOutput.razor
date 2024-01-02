@@ -161,14 +161,14 @@ else
         await NotificationHandler.Unregister((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
     }
 
-    protected override Task<List<CIJobOutputSectionInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<List<CIJobOutputSectionInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<List<CIJobOutputSectionInfo>>(
             QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{JobId}/output",
                 requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

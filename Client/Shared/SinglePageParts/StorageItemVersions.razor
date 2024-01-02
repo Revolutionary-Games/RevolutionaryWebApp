@@ -186,7 +186,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<StorageItemVersionInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<StorageItemVersionInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<StorageItemVersionInfo>>(
             QueryHelpers.AddQueryString($"api/v1/Files/{StorageItemId}/versions", requestParams));
@@ -194,7 +194,7 @@ else
 
     private string GetDownloadURL(int version)
     {
-        var urlParams = new Dictionary<string, string> { ["version"] = version.ToString() };
+        var urlParams = new Dictionary<string, string?> { ["version"] = version.ToString() };
 
         return QueryHelpers.AddQueryString(new Uri(new Uri(NavManager.BaseUri),
             $"api/v1/download/{StorageItemId}").ToString(), urlParams);

@@ -391,7 +391,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<List<MeetingPollDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<List<MeetingPollDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<List<MeetingPollDTO>>(
             QueryHelpers.AddQueryString($"api/v1/Meetings/{MeetingId}/polls", requestParams));

@@ -179,13 +179,13 @@
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<BackupDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<BackupDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<BackupDTO>>(
             QueryHelpers.AddQueryString("api/v1/Backup", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

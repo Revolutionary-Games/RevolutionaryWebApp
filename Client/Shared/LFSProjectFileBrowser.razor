@@ -156,7 +156,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Dictionary<string, string> CreatePageRequestParams()
+    protected override Dictionary<string, string?> CreatePageRequestParams()
     {
         var requestParams = base.CreatePageRequestParams();
 
@@ -166,20 +166,20 @@ else
         return requestParams;
     }
 
-    protected override void PruneRequestParams(Dictionary<string, string> queryParams)
+    protected override void PruneRequestParams(Dictionary<string, string?> queryParams)
     {
         base.PruneRequestParams(queryParams);
 
         queryParams.Remove("path");
     }
 
-    protected override Task<PagedResult<ProjectGitFileDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<ProjectGitFileDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<ProjectGitFileDTO>>(
             QueryHelpers.AddQueryString($"api/v1/LFSProject/{ProjectId}/files", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await base.OnQuerySent(requestParams);
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
@@ -198,7 +198,7 @@ else
 
     private string ApiDownloadLink(string name)
     {
-        return QueryHelpers.AddQueryString("/api/v1/download_lfs", new Dictionary<string, string>
+        return QueryHelpers.AddQueryString("/api/v1/download_lfs", new Dictionary<string, string?>
         {
             { "project", ProjectId.ToString() },
             { "path", CurrentPathSlashPrefix },

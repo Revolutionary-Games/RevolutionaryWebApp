@@ -159,7 +159,7 @@ private readonly List<TableColumn> columns = new()
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<CombinedFeedInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CombinedFeedInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<CombinedFeedInfo>>(
             QueryHelpers.AddQueryString("api/v1/CombinedFeed", requestParams));

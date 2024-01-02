@@ -158,13 +158,13 @@ else
         return base.SetParametersAsync(parameters);
     }
 
-    protected override Task<PagedResult<PrecompiledObjectVersionDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<PrecompiledObjectVersionDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<PrecompiledObjectVersionDTO>>(
             QueryHelpers.AddQueryString($"api/v1/PrecompiledObject/{ObjectId}/versions", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

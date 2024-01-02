@@ -157,8 +157,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherLauncherVersionDTO>?>
-        StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LauncherLauncherVersionDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<LauncherLauncherVersionDTO>>(
             QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/launcherVersions", requestParams));

@@ -183,7 +183,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<ExecutedMaintenanceOperationDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<ExecutedMaintenanceOperationDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<ExecutedMaintenanceOperationDTO>>(
             QueryHelpers.AddQueryString("api/v1/Maintenance", requestParams));

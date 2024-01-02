@@ -125,7 +125,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<CLAInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CLAInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<CLAInfo>>(
             QueryHelpers.AddQueryString("api/v1/CLA", requestParams));

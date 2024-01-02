@@ -17,7 +17,7 @@ public class ComponentUrlHelper
         this.navigationManager = navigationManager;
     }
 
-    public async Task UpdateUrlHistoryIfChanged(Dictionary<string, string> newQueryParams)
+    public async Task UpdateUrlHistoryIfChanged(Dictionary<string, string?> newQueryParams)
     {
         var targetUri = QueryHelpers.AddQueryString(navigationManager.Uri.Split("?")[0], newQueryParams);
 

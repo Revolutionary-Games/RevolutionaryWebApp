@@ -139,7 +139,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Dictionary<string, string> CreatePageRequestParams()
+    protected override Dictionary<string, string?> CreatePageRequestParams()
     {
         var result = base.CreatePageRequestParams();
 
@@ -152,7 +152,7 @@ else
         return result;
     }
 
-    protected override void PruneRequestParams(Dictionary<string, string> queryParams)
+    protected override void PruneRequestParams(Dictionary<string, string?> queryParams)
     {
         base.PruneRequestParams(queryParams);
 
@@ -166,13 +166,13 @@ else
             queryParams.Remove("searchText");
     }
 
-    protected override Task<PagedResult<CrashReportInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<CrashReportInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<CrashReportInfo>>(
             QueryHelpers.AddQueryString("api/v1/CrashReport", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

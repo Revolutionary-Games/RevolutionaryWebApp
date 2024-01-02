@@ -260,7 +260,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
         await InvokeAsync(StateHasChanged);
     }
 
-    protected virtual Dictionary<string, string> CreatePageRequestParams()
+    protected virtual Dictionary<string, string?> CreatePageRequestParams()
     {
         return new()
         {
@@ -273,7 +273,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     ///   Removes the params that have the default values (currently in this object,
     ///   params aren't parsed back from queryParams)
     /// </summary>
-    protected virtual void PruneRequestParams(Dictionary<string, string> queryParams)
+    protected virtual void PruneRequestParams(Dictionary<string, string?> queryParams)
     {
         if (Sort.SortColumn == DefaultSortColumn)
             queryParams.Remove("sortColumn");
@@ -286,13 +286,13 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     ///   Starts the actual query to fetch data from the server
     /// </summary>
     /// <param name="requestParams">The parameters to query with</param>
-    protected abstract Task<TData?> StartQuery(Dictionary<string, string> requestParams);
+    protected abstract Task<TData?> StartQuery(Dictionary<string, string?> requestParams);
 
     /// <summary>
     ///   Child classes can update the current url or whatever they want here once a query is sent
     /// </summary>
     /// <param name="requestParams">The params the query was sent with, this is now safe to modify</param>
-    protected virtual Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected virtual Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         return Task.CompletedTask;
     }

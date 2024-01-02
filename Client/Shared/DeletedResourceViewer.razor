@@ -109,7 +109,7 @@
         }
     }
 
-    protected override Task<PagedResult<SoftDeletedResource>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<SoftDeletedResource>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<SoftDeletedResource>>(
             QueryHelpers.AddQueryString(FetchListEndpoint, requestParams));

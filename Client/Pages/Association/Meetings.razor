@@ -195,13 +195,13 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<MeetingInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<MeetingInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<MeetingInfo>>(
             QueryHelpers.AddQueryString("api/v1/Meetings", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

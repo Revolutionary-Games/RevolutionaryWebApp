@@ -97,13 +97,13 @@
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LogEntryDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LogEntryDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<LogEntryDTO>>(
             QueryHelpers.AddQueryString("api/v1/Logs/logs", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

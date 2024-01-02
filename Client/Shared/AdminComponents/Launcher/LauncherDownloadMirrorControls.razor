@@ -159,8 +159,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherDownloadMirrorDTO>?>
-        StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LauncherDownloadMirrorDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<LauncherDownloadMirrorDTO>>(
             QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/mirrors", requestParams));

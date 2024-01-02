@@ -196,8 +196,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<LauncherThriveVersionDTO>?>
-        StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<LauncherThriveVersionDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<LauncherThriveVersionDTO>>(
             QueryHelpers.AddQueryString("api/v1/LauncherInfoConfiguration/thriveVersions", requestParams));

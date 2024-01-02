@@ -114,7 +114,7 @@ else
         }
     }
 
-    protected override Dictionary<string, string> CreatePageRequestParams()
+    protected override Dictionary<string, string?> CreatePageRequestParams()
     {
         var request = base.CreatePageRequestParams();
 
@@ -124,7 +124,7 @@ else
         return request;
     }
 
-    protected override Task<PagedResult<StorageItemInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<StorageItemInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<StorageItemInfo>>(
             QueryHelpers.AddQueryString("api/v1/Files/folderFolders", requestParams));

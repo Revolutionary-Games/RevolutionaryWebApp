@@ -100,7 +100,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Dictionary<string, string> CreatePageRequestParams()
+    protected override Dictionary<string, string?> CreatePageRequestParams()
     {
         var result = base.CreatePageRequestParams();
 
@@ -109,7 +109,7 @@ else
         return result;
     }
 
-    protected override Task<PagedResult<PatronDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<PatronDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<PatronDTO>>(
             QueryHelpers.AddQueryString("api/v1/Patrons", requestParams));

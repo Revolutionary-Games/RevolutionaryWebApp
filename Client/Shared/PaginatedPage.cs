@@ -75,7 +75,7 @@ public abstract class PaginatedPage<T> : DataPage<T, PagedResult<T>>
         }
     }
 
-    protected override Dictionary<string, string> CreatePageRequestParams()
+    protected override Dictionary<string, string?> CreatePageRequestParams()
     {
         var result = base.CreatePageRequestParams();
 
@@ -84,7 +84,7 @@ public abstract class PaginatedPage<T> : DataPage<T, PagedResult<T>>
         return result;
     }
 
-    protected override void PruneRequestParams(Dictionary<string, string> queryParams)
+    protected override void PruneRequestParams(Dictionary<string, string?> queryParams)
     {
         base.PruneRequestParams(queryParams);
 

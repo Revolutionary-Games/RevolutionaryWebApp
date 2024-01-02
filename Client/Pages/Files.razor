@@ -568,7 +568,7 @@ else
         }
     }
 
-    protected override Dictionary<string, string> CreatePageRequestParams()
+    protected override Dictionary<string, string?> CreatePageRequestParams()
     {
         var requestParams = base.CreatePageRequestParams();
 
@@ -577,20 +577,20 @@ else
         return requestParams;
     }
 
-    protected override void PruneRequestParams(Dictionary<string, string> queryParams)
+    protected override void PruneRequestParams(Dictionary<string, string?> queryParams)
     {
         base.PruneRequestParams(queryParams);
 
         queryParams.Remove("parentId");
     }
 
-    protected override Task<PagedResult<StorageItemInfo>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<StorageItemInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<StorageItemInfo>>(
             QueryHelpers.AddQueryString($"api/v1/Files/folderContents", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await base.OnQuerySent(requestParams);
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);

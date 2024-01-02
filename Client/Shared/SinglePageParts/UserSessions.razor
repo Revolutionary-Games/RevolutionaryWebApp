@@ -136,7 +136,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<SessionDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<SessionDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<SessionDTO>>(
             QueryHelpers.AddQueryString($"api/v1/UserManagement/{Id}/sessions", requestParams));

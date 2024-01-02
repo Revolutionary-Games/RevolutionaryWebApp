@@ -80,7 +80,7 @@
         statusMessageType = SiteNoticeType.Danger;
         await InvokeAsync(StateHasChanged);
 
-        var queryParameters = new Dictionary<string, string>();
+        var queryParameters = new Dictionary<string, string?>();
 
         if (!string.IsNullOrEmpty(email))
             queryParameters["email"] = email;

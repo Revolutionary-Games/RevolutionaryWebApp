@@ -156,7 +156,7 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<RepoForReleaseStatsDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<RepoForReleaseStatsDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<RepoForReleaseStatsDTO>>(
             QueryHelpers.AddQueryString("api/v1/ReleaseStats/config", requestParams));

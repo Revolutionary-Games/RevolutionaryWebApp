@@ -234,13 +234,13 @@ else
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<GithubAutoCommentDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<GithubAutoCommentDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<GithubAutoCommentDTO>>(
             QueryHelpers.AddQueryString("api/v1/GithubConfiguration/autoComments", requestParams));
     }
 
-    protected override async Task OnQuerySent(Dictionary<string, string> requestParams)
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }

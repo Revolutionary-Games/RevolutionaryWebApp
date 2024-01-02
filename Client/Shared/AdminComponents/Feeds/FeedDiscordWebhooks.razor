@@ -168,7 +168,7 @@ private readonly List<TableColumn> columns = new()
         await NotificationHandler.Unregister(this);
     }
 
-    protected override Task<PagedResult<FeedDiscordWebhookDTO>?> StartQuery(Dictionary<string, string> requestParams)
+    protected override Task<PagedResult<FeedDiscordWebhookDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<PagedResult<FeedDiscordWebhookDTO>>(
             QueryHelpers.AddQueryString($"api/v1/FeedConfiguration/{FeedId}/discordWebhook", requestParams));
