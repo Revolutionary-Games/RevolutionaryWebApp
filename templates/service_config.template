@@ -4,7 +4,7 @@ DOTNET_PRINT_TELEMETRY_MESSAGE=false
 BaseUrl=https://your.domain/
 CSRF__Secret=PUT_A_NEW_RANDOM_STRING_HERE
 AllowedHosts=your.domain
-ConnectionStrings__WebApiConnection=User ID=thrivedevcenter;Password=password;Server=localhost;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;
+ConnectionStrings__WebApiConnection=User ID=thrivedevcenter;Password=password;Server=localhost;Port=5432;Database=thrivedevcenter;Pooling=true;
 ConnectionStrings__RedisSharedState=localhost:6379,password=redispassword
 TempFileStorage__Path=/home/thrivedevcenter/tmp
 Email__FromAddress=devcenter@your.domain

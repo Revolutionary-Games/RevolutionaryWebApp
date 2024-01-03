@@ -9,7 +9,7 @@
     "Secret": "PUTARANDOMSTRINGHERE"
   },
   "ConnectionStrings": {
-    "WebApiConnection": "User ID=thrivedevcenter;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;"
+    "WebApiConnection": "User ID=thrivedevcenter;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter;Pooling=true;"
   },
   "Email": {
     "FromAddress": "devcenter@localhost",

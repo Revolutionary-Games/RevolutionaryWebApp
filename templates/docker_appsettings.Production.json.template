@@ -14,7 +14,7 @@
     "Expiry": 1209600
   },
   "ConnectionStrings": {
-    "WebApiConnection": "User ID=postgres;Password=PASSWORDHERE;Server=thrivedevcenter_db;Port=5432;Database=thrivedevcenter;Integrated Security=true;Pooling=true;",
+    "WebApiConnection": "User ID=postgres;Password=PASSWORDHERE;Server=thrivedevcenter_db;Port=5432;Database=thrivedevcenter;Pooling=true;",
     "RedisSharedState": "thrivedevcenter_redis"
   },
   "AllowedHosts": "*",
