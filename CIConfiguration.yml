@@ -2,13 +2,13 @@ version: 1
 
 jobs:
   test:
-    image: thrive/devcenter-ci:v4
+    image: thrive/devcenter-ci:v5
     cache:
       loadFrom:
-        - v2-{Branch}-build
-      writeTo: v2-{Branch}-build
+        - v3-{Branch}-build
+      writeTo: v3-{Branch}-build
       system:
-        /root/.nuget: v2-nuget
+        /root/.nuget: v3-nuget
         /root/.cache/ms-playwright: v1-playwright
     steps:
       - run:
@@ -26,13 +26,13 @@ jobs:
           name: Test
           command: dotnet test
   lint:
-    image: thrive/devcenter-ci:v4
+    image: thrive/devcenter-ci:v5
     cache:
       loadFrom:
-        - v2-{Branch}-build
-      writeTo: v2-{Branch}-build
+        - v3-{Branch}-build
+      writeTo: v3-{Branch}-build
       system:
-        /root/.nuget: v2-nuget
+        /root/.nuget: v3-nuget
     steps:
       - run:
           name: Build list of changed files

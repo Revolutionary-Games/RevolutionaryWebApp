@@ -1,6 +1,6 @@
 # If the image version is updated here also Scripts/ContainerTool.cs needs to be updated
 FROM almalinux:9 as builder
-ENV DOTNET_VERSION "7.0"
+ENV DOTNET_VERSION "8.0"
 
 # Update used here to have slightly less outdated system packages
 # (this'll only really matter if some of the system libs from this

@@ -1,5 +1,5 @@
-FROM fedora:37
-ENV DOTNET_VERSION "7.0"
+FROM fedora:39
+ENV DOTNET_VERSION "8.0"
 
 RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc
 
