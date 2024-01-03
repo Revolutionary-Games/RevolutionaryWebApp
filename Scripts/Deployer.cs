@@ -13,7 +13,7 @@ using SharedBase.Utilities;
 
 public class Deployer
 {
-    private const string NET_VERSION = "net7.0";
+    private const string NET_VERSION = "net8.0";
 
     private const string BUILD_DATA_FOLDER = "build";
     private const string CONTAINER_NUGET_CACHE_HOST = "build/nuget";

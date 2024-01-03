@@ -243,7 +243,7 @@ dotnet user-secrets set IntegrationTestConnection 'User ID=thrivedevcenter_test;
 
 After building the solutions, you need to install the needed playwrigth browsers using:
 ```
-pwsh AutomatedUITests/bin/Debug/net7.0/playwright.ps1 install
+pwsh AutomatedUITests/bin/Debug/net8.0/playwright.ps1 install
 ```
 
 ### Running the tests
