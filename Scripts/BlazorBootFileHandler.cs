@@ -87,6 +87,10 @@ public static class BlazorBootFileHandler
             if (property.Key is "runtime" or "runtimeAssets")
                 continue;
 
+            // Skip the new top level "hash" key
+            if (property.Key is "hash")
+                continue;
+
             switch (property.Value)
             {
                 case JsonObject childObject:

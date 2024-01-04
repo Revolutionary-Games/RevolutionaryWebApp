@@ -105,10 +105,13 @@ public class Deployer
     }
 
     private string ClientBuiltWebroot => string.Format(CLIENT_BUILT_WEBROOT, options.BuildMode, NET_VERSION);
+
     private string ServerBuiltBase => string.Format(SERVER_BUILT_BASE, options.BuildMode, NET_VERSION);
+
     private string CIExecutorBuiltFile => string.Format(CI_EXECUTOR_BUILT_FILE, options.BuildMode, NET_VERSION);
 
     private string TargetWWWRoot => string.Format(GetTargetWWWRoot(), options.Mode.ToString().ToLowerInvariant());
+
     private string TargetAppRoot => string.Format(GetTargetAppRoot(), options.Mode.ToString().ToLowerInvariant());
 
     public async Task<bool> Run(CancellationToken cancellationToken)
@@ -375,7 +378,7 @@ public class Deployer
         // And it also needs extra files...
         foreach (var extraResource in CIExecutorExtraResources)
         {
-            var resource = string.Format(extraResource, options.BuildMode, NET_VERSION);
+            var resource = Path.Join(BUILD_DATA_FOLDER, string.Format(extraResource, options.BuildMode, NET_VERSION));
             var destination = Path.Join(ClientBuiltWebroot, Path.GetFileName(resource));
             File.Copy(resource, destination, true);
             await BlazorBootFileHandler.RegenerateCompressedFiles(destination, cancellationToken);

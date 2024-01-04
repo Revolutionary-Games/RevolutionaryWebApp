@@ -7,7 +7,7 @@ ENV DOTNET_VERSION "8.0"
 # build will be used in the final output, which might be the case if
 # the dotnet runtime is bundled with the output)
 RUN dnf update -y && dnf install -y --setopt=deltarpm=false dotnet-sdk-${DOTNET_VERSION} \
-    glibc-langpack-en && dnf clean all
+    libatomic glibc-langpack-en && dnf clean all
 
 RUN dotnet workload install wasm-tools
 
