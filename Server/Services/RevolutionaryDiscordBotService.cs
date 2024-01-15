@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using AngleSharp.Html.Parser;
+using AsyncKeyedLock;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
@@ -61,9 +62,9 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     /// <summary>
     ///   Used to limit how many tasks are at once running expensive operations
     /// </summary>
-    private readonly SemaphoreSlim expensiveOperationLimiter = new(1);
+    private readonly AsyncNonKeyedLocker expensiveOperationLimiter = new(1);
 
-    private readonly SemaphoreSlim databaseReadWriteLock = new(1);
+    private readonly AsyncNonKeyedLocker databaseReadWriteLock = new(1);
 
     private readonly Dictionary<string, DateTime> lastRanCommands = new();
 
@@ -320,43 +321,41 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             }
         }
 
-        await databaseReadWriteLock.WaitAsync();
-        try
+        using (await databaseReadWriteLock.LockAsync())
         {
-            // If commands are changed the version numbers here *must* be updated
-            bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 3);
-
-            if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 2))
-                changes = true;
-            if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 2))
-                changes = true;
-            if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 2))
-                changes = true;
-            if (await RegisterGlobalCommandIfRequired(BuildDaysSinceCommand(), 1))
-                changes = true;
-
-            // ReSharper disable once StringLiteralTypo
-            if (await RegisterKeywordIfRequired(UnderwaterCivIdentifier, "Underwater Civs"))
-                changes = true;
-            if (await RegisterKeywordIfRequired(SentientPlantsIdentifier, "Sentient Plants"))
-                changes = true;
-
-            if (changes)
+            try
             {
-                logger.LogInformation("Global commands have been updated, saving info to database");
-                await database.SaveChangesAsync();
-            }
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Registering global commands failed");
+                // If commands are changed the version numbers here *must* be updated
+                bool changes = await RegisterGlobalCommandIfRequired(BuildProgressCommand(), 3);
 
-            // If the bot can't register commands, it might as well not run
-            throw;
-        }
-        finally
-        {
-            databaseReadWriteLock.Release();
+                if (await RegisterGlobalCommandIfRequired(BuildLanguageCommand(), 2))
+                    changes = true;
+                if (await RegisterGlobalCommandIfRequired(BuildWikiCommand(), 2))
+                    changes = true;
+                if (await RegisterGlobalCommandIfRequired(BuildReleasesCommand(), 2))
+                    changes = true;
+                if (await RegisterGlobalCommandIfRequired(BuildDaysSinceCommand(), 1))
+                    changes = true;
+
+                // ReSharper disable once StringLiteralTypo
+                if (await RegisterKeywordIfRequired(UnderwaterCivIdentifier, "Underwater Civs"))
+                    changes = true;
+                if (await RegisterKeywordIfRequired(SentientPlantsIdentifier, "Sentient Plants"))
+                    changes = true;
+
+                if (changes)
+                {
+                    logger.LogInformation("Global commands have been updated, saving info to database");
+                    await database.SaveChangesAsync();
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Registering global commands failed");
+
+                // If the bot can't register commands, it might as well not run
+                throw;
+            }
         }
     }
 
@@ -584,70 +583,68 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         using var tempFileData = new MemoryStream();
 
-        await expensiveOperationLimiter.WaitAsync();
-        try
+        using (await expensiveOperationLimiter.LockAsync())
         {
-            // We assume the size of the background image here
-            int width = 700;
-            int height = 300;
-
-            var titleFont = fontCollection.Families.First().CreateFont(56, FontStyle.Bold);
-            var percentageFont = fontCollection.Families.First().CreateFont(36, FontStyle.Bold);
-            var issueCountFont = fontCollection.Families.First().CreateFont(36, FontStyle.Bold);
-
-            using var progressImage = new Image<Rgb24>(width, height);
-
-            // ReSharper disable AccessToDisposedClosure
-            // Draw the background image
-            progressImage.Mutate(x => { x.DrawImage(backgroundImage, 1); });
-
-            // ReSharper restore AccessToDisposedClosure
-
-            progressImage.Mutate(x =>
+            try
             {
-                var textBrush = Brushes.Solid(Color.White);
-                var titlePen = Pens.Solid(Color.Black, 3.0f);
-                var textPen = Pens.Solid(Color.Black, 2.0f);
+                // We assume the size of the background image here
+                int width = 700;
+                int height = 300;
 
-                x.DrawText(milestone.Title, titleFont, textBrush, titlePen, new PointF(15, 5));
+                var titleFont = fontCollection.Families.First().CreateFont(56, FontStyle.Bold);
+                var percentageFont = fontCollection.Families.First().CreateFont(36, FontStyle.Bold);
+                var issueCountFont = fontCollection.Families.First().CreateFont(36, FontStyle.Bold);
 
-                // Issues
-                var issuesY = 90;
-                x.DrawText(openText, issueCountFont, textBrush, textPen, new PointF(30, issuesY));
-                x.DrawText(closedText, issueCountFont, textBrush, textPen, new PointF(350, issuesY));
+                using var progressImage = new Image<Rgb24>(width, height);
 
-                // Progress bar
-                // TODO: make rounded corners for the bar
-                var barPen = Pens.Solid(Color.Black, 7.0f);
-                var barBrush = Brushes.Solid(new Color(new Rgb24(63, 169, 82)));
+                // ReSharper disable AccessToDisposedClosure
+                // Draw the background image
+                progressImage.Mutate(x => { x.DrawImage(backgroundImage, 1); });
 
-                // TODO: gradient to:
-                // new SixLabors.ImageSharp.Color(new Rgb24(134, 207, 147)));
+                // ReSharper restore AccessToDisposedClosure
 
-                x.Fill(barBrush, new RectangularPolygon(30, 150, (width - 60) * completionFraction, 50));
-                x.Draw(barPen, new RectangularPolygon(30, 150, width - 60, 50));
+                progressImage.Mutate(x =>
+                {
+                    var textBrush = Brushes.Solid(Color.White);
+                    var titlePen = Pens.Solid(Color.Black, 3.0f);
+                    var textPen = Pens.Solid(Color.Black, 2.0f);
 
-                // TODO: maybe for the days mode this should also say (the days left here to not let people be
-                // confused about why the items don't match the percentage)?
-                // Percentage
-                x.DrawText(percentageInfoText, percentageFont, textBrush, textPen, new PointF(50, 210));
-            });
+                    x.DrawText(milestone.Title, titleFont, textBrush, titlePen, new PointF(15, 5));
 
-            await progressImage.SaveAsync(tempFileData, PngFormat.Instance);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Progress image drawing problem");
-            await command.ModifyOriginalResponseAsync(properties =>
+                    // Issues
+                    var issuesY = 90;
+                    x.DrawText(openText, issueCountFont, textBrush, textPen, new PointF(30, issuesY));
+                    x.DrawText(closedText, issueCountFont, textBrush, textPen, new PointF(350, issuesY));
+
+                    // Progress bar
+                    // TODO: make rounded corners for the bar
+                    var barPen = Pens.Solid(Color.Black, 7.0f);
+                    var barBrush = Brushes.Solid(new Color(new Rgb24(63, 169, 82)));
+
+                    // TODO: gradient to:
+                    // new SixLabors.ImageSharp.Color(new Rgb24(134, 207, 147)));
+
+                    x.Fill(barBrush, new RectangularPolygon(30, 150, (width - 60) * completionFraction, 50));
+                    x.Draw(barPen, new RectangularPolygon(30, 150, width - 60, 50));
+
+                    // TODO: maybe for the days mode this should also say (the days left here to not let people be
+                    // confused about why the items don't match the percentage)?
+                    // Percentage
+                    x.DrawText(percentageInfoText, percentageFont, textBrush, textPen, new PointF(50, 210));
+                });
+
+                await progressImage.SaveAsync(tempFileData, PngFormat.Instance);
+            }
+            catch (Exception e)
             {
-                properties.Content = "Failed to draw progress image";
-                properties.Embeds = new[] { embedBuilder.Build() };
-            });
-            return;
-        }
-        finally
-        {
-            expensiveOperationLimiter.Release();
+                logger.LogError(e, "Progress image drawing problem");
+                await command.ModifyOriginalResponseAsync(properties =>
+                {
+                    properties.Content = "Failed to draw progress image";
+                    properties.Embeds = new[] { embedBuilder.Build() };
+                });
+                return;
+            }
         }
 
         tempFileData.Position = 0;
@@ -712,50 +709,48 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         using var tempFileData = new MemoryStream();
 
-        await expensiveOperationLimiter.WaitAsync();
-        try
+        using (await expensiveOperationLimiter.LockAsync())
         {
-            // We assume the overall status image is narrower
-            using var languagesImage = new Image<Rgb24>(progressImage.Width + 10,
-                overallStatusImage.Height + progressImage.Height + 15);
-
-            // Clear everything to white first before drawing
-            languagesImage.ProcessPixelRows(accessor =>
+            try
             {
-                var white = new Rgb24(255, 255, 255);
+                // We assume the overall status image is narrower
+                using var languagesImage = new Image<Rgb24>(progressImage.Width + 10,
+                    overallStatusImage.Height + progressImage.Height + 15);
 
-                for (int y = 0; y < accessor.Height; y++)
+                // Clear everything to white first before drawing
+                languagesImage.ProcessPixelRows(accessor =>
                 {
-                    foreach (ref Rgb24 pixel in accessor.GetRowSpan(y))
+                    var white = new Rgb24(255, 255, 255);
+
+                    for (int y = 0; y < accessor.Height; y++)
                     {
-                        pixel = white;
+                        foreach (ref Rgb24 pixel in accessor.GetRowSpan(y))
+                        {
+                            pixel = white;
+                        }
                     }
-                }
-            });
+                });
 
-            // ReSharper disable AccessToDisposedClosure
-            languagesImage.Mutate(x =>
+                // ReSharper disable AccessToDisposedClosure
+                languagesImage.Mutate(x =>
+                {
+                    x.DrawImage(progressImage, new Point(5, overallStatusImage.Height + 10), 1);
+                });
+
+                languagesImage.Mutate(x =>
+                    x.DrawImage(overallStatusImage, new Point(languagesImage.Width / 2 - overallStatusImage.Width / 2, 5),
+                        1));
+
+                // ReSharper restore AccessToDisposedClosure
+                await languagesImage.SaveAsync(tempFileData, PngFormat.Instance);
+            }
+            catch (Exception e)
             {
-                x.DrawImage(progressImage, new Point(5, overallStatusImage.Height + 10), 1);
-            });
-
-            languagesImage.Mutate(x =>
-                x.DrawImage(overallStatusImage, new Point(languagesImage.Width / 2 - overallStatusImage.Width / 2, 5),
-                    1));
-
-            // ReSharper restore AccessToDisposedClosure
-            await languagesImage.SaveAsync(tempFileData, PngFormat.Instance);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Language image drawing problem");
-            await command.ModifyOriginalResponseAsync(
-                properties => properties.Content = "Failed to draw language progress image");
-            return;
-        }
-        finally
-        {
-            expensiveOperationLimiter.Release();
+                logger.LogError(e, "Language image drawing problem");
+                await command.ModifyOriginalResponseAsync(
+                    properties => properties.Content = "Failed to draw language progress image");
+                return;
+            }
         }
 
         tempFileData.Position = 0;
@@ -808,47 +803,43 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task SlowDaysSince(SocketSlashCommand command, WatchedKeyword keyword)
     {
-        await expensiveOperationLimiter.WaitAsync();
-        try
+        using (await expensiveOperationLimiter.LockAsync())
         {
-            using var tempFileData = new MemoryStream();
-            var daysSinceImage = await GenerateDaysSinceImage(keyword);
+            try
+            {
+                using var tempFileData = new MemoryStream();
+                var daysSinceImage = await GenerateDaysSinceImage(keyword);
 
-            await daysSinceImage.SaveAsync(tempFileData, PngFormat.Instance);
+                await daysSinceImage.SaveAsync(tempFileData, PngFormat.Instance);
 
-            tempFileData.Position = 0;
-            await command.FollowupWithFileAsync(tempFileData, "last_said.png", string.Empty);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Days since image drawing problem");
-        }
-        finally
-        {
-            expensiveOperationLimiter.Release();
+                tempFileData.Position = 0;
+                await command.FollowupWithFileAsync(tempFileData, "last_said.png", string.Empty);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Days since image drawing problem");
+            }
         }
     }
 
     private async Task OnSlowDaysSinceStreakBroken(SocketMessage message, WatchedKeyword keyword)
     {
-        await expensiveOperationLimiter.WaitAsync();
-        try
+        using (await expensiveOperationLimiter.LockAsync())
         {
-            using var tempFileData = new MemoryStream();
-            var daysSinceImage = await GenerateDaysSinceImage(keyword);
+            try
+            {
+                using var tempFileData = new MemoryStream();
+                var daysSinceImage = await GenerateDaysSinceImage(keyword);
 
-            await daysSinceImage.SaveAsync(tempFileData, PngFormat.Instance);
+                await daysSinceImage.SaveAsync(tempFileData, PngFormat.Instance);
 
-            tempFileData.Position = 0;
-            await message.Channel.SendFileAsync(tempFileData, "last_said.png", string.Empty);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Days since image drawing problem");
-        }
-        finally
-        {
-            expensiveOperationLimiter.Release();
+                tempFileData.Position = 0;
+                await message.Channel.SendFileAsync(tempFileData, "last_said.png", string.Empty);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Days since image drawing problem");
+            }
         }
     }
 
@@ -1192,44 +1183,42 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task HandleKeywordMessage(SocketMessage message, string key)
     {
-        await databaseReadWriteLock.WaitAsync();
-        try
+        using (await databaseReadWriteLock.LockAsync())
         {
-            var keyword = await database.WatchedKeywords.FindAsync(key);
-
-            if (keyword == null)
+            try
             {
-                logger.LogError("Could not find WatchedKeyword data for: {Key}", key);
-                return;
+                var keyword = await database.WatchedKeywords.FindAsync(key);
+
+                if (keyword == null)
+                {
+                    logger.LogError("Could not find WatchedKeyword data for: {Key}", key);
+                    return;
+                }
+
+                var now = DateTime.UtcNow.Date;
+
+                var streak = (now - keyword.LastSeen.Date).TotalDays;
+
+                // Using discord message time here could mean that the streak broken message shows 1 days instead of 0
+                // At least that problem was triggered at least once and this is the only likely thing to have caused it
+                // and it makes anyway more sense to rely on our time keeping everywhere instead of grabbing the discord
+                // message time here in this one place -hhyyrylainen
+                keyword.LastSeen = now;
+                keyword.TotalCount += 1;
+
+                await database.SaveChangesAsync();
+
+                if (streak > ReportDaysSinceStreakBreakAfter)
+                {
+                    await message.Channel.SendMessageAsync(
+                        $"The {(int)streak} day streak without bringing up {keyword.Title} has been broken");
+                    await OnSlowDaysSinceStreakBroken(message, keyword);
+                }
             }
-
-            var now = DateTime.UtcNow.Date;
-
-            var streak = (now - keyword.LastSeen.Date).TotalDays;
-
-            // Using discord message time here could mean that the streak broken message shows 1 days instead of 0
-            // At least that problem was triggered at least once and this is the only likely thing to have caused it
-            // and it makes anyway more sense to rely on our time keeping everywhere instead of grabbing the discord
-            // message time here in this one place -hhyyrylainen
-            keyword.LastSeen = now;
-            keyword.TotalCount += 1;
-
-            await database.SaveChangesAsync();
-
-            if (streak > ReportDaysSinceStreakBreakAfter)
+            catch (Exception e)
             {
-                await message.Channel.SendMessageAsync(
-                    $"The {(int)streak} day streak without bringing up {keyword.Title} has been broken");
-                await OnSlowDaysSinceStreakBroken(message, keyword);
+                logger.LogError(e, "WatchedKeyword reacting to said keyword failed");
             }
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "WatchedKeyword reacting to said keyword failed");
-        }
-        finally
-        {
-            databaseReadWriteLock.Release();
         }
     }
 

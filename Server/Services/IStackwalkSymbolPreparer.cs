@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -22,7 +23,7 @@ public interface IStackwalkSymbolPreparer
 
 public class StackwalkSymbolPreparer : IStackwalkSymbolPreparer
 {
-    private static readonly SemaphoreSlim GlobalSymbolPrepareLock = new(1);
+    private static readonly AsyncNonKeyedLocker GlobalSymbolPrepareLock = new(1);
 
     private readonly ILogger<StackwalkSymbolPreparer> logger;
     private readonly ApplicationDbContext database;
@@ -46,20 +47,13 @@ public class StackwalkSymbolPreparer : IStackwalkSymbolPreparer
             return;
         }
 
-        var lockTask = GlobalSymbolPrepareLock.WaitAsync(cancellationToken);
-
         var wantedSymbols = await database.DebugSymbols.Include(s => s.StoredInItem).Where(s => s.Active)
             .ToListAsync(cancellationToken);
 
-        await lockTask;
-        try
+        using (await GlobalSymbolPrepareLock.LockAsync(cancellationToken))
         {
             Directory.CreateDirectory(baseFolder);
             await HandleSymbols(baseFolder, wantedSymbols, cancellationToken);
-        }
-        finally
-        {
-            GlobalSymbolPrepareLock.Release();
         }
     }
 
