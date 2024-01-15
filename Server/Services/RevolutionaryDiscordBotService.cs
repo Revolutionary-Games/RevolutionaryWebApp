@@ -738,8 +738,11 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 });
 
                 languagesImage.Mutate(x =>
-                    x.DrawImage(overallStatusImage, new Point(languagesImage.Width / 2 - overallStatusImage.Width / 2, 5),
-                        1));
+                    x.DrawImage(
+                        overallStatusImage,
+                        new Point(languagesImage.Width / 2 - overallStatusImage.Width / 2, 5),
+                        1
+                    ));
 
                 // ReSharper restore AccessToDisposedClosure
                 await languagesImage.SaveAsync(tempFileData, PngFormat.Instance);
