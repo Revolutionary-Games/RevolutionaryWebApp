@@ -741,8 +741,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                     x.DrawImage(
                         overallStatusImage,
                         new Point(languagesImage.Width / 2 - overallStatusImage.Width / 2, 5),
-                        1
-                    ));
+                        1));
 
                 // ReSharper restore AccessToDisposedClosure
                 await languagesImage.SaveAsync(tempFileData, PngFormat.Instance);
