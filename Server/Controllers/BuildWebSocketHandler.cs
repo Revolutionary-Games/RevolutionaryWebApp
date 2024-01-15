@@ -18,7 +18,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using Microsoft.IdentityModel.Tokens;
 using Models;
 using Shared.Models;
 using Shared.Models.Enums;
@@ -229,178 +228,178 @@ public sealed class BuildWebSocketHandler : IDisposable
             switch (message.Type)
             {
                 case BuildSectionMessageType.SectionStart:
+                {
+                    // Start a new section
+                    if (string.IsNullOrEmpty(message.SectionName) || message.SectionName.Length > 100)
                     {
-                        // Start a new section
-                        if (string.IsNullOrEmpty(message.SectionName) || message.SectionName.Length > 100)
+                        logger.LogError("Received a build output section start with missing or too long name");
+                        await SendMessage(new RealTimeBuildMessage
                         {
-                            logger.LogError("Received a build output section start with missing or too long name");
-                            await SendMessage(new RealTimeBuildMessage
-                            {
-                                Type = BuildSectionMessageType.Error,
-                                ErrorMessage = "Can't start a new section with invalid name",
-                            });
-                        }
-                        else
+                            Type = BuildSectionMessageType.Error,
+                            ErrorMessage = "Can't start a new section with invalid name",
+                        });
+                    }
+                    else
+                    {
+                        using (await outputLock.LockAsync())
                         {
-                            using (await outputLock.LockAsync())
+                            if (activeSection != null)
                             {
-                                if (activeSection != null)
+                                logger.LogError(
+                                    "Received a build output section start ({Name}) " +
+                                    "while there's an active section ({SectionName})",
+                                    activeSection.Name, message.SectionName);
+                                await SendMessage(new RealTimeBuildMessage
                                 {
-                                    logger.LogError(
-                                        "Received a build output section start ({Name}) " +
-                                        "while there's an active section ({SectionName})",
-                                        activeSection.Name, message.SectionName);
-                                    await SendMessage(new RealTimeBuildMessage
-                                    {
-                                        Type = BuildSectionMessageType.Error,
-                                        ErrorMessage = "Can't start a new section while one is in progress",
-                                    });
+                                    Type = BuildSectionMessageType.Error,
+                                    ErrorMessage = "Can't start a new section while one is in progress",
+                                });
 
-                                    // I guess we assume success here...
-                                    activeSection.Status = CIJobSectionStatus.Succeeded;
-                                    activeSection.FinishedAt = DateTime.UtcNow;
+                                // I guess we assume success here...
+                                activeSection.Status = CIJobSectionStatus.Succeeded;
+                                activeSection.FinishedAt = DateTime.UtcNow;
 
-                                    outputSectionText.Append(
-                                        "This section was not properly closed before the next section");
-                                    AddPendingOutputToActiveSection();
-                                }
-
-                                activeSection = new CiJobOutputSection
-                                {
-                                    CiProjectId = job.CiProjectId,
-                                    CiBuildId = job.CiBuildId,
-                                    CiJobId = job.CiJobId,
-                                    Name = message.SectionName,
-                                    Output = message.Output ?? string.Empty,
-                                };
-
-                                outputSectionText.Clear();
-                                activeSection.CalculateOutputLength();
-
-                                // TODO: find out why this sometimes causes duplicate IDs...
-                                // This was likely caused by the RemoteServerHandler to queue the same job on multiple
-                                // servers, if the job startup job didn't run soon enough, now shouldn't be a problem
-                                // anymore
-                                for (int i = 0; i < 50; ++i)
-                                {
-                                    activeSection.CiJobOutputSectionId = ++sectionNumberCounter;
-
-                                    logger.LogTrace(
-                                        "Creating output section: {CiProjectId}-{CiBuildId}-{CiJobId}-" +
-                                        "{CiJobOutputSectionId}", job.CiProjectId, job.CiBuildId, job.CiJobId,
-                                        activeSection.CiJobOutputSectionId);
-
-                                    // TODO: this catch should be safe to remove now
-                                    try
-                                    {
-                                        await database.CiJobOutputSections.AddAsync(activeSection);
-                                        await database.SaveChangesAsync();
-                                        break;
-                                    }
-                                    catch (DbUpdateException e)
-                                    {
-                                        logger.LogError("Somehow we created a duplicate section id, error saving: {@E}",
-                                            e);
-                                    }
-                                }
+                                outputSectionText.Append(
+                                    "This section was not properly closed before the next section");
+                                AddPendingOutputToActiveSection();
                             }
 
-                            message.SectionId = activeSection.CiJobOutputSectionId;
-                            await SendMessageToWebsiteClients(message);
+                            activeSection = new CiJobOutputSection
+                            {
+                                CiProjectId = job.CiProjectId,
+                                CiBuildId = job.CiBuildId,
+                                CiJobId = job.CiJobId,
+                                Name = message.SectionName,
+                                Output = message.Output ?? string.Empty,
+                            };
+
+                            outputSectionText.Clear();
+                            activeSection.CalculateOutputLength();
+
+                            // TODO: find out why this sometimes causes duplicate IDs...
+                            // This was likely caused by the RemoteServerHandler to queue the same job on multiple
+                            // servers, if the job startup job didn't run soon enough, now shouldn't be a problem
+                            // anymore
+                            for (int i = 0; i < 50; ++i)
+                            {
+                                activeSection.CiJobOutputSectionId = ++sectionNumberCounter;
+
+                                logger.LogTrace(
+                                    "Creating output section: {CiProjectId}-{CiBuildId}-{CiJobId}-" +
+                                    "{CiJobOutputSectionId}", job.CiProjectId, job.CiBuildId, job.CiJobId,
+                                    activeSection.CiJobOutputSectionId);
+
+                                // TODO: this catch should be safe to remove now
+                                try
+                                {
+                                    await database.CiJobOutputSections.AddAsync(activeSection);
+                                    await database.SaveChangesAsync();
+                                    break;
+                                }
+                                catch (DbUpdateException e)
+                                {
+                                    logger.LogError("Somehow we created a duplicate section id, error saving: {@E}",
+                                        e);
+                                }
+                            }
                         }
 
-                        break;
+                        message.SectionId = activeSection.CiJobOutputSectionId;
+                        await SendMessageToWebsiteClients(message);
                     }
+
+                    break;
+                }
 
                 case BuildSectionMessageType.BuildOutput:
+                {
+                    // Error if no active section
+                    if (activeSection == null)
                     {
-                        // Error if no active section
-                        if (activeSection == null)
+                        logger.LogError("Received a build output message but there is no active section");
+                        logger.LogInformation("Missed message for above error: {Output}", message.Output);
+                        await SendMessage(new RealTimeBuildMessage
                         {
-                            logger.LogError("Received a build output message but there is no active section");
-                            logger.LogInformation("Missed message for above error: {Output}", message.Output);
-                            await SendMessage(new RealTimeBuildMessage
-                            {
-                                Type = BuildSectionMessageType.Error,
-                                ErrorMessage = "No active output section",
-                            });
-                        }
-                        else
-                        {
-                            // TODO: add total output amount limit here (if exceeded, make the build fail)
-                            // Append to current section
-                            using (await outputLock.LockAsync())
-                            {
-                                outputSectionText.Append(message.Output);
-                            }
-
-                            message.SectionId = activeSection.CiJobOutputSectionId;
-                            await SendMessageToWebsiteClients(message);
-                        }
-
-                        break;
+                            Type = BuildSectionMessageType.Error,
+                            ErrorMessage = "No active output section",
+                        });
                     }
+                    else
+                    {
+                        // TODO: add total output amount limit here (if exceeded, make the build fail)
+                        // Append to current section
+                        using (await outputLock.LockAsync())
+                        {
+                            outputSectionText.Append(message.Output);
+                        }
+
+                        message.SectionId = activeSection.CiJobOutputSectionId;
+                        await SendMessageToWebsiteClients(message);
+                    }
+
+                    break;
+                }
 
                 case BuildSectionMessageType.SectionEnd:
+                {
+                    // Set the status of the last section and unset the active section
+                    if (activeSection == null)
                     {
-                        // Set the status of the last section and unset the active section
-                        if (activeSection == null)
+                        logger.LogError("Received a build section end but there is no active section");
+                        await SendMessage(new RealTimeBuildMessage
                         {
-                            logger.LogError("Received a build section end but there is no active section");
-                            await SendMessage(new RealTimeBuildMessage
-                            {
-                                Type = BuildSectionMessageType.Error,
-                                ErrorMessage = "No active output section",
-                            });
-                        }
-                        else
-                        {
-                            using (await outputLock.LockAsync())
-                            {
-                                activeSection.Status = message.WasSuccessful ?
-                                    CIJobSectionStatus.Succeeded :
-                                    CIJobSectionStatus.Failed;
-                                activeSection.FinishedAt = DateTime.UtcNow;
-
-                                // Append last pending text
-                                AddPendingOutputToActiveSection();
-
-                                await database.SaveChangesAsync();
-
-                                activeSection = null;
-                            }
-                        }
-
-                        break;
+                            Type = BuildSectionMessageType.Error,
+                            ErrorMessage = "No active output section",
+                        });
                     }
+                    else
+                    {
+                        using (await outputLock.LockAsync())
+                        {
+                            activeSection.Status = message.WasSuccessful ?
+                                CIJobSectionStatus.Succeeded :
+                                CIJobSectionStatus.Failed;
+                            activeSection.FinishedAt = DateTime.UtcNow;
+
+                            // Append last pending text
+                            AddPendingOutputToActiveSection();
+
+                            await database.SaveChangesAsync();
+
+                            activeSection = null;
+                        }
+                    }
+
+                    break;
+                }
 
                 case BuildSectionMessageType.FinalStatus:
+                {
+                    if (activeSection != null)
                     {
-                        if (activeSection != null)
+                        logger.LogWarning("Last log section was not closed before final status");
+
+                        using (await outputLock.LockAsync())
                         {
-                            logger.LogWarning("Last log section was not closed before final status");
+                            // Assume section has the same result as the overall result
+                            activeSection.Status = message.WasSuccessful ?
+                                CIJobSectionStatus.Succeeded :
+                                CIJobSectionStatus.Failed;
+                            activeSection.FinishedAt = DateTime.UtcNow;
 
-                            using (await outputLock.LockAsync())
-                            {
-                                // Assume section has the same result as the overall result
-                                activeSection.Status = message.WasSuccessful ?
-                                    CIJobSectionStatus.Succeeded :
-                                    CIJobSectionStatus.Failed;
-                                activeSection.FinishedAt = DateTime.UtcNow;
+                            AddPendingOutputToActiveSection();
 
-                                AddPendingOutputToActiveSection();
+                            await database.SaveChangesAsync();
 
-                                await database.SaveChangesAsync();
-
-                                activeSection = null;
-                            }
+                            activeSection = null;
                         }
-
-                        // Queue a job to set build final status
-                        BackgroundJob.Enqueue<SetFinishedCIJobStatusJob>(x => x.Execute(job.CiProjectId, job.CiBuildId,
-                            job.CiJobId, message.WasSuccessful, CancellationToken.None));
-                        return;
                     }
+
+                    // Queue a job to set build final status
+                    BackgroundJob.Enqueue<SetFinishedCIJobStatusJob>(x => x.Execute(job.CiProjectId, job.CiBuildId,
+                        job.CiJobId, message.WasSuccessful, CancellationToken.None));
+                    return;
+                }
 
                 default:
                     throw new ArgumentOutOfRangeException();
