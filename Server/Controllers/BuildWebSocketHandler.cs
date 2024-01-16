@@ -7,6 +7,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using Common.Utilities;
 using Hangfire;
 using Hubs;
@@ -41,7 +42,7 @@ public sealed class BuildWebSocketHandler : IDisposable
     /// <summary>
     ///   Used to coordinate between the main socket reading task and the background writing task
     /// </summary>
-    private readonly SemaphoreSlim outputLock = new(1, 1);
+    private readonly AsyncNonKeyedLocker outputLock = new(1);
 
     private readonly CancellationTokenSource backgroundOutputCancel = new();
 
@@ -240,9 +241,7 @@ public sealed class BuildWebSocketHandler : IDisposable
                     }
                     else
                     {
-                        await outputLock.WaitAsync();
-
-                        try
+                        using (await outputLock.LockAsync())
                         {
                             if (activeSection != null)
                             {
@@ -304,10 +303,6 @@ public sealed class BuildWebSocketHandler : IDisposable
                                 }
                             }
                         }
-                        finally
-                        {
-                            outputLock.Release();
-                        }
 
                         message.SectionId = activeSection.CiJobOutputSectionId;
                         await SendMessageToWebsiteClients(message);
@@ -333,16 +328,9 @@ public sealed class BuildWebSocketHandler : IDisposable
                     {
                         // TODO: add total output amount limit here (if exceeded, make the build fail)
                         // Append to current section
-
-                        await outputLock.WaitAsync();
-
-                        try
+                        using (await outputLock.LockAsync())
                         {
                             outputSectionText.Append(message.Output);
-                        }
-                        finally
-                        {
-                            outputLock.Release();
                         }
 
                         message.SectionId = activeSection.CiJobOutputSectionId;
@@ -366,9 +354,7 @@ public sealed class BuildWebSocketHandler : IDisposable
                     }
                     else
                     {
-                        await outputLock.WaitAsync();
-
-                        try
+                        using (await outputLock.LockAsync())
                         {
                             activeSection.Status = message.WasSuccessful ?
                                 CIJobSectionStatus.Succeeded :
@@ -382,10 +368,6 @@ public sealed class BuildWebSocketHandler : IDisposable
 
                             activeSection = null;
                         }
-                        finally
-                        {
-                            outputLock.Release();
-                        }
                     }
 
                     break;
@@ -397,9 +379,7 @@ public sealed class BuildWebSocketHandler : IDisposable
                     {
                         logger.LogWarning("Last log section was not closed before final status");
 
-                        await outputLock.WaitAsync();
-
-                        try
+                        using (await outputLock.LockAsync())
                         {
                             // Assume section has the same result as the overall result
                             activeSection.Status = message.WasSuccessful ?
@@ -412,10 +392,6 @@ public sealed class BuildWebSocketHandler : IDisposable
                             await database.SaveChangesAsync();
 
                             activeSection = null;
-                        }
-                        finally
-                        {
-                            outputLock.Release();
                         }
                     }
 
@@ -444,9 +420,12 @@ public sealed class BuildWebSocketHandler : IDisposable
             logger.LogError("Error in background output writer task: {@E}", e);
         }
 
-        if (!await outputLock.WaitAsync(TimeSpan.FromSeconds(10)))
+        using (var releaser = await outputLock.LockAsync(TimeSpan.FromSeconds(10)))
         {
-            logger.LogError("Failed to acquire output semaphore after 10 seconds");
+            if (!releaser.EnteredSemaphore)
+            {
+                logger.LogError("Failed to acquire output semaphore after 10 seconds");
+            }
         }
 
         if (error)
@@ -502,9 +481,7 @@ public sealed class BuildWebSocketHandler : IDisposable
         {
             await Task.Delay(OutputSaveInterval, cancellationToken);
 
-            await outputLock.WaitAsync(cancellationToken);
-
-            try
+            using (await outputLock.LockAsync(cancellationToken))
             {
                 if (activeSection == null || outputSectionText.Length < 1)
                     continue;
@@ -514,10 +491,6 @@ public sealed class BuildWebSocketHandler : IDisposable
                 // This shouldn't be skipped, we want the text in the database to not permanently lose it
                 // ReSharper disable once MethodSupportsCancellation
                 await database.SaveChangesAsync();
-            }
-            finally
-            {
-                outputLock.Release();
             }
         }
     }
