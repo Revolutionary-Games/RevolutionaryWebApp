@@ -378,11 +378,13 @@ public class Startup
             // app.UseHsts();
         }
 
-        app.UseBlazorFrameworkFiles();
-
         // Files are only served in development, in production reverse proxy needs to serve them
         if (env.IsDevelopment())
+        {
+            Console.WriteLine("Serving static files in development configuration");
+            app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
+        }
 
         app.UseResponseCaching();
 
