@@ -41,7 +41,7 @@
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.7" />
-    <PackageReference Include="SmartFormat.NET" Version="3.3.1" />
+    <PackageReference Include="SmartFormat.NET" Version="3.3.2" />
     <PackageReference Include="SSH.NET" Version="2023.0.1" />
     <PackageReference Include="StackExchange.Redis" Version="2.7.17" />
     <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.28" />
