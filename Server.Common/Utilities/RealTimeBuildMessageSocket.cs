@@ -2,7 +2,6 @@ namespace ThriveDevCenter.Server.Common.Utilities;
 
 using System;
 using System.Net.WebSockets;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
