@@ -50,8 +50,7 @@ function scrollToElement(id, smooth) {
 // Render latex math in element children
 function renderMath(element) {
     const targets = element.getElementsByClassName("math");
-    for (const el of targets)
-    {
+    for (const el of targets) {
         let block = false;
         let text = el.textContent;
 
@@ -63,7 +62,7 @@ function renderMath(element) {
             if (start !== -1) {
                 start += 2;
                 let end = text.lastIndexOf("\\]");
-                if(end === -1)
+                if (end === -1)
                     end = text.length - 2;
                 text = text.substring(start, end);
                 block = true;

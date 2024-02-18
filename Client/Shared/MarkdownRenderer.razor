@@ -31,6 +31,10 @@
     [EditorRequired]
     public string? MarkdownText { get; set; }
 
+    /// <summary>
+    ///   When true enables all markdown features. Note that this is not safe for random user provided data. Only
+    ///   enable when coming from trusted source (like admin users) or approved data.
+    /// </summary>
     [Parameter]
     public bool AllMarkdownFeatures { get; set; }
 
