@@ -56,7 +56,7 @@ function renderMath(element) {
 
         // Need to do a bit of processing here to convert to katex working format from Markdig
         if (text.startsWith("\\(")) {
-            text = text.substring(2, text.length - 4);
+            text = text.substring(2, text.length - 2);
         } else {
             let start = text.indexOf("\\[");
             if (start !== -1) {
