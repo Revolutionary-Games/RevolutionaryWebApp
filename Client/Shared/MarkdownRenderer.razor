@@ -1,8 +1,9 @@
 @using ThriveDevCenter.Client.Services
 @inject MarkdownService Markdown
+@inject IJSRuntime JS
 
 <!--suppress CssMissingSemicolon -->
-<article class="@Class" style="@Style">
+<article @ref="@renderedElementReference" class="@Class" style="@Style">
     @((MarkupString)renderedMarkdown)
 </article>
 
@@ -18,6 +19,10 @@
     ///   Used to detect when text is changed
     /// </summary>
     private string? currentlyRenderedRawText;
+
+    private bool mathEnabled;
+
+    private ElementReference? renderedElementReference;
 
     /// <summary>
     ///   The markdown text this component should display
@@ -84,7 +89,11 @@
     {
         base.OnAfterRender(firstRender);
 
-        // TODO: trigger JS needed to make the markdown fully work
+        // Trigger JS needed to make the markdown fully work
+        if (mathEnabled && renderedElementReference != null)
+        {
+            JS.InvokeVoidAsync("renderMath", renderedElementReference);
+        }
     }
 
     private async Task RenderMarkdown()
@@ -98,6 +107,10 @@
             await InvokeAsync(StateHasChanged);
             return;
         }
+
+        // Enable math post-processing when it is likely possible
+        if (!mathEnabled && currentlyRenderedRawText.Contains('$'))
+            mathEnabled = true;
 
         if (AllMarkdownFeatures)
         {

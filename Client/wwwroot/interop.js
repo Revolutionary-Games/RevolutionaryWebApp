@@ -47,6 +47,36 @@ function scrollToElement(id, smooth) {
     }
 }
 
+// Render latex math in element children
+function renderMath(element) {
+    const targets = element.getElementsByClassName("math");
+    for (const el of targets)
+    {
+        let block = false;
+        let text = el.textContent;
+
+        // Need to do a bit of processing here to convert to katex working format from Markdig
+        if (text.startsWith("\\(")) {
+            text = text.substring(2, text.length - 4);
+        } else {
+            let start = text.indexOf("\\[");
+            if (start !== -1) {
+                start += 2;
+                let end = text.lastIndexOf("\\]");
+                if(end === -1)
+                    end = text.length - 2;
+                text = text.substring(start, end);
+                block = true;
+            }
+        }
+
+        katex.render(text, el, {
+            throwOnError: false,
+            displayMode: block,
+        });
+    }
+}
+
 // Helper for getting dropped files into C# by going through an InputFile
 // This workaround is needed until this feature is done: https://github.com/dotnet/aspnetcore/issues/18754
 function registerFileDropArea(dropElement, inputElementId) {
