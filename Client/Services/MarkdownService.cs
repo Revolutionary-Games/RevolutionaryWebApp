@@ -18,6 +18,7 @@ public class MarkdownService
 
         // TODO: support for custom media link hosts
 
+        // TODO: mermaid diagrams seem way too hard to get working so it's enabled here but won't work
         advancedPipeline = new MarkdownPipelineBuilder().UseEmojiAndSmiley().UseSmartyPants().UseAdvancedExtensions()
             .Build();
 
