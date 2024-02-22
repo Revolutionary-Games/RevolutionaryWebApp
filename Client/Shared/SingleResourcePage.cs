@@ -8,9 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
-using Services;
 using RevolutionaryWebApp.Shared.Models;
 using RevolutionaryWebApp.Shared.Notifications;
+using Services;
 
 /// <summary>
 ///   Base class for blazor pages that show a single resource

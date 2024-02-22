@@ -10,12 +10,12 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shared;
-using SharedBase.Utilities;
 using RevolutionaryWebApp.Shared;
 using RevolutionaryWebApp.Shared.Models;
 using RevolutionaryWebApp.Shared.Models.Enums;
 using RevolutionaryWebApp.Shared.Notifications;
+using Shared;
+using SharedBase.Utilities;
 using Utilities;
 
 public class NotificationHandler : IAsyncDisposable

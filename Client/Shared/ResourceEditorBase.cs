@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Services;
 using RevolutionaryWebApp.Shared;
 using RevolutionaryWebApp.Shared.Notifications;
+using Services;
 
 public abstract class ResourceEditorBase<T, TNotification, TID> : SingleResourcePage<T, TNotification, TID>
     where T : class, IIdentifiable, new()

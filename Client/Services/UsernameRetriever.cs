@@ -8,8 +8,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using SharedBase.Utilities;
 using RevolutionaryWebApp.Shared;
+using SharedBase.Utilities;
 using Utilities;
 
 public sealed class UsernameRetriever : IDisposable

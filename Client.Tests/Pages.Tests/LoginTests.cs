@@ -6,8 +6,8 @@ using Bunit;
 using Client.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using Mocks;
-using RichardSzalay.MockHttp;
 using RevolutionaryWebApp.Shared.Models;
+using RichardSzalay.MockHttp;
 using Utilities;
 using Xunit;
 
