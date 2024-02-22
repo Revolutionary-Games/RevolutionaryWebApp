@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace ThriveDevCenter.Server.Migrations
+namespace RevolutionaryWebApp.Server.Migrations
 {
     public partial class AddHashedIdToSession : Migration
     {

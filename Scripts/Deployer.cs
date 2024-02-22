@@ -67,8 +67,8 @@ public class Deployer
         "Shared.Tests",
         "Directory.Build.props",
         "global.json",
-        "ThriveDevCenter.sln",
-        "ThriveDevCenter.sln.DotSettings",
+        "RevolutionaryWebApp.sln",
+        "RevolutionaryWebApp.sln.DotSettings",
     };
 
     private static readonly IReadOnlyList<string> PathsToDeleteInContainerAfterCopy = new[]

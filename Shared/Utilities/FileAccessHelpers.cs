@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Utilities;
+namespace RevolutionaryWebApp.Shared.Utilities;
 
 using System;
 using DevCenterCommunication.Models.Enums;

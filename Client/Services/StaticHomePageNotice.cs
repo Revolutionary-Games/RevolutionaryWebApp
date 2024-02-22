@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Services;
+namespace RevolutionaryWebApp.Client.Services;
 
 using System.Threading.Tasks;
 using Microsoft.JSInterop;

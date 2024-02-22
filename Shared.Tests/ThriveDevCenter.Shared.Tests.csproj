@@ -21,6 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Shared\ThriveDevCenter.Shared.csproj" />
+    <ProjectReference Include="..\Shared\RevolutionaryWebApp.Shared.csproj" />
   </ItemGroup>
 </Project>

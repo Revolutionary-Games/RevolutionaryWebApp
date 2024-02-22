@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Dummies;
+namespace RevolutionaryWebApp.Server.Tests.Dummies;
 
 using System;
 using System.ComponentModel.DataAnnotations;

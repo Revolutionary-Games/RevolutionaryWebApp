@@ -1,4 +1,4 @@
-﻿namespace ThriveDevCenter.Server.Controllers;
+﻿namespace RevolutionaryWebApp.Server.Controllers;
 
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

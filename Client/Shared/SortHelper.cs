@@ -1,7 +1,7 @@
-namespace ThriveDevCenter.Client.Shared;
+namespace RevolutionaryWebApp.Client.Shared;
 
 using System;
-using ThriveDevCenter.Shared;
+using RevolutionaryWebApp.Shared;
 
 public class SortHelper
 {

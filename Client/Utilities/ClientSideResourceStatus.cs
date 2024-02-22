@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Utilities;
+namespace RevolutionaryWebApp.Client.Utilities;
 
 using System.Collections.Generic;
 using Models;

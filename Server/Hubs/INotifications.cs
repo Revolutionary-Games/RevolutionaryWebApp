@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Hubs;
+namespace RevolutionaryWebApp.Server.Hubs;
 
 using System.Threading.Tasks;
 using Shared;

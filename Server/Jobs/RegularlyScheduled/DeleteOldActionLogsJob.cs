@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Jobs.RegularlyScheduled;
+namespace RevolutionaryWebApp.Server.Jobs.RegularlyScheduled;
 
 using System;
 using System.Threading;

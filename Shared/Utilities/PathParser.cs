@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Utilities;
+namespace RevolutionaryWebApp.Shared.Utilities;
 
 using System.IO;
 using System.Linq;

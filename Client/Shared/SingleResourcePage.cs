@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Shared;
+namespace RevolutionaryWebApp.Client.Shared;
 
 using System;
 using System.Collections.Generic;
@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
 using Services;
-using ThriveDevCenter.Shared.Models;
-using ThriveDevCenter.Shared.Notifications;
+using RevolutionaryWebApp.Shared.Models;
+using RevolutionaryWebApp.Shared.Notifications;
 
 /// <summary>
 ///   Base class for blazor pages that show a single resource

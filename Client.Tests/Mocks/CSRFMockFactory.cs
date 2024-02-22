@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Tests.Mocks;
+namespace RevolutionaryWebApp.Client.Tests.Mocks;
 
 using NSubstitute;
 using Services;

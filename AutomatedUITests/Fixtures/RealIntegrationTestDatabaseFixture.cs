@@ -3,7 +3,7 @@ namespace AutomatedUITests.Fixtures;
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using ThriveDevCenter.Server.Models;
+using RevolutionaryWebApp.Server.Models;
 
 public sealed class RealIntegrationTestDatabaseFixture
 {

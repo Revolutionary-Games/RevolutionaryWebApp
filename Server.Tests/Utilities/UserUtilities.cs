@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Utilities;
+namespace RevolutionaryWebApp.Server.Tests.Utilities;
 
 using Server.Models;
 using Shared.Models;

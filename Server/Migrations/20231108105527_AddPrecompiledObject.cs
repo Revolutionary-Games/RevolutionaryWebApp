@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace ThriveDevCenter.Server.Migrations
+namespace RevolutionaryWebApp.Server.Migrations
 {
     /// <inheritdoc />
     public partial class AddPrecompiledObject : Migration

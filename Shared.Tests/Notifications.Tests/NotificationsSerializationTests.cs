@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Tests.Notifications.Tests;
+namespace RevolutionaryWebApp.Shared.Tests.Notifications.Tests;
 
 using System;
 using System.Text.Json;

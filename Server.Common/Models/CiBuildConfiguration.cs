@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Common.Models;
+namespace RevolutionaryWebApp.Server.Common.Models;
 
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

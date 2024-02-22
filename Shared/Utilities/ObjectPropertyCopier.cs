@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Converters;
+namespace RevolutionaryWebApp.Shared.Converters;
 
 using System.Reflection;
 

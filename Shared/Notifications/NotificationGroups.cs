@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Notifications;
+namespace RevolutionaryWebApp.Shared.Notifications;
 
 /// <summary>
 ///   Lists the names of notification groups (or in case of dynamically generated ones, the name prefix).

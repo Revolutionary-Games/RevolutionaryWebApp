@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace ThriveDevCenter.Server.Migrations
+namespace RevolutionaryWebApp.Server.Migrations
 {
     public partial class ModifyInProgressCla : Migration
     {

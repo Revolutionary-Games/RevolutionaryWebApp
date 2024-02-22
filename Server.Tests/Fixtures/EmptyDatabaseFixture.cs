@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Fixtures;
+namespace RevolutionaryWebApp.Server.Tests.Fixtures;
 
 public class EmptyDatabaseFixture : BaseSharedDatabaseFixture
 {

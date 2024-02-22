@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
-namespace ThriveDevCenter.Server.Migrations
+namespace RevolutionaryWebApp.Server.Migrations
 {
     public partial class AddNormalActionLog : Migration
     {

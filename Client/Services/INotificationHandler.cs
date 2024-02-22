@@ -1,11 +1,11 @@
-﻿namespace ThriveDevCenter.Client.Services;
+﻿namespace RevolutionaryWebApp.Client.Services;
 
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using ThriveDevCenter.Shared.Models;
-using ThriveDevCenter.Shared.Models.Enums;
-using ThriveDevCenter.Shared.Notifications;
+using RevolutionaryWebApp.Shared.Models;
+using RevolutionaryWebApp.Shared.Models.Enums;
+using RevolutionaryWebApp.Shared.Notifications;
 
 public interface INotificationHandler<in T> : IGroupListener
     where T : SerializedNotification

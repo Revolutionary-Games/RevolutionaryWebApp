@@ -14,8 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Server.Common\ThriveDevCenter.Server.Common.csproj" />
-    <ProjectReference Include="..\Shared\ThriveDevCenter.Shared.csproj" />
+    <ProjectReference Include="..\Server.Common\RevolutionaryWebApp.Server.Common.csproj" />
+    <ProjectReference Include="..\Shared\RevolutionaryWebApp.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

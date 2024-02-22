@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Services;
+namespace RevolutionaryWebApp.Server.Services;
 
 using Microsoft.Extensions.Caching.Memory;
 using Shared;

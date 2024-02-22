@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Services;
+namespace RevolutionaryWebApp.Client.Services;
 
 using System;
 using Ganss.Xss;

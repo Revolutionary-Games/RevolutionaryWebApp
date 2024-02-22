@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Services;
+namespace RevolutionaryWebApp.Client.Services;
 
 using System;
 using System.Collections.Generic;
@@ -12,10 +12,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared;
 using SharedBase.Utilities;
-using ThriveDevCenter.Shared;
-using ThriveDevCenter.Shared.Models;
-using ThriveDevCenter.Shared.Models.Enums;
-using ThriveDevCenter.Shared.Notifications;
+using RevolutionaryWebApp.Shared;
+using RevolutionaryWebApp.Shared.Models;
+using RevolutionaryWebApp.Shared.Models.Enums;
+using RevolutionaryWebApp.Shared.Notifications;
 using Utilities;
 
 public class NotificationHandler : IAsyncDisposable

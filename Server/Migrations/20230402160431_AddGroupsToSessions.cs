@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace ThriveDevCenter.Server.Migrations
+namespace RevolutionaryWebApp.Server.Migrations
 {
     /// <inheritdoc />
     public partial class AddGroupsToSessions : Migration

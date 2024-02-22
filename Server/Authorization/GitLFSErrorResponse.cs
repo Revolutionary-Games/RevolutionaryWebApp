@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Authorization;
+namespace RevolutionaryWebApp.Server.Authorization;
 
 using System.Text.Json;
 using System.Text.Json.Serialization;

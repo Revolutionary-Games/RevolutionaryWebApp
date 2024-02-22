@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Notifications;
+namespace RevolutionaryWebApp.Shared.Notifications;
 
 /// <summary>
 ///   Specifies what happened in a list change notification

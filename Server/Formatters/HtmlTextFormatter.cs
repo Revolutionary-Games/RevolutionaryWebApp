@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Formatters;
+namespace RevolutionaryWebApp.Server.Formatters;
 
 using System;
 using System.Text;

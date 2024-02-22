@@ -1,4 +1,4 @@
-﻿namespace ThriveDevCenter.Server.Models;
+﻿namespace RevolutionaryWebApp.Server.Models;
 
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;

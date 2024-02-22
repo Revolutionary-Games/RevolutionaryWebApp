@@ -5,22 +5,22 @@
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
 @inject CurrentUserInfo CurrentUserInfo
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Notifications
-@using ThriveDevCenter.Client.Services
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Client.Services
 @using System.Threading
 @using System.Net
 @using System.Text.Json
 @using DevCenterCommunication.Models
 @using DevCenterCommunication.Models.Enums
 @using SharedBase.Utilities
-@using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Forms
-@using ThriveDevCenter.Shared.Models.Enums
-@using ThriveDevCenter.Shared.Utilities
-@implements ThriveDevCenter.Client.Services.INotificationHandler<FolderContentsUpdated>
-@implements ThriveDevCenter.Client.Services.INotificationHandler<StorageItemUpdated>
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared.Forms
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Utilities
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<FolderContentsUpdated>
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<StorageItemUpdated>
 @inherits BaseFileBrowser<DevCenterCommunication.Models.StorageItemInfo>
 <h3>Files</h3>
 

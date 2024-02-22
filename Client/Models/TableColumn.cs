@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Shared;
+namespace RevolutionaryWebApp.Client.Shared;
 
 public class TableColumn : ITableColumn
 {

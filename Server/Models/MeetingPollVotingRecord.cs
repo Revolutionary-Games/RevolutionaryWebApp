@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Models;
+namespace RevolutionaryWebApp.Server.Models;
 
 /// <summary>
 ///   Tracks who has voted on a poll

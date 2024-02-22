@@ -16,7 +16,7 @@ RUN dotnet workload install wasm-tools
 #
 FROM builder as build
 
-COPY ThriveDevCenter.sln /root/build/
+COPY RevolutionaryWebApp.sln /root/build/
 # Causes a bunch of extra layers because docker folder copy is terrible
 COPY Client/ /root/build/Client
 COPY Server/ /root/build/Server
@@ -25,13 +25,13 @@ COPY Shared/ /root/build/Shared
 WORKDIR /root/build
 
 # Building release binaries
-RUN dotnet publish -c Release Client/ThriveDevCenter.Client.csproj && \
-    dotnet publish -c Release Server/ThriveDevCenter.Server.csproj
+RUN dotnet publish -c Release Client/RevolutionaryWebApp.Client.csproj && \
+    dotnet publish -c Release Server/RevolutionaryWebApp.Server.csproj
 
 # Migrations file
 RUN dotnet tool install --global dotnet-ef
 RUN PATH="$PATH:/root/.dotnet/tools" dotnet ef migrations script --idempotent \
-    --project Server/ThriveDevCenter.Server.csproj --context ApplicationDbContext \
+    --project Server/RevolutionaryWebApp.Server.csproj --context ApplicationDbContext \
     -o /migration.sql
 
 FROM rockylinux:9 as proxy
@@ -72,4 +72,4 @@ COPY docker/entrypoint.sh /entrypoint.sh
 
 WORKDIR /home/thrivedevcenter
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/home/thrivedevcenter/ThriveDevCenter.Server", "--urls", "http://0.0.0.0:5000"]
+CMD ["/home/thrivedevcenter/RevolutionaryWebApp.Server", "--urls", "http://0.0.0.0:5000"]

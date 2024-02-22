@@ -1,9 +1,9 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inherits SingleResourcePage<IList<string>, long>
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Converters
-@using ThriveDevCenter.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Converters
+@using RevolutionaryWebApp.Shared.Models.Enums
 
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
     @if (Data != null)

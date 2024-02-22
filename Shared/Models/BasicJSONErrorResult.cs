@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Models;
+namespace RevolutionaryWebApp.Shared.Models;
 
 using System.Text.Json;
 using System.Text.Json.Serialization;

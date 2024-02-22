@@ -19,7 +19,7 @@ public class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        RunFolderChecker.EnsureRightRunningFolder("ThriveDevCenter.sln");
+        RunFolderChecker.EnsureRightRunningFolder("RevolutionaryWebApp.sln");
 
         var result = CommandLineHelpers.CreateParser()
             .ParseArguments<CheckOptions, TestOptions, Deployer.DeployOptions, EFTool.EFOptions, ContainerOptions,

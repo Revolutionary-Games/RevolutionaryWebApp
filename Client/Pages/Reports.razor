@@ -4,13 +4,13 @@
 @inject IJSRuntime JS
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Models.Enums
-@implements ThriveDevCenter.Client.Services.INotificationHandler<CrashReportListUpdated>
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<CrashReportListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.CrashReportInfo>
 
 <h3>Crash Reports</h3>

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Controllers.Tests;
+namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests;
 
 using System.Net;
 using System.Net.Http.Json;

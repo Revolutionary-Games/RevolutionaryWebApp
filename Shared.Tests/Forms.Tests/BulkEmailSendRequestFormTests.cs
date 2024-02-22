@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Tests.Forms.Tests;
+namespace RevolutionaryWebApp.Shared.Tests.Forms.Tests;
 
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Models.Tests;
+namespace RevolutionaryWebApp.Server.Tests.Models.Tests;
 
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

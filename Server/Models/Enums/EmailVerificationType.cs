@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Models.Enums;
+namespace RevolutionaryWebApp.Server.Models.Enums;
 
 public enum EmailVerificationType
 {

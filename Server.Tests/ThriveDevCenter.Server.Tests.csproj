@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <UserSecretsId>ThriveDevCenter.Server.Tests-d590b09d-2b5b-4525-94b4-8bd4fadf732f</UserSecretsId>
+    <UserSecretsId>RevolutionaryWebApp.Server.Tests-d590b09d-2b5b-4525-94b4-8bd4fadf732f</UserSecretsId>
     <LangVersion>10</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -32,8 +32,8 @@
   <ItemGroup>
     <ProjectReference Include="..\RevolutionaryGamesCommon\FeedParser.Tests\FeedParser.Tests.csproj" />
     <ProjectReference Include="..\RevolutionaryGamesCommon\TestUtilities\TestUtilities.csproj" />
-    <ProjectReference Include="..\Server\ThriveDevCenter.Server.csproj" />
-    <ProjectReference Include="..\Shared\ThriveDevCenter.Shared.csproj" />
+    <ProjectReference Include="..\Server\RevolutionaryWebApp.Server.csproj" />
+    <ProjectReference Include="..\Shared\RevolutionaryWebApp.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Forms;
+namespace RevolutionaryWebApp.Shared.Forms;
 
 using System.ComponentModel.DataAnnotations;
 using DevCenterCommunication;

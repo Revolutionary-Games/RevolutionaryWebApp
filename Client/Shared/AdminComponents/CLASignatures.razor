@@ -3,11 +3,11 @@
 @inject IJSRuntime JS
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Shared.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.CLASignatureDTO>
 
 @if (!string.IsNullOrEmpty(Error))

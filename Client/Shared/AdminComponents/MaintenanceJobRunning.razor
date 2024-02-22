@@ -1,14 +1,14 @@
-@using ThriveDevCenter.Shared
+@using RevolutionaryWebApp.Shared
 @using System.Net
 @using System.Threading
 @using SharedBase.Utilities
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Models.Enums
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Notifications
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@implements ThriveDevCenter.Client.Services.INotificationHandler<ExecutedMaintenanceOperationListUpdated>
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<ExecutedMaintenanceOperationListUpdated>
 @inherits PaginatedPage<ExecutedMaintenanceOperationDTO>
 <h3>Maintenance</h3>
 

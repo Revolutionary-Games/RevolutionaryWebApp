@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Models.Enums;
+namespace RevolutionaryWebApp.Shared.Models.Enums;
 
 /// <summary>
 ///   Group IDs, contains inbuilt IDs and leaves a bunch of space for custom user defined ones.

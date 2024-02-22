@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Tests.Mocks;
+namespace RevolutionaryWebApp.Client.Tests.Mocks;
 
 using System;
 using System.Net;

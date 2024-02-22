@@ -3,17 +3,17 @@
 @inject IJSRuntime JS
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
 @using SharedBase.Utilities
-@using ThriveDevCenter.Client.Models
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Converters
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Models.Enums
-@implements ThriveDevCenter.Client.Services.INotificationHandler<GithubAutoCommentListUpdated>
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared.Converters
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<GithubAutoCommentListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.GithubAutoCommentDTO>
 
 @if (!string.IsNullOrEmpty(Error))

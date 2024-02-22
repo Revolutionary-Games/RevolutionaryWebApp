@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared;
+namespace RevolutionaryWebApp.Shared;
 
 using System;
 

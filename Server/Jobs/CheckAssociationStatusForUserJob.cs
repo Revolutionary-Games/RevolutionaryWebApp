@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Jobs;
+namespace RevolutionaryWebApp.Server.Jobs;
 
 using System.Linq;
 using System.Threading;

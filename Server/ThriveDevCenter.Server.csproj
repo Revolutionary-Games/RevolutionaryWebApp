@@ -53,11 +53,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Client\ThriveDevCenter.Client.csproj" />
+    <ProjectReference Include="..\Client\RevolutionaryWebApp.Client.csproj" />
     <ProjectReference Include="..\RevolutionaryGamesCommon\DevCenterCommunication\DevCenterCommunication.csproj" />
     <ProjectReference Include="..\RevolutionaryGamesCommon\FeedParser\FeedParser.csproj" />
-    <ProjectReference Include="..\Server.Common\ThriveDevCenter.Server.Common.csproj" />
-    <ProjectReference Include="..\Shared\ThriveDevCenter.Shared.csproj" />
+    <ProjectReference Include="..\Server.Common\RevolutionaryWebApp.Server.Common.csproj" />
+    <ProjectReference Include="..\Shared\RevolutionaryWebApp.Shared.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Common.Utilities;
+namespace RevolutionaryWebApp.Server.Common.Utilities;
 
 public static class BashEscape
 {

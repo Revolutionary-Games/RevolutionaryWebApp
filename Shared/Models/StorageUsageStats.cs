@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Models;
+namespace RevolutionaryWebApp.Shared.Models;
 
 public class StorageUsageStats
 {

@@ -1,10 +1,10 @@
-namespace ThriveDevCenter.Client.Shared;
+namespace RevolutionaryWebApp.Client.Shared;
 
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
-using ThriveDevCenter.Shared;
-using ThriveDevCenter.Shared.Utilities;
+using RevolutionaryWebApp.Shared;
+using RevolutionaryWebApp.Shared.Utilities;
 
 public abstract class BaseFileBrowser<T> : PaginatedPage<T>
     where T : class, IIdentifiable, new()

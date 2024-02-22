@@ -14,7 +14,7 @@ using SharedBase.Utilities;
 
 public class EFTool
 {
-    public const string SERVER_PROJECT_FILE = "Server/ThriveDevCenter.Server.csproj";
+    public const string SERVER_PROJECT_FILE = "Server/RevolutionaryWebApp.Server.csproj";
     public const string SERVER_FOLDER = "Server/";
     public const string DB_CONTEXT = "ApplicationDbContext";
 

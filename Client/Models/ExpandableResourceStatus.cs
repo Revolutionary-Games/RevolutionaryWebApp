@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Models;
+namespace RevolutionaryWebApp.Client.Models;
 
 public class ExpandableResourceStatus : DeletedResourceStatus
 {

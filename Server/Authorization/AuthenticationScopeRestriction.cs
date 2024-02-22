@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Authorization;
+namespace RevolutionaryWebApp.Server.Authorization;
 
 /// <summary>
 ///   Might be better to use claims or something, but for now there's just 3 levels of access when

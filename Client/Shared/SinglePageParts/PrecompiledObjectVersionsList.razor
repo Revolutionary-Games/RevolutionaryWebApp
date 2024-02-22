@@ -5,7 +5,7 @@
 @inject NotificationHandler NotificationHandler
 @inject CurrentUserInfo CurrentUserInfo
 @using DevCenterCommunication.Models.Enums
-@using ThriveDevCenter.Shared
+@using RevolutionaryWebApp.Shared
 @using DevCenterCommunication.Models
 @using System.Net
 @using System.Net.Http
@@ -14,13 +14,13 @@
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.JSInterop
 @using SharedBase.Utilities
-@using ThriveDevCenter.Client.Models
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Client.Shared
-@using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Models.Enums
-@inherits ThriveDevCenter.Client.Shared.PaginatedPage<PrecompiledObjectVersionDTO>
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Shared
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inherits RevolutionaryWebApp.Client.Shared.PaginatedPage<PrecompiledObjectVersionDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {

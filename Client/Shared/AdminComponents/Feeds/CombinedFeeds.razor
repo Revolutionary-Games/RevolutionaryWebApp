@@ -1,15 +1,15 @@
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
 @using SharedBase.Utilities
-@using ThriveDevCenter.Client.Models
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Models.Enums
-@implements ThriveDevCenter.Client.Services.INotificationHandler<CombinedFeedListUpdated>
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<CombinedFeedListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.CombinedFeedInfo>
 
 <h3>Combined Feeds</h3>

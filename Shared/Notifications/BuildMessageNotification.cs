@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Notifications;
+namespace RevolutionaryWebApp.Shared.Notifications;
 
 using System.ComponentModel.DataAnnotations;
 using Models;

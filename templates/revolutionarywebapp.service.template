@@ -1,0 +1,15 @@
+[Unit]
+Description=RevolutionaryWebApp
+After=network-online.target postgresql.service
+
+[Service]
+WorkingDirectory=/opt/revolutionarywebapp/
+ExecStart=/opt/revolutionarywebapp/RevolutionaryWebApp.Server
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+User=thrivedevcenter
+EnvironmentFile=/etc/revolutionarywebapp/config
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Shared;
+namespace RevolutionaryWebApp.Client.Shared;
 
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using BlazorPagination;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
-using ThriveDevCenter.Shared.Notifications;
+using RevolutionaryWebApp.Shared.Notifications;
 
 /// <summary>
 ///   Base for paginated pages

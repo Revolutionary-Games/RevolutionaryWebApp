@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared;
+namespace RevolutionaryWebApp.Shared;
 
 /// <summary>
 ///   Notice types that can be used with bootstrap

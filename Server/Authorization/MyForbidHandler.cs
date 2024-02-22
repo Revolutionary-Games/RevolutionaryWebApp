@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Authorization;
+namespace RevolutionaryWebApp.Server.Authorization;
 
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;

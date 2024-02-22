@@ -1,18 +1,18 @@
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared.Models
 @using System.Text
 @using DevCenterCommunication.Models
 @using SharedBase.Utilities
-@using ThriveDevCenter.Client.Models
-@using ThriveDevCenter.Shared.Converters
-@using ThriveDevCenter.Shared.Models.Enums
-@implements ThriveDevCenter.Client.Services.INotificationHandler<LauncherVersionDownloadListUpdated>
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Shared.Converters
+@using RevolutionaryWebApp.Shared.Models.Enums
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<LauncherVersionDownloadListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherVersionDownloadDTO>
 
 @* TODO: this is basically the same as the Thrive version downloads so merging these would be nice *@

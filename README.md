@@ -6,7 +6,7 @@ This is a web app that has various features to help in the development of Thrive
 
 ### Database setup
 
-ThriveDevCenter requires a PostgreSQL database to operate.
+RevolutionaryWebApp requires a PostgreSQL database to operate.
 
 You can create a new account and a database for the account with `psql`:
 ```sql
@@ -172,7 +172,7 @@ The DevCenter uses a stackwalk service in order to decode crash dump files. This
 is accessed through HTTP. You can use for example 
 https://github.com/hhyyrylainen/StackWalkAsAService running on the local host.
 You can find instructions in that repo on how to run the service. Note that
-there needs to be a folder that both the service container and ThriveDevCenter
+there needs to be a folder that both the service container and RevolutionaryWebApp
 can access to have correct symbol files.
 
 This can be setup for example with:
@@ -188,7 +188,7 @@ chmod g+w /var/lib/thrivedevcenter/symbols/production
 Then the stackwalk service configured to have 
 `/var/lib/thrivedevcenter/symbols/production` as the symbols folder mounted
 inside the container. The container needs to also have the same port configured
-as in the following ThriveDevCenter configuration:
+as in the following RevolutionaryWebApp configuration:
 ```
 Crashes__Enabled=true
 Crashes__StackwalkService=http://localhost:3115
@@ -367,7 +367,7 @@ database dump and redis data.
 
 For database dumping `pg_dump` needs to be installed.
 
-For redis, the user running ThriveDevCenter needs to be in the redis
+For redis, the user running RevolutionaryWebApp needs to be in the redis
 group or some other way read access needs to be arranged to the redis
 state file.
 
@@ -377,7 +377,7 @@ usermod -a -G redis thrivedevcenter
 
 ## Developing
 
-This section has some info on developing the ThriveDevCenter.
+This section has some info on developing the RevolutionaryWebApp.
 
 ### Creating DB migrations
 

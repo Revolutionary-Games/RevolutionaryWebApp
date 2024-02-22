@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Services;
+namespace RevolutionaryWebApp.Server.Services;
 
 using System.Net.Http;
 using Microsoft.Extensions.Configuration;

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Filters.Tests;
+namespace RevolutionaryWebApp.Server.Tests.Filters.Tests;
 
 using System.Collections.Generic;
 using System.Net;

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client;
+namespace RevolutionaryWebApp.Client;
 
 using System.Net.Http;
 using System.Threading;

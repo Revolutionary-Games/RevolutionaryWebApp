@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Filters;
+namespace RevolutionaryWebApp.Server.Filters;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;

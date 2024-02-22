@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Shared;
+namespace RevolutionaryWebApp.Client.Shared;
 
 using System;
 using System.Collections.Generic;
@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using System.Timers;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
-using ThriveDevCenter.Shared;
-using ThriveDevCenter.Shared.Notifications;
+using RevolutionaryWebApp.Shared;
+using RevolutionaryWebApp.Shared.Notifications;
 
 /// <summary>
 ///   Base for data pages that don't use pagination (all data is fetched at once)

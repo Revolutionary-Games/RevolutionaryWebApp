@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client;
+namespace RevolutionaryWebApp.Client;
 
 using System;
 using System.Net.Http;
@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using Services;
 using TextCopy;
-using ThriveDevCenter.Shared;
+using RevolutionaryWebApp.Shared;
 
 public class Program
 {

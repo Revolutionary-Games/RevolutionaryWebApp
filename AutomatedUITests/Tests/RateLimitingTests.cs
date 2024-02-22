@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using Fixtures;
-using ThriveDevCenter.Server;
+using RevolutionaryWebApp.Server;
 using Xunit;
 
 /// <summary>

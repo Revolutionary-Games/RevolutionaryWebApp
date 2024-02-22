@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Services;
+namespace RevolutionaryWebApp.Client.Services;
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using SharedBase.Utilities;
-using ThriveDevCenter.Shared;
+using RevolutionaryWebApp.Shared;
 using Utilities;
 
 public sealed class UsernameRetriever : IDisposable

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Hubs;
+namespace RevolutionaryWebApp.Server.Hubs;
 
 using System.Text.Json;
 using System.Threading.Tasks;

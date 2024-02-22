@@ -1,12 +1,12 @@
-namespace ThriveDevCenter.Client.Services;
+namespace RevolutionaryWebApp.Client.Services;
 
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using ThriveDevCenter.Shared.Models;
-using ThriveDevCenter.Shared.Models.Enums;
-using ThriveDevCenter.Shared.Notifications;
+using RevolutionaryWebApp.Shared.Models;
+using RevolutionaryWebApp.Shared.Models.Enums;
+using RevolutionaryWebApp.Shared.Notifications;
 
 /// <summary>
 ///   Receives and holds current user info from the server. Currently not designed that the info changes later

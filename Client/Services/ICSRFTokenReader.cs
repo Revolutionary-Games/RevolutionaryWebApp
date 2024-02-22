@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Services;
+namespace RevolutionaryWebApp.Client.Services;
 
 using System;
 using System.Globalization;
@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using Blazored.LocalStorage;
 using Microsoft.JSInterop;
 using Models;
-using ThriveDevCenter.Shared;
-using ThriveDevCenter.Shared.Models;
+using RevolutionaryWebApp.Shared;
+using RevolutionaryWebApp.Shared.Models;
 
 /// <summary>
 ///   Reads the CSRF token on the current page and makes it available

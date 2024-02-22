@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Jobs.Tests;
+namespace RevolutionaryWebApp.Server.Tests.Jobs.Tests;
 
 using System;
 using System.Net;

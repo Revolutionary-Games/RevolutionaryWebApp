@@ -1,17 +1,17 @@
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
 @inject IJSRuntime JS
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
 @using System.Timers
-@using ThriveDevCenter.Client.Models
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Forms
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Models.Enums
-@implements ThriveDevCenter.Client.Services.INotificationHandler<MeetingPollListUpdated>
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared.Forms
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<MeetingPollListUpdated>
 @implements IDisposable
 @inherits ListDataPage<ThriveDevCenter.Shared.Models.MeetingPollDTO>
 

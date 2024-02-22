@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Tests.Pages.Tests;
+namespace RevolutionaryWebApp.Client.Tests.Pages.Tests;
 
 using System.Collections.Generic;
 using AngleSharp.Dom;
@@ -7,7 +7,7 @@ using Client.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using Mocks;
 using RichardSzalay.MockHttp;
-using ThriveDevCenter.Shared.Models;
+using RevolutionaryWebApp.Shared.Models;
 using Utilities;
 using Xunit;
 

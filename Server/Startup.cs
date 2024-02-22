@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server;
+namespace RevolutionaryWebApp.Server;
 
 using System;
 using System.Linq;

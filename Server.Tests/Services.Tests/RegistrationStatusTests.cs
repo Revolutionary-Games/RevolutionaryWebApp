@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Services.Tests;
+namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
 
 using System;
 using System.Collections.Generic;

@@ -1,8 +1,8 @@
-namespace ThriveDevCenter.Client.Shared;
+namespace RevolutionaryWebApp.Client.Shared;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using ThriveDevCenter.Shared;
+using RevolutionaryWebApp.Shared;
 
 /// <summary>
 ///   Base class for edit forms

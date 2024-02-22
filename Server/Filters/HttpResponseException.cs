@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Filters;
+namespace RevolutionaryWebApp.Server.Filters;
 
 using System;
 using Microsoft.AspNetCore.Http;

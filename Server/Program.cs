@@ -1,4 +1,4 @@
-﻿namespace ThriveDevCenter.Server;
+﻿namespace RevolutionaryWebApp.Server;
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;

@@ -4,14 +4,14 @@
 @inject IJSRuntime JS
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
-@using ThriveDevCenter.Shared.Notifications
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared
 @using System.Threading
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared.Models.Enums
-@implements ThriveDevCenter.Client.Services.INotificationHandler<MeetingListUpdated>
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared.Models.Enums
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<MeetingListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.MeetingInfo>
 <h3>Meetings</h3>
 

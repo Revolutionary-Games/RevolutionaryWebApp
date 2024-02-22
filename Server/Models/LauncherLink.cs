@@ -1,4 +1,4 @@
-﻿namespace ThriveDevCenter.Server.Models;
+﻿namespace RevolutionaryWebApp.Server.Models;
 
 using System;
 using System.Collections.Generic;

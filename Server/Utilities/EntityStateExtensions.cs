@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Utilities;
+namespace RevolutionaryWebApp.Server.Utilities;
 
 using System;
 using Microsoft.EntityFrameworkCore;

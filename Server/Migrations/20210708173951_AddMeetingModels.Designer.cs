@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using ThriveDevCenter.Server.Models;
+using RevolutionaryWebApp.Server.Models;
 
-namespace ThriveDevCenter.Server.Migrations
+namespace RevolutionaryWebApp.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20210708173951_AddMeetingModels")]
@@ -61,7 +61,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("dehydrated_objects_dev_builds");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.AccessKey", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.AccessKey", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -113,7 +113,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("access_keys");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.ActionLogEntry", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ActionLogEntry", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -143,7 +143,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("action_log_entries");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.AdminAction", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.AdminAction", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -180,7 +180,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("admin_actions");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiBuild", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiBuild", b =>
                 {
                     b.Property<long>("CiProjectId")
                         .HasColumnType("bigint")
@@ -246,7 +246,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("ci_builds");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJob", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiJob", b =>
                 {
                     b.Property<long>("CiProjectId")
                         .HasColumnType("bigint")
@@ -313,7 +313,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("ci_jobs");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJobArtifact", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiJobArtifact", b =>
                 {
                     b.Property<long>("CiProjectId")
                         .HasColumnType("bigint")
@@ -349,7 +349,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("ci_job_artifacts");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJobOutputSection", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiJobOutputSection", b =>
                 {
                     b.Property<long>("CiProjectId")
                         .HasColumnType("bigint")
@@ -401,7 +401,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("ci_job_output_sections");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiProject", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiProject", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -459,7 +459,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("ci_projects");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiSecret", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiSecret", b =>
                 {
                     b.Property<long>("CiProjectId")
                         .HasColumnType("bigint")
@@ -497,7 +497,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("ci_secrets");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.Cla", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Cla", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -533,7 +533,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("clas");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.ClaSignature", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ClaSignature", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -602,7 +602,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("cla_signatures");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.ControlledServer", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ControlledServer", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -696,7 +696,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("controlled_servers");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.DehydratedObject", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.DehydratedObject", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -735,7 +735,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("dehydrated_objects");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.DevBuild", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.DevBuild", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -844,7 +844,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("dev_builds");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.GithubWebhook", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.GithubWebhook", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -880,7 +880,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("github_webhooks");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.LauncherLink", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.LauncherLink", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -935,7 +935,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("launcher_links");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.LfsObject", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.LfsObject", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -980,7 +980,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("lfs_objects");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.LfsProject", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.LfsProject", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1055,7 +1055,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("lfs_projects");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.LogEntry", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.LogEntry", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1085,7 +1085,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("log_entries");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.Meeting", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Meeting", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1173,7 +1173,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("meetings");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingMember", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingMember", b =>
                 {
                     b.Property<long>("MeetingId")
                         .HasColumnType("bigint")
@@ -1206,7 +1206,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("meeting_members");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPoll", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingPoll", b =>
                 {
                     b.Property<long>("MeetingId")
                         .HasColumnType("bigint")
@@ -1262,7 +1262,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("meeting_polls");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPollVote", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingPollVote", b =>
                 {
                     b.Property<Guid>("VoteId")
                         .ValueGeneratedOnAdd()
@@ -1295,7 +1295,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("meeting_poll_votes");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPollVotingRecord", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingPollVotingRecord", b =>
                 {
                     b.Property<long>("MeetingId")
                         .HasColumnType("bigint")
@@ -1318,7 +1318,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("meeting_poll_voting_records");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.PatreonSettings", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.PatreonSettings", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1387,7 +1387,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("patreon_settings");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.Patron", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Patron", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1464,7 +1464,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("patrons");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.ProjectGitFile", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ProjectGitFile", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1515,7 +1515,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("project_git_files");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.PullRequest", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.PullRequest", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1559,7 +1559,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("pull_requests");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.PullRequestAutoComment", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.PullRequestAutoComment", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1594,7 +1594,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("pull_request_auto_comments");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.RedeemableCode", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.RedeemableCode", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1638,7 +1638,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("redeemable_codes");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.Session", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Session", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1694,7 +1694,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("sessions");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.StorageFile", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.StorageFile", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1745,7 +1745,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("storage_files");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.StorageItem", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.StorageItem", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1822,7 +1822,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("storage_items");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.StorageItemVersion", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.StorageItemVersion", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1876,7 +1876,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.ToTable("storage_item_versions");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.User", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.User", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -2059,14 +2059,14 @@ namespace ThriveDevCenter.Server.Migrations
 
             modelBuilder.Entity("DehydratedObjectDevBuild", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.DehydratedObject", null)
+                    b.HasOne("RevolutionaryWebApp.Server.Models.DehydratedObject", null)
                         .WithMany()
                         .HasForeignKey("DehydratedObjectsId")
                         .HasConstraintName("fk_dehydrated_objects_dev_builds_dehydrated_objects_dehydrated")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.DevBuild", null)
+                    b.HasOne("RevolutionaryWebApp.Server.Models.DevBuild", null)
                         .WithMany()
                         .HasForeignKey("DevBuildsId")
                         .HasConstraintName("fk_dehydrated_objects_dev_builds_dev_builds_dev_builds_id")
@@ -2074,9 +2074,9 @@ namespace ThriveDevCenter.Server.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.ActionLogEntry", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ActionLogEntry", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "PerformedBy")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "PerformedBy")
                         .WithMany("PerformedActions")
                         .HasForeignKey("PerformedById")
                         .HasConstraintName("fk_action_log_entries_users_performed_by_id")
@@ -2085,15 +2085,15 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("PerformedBy");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.AdminAction", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.AdminAction", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "PerformedBy")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "PerformedBy")
                         .WithMany("PerformedAdminActions")
                         .HasForeignKey("PerformedById")
                         .HasConstraintName("fk_admin_actions_users_performed_by_id")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "TargetUser")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "TargetUser")
                         .WithMany("TargetedByAdminActions")
                         .HasForeignKey("TargetUserId")
                         .HasConstraintName("fk_admin_actions_users_target_user_id")
@@ -2104,9 +2104,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("TargetUser");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiBuild", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiBuild", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.CiProject", "CiProject")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.CiProject", "CiProject")
                         .WithMany("CiBuilds")
                         .HasForeignKey("CiProjectId")
                         .HasConstraintName("fk_ci_builds_ci_projects_ci_project_id")
@@ -2116,9 +2116,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("CiProject");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJob", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiJob", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.CiBuild", "Build")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.CiBuild", "Build")
                         .WithMany("CiJobs")
                         .HasForeignKey("CiProjectId", "CiBuildId")
                         .HasConstraintName("fk_ci_jobs_ci_builds_ci_project_id_ci_build_id")
@@ -2128,16 +2128,16 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("Build");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJobArtifact", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiJobArtifact", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.StorageItem", "StorageItem")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.StorageItem", "StorageItem")
                         .WithMany("CiJobArtifacts")
                         .HasForeignKey("StorageItemId")
                         .HasConstraintName("fk_ci_job_artifacts_storage_items_storage_item_id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.CiJob", "Job")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.CiJob", "Job")
                         .WithMany("CiJobArtifacts")
                         .HasForeignKey("CiProjectId", "CiBuildId", "CiJobId")
                         .HasConstraintName("fk_ci_job_artifacts_ci_jobs_ci_project_id_ci_build_id_ci_job_id")
@@ -2149,9 +2149,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("StorageItem");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJobOutputSection", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiJobOutputSection", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.CiJob", "Job")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.CiJob", "Job")
                         .WithMany("CiJobOutputSections")
                         .HasForeignKey("CiProjectId", "CiBuildId", "CiJobId")
                         .HasConstraintName("fk_ci_job_output_sections_ci_jobs_ci_project_id_ci_build_id_ci")
@@ -2161,9 +2161,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("Job");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiSecret", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiSecret", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.CiProject", "CiProject")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.CiProject", "CiProject")
                         .WithMany("CiSecrets")
                         .HasForeignKey("CiProjectId")
                         .HasConstraintName("fk_ci_secrets_ci_projects_ci_project_id")
@@ -2173,16 +2173,16 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("CiProject");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.ClaSignature", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ClaSignature", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.Cla", "Cla")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Cla", "Cla")
                         .WithMany("Signatures")
                         .HasForeignKey("ClaId")
                         .HasConstraintName("fk_cla_signatures_clas_cla_id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "User")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
                         .WithMany("ClaSignatures")
                         .HasForeignKey("UserId")
                         .HasConstraintName("fk_cla_signatures_users_user_id")
@@ -2193,9 +2193,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.DehydratedObject", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.DehydratedObject", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.StorageItem", "StorageItem")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.StorageItem", "StorageItem")
                         .WithMany("DehydratedObjects")
                         .HasForeignKey("StorageItemId")
                         .HasConstraintName("fk_dehydrated_objects_storage_items_storage_item_id")
@@ -2205,16 +2205,16 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("StorageItem");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.DevBuild", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.DevBuild", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.StorageItem", "StorageItem")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.StorageItem", "StorageItem")
                         .WithMany("DevBuilds")
                         .HasForeignKey("StorageItemId")
                         .HasConstraintName("fk_dev_builds_storage_items_storage_item_id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "VerifiedBy")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "VerifiedBy")
                         .WithMany("DevBuilds")
                         .HasForeignKey("VerifiedById")
                         .HasConstraintName("fk_dev_builds_users_verified_by_id")
@@ -2225,9 +2225,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("VerifiedBy");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.LauncherLink", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.LauncherLink", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "User")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
                         .WithMany("LauncherLinks")
                         .HasForeignKey("UserId")
                         .HasConstraintName("fk_launcher_links_users_user_id")
@@ -2237,9 +2237,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.LfsObject", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.LfsObject", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.LfsProject", "LfsProject")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.LfsProject", "LfsProject")
                         .WithMany("LfsObjects")
                         .HasForeignKey("LfsProjectId")
                         .HasConstraintName("fk_lfs_objects_lfs_projects_lfs_project_id")
@@ -2249,9 +2249,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("LfsProject");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.LogEntry", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.LogEntry", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "TargetUser")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "TargetUser")
                         .WithMany("TargetedInLogs")
                         .HasForeignKey("TargetUserId")
                         .HasConstraintName("fk_log_entries_users_target_user_id")
@@ -2260,15 +2260,15 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("TargetUser");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.Meeting", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Meeting", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "Owner")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "Owner")
                         .WithMany("OwnerOfMeetings")
                         .HasForeignKey("OwnerId")
                         .HasConstraintName("fk_meetings_users_owner_id")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "Secretary")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "Secretary")
                         .WithMany("SecretaryOfMeetings")
                         .HasForeignKey("SecretaryId")
                         .HasConstraintName("fk_meetings_users_secretary_id")
@@ -2279,16 +2279,16 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("Secretary");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingMember", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingMember", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.Meeting", "Meeting")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Meeting", "Meeting")
                         .WithMany("MeetingMembers")
                         .HasForeignKey("MeetingId")
                         .HasConstraintName("fk_meeting_members_meetings_meeting_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "User")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
                         .WithMany("MemberOfMeetings")
                         .HasForeignKey("UserId")
                         .HasConstraintName("fk_meeting_members_users_user_id")
@@ -2300,9 +2300,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPoll", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingPoll", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.Meeting", "Meeting")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Meeting", "Meeting")
                         .WithMany("MeetingPolls")
                         .HasForeignKey("MeetingId")
                         .HasConstraintName("fk_meeting_polls_meetings_meeting_id")
@@ -2312,16 +2312,16 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("Meeting");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPollVote", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingPollVote", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.Meeting", "Meeting")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Meeting", "Meeting")
                         .WithMany("MeetingPollVotes")
                         .HasForeignKey("MeetingId")
                         .HasConstraintName("fk_meeting_poll_votes_meetings_meeting_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.MeetingPoll", "Poll")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.MeetingPoll", "Poll")
                         .WithMany("Votes")
                         .HasForeignKey("MeetingId", "PollId")
                         .HasConstraintName("fk_meeting_poll_votes_meeting_polls_poll_meeting_id_poll_id1")
@@ -2333,23 +2333,23 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("Poll");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPollVotingRecord", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingPollVotingRecord", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.Meeting", "Meeting")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Meeting", "Meeting")
                         .WithMany("MeetingPollVotingRecords")
                         .HasForeignKey("MeetingId")
                         .HasConstraintName("fk_meeting_poll_voting_records_meetings_meeting_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "User")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
                         .WithMany("VotedInPollsRecords")
                         .HasForeignKey("UserId")
                         .HasConstraintName("fk_meeting_poll_voting_records_users_user_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.MeetingPoll", "Poll")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.MeetingPoll", "Poll")
                         .WithMany("VotingRecords")
                         .HasForeignKey("MeetingId", "PollId")
                         .HasConstraintName("fk_meeting_poll_voting_records_meeting_polls_poll_meeting_id_p")
@@ -2363,9 +2363,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.ProjectGitFile", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ProjectGitFile", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.LfsProject", "LfsProject")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.LfsProject", "LfsProject")
                         .WithMany("ProjectGitFiles")
                         .HasForeignKey("LfsProjectId")
                         .HasConstraintName("fk_project_git_files_lfs_projects_lfs_project_id")
@@ -2375,9 +2375,9 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("LfsProject");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.Session", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Session", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "User")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
                         .WithMany("Sessions")
                         .HasForeignKey("UserId")
                         .HasConstraintName("fk_sessions_users_user_id")
@@ -2386,15 +2386,15 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.StorageItem", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.StorageItem", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.User", "Owner")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "Owner")
                         .WithMany("StorageItems")
                         .HasForeignKey("OwnerId")
                         .HasConstraintName("fk_storage_items_users_owner_id")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("ThriveDevCenter.Server.Models.StorageItem", "Parent")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.StorageItem", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId")
                         .HasConstraintName("fk_storage_items_storage_items_parent_id")
@@ -2405,16 +2405,16 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.StorageItemVersion", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.StorageItemVersion", b =>
                 {
-                    b.HasOne("ThriveDevCenter.Server.Models.StorageFile", "StorageFile")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.StorageFile", "StorageFile")
                         .WithMany("StorageItemVersions")
                         .HasForeignKey("StorageFileId")
                         .HasConstraintName("fk_storage_item_versions_storage_files_storage_file_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ThriveDevCenter.Server.Models.StorageItem", "StorageItem")
+                    b.HasOne("RevolutionaryWebApp.Server.Models.StorageItem", "StorageItem")
                         .WithMany("StorageItemVersions")
                         .HasForeignKey("StorageItemId")
                         .HasConstraintName("fk_storage_item_versions_storage_items_storage_item_id")
@@ -2426,38 +2426,38 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("StorageItem");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiBuild", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiBuild", b =>
                 {
                     b.Navigation("CiJobs");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiJob", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiJob", b =>
                 {
                     b.Navigation("CiJobArtifacts");
 
                     b.Navigation("CiJobOutputSections");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.CiProject", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiProject", b =>
                 {
                     b.Navigation("CiBuilds");
 
                     b.Navigation("CiSecrets");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.Cla", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Cla", b =>
                 {
                     b.Navigation("Signatures");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.LfsProject", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.LfsProject", b =>
                 {
                     b.Navigation("LfsObjects");
 
                     b.Navigation("ProjectGitFiles");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.Meeting", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Meeting", b =>
                 {
                     b.Navigation("MeetingMembers");
 
@@ -2468,19 +2468,19 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("MeetingPollVotingRecords");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.MeetingPoll", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.MeetingPoll", b =>
                 {
                     b.Navigation("Votes");
 
                     b.Navigation("VotingRecords");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.StorageFile", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.StorageFile", b =>
                 {
                     b.Navigation("StorageItemVersions");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.StorageItem", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.StorageItem", b =>
                 {
                     b.Navigation("Children");
 
@@ -2493,7 +2493,7 @@ namespace ThriveDevCenter.Server.Migrations
                     b.Navigation("StorageItemVersions");
                 });
 
-            modelBuilder.Entity("ThriveDevCenter.Server.Models.User", b =>
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.User", b =>
                 {
                     b.Navigation("ClaSignatures");
 

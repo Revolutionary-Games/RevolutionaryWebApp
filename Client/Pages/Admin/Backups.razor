@@ -3,14 +3,14 @@
 @inject NavigationManager NavManager
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
 @using SharedBase.Utilities
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Shared.Models.Enums
-@implements ThriveDevCenter.Client.Services.INotificationHandler<BackupListUpdated>
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<BackupListUpdated>
 @inherits PaginatedPage<ThriveDevCenter.Shared.Models.BackupDTO>
 
 <AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">

@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Filters;
+namespace RevolutionaryWebApp.Server.Filters;
 
 public class MyRateLimitOptions
 {

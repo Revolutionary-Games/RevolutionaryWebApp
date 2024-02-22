@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Authorization.Tests;
+namespace RevolutionaryWebApp.Server.Tests.Authorization.Tests;
 
 using Server.Authorization;
 using Xunit;

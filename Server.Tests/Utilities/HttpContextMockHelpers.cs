@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Tests.Utilities;
+namespace RevolutionaryWebApp.Server.Tests.Utilities;
 
 using System.Collections.Generic;
 using System.Security.Claims;

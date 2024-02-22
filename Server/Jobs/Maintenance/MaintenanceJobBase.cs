@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Server.Jobs.Maintenance;
+namespace RevolutionaryWebApp.Server.Jobs.Maintenance;
 
 using System;
 using System.Threading;

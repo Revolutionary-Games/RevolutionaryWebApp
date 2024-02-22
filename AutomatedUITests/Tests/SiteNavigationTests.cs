@@ -1,7 +1,7 @@
 namespace AutomatedUITests.Tests;
 
 using Fixtures;
-using ThriveDevCenter.Server;
+using RevolutionaryWebApp.Server;
 using Xunit;
 
 public class SiteNavigationTests : IClassFixture<WebHostServerFixture<Startup>>, IClassFixture<WebDriverFixture>

@@ -3,13 +3,13 @@
 @inject NotificationHandler NotificationHandler
 @inject CurrentUserInfo CurrentUserInfo
 @inherits SingleResourcePage<MeetingDTO, MeetingUpdated, long>
-@using ThriveDevCenter.Shared.Models
-@using ThriveDevCenter.Client.Services
-@using ThriveDevCenter.Client.Utilities
-@using ThriveDevCenter.Shared
-@using ThriveDevCenter.Shared.Notifications
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
 @using System.Net
-@using ThriveDevCenter.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Models.Enums
 @implements IAsyncDisposable
 
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">

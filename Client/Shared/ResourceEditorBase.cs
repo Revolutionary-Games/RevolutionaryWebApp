@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Shared;
+namespace RevolutionaryWebApp.Client.Shared;
 
 using System;
 using System.Net.Http;
@@ -8,8 +8,8 @@ using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Services;
-using ThriveDevCenter.Shared;
-using ThriveDevCenter.Shared.Notifications;
+using RevolutionaryWebApp.Shared;
+using RevolutionaryWebApp.Shared.Notifications;
 
 public abstract class ResourceEditorBase<T, TNotification, TID> : SingleResourcePage<T, TNotification, TID>
     where T : class, IIdentifiable, new()

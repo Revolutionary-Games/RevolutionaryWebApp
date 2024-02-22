@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Shared.Tests.Utilities.Tests;
+namespace RevolutionaryWebApp.Shared.Tests.Utilities.Tests;
 
 using DevCenterCommunication.Models.Enums;
 using Shared.Models;

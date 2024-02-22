@@ -1,4 +1,4 @@
-namespace ThriveDevCenter.Client.Tests.Utilities;
+namespace RevolutionaryWebApp.Client.Tests.Utilities;
 
 using System;
 using Bunit;

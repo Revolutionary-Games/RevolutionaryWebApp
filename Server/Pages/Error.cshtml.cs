@@ -1,4 +1,4 @@
-﻿namespace ThriveDevCenter.Server.Pages;
+﻿namespace RevolutionaryWebApp.Server.Pages;
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
