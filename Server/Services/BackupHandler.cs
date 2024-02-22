@@ -253,6 +253,7 @@ public class BackupHandler
         foreach (var existingPath in existing)
         {
             // Don't touch things if there's accidentally something else in the bucket
+            // TODO: redo backup handling
             if (!existingPath.StartsWith("ThriveDevCenter"))
                 continue;
 

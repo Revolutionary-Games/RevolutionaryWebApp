@@ -28,6 +28,7 @@ public class Backup : UpdateableModel, IUpdateNotifications
     {
         time ??= DateTime.UtcNow;
 
+        // TODO: redo backup handling
         return "ThriveDevCenter-Backup_" + time.Value.ToString("O") + (xz ? ".tar.xz" : ".tar.gz");
     }
 

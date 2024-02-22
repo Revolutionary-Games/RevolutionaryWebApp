@@ -25,7 +25,7 @@ public class SiteNavigationTests : IClassFixture<WebHostServerFixture<Startup>>,
         await driver.WaitUntilBlazorIsLoaded(page);
 
         // Main page
-        Assert.Equal("ThriveDevCenter", await page.TextContentAsync(".content h1"));
+        Assert.Equal("RevolutionaryWebApp", await page.TextContentAsync(".content h1"));
 
         // About page
         await page.ClickAsync("#topAboutLink");

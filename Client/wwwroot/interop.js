@@ -1,4 +1,4 @@
-// Interop methods for ThriveDevCenter
+// Interop methods for RevolutionaryWebApp
 "use strict";
 
 // Hack to pass around proper File objects with the logic in C#

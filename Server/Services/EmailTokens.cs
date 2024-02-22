@@ -15,7 +15,7 @@ using Models;
 
 public class EmailTokens
 {
-    private const string Issuer = "ThriveDevCenter-mail";
+    private const string Issuer = "RevolutionaryWebApp-mail";
 
     private readonly ILogger<EmailTokens> logger;
 

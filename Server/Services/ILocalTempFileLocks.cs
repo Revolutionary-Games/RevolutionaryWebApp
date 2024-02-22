@@ -64,7 +64,7 @@ public sealed class LocalTempFileLocks : ILocalTempFileLocks, IDisposable
 
         if (string.IsNullOrEmpty(path))
         {
-            path = "/tmp/ThriveDevCenter";
+            path = "/tmp/RevolutionaryWebApp";
         }
 
         baseTempFilePath = Path.GetFullPath(path);

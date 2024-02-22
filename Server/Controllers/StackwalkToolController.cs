@@ -77,7 +77,7 @@ public class StackwalkToolController : Controller
             DeleteDumpAfterRunning = true,
 
             // TODO: allow the user to specify this
-            // https://github.com/Revolutionary-Games/ThriveDevCenter/issues/247
+            // https://github.com/Revolutionary-Games/RevolutionaryWebApp/issues/247
             StackwalkPlatform = ThrivePlatform.Windows,
         };
         await database.StackwalkTasks.AddAsync(task);

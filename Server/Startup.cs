@@ -69,7 +69,7 @@ public class Startup
             services.AddSingleton<IConnectionMultiplexer>(redis);
 
             services.AddDataProtection()
-                .PersistKeysToStackExchangeRedis(redis, "ThriveDevCenterDataProtectionKeys");
+                .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys");
 
             services.AddStackExchangeRedisCache(options =>
             {

@@ -24,7 +24,7 @@ public interface ITokenGenerator
 
 public abstract class JwtBase
 {
-    protected const string Issuer = "ThriveDevCenter";
+    protected const string Issuer = "RevolutionaryWebApp";
     protected readonly byte[] CSRFSecret;
 
     protected JwtBase(IConfiguration configuration)

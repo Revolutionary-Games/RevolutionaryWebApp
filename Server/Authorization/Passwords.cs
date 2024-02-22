@@ -16,7 +16,7 @@ public class Passwords
     private const int HashBits = 384;
 
     /// <summary>
-    ///   If you develop your own app based on ThriveDevCenter you'll want to change this
+    ///   If you develop your own app based on RevolutionaryWebApp you'll want to change this
     /// </summary>
     private static readonly byte[] Pepper = { 49, 227, 73, 64, 254, 28, 52, 20 };
 

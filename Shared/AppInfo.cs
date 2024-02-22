@@ -12,7 +12,7 @@ public static class AppInfo
 {
     public const bool UsePrerendering = false;
 
-    public const string SessionCookieName = "ThriveDevSession";
+    public const string SessionCookieName = "ThriveWebSession";
 
     // TODO: find out why this is not used
     public const string SecondPrecisionDurationFormat = @"hh\:mm\:ss";
@@ -162,9 +162,9 @@ public static class AppInfo
     /// </summary>
     public const int MaxTokenLength = 128;
 
-    // When changed would be nice to also update the value in ThriveDevCenter.Server.csproj
-    public const int Major = 2;
-    public const int Minor = 17;
+    // When changed would be nice to also update the value in RevolutionaryWebApp.Server.csproj
+    public const int Major = 3;
+    public const int Minor = 0;
 
     public const int DefaultMaxLauncherLinks = 5;
 
