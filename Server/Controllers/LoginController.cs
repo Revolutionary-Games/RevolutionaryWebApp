@@ -94,7 +94,13 @@ public class LoginController : SSOLoginController
             IsEssential = true,
         };
 
-        response.Cookies.Append(AppInfo.SessionCookieName, session.Id.ToString(), options);
+        // -1 used as the placeholder when user not set
+        long userId = -1;
+
+        if (session.User != null)
+            userId = session.User.Id;
+
+        response.Cookies.Append(AppInfo.SessionCookieName, $"{session.Id}:{userId}", options);
     }
 
     [HttpGet]

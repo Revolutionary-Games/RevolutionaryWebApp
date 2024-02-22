@@ -86,6 +86,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         var csrfValue = "dummyCSRFString";
 
         var user1 = await database.Users.FindAsync(1L);
+        Assert.NotNull(user1);
 
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(csrfValue, user1, true).Returns(true);
@@ -111,7 +112,8 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             }));
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        requestBuilder.AddHeader(HeaderNames.Cookie,
+            $"{AppInfo.SessionCookieName}={users.SessionId1}:{user1.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         var response = await requestBuilder.GetAsync();
@@ -168,7 +170,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         // User 1 requests
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/user").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:{user1.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         var response = await requestBuilder.GetAsync();
@@ -182,7 +184,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(user1.Email, resultUser.Email);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/restrictedUser").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:{user1.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -190,7 +192,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:{user1.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -198,7 +200,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/admin").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:{user1.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -207,7 +209,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         // User 2 requests
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/user").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId2}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId2}:{user2.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -221,7 +223,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(user2.Email, resultUser.Email);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId2}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId2}:{user2.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -229,7 +231,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/admin").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId2}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId2}:{user2.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -238,7 +240,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         // User 3 requests
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/user").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId3}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId3}:{user3.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -252,7 +254,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(user3.Email, resultUser.Email);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId3}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId3}:{user3.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -260,7 +262,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/admin").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId3}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId3}:{user3.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -269,7 +271,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
 
         // User 4 requests
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/user").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}:{user4.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -277,7 +279,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/restrictedUser").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}:{user4.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -285,7 +287,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/developer").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}:{user4.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -293,7 +295,7 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
         requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/admin").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId4}:{user4.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         response = await requestBuilder.GetAsync();
@@ -333,48 +335,65 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             }));
 
         // Test that the attributes stack in an expected way
-        await CheckGetResponseCode(server, "/accessFilterTest/nonWorkingNoLogin", null, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest/nonWorkingNoLogin", null, -1,
+            HttpStatusCode.Unauthorized);
         await CheckGetResponseCode(server, "/accessFilterTest/nonWorkingNoLogin", users.SessionId1,
-            HttpStatusCode.NoContent);
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.NoContent);
 
         // "restrictedUser" path access
-        await CheckGetResponseCode(server, "/accessFilterTest/restrictedUser", null, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest/restrictedUser", null, -1, HttpStatusCode.Unauthorized);
         await CheckGetResponseCode(server, "/accessFilterTest/restrictedUser", users.SessionId1,
-            HttpStatusCode.NoContent);
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.NoContent);
         await CheckGetResponseCode(server, "/accessFilterTest/restrictedUser", users.SessionId2,
-            HttpStatusCode.NoContent);
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.NoContent);
         await CheckGetResponseCode(server, "/accessFilterTest/restrictedUser", users.SessionId3,
-            HttpStatusCode.NoContent);
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
         await CheckGetResponseCode(server, "/accessFilterTest/restrictedUser", users.SessionId4,
-            HttpStatusCode.NoContent);
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.NoContent);
 
         // "user" path access
-        await CheckGetResponseCode(server, "/accessFilterTest/user", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/accessFilterTest/user", users.SessionId1, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest/user", users.SessionId2, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest/user", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest/user", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/user", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest/user", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest/user", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest/user", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest/user", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
 
         // "developer" path access
-        await CheckGetResponseCode(server, "/accessFilterTest/developer", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/accessFilterTest/developer", users.SessionId1, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest/developer", users.SessionId2, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest/developer", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest/developer", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/developer", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest/developer", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/developer", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest/developer", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest/developer", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
 
         // "admin" path access
-        await CheckGetResponseCode(server, "/accessFilterTest/admin", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/accessFilterTest/admin", users.SessionId1, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest/admin", users.SessionId2, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest/admin", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest/admin", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/admin", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest/admin", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/admin", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/admin", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest/admin", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
 
         // "system" path access
-        await CheckGetResponseCode(server, "/accessFilterTest/system", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/accessFilterTest/system", users.SessionId1, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest/system", users.SessionId2, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest/system", users.SessionId3, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest/system", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/system", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest/system", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/system", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/system", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest/system", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -403,32 +422,94 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             }));
 
         // "noLogin" path access
-        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", null, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionId1, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionId2, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionId4, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", null, -1, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.NoContent);
 
         // "user" path access
-        await CheckGetResponseCode(server, "/accessFilterTest2/user", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId1, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId2, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
 
         // "developer" path access
-        await CheckGetResponseCode(server, "/accessFilterTest2/developer", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/accessFilterTest2/developer", users.SessionId1, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest2/developer", users.SessionId2, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/developer", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/developer", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest2/developer", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest2/developer", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest2/developer", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/developer", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/developer", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
 
         // "admin" path access
-        await CheckGetResponseCode(server, "/accessFilterTest2/admin", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId1, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId2, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest2/admin", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/admin", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Authorization_WrongUserIdDisallowsAccess()
+    {
+        using var server = new TestServer(new WebHostBuilder()
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton(database);
+                services.AddSingleton<CustomMemoryCache>();
+                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+
+                services.AddControllers();
+                services.AddRouting();
+                services.AddAuthentication(options =>
+                {
+                    options.DefaultForbidScheme = "forbidScheme";
+                    options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+                });
+            })
+            .Configure(app =>
+            {
+                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                app.UseRouting();
+                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            }));
+
+        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", null, 0, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionIdNotLoggedIn, -1,
+            HttpStatusCode.NoContent);
+
+        // This should act like there is no session, but we can't verify it here
+        await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionIdNotLoggedIn, 0,
+            HttpStatusCode.NoContent);
+
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1 + 1, HttpStatusCode.Unauthorized);
+
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2 + 1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3 - 1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/accessFilterTest2/user", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4 - 1, HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -457,45 +538,57 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
             }));
 
         // Test that the attributes stack in an expected way
-        await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", null, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", null, -1, HttpStatusCode.Unauthorized);
         await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", users.SessionId1,
-            HttpStatusCode.Forbidden);
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
         await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", users.SessionId2,
-            HttpStatusCode.NoContent);
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.NoContent);
         await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", users.SessionId3,
-            HttpStatusCode.NoContent);
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
         await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", users.SessionId4,
-            HttpStatusCode.Forbidden);
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
 
         // "developer" path access
-        await CheckGetResponseCode(server, "/groupFilterTest/developer", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId1, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId2, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/groupFilterTest/developer", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
 
         // "admin" path access
-        await CheckGetResponseCode(server, "/groupFilterTest/admin", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId1, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId2, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId3, HttpStatusCode.NoContent);
-        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.NoContent);
+        await CheckGetResponseCode(server, "/groupFilterTest/admin", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
 
         // "system" path access
-        await CheckGetResponseCode(server, "/groupFilterTest/system", null, HttpStatusCode.Unauthorized);
-        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId1, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId2, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId3, HttpStatusCode.Forbidden);
-        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId4, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", null, -1, HttpStatusCode.Unauthorized);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId1,
+            SimpleFewUsersDatabase.SessionUserId1, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId2,
+            SimpleFewUsersDatabase.SessionUserId2, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId3,
+            SimpleFewUsersDatabase.SessionUserId3, HttpStatusCode.Forbidden);
+        await CheckGetResponseCode(server, "/groupFilterTest/system", users.SessionId4,
+            SimpleFewUsersDatabase.SessionUserId4, HttpStatusCode.Forbidden);
     }
 
-    private async Task CheckGetResponseCode(TestServer server, string uri, Guid? sessionId,
+    private async Task CheckGetResponseCode(TestServer server, string uri, Guid? sessionId, long userId,
         HttpStatusCode requiredStatusCode)
     {
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, uri).ToString());
 
         if (sessionId != null)
-            requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={sessionId}");
+            requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={sessionId}:{userId}");
 
         var response = await requestBuilder.GetAsync();
 

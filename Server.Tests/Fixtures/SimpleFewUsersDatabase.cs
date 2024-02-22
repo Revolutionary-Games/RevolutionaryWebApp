@@ -10,10 +10,16 @@ using Shared.Models.Enums;
 
 public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 {
+    public const long SessionUserId1 = 1;
+    public const long SessionUserId2 = 2;
+    public const long SessionUserId3 = 3;
+    public const long SessionUserId4 = 4;
+
     internal static readonly Guid StaticSessionId1 = Guid.NewGuid();
     internal static readonly Guid StaticSessionId2 = Guid.NewGuid();
     internal static readonly Guid StaticSessionId3 = Guid.NewGuid();
     internal static readonly Guid StaticSessionId4 = Guid.NewGuid();
+    internal static readonly Guid StaticSessionId5 = Guid.NewGuid();
 
     private static readonly object Lock = new();
 
@@ -36,11 +42,13 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
     public Guid SessionId3 => StaticSessionId3;
     public Guid SessionId4 => StaticSessionId4;
 
+    public Guid SessionIdNotLoggedIn => StaticSessionId5;
+
     internal static void SeedUsers(ApplicationDbContext database)
     {
         var user1 = new User
         {
-            Id = 1,
+            Id = SessionUserId1,
             Email = "test@example.com",
             Name = "test",
             Local = true,
@@ -50,7 +58,7 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 
         var user2 = new User
         {
-            Id = 2,
+            Id = SessionUserId2,
             Email = "test2@example.com",
             Name = "test2",
             Local = true,
@@ -64,7 +72,7 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 
         var user3 = new User
         {
-            Id = 3,
+            Id = SessionUserId3,
             Email = "test3@example.com",
             Name = "test3",
             Local = true,
@@ -78,7 +86,7 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 
         var user4 = new User
         {
-            Id = 4,
+            Id = SessionUserId4,
             Email = "test4@example.com",
             Name = "test4",
             Local = true,
@@ -133,6 +141,11 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
             CachedUserGroups = user4.ProcessGroupDataFromLoadedGroups(),
         });
 
+        database.Sessions.Add(new Session
+        {
+            Id = StaticSessionId5,
+        });
+
         database.SaveChanges();
     }
 
@@ -149,8 +162,8 @@ public class SimpleFewUsersDatabaseWithNotifications : BaseSharedDatabaseFixture
     private static readonly object Lock = new();
     private static bool databaseInitialized;
 
-    public SimpleFewUsersDatabaseWithNotifications() : base(
-        Substitute.For<IModelUpdateNotificationSender>(), "SimpleFewUsersDatabaseWithNotifications")
+    public SimpleFewUsersDatabaseWithNotifications() : base(Substitute.For<IModelUpdateNotificationSender>(),
+        "SimpleFewUsersDatabaseWithNotifications")
     {
         lock (Lock)
         {

@@ -94,7 +94,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
             }));
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:1");
 
         var response = await requestBuilder.GetAsync();
 
@@ -110,6 +110,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
         var csrfValue = "dummyCSRFString";
 
         var user = await database.Users.FindAsync(1L);
+        Assert.NotNull(user);
 
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(csrfValue, user, true).Returns(true);
@@ -135,7 +136,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
             }));
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:{user.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         var response = await requestBuilder.GetAsync();
@@ -150,6 +151,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
         var csrfValue = "dummyCSRFString";
 
         var user = await database.Users.FindAsync(1L);
+        Assert.NotNull(user);
 
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(csrfValue, user, true).Returns(true);
@@ -175,7 +177,7 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
             }));
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
-        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:{user.Id}");
         requestBuilder.AddHeader("X-CSRF-Token", csrfValue);
 
         var response = await requestBuilder.GetAsync();

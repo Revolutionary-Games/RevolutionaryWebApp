@@ -50,13 +50,12 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
 
         var client = host.GetTestClient();
 
-        var requestContent = new FormUrlEncodedContent(
-            new KeyValuePair<string, string>[]
-            {
-                new("Email", "test@example.com"),
-                new("Password", "some_password"),
-                new("CSRF", CSRF),
-            });
+        var requestContent = new FormUrlEncodedContent(new KeyValuePair<string, string>[]
+        {
+            new("Email", "test@example.com"),
+            new("Password", "some_password"),
+            new("CSRF", CSRF),
+        });
 
         var response = await client.PostAsync("/LoginController/login", requestContent);
 
@@ -122,6 +121,7 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
         Assert.True(LoggedInNotYetLimit > NonLoggedInUserEnsuredToHitLimit);
 
         var user1 = await database.Users.FindAsync(1L);
+        Assert.NotNull(user1);
 
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(CSRF, user1, true).Returns(true);
@@ -130,7 +130,8 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
 
         var client = host.GetTestClient();
 
-        client.DefaultRequestHeaders.Add(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        client.DefaultRequestHeaders.Add(HeaderNames.Cookie,
+            $"{AppInfo.SessionCookieName}={users.SessionId1}:{user1.Id}");
         client.DefaultRequestHeaders.Add("X-CSRF-Token", CSRF);
 
         var response = await client.GetAsync("/dummy");
@@ -167,6 +168,7 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
     public async Task RateLimit_UserCanDoActionsEvenIfAnonymousIsBlocked()
     {
         var user1 = await database.Users.FindAsync(1L);
+        Assert.NotNull(user1);
 
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(CSRF, user1, true).Returns(true);
@@ -197,7 +199,8 @@ public class RateLimitTests : IClassFixture<SimpleFewUsersDatabaseWithNotificati
             Assert.Fail("Expected to hit rate limit, but didn't hit it");
         }
 
-        client.DefaultRequestHeaders.Add(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}");
+        client.DefaultRequestHeaders.Add(HeaderNames.Cookie,
+            $"{AppInfo.SessionCookieName}={users.SessionId1}:{user1.Id}");
         client.DefaultRequestHeaders.Add("X-CSRF-Token", CSRF);
 
         response = await client.GetAsync("/dummy");

@@ -23,23 +23,31 @@ public static class UserFromCookiesHelper
     public static Task<(User? User, Session? Session)> GetUserFromSession(this IRequestCookieCollection cookies,
         ApplicationDbContext database, IPAddress? clientAddress)
     {
-        if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) || string.IsNullOrEmpty(session))
+        if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string? sessionRaw) || string.IsNullOrEmpty(sessionRaw))
             return Task.FromResult<(User?, Session?)>((null, null));
 
-        return GetUserFromSession(session, database, true, clientAddress);
+        var data = sessionRaw.Split(':', 2);
+
+        if (data.Length != 2)
+            return Task.FromResult<(User?, Session?)>((null, null));
+
+        if (!long.TryParse(data[1], out var expectedUserId))
+            return Task.FromResult<(User?, Session?)>((null, null));
+
+        return GetUserFromSession(data[0], expectedUserId, database, true, clientAddress);
     }
 
-    public static async Task<(User? User, Session? Session)> GetUserFromSession(string sessionId,
+    public static async Task<(User? User, Session? Session)> GetUserFromSession(string sessionId, long expectedId,
         ApplicationDbContext database, bool updateLastUsed = true, IPAddress? clientAddress = null)
     {
-        var existingSession = await GetSession(sessionId, database);
+        var existingSession = await GetSession(sessionId, expectedId, database);
 
         return (await GetUserFromSession(existingSession, database, updateLastUsed, clientAddress),
             existingSession);
     }
 
-    public static async Task<User?> GetUserFromSession(Session? existingSession, ApplicationDbContext database,
-        bool updateLastUsed = true, IPAddress? clientAddress = null)
+    public static async Task<User?> GetUserFromSession(Session? existingSession,
+        ApplicationDbContext database, bool updateLastUsed = true, IPAddress? clientAddress = null)
     {
         // No user if the session was not found
         if (existingSession?.User == null)
@@ -50,6 +58,7 @@ public static class UserFromCookiesHelper
         if (existingSession.User.Suspended == true)
             return null;
 
+        // TODO: should non-user sessions be able to update the last used time?
         if (updateLastUsed)
         {
             var now = DateTime.UtcNow;
@@ -72,7 +81,7 @@ public static class UserFromCookiesHelper
         return existingSession.User;
     }
 
-    public static async Task<Session?> GetSession(string sessionId, ApplicationDbContext database)
+    public static async Task<Session?> GetSession(string sessionId, long expectedUserId, ApplicationDbContext database)
     {
         // TODO: maybe it should be configurable if the user info should be fetched, as in some cases it might be
         // not needed
@@ -88,17 +97,37 @@ public static class UserFromCookiesHelper
             return null;
         }
 
-        return await database.Sessions.WhereHashed(nameof(Session.Id), sessionId).Include(s => s.User)
+        var session = await database.Sessions.WhereHashed(nameof(Session.Id), sessionId).Include(s => s.User)
             .ThenInclude(u => u!.AssociationMember)
             .ToAsyncEnumerable().FirstOrDefaultAsync(s => s.Id == parsed);
+
+        if (session == null)
+            return null;
+
+        // If the user doesn't match the expected id, fail even if the session was otherwise fine
+        if (session.User == null && expectedUserId != -1)
+            return null;
+
+        if (session.User != null && session.User.Id != expectedUserId)
+            return null;
+
+        return session;
     }
 
     public static Task<Session?> GetSession(this IRequestCookieCollection cookies,
         ApplicationDbContext database)
     {
-        if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) || string.IsNullOrEmpty(session))
+        if (!cookies.TryGetValue(AppInfo.SessionCookieName, out string? sessionRaw) || string.IsNullOrEmpty(sessionRaw))
             return Task.FromResult<Session?>(null);
 
-        return GetSession(session, database);
+        var data = sessionRaw.Split(':', 2);
+
+        if (data.Length != 2)
+            return Task.FromResult<Session?>(null);
+
+        if (!long.TryParse(data[1], out var expectedUserId))
+            return Task.FromResult<Session?>(null);
+
+        return GetSession(data[0], expectedUserId, database);
     }
 }

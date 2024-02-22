@@ -22,13 +22,11 @@ public class CookieOnlyBasicAuthenticationMiddleware : BaseAuthenticationHelper
 
     protected override async Task<bool> PerformAuthentication(HttpContext context)
     {
-        if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string? session) &&
-            !string.IsNullOrEmpty(session))
+        if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out string? sessionRaw) &&
+            !string.IsNullOrEmpty(sessionRaw))
         {
-            var cacheKey = "sessionKey:" + session;
-
             // Don't load DB data if we remember this data being bad
-            if (IsNegativeAuthenticationAttemptCached(cacheKey))
+            if (sessionRaw.Length > AppInfo.MaxTokenLength || IsNegativeAuthenticationAttemptCached(sessionRaw))
             {
                 return true;
             }
@@ -51,7 +49,7 @@ public class CookieOnlyBasicAuthenticationMiddleware : BaseAuthenticationHelper
                 return false;
             }
 
-            RememberFailedAuthentication(cacheKey);
+            RememberFailedAuthentication(sessionRaw);
         }
 
         return true;

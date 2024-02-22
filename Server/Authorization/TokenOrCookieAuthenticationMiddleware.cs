@@ -164,7 +164,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
     private async Task<AuthMethodResult> CheckLauncherLink(HttpContext context, string tokenValue)
     {
-        // TODO: should maybe move the launcher to use a more standard format
+        // TODO: should maybe move the launcher to use a more standard format for tokens
 
         var cacheKey = "launcher:" + tokenValue;
 
@@ -233,17 +233,26 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
     private async Task<AuthMethodResult> CheckCookie(HttpContext context)
     {
-        if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out var session) &&
-            !string.IsNullOrEmpty(session))
+        if (context.Request.Cookies.TryGetValue(AppInfo.SessionCookieName, out var sessionRaw) &&
+            !string.IsNullOrEmpty(sessionRaw))
         {
-            if (session.Length > AppInfo.MaxTokenLength)
+            if (sessionRaw.Length > AppInfo.MaxTokenLength)
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsync("Invalid session cookie (too long)");
                 return AuthMethodResult.Error;
             }
 
-            var cacheKey = "sessionKey:" + session;
+            // Roughly check the cookie format here
+            int index = sessionRaw.IndexOf(':');
+            if (index == -1)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Invalid session cookie (malformed)");
+                return AuthMethodResult.Error;
+            }
+
+            var cacheKey = "sessionKey:" + sessionRaw;
 
             // Don't load DB data if we remember this data being bad
             if (IsNegativeAuthenticationAttemptCached(cacheKey))

@@ -102,6 +102,7 @@ public sealed class LoginControllerTests : IDisposable
         var patreonMock = Substitute.For<IPatreonAPI>();
 
         string? seenSessionId = null;
+        long? seenUserId = null;
 
         var cookiesMock = Substitute.For<IResponseCookies>();
         cookiesMock.When(cookies =>
@@ -118,7 +119,9 @@ public sealed class LoginControllerTests : IDisposable
                     x.Arg<CookieOptions>().Expires <= DateTime.UtcNow + TimeSpan.FromSeconds(5))
                     Assert.Fail("Already expired login cookie");
 
-                seenSessionId = x.ArgAt<string>(1);
+                var raw = x.ArgAt<string>(1).Split(':');
+                seenSessionId = raw[0];
+                seenUserId = long.Parse(raw[1]);
             });
 
         var connectionMock = Substitute.For<ConnectionInfo>();
@@ -188,6 +191,7 @@ public sealed class LoginControllerTests : IDisposable
 
         Assert.Equal(session.HashedId, SelectByHashedProperty.HashForDatabaseValue(seenSessionId));
         Assert.Equal(user, session.User);
+        Assert.Equal(user.Id, seenUserId);
 
         csrfMock.Received().IsValidCSRFToken(CSRFValue, null, true);
         cookiesMock.Received().Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>());
@@ -256,7 +260,7 @@ public sealed class LoginControllerTests : IDisposable
         var cookiesMock = Substitute.For<IResponseCookies>();
         cookiesMock.When(cookies =>
                 cookies.Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>()))
-            .Do(x => { seenSessionId = x.ArgAt<string>(1); });
+            .Do(x => { seenSessionId = x.ArgAt<string>(1).Split(':')[0]; });
 
         SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
             out var patreonMock, out var requestCookiesMock, out var httpContextMock);
@@ -325,7 +329,7 @@ public sealed class LoginControllerTests : IDisposable
         requestCookiesMock.TryGetValue(AppInfo.SessionCookieName, out Arg.Any<string>()!)
             .Returns(x =>
             {
-                x[1] = seenSessionId;
+                x[1] = seenSessionId + ":-1";
                 return true;
             });
 
@@ -367,7 +371,7 @@ public sealed class LoginControllerTests : IDisposable
         var cookiesMock = Substitute.For<IResponseCookies>();
         cookiesMock.When(cookies =>
                 cookies.Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>()))
-            .Do(x => { seenSessionId = x.ArgAt<string>(1); });
+            .Do(x => { seenSessionId = x.ArgAt<string>(1).Split(':')[0]; });
 
         SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
             out var patreonMock, out var requestCookiesMock, out var httpContextMock);
@@ -424,7 +428,7 @@ public sealed class LoginControllerTests : IDisposable
         requestCookiesMock.TryGetValue(AppInfo.SessionCookieName, out Arg.Any<string>()!)
             .Returns(x =>
             {
-                x[1] = seenSessionId;
+                x[1] = seenSessionId + ":-1";
                 return true;
             });
 
@@ -453,7 +457,7 @@ public sealed class LoginControllerTests : IDisposable
         var cookiesMock = Substitute.For<IResponseCookies>();
         cookiesMock.When(cookies =>
                 cookies.Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>()))
-            .Do(x => { seenSessionId = x.ArgAt<string>(1); });
+            .Do(x => { seenSessionId = x.ArgAt<string>(1).Split(':')[0]; });
 
         SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
             out var patreonMock, out var requestCookiesMock, out var httpContextMock);
