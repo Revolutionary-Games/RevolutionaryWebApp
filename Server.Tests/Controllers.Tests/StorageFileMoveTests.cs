@@ -315,7 +315,7 @@ public sealed class StorageFileMoveTests : IDisposable
     {
         var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var database = NonWritingTestDb.Value;
+        var database = await GetWritableDatabase("StorageFileSimpleMove");
         var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
         var controller = new StorageFilesController(logger, database, remoteStorageMock,
@@ -352,7 +352,7 @@ public sealed class StorageFileMoveTests : IDisposable
     {
         var jobClientMock = Substitute.For<IBackgroundJobClient>();
 
-        var database = NonWritingTestDb.Value;
+        var database = await GetWritableDatabase("StorageFileAdminMoveRoot");
         var remoteStorageMock = Substitute.For<IGeneralRemoteStorage>();
 
         var controller = new StorageFilesController(logger, database, remoteStorageMock,
