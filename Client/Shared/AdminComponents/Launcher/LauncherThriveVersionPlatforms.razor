@@ -14,7 +14,7 @@
 @using RevolutionaryWebApp.Shared.Converters
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<LauncherThriveVersionPlatformListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherThriveVersionPlatformDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.LauncherThriveVersionPlatformDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {

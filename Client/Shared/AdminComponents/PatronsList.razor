@@ -10,7 +10,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<PatronListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.PatronDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.PatronDTO>
 <h3>Patrons</h3>
 
 @if (!string.IsNullOrEmpty(Error))

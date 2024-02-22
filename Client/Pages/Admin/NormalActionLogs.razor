@@ -11,7 +11,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<ActionsUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ActionLogEntryDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.ActionLogEntryDTO>
 
 
 <AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">

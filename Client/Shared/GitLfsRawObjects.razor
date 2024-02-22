@@ -7,7 +7,7 @@
 @using RevolutionaryWebApp.Shared.Models.Enums
 @inject NotificationHandler NotificationHandler
 @inject HttpClient Http
-@implements RevolutionaryWebApp.Client.Services.INotificationHandler<ThriveDevCenter.Shared.Notifications.LfsObjectListUpdated>
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<RevolutionaryWebApp.Shared.Notifications.LfsObjectListUpdated>
 @inherits PaginatedPage<LfsObjectDTO>
 
 @if (!string.IsNullOrEmpty(Error))

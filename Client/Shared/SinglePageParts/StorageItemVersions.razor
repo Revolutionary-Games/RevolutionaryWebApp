@@ -15,7 +15,7 @@
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Utilities
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<StorageItemVersionListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.StorageItemVersionInfo>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.StorageItemVersionInfo>
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -298,7 +298,7 @@ else
             statusMessageType = SiteNoticeType.Success;
 
             // For now we manually modify the deleted status here
-            // TODO: https://github.com/Revolutionary-Games/ThriveDevCenter/issues/632
+            // TODO: https://github.com/Revolutionary-Games/RevolutionaryWebApp/issues/632
             item.Deleted = false;
         }
 
@@ -380,7 +380,7 @@ else
                 "there are newer versions uploaded.";
             statusMessageType = SiteNoticeType.Primary;
 
-            // TODO: https://github.com/Revolutionary-Games/ThriveDevCenter/issues/632
+            // TODO: https://github.com/Revolutionary-Games/RevolutionaryWebApp/issues/632
             item.Keep = true;
         }
 

@@ -10,7 +10,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<RepoForReleaseStatsListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.RepoForReleaseStatsDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.RepoForReleaseStatsDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {

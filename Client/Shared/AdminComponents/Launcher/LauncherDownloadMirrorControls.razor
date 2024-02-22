@@ -10,7 +10,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<LauncherDownloadMirrorListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherDownloadMirrorDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.LauncherDownloadMirrorDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {

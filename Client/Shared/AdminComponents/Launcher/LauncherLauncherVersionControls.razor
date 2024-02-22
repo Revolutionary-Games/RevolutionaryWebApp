@@ -9,7 +9,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<LauncherLauncherVersionListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.LauncherLauncherVersionDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.LauncherLauncherVersionDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {

@@ -12,7 +12,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<AccessKeyListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.AccessKeyDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.AccessKeyDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {

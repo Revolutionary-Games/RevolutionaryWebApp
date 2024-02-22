@@ -13,7 +13,7 @@
 @using RevolutionaryWebApp.Client.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<ExternalServersUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.ExternalServerDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.ExternalServerDTO>
 
 <AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     @if (!string.IsNullOrEmpty(Error))

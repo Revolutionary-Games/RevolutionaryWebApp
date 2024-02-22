@@ -10,7 +10,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<AssociationMemberListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.AssociationMemberInfo>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.AssociationMemberInfo>
 
 <AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     <h3>Association Members</h3>

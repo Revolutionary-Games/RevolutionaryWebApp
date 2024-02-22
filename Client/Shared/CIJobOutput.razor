@@ -10,7 +10,7 @@
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<BuildMessageNotification>
-@inherits ListDataPage<ThriveDevCenter.Shared.Models.CIJobOutputSectionInfo>
+@inherits ListDataPage<RevolutionaryWebApp.Shared.Models.CIJobOutputSectionInfo>
 
 @if (!string.IsNullOrEmpty(Error))
 {

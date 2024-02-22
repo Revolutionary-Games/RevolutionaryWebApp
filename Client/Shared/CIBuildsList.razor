@@ -10,7 +10,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<CIProjectBuildsListUpdated>
-@inherits PaginatedPage<ThriveDevCenter.Shared.Models.CIBuildDTO>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.CIBuildDTO>
 
 @if (!string.IsNullOrEmpty(Error))
 {
