@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run db migrations
-psql -h thrivedevcenter_db -d thrivedevcenter -U postgres < /migration.sql
+psql -h revolutionarywebapp_db -d revolutionarywebapp -U postgres < /migration.sql
 
 if [ $? -eq 0 ]; then
     echo Migrations successfully ran

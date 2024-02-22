@@ -34,16 +34,16 @@ public class Deployer
     private const string CI_EXECUTOR_BUILT_FILE =
         BUILD_DATA_FOLDER + "/CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor";
 
-    private const string DEFAULT_TARGET_HOST_WWW_ROOT = "/var/www/thrivedevcenter/{0}";
-    private const string DEFAULT_TARGET_HOST_APP_ROOT = "/opt/thrivedevcenter/{0}";
+    private const string DEFAULT_TARGET_HOST_WWW_ROOT = "/var/www/revolutionarywebapp/{0}";
+    private const string DEFAULT_TARGET_HOST_APP_ROOT = "/opt/revolutionarywebapp/{0}";
 
     private const string DEFAULT_PRODUCTION_HOST = "dev.revolutionarygamesstudio.com";
-    private const string DEFAULT_PRODUCTION_DATABASE = "thrivedevcenter";
-    private const string DEFAULT_PRODUCTION_SERVICE = "thrivedevcenter";
+    private const string DEFAULT_PRODUCTION_DATABASE = "revolutionarywebapp";
+    private const string DEFAULT_PRODUCTION_SERVICE = "revolutionarywebapp";
 
     private const string DEFAULT_STAGING_HOST = "staging.dev.revolutionarygamesstudio.com";
-    private const string DEFAULT_STAGING_DATABASE = "thrivedevcenter_staging";
-    private const string DEFAULT_STAGING_SERVICE = "thrivedevcenter-staging";
+    private const string DEFAULT_STAGING_DATABASE = "revolutionarywebapp_staging";
+    private const string DEFAULT_STAGING_SERVICE = "revolutionarywebapp-staging";
 
     private const string SSH_USERNAME = "root";
 

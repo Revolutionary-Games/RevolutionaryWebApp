@@ -49,7 +49,7 @@ http {
         # Can't use http2 without SSL... Turn it on if you configure SSL
         listen [::]:80 ipv6only=on;
         listen 80;
-        root         /var/www/html/thrivedevcenter;
+        root         /var/www/html/revolutionarywebapp;
 
         # Load configuration files for the default server block.
         include /etc/nginx/default.d/*.conf;
@@ -63,7 +63,7 @@ http {
         sendfile on;
         try_files $uri @proxy;
 
-        set $backend "http://thrivedevcenter_web:5000";
+        set $backend "http://revolutionarywebapp_web:5000";
 
         location ~* ^/(notifications|ciBuildConnection) {
             limit_req zone=devcenterproxy burst=10 delay=5;

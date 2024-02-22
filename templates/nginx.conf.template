@@ -44,7 +44,7 @@ http {
         # Can't use http2 without SSL... Turn it on if you configure SSL
         listen [::]:80 ipv6only=on;
         listen 80;
-        root         /var/www/html/thrivedevcenter;
+        root         /var/www/html/revolutionarywebapp;
 
         # Load configuration files for the default server block.
         include /etc/nginx/default.d/*.conf;

@@ -37,11 +37,11 @@ RUN PATH="$PATH:/root/.dotnet/tools" dotnet ef migrations script --idempotent \
 FROM rockylinux:9 as proxy
 ENV DOTNET_VERSION "7.0"
 
-# Update used here to have slightly less outdated rocky packages
+# Update used here to have slightly less outdated alma packages
 RUN dnf update -y && dnf install -y --setopt=deltarpm=false nginx && dnf clean all
 
 COPY --from=builder /root/build/Client/bin/Release/net${DOTNET_VERSION}/publish/wwwroot/ \
-    /var/www/html/thrivedevcenter
+    /var/www/html/revolutionarywebapp
 
 COPY docker_nginx.conf /etc/nginx/nginx.conf
 
@@ -59,17 +59,17 @@ ENV DOTNET_VERSION "7.0"
 RUN dnf update -y && dnf install -y --setopt=deltarpm=false aspnetcore-runtime-${DOTNET_VERSION} postgresql \
     fontconfig-devel && dnf clean all
 
-RUN useradd thrivedevcenter -m
+RUN useradd revolutionarywebapp -m
 
 COPY --from=builder /root/build/Server/bin/Release/net${DOTNET_VERSION}/publish/ \
-    /home/thrivedevcenter
+    /home/revolutionarywebapp
 
 COPY --from=builder /migration.sql /migration.sql
 
-COPY docker_appsettings.Production.json /home/thrivedevcenter/appsettings.Production.json
+COPY docker_appsettings.Production.json /home/revolutionarywebapp/appsettings.Production.json
 
 COPY docker/entrypoint.sh /entrypoint.sh
 
-WORKDIR /home/thrivedevcenter
+WORKDIR /home/revolutionarywebapp
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/home/thrivedevcenter/RevolutionaryWebApp.Server", "--urls", "http://0.0.0.0:5000"]
+CMD ["/home/revolutionarywebapp/RevolutionaryWebApp.Server", "--urls", "http://0.0.0.0:5000"]

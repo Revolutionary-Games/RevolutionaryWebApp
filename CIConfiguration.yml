@@ -2,7 +2,7 @@ version: 1
 
 jobs:
   test:
-    image: thrive/devcenter-ci:v5
+    image: thrive/devcenter-ci:v6
     cache:
       loadFrom:
         - v3-{Branch}-build
@@ -21,12 +21,12 @@ jobs:
           command: pwsh AutomatedUITests/bin/Debug/net8.0/playwright.ps1 install
       - run:
           name: Setup test "secrets"
-          command: cd Server.Tests && dotnet user-secrets set UnitTestConnection 'User ID=devcenter;Password=testing;Server=localhost;Port=5432;Database=thrivedevcenter_unittest;Pooling=true;' && cd ../AutomatedUITests && dotnet user-secrets set IntegrationTestConnection 'User ID=devcenter;Password=testing;Server=localhost;Port=5432;Database=thrivedevcenter_test;Pooling=true;'
+          command: cd Server.Tests && dotnet user-secrets set UnitTestConnection 'User ID=devcenter;Password=testing;Server=localhost;Port=5432;Database=revolutionarywebapp_unittest;Pooling=true;' && cd ../AutomatedUITests && dotnet user-secrets set IntegrationTestConnection 'User ID=devcenter;Password=testing;Server=localhost;Port=5432;Database=revolutionarywebapp_test;Pooling=true;'
       - run:
           name: Test
           command: dotnet test
   lint:
-    image: thrive/devcenter-ci:v5
+    image: thrive/devcenter-ci:v6
     cache:
       loadFrom:
         - v3-{Branch}-build

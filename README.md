@@ -10,7 +10,7 @@ RevolutionaryWebApp requires a PostgreSQL database to operate.
 
 You can create a new account and a database for the account with `psql`:
 ```sql
-CREATE USER thrivedevcenter WITH LOGIN PASSWORD 'PUTAPASSWORDHERE';
+CREATE USER revolutionarywebapp WITH LOGIN PASSWORD 'PUTAPASSWORDHERE';
 ```
 
 ### Redis
@@ -127,9 +127,9 @@ There are example template nginx and systemd files in the `templates`
 folder. After copying and modifying them (remember to also setup the
 devcenter linux local account and adjust the systemd service
 environment variable files) you can enable and start the service
-`systemctl enable --now thrivedevcenter` (might need to do a daemon
+`systemctl enable --now revolutionarywebapp` (might need to do a daemon
 reload first). Then check that the service is up and running
-`systemctl status thrivedevcenter`. After it is up, you should verify
+`systemctl status revolutionarywebapp`. After it is up, you should verify
 nginx config and reload it.
 
 Before starting the server you need to migrate the database. To do
@@ -178,27 +178,27 @@ can access to have correct symbol files.
 This can be setup for example with:
 ```sh
 useradd stackwalk -s /sbin/nologin
-mkdir /var/lib/thrivedevcenter/
-mkdir /var/lib/thrivedevcenter/symbols
-mkdir /var/lib/thrivedevcenter/symbols/production
-chown root:thrivedevcenter /var/lib/thrivedevcenter/symbols/production
-chmod g+w /var/lib/thrivedevcenter/symbols/production
+mkdir /var/lib/revolutionarywebapp/
+mkdir /var/lib/revolutionarywebapp/symbols
+mkdir /var/lib/revolutionarywebapp/symbols/production
+chown root:revolutionarywebapp /var/lib/revolutionarywebapp/symbols/production
+chmod g+w /var/lib/revolutionarywebapp/symbols/production
 ```
 
 Then the stackwalk service configured to have 
-`/var/lib/thrivedevcenter/symbols/production` as the symbols folder mounted
+`/var/lib/revolutionarywebapp/symbols/production` as the symbols folder mounted
 inside the container. The container needs to also have the same port configured
 as in the following RevolutionaryWebApp configuration:
 ```
 Crashes__Enabled=true
 Crashes__StackwalkService=http://localhost:3115
-Crashes__StackwalkSymbolFolder=/var/lib/thrivedevcenter/symbols/production
+Crashes__StackwalkSymbolFolder=/var/lib/revolutionarywebapp/symbols/production
 ```
 
 Refer to the repository linked above for full instructions but the following
 will get a running stackwalk service going:
 ```sh
-podman run -d --rm -p 127.0.0.1:3115:9090 --mount type=bind,src=/var/lib/thrivedevcenter/symbols/production,destination=/Symbols,ro=true,relabel=shared --name stackwalkweb hhyyrylainen/stackwalk:latest --http-port 9090
+podman run -d --rm -p 127.0.0.1:3115:9090 --mount type=bind,src=/var/lib/revolutionarywebapp/symbols/production,destination=/Symbols,ro=true,relabel=shared --name stackwalkweb hhyyrylainen/stackwalk:latest --http-port 9090
 podman generate systemd --new --name stackwalkweb > /etc/systemd/system/stackwalkweb.service
 # Add `User=stackwalk` to the service section and replace `%t/` with `/home/stackwalk/`
 emacs /etc/systemd/system/stackwalkweb.service
@@ -223,7 +223,7 @@ how to setup new accounts. In addition to the other permissions the
 account needs to be able to create databases:
 
 ```sql
-ALTER USER thrivedevcenter_test CREATEDB;
+ALTER USER revolutionarywebapp_test CREATEDB;
 ```
 
 Note that while you can use a single user for testing, the unittest
@@ -231,12 +231,12 @@ and test databases need to be separate.
 
 Now set the secrets by running in the Server.Tests folder:
 ```sh
-dotnet user-secrets set UnitTestConnection 'User ID=thrivedevcenter_test;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter_unittest;Pooling=true;'
+dotnet user-secrets set UnitTestConnection 'User ID=revolutionarywebapp_test;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=revolutionarywebapp_unittest;Pooling=true;'
 ```
 
 And in the AutomatedUITests folder:
 ```sh
-dotnet user-secrets set IntegrationTestConnection 'User ID=thrivedevcenter_test;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=thrivedevcenter_test;Pooling=true;'
+dotnet user-secrets set IntegrationTestConnection 'User ID=revolutionarywebapp_test;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=revolutionarywebapp_test;Pooling=true;'
 ```
 
 ### Test browsers
@@ -267,21 +267,21 @@ suffix after copying and then edit the values to be suitable for your
 setup.
 
 ```sh
-docker build . --target proxy --tag thrivedevcenter-proxy:latest
-docker build . --target application --tag thrivedevcenter-web:latest
+docker build . --target proxy --tag revolutionarywebapp-proxy:latest
+docker build . --target application --tag revolutionarywebapp-web:latest
 
-docker network create thrivedevcenter
+docker network create revolutionarywebapp
 docker volume create pgdata
-docker run -d -v pgdata:/var/lib/postgresql/data --rm --restart on-failure --name thrivedevcenter_db --network=thrivedevcenter -e POSTGRES_PASSWORD=SPECIFYAPASSWORD -e POSTGRES_DB=thrivedevcenter postgres:13
+docker run -d -v pgdata:/var/lib/postgresql/data --rm --restart on-failure --name revolutionarywebapp_db --network=revolutionarywebapp -e POSTGRES_PASSWORD=SPECIFYAPASSWORD -e POSTGRES_DB=revolutionarywebapp postgres:13
 docker volume create redis_data
-docker run -d -v redis_data:/data --rm --restart on-failure --name thrivedevcenter_redis --network=thrivedevcenter redis:6 redis-server --appendonly yes
-docker run -d --rm --restart on-failure --name thrivedevcenter_web --network=thrivedevcenter -e PGPASSWORD=SPECIFYAPASSWORD -e ASPNETCORE_ENVIRONMENT=Production thrivedevcenter-web:latest
-docker run -d -p 80:80 --rm --restart on-failure --name thrivedevcenter_proxy --network=thrivedevcenter thrivedevcenter-proxy:latest
+docker run -d -v redis_data:/data --rm --restart on-failure --name revolutionarywebapp_redis --network=revolutionarywebapp redis:6 redis-server --appendonly yes
+docker run -d --rm --restart on-failure --name revolutionarywebapp_web --network=revolutionarywebapp -e PGPASSWORD=SPECIFYAPASSWORD -e ASPNETCORE_ENVIRONMENT=Production revolutionarywebapp-web:latest
+docker run -d -p 80:80 --rm --restart on-failure --name revolutionarywebapp_proxy --network=revolutionarywebapp revolutionarywebapp-proxy:latest
 ```
 
 Creating an admin redeem code:
 ```sh
-docker exec -it thrivedevcenter_db psql -U postgres -d thrivedevcenter
+docker exec -it revolutionarywebapp_db psql -U postgres -d revolutionarywebapp
 ```
 
 Provide the password used in the previous step if prompted.
@@ -320,7 +320,7 @@ Finally edit the remote hosts configuration of the deploy script and run it.
 Additional recommended server setup:
 
 ```sh
-useradd -s /usr/bin/false thrivedevcenter
+useradd -s /usr/bin/false revolutionarywebapp
 systemctl enable firewalld --now
 firewall-cmd --add-service http
 firewall-cmd --add-service https
@@ -362,6 +362,8 @@ Note that this increases the app download size but should help performance.
 
 ### Backups
 
+TODO: redo this for multi server
+
 Backups can be configured to be stored in S3. They will contain a
 database dump and redis data.
 
@@ -372,7 +374,7 @@ group or some other way read access needs to be arranged to the redis
 state file.
 
 ```sh
-usermod -a -G redis thrivedevcenter
+usermod -a -G redis revolutionarywebapp
 ```
 
 ## Developing
@@ -400,5 +402,5 @@ database.
 
 HiLo sequences can be synced with actual data with a provided script:
 ```sh
-psql -d thrivedevcenter < fix_hilo_sequences.sql
+psql -d revolutionarywebapp < fix_hilo_sequences.sql
 ```

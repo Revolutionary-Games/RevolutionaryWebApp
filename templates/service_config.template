@@ -4,9 +4,9 @@ DOTNET_PRINT_TELEMETRY_MESSAGE=false
 BaseUrl=https://your.domain/
 CSRF__Secret=PUT_A_NEW_RANDOM_STRING_HERE
 AllowedHosts=your.domain
-ConnectionStrings__WebApiConnection=User ID=thrivedevcenter;Password=password;Server=localhost;Port=5432;Database=thrivedevcenter;Pooling=true;
+ConnectionStrings__WebApiConnection=User ID=revolutionarywebapp;Password=password;Server=localhost;Port=5432;Database=revolutionarywebapp;Pooling=true;
 ConnectionStrings__RedisSharedState=localhost:6379,password=redispassword
-TempFileStorage__Path=/home/thrivedevcenter/tmp
+TempFileStorage__Path=/home/revolutionarywebapp/tmp
 Email__FromAddress=devcenter@your.domain
 Email__Password=password
 Email__Host=mail.your.domain
@@ -48,9 +48,9 @@ CI__AWSSubnet=subnet-idhere
 CI__AWSSecurityGroup=sg-idhere
 CI__DefaultAMI=ami-0966447150c11d877
 CI__RootFileSystemSnap=snap-02f3b7ac8b6efaad8
-CI__SSHKeyPair=thrivedevcenter-ci-north
-CI__SSHKeyFile=/home/thrivedevcenter/.ssh/thrivedevcenter-ci-north.pem
-CI__ExternalSSHBasePath=/home/thrivedevcenter/.ssh/
+CI__SSHKeyPair=revolutionarywebapp-ci-north
+CI__SSHKeyFile=/home/revolutionarywebapp/.ssh/revolutionarywebapp-ci-north.pem
+CI__ExternalSSHBasePath=/home/revolutionarywebapp/.ssh/
 CI__AWSAccessKey=accesskey
 CI__AWSSecretKey=secret
 CI__EBSEncryptionKey=

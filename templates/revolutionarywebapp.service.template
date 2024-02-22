@@ -8,7 +8,7 @@ ExecStart=/opt/revolutionarywebapp/RevolutionaryWebApp.Server
 Restart=always
 RestartSec=10
 KillSignal=SIGINT
-User=thrivedevcenter
+User=revolutionarywebapp
 EnvironmentFile=/etc/revolutionarywebapp/config
 
 [Install]
