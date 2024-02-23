@@ -8,8 +8,8 @@
 @implements IDisposable
 
 <div>
-    <form class="form-inline">
-        <input type="text" class="form-control flex-fill mr-1" value="@searchTerm" @oninput="OnTextChanged"
+    <form class="d-flex flex-row align-items-center">
+        <input type="text" class="form-control flex-fill me-1" value="@searchTerm" @oninput="OnTextChanged"
                placeholder="Username..." />
 
         <Button ButtonStyle="primary" type="submit" Spinner="@fetching" OnPressed="@RefreshSearch"
@@ -46,11 +46,11 @@
     }
     else if (usersToPickFrom is {Count: > 0 })
     {
-        <div class="mt-2 mb-1 ml-1">Pick user:</div>
+        <div class="mt-2 mb-1 ms-1">Pick user:</div>
         <ul class="mb-2">
             @foreach (var entry in usersToPickFrom.OrderBy(t => t.Value))
             {
-                <input type="radio" checked="@(Selected == entry.Key)" class="mr-1"
+                <input type="radio" checked="@(Selected == entry.Key)" class="me-1"
                        @onchange="async e => await OnRadioButtonPressed(e, entry.Key)" />
                 <span @onclick="async _ => await OnUserPicked(entry.Key)" class="clickable">
                     @entry.Value

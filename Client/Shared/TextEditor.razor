@@ -4,8 +4,8 @@
 @if (showForm)
 {
     <form>
-        <div class="form-row">
-            <div class="form-group">
+        <div class="row">
+            <div class="mb-3">
                 @if (string.IsNullOrEmpty(FieldLabel))
                 {
                     <textarea class="form-control" @bind="text"
@@ -33,7 +33,7 @@
 
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
-        <Button class="my-1 mr-1" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing" ButtonStyle="primary">
+        <Button class="my-1 me-1" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing" ButtonStyle="primary">
             Save
         </Button>
         <Button ButtonStyle="secondary" OnPressed="@Cancel">

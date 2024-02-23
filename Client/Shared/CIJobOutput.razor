@@ -39,8 +39,8 @@ else
                 {
                     <span class="oi oi-chevron-right"></span>
                 }
-                <span class="ml-2">@item.Name</span>
-                <span class="float-right"><DurationDisplayer Start="@item.StartedAt" End="@item.FinishedAt" /></span>
+                <span class="ms-2">@item.Name</span>
+                <span class="float-end"><DurationDisplayer Start="@item.StartedAt" End="@item.FinishedAt" /></span>
             </div>
             <div @key="@(item.CiJobOutputSectionId + "-output")"
                  class="@(ShouldShowSection(item) ? "" : "collapse") output-content"

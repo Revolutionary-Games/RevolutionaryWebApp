@@ -9,7 +9,7 @@
 
 @if (HasThisToken)
 {
-    <Button class="mr-1" ButtonStyle="primary" OnPressed="@ToggleShow">
+    <Button class="me-1" ButtonStyle="primary" OnPressed="@ToggleShow">
         @(showToken ? $"Hide {TokenType} Token" : $"Show {TokenType} Token")
     </Button>
 
@@ -28,19 +28,19 @@
         </p>
     }
 
-    <Button class="mr-1" ButtonStyle="secondary" OnPressed="@CreateToken"
+    <Button class="me-1" ButtonStyle="secondary" OnPressed="@CreateToken"
             Spinner="@creatingToken" Enabled="@(!creatingToken)">
         Regenerate Token
     </Button>
 
-    <Button class="mr-1" ButtonStyle="secondary" OnPressed="@ClearToken"
+    <Button class="me-1" ButtonStyle="secondary" OnPressed="@ClearToken"
             Spinner="@clearingToken" Enabled="@(!clearingToken)">
         Clear Token
     </Button>
 }
 else
 {
-    <Button class="mr-1" ButtonStyle="primary" OnPressed="@CreateToken"
+    <Button class="me-1" ButtonStyle="primary" OnPressed="@CreateToken"
             Spinner="@creatingToken" Enabled="@(!creatingToken)">
         Generate @TokenType Token
     </Button>

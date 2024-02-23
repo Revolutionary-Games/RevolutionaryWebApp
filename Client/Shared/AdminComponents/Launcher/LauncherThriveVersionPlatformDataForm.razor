@@ -7,10 +7,10 @@
 <EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
     <DataAnnotationsValidator/>
 
-    <div class="form-row">
+    <div class="row">
         @if (!ForExistingResource)
         {
-            <div class="form-group col-md-12">
+            <div class="mb-3 col-md-12">
                 <label for="@($"newThrivePlatformPlatform-{ControlIdSuffix}")">
                     Platform This Works On
                 </label>
@@ -28,8 +28,8 @@
         }
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"newThrivePlatformFileName-{ControlIdSuffix}")">
                 Local Folder Name (launcher uses this to identify installed versions, so must be correct)
             </label>
@@ -38,14 +38,14 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <Button class="mb-3 ml-1" ButtonStyle="secondary" OnPressed="@UpdateNameAutomaticallyForPlatform">
+    <div class="row">
+        <Button class="mb-3 ms-1" ButtonStyle="secondary" OnPressed="@UpdateNameAutomaticallyForPlatform">
             Auto Generate File Name
         </Button>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"newThrivePlatformSha3-{ControlIdSuffix}")">SHA3 Hash of the Release on this Platform</label>
             <CustomInputText class="form-control" id="@($"newThrivePlatformSha3-{ControlIdSuffix}")"
                              @bind-Value="EditedData.FileSha3" placeholder="SHA3"/>
@@ -56,7 +56,7 @@
     <ValidationSummary/>
 
     <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType"/>
-    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+    <Button class="my-1 me-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
         @SaveButtonText
     </Button>
 

@@ -57,7 +57,7 @@ else
     <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
 }
 
-<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
     New
 </Button>
 
@@ -66,13 +66,13 @@ else
     <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
         <DataAnnotationsValidator />
 
-        <div class="form-row">
-            <div class="form-group col-md-8">
+        <div class="row">
+            <div class="mb-3 col-md-8">
                 <label for="newFullyQualifiedName">Qualified Repository Name (format: Owner/Repo-Name)</label>
                 <CustomInputText class="form-control" id="newFullyQualifiedName"
                                  @bind-Value="newData!.QualifiedName" placeholder="Owner/Repo-Name" />
             </div>
-            <div class="form-group col-md-4">
+            <div class="mb-3 col-md-4">
                 <div class="form-check">
                     <InputCheckbox class="form-check-input" type="checkbox" id="newShownInAll"
                                    @bind-Value="newData!.ShownInAll" />
@@ -83,8 +83,8 @@ else
             </div>
         </div>
 
-        <div class="form-row">
-            <div class="form-group">
+        <div class="row">
+            <div class="mb-3">
                 <label for="newIgnoreDownloads">Regex to ignore specific release files in download stats</label>
                 <CustomInputText class="form-control" id="newIgnoreDownloads" @bind-Value="newData!.IgnoreDownloads"
                                  placeholder="Ignored downloads regex (optional)"/>
@@ -94,7 +94,7 @@ else
         <ValidationSummary />
 
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-        <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit" Spinner="@processingNewForm">
+        <Button class="my-1 me-1" Enabled="@(!processingNewForm)" type="submit" Spinner="@processingNewForm">
             Create
         </Button>
         <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">

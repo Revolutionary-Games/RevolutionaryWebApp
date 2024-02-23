@@ -13,19 +13,19 @@
     <h3>Register</h3>
 
     <form class="login-form">
-        <div class="form-group">
+        <div class="mb-3">
             <input type="email" class="form-control"
                    aria-describedby="emailHelp" placeholder="email" @bind="email" @bind:event="oninput">
         </div>
-        <div class="form-group">
+        <div class="mb-3">
             <input type="text" class="form-control" placeholder="username" @bind="name" @bind:event="oninput">
         </div>
-        <div class="form-group">
+        <div class="mb-3">
             <input type="password" class="form-control" placeholder="password" @bind="password" @bind:event="oninput">
             <input type="password" class="form-control" placeholder="password (again)" @bind="passwordVerification"
                    @bind:event="oninput">
         </div>
-        <div class="form-group">
+        <div class="mb-3">
             <input type="text" class="form-control" placeholder="registration code" @bind="code" @bind:event="oninput">
         </div>
         @if (ErrorMessage != null)

@@ -102,8 +102,8 @@ else
                 <br class="mt-2 drop-area" />
 
                 <form>
-                    <div class="form-row">
-                        <label for="filesToUploadSelection" class="drop-area pt-1 pr-1">
+                    <div class="row">
+                        <label for="filesToUploadSelection" class="drop-area pt-1 pe-1">
                             Or select files to upload:
                         </label>
                         <InputFile id="filesToUploadSelection"
@@ -115,8 +115,8 @@ else
                     </div>
 
                     <br class="drop-area" />
-                    <div class="form-row justify-content-center">
-                        <Button class="my-1 mr-1" Enabled="@(!uploadInProgress && filesToBeUploaded.Count > 0)"
+                    <div class="row justify-content-center">
+                        <Button class="my-1 me-1" Enabled="@(!uploadInProgress && filesToBeUploaded.Count > 0)"
                                 OnPressed="@StartFileSelectorUploads" Spinner="@uploadInProgress">
                             Upload
                         </Button>
@@ -145,7 +145,7 @@ else
                         @if (item.Ftype == FileType.Folder)
                         {
                             <td>
-                                <span class="oi oi-folder pl-1" aria-hidden="true"></span>
+                                <span class="oi oi-folder ps-1" aria-hidden="true"></span>
                                 <span class="visually-hidden">Folder</span>
                             </td>
                         }
@@ -180,7 +180,7 @@ else
     </div>
 
     @*These are always shown to avoid brief flashes while navigating *@
-    <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="primary" OnPressed="@OpenUploaderForm">
+    <Button Enabled="@folderIsWritable" class="me-1" ButtonStyle="primary" OnPressed="@OpenUploaderForm">
         Upload
     </Button>
 
@@ -195,7 +195,7 @@ else
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" ExtraCSS="mt-1"
                              OnClosed="@ClearStatusMessage"/>
 
-        <Button Enabled="@(parsedFolderInfo != null)" class="mr-1" ButtonStyle="info"
+        <Button Enabled="@(parsedFolderInfo != null)" class="me-1" ButtonStyle="info"
                 OnPressed="@(() => showFolderInfo = !showFolderInfo)">
             @if (!showFolderInfo)
             {
@@ -206,10 +206,10 @@ else
                 <span>Hide Folder Info</span>
             }
         </Button>
-        <Button Enabled="@folderIsWritable" class="mr-1" ButtonStyle="success" OnPressed="@ToggleNewFolderCreate">
+        <Button Enabled="@folderIsWritable" class="me-1" ButtonStyle="success" OnPressed="@ToggleNewFolderCreate">
             New Folder
         </Button>
-        <Button Enabled="@CanMoveFolder" class="mr-1" ButtonStyle="secondary" OnPressed="@ToggleFolderMove">
+        <Button Enabled="@CanMoveFolder" class="me-1" ButtonStyle="secondary" OnPressed="@ToggleFolderMove">
             Move
         </Button>
 
@@ -230,7 +230,7 @@ else
         }
 
         @* Always show this to reduce flicker of the buttons *@
-        <Button Enabled="@CanDeleteFolder" Spinner="@processing" class="mr-1"
+        <Button Enabled="@CanDeleteFolder" Spinner="@processing" class="me-1"
             ButtonStyle="danger" OnPressed="@StartFolderDelete">
             Delete This Folder
         </Button>
@@ -306,16 +306,16 @@ else
         @if (showNewFolderCreate)
         {
             <form class="mt-3">
-                <div class="form-row">
-                    <div class="form-group col-md-12">
+                <div class="row">
+                    <div class="mb-3 col-md-12">
                         <label for="newFolderName">New Folder Name</label>
                         <input type="text" class="form-control" id="newFolderName" @bind="newFolderName"
                                @bind:event="oninput">
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group col-md-6">
+                <div class="row">
+                    <div class="mb-3 col-md-6">
                         <label for="newFolderReadAccess">Read Access</label>
                         <select class="form-select" id="newFolderReadAccess" @bind="newFolderReadAccess">
                             @foreach (var name in Enum.GetNames<FileAccess>())
@@ -324,7 +324,7 @@ else
                             }
                         </select>
                     </div>
-                    <div class="form-group col-md-6">
+                    <div class="mb-3 col-md-6">
                         <label for="newFolderWriteAccess">Write Access</label>
                         <select class="form-select" id="newFolderWriteAccess" @bind="newFolderWriteAccess">
                             @foreach (var name in Enum.GetNames<FileAccess>())

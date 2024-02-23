@@ -53,7 +53,7 @@ else
                         {
                             <span class="oi oi-chevron-right"></span>
                         }
-                        <span class="ml-1">@item.Platform</span>
+                        <span class="ms-1">@item.Platform</span>
                     </th>
                     <td>@item.FileSha3</td>
                     <td>@item.LocalFileName.Truncate(50)</td>
@@ -81,7 +81,7 @@ else
     <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
 }
 
-<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
     New
 </Button>
 

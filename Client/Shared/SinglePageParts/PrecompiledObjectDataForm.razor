@@ -5,8 +5,8 @@
 <EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
     <DataAnnotationsValidator />
 
-    <div class="form-row">
-        <div class="form-group col-12">
+    <div class="row">
+        <div class="mb-3 col-12">
             <label for="@($"precompiledFormName-{ControlIdSuffix}")">Name</label>
             <CustomInputText class="form-control" id="@($"precompiledFormName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Name"
@@ -15,8 +15,8 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-12">
+    <div class="row">
+        <div class="mb-3 col-12">
             <div class="form-check">
                 <InputCheckbox class="form-check-input" type="checkbox" id="@($"precompiledFormPublic-{ControlIdSuffix}")"
                                @bind-Value="EditedData.Public"/>
@@ -30,7 +30,7 @@
     <ValidationSummary />
 
     <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
-    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+    <Button class="my-1 me-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
         @SaveButtonText
     </Button>
 

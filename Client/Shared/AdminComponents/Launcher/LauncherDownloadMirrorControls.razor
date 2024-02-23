@@ -49,7 +49,7 @@ else
                         {
                             <span class="oi oi-chevron-right"></span>
                         }
-                        <span class="ml-1">@item.InternalName</span>
+                        <span class="ms-1">@item.InternalName</span>
                     </th>
                     <td>@item.ReadableName.Truncate(50)</td>
                     <td>
@@ -87,7 +87,7 @@ else
     <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
 }
 
-<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
     New
 </Button>
 

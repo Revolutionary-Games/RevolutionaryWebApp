@@ -42,7 +42,7 @@ else
                         @item.LastUsedFrom
                         @if (item.Current)
                         {
-                            <span class="badge badge-success ml-2">Current Session</span>
+                            <span class="badge bg-success ms-2">Current Session</span>
                         }
                     </td>
                     <td><RecentTimeShortener Time="@item.CreatedAt" /></td>
@@ -64,7 +64,7 @@ else
 
 @if(LookingAtSelf)
 {
-    <Button class="mr-1" ButtonStyle="warning" Enabled="@(!processingDestroy)" OnPressed="@DestroyOtherSessions"
+    <Button class="me-1" ButtonStyle="warning" Enabled="@(!processingDestroy)" OnPressed="@DestroyOtherSessions"
             Spinner="@processingDestroy">
         Logout Other Sessions
     </Button>

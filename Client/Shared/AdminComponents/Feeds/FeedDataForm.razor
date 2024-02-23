@@ -5,8 +5,8 @@
 <EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
     <DataAnnotationsValidator />
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"feedFormName-{ControlIdSuffix}")">Name</label>
             <CustomInputText class="form-control" id="@($"feedFormName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Name"
@@ -14,16 +14,16 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"feedFormUrl-{ControlIdSuffix}")">Feed Url To Retrieve Data From</label>
             <CustomInputText class="form-control" id="@($"feedFormUrl-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Url" placeholder="Url"/>
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-lg-6">
+    <div class="row">
+        <div class="mb-3 col-lg-6">
             <label for="@($"feedFormPollInterval-{ControlIdSuffix}")">Poll Interval</label>
 
             <InputSelect class="form-control" id="@($"feedFormPollInterval-{ControlIdSuffix}")"
@@ -39,7 +39,7 @@
                 <option value="@TimeSpan.FromMinutes(60)">60 minutes</option>
             </InputSelect>
         </div>
-        <div class="form-group col-lg-6">
+        <div class="mb-3 col-lg-6">
             <label for="@($"feedFormCacheTime-{ControlIdSuffix}")">
                 Cache Time (passed to Clients reading this from us)
             </label>
@@ -59,13 +59,13 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-6">
+    <div class="row">
+        <div class="mb-3 col-md-6">
             <label for="@($"feedFormMaxItems-{ControlIdSuffix}")">Max Items To Show</label>
             <InputNumber class="form-control" id="@($"feedFormMaxItems-{ControlIdSuffix}")"
                          @bind-Value="EditedData.MaxItems" />
         </div>
-        <div class="form-group col-md-6">
+        <div class="mb-3 col-md-6">
             <label for="@($"feedFormMaxItemLength-{ControlIdSuffix}")">Max Item Length</label>
             <InputNumber class="form-control" id="@($"feedFormMaxItemLength-{ControlIdSuffix}")"
                          @bind-Value="EditedData.MaxItemLength" />
@@ -76,7 +76,7 @@
         int preprocessItemNumber = 0;
     }
 
-    <div class="form-row">
+    <div class="row">
         <p>Preprocessing actions:</p>
     </div>
 
@@ -104,8 +104,8 @@
     </Button>
 
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"feedFormHtmlTemplate-{ControlIdSuffix}")">
                 HTML Template to Transform Items to Show in HTML Form
             </label>
@@ -114,8 +114,8 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"feedFormHtmlSuffix-{ControlIdSuffix}")">
                 Suffix For The Feed Name To Get The HTML Templated Version
             </label>
@@ -127,7 +127,7 @@
     <ValidationSummary />
 
     <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
-    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+    <Button class="my-1 me-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
         @SaveButtonText
     </Button>
 

@@ -48,19 +48,19 @@ else
                         {
                             <span class="oi oi-chevron-right"></span>
                         }
-                        <span class="ml-1">@item.Id</span>
+                        <span class="ms-1">@item.Id</span>
                     </th>
                     <td>@item.ReleaseNumber</td>
                     <td>
                         @if (!item.Stable)
                         {
-                            <span class="badge badge-secondary">Beta</span>
+                            <span class="badge bg-secondary">Beta</span>
                         }
                     </td>
                     <td>
                         @if (!item.Enabled)
                         {
-                            <span class="badge badge-warning">Disabled</span>
+                            <span class="badge bg-warning">Disabled</span>
                         }
                     </td>
                     <td>
@@ -68,11 +68,11 @@ else
                         {
                             @if(item.Stable)
                             {
-                                <span class="badge badge-success">Latest</span>
+                                <span class="badge bg-success">Latest</span>
                             }
                             else
                             {
-                                <span class="badge badge-secondary">Latest beta</span>
+                                <span class="badge bg-secondary">Latest beta</span>
                             }
                         }
                     </td>
@@ -81,7 +81,7 @@ else
                     <td>
                         <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest && item.Enabled)"
                                 OnPressed="@(async () => await MakeVersionLatest(item))"
-                                Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm mr-1">
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm me-1">
                             Make Latest
                         </Button>
 
@@ -89,7 +89,7 @@ else
                         {
                             <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
                                     OnPressed="@(async () => await DisableVersion(item))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm mr-2">
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm me-2">
                                 Disable
                             </Button>
                         }
@@ -97,7 +97,7 @@ else
                         {
                             <Button Enabled="@(!IsProcessing(item.Id))"
                                     OnPressed="@(async () => await EnableVersion(item))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm mr-2">
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm me-2">
                                 Enable
                             </Button>
                         }
@@ -124,7 +124,7 @@ else
     <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
 }
 
-<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
     New
 </Button>
 

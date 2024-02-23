@@ -58,7 +58,7 @@ else
                 {
                     // Form for local login (which is active)
                     <form method="post" action="/LoginController/login" class="login-form">
-                        <div class="form-group">
+                        <div class="mb-3">
                             <input type="hidden" name="CSRF" value="@CSRF.Token" />
                             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
                             <input type="email" class="form-control" name="Email"

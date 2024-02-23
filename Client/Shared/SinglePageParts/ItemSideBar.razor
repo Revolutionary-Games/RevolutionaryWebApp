@@ -14,7 +14,7 @@
 @using RevolutionaryWebApp.Shared.Utilities
 
 <div class="item-sidebar @ExpandedClass">
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close"
+    <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close"
             @onclick="CloseSideBar" @onclick:preventDefault="true" @onclick:stopPropagation="true">
         <span aria-hidden="true">&times;</span>
     </button>
@@ -23,7 +23,7 @@
         @Item.Name
         @if (Item.Deleted)
         {
-            <span class="badge badge-danger ml-1">DELETED</span>
+            <span class="badge bg-danger ms-1">DELETED</span>
         }
     </h2>
 
@@ -110,7 +110,7 @@
     <div class="mx-2 my-1">
         <a href="@GetDownloadURL()" target="_blank">Download</a>
 
-        <Button ButtonStyle="primary" class="btn-sm ml-1" OnPressed="@CopyLinkToClipboard">
+        <Button ButtonStyle="primary" class="btn-sm ms-1" OnPressed="@CopyLinkToClipboard">
             @if (!linkCopied)
             {
                 <span>Copy Download Link</span>
@@ -156,7 +156,7 @@
                                 OnFolderChange="@ChangeNewRestorePath"/>
 
                 <Button ButtonStyle="primary" Enabled="@(!processingAction && !string.IsNullOrEmpty(newRestorePath))"
-                        Spinner="@processingAction" class="mb-1 mr-1" OnPressed="@(() => RestoreItem(newRestorePath))">
+                        Spinner="@processingAction" class="mb-1 me-1" OnPressed="@(() => RestoreItem(newRestorePath))">
                     Retry Restore
                 </Button>
 
@@ -203,13 +203,13 @@
         
         @if (expanded)
         {
-            <Button ButtonStyle="primary" class="btn-sm mr-1" OnPressed="@ToggleExpand">
+            <Button ButtonStyle="primary" class="btn-sm me-1" OnPressed="@ToggleExpand">
                 Shrink Panel
             </Button>
         }
         else
         {
-            <Button ButtonStyle="primary" class="btn-sm mr-1" OnPressed="@ToggleExpand">
+            <Button ButtonStyle="primary" class="btn-sm me-1" OnPressed="@ToggleExpand">
                 Expand Versions View
             </Button>
         }
@@ -219,12 +219,12 @@
             @if (!Item.Special && !Item.ModificationLocked && Item.WriteAccess.IsAccessibleTo(
                 CurrentUserInfo.Groups, CurrentUserInfo.Info!.Id, Item.OwnerId))
             {
-                <StorageItemFolderEditor Data="@Item" ButtonClass="btn-sm" FormClass="ml-3"/>
+                <StorageItemFolderEditor Data="@Item" ButtonClass="btn-sm" FormClass="ms-3"/>
             }
 
             @if (!Item.Deleted)
             {
-                <Button ButtonStyle="secondary" Enabled="@CanMoveItem" class="btn-sm ml-1" OnPressed="@ToggleMove">
+                <Button ButtonStyle="secondary" Enabled="@CanMoveItem" class="btn-sm ms-1" OnPressed="@ToggleMove">
                     Move
                 </Button>
 
@@ -233,14 +233,14 @@
                 {
                     if (Item.ModificationLocked)
                     {
-                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ms-1"
                                 ButtonStyle="warning" OnPressed="@UnlockItem">
                             Unlock Properties
                         </Button>
                     }
                     else
                     {
-                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ms-1"
                                 ButtonStyle="secondary" OnPressed="@LockItem">
                             Lock Properties
                         </Button>
@@ -248,21 +248,21 @@
 
                     if (Item.Important)
                     {
-                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ms-1"
                                 ButtonStyle="warning" OnPressed="@UnmarkImportant">
                             Remove Important Status
                         </Button>
                     }
                     else
                     {
-                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ml-1"
+                        <Button Enabled="@(!processingAction)" Spinner="@processingAction" class="btn-sm ms-1"
                                 ButtonStyle="secondary" OnPressed="@MarkImportant">
                             Mark Important
                         </Button>
                     }
                 }
 
-                <Button ButtonStyle="danger" Enabled="@CanDeleteItem" Spinner="@processingAction" class="btn-sm ml-1"
+                <Button ButtonStyle="danger" Enabled="@CanDeleteItem" Spinner="@processingAction" class="btn-sm ms-1"
                         OnPressed="@DeleteItem">
                     Delete
                 </Button>

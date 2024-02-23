@@ -5,17 +5,17 @@
 <EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
     <DataAnnotationsValidator />
 
-    <div class="form-row">
+    <div class="row">
         @if(!ForExistingResource)
         {
-            <div class="form-group col-md-6">
+            <div class="mb-3 col-md-6">
                 <label for="@($"mirrorFormInternalName-{ControlIdSuffix}")">Internal Name</label>
                 <CustomInputText class="form-control" id="@($"mirrorFormInternalName-{ControlIdSuffix}")"
                                  @bind-Value="EditedData.InternalName"
                                  placeholder="Internal Name (used to refer to this mirror)"/>
             </div>
         }
-        <div class="form-group col-md-6">
+        <div class="mb-3 col-md-6">
             <label for="@($"mirrorFormReadableName-{ControlIdSuffix}")">Readable Name</label>
             <CustomInputText class="form-control" id="@($"mirrorFormReadableName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.ReadableName"
@@ -23,24 +23,24 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"mirrorFormInfoLink-{ControlIdSuffix}")">Info URL for users to visit this mirror</label>
             <CustomInputText class="form-control" id="@($"mirrorFormInfoLink-{ControlIdSuffix}")"
                              @bind-Value="EditedData.InfoLink" placeholder="Info Url"/>
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"mirrorFormBannerImage-{ControlIdSuffix}")">Banner Image Url (optional)</label>
             <CustomInputText class="form-control" id="@($"mirrorFormBannerImage-{ControlIdSuffix}")"
                              @bind-Value="EditedData.BannerImageUrl" placeholder="Url to image (optional)"/>
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"mirrorFormDescription-{ControlIdSuffix}")">
                 Customized mirror description shown to users when downloading (optional)
             </label>
@@ -53,7 +53,7 @@
     <ValidationSummary />
 
     <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
-    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+    <Button class="my-1 me-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
         @SaveButtonText
     </Button>
 

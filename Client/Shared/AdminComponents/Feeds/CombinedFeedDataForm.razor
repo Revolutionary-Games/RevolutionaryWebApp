@@ -5,8 +5,8 @@
 <EditForm EditContext="@EditContext" OnValidSubmit="@OnValidSubmit" class="@(@class)">
     <DataAnnotationsValidator />
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"combinedFeedFormName-{ControlIdSuffix}")">Name</label>
             <CustomInputText class="form-control" id="@($"combinedFeedFormName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Name"
@@ -14,8 +14,8 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"combinedFeedFormCacheTime-{ControlIdSuffix}")">
                 Cache Time (passed to Clients reading this from us)
             </label>
@@ -34,15 +34,15 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"combinedFeedFormMaxItems-{ControlIdSuffix}")">Max Items To Pick From Feeds</label>
             <InputNumber class="form-control" id="@($"combinedFeedFormMaxItems-{ControlIdSuffix}")"
                          @bind-Value="EditedData.MaxItems" />
         </div>
     </div>
 
-    <div class="form-row">
+    <div class="row">
         <p>Combined from feeds:</p>
     </div>
 
@@ -60,7 +60,7 @@
             @foreach (var feed in EditedData.CombinedFromFeeds)
             {
                 <li>
-                    <span class="mr-1">@FindFeedName(feed) (@feed)</span>
+                    <span class="me-1">@FindFeedName(feed) (@feed)</span>
                     <Button ButtonStyle="warning" OnPressed="@(() => RemoveFeed(feed))">
                         Delete
                     </Button>
@@ -74,8 +74,8 @@
         }
         else if(HasAnyFeedToAdd())
         {
-            <div class="form-row">
-                <div class="form-group col-md-12">
+            <div class="row">
+                <div class="mb-3 col-md-12">
                     <label for="addNewCombined">Pick feed to add:</label>
                     <select class="form-select" id="addNewCombined" @onchange="FeedToAddChanged"
                             value="@(currentlyPickedFeedToAdd?.ToString() ?? string.Empty)">
@@ -87,7 +87,7 @@
                     </select>
                 </div>
             </div>
-            <div class="form-row">
+            <div class="row">
                 <Button class="mb-2" Enabled="@(currentlyPickedFeedToAdd != null)"
                         OnPressed="@AddCurrentlyPickedFeed">
                     Add
@@ -113,8 +113,8 @@
         </ul>
     }
 
-    <div class="form-row">
-        <div class="form-group col-md-12">
+    <div class="row">
+        <div class="mb-3 col-md-12">
             <label for="@($"combinedFeedFormHtmlTemplate-{ControlIdSuffix}")">
                 HTML Template For Items (required)
             </label>
@@ -126,7 +126,7 @@
     <ValidationSummary />
 
     <StatusMessageShower Message="@StatusMessage" Type="@StatusMessageType" />
-    <Button class="my-1 mr-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
+    <Button class="my-1 me-1" Enabled="@(!Processing)" type="submit" Spinner="@Processing" ButtonStyle="primary">
         @SaveButtonText
     </Button>
 

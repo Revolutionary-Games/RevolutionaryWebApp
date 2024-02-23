@@ -7,9 +7,9 @@
 <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
     <DataAnnotationsValidator />
 
-    <div class="form-row">
-        <div class="form-group col-md-4">
-            <label class="mr-1" for="bulkRecipientMode">Recipients Mode</label>
+    <div class="row">
+        <div class="mb-3 col-md-4">
+            <label class="me-1" for="bulkRecipientMode">Recipients Mode</label>
             <InputSelect class="form-select" id="bulkRecipientMode" @bind-Value="request.RecipientsMode">
                 @foreach (var name in Enum.GetNames<BulkEmailRecipientsMode>())
                 {
@@ -17,8 +17,8 @@
                 }
             </InputSelect>
         </div>
-        <div class="form-group col-md-4">
-            <label class="mr-1" for="bulkIgnoreMode">Ignored Recipients</label>
+        <div class="mb-3 col-md-4">
+            <label class="me-1" for="bulkIgnoreMode">Ignored Recipients</label>
             <InputSelect class="form-select" id="bulkIgnoreMode" @bind-Value="request.IgnoreMode">
                 @foreach (var name in Enum.GetNames<BulkEmailIgnoreMode>())
                 {
@@ -26,8 +26,8 @@
                 }
             </InputSelect>
         </div>
-        <div class="form-group col-md-4">
-            <label class="mr-1" for="bulkReplyMode">Reply-To Mode</label>
+        <div class="mb-3 col-md-4">
+            <label class="me-1" for="bulkReplyMode">Reply-To Mode</label>
             <InputSelect class="form-select" id="bulkReplyMode" @bind-Value="request.ReplyMode">
                 @foreach (var name in Enum.GetNames<BulkEmailReplyToMode>())
                 {
@@ -39,8 +39,8 @@
 
     @if (request.RecipientsMode == BulkEmailRecipientsMode.ManualList)
     {
-        <div class="form-row">
-            <div class="form-group col-12">
+        <div class="row">
+            <div class="mb-3 col-12">
                 <CustomInputTextArea class="form-control" @bind-Value="request.ManualRecipients"
                                rows="15" placeholder="Manual recipients (one email per line)">
                 </CustomInputTextArea>
@@ -48,27 +48,27 @@
         </div>
     }
 
-    <div class="form-row">
-        <div class="form-group col-12">
+    <div class="row">
+        <div class="mb-3 col-12">
             <label for="bulkEmailTitle">Title</label>
             <CustomInputText class="form-control" id="bulkEmailTitle" @bind-Value="request.Title"
                        placeholder="Email title" />
         </div>
     </div>
-    <div class="form-row">
-        <div class="form-group col-12">
+    <div class="row">
+        <div class="mb-3 col-12">
             <label for="bulkEmailPlainBody">Plain Text Body</label>
             <CustomInputTextArea class="form-control" id="bulkEmailPlainBody" @bind-Value="request.PlainBody" rows="10"
                 placeholder="Plain text body"></CustomInputTextArea>
         </div>
     </div>
-    <div class="form-row">
-        <div class="form-group col-md-6">
+    <div class="row">
+        <div class="mb-3 col-md-6">
             <label for="bulkEmailHTMLBody">HTML Body</label>
             <CustomInputTextArea class="form-control" id="bulkEmailHTMLBody" @bind-Value="request.HTMLBody" rows="15"
                 placeholder="HTML version of the message body"></CustomInputTextArea>
         </div>
-        <div class="form-group col-md-6">
+        <div class="mb-3 col-md-6">
             <label for="bulkEmailHTMLPreview">Preview</label>
             <div id="bulkEmailHTMLPreview">
                 @((MarkupString)request.HTMLBody)

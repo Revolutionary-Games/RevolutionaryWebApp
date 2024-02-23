@@ -48,13 +48,13 @@ else
                         {
                             <span class="oi oi-chevron-right"></span>
                         }
-                        <span class="ml-1">@item.Id</span>
+                        <span class="ms-1">@item.Id</span>
                     </th>
                     <td>@item.Version</td>
                     <td>
                         @if (item.Latest)
                         {
-                            <span class="badge badge-success">Latest</span>
+                            <span class="badge bg-success">Latest</span>
                         }
                     </td>
                     <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
@@ -62,7 +62,7 @@ else
                     <td>
                         <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
                                 OnPressed="@(async () => await MakeVersionLatest(item))"
-                                Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm mr-2">
+                                Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm me-2">
                             Make Latest
                         </Button>
                         <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
@@ -87,7 +87,7 @@ else
     <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
 }
 
-<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
     New
 </Button>
 

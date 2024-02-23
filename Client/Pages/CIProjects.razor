@@ -50,43 +50,43 @@ else
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
     }
 
-    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
         New
     </Button>
 
     @if (showNewForm)
     {
         <form>
-            <div class="form-row">
-                <div class="form-group col-md-6">
+            <div class="row">
+                <div class="mb-3 col-md-6">
                     <label for="newCIProjectName">Project Name</label>
                     <input type="text" class="form-control" id="newCIProjectName" @bind="newName"
                            @bind:event="oninput">
                 </div>
-                <div class="form-group col-md-6">
+                <div class="mb-3 col-md-6">
                     <label for="newCIFullRepoName">Full Repository Name</label>
                     <input type="text" class="form-control" id="newCIFullRepoName" @bind="newFullRepoName"
                            placeholder="Owner/RepoName">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group col-12">
+            <div class="row">
+                <div class="mb-3 col-12">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="newCIProjectPublic" @bind="newPublic">
                         <label class="form-check-label" for="newCIProjectPublic">Visible to non-developers?</label>
                     </div>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group col-12">
+            <div class="row">
+                <div class="mb-3 col-12">
                     <label for="newCIProjectCloneURL">Clone URL</label>
                     <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group col-md-6">
-                    <label class="mr-1" for="newCIProjectType">Type</label>
+            <div class="row">
+                <div class="mb-3 col-md-6">
+                    <label class="me-1" for="newCIProjectType">Type</label>
                     <select class="form-select" id="newCIProjectType" @bind="newProjectType">
                         @foreach (var name in Enum.GetNames<CIProjectType>())
                         {
@@ -94,7 +94,7 @@ else
                         }
                     </select>
                 </div>
-                <div class="form-group col-md-6">
+                <div class="mb-3 col-md-6">
                     <label for="newCIProjectDefaultBranch">Default Branch Name</label>
                     <input type="text" class="form-control" id="newCIProjectDefaultBranch" @bind="newDefaultBranch">
                 </div>

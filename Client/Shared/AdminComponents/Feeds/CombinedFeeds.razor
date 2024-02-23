@@ -54,7 +54,7 @@ else
                         {
                             <span class="oi oi-chevron-right"></span>
                         }
-                        <span class="ml-1">@item.Id</span>
+                        <span class="ms-1">@item.Id</span>
                     </th>
                     <td><a href="@($"/api/v1/feed/{item.Name}")" target="_blank">@item.Name</a></td>
                     <td>
@@ -93,7 +93,7 @@ else
     <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
 }
 
-<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
     New
 </Button>
 

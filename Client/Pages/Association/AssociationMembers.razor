@@ -77,7 +77,7 @@
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
     }
 
-    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
         New
     </Button>
 
@@ -86,36 +86,36 @@
         <EditForm EditContext="@editContext" OnValidSubmit="@CreateNew">
             <DataAnnotationsValidator />
 
-            <div class="form-row">
-                <div class="form-group col-md-6">
+            <div class="row">
+                <div class="mb-3 col-md-6">
                     <label for="newFirstNames">First Name(s)</label>
                     <CustomInputText class="form-control" id="newFirstNames"
                                      @bind-Value="newData!.FirstNames" placeholder="First names"
                                      DisplayName="First Name(s)" />
                 </div>
-                <div class="form-group col-md-6">
+                <div class="mb-3 col-md-6">
                     <label for="newLastNames">Last Name</label>
                     <CustomInputText class="form-control" id="newLastNames"
                                      @bind-Value="newData!.LastName" placeholder="Last name"/>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
+            <div class="row">
+                <div class="mb-3">
                     <label for="newEmail">Email (can't be changed later)</label>
                     <CustomInputText class="form-control" id="newEmail"
                                      @bind-Value="newData!.Email" placeholder="Email"/>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group col-md-8">
+            <div class="row">
+                <div class="mb-3 col-md-8">
                     <label for="newCity">City of Residence (and state code if USA)</label>
                     <CustomInputText class="form-control" id="newCity"
                                      @bind-Value="newData!.CityOfResidence" placeholder="City of Residence"
                                      DisplayName="City of Residence" />
                 </div>
-                <div class="form-group col-md-4">
+                <div class="mb-3 col-md-4">
                     <label for="newCountry">Country</label>
                     <CustomInputText class="form-control" id="newCountry"
                                      @bind-Value="newData!.CountryOfResidence" placeholder="Country"
@@ -123,15 +123,15 @@
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
+            <div class="row">
+                <div class="mb-3">
                     <label for="newJoinDate">Join Date</label>
                     <InputDate class="form-control" id="newJoinDate" @bind-Value="newData!.JoinDate"/>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group col-md-3">
+            <div class="row">
+                <div class="mb-3 col-md-3">
                     <div class="form-check">
                         <InputCheckbox class="form-check-input" type="checkbox" id="newIsBoardMember"
                                        @bind-Value="newData!.BoardMember" />
@@ -140,7 +140,7 @@
                         </label>
                     </div>
                 </div>
-                <div class="form-group col-md-3">
+                <div class="mb-3 col-md-3">
                     <div class="form-check">
                         <InputCheckbox class="form-check-input" type="checkbox" id="newIsPresident"
                                        @bind-Value="newData!.CurrentPresident" />
@@ -149,7 +149,7 @@
                         </label>
                     </div>
                 </div>
-                <div class="form-group col-md-3">
+                <div class="mb-3 col-md-3">
                     <div class="form-check">
                         <InputCheckbox class="form-check-input" type="checkbox" id="newHasBeenBoardMember"
                                        @bind-Value="newData!.HasBeenBoardMember" />
@@ -158,7 +158,7 @@
                         </label>
                     </div>
                 </div>
-                <div class="form-group col-md-3">
+                <div class="mb-3 col-md-3">
                     <div class="form-check">
                         <InputCheckbox class="form-check-input" type="checkbox" id="newThriveDeveloper"
                                        @bind-Value="newData!.IsThriveDeveloper" />
@@ -172,7 +172,7 @@
             <ValidationSummary />
 
             <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-            <Button class="my-1 mr-1" Enabled="@(!processingNewForm)" type="submit" Spinner="@processingNewForm">
+            <Button class="my-1 me-1" Enabled="@(!processingNewForm)" type="submit" Spinner="@processingNewForm">
                 Create
             </Button>
             <Button ButtonStyle="secondary" OnPressed="@ToggleCreateNew">

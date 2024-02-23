@@ -34,7 +34,7 @@
             }
             else
             {
-                <span class="badge badge-danger">Disabled</span>
+                <span class="badge bg-danger">Disabled</span>
             }
         }
     </div>
@@ -83,7 +83,7 @@
                             <Button Enabled="@CanDelete(item)"
                                     OnPressed="@(async () => await DownloadBackup(item.Id))"
                                     Spinner="@IsProcessing(item.Id)" ButtonStyle="primary"
-                                    class="btn-sm mr-1">
+                                    class="btn-sm me-1">
                                 Download
                             </Button>
                             <Button Enabled="@CanDelete(item)"

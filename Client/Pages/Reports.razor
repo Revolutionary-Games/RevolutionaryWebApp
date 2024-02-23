@@ -15,15 +15,15 @@
 
 <h3>Crash Reports</h3>
 
-<form class="form-inline">
-    <div class="form-check mb-2 mr-sm-2">
+<form class="d-flex flex-row align-items-center">
+    <div class="form-check mb-2 me-sm-2">
         <input class="form-check-input" type="checkbox" id="searchReportsDuplicates" @bind="SearchDuplicates">
         <label class="form-check-label" for="searchReportsDuplicates">
             Duplicates
         </label>
     </div>
 
-    <div class="form-check mb-2 mr-sm-2">
+    <div class="form-check mb-2 me-sm-2">
         <input class="form-check-input" type="checkbox" id="searchReportsClosed" @bind="SearchClosed">
         <label class="form-check-label" for="searchReportsClosed">
             Closed
@@ -31,7 +31,7 @@
     </div>
 
     <label class="visually-hidden" for="reportTextSearch">Text to search:</label>
-    <input type="text" class="form-control mb-2 flex-fill mr-sm-2" id="reportTextSearch"
+    <input type="text" class="form-control mb-2 flex-fill me-sm-2" id="reportTextSearch"
            placeholder="Containing text..." @bind="SearchText" @bind:event="oninput">
 
     <Button class="mb-2" type="submit" ButtonStyle="primary"

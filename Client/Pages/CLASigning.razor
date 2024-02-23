@@ -36,11 +36,11 @@
                     with a verification email.
                 </p>
 
-                <form class="form-inline">
+                <form class="d-flex flex-row align-items-center">
                     <input type="text" class="form-control mb-3 flex-fill" id="emailToVerifyInput"
                            placeholder="Email address..." @bind="Data.Email" @bind:event="oninput">
 
-                    <Button class="mb-3 ml-1" type="submit" ButtonStyle="@VerificationButtonStyle"
+                    <Button class="mb-3 ms-1" type="submit" ButtonStyle="@VerificationButtonStyle"
                             Enabled="@CanSendVerification" OnPressed="@SendEmailVerification"
                             Spinner="@processingEmail">
                         Send Verification Email
@@ -67,7 +67,7 @@
                             with email: @Data.GithubEmail
                         </p>
 
-                        <Button ButtonStyle="warning" class="mb-1 mr-1" Enabled="@(!processingGithub)"
+                        <Button ButtonStyle="warning" class="mb-1 me-1" Enabled="@(!processingGithub)"
                                 Spinner="@processingGithub" OnPressed="@BeginGithubVerification">
                             Link Different Account
                         </Button>
@@ -76,13 +76,13 @@
                     {
                         <a href="@githubAuthorizationUrl">Click Here to Authorize on GitHub</a>
 
-                        <Button ButtonStyle="danger" class="mb-1 ml-1" OnPressed="@ClearGithubAuthorizationUrl">
+                        <Button ButtonStyle="danger" class="mb-1 ms-1" OnPressed="@ClearGithubAuthorizationUrl">
                             Cancel
                         </Button>
                     }
                     else
                     {
-                        <Button ButtonStyle="primary" class="mb-1 mr-1" Enabled="@(!processingGithub)"
+                        <Button ButtonStyle="primary" class="mb-1 me-1" Enabled="@(!processingGithub)"
                                 Spinner="@processingGithub" OnPressed="@BeginGithubVerification">
                             Link
                         </Button>
@@ -109,21 +109,21 @@
             case 2:
             {
                 <form>
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
+                    <div class="row">
+                        <div class="mb-3 col-md-6">
                             <label for="signerName">Your Name</label>
                             <input type="text" class="form-control" id="signerName" @bind="Data.SignerName"
                                    @bind:event="oninput">
                         </div>
-                        <div class="form-group col-md-6">
+                        <div class="mb-3 col-md-6">
                             <label for="signerUsername">Developer / Community Member Username</label>
                             <input type="text" class="form-control" id="signerUsername" @bind="Data.DeveloperUsername"
                                    @bind:event="oninput" placeholder="Username (optional)">
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
+                    <div class="row">
+                        <div class="mb-3">
                             <label for="signerIsMinor">Are you a minor or missing capacity to sign on your own?</label>
                             <select class="form-select" id="signerIsMinor" @onchange="UpdateIsMinorSelection"
                                     value="@(Data.SignerIsMinor?.ToString() ?? string.Empty)">
@@ -136,7 +136,7 @@
 
                     @if (Data.SignerIsMinor == true)
                     {
-                        <div class="form-row">
+                        <div class="row">
                             <label for="signerGuardianName">Guardian's Name</label>
                             <input type="text" class="form-control" id="signerGuardianName" @bind="Data.GuardianName"
                                    @bind:event="oninput">
@@ -187,7 +187,7 @@
                 </p>
 
                 <form>
-                    <div class="form-row">
+                    <div class="row">
                         <label for="signerSignature">Signature</label>
                         <input type="text" class="form-control" id="signerSignature" @bind="Data.SignerSignature"
                                @bind:event="oninput"
@@ -196,7 +196,7 @@
 
                     @if (Data.SignerIsMinor == true)
                     {
-                        <div class="form-row">
+                        <div class="row">
                             <label for="guardianSignature">Guardian's Signature</label>
                             <input type="text" class="form-control" id="guardianSignature"
                                    @bind="Data.GuardianSignature" @bind:event="oninput">
@@ -218,26 +218,26 @@
 
         @if (ShowCancel)
         {
-            <Button ButtonStyle="danger" class="mr-1" OnPressed="@CancelSigning" Enabled="@(!processingCancel)"
+            <Button ButtonStyle="danger" class="me-1" OnPressed="@CancelSigning" Enabled="@(!processingCancel)"
                     Spinner="@processingCancel">
                 Cancel
             </Button>
         }
 
-        <Button ButtonStyle="warning" class="mr-1" Enabled="@PreviousEnabled" OnPressed="@PreviousPressed">
+        <Button ButtonStyle="warning" class="me-1" Enabled="@PreviousEnabled" OnPressed="@PreviousPressed">
             Back
         </Button>
 
         @if (ShowNext)
         {
-            <Button ButtonStyle="primary" class="mr-1" Enabled="@(CanGotoNext && !processingNext)"
+            <Button ButtonStyle="primary" class="me-1" Enabled="@(CanGotoNext && !processingNext)"
                     Spinner="@processingNext" OnPressed="NextPressed">
                 Next
             </Button>
         }
         else
         {
-            <Button ButtonStyle="primary" class="mr-1" Enabled="@CanSign" OnPressed="@PerformSign"
+            <Button ButtonStyle="primary" class="me-1" Enabled="@CanSign" OnPressed="@PerformSign"
                     Spinner="@processingNext">
                 Sign
             </Button>

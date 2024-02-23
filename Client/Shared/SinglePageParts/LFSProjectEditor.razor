@@ -6,8 +6,8 @@
 {
     <EditForm EditContext="@editContext" OnValidSubmit="@Save">
         <DataAnnotationsValidator />
-        <div class="form-row">
-            <div class="form-group">
+        <div class="row">
+            <div class="mb-3">
                 <label for="newBranchToShow">Branch To Show File Tree For</label>
                 <CustomInputText class="form-control" id="newBranchToShow"
                                  @bind-Value="editedData!.BranchToBuildFileTreeFor" placeholder="Branch name"
@@ -18,7 +18,7 @@
         <ValidationSummary />
 
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
-        <Button class="my-1 mr-1" Enabled="@(!processing)" type="submit" Spinner="@processing"
+        <Button class="my-1 me-1" Enabled="@(!processing)" type="submit" Spinner="@processing"
                 ButtonStyle="primary">
             Save
         </Button>

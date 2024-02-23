@@ -18,15 +18,15 @@
             Crash Report @Data.Id
             @if (Data.State == ReportState.Closed)
             {
-                <span class="badge badge-success ml-2">Closed</span>
+                <span class="badge bg-success ms-2">Closed</span>
             } else if (Data.State == ReportState.Duplicate)
             {
-                <span class="badge badge-warning ml-2">Duplicate</span>
+                <span class="badge bg-warning ms-2">Duplicate</span>
             }
 
             @if (!Data.Public)
             {
-                <span class="badge badge-secondary ml-2">Private</span>
+                <span class="badge bg-secondary ms-2">Private</span>
             }
         </h3>
 
@@ -258,7 +258,7 @@
                     }
                     else
                     {
-                        <Button ButtonStyle="secondary" Enabled="@(!fetchingEmail)" class="mr-2"
+                        <Button ButtonStyle="secondary" Enabled="@(!fetchingEmail)" class="me-2"
                                 Spinner="@fetchingEmail" OnPressed="@(async () => await FetchReporterEmail())">
                             Show Reporter Email
                         </Button>

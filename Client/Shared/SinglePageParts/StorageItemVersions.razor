@@ -53,7 +53,7 @@ else
                         <td>
                             @if (item.Keep || item.Protected)
                             {
-                                <span class="badge badge-success">yes</span>
+                                <span class="badge bg-success">yes</span>
                             }
                         </td>
                         <td>@(!item.Uploading)</td>
@@ -76,13 +76,13 @@ else
                         <td>
                             @if (item.Keep)
                             {
-                                <span class="badge badge-success">yes</span>
+                                <span class="badge bg-success">yes</span>
                             }
                         </td>
                         <td>
                             @if (item.Protected)
                             {
-                                <span class="badge badge-success">yes</span>
+                                <span class="badge bg-success">yes</span>
                             }
                         </td>
                         <td>@(!item.Uploading)</td>
@@ -99,7 +99,7 @@ else
                             {
                                 <Button Enabled="@CanChangeMarkedStatus(item)" Spinner="@IsProcessingItem(item)"
                                         OnPressed="@(async () => await UnmarkVersionKept(item))" ButtonStyle="warning"
-                                        class="btn-sm ml-1">
+                                        class="btn-sm ms-1">
                                     Unmark Kept
                                 </Button>
                             }
@@ -107,7 +107,7 @@ else
                             {
                                 <Button Enabled="@CanChangeMarkedStatus(item)" Spinner="@IsProcessingItem(item)"
                                         OnPressed="@(async () => await MarkVersionKept(item))" ButtonStyle="primary"
-                                        class="btn-sm ml-1">
+                                        class="btn-sm ms-1">
                                     Keep
                                 </Button>
                             }

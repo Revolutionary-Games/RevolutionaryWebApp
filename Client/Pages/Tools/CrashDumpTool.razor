@@ -29,8 +29,8 @@
 <h4>Upload</h4>
 
 <form class="form">
-    <div class="form-row">
-        <label for="dumpsUploadSelection" class="mr-1">
+    <div class="row">
+        <label for="dumpsUploadSelection" class="me-1">
             Select crash dump:
         </label>
         <InputFile id="dumpsUploadSelection" accept="*.dmp" OnChange="OnInputFilesChanged" />
@@ -40,7 +40,7 @@
 
     <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
 
-    <div class="form-row">
+    <div class="row">
         <Button ButtonStyle="primary" Enabled="@CanSubmit" type="submit" Spinner="@processing" OnPressed="@Submit"
                 class="mb-2">
             Submit

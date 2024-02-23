@@ -34,7 +34,7 @@ else
                     Poll: @item.Title
                     @if (item.AutoCloseAt.HasValue && item.ClosedAt == null)
                     {
-                        <span class="@($"badge {CountdownTimerBadgeClass(item)} ml-2")">
+                        <span class="@($"badge {CountdownTimerBadgeClass(item)} ms-2")">
                             <CountdownTimer EndTime="@item.AutoCloseAt.Value" /> left
                         </span>
                     }
@@ -97,8 +97,8 @@ else
                             {
                                 var elementId = WeightedChoicePollElementId(item, choice.Key, renderCount);
 
-                                <div class="form-row">
-                                    <div class="form-group col-12">
+                                <div class="row">
+                                    <div class="mb-3 col-12">
                                         <label for="@elementId">@choice.Value.Name</label>
                                         <select @key="elementId" class="form-select" id="@elementId"
                                                 value="@data.Item1[choice.Key].ChoiceNumber"
@@ -125,8 +125,8 @@ else
                             {
                                 var elementId = $"poll{item.PollId}Choice{choice.Key}";
 
-                                <div class="form-row">
-                                    <div class="form-group col-12">
+                                <div class="row">
+                                    <div class="mb-3 col-12">
                                         <label for="@elementId">@choice.Value.Name</label>
                                         <input type="checkbox" id="@elementId"
                                                checked="@(data.Item1[choice.Key].ChoiceNumber != null)"
@@ -146,8 +146,8 @@ else
                             {
                                 var elementId = $"poll{item.PollId}Choice{choice.Key}";
 
-                                <div class="form-row">
-                                    <div class="form-group col-12">
+                                <div class="row">
+                                    <div class="mb-3 col-12">
                                         <input type="radio" id="@elementId"
                                                checked="@(data.Item1[choice.Key].ChoiceNumber != null)"
                                                @onchange="e => SingleChoiceButtonChanged(choice.Value, e,
@@ -170,7 +170,7 @@ else
                         }
 
                         <Button Enabled="@(!IsRunningPollAction(item) && !AlreadyVotedIn(item))"
-                                Spinner="@IsRunningPollAction(item)" ButtonStyle="primary" class="mb-1 mr-1"
+                                Spinner="@IsRunningPollAction(item)" ButtonStyle="primary" class="mb-1 me-1"
                                 OnPressed="@(() => SendVotes(item))">
                             Vote
                         </Button>
@@ -195,7 +195,7 @@ else
                 {
                     <Button Enabled="@(item.ClosedAt == null && !IsRunningPollAction(item))"
                             Spinner="@IsRunningPollAction(item)"
-                            ButtonStyle="danger" class="mr-1" OnPressed="@(() => ClosePoll(item))">
+                            ButtonStyle="danger" class="me-1" OnPressed="@(() => ClosePoll(item))">
                         Close Now
                     </Button>
                     <Button Enabled="@(item.ClosedAt != null && !IsRunningPollAction(item))"
@@ -214,15 +214,15 @@ else
     {
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
 
-        <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.WeightedChoice))"
+        <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.WeightedChoice))"
                 Enabled="@CanEdit">
             New Weighted Choice (election)
         </Button>
-        <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.MultipleChoice))"
+        <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.MultipleChoice))"
                 Enabled="@CanEdit">
             New Multiple Choice
         </Button>
-        <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.SingleChoice))"
+        <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@(() => ShowNewForm(NewPollType.SingleChoice))"
                 Enabled="@CanEdit">
             New Single Choice
         </Button>
@@ -230,14 +230,14 @@ else
     else
     {
         <form>
-            <div class="form-row">
-                <div class="form-group col-md-6">
+            <div class="row">
+                <div class="mb-3 col-md-6">
                     <label for="newPollTitle">Title</label>
                     <input type="text" class="form-control" id="newPollTitle" @bind="newPollDTOData.Title"
                            @bind:event="oninput">
                 </div>
-                <div class="form-group col-md-6">
-                    <label class="mr-1" for="newTiebreakType">Tiebreak type</label>
+                <div class="mb-3 col-md-6">
+                    <label class="me-1" for="newTiebreakType">Tiebreak type</label>
                     <select class="form-select" id="newTiebreakType" @bind="newPollDTOData.TiebreakType">
                         @foreach (var name in Enum.GetNames<VotingTiebreakType>())
                         {
@@ -246,15 +246,15 @@ else
                     </select>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group col-12">
+            <div class="row">
+                <div class="mb-3 col-12">
                     <label for="newAutoCloseInMinutes">Auto close in (minutes)</label>
                     <input type="number" min="2" max="60" step="1"
                            class="form-control" id="newAutoCloseInMinutes" @bind="newAutoCloseInMinutes">
                 </div>
             </div>
 
-            <div class="form-row">
+            <div class="row">
                 <div>Choices:</div>
             </div>
 
@@ -262,13 +262,13 @@ else
             {
                 var elementId = $"newPollChoiceName{item.Key}";
 
-                <div class="form-row">
-                    <div class="form-group col-md-10">
+                <div class="row">
+                    <div class="mb-3 col-md-10">
                         <input type="text" placeholder="Choice name..."
                                class="form-control" id="@elementId" @bind="item.Value.Name">
                     </div>
 
-                    <div class="form-group col-md-2">
+                    <div class="mb-3 col-md-2">
                         <Button ButtonStyle="warning" class="form-control" OnPressed="@(() => RemoveChoice(item.Key))">
                             Remove
                         </Button>
@@ -276,7 +276,7 @@ else
                 </div>
             }
 
-            <div class="form-row">
+            <div class="row">
                 <Button class="mb-3" Enabled="@(!processingNewForm)" OnPressed="@AddNewChoice">
                     Add Choice
                 </Button>
@@ -284,15 +284,15 @@ else
 
             @if (newPollData.MultipleChoiceOption != null)
             {
-                <div class="form-group col-md-6">
-                    <label class="mr-1" for="newMinChoices">Minimum Number of Options Voters Can Choose</label>
+                <div class="mb-3 col-md-6">
+                    <label class="me-1" for="newMinChoices">Minimum Number of Options Voters Can Choose</label>
                     <input type="number" min="0" max="@(newPollData.Choices.Count - 1)" step="1"
                            class="form-control" id="newMinChoices"
                            @bind="newPollData.MultipleChoiceOption.MinimumSelections">
                 </div>
 
-                <div class="form-group col-md-6">
-                    <label class="mr-1" for="newMaxChoices">Maximum Number Of Options</label>
+                <div class="mb-3 col-md-6">
+                    <label class="me-1" for="newMaxChoices">Maximum Number Of Options</label>
                     <input type="number" min="1" max="@newPollData.Choices.Count" step="1"
                            class="form-control" id="newMaxChoices"
                            @bind="newPollData.MultipleChoiceOption.MaximumSelections">
@@ -300,23 +300,23 @@ else
             }
             else if (newPollData.WeightedChoices != null)
             {
-                <div class="form-group col-md-12">
-                    <label class="mr-1" for="newAllowEmpty">Can Votes Be Empty?</label>
+                <div class="mb-3 col-md-12">
+                    <label class="me-1" for="newAllowEmpty">Can Votes Be Empty?</label>
                     <input type="checkbox" id="newAllowEmpty"
                            @bind="newPollData.WeightedChoices.CanSelectNone">
                 </div>
             }
             else if (newPollData.SingleChoiceOption != null)
             {
-                <div class="form-group col-md-12">
-                    <label class="mr-1" for="newAllowEmpty">Can Votes Be Empty?</label>
+                <div class="mb-3 col-md-12">
+                    <label class="me-1" for="newAllowEmpty">Can Votes Be Empty?</label>
                     <input type="checkbox" id="newAllowEmpty"
                            @bind="newPollData.SingleChoiceOption.CanSelectNone">
                 </div>
             }
 
             <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
-            <Button class="my-1 mr-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+            <Button class="my-1 me-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
                 Create
             </Button>
             <Button class="my-1" OnPressed="@HideNewForm" ButtonStyle="secondary">
@@ -870,20 +870,20 @@ else
 
         if (AlreadyVotedIn(poll))
         {
-            return "badge-success";
+            return "bg-success";
         }
 
         if (remaining > TimeSpan.FromMinutes(5))
         {
-            return "badge-secondary";
+            return "bg-secondary";
         }
 
         if (remaining > TimeSpan.FromMinutes(1))
         {
-            return "badge-warning";
+            return "bg-warning";
         }
 
-        return "badge-danger";
+        return "bg-danger";
     }
 
     private void CheckActivePollsTimer(object? sender, ElapsedEventArgs e)

@@ -46,7 +46,7 @@
                 <UserPicker Selected="@newChairman" OnSelected="@OnNewChairmanPicked" />
 
                 <Button Enabled="@(!IsEnded && !processingAction && newChairman != null)"
-                        ButtonStyle="warning" class="mb-1 mr-1" Spinner="@processingAction"
+                        ButtonStyle="warning" class="mb-1 me-1" Spinner="@processingAction"
                         OnPressed="@SetNewChairman">
                     Change Chairman
                 </Button>

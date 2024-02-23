@@ -22,7 +22,7 @@
 
         @if (signingKeyExpiryTime == null)
         {
-            <span class="badge badge-danger">Launcher signing key expiry is unknown</span>
+            <span class="badge bg-danger">Launcher signing key expiry is unknown</span>
         }
         else
         {
@@ -31,19 +31,19 @@
 
             if (timeLeft > TimeSpan.FromDays(300))
             {
-                <span class="badge badge-success">Launcher signing key expires in @dayDisplay days</span>
+                <span class="badge bg-success">Launcher signing key expires in @dayDisplay days</span>
             }
             else if (timeLeft > TimeSpan.FromDays(100))
             {
-                <span class="badge badge-warning">Launcher signing key expires in @dayDisplay days</span>
+                <span class="badge bg-warning">Launcher signing key expires in @dayDisplay days</span>
             }
             else if (timeLeft < TimeSpan.FromSeconds(1))
             {
-                <span class="badge badge-danger">LAUNCHER SIGNING KEY HAS EXPIRED @(-timeLeft) AGO!</span>
+                <span class="badge bg-danger">LAUNCHER SIGNING KEY HAS EXPIRED @(-timeLeft) AGO!</span>
             }
             else
             {
-                <span class="badge badge-danger">Launcher signing key expires in @dayDisplay days</span>
+                <span class="badge bg-danger">Launcher signing key expires in @dayDisplay days</span>
             }
         }
 

@@ -4,8 +4,8 @@
         <EditForm EditContext="@editContext" OnValidSubmit="@Confirm">
             <DataAnnotationsValidator />
 
-            <div class="form-row">
-                <div class="form-group col-md-12">
+            <div class="row">
+                <div class="mb-3 col-md-12">
                     <label for="newFeedPreprocessingTarget">Feed Item Section To Run In</label>
                     <InputSelect class="form-control" id="newFeedPreprocessingTarget"
                                  @bind-Value="createdAction.Target">
@@ -17,16 +17,16 @@
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group col-md-12">
+            <div class="row">
+                <div class="mb-3 col-md-12">
                     <label for="newFeedPreprocessingToFind">Look For</label>
                     <CustomInputText class="form-control" id="newFeedPreprocessingToFind"
                                      @bind-Value="createdAction.ToFind" placeholder="Text to find (regex)"/>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group col-md-12">
+            <div class="row">
+                <div class="mb-3 col-md-12">
                     <label for="newFeedPreprocessingReplacer">Replace With</label>
                     <CustomInputText class="form-control" id="newFeedPreprocessingReplacer"
                                      @bind-Value="createdAction.Replacer" placeholder="Replace text with"/>
@@ -37,8 +37,8 @@
         </EditForm>
     </div>
     <div class="modal-footer">
-        <Button class="mr-1" ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
-        <Button class="mr-1" ButtonStyle="primary" OnPressed="@TryConfirm">Create</Button>
+        <Button class="me-1" ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+        <Button class="me-1" ButtonStyle="primary" OnPressed="@TryConfirm">Create</Button>
     </div>
 </BootstrapModal>
 

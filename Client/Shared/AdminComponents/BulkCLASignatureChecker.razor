@@ -9,9 +9,9 @@
 <EditForm Model="@request" OnValidSubmit="@Search">
     <DataAnnotationsValidator />
 
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label class="mr-1" for="checkRequestType">Check Mode</label>
+    <div class="row">
+        <div class="mb-3 col-md-6">
+            <label class="me-1" for="checkRequestType">Check Mode</label>
             <InputSelect class="form-select" id="checkRequestType" @bind-Value="request.CheckType">
                 @foreach (var name in Enum.GetNames<CLACheckRequestType>())
                 {
@@ -19,7 +19,7 @@
                 }
             </InputSelect>
         </div>
-        <div class="form-group col-md-6">
+        <div class="mb-3 col-md-6">
             <div class="form-check">
                 <InputCheckbox class="form-check-input" id="newCIProjectPublic" @bind-Value="request.ReturnNotFound" />
                 <label class="form-check-label" for="newCIProjectPublic">Return not signed?</label>
@@ -27,8 +27,8 @@
         </div>
     </div>
 
-    <div class="form-row">
-        <div class="form-group col-12">
+    <div class="row">
+        <div class="mb-3 col-12">
             <CustomInputTextArea class="form-control" @bind-Value="request.ItemsToCheck"
                                  rows="5" placeholder="People to check (one per line)">
             </CustomInputTextArea>
@@ -61,7 +61,7 @@
 
         @if (results.Count < 1)
         {
-            <span class="ml-1">Server returned an empty list</span>
+            <span class="ms-1">Server returned an empty list</span>
         }
     </div>
 }

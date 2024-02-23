@@ -55,28 +55,28 @@ else
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
     }
 
-    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
         New
     </Button>
 
     @if (showNewForm)
     {
         <form>
-            <div class="form-row">
-                <div class="form-group col-lg-6">
+            <div class="row">
+                <div class="mb-3 col-lg-6">
                     <label for="newMeetingName">Meeting Name (Need to be unique)</label>
                     <input type="text" class="form-control" id="newMeetingName" @bind="newName">
                 </div>
-                <div class="form-group col-lg-6">
+                <div class="mb-3 col-lg-6">
                     <label for="newDescription">Meeting Description</label>
                     <textarea rows="15" class="form-control" id="newDescription"
                         @bind="newDescription" @bind:event="oninput">
                     </textarea>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group col-md-6">
-                    <label class="mr-1" for="newMeetingReadAccess">Visible To</label>
+            <div class="row">
+                <div class="mb-3 col-md-6">
+                    <label class="me-1" for="newMeetingReadAccess">Visible To</label>
                     <select class="form-select" id="newMeetingReadAccess" @bind="newMeetingReadAccess">
                         @foreach (var name in Enum.GetNames<AssociationResourceAccess>())
                         {
@@ -84,8 +84,8 @@ else
                         }
                     </select>
                 </div>
-                <div class="form-group col-md-6">
-                    <label class="mr-1" for="newMeetingJoinAccess">Joinable By</label>
+                <div class="mb-3 col-md-6">
+                    <label class="me-1" for="newMeetingJoinAccess">Joinable By</label>
                     <select class="form-select" id="newMeetingJoinAccess" @bind="newMeetingJoinAccess">
                         @foreach (var name in Enum.GetNames<AssociationResourceAccess>())
                         {
@@ -94,28 +94,28 @@ else
                     </select>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group col-md-6 col-xl-5">
+            <div class="row">
+                <div class="mb-3 col-md-6 col-xl-5">
                     <label for="newMeetingStartDate">Starting Date</label>
                     <input type="date" class="form-control" id="newMeetingStartDate" @bind="newStartDate">
                 </div>
-                <div class="form-group col-md-6 col-xl-5">
+                <div class="mb-3 col-md-6 col-xl-5">
                     <label for="newMeetingStartTime">Starting Time (local timezone)</label>
                     <input type="time" class="form-control" id="newMeetingStartTime" @bind="newStartTime">
                 </div>
-                <div class="form-group col-md-12 col-xl-2">
+                <div class="mb-3 col-md-12 col-xl-2">
                     <label for="newJoinGracePeriod">Join Grace Period After Start (minutes)</label>
                     <input type="number" min="0" max="120" step="1"
                            class="form-control" id="newJoinGracePeriod" @bind="newJoinGraceMinutes">
                 </div>
             </div>
 
-            <div class="form-row">
+            <div class="row">
                 <p>Starting time in UTC: @UTCStartTime.ToString("G")</p>
             </div>
 
-            <div class="form-row">
-                <div class="form-group col-12">
+            <div class="row">
+                <div class="mb-3 col-12">
                     <label for="newExpectedDuration">Expected Duration in Minutes (Optional)</label>
                     <input type="number" min="5" max="600" step="5"
                            class="form-control" id="newExpectedDuration" @bind="newExpectedDuration">

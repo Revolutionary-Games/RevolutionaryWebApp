@@ -17,19 +17,19 @@
             CI Build #@Data.CiBuildId for @Data.ProjectName
             @if (Data.Status == BuildStatus.Succeeded)
             {
-                <span class="badge badge-success ml-2">Success</span>
+                <span class="badge bg-success ms-2">Success</span>
             }
             else if (Data.Status == BuildStatus.Running)
             {
-                <span class="badge badge-secondary ml-2">Running</span>
+                <span class="badge bg-secondary ms-2">Running</span>
             }
             else if (Data.Status == BuildStatus.Failed)
             {
-                <span class="badge badge-danger ml-2">Failed</span>
+                <span class="badge bg-danger ms-2">Failed</span>
             }
             else if (Data.Status == BuildStatus.GoingToFail)
             {
-                <span class="badge badge-warning ml-2">Failing</span>
+                <span class="badge bg-warning ms-2">Failing</span>
             }
         </h3>
         <ul>

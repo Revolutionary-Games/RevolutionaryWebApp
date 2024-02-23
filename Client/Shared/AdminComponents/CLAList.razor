@@ -46,28 +46,28 @@ else
     <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
 }
 
-<Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
     New
 </Button>
 
 @if (showNewForm)
 {
     <form>
-        <div class="form-row">
-            <div class="form-group col-xl-6">
+        <div class="row">
+            <div class="mb-3 col-xl-6">
                 <label for="newCLAText">CLA Text (markdown formatted)</label>
                 <textarea rows="50" columns="80" class="form-control" id="newCLAText"
                     @bind="newText" @bind:event="oninput">
                 </textarea>
             </div>
-            <div class="form-group col-xl-6">
+            <div class="mb-3 col-xl-6">
                 <label for="newCLAPreview">Markdown Preview</label>
                 <div id="newCLAPreview"><MarkdownRenderer MarkdownText="@(newText ?? string.Empty)"
                                                              AllMarkdownFeatures="@true"
                                                              UpdateRenderDelay="@TimeSpan.FromSeconds(1)"/></div>
             </div>
         </div>
-        <div class="form-row">
+        <div class="row">
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="newCLAActive" @bind="newActive">
                 <label class="form-check-label" for="newCLAActive">Create as active</label>

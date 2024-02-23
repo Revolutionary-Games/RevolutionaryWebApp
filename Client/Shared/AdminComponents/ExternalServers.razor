@@ -53,7 +53,7 @@
                             {
                                 <span class="oi oi-chevron-right"></span>
                             }
-                            <span class="ml-1">@item.Id</span>
+                            <span class="ms-1">@item.Id</span>
                         </td>
                         <td>@item.Priority</td>
                         <td>@item.Status</td>
@@ -95,9 +95,9 @@
                         @* TODO: firefox once again complains here about that relative now has an effect here *@
                         <tr @key="key" style="position: relative;">
                             <td colspan="@columns.Count" class="mb-2 expanded-box">
-                                <form class="form-inline mr-2 mb-2">
+                                <form class="d-flex flex-row align-items-center flex-wrap me-2 mb-2">
                                     Update priority:
-                                    <select class="form-select ml-1" value="@item.Priority"
+                                    <select class="form-select ms-1" value="@item.Priority"
                                             @onchange="async args => await UpdatePriority(item, args)">
                                         @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
                                             AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
@@ -111,7 +111,7 @@
                                     Last maintenance: <RecentTimeShortener Time="@item.LastMaintenance" />
                                 </span>
 
-                                <span class="float-right">
+                                <span class="float-end">
                                     @if (item.Status != ServerStatus.Stopped && item.Status != ServerStatus.Stopping)
                                     {
                                         <Button Enabled="@(!IsProcessing(item.Id))"
@@ -130,7 +130,7 @@
                                     }
                                     <Button Enabled="@CanDelete(item)"
                                             OnPressed="@(async () => await VerifyDeleteServer(item))"
-                                            Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm ml-1">
+                                            Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm ms-1">
                                         Delete
                                     </Button>
                                 </span>
@@ -160,20 +160,20 @@
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
     }
 
-    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
         New
     </Button>
 
     @if (showNewForm)
     {
         <form>
-            <div class="form-row">
-                <div class="form-group col-md-6">
+            <div class="row">
+                <div class="mb-3 col-md-6">
                     <label for="newExternalServerIp">IP Address</label>
                     <input type="text" class="form-control" id="newExternalServerIp" @bind="newIP"
                            @bind:event="oninput">
                 </div>
-                <div class="form-group col-md-6">
+                <div class="mb-3 col-md-6">
                     <label for="newExternalSSHKeyName">SSH Key Filename</label>
                     <input type="text" class="form-control" id="newExternalSSHKeyName" @bind="newSSHKey"
                            placeholder="key.pem" @bind:event="oninput">

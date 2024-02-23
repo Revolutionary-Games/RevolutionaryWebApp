@@ -53,40 +53,40 @@ else
         <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
     }
 
-    <Button class="mb-3 mr-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
         New
     </Button>
 
     @if (showNewForm)
     {
         <form>
-            <div class="form-row">
-                <div class="form-group col-md-6">
+            <div class="row">
+                <div class="mb-3 col-md-6">
                     <label for="newLFSItemName">New Project Name</label>
                     <input type="text" class="form-control" id="newLFSItemName" @bind="newName">
                 </div>
-                <div class="form-group col-md-6">
+                <div class="mb-3 col-md-6">
                     <label for="newLFSItemSlug">Project Slug</label>
                     <input type="text" class="form-control" id="newLFSItemSlug" @bind="newSlug">
                 </div>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="newLFSItemPublic" @bind="newPublic">
                     <label class="form-check-label" for="newLFSItemPublic">Visible to non-developers?</label>
                 </div>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
                 <label for="newLFSRepoURL">Repository URL</label>
                 <input type="text" class="form-control" id="newLFSRepoURL" @bind="newRepoURL">
             </div>
 
-            <div class="form-group">
+            <div class="mb-3">
                 <label for="newLFSCloneURL">Git Clone URL</label>
                 <input type="text" class="form-control" id="newLFSCloneURL" @bind="newCloneURL">
             </div>
 
-            <div class="form-group">
+            <div class="mb-3">
                 <label for="newBranchName">Main Branch Name</label>
                 <input type="text" class="form-control" id="newBranchName" @bind="newBranchName">
             </div>

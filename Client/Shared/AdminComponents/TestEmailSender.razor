@@ -5,9 +5,9 @@
 
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
-<form class="form-inline">
+<form class="d-flex flex-row align-items-center">
     <label class="visually-hidden" for="testEmailRecipient">Address to send test mail to:</label>
-    <input type="text" class="form-control mb-2 flex-fill mr-1" id="testEmailRecipient"
+    <input type="text" class="form-control mb-2 flex-fill me-1" id="testEmailRecipient"
            placeholder="Recipient..." @bind="recipient" @bind:event="oninput">
 
     <Button class="mb-2" type="submit" ButtonStyle="primary"

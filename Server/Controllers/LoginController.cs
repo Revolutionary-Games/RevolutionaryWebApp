@@ -391,9 +391,29 @@ public class LoginController : SSOLoginController
     [NonAction]
     private IActionResult CreateSuspendedUserRedirect(User user)
     {
-        var suspension = user.SuspendedManually ?
-            " manually by an admin" :
-            $" with the reason: {user.SuspendedReason ?? "unknown"}";
+        string suspension;
+        if (string.IsNullOrWhiteSpace(user.SuspendedReason))
+        {
+            if (user.SuspendedManually)
+            {
+                suspension = " manually by an admin";
+            }
+            else
+            {
+                suspension = " due to an unknown reason";
+            }
+        }
+        else
+        {
+            if (user.SuspendedManually)
+            {
+                suspension = $" manually by an admin with the reason: {user.SuspendedReason}";
+            }
+            else
+            {
+                suspension = $" with the reason: {user.SuspendedReason}";
+            }
+        }
 
         return Redirect(QueryHelpers.AddQueryString("/login", "error", $"Your account is suspended {suspension}"));
     }

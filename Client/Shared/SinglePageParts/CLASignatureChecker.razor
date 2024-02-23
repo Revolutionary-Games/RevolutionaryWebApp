@@ -7,13 +7,13 @@
 
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
-<form class="form-inline">
-    <label class="mb-md-2 mr-1" for="signatureSearchEmail">Email to search:</label>
+<form class="d-flex flex-row align-items-center">
+    <label class="mb-md-2 me-1" for="signatureSearchEmail">Email to search:</label>
     <input type="email" class="form-control mb-2 flex-fill" id="signatureSearchEmail"
            placeholder="Email" @bind="email" @bind:event="oninput">
 
-    <label class="mb-md-2 ml-md-3 ml-1 mr-1" for="signatureSearchGithub">Github account:</label>
-    <input type="text" class="form-control mb-2 mr-2 flex-fill" id="signatureSearchGithub"
+    <label class="mb-md-2 ms-md-3 ms-1 me-1" for="signatureSearchGithub">Github account:</label>
+    <input type="text" class="form-control mb-2 me-2 flex-fill" id="signatureSearchGithub"
            placeholder="Username" @bind="githubAccount" @bind:event="oninput">
 
     <Button class="mb-2" type="submit" ButtonStyle="primary"
@@ -42,12 +42,12 @@
                     }
                     else
                     {
-                        <span class="ml-1">Github: @entry.GithubAccount</span>
+                        <span class="ms-1">Github: @entry.GithubAccount</span>
                     }
                 }
                 @if (!string.IsNullOrEmpty(entry.DeveloperUsername))
                 {
-                    <span class="ml-1">(developer username: @entry.DeveloperUsername)</span>
+                    <span class="ms-1">(developer username: @entry.DeveloperUsername)</span>
                 }
             </p>
         }
