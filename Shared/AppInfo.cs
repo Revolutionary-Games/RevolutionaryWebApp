@@ -129,6 +129,7 @@ public static class AppInfo
     public const int MaxExternalServerPriority = 10;
 
     public const int SshServerCommandAttempts = 3;
+    public const int SshConnectionTimeoutSeconds = 45;
 
     /// <summary>
     ///   Should be as high as the number of builds that can happen in a day

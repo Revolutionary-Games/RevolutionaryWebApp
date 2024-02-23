@@ -3,6 +3,7 @@
 using System;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using Shared;
 
 public interface IBaseSSHAccess
 {
@@ -77,7 +78,7 @@ public class BaseSSHAccess : IDisposable, IBaseSSHAccess
 
         var connectionInfo = new ConnectionInfo(address, username, auth)
         {
-            Timeout = TimeSpan.FromSeconds(10),
+            Timeout = TimeSpan.FromSeconds(AppInfo.SshConnectionTimeoutSeconds),
         };
 
         Client = new SshClient(connectionInfo);
