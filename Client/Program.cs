@@ -70,6 +70,9 @@ public class Program
         var concreteReader = (CSRFTokenReader)tokenReader;
         await concreteReader.Read();
 
+        var storageSetup = concreteReader.ReportInitialUserIdToLocalStorage(app.Services
+            .GetRequiredService<ILocalStorageService>());
+
         // Setup hub connection as soon as we are able
         // If this is awaited (especially in production) it slows down the app startup time, so that isn't done.
         // This in turn requires some careful programming before the connection has properly been established
@@ -79,8 +82,7 @@ public class Program
 
         // This isn't really needed to happen instantly, so maybe this could not be waited for here if this
         // increases the app load time at all
-        await concreteReader.ReportInitialUserIdToLocalStorage(app.Services
-            .GetRequiredService<ILocalStorageService>());
+        await storageSetup;
 
         await app.RunAsync();
     }

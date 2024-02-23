@@ -238,17 +238,7 @@ public class NotificationHandler : IAsyncDisposable
             {
                 configure.PayloadSerializerOptions = HttpClientHelpers.GetOptionsWithSerializers();
             })
-            .WithAutomaticReconnect(new[]
-            {
-                TimeSpan.FromSeconds(0),
-                TimeSpan.FromSeconds(2),
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(30),
-                TimeSpan.FromSeconds(60),
-                TimeSpan.FromSeconds(90),
-                TimeSpan.FromSeconds(120),
-                TimeSpan.FromSeconds(500),
-            }).ConfigureLogging(logging =>
+            .WithAutomaticReconnect(new ConnectionRetryTimer()).ConfigureLogging(logging =>
             {
                 if (FullMessageLogging)
                 {
@@ -532,4 +522,29 @@ public class NotificationHandler : IAsyncDisposable
 
     // ReSharper restore ConditionIsAlwaysTrueOrFalse
 #pragma warning restore 0162
+
+    private class ConnectionRetryTimer : IRetryPolicy
+    {
+        public TimeSpan? NextRetryDelay(RetryContext retryContext)
+        {
+            switch (retryContext.PreviousRetryCount)
+            {
+                case <= 1:
+                    return TimeSpan.FromMilliseconds(500);
+                case <= 3:
+                    return TimeSpan.FromSeconds(1);
+                case <= 6:
+                    return TimeSpan.FromSeconds(5);
+                case <= 9:
+                    return TimeSpan.FromSeconds(15);
+                case <= 12:
+                    return TimeSpan.FromSeconds(30);
+                case <= 60:
+                    return TimeSpan.FromSeconds(60);
+                default:
+                    // Retry indefinitely in case the server *eventually* comes back
+                    return TimeSpan.FromMinutes(30);
+            }
+        }
+    }
 }

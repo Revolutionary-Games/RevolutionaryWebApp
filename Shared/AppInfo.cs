@@ -205,7 +205,10 @@ public static class AppInfo
 
     public static readonly TimeSpan WaitBeforeNameRetrieveBatchStart = TimeSpan.FromMilliseconds(100);
 
-    public static readonly TimeSpan TimeBeforeShowingConnectionLoss = TimeSpan.FromMilliseconds(700);
+    /// <summary>
+    ///   This needs to be high enough to not trigger the connection loss message when navigating away from the website
+    /// </summary>
+    public static readonly TimeSpan TimeBeforeShowingConnectionLoss = TimeSpan.FromMilliseconds(1100);
 
     public static readonly TimeSpan KeepStackwalkResultsFor = TimeSpan.FromHours(1);
 
