@@ -36,7 +36,9 @@
                 @foreach (var item in Data.Results)
                 {
                     <tr @key="item.Id">
-                        <th scope="row"><NavLink href="@($"users/{item.Id}")">@item.Name</NavLink></th>
+                        <th scope="row"><NavLink class="nav-link" href="@($"users/{item.Id}")">
+                            @item.Name
+                        </NavLink></th>
                         <td>@item.Suspended</td>
                         <td>@item.SsoSource</td>
                         @* TODO: add back some basic group showing? *@

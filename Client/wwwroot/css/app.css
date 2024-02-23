@@ -21,9 +21,26 @@ a.active:hover {
     cursor: default;
 }
 
-/* fix for links in nav links */
+/* fix for links in navlinks */
 .nav-link:focus.active {
     color: #6c757d;
+}
+
+.nav-link:hover {
+    text-decoration: underline;
+}
+
+.nav-link:hover.active {
+    text-decoration: none;
+}
+
+/* fix for sidebar navlinks */
+.nav-sidebar .nav-link {
+    text-decoration: none;
+}
+
+.nav-sidebar .nav-link:hover {
+    text-decoration: none;
 }
 
 .btn-primary {
