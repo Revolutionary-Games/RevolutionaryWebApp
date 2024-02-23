@@ -288,6 +288,12 @@ table.non-fixed {
     height: 100%;
 }
 
+.breadcrumb {
+    padding: .75rem 1rem;
+    background-color: #e9ecef;
+    border-radius: .25rem;
+}
+
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */
 /* https://github.com/villainoustourist/Blazor.Pagination/issues/11 */
 .sr-only {
