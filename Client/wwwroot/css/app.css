@@ -19,7 +19,7 @@ a.active {
 a.active:hover {
     color: #6c757d;
     cursor: default;
-    text-decoration: none;
+    text-decoration: none !important;
 }
 
 .btn-primary {
@@ -157,7 +157,7 @@ table.non-fixed {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-.login-form > .form-group {
+.login-form {
     max-width: 325px;
 }
 
@@ -286,4 +286,10 @@ table.non-fixed {
 .preview-audio {
     width: 100%;
     height: 100%;
+}
+
+/* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */
+/* https://github.com/villainoustourist/Blazor.Pagination/issues/11 */
+.sr-only {
+    display: none !important;
 }
