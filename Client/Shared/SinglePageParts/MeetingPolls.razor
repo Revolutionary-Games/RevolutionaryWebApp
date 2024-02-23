@@ -237,7 +237,7 @@ else
                            @bind:event="oninput">
                 </div>
                 <div class="mb-3 col-md-6">
-                    <label class="me-1" for="newTiebreakType">Tiebreak type</label>
+                    <label class="form-label me-1" for="newTiebreakType">Tiebreak type</label>
                     <select class="form-select" id="newTiebreakType" @bind="newPollDTOData.TiebreakType">
                         @foreach (var name in Enum.GetNames<VotingTiebreakType>())
                         {
@@ -283,14 +283,16 @@ else
             @if (newPollData.MultipleChoiceOption != null)
             {
                 <div class="mb-3 col-md-6">
-                    <label class="me-1" for="newMinChoices">Minimum Number of Options Voters Can Choose</label>
+                    <label class="form-label me-1" for="newMinChoices">
+                        Minimum Number of Options Voters Can Choose
+                    </label>
                     <input type="number" min="0" max="@(newPollData.Choices.Count - 1)" step="1"
                            class="form-control" id="newMinChoices"
                            @bind="newPollData.MultipleChoiceOption.MinimumSelections">
                 </div>
 
                 <div class="mb-3 col-md-6">
-                    <label class="me-1" for="newMaxChoices">Maximum Number Of Options</label>
+                    <label class="form-label me-1" for="newMaxChoices">Maximum Number Of Options</label>
                     <input type="number" min="1" max="@newPollData.Choices.Count" step="1"
                            class="form-control" id="newMaxChoices"
                            @bind="newPollData.MultipleChoiceOption.MaximumSelections">

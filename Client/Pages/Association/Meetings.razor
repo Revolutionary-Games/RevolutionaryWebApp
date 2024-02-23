@@ -76,7 +76,7 @@ else
             </div>
             <div class="row">
                 <div class="mb-3 col-md-6">
-                    <label class="me-1" for="newMeetingReadAccess">Visible To</label>
+                    <label class="form-label me-1" for="newMeetingReadAccess">Visible To</label>
                     <select class="form-select" id="newMeetingReadAccess" @bind="newMeetingReadAccess">
                         @foreach (var name in Enum.GetNames<AssociationResourceAccess>())
                         {
@@ -85,7 +85,7 @@ else
                     </select>
                 </div>
                 <div class="mb-3 col-md-6">
-                    <label class="me-1" for="newMeetingJoinAccess">Joinable By</label>
+                    <label class="form-label me-1" for="newMeetingJoinAccess">Joinable By</label>
                     <select class="form-select" id="newMeetingJoinAccess" @bind="newMeetingJoinAccess">
                         @foreach (var name in Enum.GetNames<AssociationResourceAccess>())
                         {

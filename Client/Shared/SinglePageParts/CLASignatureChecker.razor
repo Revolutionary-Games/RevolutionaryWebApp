@@ -8,11 +8,11 @@
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
 <form class="d-flex flex-row align-items-center">
-    <label class="mb-md-2 me-1" for="signatureSearchEmail">Email to search:</label>
+    <label class="form-label mb-md-2 me-1" for="signatureSearchEmail">Email to search:</label>
     <input type="email" class="form-control mb-2 flex-fill" id="signatureSearchEmail"
            placeholder="Email" @bind="email" @bind:event="oninput">
 
-    <label class="mb-md-2 ms-md-3 ms-1 me-1" for="signatureSearchGithub">Github account:</label>
+    <label class="form-label mb-md-2 ms-md-3 ms-1 me-1" for="signatureSearchGithub">Github account:</label>
     <input type="text" class="form-control mb-2 me-2 flex-fill" id="signatureSearchGithub"
            placeholder="Username" @bind="githubAccount" @bind:event="oninput">
 

@@ -150,7 +150,7 @@ else
 
         <div class="row">
             <div class="mb-3 col-md-6">
-                <label class="me-1" for="newCommentCondition">Condition</label>
+                <label class="form-label me-1" for="newCommentCondition">Condition</label>
                 <select class="form-select" id="newCommentCondition" @bind="newCommentCondition">
                     @foreach (var name in Enum.GetNames<AutoCommentCondition>())
                     {

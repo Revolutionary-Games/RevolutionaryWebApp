@@ -11,7 +11,7 @@
     <input type="text" class="form-control mb-2 flex-fill" id="siteNoticeMessageInput"
            placeholder="Notice message..." @bind="message" @bind:event="oninput">
 
-    <label class="mb-md-2 ms-md-3 ms-1 me-1" for="siteNoticeTypeSelect">Type</label>
+    <label class="form-label mb-md-2 ms-md-3 ms-1 me-1" for="siteNoticeTypeSelect">Type</label>
     <select class="form-select mb-2 me-md-3" id="siteNoticeTypeSelect" @bind="noticeType">
         @foreach (var name in Enum.GetNames<SiteNoticeType>())
         {

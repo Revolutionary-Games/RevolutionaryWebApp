@@ -9,7 +9,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-4">
-            <label class="me-1" for="bulkRecipientMode">Recipients Mode</label>
+            <label class="form-label me-1" for="bulkRecipientMode">Recipients Mode</label>
             <InputSelect class="form-select" id="bulkRecipientMode" @bind-Value="request.RecipientsMode">
                 @foreach (var name in Enum.GetNames<BulkEmailRecipientsMode>())
                 {
@@ -18,7 +18,7 @@
             </InputSelect>
         </div>
         <div class="mb-3 col-md-4">
-            <label class="me-1" for="bulkIgnoreMode">Ignored Recipients</label>
+            <label class="form-label me-1" for="bulkIgnoreMode">Ignored Recipients</label>
             <InputSelect class="form-select" id="bulkIgnoreMode" @bind-Value="request.IgnoreMode">
                 @foreach (var name in Enum.GetNames<BulkEmailIgnoreMode>())
                 {
@@ -27,7 +27,7 @@
             </InputSelect>
         </div>
         <div class="mb-3 col-md-4">
-            <label class="me-1" for="bulkReplyMode">Reply-To Mode</label>
+            <label class="form-label me-1" for="bulkReplyMode">Reply-To Mode</label>
             <InputSelect class="form-select" id="bulkReplyMode" @bind-Value="request.ReplyMode">
                 @foreach (var name in Enum.GetNames<BulkEmailReplyToMode>())
                 {
