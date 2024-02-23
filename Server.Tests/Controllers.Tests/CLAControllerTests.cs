@@ -156,7 +156,7 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
             fixture.NotificationsEnabledDatabase, storageMock, mailMock, jobsMock);
 
         var result = await controller.SearchSignatures(fixture.CLA2Id, fixture.CLA2Signature1Email,
-            fixture.CLA2Signature1Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLenght));
+            fixture.CLA2Signature1Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLength));
 
         var data = result.Value;
 
@@ -167,7 +167,7 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
         Assert.Equal(fixture.CLA2Signature1DeveloperUsername, data[0].DeveloperUsername);
 
         result = await controller.SearchSignatures(fixture.CLA2Id,
-            fixture.CLA2Signature2Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLenght),
+            fixture.CLA2Signature2Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLength),
             fixture.CLA2Signature2Github);
 
         data = result.Value;
@@ -190,8 +190,8 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
             fixture.NotificationsEnabledDatabase, storageMock, mailMock, jobsMock);
 
         var result = await controller.SearchSignatures(fixture.CLA2Id,
-            fixture.CLA2Signature1Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLenght),
-            fixture.CLA2Signature1Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLenght));
+            fixture.CLA2Signature1Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLength),
+            fixture.CLA2Signature1Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLength));
 
         var data = result.Value;
 
@@ -199,8 +199,8 @@ public sealed class CLAControllerTests : IClassFixture<SampleCLADatabase>, IDisp
         Assert.Empty(data);
 
         result = await controller.SearchSignatures(fixture.CLA2Id,
-            fixture.CLA2Signature2Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLenght),
-            fixture.CLA2Signature2Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLenght));
+            fixture.CLA2Signature2Email.TruncateWithoutEllipsis(AppInfo.PartialEmailMatchRevealAfterLength),
+            fixture.CLA2Signature2Github.TruncateWithoutEllipsis(AppInfo.PartialGithubMatchRevealAfterLength));
 
         data = result.Value;
 

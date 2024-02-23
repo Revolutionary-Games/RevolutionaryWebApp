@@ -42,8 +42,8 @@ public static class AppInfo
     public const int APITokenByteCount = 34;
     public const int SsoNonceLength = 32;
 
-    public const int PartialEmailMatchRevealAfterLenght = 15;
-    public const int PartialGithubMatchRevealAfterLenght = 8;
+    public const int PartialEmailMatchRevealAfterLength = 15;
+    public const int PartialGithubMatchRevealAfterLength = 8;
 
     public const int MaxDevBuildDescriptionLength = 4000;
     public const int MinimumDevBuildDescriptionLength = 20;
@@ -53,9 +53,6 @@ public static class AppInfo
 
     public const int MinPasswordLength = 6;
     public const int MaxPasswordLength = 250;
-
-    public const int MinUsernameLength = 2;
-    public const int MaxUsernameLength = 100;
 
     public const int MinNameLengthToLookFor = 2;
 

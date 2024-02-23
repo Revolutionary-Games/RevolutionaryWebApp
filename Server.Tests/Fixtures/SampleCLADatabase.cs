@@ -97,10 +97,10 @@ public class SampleCLADatabase : BaseSharedDatabaseFixtureWithNotifications
         Database.ClaSignatures.Add(cla2Signature1);
         Database.ClaSignatures.Add(cla2Signature2);
 
-        if (CLA1Signature1Github.Length <= AppInfo.PartialGithubMatchRevealAfterLenght)
+        if (CLA1Signature1Github.Length <= AppInfo.PartialGithubMatchRevealAfterLength)
             throw new Exception("configured github name is too short");
 
-        if (CLA2Signature2Email.Length <= AppInfo.PartialEmailMatchRevealAfterLenght)
+        if (CLA2Signature2Email.Length <= AppInfo.PartialEmailMatchRevealAfterLength)
             throw new Exception("configured email is too short");
 
         Database.SaveChanges();

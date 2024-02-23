@@ -1,5 +1,6 @@
 @using RevolutionaryWebApp.Shared
 @using System.Net
+@using DevCenterCommunication
 @using SharedBase.Utilities
 @using RevolutionaryWebApp.Client.Services
 @using RevolutionaryWebApp.Shared.Forms
@@ -68,7 +69,7 @@ else
         !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(code) && password == passwordVerification &&
         password.Length is >= AppInfo.MinPasswordLength and <= AppInfo.MaxPasswordLength &&
         email.Length is >= GlobalConstants.MinEmailLength and <= GlobalConstants.MaxEmailLength &&
-        name.Length is >= AppInfo.MinUsernameLength and <= AppInfo.MaxUsernameLength;
+        name.Length is >= CommunicationConstants.MIN_USERNAME_LENGTH and <= CommunicationConstants.MAX_USERNAME_LENGTH;
 
     private string? ErrorMessage
     {

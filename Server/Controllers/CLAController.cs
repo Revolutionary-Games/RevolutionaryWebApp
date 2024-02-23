@@ -211,10 +211,10 @@ public class CLAController : Controller
         {
             // Both search criteria
 
-            if (email.Length >= AppInfo.PartialEmailMatchRevealAfterLenght)
+            if (email.Length >= AppInfo.PartialEmailMatchRevealAfterLength)
                 allowEmailInResult = true;
 
-            if (githubAccount.Length >= AppInfo.PartialGithubMatchRevealAfterLenght)
+            if (githubAccount.Length >= AppInfo.PartialGithubMatchRevealAfterLength)
                 allowGithubInResult = true;
 
             query = query.Where(s => s.Email == email || s.GithubAccount == githubAccount);
