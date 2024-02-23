@@ -427,8 +427,11 @@ public class MeetingsController : Controller
         if (request.AutoCloseAt < DateTime.UtcNow + TimeSpan.FromSeconds(100))
             return BadRequest("Poll can't auto-close in less than 100 seconds");
 
-        if (await database.MeetingPolls.FirstOrDefaultAsync(p => p.Title == request.Title) != null)
+        if (await database.MeetingPolls.FirstOrDefaultAsync(p =>
+                p.Title == request.Title && p.MeetingId == meeting.Id) != null)
+        {
             return BadRequest("A poll with that title already exists");
+        }
 
         var previousPollId = await database.MeetingPolls.Where(p => p.MeetingId == meeting.Id)
             .MaxAsync(p => (long?)p.PollId) ?? 0;
@@ -458,8 +461,8 @@ public class MeetingsController : Controller
         if (poll.AutoCloseAt != null)
         {
             // Queue job to close the poll
-            jobClient.Schedule<CloseAutoClosePollJob>(
-                x => x.Execute(meeting.Id, poll.PollId, CancellationToken.None), poll.AutoCloseAt.Value);
+            jobClient.Schedule<CloseAutoClosePollJob>(x => x.Execute(meeting.Id, poll.PollId, CancellationToken.None),
+                poll.AutoCloseAt.Value);
         }
 
         return Ok();
