@@ -49,10 +49,9 @@ public sealed class CheckSSOUserSuspensionJobTests : System.IDisposable
                 reward,
                 patreonDeclined);
 
-        var user = new User
+        var user = new User(PatronEmail, "RandomUserName")
         {
             Email = PatronEmail,
-            UserName = "RandomUserName",
             Suspended = startSuspended,
             SsoSource = LoginController.SsoTypePatreon,
         };

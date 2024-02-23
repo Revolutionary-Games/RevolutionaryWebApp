@@ -57,7 +57,7 @@ public class PatronsController : Controller
             // TODO: Patreon alias handling if that is added
             var emailsToCheck = converted.Results.Select(p => p.Email).ToHashSet();
 
-            var matched = await database.Users.Where(u => emailsToCheck.Contains(u.Email!)).Select(u => u.Email)
+            var matched = await database.Users.Where(u => emailsToCheck.Contains(u.Email)).Select(u => u.Email)
                 .ToListAsync();
 
             foreach (var patronDTO in converted.Results)

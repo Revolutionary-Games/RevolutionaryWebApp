@@ -181,7 +181,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
             .Include(l => l.User)
             .FirstOrDefaultAsync(l => l.LinkCode == tokenValue);
 
-        if (link?.User == null || link.User.Suspended == true)
+        if (link?.User == null || link.User.Suspended)
         {
             RememberFailedAuthentication(cacheKey);
 

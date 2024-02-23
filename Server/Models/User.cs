@@ -2,16 +2,16 @@ namespace RevolutionaryWebApp.Server.Models;
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
-using DevCenterCommunication.Models;
+using DevCenterCommunication.Utilities;
 using Enums;
 using Hangfire;
 using Jobs;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;
@@ -20,15 +20,53 @@ using Shared.Notifications;
 using Utilities;
 
 [Index(nameof(Email), IsUnique = true)]
+[Index(nameof(NormalizedEmail), IsUnique = true)]
+[Index(nameof(DisplayName), IsUnique = true)]
 [Index(nameof(HashedApiToken), IsUnique = true)]
 [Index(nameof(HashedLfsToken), IsUnique = true)]
 [Index(nameof(HashedLauncherLinkCode), IsUnique = true)]
-public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsHashedLookUps, IUpdateNotifications
+public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateNotifications
 {
+    public User(string email, string userName)
+    {
+        if (!email.Contains('@'))
+            throw new ArgumentException("Email must contain '@'", nameof(email));
+
+        // TODO: once user names are migrated, add check for userName containing spaces to fail
+        // if (userName.Contains(' '))
+        //     throw new ArgumentException("Username doesn't follow new formatting rules", nameof(userName));
+
+        Email = email;
+        TotalLauncherLinks = 0;
+        UserName = userName;
+    }
+
+    [AllowSortingBy]
+    public string Email { get; set; }
+
+    // TODO: make non-nullable once set for every user
+    public string? NormalizedEmail { get; set; }
+
+    [AllowSortingBy]
+    public string UserName { get; set; }
+
+    // TODO: implement showing this and setting it
+    [AllowSortingBy]
+    [StringLength(120)]
+    public string? DisplayName { get; set; }
+
+    // TODO: remove
     public bool Local { get; set; }
 
     [AllowSortingBy]
     public string? SsoSource { get; set; }
+
+    /// <summary>
+    ///   When set local login is possible with a password
+    /// </summary>
+    public string? PasswordHash { get; set; }
+
+    // TODO: implement 2fa support
 
     [HashedLookUp]
     public string? ApiToken { get; set; }
@@ -40,12 +78,11 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
 
     public string? HashedLfsToken { get; set; }
 
-    // TODO: remove the nullability here
     [AllowSortingBy]
-    public bool? Suspended { get; set; } = false;
+    public bool Suspended { get; set; }
 
     public string? SuspendedReason { get; set; }
-    public bool? SuspendedManually { get; set; } = false;
+    public bool SuspendedManually { get; set; }
 
     [HashedLookUp]
     public string? LauncherLinkCode { get; set; }
@@ -53,14 +90,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     public string? HashedLauncherLinkCode { get; set; }
     public DateTime? LauncherCodeExpires { get; set; }
 
-    public int TotalLauncherLinks { get; set; } = 0;
-
-    // Need to reimplement these, as we inherit IdentityUser
-    [AllowSortingBy]
-    public DateTime CreatedAt { get; set; } = DateTime.Now.ToUniversalTime();
-
-    [AllowSortingBy]
-    public DateTime UpdatedAt { get; set; } = DateTime.Now.ToUniversalTime();
+    public int TotalLauncherLinks { get; set; }
 
     [NotMapped]
     public string AuthenticationType
@@ -73,7 +103,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     public bool IsAuthenticated { get => true; set => throw new NotSupportedException(); }
 
     [NotMapped]
-    public string Name { get => UserName!; set => UserName = value; }
+    public string Name { get => UserName; set => UserName = value; }
 
     /// <summary>
     ///   Builds verified by this user
@@ -182,7 +212,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
     {
         user.ProcessGroupDataFromLoadedGroups();
 
-        jobClient.Schedule<CheckAssociationStatusForUserJob>(x => x.Execute(user.Email!, CancellationToken.None),
+        jobClient.Schedule<CheckAssociationStatusForUserJob>(x => x.Execute(user.Email, CancellationToken.None),
             TimeSpan.FromSeconds(30));
     }
 
@@ -305,6 +335,11 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
         return AssociationResourceAccess.AssociationMembers;
     }
 
+    public void ComputeNormalizedEmail()
+    {
+        NormalizedEmail = Normalization.NormalizeEmail(Email);
+    }
+
     public UserDTO GetDTO(RecordAccessLevel infoLevel)
     {
         var info = new UserDTO
@@ -318,9 +353,9 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
             case RecordAccessLevel.Public:
                 break;
             case RecordAccessLevel.Admin:
-                info.Suspended = Suspended ?? false;
+                info.Suspended = Suspended;
                 info.SuspendedReason = SuspendedReason;
-                info.SuspendedManually = SuspendedManually ?? false;
+                info.SuspendedManually = SuspendedManually;
 
                 // And also add all the private stuff on top
                 goto case RecordAccessLevel.Private;
@@ -358,7 +393,7 @@ public class User : IdentityUser<long>, ITimestampedModel, IIdentity, IContainsH
             case RecordAccessLevel.Public:
                 break;
             case RecordAccessLevel.Admin:
-                info.Suspended = Suspended ?? false;
+                info.Suspended = Suspended;
 
                 // And also add all the private stuff on top
                 goto case RecordAccessLevel.Private;

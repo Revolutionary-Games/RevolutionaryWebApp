@@ -31,7 +31,7 @@ public class HangfireDashboardAuthorization : IDashboardAuthorizationFilter
 
         var user = userRaw as User;
 
-        if (user == null || user.Suspended == true || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Admin))
+        if (user == null || user.Suspended || !user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Admin))
         {
             OnFailure(remoteAddress);
             return false;

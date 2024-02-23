@@ -86,11 +86,9 @@ public abstract class RealTestDatabaseFixture : IDisposable
 
     protected void InsertBasicUsers()
     {
-        var user1 = new User
+        var user1 = new User("test@example.com", "test")
         {
             Id = 1,
-            Email = "test@example.com",
-            Name = "test",
             Local = true,
         };
 
@@ -102,11 +100,9 @@ public abstract class RealTestDatabaseFixture : IDisposable
             User = user1,
         });
 
-        var user2 = new User
+        var user2 = new User("test2@example.com", "test2")
         {
             Id = 2,
-            Email = "test2@example.com",
-            Name = "test2",
             Local = true,
             Groups = new List<UserGroup>
             {
@@ -122,11 +118,9 @@ public abstract class RealTestDatabaseFixture : IDisposable
             User = user2,
         });
 
-        var user3 = new User
+        var user3 = new User("test3@example.com", "test3")
         {
             Id = 3,
-            Email = "test3@example.com",
-            Name = "test3",
             Local = true,
             Groups = new List<UserGroup>
             {

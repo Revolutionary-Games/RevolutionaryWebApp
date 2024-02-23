@@ -145,11 +145,11 @@ public class BulkEmailController : Controller
         IEnumerable<string> recipients;
 
         Lazy<Task<List<string>>> devCenterUsers =
-            new(() => database.Users.Select(u => u.Email!).ToListAsync());
+            new(() => database.Users.Select(u => u.Email).ToListAsync());
 
         Lazy<Task<List<string>>> devCenterDevelopers =
             new(() => database.UserGroups.Include(g => g.Members).Where(g => g.Id == GroupType.Developer)
-                .SelectMany(g => g.Members).Select(u => u.Email!)
+                .SelectMany(g => g.Members).Select(u => u.Email)
                 .ToListAsync());
 
         Lazy<Task<List<string>>> associationMembers =

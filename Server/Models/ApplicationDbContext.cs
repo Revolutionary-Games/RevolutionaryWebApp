@@ -287,7 +287,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.LfsToken).IsRequired(false);
             entity.Property(e => e.LauncherLinkCode).IsRequired(false);
 
-            entity.Property(e => e.UserName).HasColumnName("name").IsRequired().HasDefaultValue("UNKNOWN");
+            entity.Property(e => e.UserName).HasColumnName("name").IsRequired();
 
             entity.Property(e => e.Suspended).HasDefaultValue(false);
 

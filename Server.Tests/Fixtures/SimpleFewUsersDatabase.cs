@@ -46,21 +46,17 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 
     internal static void SeedUsers(ApplicationDbContext database)
     {
-        var user1 = new User
+        var user1 = new User("test@example.com", "test")
         {
             Id = SessionUserId1,
-            Email = "test@example.com",
-            Name = "test",
             Local = true,
         };
 
         database.Users.Add(user1);
 
-        var user2 = new User
+        var user2 = new User("test2@example.com", "test2")
         {
             Id = SessionUserId2,
-            Email = "test2@example.com",
-            Name = "test2",
             Local = true,
             Groups = new List<UserGroup>
             {
@@ -70,11 +66,9 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 
         database.Users.Add(user2);
 
-        var user3 = new User
+        var user3 = new User("test3@example.com", "test3")
         {
             Id = SessionUserId3,
-            Email = "test3@example.com",
-            Name = "test3",
             Local = true,
             Groups = new List<UserGroup>
             {
@@ -84,11 +78,9 @@ public class SimpleFewUsersDatabase : BaseSharedDatabaseFixture
 
         database.Users.Add(user3);
 
-        var user4 = new User
+        var user4 = new User("test4@example.com", "test4")
         {
             Id = SessionUserId4,
-            Email = "test4@example.com",
-            Name = "test4",
             Local = true,
             Groups = new List<UserGroup>
             {

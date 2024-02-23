@@ -90,7 +90,7 @@ public class UserManagementController : Controller
     public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
     {
         var users = await database.Users.Where(u => ids.Contains(u.Id))
-            .Select(u => new Tuple<long, string>(u.Id, u.UserName!)).ToListAsync();
+            .Select(u => new Tuple<long, string>(u.Id, u.UserName)).ToListAsync();
 
         Dictionary<long, string> result = new();
 
@@ -114,16 +114,14 @@ public class UserManagementController : Controller
     [HttpPost("pickUser")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<Dictionary<long, string>>> FindUserToPick(
-        [Required]
-        [StringLength(300, MinimumLength = AppInfo.MinNameLengthToLookFor)]
-        [FromBody]
-        string partialName)
+        [Required] [StringLength(300, MinimumLength = AppInfo.MinNameLengthToLookFor)] [FromBody] string partialName)
     {
         // TODO: case insensitive matching
         // TODO: fuzzy matching
         var users = await database.Users
-            .Where(u => u.UserName == null ? u.Email!.Contains(partialName) : u.UserName.Contains(partialName))
-            .Select(u => new Tuple<long, string>(u.Id, u.UserName!)).ToListAsync();
+            .Where(u => u.UserName.Contains(partialName) ||
+                (u.DisplayName != null && u.DisplayName.Contains(partialName)))
+            .Select(u => new Tuple<long, string>(u.Id, u.UserName)).ToListAsync();
 
         return users.ToDictionary(t => t.Item1, t => t.Item2);
     }
@@ -184,30 +182,7 @@ public class UserManagementController : Controller
         if (!admin && actingUser.Id != user.Id)
             return NotFound();
 
-        var sessions = await database.Sessions.Where(s => s.UserId == id).ToListAsync();
-
-        if (sessions.Count < 1)
-            return Ok();
-
-        if (admin && actingUser.Id != user.Id)
-        {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = "Forced logout",
-                PerformedById = actingUser.Id,
-                TargetUserId = user.Id,
-            });
-        }
-        else
-        {
-            logger.LogInformation("User ({Email}) deleted their sessions from {RemoteIpAddress}", user.Email,
-                HttpContext.Connection.RemoteIpAddress);
-        }
-
-        database.Sessions.RemoveRange(sessions);
-        await database.SaveChangesAsync();
-
-        await InvalidateSessions(sessions.Select(s => s.Id));
+        await LogoutEverywhere(user, actingUser);
         return Ok();
     }
 
@@ -236,13 +211,19 @@ public class UserManagementController : Controller
 
         sessions = sessions.Where(s => s.Id != requestSession.Id).ToList();
 
+        // TODO: account security event log
+
         database.Sessions.RemoveRange(sessions);
         await database.SaveChangesAsync();
 
         logger.LogInformation("User ({Email}) deleted their other sessions than {Id} from {RemoteIpAddress}",
             user.Email, requestSession.Id, HttpContext.Connection.RemoteIpAddress);
 
+        var externalLogout = LogoutExternalSessions(user.Id);
+
         await InvalidateSessions(sessions.Select(s => s.Id));
+
+        await externalLogout;
         return Ok();
     }
 
@@ -304,6 +285,83 @@ public class UserManagementController : Controller
         return Ok();
     }
 
+    [HttpPost("{id:long}/suspend")]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]
+    [RequireSudoMode]
+    public async Task<ActionResult> SuspendUser([Required] long id, [Required] string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason) || reason.Length > 200)
+            return BadRequest("Reason not provided or it is too long");
+
+        var user = await database.Users.FindAsync(id);
+        var actingUser = HttpContext.AuthenticatedUser()!;
+
+        if (user == null)
+            return NotFound();
+
+        if (user == actingUser)
+            return BadRequest("Cannot suspend self");
+
+        if (user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+            return BadRequest("Admins cannot be suspended like this");
+
+        if (user.Suspended)
+            return BadRequest("User already suspended");
+
+        user.Suspended = true;
+        user.SuspendedManually = true;
+        user.SuspendedReason = reason;
+
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = $"User {user.UserName} suspended manually for reason \"{reason}\"",
+            PerformedById = actingUser.Id,
+            TargetUserId = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("User ({Email}) suspended by {Email2} for reason: {Reason}",
+            user.Email, actingUser.Email, reason);
+
+        await LogoutEverywhere(user, actingUser);
+
+        return Ok("User suspended");
+    }
+
+    [HttpPost("{id:long}/unsuspend")]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]
+    public async Task<ActionResult> UnsuspendUser([Required] long id)
+    {
+        var user = await database.Users.FindAsync(id);
+        var actingUser = HttpContext.AuthenticatedUser()!;
+
+        if (user == null)
+            return NotFound();
+
+        if (!user.Suspended)
+            return BadRequest("User is not suspended");
+
+        if (user == actingUser)
+            throw new Exception("User somehow was able to try to unsuspend self");
+
+        user.SuspendedManually = false;
+        user.Suspended = false;
+
+        await database.AdminActions.AddAsync(new AdminAction
+        {
+            Message = "User unsuspended manually",
+            PerformedById = actingUser.Id,
+            TargetUserId = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("User ({Email}) unsuspended by {Email2}", user.Email, actingUser.Email);
+
+        return Ok();
+    }
+
     [NonAction]
     private async Task InvalidateSessions(IEnumerable<Guid> sessions)
     {
@@ -314,5 +372,51 @@ public class UserManagementController : Controller
             .ReceiveSessionInvalidation();
 
         // TODO: force close signalr connections for the user https://github.com/dotnet/aspnetcore/issues/5333
+    }
+
+    private async Task LogoutEverywhere(User user, User actingUser)
+    {
+        var id = user.Id;
+        var sessions = await database.Sessions.Where(s => s.UserId == id).ToListAsync();
+
+        if (sessions.Count < 1)
+            return;
+
+        if (actingUser.Id != user.Id)
+        {
+            if (!actingUser.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+                throw new Exception("Somehow non-admin is logging out another user");
+
+            await database.AdminActions.AddAsync(new AdminAction
+            {
+                Message = "Forced logout",
+                PerformedById = actingUser.Id,
+                TargetUserId = user.Id,
+            });
+        }
+        else
+        {
+            logger.LogInformation("User ({Email}) deleted their sessions from {RemoteIpAddress}", user.Email,
+                HttpContext.Connection.RemoteIpAddress);
+
+            // TODO: account security event log
+        }
+
+        database.Sessions.RemoveRange(sessions);
+        await database.SaveChangesAsync();
+
+        var externalLogout = LogoutExternalSessions(user.Id);
+
+        await InvalidateSessions(sessions.Select(s => s.Id));
+
+        await externalLogout;
+    }
+
+    private Task LogoutExternalSessions(long id)
+    {
+        // TODO: once we use the revolutionary app for forum logins this needs to destroy forum session as well
+        _ = id;
+
+        return Task.CompletedTask;
     }
 }

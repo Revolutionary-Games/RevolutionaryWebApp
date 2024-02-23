@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server.Controllers;
 
 using System.Threading.Tasks;
 using Authorization;
+using DevCenterCommunication.Utilities;
 using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
@@ -62,15 +63,22 @@ public class RegistrationController : Controller
             return BadRequest("There is already an account associated with the given email or name");
         }
 
+        var normalized = Normalization.NormalizeUserName(request.Name);
+        if (normalized != request.Name)
+        {
+            return BadRequest("The given username was not in the correct format. It was normalized to: " + normalized);
+        }
+
         var password = Passwords.CreateSaltedPasswordHash(request.Password);
 
-        var user = new User
+        // TODO: allow setting display name when registering
+        var user = new User(request.Email, request.Name)
         {
-            Email = request.Email,
-            UserName = request.Name,
             PasswordHash = password,
             Local = true,
         };
+
+        user.ComputeNormalizedEmail();
 
         await database.Users.AddAsync(user);
         Models.User.OnNewUserCreated(user, jobClient);

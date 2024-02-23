@@ -13,11 +13,9 @@ public static class UserUtilities
     /// <returns>The user object to use in tests</returns>
     public static User CreateDeveloperUser(long id)
     {
-        var user = new User
+        var user = new User("test@example.com", "TestDeveloper")
         {
             Id = id,
-            Email = "test@example.com",
-            Name = "Test Developer",
         };
 
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.Developer, GroupType.User));
@@ -27,11 +25,9 @@ public static class UserUtilities
 
     public static User CreateNormalUser(long id)
     {
-        var user = new User
+        var user = new User("test@example.com", "Test User")
         {
             Id = id,
-            Email = "test@example.com",
-            Name = "Test User",
         };
 
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
@@ -41,11 +37,9 @@ public static class UserUtilities
 
     public static User CreateAdminUser(long id)
     {
-        var user = new User
+        var user = new User("test@example.com", "Example admin")
         {
             Id = id,
-            Email = "test@example.com",
-            Name = "Example admin",
         };
 
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.Developer, GroupType.Admin, GroupType.User));

@@ -68,7 +68,7 @@ public static class SSOSuspendHandler
                     return false;
                 }
 
-                var discourseUser = await communityAPI.FindUserByEmail(user.Email!, cancellationToken);
+                var discourseUser = await communityAPI.FindUserByEmail(user.Email, cancellationToken);
 
                 if (discourseUser != null)
                 {
@@ -111,7 +111,7 @@ public static class SSOSuspendHandler
                     return false;
                 }
 
-                var discourseUser = await devForumAPI.FindUserByEmail(user.Email!, cancellationToken);
+                var discourseUser = await devForumAPI.FindUserByEmail(user.Email, cancellationToken);
 
                 if (discourseUser != null)
                     shouldBeSuspended = false;
@@ -129,7 +129,7 @@ public static class SSOSuspendHandler
         // Need to change suspend status
 
         // Don't unsuspend if user was suspended manually
-        if (user.Suspended == true && user.SuspendedManually != true)
+        if (user.Suspended && user.SuspendedManually != true)
         {
             await database.LogEntries.AddAsync(new LogEntry
             {

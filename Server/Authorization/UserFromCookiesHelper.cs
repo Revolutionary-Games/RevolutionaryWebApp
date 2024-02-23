@@ -55,7 +55,7 @@ public static class UserFromCookiesHelper
 
         // There's now a bunch of code that relies on suspended users being disallowed here
         // TODO: should this suspended check be here? At least now NotificationsHub depends on this
-        if (existingSession.User.Suspended == true)
+        if (existingSession.User.Suspended)
             return null;
 
         // TODO: should non-user sessions be able to update the last used time?

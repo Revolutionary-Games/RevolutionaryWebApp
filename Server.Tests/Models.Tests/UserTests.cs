@@ -16,10 +16,8 @@ public class UserTests
     {
         var database = new EditableInMemoryDatabaseFixture("UserClearApiToken");
 
-        var user = new User
+        var user = new User("test@example.com", "test")
         {
-            UserName = "test",
-            Email = "test@example.com",
             LfsToken = NonceGenerator.GenerateNonce(32),
         };
 
@@ -46,11 +44,7 @@ public class UserTests
     {
         var database = new EditableInMemoryDatabaseFixture("UserLinkCodeRecreated");
 
-        var user = new User
-        {
-            UserName = "test",
-            Email = "test@example.com",
-        };
+        var user = new User("test@example.com", "test");
 
         await database.Database.Users.AddAsync(user);
         await database.Database.SaveChangesAsync();

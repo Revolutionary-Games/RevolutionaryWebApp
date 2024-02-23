@@ -146,10 +146,9 @@ public sealed class LoginControllerTests : IDisposable
 
         var password = "TestUser&Password5";
 
-        var user = new User
+        var user = new User("test+login@example.com", "test")
         {
             Local = true,
-            Email = "test+login@example.com",
             UserName = "test",
             Suspended = false,
             PasswordHash = Passwords.CreateSaltedPasswordHash(password, new byte[] { 55, 12, 55, 50 }),
@@ -213,11 +212,9 @@ public sealed class LoginControllerTests : IDisposable
 
         var password = "TestUser&Password5";
 
-        var user = new User
+        var user = new User("test+login@example.com", "test")
         {
             Local = true,
-            Email = "test+login@example.com",
-            UserName = "test",
             Suspended = true,
             PasswordHash = Passwords.CreateSaltedPasswordHash(password, new byte[] { 55, 12, 55, 50 }),
         };
@@ -272,12 +269,10 @@ public sealed class LoginControllerTests : IDisposable
 
         await SeedPatronData(database);
 
-        var user = new User
+        var user = new User(PatronEmail, "Mr. Patron")
         {
             Local = false,
             SsoSource = LoginController.SsoTypePatreon,
-            Email = PatronEmail,
-            UserName = "Mr. Patron",
             Suspended = true,
             SuspendedManually = false,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
@@ -384,12 +379,10 @@ public sealed class LoginControllerTests : IDisposable
 
         await SeedPatronData(database);
 
-        var user = new User
+        var user = new User(PatronEmail, "Mr. Patron")
         {
             Local = false,
             SsoSource = LoginController.SsoTypePatreon,
-            Email = PatronEmail,
-            UserName = "Mr. Patron",
             Suspended = true,
             SuspendedManually = true,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
@@ -470,12 +463,10 @@ public sealed class LoginControllerTests : IDisposable
 
         await SeedPatronData(database, patronSuspended, rewardTier);
 
-        var user = new User
+        var user = new User(PatronEmail, "Mr. Patron")
         {
             Local = false,
             SsoSource = LoginController.SsoTypePatreon,
-            Email = PatronEmail,
-            UserName = "Mr. Patron",
             Suspended = userSuspended,
             SuspendedManually = false,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,

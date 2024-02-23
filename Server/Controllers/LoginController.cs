@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Authorization;
 using DevCenterCommunication;
 using DevCenterCommunication.Models;
+using DevCenterCommunication.Utilities;
 using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
@@ -206,8 +207,7 @@ public class LoginController : SSOLoginController
 
                 var scopes = "identity identity[email]";
 
-                return Redirect(QueryHelpers.AddQueryString(
-                    configuration["Login:Patreon:BaseUrl"] ??
+                return Redirect(QueryHelpers.AddQueryString(configuration["Login:Patreon:BaseUrl"] ??
                     throw new InvalidOperationException("Missing Patreon base url config value"),
                     new Dictionary<string, string?>
                     {
@@ -274,7 +274,7 @@ public class LoginController : SSOLoginController
         }
 
         // Suspended user cannot login
-        if (user.Suspended == true)
+        if (user.Suspended)
         {
             return CreateSuspendedUserRedirect(user);
         }
@@ -296,7 +296,7 @@ public class LoginController : SSOLoginController
     [NonAction]
     private async Task BeginNewSession(User user)
     {
-        if (user.Suspended == true)
+        if (user.Suspended)
             throw new InvalidOperationException("Cannot begin a session for a suspended user");
 
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
@@ -391,7 +391,7 @@ public class LoginController : SSOLoginController
     [NonAction]
     private IActionResult CreateSuspendedUserRedirect(User user)
     {
-        var suspension = user.SuspendedManually == true ?
+        var suspension = user.SuspendedManually ?
             " manually by an admin" :
             $" with the reason: {user.SuspendedReason ?? "unknown"}";
 
@@ -476,8 +476,7 @@ public class LoginController : SSOLoginController
 
         var signature = CalculateDiscourseSsoParamSignature(payload, secret);
 
-        return Redirect(QueryHelpers.AddQueryString(
-            new Uri(new Uri(redirectBase), DiscourseSsoEndpoint).ToString(),
+        return Redirect(QueryHelpers.AddQueryString(new Uri(new Uri(redirectBase), DiscourseSsoEndpoint).ToString(),
             new Dictionary<string, string?>
             {
                 { "sso", payload },
@@ -614,8 +613,7 @@ public class LoginController : SSOLoginController
 
         try
         {
-            patreonAPI.Initialize(
-                configuration["Login:Patreon:ClientId"] ??
+            patreonAPI.Initialize(configuration["Login:Patreon:ClientId"] ??
                 throw new InvalidOperationException("Missing PatreonAPI client id"),
                 configuration["Login:Patreon:ClientSecret"] ??
                 throw new InvalidOperationException("Missing PatreonAPI client secret"));
@@ -691,7 +689,9 @@ public class LoginController : SSOLoginController
     {
         // Ensure whitespace is consistent
         email = email?.Trim();
-        username = username?.Trim();
+
+        var displayName = username?.Trim();
+        username = Normalization.NormalizeUserName(username ?? string.Empty);
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(username))
             return (GetInvalidSsoParametersResult(), false);
@@ -713,13 +713,14 @@ public class LoginController : SSOLoginController
             Logger.LogInformation("Creating new account for SSO login: {Email} developer: {DeveloperLogin}",
                 email, developerLogin);
 
-            user = new User
+            user = new User(email, username)
             {
-                Email = email,
-                UserName = username,
                 Local = false,
                 SsoSource = ssoType,
+                DisplayName = displayName,
             };
+
+            user.ComputeNormalizedEmail();
 
             if (developerLogin)
             {
@@ -732,8 +733,11 @@ public class LoginController : SSOLoginController
         }
         else if (user.Local)
         {
+            // TODO: allow (non-developers) to login using different sso
+            // Maybe developers with 2fa should be allowed?
             return (Redirect(QueryHelpers.AddQueryString("/login", "error",
-                "Can't login to local account using SSO")), false);
+                "Can't login to local account using SSO. If you can't login with local login, please reset " +
+                "your password with your email and try it again.")), false);
         }
         else if (user.SsoSource != ssoType)
         {
@@ -749,6 +753,7 @@ public class LoginController : SSOLoginController
                     false);
             }
 
+            // TODO: remove most of these account type changes
             if (ssoType == SsoTypeDevForum)
             {
                 // Conversion to a developer account
@@ -779,7 +784,7 @@ public class LoginController : SSOLoginController
             }
         }
 
-        if (user.Suspended == true)
+        if (user.Suspended)
         {
             if (!await CheckCanAutoUnsuspend(user))
             {
@@ -791,8 +796,7 @@ public class LoginController : SSOLoginController
         // Change username from SSO login
         if (user.UserName != username)
         {
-            Logger.LogInformation(
-                "Trying to change username for {Email} from {Username} to {Username2} " +
+            Logger.LogInformation("Trying to change username for {Email} from {Username} to {Username2} " +
                 "due to SSO login with new name", email, user.UserName, username);
 
             var conflictingUser = await Database.Users.FirstOrDefaultAsync(u => u.UserName == username);
@@ -823,7 +827,7 @@ public class LoginController : SSOLoginController
     private async Task<bool> CheckCanAutoUnsuspend(User user)
     {
         // Manually suspended users cannot auto-unsuspend
-        if (user.SuspendedManually == true)
+        if (user.SuspendedManually)
             return false;
 
         if (user.SuspendedReason != null &&
@@ -850,7 +854,7 @@ public class LoginController : SSOLoginController
     [NonAction]
     private void ChangeSsoSourceForNormalUser(User user, string ssoType)
     {
-        if (user.SuspendedManually == true || user.SsoSource == ssoType)
+        if (user.SuspendedManually || user.SsoSource == ssoType)
             return;
 
         user.SsoSource = ssoType;
