@@ -83,7 +83,7 @@ else
 
         <div class="row">
             <div class="mb-3 col-md-12">
-                <label for="@($"newDiscordItemUrl-{FeedId}")">Discord Webhook URL</label>
+                <label class="form-label" for="@($"newDiscordItemUrl-{FeedId}")">Discord Webhook URL</label>
                 <CustomInputText class="form-control" id="@($"newDiscordItemUrl-{FeedId}")"
                                  @bind-Value="newData!.WebhookUrl" placeholder="URL to post the webhook to" />
             </div>
@@ -91,7 +91,7 @@ else
 
         <div class="row">
             <div class="mb-3 col-md-12">
-                <label for="@($"newDiscordItemFormat-{FeedId}")">Custom message template (optional)</label>
+                <label class="form-label" for="@($"newDiscordItemFormat-{FeedId}")">Custom message template (optional)</label>
                 <CustomInputText class="form-control" id="@($"newDiscordItemFormat-{FeedId}")"
                                  @bind-Value="newData!.CustomItemFormat"
                                  placeholder="Custom message template (leave blank for default)" />

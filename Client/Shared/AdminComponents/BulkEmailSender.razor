@@ -50,26 +50,26 @@
 
     <div class="row">
         <div class="mb-3 col-12">
-            <label for="bulkEmailTitle">Title</label>
+            <label class="form-label" for="bulkEmailTitle">Title</label>
             <CustomInputText class="form-control" id="bulkEmailTitle" @bind-Value="request.Title"
                        placeholder="Email title" />
         </div>
     </div>
     <div class="row">
         <div class="mb-3 col-12">
-            <label for="bulkEmailPlainBody">Plain Text Body</label>
+            <label class="form-label" for="bulkEmailPlainBody">Plain Text Body</label>
             <CustomInputTextArea class="form-control" id="bulkEmailPlainBody" @bind-Value="request.PlainBody" rows="10"
                 placeholder="Plain text body"></CustomInputTextArea>
         </div>
     </div>
     <div class="row">
         <div class="mb-3 col-md-6">
-            <label for="bulkEmailHTMLBody">HTML Body</label>
+            <label class="form-label" for="bulkEmailHTMLBody">HTML Body</label>
             <CustomInputTextArea class="form-control" id="bulkEmailHTMLBody" @bind-Value="request.HTMLBody" rows="15"
                 placeholder="HTML version of the message body"></CustomInputTextArea>
         </div>
         <div class="mb-3 col-md-6">
-            <label for="bulkEmailHTMLPreview">Preview</label>
+            <label class="form-label" for="bulkEmailHTMLPreview">Preview</label>
             <div id="bulkEmailHTMLPreview">
                 @((MarkupString)request.HTMLBody)
             </div>

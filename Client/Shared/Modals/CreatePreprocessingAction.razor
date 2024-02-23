@@ -6,7 +6,7 @@
 
             <div class="row">
                 <div class="mb-3 col-md-12">
-                    <label for="newFeedPreprocessingTarget">Feed Item Section To Run In</label>
+                    <label class="form-label" for="newFeedPreprocessingTarget">Feed Item Section To Run In</label>
                     <InputSelect class="form-control" id="newFeedPreprocessingTarget"
                                  @bind-Value="createdAction.Target">
                         @foreach (var name in Enum.GetNames<PreprocessingActionTarget>())
@@ -19,7 +19,7 @@
 
             <div class="row">
                 <div class="mb-3 col-md-12">
-                    <label for="newFeedPreprocessingToFind">Look For</label>
+                    <label class="form-label" for="newFeedPreprocessingToFind">Look For</label>
                     <CustomInputText class="form-control" id="newFeedPreprocessingToFind"
                                      @bind-Value="createdAction.ToFind" placeholder="Text to find (regex)"/>
                 </div>
@@ -27,7 +27,7 @@
 
             <div class="row">
                 <div class="mb-3 col-md-12">
-                    <label for="newFeedPreprocessingReplacer">Replace With</label>
+                    <label class="form-label" for="newFeedPreprocessingReplacer">Replace With</label>
                     <CustomInputText class="form-control" id="newFeedPreprocessingReplacer"
                                      @bind-Value="createdAction.Replacer" placeholder="Replace text with"/>
                 </div>

@@ -7,7 +7,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"launcherVersionFormVersion-{ControlIdSuffix}")">Launcher Version Number</label>
+            <label class="form-label" for="@($"launcherVersionFormVersion-{ControlIdSuffix}")">Launcher Version Number</label>
             <CustomInputText class="form-control" id="@($"launcherVersionFormVersion-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Version" placeholder="Version (for example 1.2.1)"/>
         </div>

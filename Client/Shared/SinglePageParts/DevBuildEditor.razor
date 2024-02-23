@@ -8,7 +8,7 @@
     <form>
         <div class="row">
             <div class="mb-3">
-                <label for="newDescription">Description</label>
+                <label class="form-label" for="newDescription">Description</label>
                 <textarea class="form-control" id="newDescription" @bind="description"
                        @bind:event="oninput" placeholder="Build description"
                        cols="@(AppInfo.MaxDevBuildDescriptionNiceLineLength + 1)">

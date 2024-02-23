@@ -88,13 +88,13 @@
 
             <div class="row">
                 <div class="mb-3 col-md-6">
-                    <label for="newFirstNames">First Name(s)</label>
+                    <label class="form-label" for="newFirstNames">First Name(s)</label>
                     <CustomInputText class="form-control" id="newFirstNames"
                                      @bind-Value="newData!.FirstNames" placeholder="First names"
                                      DisplayName="First Name(s)" />
                 </div>
                 <div class="mb-3 col-md-6">
-                    <label for="newLastNames">Last Name</label>
+                    <label class="form-label" for="newLastNames">Last Name</label>
                     <CustomInputText class="form-control" id="newLastNames"
                                      @bind-Value="newData!.LastName" placeholder="Last name"/>
                 </div>
@@ -102,7 +102,7 @@
 
             <div class="row">
                 <div class="mb-3">
-                    <label for="newEmail">Email (can't be changed later)</label>
+                    <label class="form-label" for="newEmail">Email (can't be changed later)</label>
                     <CustomInputText class="form-control" id="newEmail"
                                      @bind-Value="newData!.Email" placeholder="Email"/>
                 </div>
@@ -110,13 +110,13 @@
 
             <div class="row">
                 <div class="mb-3 col-md-8">
-                    <label for="newCity">City of Residence (and state code if USA)</label>
+                    <label class="form-label" for="newCity">City of Residence (and state code if USA)</label>
                     <CustomInputText class="form-control" id="newCity"
                                      @bind-Value="newData!.CityOfResidence" placeholder="City of Residence"
                                      DisplayName="City of Residence" />
                 </div>
                 <div class="mb-3 col-md-4">
-                    <label for="newCountry">Country</label>
+                    <label class="form-label" for="newCountry">Country</label>
                     <CustomInputText class="form-control" id="newCountry"
                                      @bind-Value="newData!.CountryOfResidence" placeholder="Country"
                                      DisplayName="Country" />
@@ -125,7 +125,7 @@
 
             <div class="row">
                 <div class="mb-3">
-                    <label for="newJoinDate">Join Date</label>
+                    <label class="form-label" for="newJoinDate">Join Date</label>
                     <InputDate class="form-control" id="newJoinDate" @bind-Value="newData!.JoinDate"/>
                 </div>
             </div>

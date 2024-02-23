@@ -69,11 +69,15 @@ else
                     <tr @key="key" style="position: relative;">
                         <td colspan="@columns.Count" class="mb-2 expanded-box">
                             <form class="d-flex flex-row align-items-center me-2">
-                                <label for="@($"enabledEditCheckbox{item.Id}")">Enabled:</label>
-                                <input type="checkbox" class="form-control ms-1 me-2"
-                                       id="@($"enabledEditCheckbox{item.Id}")" @bind="item.Enabled">
+                                <div class="form-check ms-1 me-2">
+                                    <input type="checkbox" class="form-check-input"
+                                           id="@($"enabledEditCheckbox{item.Id}")" @bind="item.Enabled">
+                                    <label class="form-check-label" for="@($"enabledEditCheckbox{item.Id}")">
+                                        Enabled
+                                    </label>
+                                </div>
 
-                                <label for="@($"conditionEdit{item.Id}")">Condition:</label>
+                                <label class="form-label" for="@($"conditionEdit{item.Id}")">Condition:</label>
                                 <select class="form-select ms-1 me-2" @bind="item.Condition"
                                         id="@($"conditionEdit{item.Id}")">
                                     @foreach (var name in Enum.GetNames<AutoCommentCondition>())
@@ -82,11 +86,11 @@ else
                                     }
                                 </select>
 
-                                <label for="@($"repositoryEdit{item.Id}")">Repo:</label>
+                                <label class="form-label" for="@($"repositoryEdit{item.Id}")">Repo:</label>
                                 <input type="text" class="form-control ms-1 me-2"
                                        id="@($"repositoryEdit{item.Id}")" @bind="item.Repository">
 
-                                <label for="@($"commentTextEdit{item.Id}")">Text:</label>
+                                <label class="form-label" for="@($"commentTextEdit{item.Id}")">Text:</label>
                                 <textarea class="form-control ms-1 me-3" id="@($"commentTextEdit{item.Id}")"
                                         @bind="item.CommentText"></textarea>
 
@@ -130,14 +134,14 @@ else
     <form>
         <div class="row">
             <div class="mb-3 col-12">
-                <label for="newCommentRepository">Repository Name</label>
+                <label class="form-label" for="newCommentRepository">Repository Name</label>
                 <input type="text" class="form-control" id="newCommentRepository" @bind="newRepoName"
                        @bind:event="oninput" placeholder="Repository this comment is active on (or empty for all)">
             </div>
         </div>
         <div class="row">
             <div class="mb-3 col-12">
-                <label for="newCommentText">Comment Text</label>
+                <label class="form-label" for="newCommentText">Comment Text</label>
                 <textarea class="form-control" id="newCommentText" @bind="newCommentText" @bind:event="oninput"
                     placeholder="Comment to post" rows="5">
                 </textarea>

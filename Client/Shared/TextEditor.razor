@@ -17,7 +17,7 @@
                 {
                     var fieldId = $"textEditorFor-{Identifier}";
 
-                    <label for="@fieldId">@FieldLabel</label>
+                    <label class="form-label" for="@fieldId">@FieldLabel</label>
                     <textarea class="form-control" id="@fieldId" @bind="text"
                        @bind:event="oninput" placeholder="@Placeholder"
                        cols="@cols" rows="@rows">

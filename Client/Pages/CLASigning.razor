@@ -111,12 +111,12 @@
                 <form>
                     <div class="row">
                         <div class="mb-3 col-md-6">
-                            <label for="signerName">Your Name</label>
+                            <label class="form-label" for="signerName">Your Name</label>
                             <input type="text" class="form-control" id="signerName" @bind="Data.SignerName"
                                    @bind:event="oninput">
                         </div>
                         <div class="mb-3 col-md-6">
-                            <label for="signerUsername">Developer / Community Member Username</label>
+                            <label class="form-label" for="signerUsername">Developer / Community Member Username</label>
                             <input type="text" class="form-control" id="signerUsername" @bind="Data.DeveloperUsername"
                                    @bind:event="oninput" placeholder="Username (optional)">
                         </div>
@@ -124,7 +124,7 @@
 
                     <div class="row">
                         <div class="mb-3">
-                            <label for="signerIsMinor">Are you a minor or missing capacity to sign on your own?</label>
+                            <label class="form-label" for="signerIsMinor">Are you a minor or missing capacity to sign on your own?</label>
                             <select class="form-select" id="signerIsMinor" @onchange="UpdateIsMinorSelection"
                                     value="@(Data.SignerIsMinor?.ToString() ?? string.Empty)">
                                 <option value="">Please select an option</option>
@@ -137,7 +137,7 @@
                     @if (Data.SignerIsMinor == true)
                     {
                         <div class="row">
-                            <label for="signerGuardianName">Guardian's Name</label>
+                            <label class="form-label" for="signerGuardianName">Guardian's Name</label>
                             <input type="text" class="form-control" id="signerGuardianName" @bind="Data.GuardianName"
                                    @bind:event="oninput">
                         </div>
@@ -188,7 +188,7 @@
 
                 <form>
                     <div class="row">
-                        <label for="signerSignature">Signature</label>
+                        <label class="form-label" for="signerSignature">Signature</label>
                         <input type="text" class="form-control" id="signerSignature" @bind="Data.SignerSignature"
                                @bind:event="oninput"
                                placeholder="Enter your name here to act as a confirming signature">
@@ -197,7 +197,7 @@
                     @if (Data.SignerIsMinor == true)
                     {
                         <div class="row">
-                            <label for="guardianSignature">Guardian's Signature</label>
+                            <label class="form-label" for="guardianSignature">Guardian's Signature</label>
                             <input type="text" class="form-control" id="guardianSignature"
                                    @bind="Data.GuardianSignature" @bind:event="oninput">
                         </div>

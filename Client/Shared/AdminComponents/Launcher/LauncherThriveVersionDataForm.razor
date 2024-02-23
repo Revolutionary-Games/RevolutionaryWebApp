@@ -10,7 +10,7 @@
         <div class="row">
 
             <div class="mb-3 col-md-6">
-                <label for="@($"thriveVersionFormInternalName-{ControlIdSuffix}")">Version Name</label>
+                <label class="form-label" for="@($"thriveVersionFormInternalName-{ControlIdSuffix}")">Version Name</label>
                 <CustomInputText class="form-control" id="@($"thriveVersionFormInternalName-{ControlIdSuffix}")"
                                  @bind-Value="EditedData.ReleaseNumber"
                                  placeholder="Version (version like 0.6.2 with optional -beta suffix)"/>
@@ -20,7 +20,7 @@
                 <div class="form-check">
                     <InputCheckbox class="form-check-input" id="@($"thriveVersionFormStable-{ControlIdSuffix}")"
                                    @bind-Value="EditedData.Stable"/>
-                    <label for="@($"thriveVersionFormStable-{ControlIdSuffix}")">
+                    <label class="form-label" for="@($"thriveVersionFormStable-{ControlIdSuffix}")">
                         Stable Version (non-beta)
                     </label>
                 </div>
@@ -33,7 +33,7 @@
             <div class="form-check">
                 <InputCheckbox class="form-check-input" id="@($"thriveVersionFormStartupDetect-{ControlIdSuffix}")"
                                @bind-Value="EditedData.SupportsFailedStartupDetection"/>
-                <label for="@($"thriveVersionFormStartupDetect-{ControlIdSuffix}")">
+                <label class="form-label" for="@($"thriveVersionFormStartupDetect-{ControlIdSuffix}")">
                     Supports startup failure detection
                 </label>
             </div>

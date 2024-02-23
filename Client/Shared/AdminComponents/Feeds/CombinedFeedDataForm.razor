@@ -7,7 +7,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"combinedFeedFormName-{ControlIdSuffix}")">Name</label>
+            <label class="form-label" for="@($"combinedFeedFormName-{ControlIdSuffix}")">Name</label>
             <CustomInputText class="form-control" id="@($"combinedFeedFormName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Name"
                              placeholder="Feed name (filename when clients request from us)" />
@@ -16,7 +16,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"combinedFeedFormCacheTime-{ControlIdSuffix}")">
+            <label class="form-label" for="@($"combinedFeedFormCacheTime-{ControlIdSuffix}")">
                 Cache Time (passed to Clients reading this from us)
             </label>
             <InputSelect class="form-control" id="@($"combinedFeedFormCacheTime-{ControlIdSuffix}")"
@@ -36,7 +36,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"combinedFeedFormMaxItems-{ControlIdSuffix}")">Max Items To Pick From Feeds</label>
+            <label class="form-label" for="@($"combinedFeedFormMaxItems-{ControlIdSuffix}")">Max Items To Pick From Feeds</label>
             <InputNumber class="form-control" id="@($"combinedFeedFormMaxItems-{ControlIdSuffix}")"
                          @bind-Value="EditedData.MaxItems" />
         </div>
@@ -76,7 +76,7 @@
         {
             <div class="row">
                 <div class="mb-3 col-md-12">
-                    <label for="addNewCombined">Pick feed to add:</label>
+                    <label class="form-label" for="addNewCombined">Pick feed to add:</label>
                     <select class="form-select" id="addNewCombined" @onchange="FeedToAddChanged"
                             value="@(currentlyPickedFeedToAdd?.ToString() ?? string.Empty)">
                         <option value=""></option>
@@ -115,7 +115,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"combinedFeedFormHtmlTemplate-{ControlIdSuffix}")">
+            <label class="form-label" for="@($"combinedFeedFormHtmlTemplate-{ControlIdSuffix}")">
                 HTML Template For Items (required)
             </label>
             <CustomInputTextArea class="form-control" id="@($"combinedFeedFormHtmlTemplate-{ControlIdSuffix}")"

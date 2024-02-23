@@ -11,7 +11,7 @@
         @if (!ForExistingResource)
         {
             <div class="mb-3 col-md-12">
-                <label for="@($"newThrivePlatformPlatform-{ControlIdSuffix}")">
+                <label class="form-label" for="@($"newThrivePlatformPlatform-{ControlIdSuffix}")">
                     Platform This Works On
                 </label>
                 <InputSelect TValue="@PackagePlatform" class="form-control"
@@ -30,7 +30,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"newThrivePlatformFileName-{ControlIdSuffix}")">
+            <label class="form-label" for="@($"newThrivePlatformFileName-{ControlIdSuffix}")">
                 Local Folder Name (launcher uses this to identify installed versions, so must be correct)
             </label>
             <CustomInputText class="form-control" id="@($"newThrivePlatformFileName-{ControlIdSuffix}")"
@@ -46,7 +46,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"newThrivePlatformSha3-{ControlIdSuffix}")">SHA3 Hash of the Release on this Platform</label>
+            <label class="form-label" for="@($"newThrivePlatformSha3-{ControlIdSuffix}")">SHA3 Hash of the Release on this Platform</label>
             <CustomInputText class="form-control" id="@($"newThrivePlatformSha3-{ControlIdSuffix}")"
                              @bind-Value="EditedData.FileSha3" placeholder="SHA3"/>
         </div>

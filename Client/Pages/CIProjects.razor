@@ -59,12 +59,12 @@ else
         <form>
             <div class="row">
                 <div class="mb-3 col-md-6">
-                    <label for="newCIProjectName">Project Name</label>
+                    <label class="form-label" for="newCIProjectName">Project Name</label>
                     <input type="text" class="form-control" id="newCIProjectName" @bind="newName"
                            @bind:event="oninput">
                 </div>
                 <div class="mb-3 col-md-6">
-                    <label for="newCIFullRepoName">Full Repository Name</label>
+                    <label class="form-label" for="newCIFullRepoName">Full Repository Name</label>
                     <input type="text" class="form-control" id="newCIFullRepoName" @bind="newFullRepoName"
                            placeholder="Owner/RepoName">
                 </div>
@@ -79,7 +79,7 @@ else
             </div>
             <div class="row">
                 <div class="mb-3 col-12">
-                    <label for="newCIProjectCloneURL">Clone URL</label>
+                    <label class="form-label" for="newCIProjectCloneURL">Clone URL</label>
                     <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
                 </div>
             </div>
@@ -95,7 +95,7 @@ else
                     </select>
                 </div>
                 <div class="mb-3 col-md-6">
-                    <label for="newCIProjectDefaultBranch">Default Branch Name</label>
+                    <label class="form-label" for="newCIProjectDefaultBranch">Default Branch Name</label>
                     <input type="text" class="form-control" id="newCIProjectDefaultBranch" @bind="newDefaultBranch">
                 </div>
             </div>

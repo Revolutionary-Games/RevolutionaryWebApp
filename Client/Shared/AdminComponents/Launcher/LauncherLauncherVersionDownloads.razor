@@ -78,13 +78,13 @@ else
             @* TODO: auto complete for download mirror names *@
 
             <div class="mb-3 col-md-4">
-                <label for="@($"newLaunchDownloadMirror-{VersionId}")">Mirror Name that provides this download</label>
+                <label class="form-label" for="@($"newLaunchDownloadMirror-{VersionId}")">Mirror Name that provides this download</label>
                 <CustomInputText class="form-control" id="@($"newLaunchDownloadMirror-{VersionId}")"
                                  @bind-Value="newData!.MirrorName" placeholder="Mirror internal name"/>
             </div>
 
             <div class="mb-3 col-md-8">
-                <label for="@($"newLaunchDownloadUrl-{VersionId}")">Download Url</label>
+                <label class="form-label" for="@($"newLaunchDownloadUrl-{VersionId}")">Download Url</label>
                 <CustomInputText class="form-control" id="@($"newLaunchDownloadUrl-{VersionId}")"
                                  @bind-Value="newData!.DownloadUrl" placeholder="Url"/>
             </div>

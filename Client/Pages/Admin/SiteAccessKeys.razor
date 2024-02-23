@@ -22,13 +22,13 @@
         <form>
             <div class="row">
                 <div class="mb-3 col-md-8">
-                    <label for="newAccessKeyDescription">New key description</label>
+                    <label class="form-label" for="newAccessKeyDescription">New key description</label>
                     <input type="text" class="form-control" id="newAccessKeyDescription" @bind="newDescription"
                            @bind:event="oninput"
                            placeholder="What this key is used for?">
                 </div>
                 <div class="mb-3 col-md-4">
-                    <label for="newAccessKeyScopeSelect">Scope:</label>
+                    <label class="form-label" for="newAccessKeyScopeSelect">Scope:</label>
                     <select class="form-select" id="newAccessKeyScopeSelect" @bind="newKeyType">
                         @foreach (var name in Enum.GetNames<AccessKeyType>())
                         {

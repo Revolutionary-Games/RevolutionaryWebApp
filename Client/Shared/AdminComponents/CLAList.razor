@@ -55,13 +55,13 @@ else
     <form>
         <div class="row">
             <div class="mb-3 col-xl-6">
-                <label for="newCLAText">CLA Text (markdown formatted)</label>
+                <label class="form-label" for="newCLAText">CLA Text (markdown formatted)</label>
                 <textarea rows="50" columns="80" class="form-control" id="newCLAText"
                     @bind="newText" @bind:event="oninput">
                 </textarea>
             </div>
             <div class="mb-3 col-xl-6">
-                <label for="newCLAPreview">Markdown Preview</label>
+                <label class="form-label" for="newCLAPreview">Markdown Preview</label>
                 <div id="newCLAPreview"><MarkdownRenderer MarkdownText="@(newText ?? string.Empty)"
                                                              AllMarkdownFeatures="@true"
                                                              UpdateRenderDelay="@TimeSpan.FromSeconds(1)"/></div>

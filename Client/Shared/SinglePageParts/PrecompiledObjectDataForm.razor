@@ -7,7 +7,7 @@
 
     <div class="row">
         <div class="mb-3 col-12">
-            <label for="@($"precompiledFormName-{ControlIdSuffix}")">Name</label>
+            <label class="form-label" for="@($"precompiledFormName-{ControlIdSuffix}")">Name</label>
             <CustomInputText class="form-control" id="@($"precompiledFormName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Name"
                              placeholder=

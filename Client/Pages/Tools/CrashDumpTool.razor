@@ -30,10 +30,10 @@
 
 <form class="form">
     <div class="row">
-        <label for="dumpsUploadSelection" class="me-1">
+        <label class="form-label me-1" for="dumpsUploadSelection">
             Select crash dump:
         </label>
-        <InputFile id="dumpsUploadSelection" accept="*.dmp" OnChange="OnInputFilesChanged" />
+        <InputFile id="dumpsUploadSelection" accept="*.dmp" OnChange="@OnInputFilesChanged" />
     </div>
 
     @* TODO: support drag and drop here once someone has time to implement that *@

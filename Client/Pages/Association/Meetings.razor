@@ -64,11 +64,11 @@ else
         <form>
             <div class="row">
                 <div class="mb-3 col-lg-6">
-                    <label for="newMeetingName">Meeting Name (Need to be unique)</label>
+                    <label class="form-label" for="newMeetingName">Meeting Name (Need to be unique)</label>
                     <input type="text" class="form-control" id="newMeetingName" @bind="newName">
                 </div>
                 <div class="mb-3 col-lg-6">
-                    <label for="newDescription">Meeting Description</label>
+                    <label class="form-label" for="newDescription">Meeting Description</label>
                     <textarea rows="15" class="form-control" id="newDescription"
                         @bind="newDescription" @bind:event="oninput">
                     </textarea>
@@ -96,15 +96,15 @@ else
             </div>
             <div class="row">
                 <div class="mb-3 col-md-6 col-xl-5">
-                    <label for="newMeetingStartDate">Starting Date</label>
+                    <label class="form-label" for="newMeetingStartDate">Starting Date</label>
                     <input type="date" class="form-control" id="newMeetingStartDate" @bind="newStartDate">
                 </div>
                 <div class="mb-3 col-md-6 col-xl-5">
-                    <label for="newMeetingStartTime">Starting Time (local timezone)</label>
+                    <label class="form-label" for="newMeetingStartTime">Starting Time (local timezone)</label>
                     <input type="time" class="form-control" id="newMeetingStartTime" @bind="newStartTime">
                 </div>
                 <div class="mb-3 col-md-12 col-xl-2">
-                    <label for="newJoinGracePeriod">Join Grace Period After Start (minutes)</label>
+                    <label class="form-label" for="newJoinGracePeriod">Join Grace Period After Start (minutes)</label>
                     <input type="number" min="0" max="120" step="1"
                            class="form-control" id="newJoinGracePeriod" @bind="newJoinGraceMinutes">
                 </div>
@@ -116,7 +116,7 @@ else
 
             <div class="row">
                 <div class="mb-3 col-12">
-                    <label for="newExpectedDuration">Expected Duration in Minutes (Optional)</label>
+                    <label class="form-label" for="newExpectedDuration">Expected Duration in Minutes (Optional)</label>
                     <input type="number" min="5" max="600" step="5"
                            class="form-control" id="newExpectedDuration" @bind="newExpectedDuration">
                 </div>

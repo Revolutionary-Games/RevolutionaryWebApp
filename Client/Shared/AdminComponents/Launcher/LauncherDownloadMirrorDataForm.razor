@@ -9,14 +9,14 @@
         @if(!ForExistingResource)
         {
             <div class="mb-3 col-md-6">
-                <label for="@($"mirrorFormInternalName-{ControlIdSuffix}")">Internal Name</label>
+                <label class="form-label" for="@($"mirrorFormInternalName-{ControlIdSuffix}")">Internal Name</label>
                 <CustomInputText class="form-control" id="@($"mirrorFormInternalName-{ControlIdSuffix}")"
                                  @bind-Value="EditedData.InternalName"
                                  placeholder="Internal Name (used to refer to this mirror)"/>
             </div>
         }
         <div class="mb-3 col-md-6">
-            <label for="@($"mirrorFormReadableName-{ControlIdSuffix}")">Readable Name</label>
+            <label class="form-label" for="@($"mirrorFormReadableName-{ControlIdSuffix}")">Readable Name</label>
             <CustomInputText class="form-control" id="@($"mirrorFormReadableName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.ReadableName"
                              placeholder="Readable Name (shown to users)"/>
@@ -25,7 +25,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"mirrorFormInfoLink-{ControlIdSuffix}")">Info URL for users to visit this mirror</label>
+            <label class="form-label" for="@($"mirrorFormInfoLink-{ControlIdSuffix}")">Info URL for users to visit this mirror</label>
             <CustomInputText class="form-control" id="@($"mirrorFormInfoLink-{ControlIdSuffix}")"
                              @bind-Value="EditedData.InfoLink" placeholder="Info Url"/>
         </div>
@@ -33,7 +33,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"mirrorFormBannerImage-{ControlIdSuffix}")">Banner Image Url (optional)</label>
+            <label class="form-label" for="@($"mirrorFormBannerImage-{ControlIdSuffix}")">Banner Image Url (optional)</label>
             <CustomInputText class="form-control" id="@($"mirrorFormBannerImage-{ControlIdSuffix}")"
                              @bind-Value="EditedData.BannerImageUrl" placeholder="Url to image (optional)"/>
         </div>
@@ -41,7 +41,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"mirrorFormDescription-{ControlIdSuffix}")">
+            <label class="form-label" for="@($"mirrorFormDescription-{ControlIdSuffix}")">
                 Customized mirror description shown to users when downloading (optional)
             </label>
             <CustomInputText class="form-control" id="@($"mirrorFormDescription-{ControlIdSuffix}")"

@@ -99,7 +99,7 @@ else
 
                                 <div class="row">
                                     <div class="mb-3 col-12">
-                                        <label for="@elementId">@choice.Value.Name</label>
+                                        <label class="form-label" for="@elementId">@choice.Value.Name</label>
                                         <select @key="elementId" class="form-select" id="@elementId"
                                                 value="@data.Item1[choice.Key].ChoiceNumber"
                                                 @onchange="e => UpdatePollChoiceRank(
@@ -127,7 +127,7 @@ else
 
                                 <div class="row">
                                     <div class="mb-3 col-12">
-                                        <label for="@elementId">@choice.Value.Name</label>
+                                        <label class="form-label" for="@elementId">@choice.Value.Name</label>
                                         <input type="checkbox" id="@elementId"
                                                checked="@(data.Item1[choice.Key].ChoiceNumber != null)"
                                                @onchange="e => MultipleChoiceButtonChanged(choice.Value, e,
@@ -152,7 +152,7 @@ else
                                                checked="@(data.Item1[choice.Key].ChoiceNumber != null)"
                                                @onchange="e => SingleChoiceButtonChanged(choice.Value, e,
                                                 data.Item1)" />
-                                        <label for="@elementId">@choice.Value.Name</label>
+                                        <label class="form-label" for="@elementId">@choice.Value.Name</label>
                                     </div>
                                 </div>
                             }
@@ -232,7 +232,7 @@ else
         <form>
             <div class="row">
                 <div class="mb-3 col-md-6">
-                    <label for="newPollTitle">Title</label>
+                    <label class="form-label" for="newPollTitle">Title</label>
                     <input type="text" class="form-control" id="newPollTitle" @bind="newPollDTOData.Title"
                            @bind:event="oninput">
                 </div>
@@ -248,7 +248,7 @@ else
             </div>
             <div class="row">
                 <div class="mb-3 col-12">
-                    <label for="newAutoCloseInMinutes">Auto close in (minutes)</label>
+                    <label class="form-label" for="newAutoCloseInMinutes">Auto close in (minutes)</label>
                     <input type="number" min="2" max="60" step="1"
                            class="form-control" id="newAutoCloseInMinutes" @bind="newAutoCloseInMinutes">
                 </div>

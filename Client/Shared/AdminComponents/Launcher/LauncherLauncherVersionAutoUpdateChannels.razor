@@ -90,7 +90,7 @@ else
 
         <div class="row">
             <div class="mb-3 col-md-4">
-                <label for="@($"newVersionUpdateChannelChannel-{VersionId}")">
+                <label class="form-label" for="@($"newVersionUpdateChannelChannel-{VersionId}")">
                     Channel (type of launcher this download is for)
                 </label>
                 <InputSelect class="form-control" id="@($"newVersionUpdateChannelChannel-{VersionId}")"
@@ -103,7 +103,7 @@ else
             </div>
 
             <div class="mb-3 col-md-8">
-                <label for="@($"newVersionUpdateChannelSha-{VersionId}")">SHA3 256 Hash of the Update File</label>
+                <label class="form-label" for="@($"newVersionUpdateChannelSha-{VersionId}")">SHA3 256 Hash of the Update File</label>
                 <CustomInputText class="form-control" id="@($"newVersionUpdateChannelSha-{VersionId}")"
                                  @bind-Value="newData!.FileSha3" placeholder="SHA3 hash"/>
             </div>

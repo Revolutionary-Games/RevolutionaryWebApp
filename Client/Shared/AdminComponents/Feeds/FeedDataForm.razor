@@ -7,7 +7,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"feedFormName-{ControlIdSuffix}")">Name</label>
+            <label class="form-label" for="@($"feedFormName-{ControlIdSuffix}")">Name</label>
             <CustomInputText class="form-control" id="@($"feedFormName-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Name"
                              placeholder="Feed name (filename when clients request from us)" />
@@ -16,7 +16,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"feedFormUrl-{ControlIdSuffix}")">Feed Url To Retrieve Data From</label>
+            <label class="form-label" for="@($"feedFormUrl-{ControlIdSuffix}")">Feed Url To Retrieve Data From</label>
             <CustomInputText class="form-control" id="@($"feedFormUrl-{ControlIdSuffix}")"
                              @bind-Value="EditedData.Url" placeholder="Url"/>
         </div>
@@ -24,7 +24,7 @@
 
     <div class="row">
         <div class="mb-3 col-lg-6">
-            <label for="@($"feedFormPollInterval-{ControlIdSuffix}")">Poll Interval</label>
+            <label class="form-label" for="@($"feedFormPollInterval-{ControlIdSuffix}")">Poll Interval</label>
 
             <InputSelect class="form-control" id="@($"feedFormPollInterval-{ControlIdSuffix}")"
                          @bind-Value="EditedData.PollInterval">
@@ -40,7 +40,7 @@
             </InputSelect>
         </div>
         <div class="mb-3 col-lg-6">
-            <label for="@($"feedFormCacheTime-{ControlIdSuffix}")">
+            <label class="form-label" for="@($"feedFormCacheTime-{ControlIdSuffix}")">
                 Cache Time (passed to Clients reading this from us)
             </label>
             <InputSelect TValue="TimeSpan?" class="form-control" id="@($"feedFormCacheTime-{ControlIdSuffix}")"
@@ -61,12 +61,12 @@
 
     <div class="row">
         <div class="mb-3 col-md-6">
-            <label for="@($"feedFormMaxItems-{ControlIdSuffix}")">Max Items To Show</label>
+            <label class="form-label" for="@($"feedFormMaxItems-{ControlIdSuffix}")">Max Items To Show</label>
             <InputNumber class="form-control" id="@($"feedFormMaxItems-{ControlIdSuffix}")"
                          @bind-Value="EditedData.MaxItems" />
         </div>
         <div class="mb-3 col-md-6">
-            <label for="@($"feedFormMaxItemLength-{ControlIdSuffix}")">Max Item Length</label>
+            <label class="form-label" for="@($"feedFormMaxItemLength-{ControlIdSuffix}")">Max Item Length</label>
             <InputNumber class="form-control" id="@($"feedFormMaxItemLength-{ControlIdSuffix}")"
                          @bind-Value="EditedData.MaxItemLength" />
         </div>
@@ -106,7 +106,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"feedFormHtmlTemplate-{ControlIdSuffix}")">
+            <label class="form-label" for="@($"feedFormHtmlTemplate-{ControlIdSuffix}")">
                 HTML Template to Transform Items to Show in HTML Form
             </label>
             <CustomInputTextArea class="form-control" id="@($"feedFormHtmlTemplate-{ControlIdSuffix}")"
@@ -116,7 +116,7 @@
 
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label for="@($"feedFormHtmlSuffix-{ControlIdSuffix}")">
+            <label class="form-label" for="@($"feedFormHtmlSuffix-{ControlIdSuffix}")">
                 Suffix For The Feed Name To Get The HTML Templated Version
             </label>
             <CustomInputText class="form-control" id="@($"feedFormHtmlSuffix-{ControlIdSuffix}")"

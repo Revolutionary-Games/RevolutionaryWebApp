@@ -68,7 +68,7 @@ else
 
         <div class="row">
             <div class="mb-3 col-md-8">
-                <label for="newFullyQualifiedName">Qualified Repository Name (format: Owner/Repo-Name)</label>
+                <label class="form-label" for="newFullyQualifiedName">Qualified Repository Name (format: Owner/Repo-Name)</label>
                 <CustomInputText class="form-control" id="newFullyQualifiedName"
                                  @bind-Value="newData!.QualifiedName" placeholder="Owner/Repo-Name" />
             </div>
@@ -85,7 +85,7 @@ else
 
         <div class="row">
             <div class="mb-3">
-                <label for="newIgnoreDownloads">Regex to ignore specific release files in download stats</label>
+                <label class="form-label" for="newIgnoreDownloads">Regex to ignore specific release files in download stats</label>
                 <CustomInputText class="form-control" id="newIgnoreDownloads" @bind-Value="newData!.IgnoreDownloads"
                                  placeholder="Ignored downloads regex (optional)"/>
             </div>

@@ -10,7 +10,7 @@
     <form class="@FormClass">
         <div class="row">
             <div class="mb-3">
-                <label for="editedFolderName">Name</label>
+                <label class="form-label" for="editedFolderName">Name</label>
                 <input type="text" class="form-control" id="editedFolderName" @bind="folderName"
                        @bind:event="oninput" placeholder="Name">
             </div>
@@ -18,7 +18,7 @@
 
         <div class="row">
             <div class="mb-3 col-md-6">
-                <label for="editedFolderReadAccess">Read Access</label>
+                <label class="form-label" for="editedFolderReadAccess">Read Access</label>
                 <select class="form-select" id="editedFolderReadAccess" @bind="readAccess">
                     @foreach (var name in Enum.GetNames<FileAccess>())
                     {
@@ -27,7 +27,7 @@
                 </select>
             </div>
             <div class="mb-3 col-md-6">
-                <label for="editedFolderWriteAccess">Write Access</label>
+                <label class="form-label" for="editedFolderWriteAccess">Write Access</label>
                 <select class="form-select" id="editedFolderWriteAccess" @bind="writeAccess">
                     @foreach (var name in Enum.GetNames<FileAccess>())
                     {

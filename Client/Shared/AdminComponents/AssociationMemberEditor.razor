@@ -9,13 +9,13 @@
 
         <div class="row">
             <div class="mb-3 col-md-6">
-                <label for="@($"editFirstNames-{Data.Id}")">First Name(s)</label>
+                <label class="form-label" for="@($"editFirstNames-{Data.Id}")">First Name(s)</label>
                 <CustomInputText class="form-control" id="@($"editFirstNames-{Data.Id}")"
                                  @bind-Value="editedData!.FirstNames" placeholder="First names"
                                  DisplayName="First Name(s)" />
             </div>
             <div class="mb-3 col-md-6">
-                <label for="@($"editLastNames-{Data.Id}")">Last Name</label>
+                <label class="form-label" for="@($"editLastNames-{Data.Id}")">Last Name</label>
                 <CustomInputText class="form-control" id="@($"editLastNames-{Data.Id}")"
                                  @bind-Value="editedData!.LastName" placeholder="Last name"/>
             </div>
@@ -23,13 +23,13 @@
 
         <div class="row">
             <div class="mb-3 col-md-8">
-                <label for="@($"editCity-{Data.Id}")">City of Residence (and state code if USA)</label>
+                <label class="form-label" for="@($"editCity-{Data.Id}")">City of Residence (and state code if USA)</label>
                 <CustomInputText class="form-control" id="@($"editCity-{Data.Id}")"
                                  @bind-Value="editedData!.CityOfResidence" placeholder="City of Residence"
                                  DisplayName="City of Residence" />
             </div>
             <div class="mb-3 col-md-4">
-                <label for="@($"editCountry-{Data.Id}")">Country</label>
+                <label class="form-label" for="@($"editCountry-{Data.Id}")">Country</label>
                 <CustomInputText class="form-control" id="@($"editCountry-{Data.Id}")"
                                  @bind-Value="editedData!.CountryOfResidence" placeholder="Country"
                                  DisplayName="Country" />
@@ -38,7 +38,7 @@
 
         <div class="row">
             <div class="mb-3">
-                <label for="@($"editJoinDate-{Data.Id}")">Join Date</label>
+                <label class="form-label" for="@($"editJoinDate-{Data.Id}")">Join Date</label>
                 <InputDate class="form-control" id="@($"editJoinDate-{Data.Id}")" @bind-Value="editedData!.JoinDate"/>
             </div>
         </div>
