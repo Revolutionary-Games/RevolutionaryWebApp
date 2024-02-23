@@ -35,6 +35,12 @@ function getStaticHomePageNotice() {
     return element.value;
 }
 
+function registerPageUnloadCallback(notifyObject) {
+    window.onbeforeunload = function () {
+        return notifyObject.invokeMethod("onBeforeUnload");
+    }
+}
+
 function scrollToElement(id, smooth) {
     const element = document.getElementById(id);
 

@@ -31,6 +31,8 @@ public class NotificationHandler : IAsyncDisposable
 
     private readonly NotificationJsonConverter converter = new();
 
+    private readonly ConnectionRetryTimer connectionRetryTimer = new();
+
     private readonly HashSet<string> currentlyJoinedGroups = new();
     private HubConnection? hubConnection;
 
@@ -219,8 +221,8 @@ public class NotificationHandler : IAsyncDisposable
     {
         // TODO: look into enabling message pack protocol
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(navManager.ToAbsoluteUri(
-                    $"/notifications?majorVersion={AppInfo.Major}&minorVersion={AppInfo.Minor}"),
+            .WithUrl(
+                navManager.ToAbsoluteUri($"/notifications?majorVersion={AppInfo.Major}&minorVersion={AppInfo.Minor}"),
                 options =>
                 {
                     // Apparently we have to leak this in the url as there is no other way to set this...
@@ -238,7 +240,7 @@ public class NotificationHandler : IAsyncDisposable
             {
                 configure.PayloadSerializerOptions = HttpClientHelpers.GetOptionsWithSerializers();
             })
-            .WithAutomaticReconnect(new ConnectionRetryTimer()).ConfigureLogging(logging =>
+            .WithAutomaticReconnect(connectionRetryTimer).ConfigureLogging(logging =>
             {
                 if (FullMessageLogging)
                 {
@@ -367,6 +369,12 @@ public class NotificationHandler : IAsyncDisposable
         Console.WriteLine("Stopping hub connection as we have detected a condition that we need to do so");
         ConnectionPermanentlyLost = true;
         await hubConnection.StopAsync();
+    }
+
+    public void NotifyPageClose()
+    {
+        ConnectionPermanentlyLost = true;
+        connectionRetryTimer.Stop();
     }
 
     public async ValueTask DisposeAsync()
@@ -525,8 +533,13 @@ public class NotificationHandler : IAsyncDisposable
 
     private class ConnectionRetryTimer : IRetryPolicy
     {
+        private bool stopped;
+
         public TimeSpan? NextRetryDelay(RetryContext retryContext)
         {
+            if (stopped)
+                return null;
+
             switch (retryContext.PreviousRetryCount)
             {
                 case <= 1:
@@ -545,6 +558,11 @@ public class NotificationHandler : IAsyncDisposable
                     // Retry indefinitely in case the server *eventually* comes back
                     return TimeSpan.FromMinutes(30);
             }
+        }
+
+        public void Stop()
+        {
+            stopped = true;
         }
     }
 }

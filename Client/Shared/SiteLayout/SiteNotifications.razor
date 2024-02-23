@@ -2,6 +2,7 @@
 @using RevolutionaryWebApp.Shared
 @inject NavigationManager NavManager
 @inject NotificationHandler NotificationHandler
+@inject IJSRuntime JS
 @implements IDisposable
 
 @if (!string.IsNullOrEmpty(notification))
@@ -22,7 +23,7 @@
     </div>
 }
 
-@if (NotificationHandler.ConnectionLost)
+@if (NotificationHandler.ConnectionLost && !userIntentionallyClosedConnection)
 {
     <div class="alert alert-warning" role="alert">
         Connection to the server has been lost.
@@ -41,7 +42,9 @@
     private string? notification;
     private SiteNoticeType currentNoticeType;
 
-    protected override Task OnInitializedAsync()
+    private bool userIntentionallyClosedConnection;
+
+    protected override async Task OnInitializedAsync()
     {
         // Register for changes
         NotificationHandler.OnVersionMismatch += OnVersionMismatch;
@@ -53,7 +56,14 @@
         notification = NotificationHandler.CurrentNotice;
         currentNoticeType = NotificationHandler.CurrentNoticeType;
 
-        return Task.CompletedTask;
+        await JS.InvokeVoidAsync("registerPageUnloadCallback", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable("onBeforeUnload")]
+    public void OnPageNavigateAwayStarted()
+    {
+        userIntentionallyClosedConnection = true;
+        NotificationHandler.NotifyPageClose();
     }
 
     public void Dispose()
