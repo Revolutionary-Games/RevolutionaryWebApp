@@ -44,12 +44,12 @@
 else
 {
     <div id="app">
-        <div style="text-align: center">
-            Loading app...<br>
-            <span class="spinner-border text-primary" role="status"></span><br>
-            Make sure JavaScript is enabled if this message is shown for more than a few seconds.<br>
-            Then reload this page.
-        </div>
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+        <noscript>This web app requires JavaScript to function.</noscript>
     </div>
 }
 

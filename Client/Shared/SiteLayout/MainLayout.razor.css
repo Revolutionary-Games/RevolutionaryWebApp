@@ -4,7 +4,7 @@
     flex-direction: column;
 }
 
-.main {
+main {
     flex: 1;
 }
 
@@ -24,7 +24,7 @@
         top: 0;
     }
 
-    .main > div {
+    article {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }

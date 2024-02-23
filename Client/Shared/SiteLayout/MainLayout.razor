@@ -7,7 +7,7 @@
             <NavMenu />
         </div>
 
-        <div class="main">
+        <main>
             <TopNavBar />
 
             @if (NavigationManager.RelativeUrl().StartsWith("admin"))
@@ -29,9 +29,9 @@
             <CSRFExpiryAlerter />
             <SiteNotifications />
 
-            <div class="content px-4">
+            <article class="content px-4">
                 @Body
-            </div>
-        </div>
+            </article>
+        </main>
     </MediaQueryList>
 </div>

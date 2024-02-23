@@ -1,11 +1,12 @@
 ﻿<CascadingBlazoredModal UseCustomLayout="@true">
     <Router AppAssembly="@typeof(Program).Assembly" PreferExactMatches="@true">
         <Found Context="routeData">
-            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)"/>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
         </Found>
         <NotFound>
             <LayoutView Layout="@typeof(MainLayout)">
-                <p>There is no page at this address.</p>
+                <p role="alert">There is no page at this address.</p>
             </LayoutView>
             <PageTitle>Not Found</PageTitle>
         </NotFound>
