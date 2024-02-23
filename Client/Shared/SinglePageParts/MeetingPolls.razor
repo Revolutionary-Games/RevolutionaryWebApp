@@ -125,13 +125,13 @@ else
                             {
                                 var elementId = $"poll{item.PollId}Choice{choice.Key}";
 
-                                <div class="row">
-                                    <div class="mb-3 col-12">
-                                        <label class="form-label" for="@elementId">@choice.Value.Name</label>
-                                        <input type="checkbox" id="@elementId"
+                                <div class="row mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="@elementId"
                                                checked="@(data.Item1[choice.Key].ChoiceNumber != null)"
                                                @onchange="e => MultipleChoiceButtonChanged(choice.Value, e,
-                                                data.Item1)" />
+                                                   data.Item1)" />
+                                        <label class="form-check-label" for="@elementId">@choice.Value.Name</label>
                                     </div>
                                 </div>
                             }
@@ -146,13 +146,13 @@ else
                             {
                                 var elementId = $"poll{item.PollId}Choice{choice.Key}";
 
-                                <div class="row">
-                                    <div class="mb-3 col-12">
-                                        <input type="radio" id="@elementId"
+                                <div class="row mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" id="@elementId"
                                                checked="@(data.Item1[choice.Key].ChoiceNumber != null)"
                                                @onchange="e => SingleChoiceButtonChanged(choice.Value, e,
-                                                data.Item1)" />
-                                        <label class="form-label" for="@elementId">@choice.Value.Name</label>
+                                                   data.Item1)" />
+                                        <label class="form-check-label" for="@elementId">@choice.Value.Name</label>
                                     </div>
                                 </div>
                             }
@@ -276,11 +276,9 @@ else
                 </div>
             }
 
-            <div class="row">
-                <Button class="mb-3" Enabled="@(!processingNewForm)" OnPressed="@AddNewChoice">
-                    Add Choice
-                </Button>
-            </div>
+            <Button class="mb-3" Enabled="@(!processingNewForm)" OnPressed="@AddNewChoice">
+                Add Choice
+            </Button>
 
             @if (newPollData.MultipleChoiceOption != null)
             {
@@ -300,18 +298,18 @@ else
             }
             else if (newPollData.WeightedChoices != null)
             {
-                <div class="mb-3 col-md-12">
-                    <label class="me-1" for="newAllowEmpty">Can Votes Be Empty?</label>
-                    <input type="checkbox" id="newAllowEmpty"
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="newAllowEmpty"
                            @bind="newPollData.WeightedChoices.CanSelectNone">
+                    <label class="form-check-label" for="newAllowEmpty">Can Votes Be Empty?</label>
                 </div>
             }
             else if (newPollData.SingleChoiceOption != null)
             {
-                <div class="mb-3 col-md-12">
-                    <label class="me-1" for="newAllowEmpty">Can Votes Be Empty?</label>
-                    <input type="checkbox" id="newAllowEmpty"
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="newAllowEmpty"
                            @bind="newPollData.SingleChoiceOption.CanSelectNone">
+                    <label class="form-check-label" for="newAllowEmpty">Can Votes Be Empty?</label>
                 </div>
             }
 

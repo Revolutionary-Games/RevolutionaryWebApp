@@ -7,9 +7,8 @@
 
         @if (HasCallback)
         {
-            <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close"
+            <button type="button" class="btn-close float-end" data-dismiss="alert" aria-label="Close"
                     @onclick="DismissNotification" @onclick:preventDefault="true" @onclick:stopPropagation="true">
-                <span aria-hidden="true">&times;</span>
             </button>
         }
     </div>
