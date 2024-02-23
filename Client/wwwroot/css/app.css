@@ -19,7 +19,11 @@ a.active {
 a.active:hover {
     color: #6c757d;
     cursor: default;
-    text-decoration: none !important;
+}
+
+/* fix for links in nav links */
+.nav-link:focus.active {
+    color: #6c757d;
 }
 
 .btn-primary {
