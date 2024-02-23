@@ -40,12 +40,10 @@
 
     <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage" />
 
-    <div class="row">
-        <Button ButtonStyle="primary" Enabled="@CanSubmit" type="submit" Spinner="@processing" OnPressed="@Submit"
-                class="mb-2">
-            Submit
-        </Button>
-    </div>
+    <Button ButtonStyle="primary" Enabled="@CanSubmit" type="submit" Spinner="@processing" OnPressed="@Submit"
+            class="my-2">
+        Submit
+    </Button>
 </form>
 
 <h4>Results</h4>
