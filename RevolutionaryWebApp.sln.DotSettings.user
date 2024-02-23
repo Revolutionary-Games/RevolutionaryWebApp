@@ -2,12 +2,10 @@
 	<s:String x:Key="/Default/CodeStyle/CodeCleanup/RecentlyUsedProfile/@EntryValue">full_no_xml</s:String>
 	<s:String x:Key="/Default/CodeStyle/Generate/=Implementations/Options/=Mutable/@EntryIndexedValue">True</s:String>
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;
-  &lt;PhysicalFolder Path="/home/hhyyrylainen/.nuget/packages/selenium.support/3.141.0" Loaded="True" /&gt;
-  &lt;PhysicalFolder Path="/home/hhyyrylainen/.nuget/packages/mono.posix.netstandard/1.0.0" Loaded="True" /&gt;
   &lt;PhysicalFolder Path="/home/hhyyrylainen/.nuget/packages/mono.posix.netstandard/5.20.1-preview" Loaded="True" /&gt;
   &lt;PhysicalFolder Path="/home/hhyyrylainen/.local/share/NuGet/Cache" Loaded="True" /&gt;
-  &lt;PhysicalFolder Path="/home/hhyyrylainen/.nuget/packages/yamldotnet/11.1.1" Loaded="True" /&gt;
   &lt;Assembly Path="/home/hhyyrylainen/.nuget/packages/stardustdl.razorcomponents.markdown/0.0.3.26/lib/net5.0/StardustDL.RazorComponents.Markdown.dll" /&gt;
+  &lt;Assembly Path="/home/hhyyrylainen/.nuget/packages/blazorpagination/0.2.16/lib/netstandard2.1/BlazorPagination.dll" /&gt;
 &lt;/AssemblyExplorer&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7639f42b_002D692d_002D402e_002D929a_002Dcac204bbeb4b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from Solution" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;Solution /&gt;
