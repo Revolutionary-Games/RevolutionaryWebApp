@@ -166,9 +166,15 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
             logger.LogInformation("Revolutionary Bot for Discord is starting");
 
+            var intents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent;
+
+            // To silence a few warnings we unregister intents we aren't using
+            intents &= ~GatewayIntents.GuildScheduledEvents;
+            intents &= ~GatewayIntents.GuildInvites;
+
             var config = new DiscordSocketConfig
             {
-                GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent,
+                GatewayIntents = intents,
             };
 
             client = new DiscordSocketClient(config);
