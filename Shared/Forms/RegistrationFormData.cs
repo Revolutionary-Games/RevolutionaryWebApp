@@ -15,6 +15,9 @@ public class RegistrationFormData
     [NoTrailingOrPrecedingSpace]
     public string Name { get; set; } = string.Empty;
 
+    // TODO: add optional display name
+    // TODO: add optional favourite species field (which should then get passed to the forums when logging in there
+
     [Required]
     [StringLength(AppInfo.MaxPasswordLength, MinimumLength = AppInfo.MinPasswordLength)]
     public string Password { get; set; } = string.Empty;
