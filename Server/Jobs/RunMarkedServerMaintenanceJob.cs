@@ -16,6 +16,7 @@ using Shared.Models;
 ///   Run maintenance on the controlled and external servers that are marked as wanting maintenance
 ///   (and aren't currently running anything)
 /// </summary>
+[DisableConcurrentExecution(1200)]
 public class RunMarkedServerMaintenanceJob : IJob
 {
     private const string ExternalServerMaintenanceCommand = "sudo dnf update -y --refresh";
