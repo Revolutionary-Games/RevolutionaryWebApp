@@ -29,7 +29,7 @@
                 </div>
                 <div class="form-group col-md-4">
                     <label for="newAccessKeyScopeSelect">Scope:</label>
-                    <select class="custom-select" id="newAccessKeyScopeSelect" @bind="newKeyType">
+                    <select class="form-select" id="newAccessKeyScopeSelect" @bind="newKeyType">
                         @foreach (var name in Enum.GetNames<AccessKeyType>())
                         {
                             <option value="@name">@name</option>

@@ -7,12 +7,12 @@
 <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
 <form class="form-inline">
-    <label class="sr-only" for="siteNoticeMessageInput">Notice to send:</label>
+    <label class="visually-hidden" for="siteNoticeMessageInput">Notice to send:</label>
     <input type="text" class="form-control mb-2 flex-fill" id="siteNoticeMessageInput"
            placeholder="Notice message..." @bind="message" @bind:event="oninput">
 
     <label class="mb-md-2 ml-md-3 ml-1 mr-1" for="siteNoticeTypeSelect">Type</label>
-    <select class="custom-select mb-2 mr-md-3" id="siteNoticeTypeSelect" @bind="noticeType">
+    <select class="form-select mb-2 mr-md-3" id="siteNoticeTypeSelect" @bind="noticeType">
         @foreach (var name in Enum.GetNames<SiteNoticeType>())
         {
             <option value="@name">@name</option>

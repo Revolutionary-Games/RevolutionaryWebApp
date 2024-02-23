@@ -51,7 +51,7 @@
     @if (fetching)
     {
         <div class="spinner-border text-primary" role="status">
-            <span class="sr-only">Loading...</span>
+            <span class="visually-hidden">Loading...</span>
         </div>
     }
     else
@@ -77,7 +77,7 @@
             <div class="form-row">
                 <div class="form-group col-md-12">
                     <label for="addNewCombined">Pick feed to add:</label>
-                    <select class="custom-select" id="addNewCombined" @onchange="FeedToAddChanged"
+                    <select class="form-select" id="addNewCombined" @onchange="FeedToAddChanged"
                             value="@(currentlyPickedFeedToAdd?.ToString() ?? string.Empty)">
                         <option value=""></option>
                         @foreach (var feed in availableFeedsForCombine.Where(f => !IsAlreadyAdded(f.Id)))

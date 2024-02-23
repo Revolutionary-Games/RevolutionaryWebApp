@@ -125,7 +125,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="signerIsMinor">Are you a minor or missing capacity to sign on your own?</label>
-                            <select class="custom-select" id="signerIsMinor" @onchange="UpdateIsMinorSelection"
+                            <select class="form-select" id="signerIsMinor" @onchange="UpdateIsMinorSelection"
                                     value="@(Data.SignerIsMinor?.ToString() ?? string.Empty)">
                                 <option value="">Please select an option</option>
                                 <option value="True">Yes, I'm a minor</option>

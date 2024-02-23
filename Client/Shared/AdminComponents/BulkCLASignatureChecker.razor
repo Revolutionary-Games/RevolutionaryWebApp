@@ -12,7 +12,7 @@
     <div class="form-row">
         <div class="form-group col-md-6">
             <label class="mr-1" for="checkRequestType">Check Mode</label>
-            <InputSelect class="custom-select" id="checkRequestType" @bind-Value="request.CheckType">
+            <InputSelect class="form-select" id="checkRequestType" @bind-Value="request.CheckType">
                 @foreach (var name in Enum.GetNames<CLACheckRequestType>())
                 {
                     <option value="@name">@name</option>

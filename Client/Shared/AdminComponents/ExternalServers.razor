@@ -97,7 +97,7 @@
                             <td colspan="@columns.Count" class="mb-2 expanded-box">
                                 <form class="form-inline mr-2 mb-2">
                                     Update priority:
-                                    <select class="custom-select ml-1" value="@item.Priority"
+                                    <select class="form-select ml-1" value="@item.Priority"
                                             @onchange="async args => await UpdatePriority(item, args)">
                                         @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
                                             AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
@@ -140,7 +140,7 @@
                                         <div class="d-flex justify-content-center align-items-center"
                                              style="height: 100%;">
                                             <div class="spinner-border text-light" role="status">
-                                                <span class="sr-only">Processing...</span>
+                                                <span class="visually-hidden">Processing...</span>
                                             </div>
                                         </div>
                                     </div>

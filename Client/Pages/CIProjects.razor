@@ -87,7 +87,7 @@ else
             <div class="form-row">
                 <div class="form-group col-md-6">
                     <label class="mr-1" for="newCIProjectType">Type</label>
-                    <select class="custom-select" id="newCIProjectType" @bind="newProjectType">
+                    <select class="form-select" id="newCIProjectType" @bind="newProjectType">
                         @foreach (var name in Enum.GetNames<CIProjectType>())
                         {
                             <option value="@name">@name</option>

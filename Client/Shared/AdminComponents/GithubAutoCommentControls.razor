@@ -74,7 +74,7 @@ else
                                        id="@($"enabledEditCheckbox{item.Id}")" @bind="item.Enabled">
 
                                 <label for="@($"conditionEdit{item.Id}")">Condition:</label>
-                                <select class="custom-select ml-1 mr-2" @bind="item.Condition"
+                                <select class="form-select ml-1 mr-2" @bind="item.Condition"
                                         id="@($"conditionEdit{item.Id}")">
                                     @foreach (var name in Enum.GetNames<AutoCommentCondition>())
                                     {
@@ -103,7 +103,7 @@ else
                                     <div class="d-flex justify-content-center align-items-center"
                                          style="height: 100%;">
                                         <div class="spinner-border text-light" role="status">
-                                            <span class="sr-only">Processing...</span>
+                                            <span class="visually-hidden">Processing...</span>
                                         </div>
                                     </div>
                                 </div>
@@ -147,7 +147,7 @@ else
         <div class="form-row">
             <div class="form-group col-md-6">
                 <label class="mr-1" for="newCommentCondition">Condition</label>
-                <select class="custom-select" id="newCommentCondition" @bind="newCommentCondition">
+                <select class="form-select" id="newCommentCondition" @bind="newCommentCondition">
                     @foreach (var name in Enum.GetNames<AutoCommentCondition>())
                     {
                         <option value="@name">@name</option>
