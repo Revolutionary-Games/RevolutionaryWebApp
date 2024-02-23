@@ -192,13 +192,36 @@ else
     </Button>
     <br />
 
-    @if (User.Suspended != true)
+    @if (!User.Suspended)
     {
-        <Button class="mb-1" ButtonStyle="danger" Enabled="@false">Suspend</Button>
+        @if (showSuspensionReasonEntry)
+        {
+            <p>
+                Suspending a user means they cannot login at all and their account stops working until unsuspended.
+                Suspension reason is visible to the user when trying to login and is required to be provided.
+            </p>
+            <input class="col-md-6" type="text" placeholder="Suspension reason (required)"
+                   @bind="@newSuspensionReason" />
+
+            <Button class="mb-1" ButtonStyle="danger" Enabled="@CanStartSuspend" Spinner="@doingSuspension"
+                    OnPressed="@StartSuspension">
+                Suspend
+            </Button>
+            <Button class="mb-1 ml-1" ButtonStyle="secondary" OnPressed="@ToggleSuspension">Cancel</Button>
+        }
+        else
+        {
+            <Button class="mb-1" ButtonStyle="danger" Enabled="@CanSuspend" OnPressed="@ToggleSuspension">
+                Suspend
+            </Button>
+        }
     }
     else
     {
-        <Button class="mb-1" ButtonStyle="secondary" Enabled="@false">Remove Suspension</Button>
+        <Button class="mb-1" ButtonStyle="secondary" Enabled="@(!doingSuspension)" Spinner="@doingSuspension"
+                OnPressed="@UnsuspendUser">
+            Remove Suspension
+        </Button>
     }
     <br />
 </AccessLimited>
@@ -212,6 +235,10 @@ else
     private SiteNoticeType linkResultType = SiteNoticeType.Danger;
 
     private bool clearingTokens;
+
+    private bool showSuspensionReasonEntry;
+    private string newSuspensionReason = string.Empty;
+    private bool doingSuspension;
 
     private string? actionResult;
     private SiteNoticeType actionResultType = SiteNoticeType.Danger;
@@ -236,6 +263,11 @@ else
 
     private bool LookingAtSelf => CurrentUserInfo.InfoReady && CurrentUserInfo.Email ==
         User.Email;
+
+    // Can't suspend admins through this way
+    private bool CanSuspend => !LookingAtSelf && !User.Groups.HasAccessLevel(GroupType.Admin);
+
+    private bool CanStartSuspend => CanSuspend && !doingSuspension && !string.IsNullOrWhiteSpace(newSuspensionReason);
 
     private async void ClearTokensOnUser()
     {
@@ -355,6 +387,90 @@ else
             linkResult = $"Your launcher link code is: {content} Please copy it into the Thrive Launcher to " +
                 $"continue. The code expires at {expiryTime}";
             linkResultType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleSuspension()
+    {
+        showSuspensionReasonEntry = !showSuspensionReasonEntry;
+
+        if (showSuspensionReasonEntry)
+            newSuspensionReason = string.Empty;
+    }
+
+    private async Task StartSuspension()
+    {
+        doingSuspension = true;
+        actionResult = null;
+        actionResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync($"api/v1/UserManagement/{User.Id}/suspend", newSuspensionReason);
+        }
+        catch (HttpRequestException e)
+        {
+            actionResult = $"Network request failed: {e.Message}";
+            doingSuspension = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        doingSuspension = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            actionResult = $"Failed to suspend user. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionResult = "User is now suspended";
+            actionResultType = SiteNoticeType.Warning;
+            showSuspensionReasonEntry = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UnsuspendUser()
+    {
+        doingSuspension = true;
+        actionResult = null;
+        actionResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/UserManagement/{User.Id}/unsuspend",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            actionResult = $"Network request failed: {e.Message}";
+            doingSuspension = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        doingSuspension = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            actionResult = $"Failed to unsuspend user. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionResult = "User is now unsuspended";
+            actionResultType = SiteNoticeType.Success;
         }
 
         await InvokeAsync(StateHasChanged);
