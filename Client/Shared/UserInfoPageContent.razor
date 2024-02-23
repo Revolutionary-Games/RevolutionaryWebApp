@@ -86,10 +86,12 @@
 
 <UserSessions Id="@User.Id" LookingAtSelf="@LookingAtSelf"/>
 
-<small>
-    Note: forum login sessions are not listed here but logging out everywhere will work for them once login for them
-    is handled through this website.
-</small>
+<p class="mt-2">
+    <small>
+        Note: forum login sessions are not listed here but logging out everywhere will work for them once login for
+        them is handled through this website.
+    </small>
+</p>
 
 <h4 class="mt-3">Groups</h4>
 
@@ -196,18 +198,25 @@ else
     {
         @if (showSuspensionReasonEntry)
         {
-            <p>
+            <p class="mt-3">
                 Suspending a user means they cannot login at all and their account stops working until unsuspended.
                 Suspension reason is visible to the user when trying to login and is required to be provided.
             </p>
-            <input class="col-md-6" type="text" placeholder="Suspension reason (required)"
-                   @bind="@newSuspensionReason" />
 
-            <Button class="mb-1" ButtonStyle="danger" Enabled="@CanStartSuspend" Spinner="@doingSuspension"
-                    OnPressed="@StartSuspension">
-                Suspend
-            </Button>
-            <Button class="mb-1 ml-1" ButtonStyle="secondary" OnPressed="@ToggleSuspension">Cancel</Button>
+            <form>
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <input class="form-control" type="text" placeholder="Suspension reason (required)"
+                               @bind="@newSuspensionReason" @bind:event="oninput" />
+                    </div>
+                </div>
+
+                <Button class="mb-1" ButtonStyle="danger" Enabled="@CanStartSuspend" Spinner="@doingSuspension"
+                        type="submit" OnPressed="@StartSuspension">
+                    Suspend
+                </Button>
+                <Button class="mb-1 ml-1" ButtonStyle="secondary" OnPressed="@ToggleSuspension">Cancel</Button>
+            </form>
         }
         else
         {

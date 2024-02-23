@@ -288,13 +288,13 @@ public class UserManagementController : Controller
     [HttpPost("{id:long}/suspend")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]
     [RequireSudoMode]
-    public async Task<ActionResult> SuspendUser([Required] long id, [Required] string reason)
+    public async Task<ActionResult> SuspendUser([Required] long id, [Required] [FromBody] string reason)
     {
         if (string.IsNullOrWhiteSpace(reason) || reason.Length > 200)
             return BadRequest("Reason not provided or it is too long");
 
-        var user = await database.Users.FindAsync(id);
-        var actingUser = HttpContext.AuthenticatedUser()!;
+        var user = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Id == id);
+        var actingUser = HttpContext.AuthenticatedUserOrThrow();
 
         if (user == null)
             return NotFound();
@@ -302,7 +302,7 @@ public class UserManagementController : Controller
         if (user == actingUser)
             return BadRequest("Cannot suspend self");
 
-        if (user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
+        if (user.ProcessGroupDataFromLoadedGroups().HasGroup(GroupType.Admin))
             return BadRequest("Admins cannot be suspended like this");
 
         if (user.Suspended)
@@ -333,8 +333,8 @@ public class UserManagementController : Controller
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]
     public async Task<ActionResult> UnsuspendUser([Required] long id)
     {
-        var user = await database.Users.FindAsync(id);
-        var actingUser = HttpContext.AuthenticatedUser()!;
+        var user = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Id == id);
+        var actingUser = HttpContext.AuthenticatedUserOrThrow();
 
         if (user == null)
             return NotFound();
@@ -344,6 +344,9 @@ public class UserManagementController : Controller
 
         if (user == actingUser)
             throw new Exception("User somehow was able to try to unsuspend self");
+
+        // Groups need to be loaded for notifications
+        user.ProcessGroupDataFromLoadedGroups();
 
         user.SuspendedManually = false;
         user.Suspended = false;
