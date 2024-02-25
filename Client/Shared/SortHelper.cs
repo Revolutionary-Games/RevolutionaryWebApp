@@ -57,9 +57,9 @@ public class SortHelper
         switch (Direction)
         {
             case SortDirection.Ascending:
-                return "oi oi-sort-ascending";
+                return "fa-solid fa-arrow-down-short-wide";
             case SortDirection.Descending:
-                return "oi oi-sort-descending";
+                return "fa-solid fa-arrow-down-wide-short";
             default:
                 throw new ArgumentOutOfRangeException();
         }

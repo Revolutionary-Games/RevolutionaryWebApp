@@ -1,4 +1,7 @@
-@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+@import url('../fontawesome/css/fontawesome.min.css');
+@import url('../fontawesome/css/brands.min.css');
+@import url('../fontawesome/css/solid.min.css');
+/* @import url('../fontawesome/css/regular.min.css'); */
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;

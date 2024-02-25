@@ -1,0 +1,31 @@
+@if (OnPressed != null)
+{
+    @if (Expanded)
+    {
+        <i class="fa-solid fa-chevron-up clickable" @onclick="OnPressed.Value"></i>
+    }
+    else
+    {
+        <i class="fa-solid fa-chevron-right clickable" @onclick="OnPressed.Value"></i>
+    }
+}
+else
+{
+    @if (Expanded)
+    {
+        <i class="fa-solid fa-chevron-up"></i>
+    }
+    else
+    {
+        <i class="fa-solid fa-chevron-right"></i>
+    }
+}
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public bool Expanded { get; set; }
+
+    [Parameter]
+    public EventCallback? OnPressed { get; set; }
+}

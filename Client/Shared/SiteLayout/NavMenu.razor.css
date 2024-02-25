@@ -11,11 +11,12 @@
     font-size: 1.1rem;
 }
 
-.oi {
+.nav-icon {
     width: 2rem;
     font-size: 1.1rem;
+    position: relative;
     vertical-align: text-top;
-    top: -2px;
+    top: -3px;
 }
 
 .nav-item {

@@ -44,14 +44,7 @@ else
 
                 <tr @key="item.Channel">
                     <th scope="row" @onclick="() => ToggleDetails(item)" class="clickable">
-                        @if (status.Expanded)
-                        {
-                            <span class="oi oi-chevron-top"></span>
-                        }
-                        else
-                        {
-                            <span class="oi oi-chevron-right"></span>
-                        }
+                        <ItemExpander Expanded="@status.Expanded" />
                         <span class="ms-1">@item.Channel</span>
                     </th>
                     <td>@item.FileSha3</td>

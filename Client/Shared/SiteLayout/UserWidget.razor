@@ -24,7 +24,7 @@
         </NavLink>
     }
 
-    <span class="oi oi-person user-icon ms-1" aria-hidden="true"></span>
+    <i class="fa-solid fa-user ms-1"></i>
 </span>
 
 @if (UserInfo.InfoReady && UserInfo.LoggedIn)
@@ -33,8 +33,8 @@
         <form method="post" action="/Logout">
             <input type="hidden" name="CSRF" value="@CSRF.Token" />
             <button type="submit" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
                 Logout
-                <span class="oi oi-account-logout" aria-hidden="true"></span>
             </button>
         </form>
     </span>

@@ -31,16 +31,9 @@ else
         {
             <div @key="item.CiJobOutputSectionId" class="output @ClassForStatus(item.Status)"
                  @onclick="() => ToggleSection(item)">
-                @if (ShouldShowSection(item))
-                {
-                    <span class="oi oi-chevron-top"></span>
-                }
-                else
-                {
-                    <span class="oi oi-chevron-right"></span>
-                }
+                <ItemExpander Expanded="@ShouldShowSection(item)" />
                 <span class="ms-2">@item.Name</span>
-                <span class="float-end"><DurationDisplayer Start="@item.StartedAt" End="@item.FinishedAt" /></span>
+                <span class="float-end"><DurationDisplayer Start="@item.StartedAt" End="@item.FinishedAt"/></span>
             </div>
             <div @key="@(item.CiJobOutputSectionId + "-output")"
                  class="@(ShouldShowSection(item) ? "" : "collapse") output-content"

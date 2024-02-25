@@ -12,63 +12,68 @@
     <ul class="nav flex-column">
         <li class="nav-item px-3">
             <NavLink id="leftHomeButton" class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
+                <i class="fa-solid fa-house nav-icon"></i> Home
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftDevBuildButton" class="nav-link" href="builds">
-                <span class="oi oi-cloud-download" aria-hidden="true"></span> DevBuilds
+                <i class="fa-solid fa-cloud-arrow-down nav-icon"></i> DevBuilds
+            </NavLink>
+        </li>
+        <li class="nav-item px-3">
+            <NavLink id="leftMediaButton" class="nav-link" href="media">
+                <i class="fa-solid fa-photo-film nav-icon"></i> Media
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftFilesButton" class="nav-link" href="files">
-                <span class="oi oi-file" aria-hidden="true"></span> Files
+                <i class="fa-solid fa-box-archive nav-icon"></i> Files
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftLFSButton" class="nav-link" href="lfs">
-                <span class="oi oi-briefcase" aria-hidden="true"></span> Git LFS
+                <i class="fa-solid fa-briefcase nav-icon"></i> Git LFS
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftReportsButton" class="nav-link" href="reports">
-                <span class="oi oi-bug" aria-hidden="true"></span> Reports
+                <i class="fa-solid fa-bug nav-icon"></i> Reports
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftCIButton" class="nav-link" href="ci">
-                <span class="oi oi-hard-drive" aria-hidden="true"></span> CI
+                <i class="fa-solid fa-hard-drive nav-icon"></i> CI
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftCLAButton" class="nav-link" href="cla">
-                <span class="oi oi-document" aria-hidden="true"></span> CLA
+                <i class="fa-solid fa-file-contract nav-icon"></i> CLA
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftPrecompiledObjectsButton" class="nav-link" href="precompiled">
-                <span class="oi oi-puzzle-piece" aria-hidden="true"></span> Precompiled
+                <i class="fa-solid fa-puzzle-piece nav-icon"></i> Precompiled
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftAssociationButton" class="nav-link" href="association">
-                <span class="oi oi-people" aria-hidden="true"></span> Association
+                <i class="fa-solid fa-people-group nav-icon"></i> Association
             </NavLink>
         </li>
         <li class="nav-item px-3">
             <NavLink id="leftToolsButton" class="nav-link" href="tools/crashDump">
-                <span class="oi oi-wrench" aria-hidden="true"></span> Tools
+                <i class="fa-solid fa-toolbox nav-icon"></i> Tools
             </NavLink>
         </li>
         <li class="nav-item px-3 backup-left-item">
             <NavLink class="nav-link" href="about">
-                <span class="oi oi-info" aria-hidden="true"></span> About
+                <i class="fa-solid fa-circle-info nav-icon"></i> About
             </NavLink>
         </li>
         <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
             <li class="nav-item px-3">
                 <NavLink id="leftDebugSymbolsButton" class="nav-link" href="symbols">
-                    <span class="oi oi-signpost" aria-hidden="true"></span> Symbols
+                    <i class="fa-solid fa-signs-post nav-icon"></i> Symbols
                 </NavLink>
             </li>
         </AccessLimited>
@@ -76,12 +81,12 @@
             <hr/>
             <li class="nav-item px-3">
                 <NavLink id="leftUsersButton" class="nav-link" href="users">
-                    <span class="oi oi-spreadsheet" aria-hidden="true"></span> Users
+                    <i class="fa-solid fa-users-viewfinder nav-icon"></i> Users
                 </NavLink>
             </li>
             <li class="nav-item px-3">
                 <NavLink id="leftAdminButton" class="nav-link" href="admin">
-                    <span class="oi oi-shield" aria-hidden="true"></span> Admin
+                    <i class="fa-solid fa-gears nav-icon"></i> Admin
                 </NavLink>
             </li>
         </AccessLimited>

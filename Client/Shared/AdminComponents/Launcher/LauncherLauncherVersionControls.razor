@@ -40,14 +40,7 @@ else
 
                 <tr @key="item.Id">
                     <th scope="row" @onclick="() => ToggleDetails(item)" class="clickable">
-                        @if (status.Expanded)
-                        {
-                            <span class="oi oi-chevron-top"></span>
-                        }
-                        else
-                        {
-                            <span class="oi oi-chevron-right"></span>
-                        }
+                        <ItemExpander Expanded="@status.Expanded" />
                         <span class="ms-1">@item.Id</span>
                     </th>
                     <td>@item.Version</td>
