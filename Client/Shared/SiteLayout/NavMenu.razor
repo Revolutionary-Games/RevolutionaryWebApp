@@ -32,6 +32,21 @@
                 </NavLink>
             </li>
         </AccessLimited>
+        <AccessLimited RequiredAccess="GroupType.SitePageEditor" OrHasOverride="GroupType.Admin"
+                       AutoRedirectIfNotLoggedIn="@false">
+            <li class="nav-item px-3">
+                <NavLink id="leftPagesButton" class="nav-link" href="pages">
+                    <i class="fa-solid fa-file-lines nav-icon"></i> Pages
+                </NavLink>
+            </li>
+        </AccessLimited>
+        <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
+            <li class="nav-item px-3">
+                <NavLink id="leftPostsButton" class="nav-link" href="posts">
+                    <i class="fa-solid fa-newspaper nav-icon"></i> Website Posts
+                </NavLink>
+            </li>
+        </AccessLimited>
         <li class="nav-item px-3">
             <NavLink id="leftLFSButton" class="nav-link" href="lfs">
                 <i class="fa-solid fa-briefcase nav-icon"></i> Git LFS

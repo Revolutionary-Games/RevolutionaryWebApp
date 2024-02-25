@@ -28,7 +28,11 @@ public enum GroupType
     SystemOnly = 5,
 
     // Extension default group types
-    // TODO: add something
+    SitePageEditor = 6,
+    SiteLayoutEditor = 7,
+    PostPublisher = 8,
+    TemplateEditor = 9,
+
     // TODO: add patreon and association status (maybe association status is fine to stay with the old system?)
 
     // All custom groups need to have a ID number above this

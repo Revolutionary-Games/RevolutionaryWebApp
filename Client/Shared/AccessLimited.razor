@@ -9,11 +9,11 @@
 @using RevolutionaryWebApp.Shared.Models.Enums
 @inherits UserInfoReactingComponent
 
-
+@* For now only show something when info is ready, to reduce having infinite number of spinners on one page *@
 @if (CurrentUserInfo.InfoReady)
 {
-    // For now only show something when info is ready, to reduce having infinite number of spinners on one page
-    if (CurrentUserInfo.HasAccessLevel(RequiredAccess))
+    if (CurrentUserInfo.HasGroup(RequiredAccess) ||
+        (OrHasOverride != GroupType.NotLoggedIn && CurrentUserInfo.HasGroup(OrHasOverride)))
     {
         if (AuthorizedContent == null)
         {
@@ -50,6 +50,13 @@
 
     [Parameter]
     public GroupType RequiredAccess { get; set; } = GroupType.Developer;
+
+    /// <summary>
+    ///   Allows specifying an additional group to check. For now this is used as a workaround for simple group checks
+    ///   that should have admin override.
+    /// </summary>
+    [Parameter]
+    public GroupType OrHasOverride { get; set; } = GroupType.NotLoggedIn;
 
     [Parameter]
     public bool ShowDefaultNoAccess { get; set; }
