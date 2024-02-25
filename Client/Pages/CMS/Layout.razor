@@ -1,0 +1,18 @@
+@page "/layout"
+@using RevolutionaryWebApp.Shared.Models.Enums
+<AccessLimited RequiredAccess="GroupType.SiteLayoutEditor" OrHasOverride="GroupType.Admin">
+    <h3>Layout</h3>
+
+    <p>
+        This site layout part allows customizing a few of the aspects (like sidebar links) that are shown when viewing
+        the main website.
+    </p>
+
+    <p>TODO: implement</p>
+
+    <PageTitle>Layout Manager</PageTitle>
+</AccessLimited>
+
+@code {
+
+}

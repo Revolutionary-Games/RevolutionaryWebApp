@@ -1,0 +1,18 @@
+@page "/pages"
+@using RevolutionaryWebApp.Shared.Models.Enums
+<AccessLimited RequiredAccess="GroupType.SitePageEditor" OrHasOverride="GroupType.Admin">
+    <h3>Pages</h3>
+
+    <p>
+        Pages are main website pages that don't appear in the news feed of new posts. These are pages like the main
+        page and various info pages.
+    </p>
+
+    <PageTitle>Site Pages</PageTitle>
+</AccessLimited>
+
+@code {
+
+
+
+}

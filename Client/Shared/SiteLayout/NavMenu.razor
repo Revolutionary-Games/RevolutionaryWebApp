@@ -15,20 +15,27 @@
                 <i class="fa-solid fa-house nav-icon"></i> Home
             </NavLink>
         </li>
+        <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
+            <li class="nav-item px-3">
+                <NavLink id="leftStatisticsButton" class="nav-link" href="statistics">
+                   <i class="fa-solid fa-chart-line nav-icon"></i> Statistics
+                </NavLink>
+            </li>
+        </AccessLimited>
         <li class="nav-item px-3">
             <NavLink id="leftDevBuildButton" class="nav-link" href="builds">
                 <i class="fa-solid fa-cloud-arrow-down nav-icon"></i> DevBuilds
             </NavLink>
         </li>
         <li class="nav-item px-3">
-            <NavLink id="leftMediaButton" class="nav-link" href="media">
-                <i class="fa-solid fa-photo-film nav-icon"></i> Media
+            <NavLink id="leftFilesButton" class="nav-link" href="files">
+                <i class="fa-solid fa-box-archive nav-icon"></i> Files
             </NavLink>
         </li>
         <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
             <li class="nav-item px-3">
-                <NavLink id="leftFilesButton" class="nav-link" href="files">
-                    <i class="fa-solid fa-box-archive nav-icon"></i> Files
+                <NavLink id="leftMediaButton" class="nav-link" href="media">
+                    <i class="fa-solid fa-photo-film nav-icon"></i> Media
                 </NavLink>
             </li>
         </AccessLimited>
@@ -44,6 +51,14 @@
             <li class="nav-item px-3">
                 <NavLink id="leftPostsButton" class="nav-link" href="posts">
                     <i class="fa-solid fa-newspaper nav-icon"></i> Website Posts
+                </NavLink>
+            </li>
+        </AccessLimited>
+        <AccessLimited RequiredAccess="GroupType.SiteLayoutEditor" OrHasOverride="GroupType.Admin"
+                       AutoRedirectIfNotLoggedIn="@false">
+            <li class="nav-item px-3">
+                <NavLink id="leftLayoutButton" class="nav-link" href="layout">
+                    <i class="fa-solid fa-clapperboard nav-icon"></i> Site Layout
                 </NavLink>
             </li>
         </AccessLimited>
@@ -93,9 +108,15 @@
                     <i class="fa-solid fa-signs-post nav-icon"></i> Symbols
                 </NavLink>
             </li>
+            @* Should be fine to have this here as admins are also developers *@
+            <hr/>
+            <!--<li class="nav-item px-3">
+                <NavLink id="leftWikiSettings" class="nav-link" href="wikiSettings">
+                    <i class="fa-solid fa-screwdriver-wrench nav-icon"></i> Wiki Settings
+                </NavLink>
+            </li>-->
         </AccessLimited>
         <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
-            <hr/>
             <li class="nav-item px-3">
                 <NavLink id="leftUsersButton" class="nav-link" href="users">
                     <i class="fa-solid fa-users-viewfinder nav-icon"></i> Users
@@ -106,6 +127,11 @@
                     <i class="fa-solid fa-gears nav-icon"></i> Admin
                 </NavLink>
             </li>
+            <!--<li class="nav-item px-3">
+                <NavLink id="leftTranslationSettings" class="nav-link" href="translationAdmin">
+                    <i class="fa-solid fa-wrench nav-icon"></i> Translations Admin
+                </NavLink>
+            </li>-->
         </AccessLimited>
     </ul>
 </div>
