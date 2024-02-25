@@ -25,11 +25,13 @@
                 <i class="fa-solid fa-photo-film nav-icon"></i> Media
             </NavLink>
         </li>
-        <li class="nav-item px-3">
-            <NavLink id="leftFilesButton" class="nav-link" href="files">
-                <i class="fa-solid fa-box-archive nav-icon"></i> Files
-            </NavLink>
-        </li>
+        <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
+            <li class="nav-item px-3">
+                <NavLink id="leftFilesButton" class="nav-link" href="files">
+                    <i class="fa-solid fa-box-archive nav-icon"></i> Files
+                </NavLink>
+            </li>
+        </AccessLimited>
         <li class="nav-item px-3">
             <NavLink id="leftLFSButton" class="nav-link" href="lfs">
                 <i class="fa-solid fa-briefcase nav-icon"></i> Git LFS
