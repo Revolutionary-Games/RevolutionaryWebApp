@@ -169,6 +169,12 @@ table.non-fixed {
     table-layout: auto !important;
 }
 
+.sidebar hr {
+    color: whitesmoke;
+    width: 90%;
+    margin-left: 5%;
+}
+
 .overlay {
     position: absolute;
     top: 0;
