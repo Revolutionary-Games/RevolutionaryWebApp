@@ -10,29 +10,29 @@
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="AsyncKeyedLock" Version="6.3.4" />
-    <PackageReference Include="AWSSDK.EC2" Version="3.7.314.7" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.305.25" />
-    <PackageReference Include="Discord.Net" Version="3.13.1" />
+    <PackageReference Include="AWSSDK.EC2" Version="3.7.318" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.307" />
+    <PackageReference Include="Discord.Net" Version="3.14.1" />
     <PackageReference Include="EFCore.NamingConventions" Version="8.0.3" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.11" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.8" />
     <PackageReference Include="MailKit" Version="4.4.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="8.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="8.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.RateLimiting" Version="7.0.0-rc.2.22476.2" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.3" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.2" />
     <PackageReference Include="RecursiveDataAnnotationsValidation" Version="2.0.0" />
     <PackageReference Include="SHA3.Net" Version="2.0.0" />
@@ -45,8 +45,8 @@
     <PackageReference Include="SSH.NET" Version="2024.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
     <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.28" />
-    <PackageReference Include="Svg.Skia" Version="1.0.0.14" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.0" />
+    <PackageReference Include="Svg.Skia" Version="1.0.0.16" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.1" />
     <PackageReference Include="System.Interactive.Async" Version="6.0.1" />
     <PackageReference Include="System.Security.Principal" Version="4.3.0" />
     <PackageReference Include="YamlDotNet" Version="15.1.2" />
