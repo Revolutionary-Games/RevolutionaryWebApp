@@ -895,12 +895,12 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             x.Draw(textPen, new RectangularPolygon(0, 0, width, height));
             x.Fill(titleBrush, new RectangularPolygon(0, 0, width, 125));
 
-            x.DrawText(tagLine, titleLineFont, textBrush, titlePen, new PointF((width / 2.0f) - titleLineOffset, 160));
-            x.DrawText(keyword.Title, titleFont, textBrush, titlePen, new PointF((width / 2.0f) - titleOffset, 220));
+            x.DrawText(tagLine, titleLineFont, textBrush, titlePen, new PointF(width / 2.0f - titleLineOffset, 160));
+            x.DrawText(keyword.Title, titleFont, textBrush, titlePen, new PointF(width / 2.0f - titleOffset, 220));
 
-            x.DrawText(dayCount.ToString(), dayFont, textBrush, titlePen, new PointF((width / 2.0f) - dayOffset, 300));
+            x.DrawText(dayCount.ToString(), dayFont, textBrush, titlePen, new PointF(width / 2.0f - dayOffset, 300));
 
-            x.DrawText(subtext, subtextFont, textBrush, subtextPen, new PointF((width / 2.0f) - subtextOffset,
+            x.DrawText(subtext, subtextFont, textBrush, subtextPen, new PointF(width / 2.0f - subtextOffset,
                 height - 25));
         });
 
