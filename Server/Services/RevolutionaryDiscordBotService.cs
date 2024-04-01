@@ -679,7 +679,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 "Displays the progress to the next release or, if a version number is specified, for that version.")
             .AddOption("version", ApplicationCommandOptionType.String, "The version to display progress for", false)
             .AddOption(enumTypeSelection)
-            .WithDMPermission(false);
+            .WithContextTypes(InteractionContextType.Guild, InteractionContextType.PrivateChannel);
     }
 
     private async Task HandleLanguageCommand(SocketSlashCommand command)
