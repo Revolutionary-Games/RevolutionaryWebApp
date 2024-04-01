@@ -11,8 +11,7 @@ using Shared;
 public static class ControllerQueryHelpers
 {
     public static async Task<PagedResult<T>> ToPagedResultAsync<T>(this IAsyncEnumerable<T> enumerable,
-        int page,
-        int pageSize)
+        int page, int pageSize)
         where T : class
     {
         var allData = await enumerable.ToArrayAsync();
