@@ -1,4 +1,5 @@
 # If the image version is updated here also Scripts/ContainerTool.cs needs to be updated
+# Also the Ansible control node uses this
 FROM almalinux:9 as builder
 ENV DOTNET_VERSION "8.0"
 
