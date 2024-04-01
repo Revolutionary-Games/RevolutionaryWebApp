@@ -18,7 +18,7 @@ $do$
 BEGIN
    IF EXISTS (
       SELECT FROM pg_catalog.pg_roles
-      WHERE  rolname = 'devcenter') THEN
+      WHERE rolname = 'devcenter') THEN
 
       RAISE NOTICE 'Role "devcenter" already exists. Skipping.';
    ELSE
