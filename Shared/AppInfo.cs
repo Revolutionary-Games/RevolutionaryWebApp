@@ -60,6 +60,10 @@ public static class AppInfo
 
     public const int MaxDiscordMessageLength = 2000;
 
+    public const int MaxPageLength = GlobalConstants.MEBIBYTE * 2;
+
+    public const int MaxPageEditCommentLength = GlobalConstants.KIBIBYTE;
+
     /// <summary>
     ///   Maximum size of a file to upload through LFS
     /// </summary>

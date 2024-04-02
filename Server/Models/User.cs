@@ -13,6 +13,7 @@ using Enums;
 using Hangfire;
 using Jobs;
 using Microsoft.EntityFrameworkCore;
+using Pages;
 using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
@@ -199,6 +200,11 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
         new HashSet<PrecompiledObjectVersion>();
 
     public ICollection<MeetingPoll> ManuallyClosedPolls { get; set; } = new HashSet<MeetingPoll>();
+
+    public ICollection<VersionedPage> LastEditedPages { get; set; } = new HashSet<VersionedPage>();
+    public ICollection<VersionedPage> CreatedPages { get; set; } = new HashSet<VersionedPage>();
+    public ICollection<PageVersion> CreatedPageVersions { get; set; } = new HashSet<PageVersion>();
+    public ICollection<PageEditSuggestion> PageEditSuggestions { get; set; } = new HashSet<PageEditSuggestion>();
 
     public AssociationMember? AssociationMember { get; set; }
 
