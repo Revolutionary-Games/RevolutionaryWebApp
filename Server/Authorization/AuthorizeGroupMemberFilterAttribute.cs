@@ -33,8 +33,7 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
 
             if (requiredGroup is GroupType.RestrictedUser or GroupType.NotLoggedIn)
             {
-                throw new ArgumentException(
-                    $"This group filter doesn't support the group type: {RequiredGroup}, " +
+                throw new ArgumentException($"This group filter doesn't support the group type: {RequiredGroup}, " +
                     "please use the access level filter");
             }
         }
@@ -56,6 +55,12 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
         }
     }
 
+    /// <summary>
+    ///   If true then an admin is assumed to have this group membership if otherwise that user wouldn't be able to
+    ///   pass the check.
+    /// </summary>
+    public bool AllowAdmin { get; set; } = true;
+
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var result =
@@ -67,6 +72,13 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
                 context.Result = new UnauthorizedResult();
                 break;
             case HttpContextAuthorizationExtensions.AuthenticationResult.NoAccess:
+
+                if (AllowAdmin &&
+                    context.HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, requiredRestriction))
+                {
+                    break;
+                }
+
                 context.Result = new ForbidResult();
                 break;
             case HttpContextAuthorizationExtensions.AuthenticationResult.Success:

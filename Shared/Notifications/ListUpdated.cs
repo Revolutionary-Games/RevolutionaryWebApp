@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Shared.Notifications;
 
 using DevCenterCommunication.Models;
 using Models;
+using Models.Pages;
 
 /// <summary>
 ///   Notification about a list being updated
@@ -185,5 +186,9 @@ public class ExecutedMaintenanceOperationListUpdated : ListUpdated<ExecutedMaint
 }
 
 public class PrecompiledObjectListUpdated : ListUpdated<PrecompiledObjectInfo>
+{
+}
+
+public class PageListUpdated : ListUpdated<VersionedPageInfo>
 {
 }

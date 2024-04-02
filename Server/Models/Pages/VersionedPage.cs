@@ -3,9 +3,12 @@ namespace RevolutionaryWebApp.Server.Models.Pages;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
+using Shared.Models.Pages;
 
 /// <summary>
 ///   Main model for all web pages, news posts etc.
@@ -20,6 +23,7 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
     }
 
     [StringLength(120)]
+    [AllowSortingBy]
     public string Title { get; set; }
 
     [StringLength(AppInfo.MaxPageLength)]
@@ -35,6 +39,7 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
     /// </summary>
     public string? Permalink { get; set; }
 
+    [AllowSortingBy]
     public DateTime? PublishedAt { get; set; }
 
     [MaxLength(AppInfo.MaxPageEditCommentLength)]
@@ -54,4 +59,32 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
 
     // TODO: implement
     // public static string PermalinkFromTitle()
+    public VersionedPageDTO GetDTO(int currentVersion)
+    {
+        return new()
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Title = Title,
+            LatestContent = LatestContent,
+            Visibility = Visibility,
+            Permalink = Permalink,
+            PublishedAt = PublishedAt,
+            LastEditComment = LastEditComment,
+            VersionNumber = currentVersion,
+            CreatorId = CreatorId,
+            LastEditorId = LastEditorId,
+        };
+    }
+
+    public async Task<int> GetCurrentVersion(ApplicationDbContext database)
+    {
+        var id = Id;
+        var previousVersionNumber =
+            await database.PageVersions.Where(v => v.PageId == id).MaxAsync(v => (int?)v.Version) ?? 0;
+
+        // Current page version is always one higher than the previous one
+        return previousVersionNumber + 1;
+    }
 }

@@ -1,5 +1,18 @@
 @page "/pages"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Client.Services
+@using System.Threading
+@using RevolutionaryWebApp.Shared.Models.Pages
+@using SharedBase.Utilities
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<PageListUpdated>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.Pages.VersionedPageInfo>
 <AccessLimited RequiredAccess="GroupType.SitePageEditor" OrHasOverride="GroupType.Admin">
     <h3>Pages</h3>
 
@@ -8,11 +21,303 @@
         page and various info pages.
     </p>
 
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async e => await ChangePage(e)"
+                        OnSortChanged="async column => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        <th scope="row"><NavLink href="@($"pages/{item.Id}")">@item.Title.Truncate(70)</NavLink></th>
+                        @if (!string.IsNullOrEmpty(item.Permalink))
+                        {
+                            // TODO: this needs to fetch the live site base URL from somewhere
+                            <td><a href="@($"/{item.Permalink}")" target="_blank">@item.Permalink.Truncate()</a></td>
+                        }
+                        else if(item.Visibility != PageVisibility.HiddenDraft)
+                        {
+                            <td>MISSING</td>
+                        }
+                        else
+                        {
+                            <td></td>
+                        }
+
+                        <td>
+                            @switch (item.Visibility)
+                            {
+                                case PageVisibility.HiddenDraft:
+                                    <span class="badge bg-secondary">draft</span>
+                                    break;
+                                case PageVisibility.Public:
+                                    break;
+                                case PageVisibility.VisibleToDevelopers:
+                                    <span class="badge bg-warning">developer-only</span>
+                                    break;
+                                default:
+                                    <span>@item.Visibility.ToString()</span>
+                                    break;
+                            }
+                        </td>
+
+                        <td><RecentTimeShortener Time="@item.UpdatedAt"/></td>
+                        <td><UsernameDisplayer UserId="@item.LastEditorId"/></td>
+                        <td><RecentTimeShortener Time="@item.CreatedAt"/></td>
+                        <td><UsernameDisplayer UserId="@item.CreatorId"/></td>
+
+                        <td>
+                            @if (item.PublishedAt != null)
+                            {
+                                <RecentTimeShortener Time="@item.PublishedAt.Value"/>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    }
+
+    <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+        <hr />
+
+        @if (!showNewForm)
+        {
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        }
+
+        <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+            New
+        </Button>
+
+        @if (showNewForm)
+        {
+            <form>
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <label class="form-label" for="newCIProjectName">Project Name</label>
+                        <input type="text" class="form-control" id="newCIProjectName" @bind="newName"
+                               @bind:event="oninput">
+                    </div>
+                    <div class="mb-3 col-md-6">
+                        <label class="form-label" for="newCIFullRepoName">Full Repository Name</label>
+                        <input type="text" class="form-control" id="newCIFullRepoName" @bind="newFullRepoName"
+                               placeholder="Owner/RepoName">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="mb-3 col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="newCIProjectPublic" @bind="newPublic">
+                            <label class="form-check-label" for="newCIProjectPublic">Visible to non-developers?</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="mb-3 col-12">
+                        <label class="form-label" for="newCIProjectCloneURL">Clone URL</label>
+                        <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <label class="form-label me-1" for="newCIProjectType">Type</label>
+                        <select class="form-select" id="newCIProjectType" @bind="newProjectType">
+                            @foreach (var name in Enum.GetNames<CIProjectType>())
+                            {
+                                <option value="@name">@name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3 col-md-6">
+                        <label class="form-label" for="newCIProjectDefaultBranch">Default Branch Name</label>
+                        <input type="text" class="form-control" id="newCIProjectDefaultBranch" @bind="newDefaultBranch">
+                    </div>
+                </div>
+
+                <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+                <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                    Create
+                </Button>
+            </form>
+        }
+
+        <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/CIProject?deleted=true"
+                               RestoreEndpoint="api/v1/CIProject/{0}/restore" />
+
+    </AccessLimited>
+
     <PageTitle>Site Pages</PageTitle>
 </AccessLimited>
 
 @code {
 
+private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Title", true),
+        new TableColumn("Live Link", false),
+        new TableColumn("State", false),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Edited By", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Published At", false, "PublishedAt"),
+        new TableColumn("CreatedBy", false),
+    };
 
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    // TODO: fix
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string? newName;
+    private string? newFullRepoName;
+    private bool newPublic;
+    private string? newCloneURL;
+    private CIProjectType newProjectType;
+    private string? newDefaultBranch;
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newName);
+
+    public Pages() : base(new SortHelper("UpdatedAt", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(PageListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.CIProjectListUpdated);
+
+        if (currentUserGroups.HasGroup(GroupType.Developer))
+            groups.Add(NotificationGroups.PrivateCIProjectUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<VersionedPageInfo>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<VersionedPageInfo>>(
+            QueryHelpers.AddQueryString("api/v1/Pages", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
+    {
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    // TODO: fix
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newName = null;
+            newFullRepoName = null;
+            newPublic = true;
+            newCloneURL = null;
+            newProjectType = CIProjectType.Github;
+            newDefaultBranch = "master";
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+
+        if (newFullRepoName == null || newCloneURL == null || newDefaultBranch == null)
+        {
+            createMessage = "Full repo name, clone URL, and default branch are required";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/Pages", new CIProjectDTO
+            {
+                Name = newName!,
+                RepositoryFullName = newFullRepoName,
+                Public = newPublic,
+                RepositoryCloneUrl = newCloneURL,
+                ProjectType = newProjectType,
+                DefaultBranch = newDefaultBranch,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New CI project created";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 
 }
