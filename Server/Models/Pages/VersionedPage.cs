@@ -34,6 +34,8 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
 
     public PageVisibility Visibility { get; set; } = PageVisibility.HiddenDraft;
 
+    public PageType Type { get; set; }
+
     /// <summary>
     ///   All pages must have an internal name they are accessed at with URLs
     /// </summary>
