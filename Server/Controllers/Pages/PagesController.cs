@@ -33,7 +33,7 @@ public class PagesController : Controller
     }
 
     [HttpGet]
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
     public async Task<PagedResult<VersionedPageInfo>> GetList([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize, bool deleted = false)
@@ -43,7 +43,7 @@ public class PagesController : Controller
         try
         {
             query = database.VersionedPages.AsNoTracking().OrderBy(sortColumn, sortDirection)
-                .Where(p => p.Deleted == deleted);
+                .Where(p => p.Deleted == deleted && p.Type == PageType.NormalPage);
         }
         catch (ArgumentException e)
         {
@@ -71,12 +71,12 @@ public class PagesController : Controller
     }
 
     [HttpGet("{id:long}")]
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
     public async Task<ActionResult<VersionedPageDTO>> GetSingle([Required] long id)
     {
         var page = await database.VersionedPages.FindAsync(id);
 
-        if (page == null || page.Deleted)
+        if (page == null || page.Deleted || page.Type != PageType.NormalPage)
             return NotFound();
 
         var version = await page.GetCurrentVersion(database);

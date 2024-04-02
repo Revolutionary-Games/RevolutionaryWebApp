@@ -59,7 +59,7 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
     ///   If true then an admin is assumed to have this group membership if otherwise that user wouldn't be able to
     ///   pass the check.
     /// </summary>
-    public bool AllowAdmin { get; set; } = true;
+    public bool AllowAdmin { get; set; }
 
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
