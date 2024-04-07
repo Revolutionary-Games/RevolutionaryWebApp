@@ -54,6 +54,6 @@ public class PageVersion : ISoftDeletable
     public DiffData DecodeDiffData()
     {
         return JsonSerializer.Deserialize<DiffData>(ReverseDiff,
-            new JsonSerializerOptions(JsonSerializerDefaults.General)) ?? throw new NullDecodedJsonException();
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? throw new NullDecodedJsonException();
     }
 }

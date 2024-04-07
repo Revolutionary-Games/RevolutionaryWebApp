@@ -184,7 +184,7 @@ public class PagesController : Controller
 
                 var edit = new PageVersion(page, version,
                     JsonSerializer.Serialize(new DiffData(diff),
-                        new JsonSerializerOptions(JsonSerializerDefaults.General)))
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web)))
                 {
                     EditedById = previousAuthor,
                     EditComment = previousComment,
