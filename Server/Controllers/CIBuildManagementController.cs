@@ -71,9 +71,8 @@ public class CIBuildManagementController : Controller
         logger.LogInformation("CI job {ProjectId}-{BuildId}-{JobId} canceled by {Email}", projectId, buildId, jobId,
             user.Email);
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"CI job {projectId}-{buildId}-{jobId} canceled")
         {
-            Message = $"CI job {projectId}-{buildId}-{jobId} canceled",
             PerformedById = user.Id,
         });
 
@@ -108,9 +107,8 @@ public class CIBuildManagementController : Controller
         var user = HttpContext.AuthenticatedUser()!;
         logger.LogInformation("CI build {ProjectId}-{BuildId} reran by {Email}", projectId, buildId, user.Email);
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"CI build reran {projectId}-{buildId}")
         {
-            Message = $"CI build reran {projectId}-{buildId}",
             PerformedById = user.Id,
         });
 

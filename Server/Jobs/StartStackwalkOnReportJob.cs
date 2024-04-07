@@ -94,23 +94,20 @@ public class StartStackwalkOnReportJob
 
         logger.LogInformation("Stackwalking took: {Duration}", duration);
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Stackwalking performed on report {report.Id}, result length: {result.Length}, " +
-                $"duration: {duration}",
-        }, cancellationToken);
+        await database.LogEntries.AddAsync(new LogEntry(
+            $"Stackwalking performed on report {report.Id}, result length: {result.Length}, " +
+            $"duration: {duration}"), cancellationToken);
 
         if (string.IsNullOrWhiteSpace(result))
             result = "Resulting decoded crash dump is empty";
 
         report.UpdateProcessedDumpIfChanged(result, primaryCallstack, condensedCallstack);
 
-        await database.SaveChangesWithConflictResolvingAsync(
-            conflictEntries =>
-            {
-                DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
-                report.UpdateProcessedDumpIfChanged(result, primaryCallstack, condensedCallstack);
-            }, cancellationToken);
+        await database.SaveChangesWithConflictResolvingAsync(conflictEntries =>
+        {
+            DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
+            report.UpdateProcessedDumpIfChanged(result, primaryCallstack, condensedCallstack);
+        }, cancellationToken);
 
         jobClient.Schedule<CheckCrashReportDuplicatesJob>(x => x.Execute(report.Id, CancellationToken.None),
             TimeSpan.FromSeconds(10));

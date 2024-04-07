@@ -109,8 +109,7 @@ public class StorageFilesController : Controller
 
             if (nextItem == null || !nextItem.IsReadableBy(user))
             {
-                return NotFound(
-                    $"Path part \"{part}\" doesn't exist or you don't have permission to view it. " +
+                return NotFound($"Path part \"{part}\" doesn't exist or you don't have permission to view it. " +
                     "Logging in may help.");
             }
 
@@ -268,11 +267,11 @@ public class StorageFilesController : Controller
         }
 
         // Folder is fine to be created
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"New folder \"{request.Name}\" created",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"New folder \"{request.Name}\" created", "Parent folder: " + parentId)
+            {
+                PerformedById = user.Id,
+            });
 
         var newFolder = new StorageItem
         {
@@ -381,11 +380,11 @@ public class StorageFilesController : Controller
         versionItem.Deleted = true;
         versionItem.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} ({item.Name.Truncate()}) version {versionItem.Version} deleted",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} ({item.Name.Truncate()}) version {versionItem.Version} deleted")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         return Ok();
@@ -420,11 +419,11 @@ public class StorageFilesController : Controller
         versionItem.Deleted = false;
         versionItem.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} version {versionItem.Version} restored",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} version {versionItem.Version} restored")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         return Ok();
@@ -465,11 +464,11 @@ public class StorageFilesController : Controller
         versionItem.Keep = true;
         versionItem.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} version {versionItem.Version} is now marked keep",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} version {versionItem.Version} is now marked keep")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         return Ok();
@@ -509,11 +508,11 @@ public class StorageFilesController : Controller
         versionItem.Keep = false;
         versionItem.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} version {versionItem.Version} is no longer marked keep",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} version {versionItem.Version} is no longer marked keep")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         return Ok();
@@ -584,11 +583,10 @@ public class StorageFilesController : Controller
         item.LastModifiedById = user.Id;
         item.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry(
+            $"StorageItem {item.Id} edited, new name: \"{item.Name}\", accesses: {item.ReadAccess}, " +
+            $"{item.WriteAccess}")
         {
-            Message =
-                $"StorageItem {item.Id} edited, new name: \"{item.Name}\", accesses: {item.ReadAccess}, " +
-                $"{item.WriteAccess}",
             PerformedById = user.Id,
         });
 
@@ -628,11 +626,11 @@ public class StorageFilesController : Controller
         item.LastModifiedById = user.Id;
         item.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} is now in modification locked status",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} is now in modification locked status")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         return Ok();
@@ -667,11 +665,11 @@ public class StorageFilesController : Controller
         item.LastModifiedById = user.Id;
         item.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} is no longer in modification locked status",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} is no longer in modification locked status")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         return Ok();
@@ -713,9 +711,8 @@ public class StorageFilesController : Controller
         item.LastModifiedById = user.Id;
         item.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"StorageItem {item.Id} is now important")
         {
-            Message = $"StorageItem {item.Id} is now important",
             PerformedById = user.Id,
         });
 
@@ -755,11 +752,11 @@ public class StorageFilesController : Controller
         item.LastModifiedById = user.Id;
         item.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} is no longer marked important",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} is no longer marked important")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         return Ok();
@@ -806,11 +803,11 @@ public class StorageFilesController : Controller
 
             database.StorageItems.Remove(item);
 
-            await database.ActionLogEntries.AddAsync(new ActionLogEntry
-            {
-                Message = $"Storage folder {item.Id} is now permanently deleted",
-                PerformedById = user.Id,
-            });
+            await database.ActionLogEntries.AddAsync(
+                new ActionLogEntry($"Storage folder {item.Id} is now permanently deleted")
+                {
+                    PerformedById = user.Id,
+                });
 
             logger.LogInformation("Storage folder {Id} ({Name}) permanently deleted by {Email}", item.Id, item.Name,
                 user.Email);
@@ -930,11 +927,11 @@ public class StorageFilesController : Controller
 
         item.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} ({item.Name.Truncate()}) restored from trash",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} ({item.Name.Truncate()}) restored from trash")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -1214,8 +1211,9 @@ public class StorageFilesController : Controller
 
         try
         {
-            verifiedToken = JsonSerializer.Deserialize<ChunkRetrieveToken>(
-                chunkDataProtector.Unprotect(request.Token)) ?? throw new NullDecodedJsonException();
+            verifiedToken =
+                JsonSerializer.Deserialize<ChunkRetrieveToken>(chunkDataProtector.Unprotect(request.Token)) ??
+                throw new NullDecodedJsonException();
         }
         catch (Exception e)
         {
@@ -1235,8 +1233,7 @@ public class StorageFilesController : Controller
         List<MultipartFileUpload.FileChunk>? chunks;
         if (file.Size != null)
         {
-            chunks = AddUploadUrlsToChunks(
-                ComputeChunksForFile(file.Size.Value).Skip(upload.NextChunkIndex)
+            chunks = AddUploadUrlsToChunks(ComputeChunksForFile(file.Size.Value).Skip(upload.NextChunkIndex)
                     .Take(AppInfo.MultipartUploadPartsToReturnInSingleCall), upload.Path, upload.UploadId,
                 AppInfo.RemoteStorageUploadExpireTime).ToList();
         }
@@ -1267,8 +1264,9 @@ public class StorageFilesController : Controller
 
         try
         {
-            verifiedToken = JsonSerializer.Deserialize<UploadVerifyToken>(
-                dataProtector.Unprotect(finishedUpload.UploadVerifyToken)) ?? throw new NullDecodedJsonException();
+            verifiedToken =
+                JsonSerializer.Deserialize<UploadVerifyToken>(
+                    dataProtector.Unprotect(finishedUpload.UploadVerifyToken)) ?? throw new NullDecodedJsonException();
         }
         catch (Exception e)
         {
@@ -1325,8 +1323,7 @@ public class StorageFilesController : Controller
                 logger.LogWarning("Detected partial upload to remote storage, trying to delete partial upload");
                 await remoteStorage.DeleteObject(version.StorageFile.UploadPath);
                 logger.LogInformation("Partial upload deleted");
-                return BadRequest(
-                    "The upload was only partially successful. Remote storage file size doesn't match");
+                return BadRequest("The upload was only partially successful. Remote storage file size doesn't match");
             }
         }
         catch (Exception e)
@@ -1353,8 +1350,7 @@ public class StorageFilesController : Controller
 
                 await remoteStorage.DeleteObject(version.StorageFile.StoragePath);
 
-                return BadRequest(
-                    "Error copying the uploaded file in remote storage (size changed)");
+                return BadRequest("Error copying the uploaded file in remote storage (size changed)");
             }
         }
         catch (Exception e)
@@ -1551,11 +1547,11 @@ public class StorageFilesController : Controller
         {
             item.OwnerId = user.Id;
 
-            await database.ActionLogEntries.AddAsync(new ActionLogEntry
-            {
-                Message = $"StorageItem {item.Id} ownership was transferred from nobody due to move to trash",
-                PerformedById = user.Id,
-            });
+            await database.ActionLogEntries.AddAsync(
+                new ActionLogEntry($"StorageItem {item.Id} ownership was transferred from nobody due to move to trash")
+                {
+                    PerformedById = user.Id,
+                });
         }
 
         item.BumpUpdatedAt();
@@ -1566,11 +1562,11 @@ public class StorageFilesController : Controller
             await item.MakeNameUniqueInFolder(database);
         }
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"StorageItem {item.Id} ({item.Name.Truncate()}) moved to trash",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"StorageItem {item.Id} ({item.Name.Truncate()}) moved to trash")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -1704,38 +1700,38 @@ public class StorageFilesController : Controller
 
             if (restore)
             {
-                await database.ActionLogEntries.AddAsync(new ActionLogEntry
-                {
-                    Message = $"StorageItem {item.Id} is now restored to root folder",
-                    PerformedById = user.Id,
-                });
+                await database.ActionLogEntries.AddAsync(
+                    new ActionLogEntry($"StorageItem {item.Id} is now restored to root folder")
+                    {
+                        PerformedById = user.Id,
+                    });
             }
             else
             {
-                await database.ActionLogEntries.AddAsync(new ActionLogEntry
-                {
-                    Message = $"StorageItem {item.Id} was moved to root folder",
-                    PerformedById = user.Id,
-                });
+                await database.ActionLogEntries.AddAsync(
+                    new ActionLogEntry($"StorageItem {item.Id} was moved to root folder")
+                    {
+                        PerformedById = user.Id,
+                    });
             }
         }
         else
         {
             if (restore)
             {
-                await database.ActionLogEntries.AddAsync(new ActionLogEntry
-                {
-                    Message = $"StorageItem {item.Id} is now restored to folder {finalFolderToMoveTo.Id}",
-                    PerformedById = user.Id,
-                });
+                await database.ActionLogEntries.AddAsync(
+                    new ActionLogEntry($"StorageItem {item.Id} is now restored to folder {finalFolderToMoveTo.Id}")
+                    {
+                        PerformedById = user.Id,
+                    });
             }
             else
             {
-                await database.ActionLogEntries.AddAsync(new ActionLogEntry
-                {
-                    Message = $"StorageItem {item.Id} was moved to folder {finalFolderToMoveTo.Id}",
-                    PerformedById = user.Id,
-                });
+                await database.ActionLogEntries.AddAsync(
+                    new ActionLogEntry($"StorageItem {item.Id} was moved to folder {finalFolderToMoveTo.Id}")
+                    {
+                        PerformedById = user.Id,
+                    });
             }
         }
 
@@ -1946,17 +1942,19 @@ public class StorageFilesController : Controller
 
             if (restore)
             {
-                await database.ActionLogEntries.AddAsync(new ActionLogEntry
+                await database.ActionLogEntries.AddAsync(new ActionLogEntry(
+                    $"Created a new storage folder named \"{pathPart}\" to perform a file restore",
+                    "Created path: " + pathToCreate)
                 {
-                    Message = $"Created a new storage folder named \"{pathPart}\" to perform a file restore",
                     PerformedById = user.Id,
                 });
             }
             else
             {
-                await database.ActionLogEntries.AddAsync(new ActionLogEntry
+                await database.ActionLogEntries.AddAsync(new ActionLogEntry(
+                    $"Created a new storage folder named \"{pathPart}\" to perform an item move",
+                    "Created path: " + pathToCreate)
                 {
-                    Message = $"Created a new storage folder named \"{pathPart}\" to perform an item move",
                     PerformedById = user.Id,
                 });
             }

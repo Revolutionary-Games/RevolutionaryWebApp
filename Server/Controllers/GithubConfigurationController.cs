@@ -44,10 +44,9 @@ public class GithubConfigurationController : Controller
     {
         var existing = await GetOrCreateHook();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction("Github webhook secret recreated")
         {
-            Message = "Github webhook secret recreated",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id,
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
         });
 
         existing.CreateSecret();
@@ -94,11 +93,11 @@ public class GithubConfigurationController : Controller
         var user = HttpContext.AuthenticatedUser()!;
 
         await database.GithubAutoComments.AddAsync(comment);
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"New Github auto comment created (condition: {comment.Condition})",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"New Github auto comment created (condition: {comment.Condition})")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -137,11 +136,8 @@ public class GithubConfigurationController : Controller
 
         comment.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Github auto comment {comment.Id} edited", description)
         {
-            Message = $"Github auto comment {comment.Id} edited",
-
-            // TODO: there could be an extra info property where the description is stored
             PerformedById = user.Id,
         });
 
@@ -164,9 +160,8 @@ public class GithubConfigurationController : Controller
         var user = HttpContext.AuthenticatedUser()!;
 
         database.GithubAutoComments.Remove(comment);
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Github auto comment {comment.Id} deleted")
         {
-            Message = $"Github auto comment {comment.Id} deleted",
             PerformedById = user.Id,
         });
 
@@ -184,10 +179,9 @@ public class GithubConfigurationController : Controller
         if (existing != null)
             return existing;
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction("New Github webhook secret created")
         {
-            Message = "New Github webhook secret created",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id,
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
         });
 
         var webhook = new GithubWebhook

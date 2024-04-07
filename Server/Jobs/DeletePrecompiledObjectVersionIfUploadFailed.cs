@@ -44,9 +44,9 @@ public class DeletePrecompiledObjectVersionIfUploadFailed
                 x.Execute(storageItemVersion.Id, CancellationToken.None));
         }
 
-        jobClient.Schedule<DeletePrecompiledObjectVersionIfUploadFailed>(
-            x => x.PerformFinalDelete(objectVersion.OwnedById, objectVersion.Version, objectVersion.Platform,
-                objectVersion.Tags, CancellationToken.None),
+        jobClient.Schedule<DeletePrecompiledObjectVersionIfUploadFailed>(x =>
+                x.PerformFinalDelete(objectVersion.OwnedById, objectVersion.Version, objectVersion.Platform,
+                    objectVersion.Tags, CancellationToken.None),
             TimeSpan.FromSeconds(90));
 
         // If something was in uploading state, then it can be deleted like normal. Upload path cleaning will take care
@@ -129,8 +129,7 @@ public class DeletePrecompiledObjectVersionIfUploadFailed
 
         if (objectVersion == null)
         {
-            logger.LogError(
-                "PrecompiledObjectVersion disappeared before final delete task could run on it: " +
+            logger.LogError("PrecompiledObjectVersion disappeared before final delete task could run on it: " +
                 "{Id}:{Platform}:{Tags}:{Version}", ownedById, platform, tags, version);
             return;
         }
@@ -140,10 +139,9 @@ public class DeletePrecompiledObjectVersionIfUploadFailed
             "successfully or it hasn't been downloaded in a long time",
             objectVersion.StorageFileName);
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Deleted old or failed PrecompiledObjectVersion {objectVersion.StorageFileName}",
-        }, cancellationToken);
+        await database.LogEntries.AddAsync(
+            new LogEntry($"Deleted old or failed PrecompiledObjectVersion {objectVersion.StorageFileName}"),
+            cancellationToken);
 
         await database.SaveChangesAsync(cancellationToken);
 

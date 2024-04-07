@@ -21,7 +21,9 @@ public class RefreshPatronsJob : IJob
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
 
-    public RefreshPatronsJob(ILogger<RefreshPatronsJob> logger, NotificationsEnabledDb database,
+    public RefreshPatronsJob(
+        ILogger<RefreshPatronsJob> logger,
+        NotificationsEnabledDb database,
         IBackgroundJobClient jobClient)
     {
         this.logger = logger;
@@ -47,8 +49,12 @@ public class RefreshPatronsJob : IJob
 
             foreach (var actualPatron in await api.GetPatrons(settings, cancellationToken))
             {
-                await PatreonGroupHandler.HandlePatreonPledgeObject(actualPatron.Pledge, actualPatron.User,
-                    actualPatron.Reward?.Id, database, jobClient);
+                await PatreonGroupHandler.HandlePatreonPledgeObject(
+                    actualPatron.Pledge,
+                    actualPatron.User,
+                    actualPatron.Reward?.Id,
+                    database,
+                    jobClient);
 
                 if (cancellationToken.IsCancellationRequested)
                     throw new TaskCanceledException();
@@ -59,11 +65,11 @@ public class RefreshPatronsJob : IJob
 
         foreach (var toDelete in patrons.Where(p => p.Marked == false))
         {
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message = $"Destroying patron ({toDelete.Id}) because it is unmarked " +
-                    "(wasn't found from fresh data from Patreon)",
-            }, cancellationToken);
+            await database.LogEntries.AddAsync(
+                new LogEntry(
+                    $"Destroying patron ({toDelete.Id}) because it is unmarked " +
+                    "(wasn't found from fresh data from Patreon)"),
+                cancellationToken);
 
             logger.LogInformation("Deleted unmarked Patron {Id}", toDelete.Id);
             database.Patrons.Remove(toDelete);

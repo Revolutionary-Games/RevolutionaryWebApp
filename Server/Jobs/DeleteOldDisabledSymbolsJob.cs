@@ -73,8 +73,7 @@ public class DeleteOldDisabledSymbolsJob : IJob
 
         if (symbol == null)
         {
-            logger.LogError(
-                "Debug symbol disappeared before old symbol delete task could run on: {SymbolId}",
+            logger.LogError("Debug symbol disappeared before old symbol delete task could run on: {SymbolId}",
                 symbolId);
             return;
         }
@@ -82,10 +81,8 @@ public class DeleteOldDisabledSymbolsJob : IJob
         logger.LogInformation("Performing final delete on symbol {Id} as it is being deleted as old",
             symbol.Id);
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Deleted inactive symbol ({symbol.Id}): {symbol.RelativePath}",
-        }, cancellationToken);
+        await database.LogEntries.AddAsync(
+            new LogEntry($"Deleted inactive symbol ({symbol.Id}): {symbol.RelativePath}"), cancellationToken);
 
         await database.SaveChangesAsync(cancellationToken);
     }

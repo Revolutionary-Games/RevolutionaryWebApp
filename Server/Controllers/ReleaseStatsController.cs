@@ -31,7 +31,9 @@ public class ReleaseStatsController : Controller
     private readonly NotificationsEnabledDb database;
     private readonly IHttpClientFactory httpClientFactory;
 
-    public ReleaseStatsController(ILogger<ReleaseStatsController> logger, NotificationsEnabledDb database,
+    public ReleaseStatsController(
+        ILogger<ReleaseStatsController> logger,
+        NotificationsEnabledDb database,
         IHttpClientFactory httpClientFactory)
     {
         this.logger = logger;
@@ -82,8 +84,10 @@ public class ReleaseStatsController : Controller
 
     [HttpGet("config")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
-    public async Task<PagedResult<RepoForReleaseStatsDTO>> GetConfiguration([Required] string sortColumn,
-        [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+    public async Task<PagedResult<RepoForReleaseStatsDTO>> GetConfiguration(
+        [Required] string sortColumn,
+        [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
     {
         IQueryable<RepoForReleaseStats> query;
@@ -139,15 +143,17 @@ public class ReleaseStatsController : Controller
         };
         await database.ReposForReleaseStats.AddAsync(config);
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"New repo for release stats {config.QualifiedName} created",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"New repo for release stats {config.QualifiedName} created")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
-        logger.LogInformation("Repo for release stats {QualifiedName} created by {Email}", config.QualifiedName,
+        logger.LogInformation(
+            "Repo for release stats {QualifiedName} created by {Email}",
+            config.QualifiedName,
             user.Email);
 
         return Ok();
@@ -168,15 +174,17 @@ public class ReleaseStatsController : Controller
 
         database.ReposForReleaseStats.Remove(config);
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Repo for release stats ({config.QualifiedName}) deleted",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Repo for release stats ({config.QualifiedName}) deleted")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
-        logger.LogInformation("Repo for release stats {QualifiedName} deleted by {Email}", config.QualifiedName,
+        logger.LogInformation(
+            "Repo for release stats {QualifiedName} deleted by {Email}",
+            config.QualifiedName,
             user.Email);
 
         return Ok();
@@ -187,12 +195,13 @@ public class ReleaseStatsController : Controller
     {
         var client = httpClientFactory.CreateClient("github");
 
-        var releases = await client.GetFromJsonAsync<List<GithubRelease>>(QueryHelpers.AddQueryString(
-            $"repos/{repo}/releases",
-            new Dictionary<string, string?>
-            {
-                { "per_page", "100" },
-            })) ?? throw new NullDecodedJsonException();
+        var releases = await client.GetFromJsonAsync<List<GithubRelease>>(
+            QueryHelpers.AddQueryString(
+                $"repos/{repo}/releases",
+                new Dictionary<string, string?>
+                {
+                    { "per_page", "100" },
+                })) ?? throw new NullDecodedJsonException();
 
         // TODO: fetch more pages if there are more than a 100 releases
         if (releases.Count > 100)
@@ -209,7 +218,11 @@ public class ReleaseStatsController : Controller
 
         foreach (var release in releases)
         {
-            CountReleaseDownloadStats(release, ignoreDownloads, ref totalDownloads, ref totalLinuxDownloads,
+            CountReleaseDownloadStats(
+                release,
+                ignoreDownloads,
+                ref totalDownloads,
+                ref totalLinuxDownloads,
                 ref totalWindowsDownloads,
                 ref totalMacDownloads);
         }
@@ -249,8 +262,13 @@ public class ReleaseStatsController : Controller
         return result;
     }
 
-    private void CountReleaseDownloadStats(GithubRelease release, Regex? ignoreDownloads, ref long total,
-        ref long linux, ref long windows, ref long mac)
+    private void CountReleaseDownloadStats(
+        GithubRelease release,
+        Regex? ignoreDownloads,
+        ref long total,
+        ref long linux,
+        ref long windows,
+        ref long mac)
     {
         foreach (var asset in release.Assets)
         {

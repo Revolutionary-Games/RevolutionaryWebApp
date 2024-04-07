@@ -20,6 +20,8 @@ public class CheckPullRequestStatusJob
     private readonly ICLAExemptions claExemptions;
     private readonly bool verboseStatusLogging;
 
+    private readonly bool logPullRequest;
+
     public CheckPullRequestStatusJob(ILogger<CheckPullRequestStatusJob> logger, NotificationsEnabledDb database,
         IConfiguration configuration, IBackgroundJobClient jobClient, ICLAExemptions claExemptions)
     {
@@ -28,6 +30,7 @@ public class CheckPullRequestStatusJob
         this.jobClient = jobClient;
         this.claExemptions = claExemptions;
         verboseStatusLogging = Convert.ToBoolean(configuration["Github:VerbosePRStatus"]);
+        logPullRequest = Convert.ToBoolean(configuration["Github:LogPRCreation"]);
     }
 
     public async Task Execute(string repository, long pullRequestNumber, string commit, string githubUsername,
@@ -42,10 +45,12 @@ public class CheckPullRequestStatusJob
 
         if (pullRequest == null)
         {
-            await database.LogEntries.AddAsync(new LogEntry
+            if (logPullRequest)
             {
-                Message = $"New Github pull request detected {repository}/{pullRequestNumber}",
-            }, cancellationToken);
+                await database.LogEntries.AddAsync(
+                    new LogEntry($"New Github pull request detected {repository}/{pullRequestNumber}"),
+                    cancellationToken);
+            }
 
             pullRequest = new GithubPullRequest
             {
@@ -67,12 +72,11 @@ public class CheckPullRequestStatusJob
             {
                 pullRequest.Open = open;
 
-                if (verboseStatusLogging)
+                if (verboseStatusLogging && logPullRequest)
                 {
-                    await database.LogEntries.AddAsync(new LogEntry
-                    {
-                        Message = $"Github pull request open state {repository}/{pullRequestNumber} is now {open}",
-                    }, cancellationToken);
+                    await database.LogEntries.AddAsync(
+                        new LogEntry($"Github pull request open state {repository}/{pullRequestNumber} is now {open}"),
+                        cancellationToken);
                 }
             }
 

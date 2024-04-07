@@ -33,8 +33,11 @@ public class ControlledServersController : Controller
     private readonly IEC2Controller ec2Controller;
     private readonly IBackgroundJobClient jobClient;
 
-    public ControlledServersController(ILogger<ControlledServersController> logger,
-        NotificationsEnabledDb database, IEC2Controller ec2Controller, IBackgroundJobClient jobClient)
+    public ControlledServersController(
+        ILogger<ControlledServersController> logger,
+        NotificationsEnabledDb database,
+        IEC2Controller ec2Controller,
+        IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.database = database;
@@ -44,8 +47,10 @@ public class ControlledServersController : Controller
 
     [HttpGet]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
-    public async Task<PagedResult<ControlledServerDTO>> Get([Required] string sortColumn,
-        [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
+    public async Task<PagedResult<ControlledServerDTO>> Get(
+        [Required] string sortColumn,
+        [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize)
     {
         IQueryable<ControlledServer> query;
@@ -101,27 +106,27 @@ public class ControlledServersController : Controller
 
         if (server.ReservationType != ServerReservationType.None)
         {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = $"Server {id} force stopped by an admin while it was reserved",
-                PerformedById = user.Id,
-            });
+            await database.AdminActions.AddAsync(
+                new AdminAction($"Server {id} force stopped by an admin while it was reserved")
+                {
+                    PerformedById = user.Id,
+                });
         }
         else if (server.Status == ServerStatus.Provisioning)
         {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = $"Server {id} force stopped by an admin while it was provisioning",
-                PerformedById = user.Id,
-            });
+            await database.AdminActions.AddAsync(
+                new AdminAction($"Server {id} force stopped by an admin while it was provisioning")
+                {
+                    PerformedById = user.Id,
+                });
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = $"Server {id} force stopped by an admin",
-                PerformedById = user.Id,
-            });
+            await database.AdminActions.AddAsync(
+                new AdminAction($"Server {id} force stopped by an admin")
+                {
+                    PerformedById = user.Id,
+                });
         }
 
         await ec2Controller.StopInstance(server.InstanceId, false);
@@ -130,7 +135,8 @@ public class ControlledServersController : Controller
 
         await database.SaveChangesAsync();
 
-        jobClient.Schedule<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None),
+        jobClient.Schedule<HandleControlledServerJobsJob>(
+            x => x.Execute(CancellationToken.None),
             TimeSpan.FromSeconds(30));
 
         return server.GetDTO();
@@ -157,27 +163,27 @@ public class ControlledServersController : Controller
 
         if (server.ReservationType != ServerReservationType.None)
         {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = $"Server {id} terminated by an admin while it was reserved",
-                PerformedById = user.Id,
-            });
+            await database.AdminActions.AddAsync(
+                new AdminAction($"Server {id} terminated by an admin while it was reserved")
+                {
+                    PerformedById = user.Id,
+                });
         }
         else if (server.Status == ServerStatus.Provisioning)
         {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = $"Server {id} terminated by an admin while it was provisioning",
-                PerformedById = user.Id,
-            });
+            await database.AdminActions.AddAsync(
+                new AdminAction($"Server {id} terminated by an admin while it was provisioning")
+                {
+                    PerformedById = user.Id,
+                });
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = $"Server {id} terminated by an admin",
-                PerformedById = user.Id,
-            });
+            await database.AdminActions.AddAsync(
+                new AdminAction($"Server {id} terminated by an admin")
+                {
+                    PerformedById = user.Id,
+                });
         }
 
         await ec2Controller.TerminateInstance(server.InstanceId);
@@ -218,8 +224,7 @@ public class ControlledServersController : Controller
             {
                 if (!first)
                 {
-                    logger.LogError(
-                        "AWS API created more servers than we wanted, attempting to terminate the extra");
+                    logger.LogError("AWS API created more servers than we wanted, attempting to terminate the extra");
                     await ec2Controller.TerminateInstance(awsServer);
                     throw new Exception("AWS API created more servers than we wanted");
                 }
@@ -232,8 +237,9 @@ public class ControlledServersController : Controller
 
                 logger.LogInformation("Starting re-provisioning on {Id} from admin control API", server.Id);
 
-                jobClient.Enqueue<ProvisionControlledServerJob>(x =>
-                    x.Execute(server.Id, CancellationToken.None));
+                jobClient.Enqueue<ProvisionControlledServerJob>(
+                    x =>
+                        x.Execute(server.Id, CancellationToken.None));
             }
         }
         else
@@ -248,7 +254,8 @@ public class ControlledServersController : Controller
             await database.SaveChangesAsync();
         }
 
-        jobClient.Schedule<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None),
+        jobClient.Schedule<HandleControlledServerJobsJob>(
+            x => x.Execute(CancellationToken.None),
             TimeSpan.FromSeconds(65));
 
         return server.GetDTO();
@@ -268,11 +275,11 @@ public class ControlledServersController : Controller
         if (server.CleanUpQueued)
             return Ok("Server already has clean up queued");
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Server {id} is queued for clean up",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Server {id} is queued for clean up")
+            {
+                PerformedById = HttpContext.AuthenticatedUser()!.Id,
+            });
 
         server.CleanUpQueued = true;
         await database.SaveChangesAsync();
@@ -297,7 +304,8 @@ public class ControlledServersController : Controller
         List<Instance> newStatuses;
         try
         {
-            newStatuses = await ec2Controller.GetInstanceStatuses(new List<string> { server.InstanceId },
+            newStatuses = await ec2Controller.GetInstanceStatuses(
+                new List<string> { server.InstanceId },
                 CancellationToken.None);
         }
         catch (Exception e)
@@ -316,8 +324,10 @@ public class ControlledServersController : Controller
             if (newStatus != server.Status)
             {
                 server.Status = newStatus;
-                logger.LogInformation("Server {Id} status is now {Status} after status re-check API request",
-                    server.Id, server.Status);
+                logger.LogInformation(
+                    "Server {Id} status is now {Status} after status re-check API request",
+                    server.Id,
+                    server.Status);
 
                 // TODO: this needs to do reservation status change performing if this is now stopped etc.
                 server.StatusLastChecked = DateTime.UtcNow;
@@ -369,7 +379,8 @@ public class ControlledServersController : Controller
 
             if (targetServer == null)
             {
-                logger.LogError("Got status response for a server we didn't ask about: {InstanceId}",
+                logger.LogError(
+                    "Got status response for a server we didn't ask about: {InstanceId}",
                     status.InstanceId);
                 continue;
             }
@@ -380,8 +391,10 @@ public class ControlledServersController : Controller
                 continue;
 
             targetServer.Status = newStatus;
-            logger.LogInformation("Server {Id} status is now {Status} after status re-check API request",
-                targetServer.Id, targetServer.Status);
+            logger.LogInformation(
+                "Server {Id} status is now {Status} after status re-check API request",
+                targetServer.Id,
+                targetServer.Status);
 
             targetServer.StatusLastChecked = DateTime.UtcNow;
             targetServer.BumpUpdatedAt();
@@ -404,11 +417,11 @@ public class ControlledServersController : Controller
         var user = HttpContext.AuthenticatedUser()!;
         logger.LogInformation("All terminated servers removed by: {Email}", user.Email);
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = "Terminated servers removed",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction("Terminated servers removed")
+            {
+                PerformedById = user.Id,
+            });
 
         database.ControlledServers.RemoveRange(servers);
         await database.SaveChangesAsync();

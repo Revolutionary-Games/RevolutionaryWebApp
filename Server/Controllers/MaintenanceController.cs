@@ -103,9 +103,8 @@ public class MaintenanceController : Controller
             return BadRequest("Too many maintenance operations have ran very recently");
         }
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Maintenance operation {operation.Name} started")
         {
-            Message = $"Maintenance operation {operation.Name} started",
             PerformedById = user.Id,
         });
 

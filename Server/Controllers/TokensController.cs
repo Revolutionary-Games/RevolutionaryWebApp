@@ -49,10 +49,9 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) deleted their own API token", user.Email);
 
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry("API token cleared by user")
         {
-            Message = "API token cleared by user",
-            TargetUserId = user.Id,
+            PerformedById = user.Id,
         });
 
         user.ApiToken = null;
@@ -74,10 +73,9 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) deleted their own LFS token", user.Email);
 
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry("LFS token cleared by user")
         {
-            Message = "LFS token cleared by user",
-            TargetUserId = user.Id,
+            PerformedById = user.Id,
         });
 
         user.LfsToken = null;
@@ -99,9 +97,8 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) created a new API token", user.Email);
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry("API token created")
         {
-            Message = "API token created",
             PerformedById = user.Id,
         });
 
@@ -124,9 +121,8 @@ public class TokensController : Controller
 
         logger.LogInformation("User ({Email}) created a new LFS token", user.Email);
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry("LFS token created")
         {
-            Message = "LFS token created",
             PerformedById = user.Id,
         });
 
@@ -152,9 +148,8 @@ public class TokensController : Controller
         var user = HttpContext.AuthenticatedUser()!;
         logger.LogInformation("Force clearing tokens on user {Id} by admin {Email}", target.Id, user.Email);
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction("Force cleared user's tokens")
         {
-            Message = "Force cleared user's tokens",
             TargetUserId = target.Id,
             PerformedById = user.Id,
         });

@@ -81,11 +81,12 @@ public class CombinedFeedController : Controller
         var user = HttpContext.AuthenticatedUser()!;
 
         await database.CombinedFeeds.AddAsync(feed);
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"New Combined feed created, name: {feed.Name}, combine count: {feed.CombinedFromFeeds.Count}",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction(
+                $"New Combined feed created, name: {feed.Name}, combine count: {feed.CombinedFromFeeds.Count}")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -150,11 +151,8 @@ public class CombinedFeedController : Controller
         // Reset content time to allow the content to regenerate
         feed.ContentUpdatedAt = null;
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Combined feed {feed.Id} edited", description)
         {
-            Message = $"Combined feed {feed.Id} edited",
-
-            // TODO: there could be an extra info property where the description is stored
             PerformedById = user.Id,
         });
 
@@ -177,11 +175,11 @@ public class CombinedFeedController : Controller
         var user = HttpContext.AuthenticatedUser()!;
 
         database.CombinedFeeds.Remove(feed);
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Combined feed {feed.Id} deleted",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Combined feed {feed.Id} deleted", "Template: " + feed.HtmlFeedItemEntryTemplate)
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -237,14 +235,13 @@ public class CombinedFeedController : Controller
     {
         // TODO: check if using include here is a good idea as this may need to load a ton of data
         return database.CombinedFeeds.AsNoTracking().Include(f => f.CombinedFromFeeds)
-            .OrderBy(sortColumn, sortDirection).Select(
-                s => new CombinedFeed(s.Name, s.HtmlFeedItemEntryTemplate)
-                {
-                    Id = s.Id,
-                    CacheTime = s.CacheTime,
-                    ContentUpdatedAt = s.ContentUpdatedAt,
-                    HtmlFeedItemEntryTemplate = s.HtmlFeedItemEntryTemplate,
-                    CombinedFromFeeds = s.CombinedFromFeeds,
-                });
+            .OrderBy(sortColumn, sortDirection).Select(s => new CombinedFeed(s.Name, s.HtmlFeedItemEntryTemplate)
+            {
+                Id = s.Id,
+                CacheTime = s.CacheTime,
+                ContentUpdatedAt = s.ContentUpdatedAt,
+                HtmlFeedItemEntryTemplate = s.HtmlFeedItemEntryTemplate,
+                CombinedFromFeeds = s.CombinedFromFeeds,
+            });
     }
 }

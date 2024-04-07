@@ -92,9 +92,8 @@ public class BackupController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Backup {backup.Id} downloaded")
         {
-            Message = $"Backup {backup.Id} downloaded",
             PerformedById = user.Id,
         });
 
@@ -124,9 +123,8 @@ public class BackupController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Backup {backup.Id} downloaded")
         {
-            Message = $"Backup {backup.Id} downloaded",
             PerformedById = user.Id,
         });
         database.Backups.Remove(backup);
@@ -167,9 +165,8 @@ public class BackupController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction("Manual backup triggered")
         {
-            Message = "Manual backup triggered",
             PerformedById = user.Id,
         });
 

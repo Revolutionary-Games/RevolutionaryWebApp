@@ -103,10 +103,7 @@ public class CleanOldDevBuildsJob : IJob
 
             // We want to save anyway, so adding the log message anyway also seems like a good idea
             // ReSharper disable once MethodSupportsCancellation
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message = $"Cleaned old DevBuilds, deleted: {deleted}",
-            });
+            await database.LogEntries.AddAsync(new LogEntry($"Cleaned old DevBuilds, deleted: {deleted}"));
 
             // We *really* don't want to lose info on what files we have deleted from remote storage
             // ReSharper disable once MethodSupportsCancellation

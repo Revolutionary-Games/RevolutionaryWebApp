@@ -265,9 +265,8 @@ public class UserManagementController : Controller
 
         if (admin && actingUser.Id != user.Id)
         {
-            await database.AdminActions.AddAsync(new AdminAction
+            await database.AdminActions.AddAsync(new AdminAction($"Force ended session {session.Id}")
             {
-                Message = $"Force ended session {session.Id}",
                 PerformedById = actingUser.Id,
                 TargetUserId = user.Id,
             });
@@ -312,12 +311,12 @@ public class UserManagementController : Controller
         user.SuspendedManually = true;
         user.SuspendedReason = reason;
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"User {user.UserName} suspended manually for reason \"{reason}\"",
-            PerformedById = actingUser.Id,
-            TargetUserId = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"User {user.UserName} suspended manually for reason \"{reason}\"")
+            {
+                PerformedById = actingUser.Id,
+                TargetUserId = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -351,9 +350,8 @@ public class UserManagementController : Controller
         user.SuspendedManually = false;
         user.Suspended = false;
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction("User unsuspended manually")
         {
-            Message = "User unsuspended manually",
             PerformedById = actingUser.Id,
             TargetUserId = user.Id,
         });
@@ -382,6 +380,8 @@ public class UserManagementController : Controller
         var id = user.Id;
         var sessions = await database.Sessions.Where(s => s.UserId == id).ToListAsync();
 
+        // TODO: logging out discourse sessions once we have those managed through this account system
+
         if (sessions.Count < 1)
             return;
 
@@ -390,9 +390,8 @@ public class UserManagementController : Controller
             if (!actingUser.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
                 throw new Exception("Somehow non-admin is logging out another user");
 
-            await database.AdminActions.AddAsync(new AdminAction
+            await database.AdminActions.AddAsync(new AdminAction("Forced logout")
             {
-                Message = "Forced logout",
                 PerformedById = actingUser.Id,
                 TargetUserId = user.Id,
             });

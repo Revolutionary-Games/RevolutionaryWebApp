@@ -66,10 +66,9 @@ public class CancelCIBuildIfStuckJob
             externalServerSSHAccess.ConnectTo(server.PublicAddress.ToString(), server.SSHKeyFileName);
             externalServerSSHAccess.Reboot();
 
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message = $"External server {server.Id} timed out running CI job, force rebooting it",
-            }, cancellationToken);
+            await database.LogEntries.AddAsync(
+                new LogEntry($"External server {server.Id} timed out running CI job, force rebooting it"),
+                cancellationToken);
 
             server.StatusLastChecked = DateTime.UtcNow;
             server.ReservationType = ServerReservationType.None;
@@ -90,12 +89,9 @@ public class CancelCIBuildIfStuckJob
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message =
-                    $"Server {server.Id} ({server.InstanceId}) timed out running CI job, stopping it, running " +
-                    $"since {server.UpdatedAt}",
-            }, cancellationToken);
+            await database.LogEntries.AddAsync(new LogEntry(
+                $"Server {server.Id} ({server.InstanceId}) timed out running CI job, stopping it", "running " +
+                $"since {server.UpdatedAt}"), cancellationToken);
 
             if (string.IsNullOrEmpty(server.InstanceId))
                 throw new ArgumentException("Stuck server has no InstanceId, can't stop it");

@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Shared.Forms;
 using Shared.Models.Enums;
+using SharedBase.Utilities;
 
 [ApiController]
 [Route("api/v1/[controller]")]
@@ -31,18 +32,19 @@ public class SiteNotificationsController : Controller
     [HttpPost("ephemeralNotice")]
     public async Task<IActionResult> SendEphemeralNotice([Required] SiteNoticeFormData data)
     {
-        var user = HttpContext.AuthenticatedUser()!;
+        var user = HttpContext.AuthenticatedUserOrThrow();
 
         logger.LogInformation("New site notice (ephemeral) sent by: {Email}, text: {Message}, type: {Type}",
             user.Email, data.Message, data.Type);
 
         // As a site message is not a critical thing, only a normal log entry is created and not an admin action
-        var log = new LogEntry
+        var log = new AdminAction($"Ephemeral site message sent by \"{user.Name}\": {data.Message.Truncate()}",
+            data.Message)
         {
-            Message = $"Ephemeral site message sent by \"{user.Name}\": {data.Message}",
+            PerformedById = user.Id,
         };
 
-        await database.LogEntries.AddAsync(log);
+        await database.AdminActions.AddAsync(log);
         await database.SaveChangesAsync();
 
         await notifications.Clients.All.ReceiveSiteNotice(data.Type, data.Message);

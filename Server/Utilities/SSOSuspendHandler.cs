@@ -63,8 +63,7 @@ public static class SSOSuspendHandler
             {
                 if (!communityAPI.Configured)
                 {
-                    logger.LogWarning(
-                        "Can't check SSO user from community forum because API for that is unconfigured");
+                    logger.LogWarning("Can't check SSO user from community forum because API for that is unconfigured");
                     return false;
                 }
 
@@ -106,8 +105,7 @@ public static class SSOSuspendHandler
             {
                 if (!devForumAPI.Configured)
                 {
-                    logger.LogWarning(
-                        "Can't check SSO user from dev forum because API for that is unconfigured");
+                    logger.LogWarning("Can't check SSO user from dev forum because API for that is unconfigured");
                     return false;
                 }
 
@@ -131,9 +129,8 @@ public static class SSOSuspendHandler
         // Don't unsuspend if user was suspended manually
         if (user.Suspended && user.SuspendedManually != true)
         {
-            await database.LogEntries.AddAsync(new LogEntry
+            await database.LogEntries.AddAsync(new LogEntry("Unsuspended user from sso sources")
             {
-                Message = "Unsuspended user from sso sources",
                 TargetUserId = user.Id,
             }, cancellationToken);
 
@@ -141,12 +138,11 @@ public static class SSOSuspendHandler
         }
         else if (user.Suspended != true)
         {
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message =
-                    $"Suspending user due to sso login ({user.SsoSource}) no longer being valid for this user",
-                TargetUserId = user.Id,
-            }, cancellationToken);
+            await database.LogEntries.AddAsync(
+                new LogEntry($"Suspending user due to sso login ({user.SsoSource}) no longer being valid for this user")
+                {
+                    TargetUserId = user.Id,
+                }, cancellationToken);
 
             user.Suspended = true;
             user.SuspendedReason = $"Used {LoginOptionNoLongerValidText} {reason}";

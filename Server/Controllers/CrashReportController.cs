@@ -139,11 +139,10 @@ public class CrashReportController : Controller
     [HttpGet("{id:long}/logs")]
     public async Task<ActionResult<string>> GetLogs([Required] long id)
     {
-        var report = await database.CrashReports.Where(r => r.Id == id).Select(
-                r => new
-                {
-                    r.Logs,
-                })
+        var report = await database.CrashReports.Where(r => r.Id == id).Select(r => new
+            {
+                r.Logs,
+            })
             .FirstOrDefaultAsync();
 
         if (report == null)
@@ -178,11 +177,11 @@ public class CrashReportController : Controller
         if (report.DumpLocalFileName == null)
             return BadRequest("Report no longer has a crash dump file");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"Report {report.Id} crash dump reprocessing requested",
-            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"Report {report.Id} crash dump reprocessing requested")
+            {
+                PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -270,24 +269,20 @@ public class CrashReportController : Controller
         if (report.ReporterEmail == null)
             return Ok("Reporter email was not set");
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Crash report {report.Id} reporter email cleared")
         {
-            Message = $"Crash report {report.Id} reporter email cleared",
-
-            // TODO: there could be an extra info property where the old description is stored
             PerformedById = user.Id,
         });
 
         report.ReporterEmail = null;
         report.BumpUpdatedAt();
 
-        await database.SaveChangesWithConflictResolvingAsync(
-            conflictEntries =>
-            {
-                DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
-                report.ReporterEmail = null;
-                report.BumpUpdatedAt();
-            }, CancellationToken.None);
+        await database.SaveChangesWithConflictResolvingAsync(conflictEntries =>
+        {
+            DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
+            report.ReporterEmail = null;
+            report.BumpUpdatedAt();
+        }, CancellationToken.None);
 
         logger.LogInformation("Crash report {Id} reporter email cleared by {Email}", report.Id,
             user.Email);
@@ -320,13 +315,10 @@ public class CrashReportController : Controller
             report.DescriptionLastEditedById = user.Id;
         }
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry(editedDescription ?
+            $"Crash report {report.Id} edited (edit included description)" :
+            $"Crash report {report.Id} edited", description)
         {
-            Message = editedDescription ?
-                $"Crash report {report.Id} edited (edit included description)" :
-                $"Crash report {report.Id} edited",
-
-            // TODO: there could be an extra info property where the description is stored
             PerformedById = user.Id,
         });
 
@@ -351,9 +343,8 @@ public class CrashReportController : Controller
 
         // And then delete the report itself, there may be a leftover dump delete job for the report but that will
         // only cause a warning
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Crash report {report.Id} queued for deletion")
         {
-            Message = $"Crash report {report.Id} queued for deletion",
             PerformedById = user.Id,
         });
 
@@ -465,11 +456,8 @@ public class CrashReportController : Controller
         logger.LogInformation("New crash report ({Id}) created, with crash dump at: {FilePath} from: {Address}",
             report.Id, filePath, address);
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message =
-                $"New crash report {report.Id} created for {report.StoreOrVersion} on platform: {report.Platform}",
-        });
+        await database.LogEntries.AddAsync(new LogEntry(
+            $"New crash report {report.Id} created for {report.StoreOrVersion} on platform: {report.Platform}"));
 
         saveTask = database.SaveChangesAsync();
 
@@ -526,10 +514,8 @@ public class CrashReportController : Controller
         if (report == null)
             return NotFound("No report found with key");
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Crash report {report.Id} queued for deletion through the use of the delete key",
-        });
+        await database.LogEntries.AddAsync(
+            new LogEntry($"Crash report {report.Id} queued for deletion through the use of the delete key"));
 
         await database.SaveChangesAsync();
 

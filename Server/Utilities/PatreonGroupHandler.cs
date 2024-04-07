@@ -65,10 +65,7 @@ public static class PatreonGroupHandler
         {
             if (!declined)
             {
-                await database.LogEntries.AddAsync(new LogEntry
-                {
-                    Message = $"We have a new patron: {username}",
-                });
+                await database.LogEntries.AddAsync(new LogEntry($"We have a new patron: {username}"));
 
                 await database.Patrons.AddAsync(new Patron
                 {
@@ -94,10 +91,8 @@ public static class PatreonGroupHandler
         {
             if (patron.Suspended != true)
             {
-                await database.LogEntries.AddAsync(new LogEntry
-                {
-                    Message = $"A patron ({patron.Id}) is now in declined state. Setting as suspended",
-                });
+                await database.LogEntries.AddAsync(
+                    new LogEntry($"A patron ({patron.Id}) is now in declined state. Setting as suspended"));
 
                 patron.Suspended = true;
                 patron.SuspendedReason = "Payment failed on Patreon";
@@ -108,10 +103,8 @@ public static class PatreonGroupHandler
         }
         else if (patron.RewardId != rewardId || patron.Username != username)
         {
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message = $"A patron ({patron.Id}) has changed their reward or name",
-            });
+            await database.LogEntries.AddAsync(new LogEntry($"A patron ({patron.Id}) has changed their reward or name",
+                "Old name: " + patron.Username));
 
             patron.RewardId = rewardId;
             patron.PledgeAmountCents = pledgeCents;
@@ -123,10 +116,8 @@ public static class PatreonGroupHandler
         }
         else if (patron.Suspended == true)
         {
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message = $"A patron ({patron.Id}) is no longer declined on Patreon's side",
-            });
+            await database.LogEntries.AddAsync(
+                new LogEntry($"A patron ({patron.Id}) is no longer declined on Patreon's side"));
 
             patron.Suspended = false;
             reapplySuspension = true;

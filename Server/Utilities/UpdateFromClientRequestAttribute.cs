@@ -10,7 +10,7 @@ public class UpdateFromClientRequestAttribute : Attribute
     /// </summary>
     public string? RequestPropertyName { get; set; }
 
-    public int MaxLengthWhenDisplayingChanges { get; set; } = 1000;
+    public int MaxLengthWhenDisplayingChanges { get; set; } = 1500;
 }
 
 /// <summary>

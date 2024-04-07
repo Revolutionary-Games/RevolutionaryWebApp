@@ -169,7 +169,6 @@ public class PagesController : Controller
 
             var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(page, pageDTO);
 
-
             if (!changes)
                 return Problem("Changes to the model should have been applied, but didn't");
 

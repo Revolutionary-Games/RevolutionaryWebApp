@@ -29,30 +29,26 @@ public sealed class DeleteOldAdminActionLogsJobTests : IClassFixture<RealUnitTes
         var database = fixture.Database;
         await using var transaction = await database.Database.BeginTransactionAsync();
 
-        var log1 = new AdminAction
+        var log1 = new AdminAction("Log message 1")
         {
-            Message = "Log message 1",
             CreatedAt = DateTime.UtcNow - TimeSpan.FromSeconds(30),
         };
         await database.AdminActions.AddAsync(log1);
 
-        var log2 = new AdminAction
+        var log2 = new AdminAction("Log message 2")
         {
-            Message = "Log message 2",
             CreatedAt = DateTime.UtcNow - TimeSpan.FromDays(10),
         };
         await database.AdminActions.AddAsync(log2);
 
-        var log3 = new AdminAction
+        var log3 = new AdminAction("Log message 3")
         {
-            Message = "Log message 3",
             CreatedAt = DateTime.UtcNow - AppInfo.DeleteAdminActionLogsAfter - TimeSpan.FromSeconds(30),
         };
         await database.AdminActions.AddAsync(log3);
 
-        var log4 = new AdminAction
+        var log4 = new AdminAction("Log message 4")
         {
-            Message = "Log message 4",
             CreatedAt = DateTime.UtcNow - AppInfo.DeleteServerLogsAfter - TimeSpan.FromSeconds(30),
         };
         await database.AdminActions.AddAsync(log4);

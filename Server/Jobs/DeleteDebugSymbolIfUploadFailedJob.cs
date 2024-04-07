@@ -97,8 +97,7 @@ public class DeleteDebugSymbolIfUploadFailedJob
 
         if (symbol == null)
         {
-            logger.LogError(
-                "Debug symbol disappeared before upload fail final delete task could run on: {SymbolId}",
+            logger.LogError("Debug symbol disappeared before upload fail final delete task could run on: {SymbolId}",
                 symbolId);
             return;
         }
@@ -106,10 +105,8 @@ public class DeleteDebugSymbolIfUploadFailedJob
         logger.LogInformation("Performing final delete on symbol {Id} as it had not been uploaded successfully",
             symbol.Id);
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Deleted failed to be uploaded DebugSymbol {symbol.Id}",
-        }, cancellationToken);
+        await database.LogEntries.AddAsync(new LogEntry($"Deleted failed to be uploaded DebugSymbol {symbol.Id}"),
+            cancellationToken);
 
         await database.SaveChangesAsync(cancellationToken);
     }

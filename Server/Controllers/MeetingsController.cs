@@ -105,9 +105,8 @@ public class MeetingsController : Controller
         }
 
         // Allow join
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"User joined meeting {meeting.Id}")
         {
-            Message = $"User joined meeting {meeting.Id}",
             PerformedById = user.Id,
         });
 
@@ -448,11 +447,11 @@ public class MeetingsController : Controller
 
         await database.MeetingPolls.AddAsync(poll);
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"Poll added to meeting ({meeting.Id}) with title: {poll.Title}",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"Poll added to meeting ({meeting.Id}) with title: {poll.Title}")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         logger.LogInformation("New poll {Id1} ({Title}) added to meeting ({Id2}) by {Email}", poll.PollId,
@@ -494,10 +493,10 @@ public class MeetingsController : Controller
         if (meeting.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return this.WorkingForbid("You don't have permission to recompute polls in this meeting");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry(
+            $"Poll in meeting ({meeting.Id}) with title: {poll.Title} has been recomputed. " +
+            "Note that random value used for tiebreak will be recomputed and may change the result.")
         {
-            Message = $"Poll in meeting ({meeting.Id}) with title: {poll.Title} has been recomputed. " +
-                "Note that random value used for tiebreak will be recomputed and may change the result.",
             PerformedById = user.Id,
         });
 
@@ -534,11 +533,11 @@ public class MeetingsController : Controller
         if (meeting.OwnerId != user.Id && !user.AccessCachedGroupsOrThrow().HasGroup(GroupType.Admin))
             return this.WorkingForbid("You don't have permission to close polls in this meeting");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"Poll ({poll.PollId}) closed early in meeting ({meeting.Id}), title: {poll.Title}",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"Poll ({poll.PollId}) closed early in meeting ({meeting.Id}), title: {poll.Title}")
+            {
+                PerformedById = user.Id,
+            });
 
         poll.ClosedAt = DateTime.UtcNow;
         poll.AutoCloseAt = null;
@@ -600,11 +599,11 @@ public class MeetingsController : Controller
 
         await database.Meetings.AddAsync(meeting);
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"New meeting ({meeting.Name}) created, scheduled to start at {meeting.StartsAt}",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"New meeting ({meeting.Name}) created, scheduled to start at {meeting.StartsAt}")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -640,11 +639,11 @@ public class MeetingsController : Controller
         if (meeting.ChairmanId == newChairman.Id)
             return Ok("Meeting already has the specified user as chairman");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"Meeting ({meeting.Id}) has now {newChairman.Name} ({newChairmanId}) as the chairman",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"Meeting ({meeting.Id}) has now {newChairman.Name} ({newChairmanId}) as the chairman")
+            {
+                PerformedById = user.Id,
+            });
 
         meeting.ChairmanId = newChairman.Id;
         meeting.BumpUpdatedAt();
@@ -692,9 +691,8 @@ public class MeetingsController : Controller
                 CancellationToken.None), TimeSpan.FromSeconds(15));
         }
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"Meeting ({meeting.Id}) ended by a user")
         {
-            Message = $"Meeting ({meeting.Id}) ended by a user",
             PerformedById = user.Id,
         });
 

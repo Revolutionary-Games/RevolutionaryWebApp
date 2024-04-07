@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Controllers;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
@@ -84,20 +85,19 @@ public class LauncherLinksController : Controller
 
         if (userId == performingUser.Id)
         {
-            await database.LogEntries.AddAsync(new LogEntry
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry("All launcher links deleted by self")
             {
-                Message = "All launcher links deleted by self",
-                TargetUserId = userId,
+                PerformedById = userId,
             });
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = "All launcher links deleted by an admin",
-                TargetUserId = userId,
-                PerformedById = performingUser.Id,
-            });
+            await database.AdminActions.AddAsync(
+                new AdminAction("All launcher links deleted by an admin", "Link count: " + linksToDelete.Count)
+                {
+                    TargetUserId = userId,
+                    PerformedById = performingUser.Id,
+                });
         }
 
         database.LauncherLinks.RemoveRange(linksToDelete);
@@ -128,17 +128,18 @@ public class LauncherLinksController : Controller
 
         if (userId == performingUser.Id)
         {
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message = $"Launcher link ({linkId}) deleted by owning user",
-                TargetUserId = userId,
-            });
+            await database.ActionLogEntries.AddAsync(
+                new ActionLogEntry($"Launcher link ({linkId}) deleted by owning user")
+                {
+                    PerformedById = userId,
+                });
         }
         else
         {
-            await database.AdminActions.AddAsync(new AdminAction
+            await database.AdminActions.AddAsync(new AdminAction(
+                $"Launcher link ({linkId}) for user deleted by an admin",
+                JsonSerializer.Serialize(linkToDelete, new JsonSerializerOptions(JsonSerializerDefaults.Web)))
             {
-                Message = $"Launcher link ({linkId}) for user deleted by an admin",
                 TargetUserId = userId,
                 PerformedById = performingUser.Id,
             });

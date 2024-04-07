@@ -171,11 +171,8 @@ public class LauncherInfoConfigurationController : Controller
 
         mirror.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Download Mirror {mirror.Id} edited", description)
         {
-            Message = $"Download Mirror {mirror.Id} edited",
-
-            // TODO: there could be an extra info property where the description is stored
             PerformedById = user.Id,
         });
 
@@ -205,11 +202,11 @@ public class LauncherInfoConfigurationController : Controller
             return BadRequest("Mirror is in use by a Thrive version download");
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Download mirror \"{mirror.InternalName}\" ({mirror.Id}) deleted",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Download mirror \"{mirror.InternalName}\" ({mirror.Id}) deleted")
+            {
+                PerformedById = user.Id,
+            });
 
         database.LauncherDownloadMirrors.Remove(mirror);
 
@@ -238,11 +235,11 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"New download mirror \"{mirror.ReadableName}\" ({mirror.InternalName}) created",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"New download mirror \"{mirror.ReadableName}\" ({mirror.InternalName}) created")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.LauncherDownloadMirrors.AddAsync(mirror);
 
@@ -304,11 +301,11 @@ public class LauncherInfoConfigurationController : Controller
             return BadRequest("Cannot delete latest version");
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Launcher version {version.Version} ({version.Id}) deleted",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Launcher version {version.Version} ({version.Id}) deleted")
+            {
+                PerformedById = user.Id,
+            });
 
         database.LauncherLauncherVersions.Remove(version);
 
@@ -350,11 +347,11 @@ public class LauncherInfoConfigurationController : Controller
         version.BumpUpdatedAt();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Launcher version {version.Version} (previous: {previous?.Version}) is now latest",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Launcher version {version.Version} (previous: {previous?.Version}) is now latest")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         await database.Database.CommitTransactionAsync();
@@ -382,9 +379,8 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"New launcher info version {version.Version} created")
         {
-            Message = $"New launcher info version {version.Version} created",
             PerformedById = user.Id,
         });
 
@@ -450,11 +446,11 @@ public class LauncherInfoConfigurationController : Controller
             return NotFound();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Launcher version's ({channelObject.VersionId}) channel {channelEnumValue} deleted",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Launcher version's ({channelObject.VersionId}) channel {channelEnumValue} deleted")
+            {
+                PerformedById = user.Id,
+            });
 
         database.LauncherVersionAutoUpdateChannels.Remove(channelObject);
 
@@ -488,11 +484,11 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"New channel {channel.Channel} created for launcher version {version.Version}",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"New channel {channel.Channel} created for launcher version {version.Version}")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.LauncherVersionAutoUpdateChannels.AddAsync(channel);
         version.BumpUpdatedAt();
@@ -562,11 +558,10 @@ public class LauncherInfoConfigurationController : Controller
             return NotFound();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction(
+            $"Download with mirror {download.Mirror.InternalName} for Launcher version's " +
+            $"({download.VersionId}) channel {channelEnumValue} deleted")
         {
-            Message =
-                $"Download with mirror {download.Mirror.InternalName} for Launcher version's " +
-                $"({download.VersionId}) channel {channelEnumValue} deleted",
             PerformedById = user.Id,
         });
 
@@ -621,11 +616,10 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction(
+            $"New download mirror ({download.MirrorId}) url specified for channel {download.Channel} " +
+            $"in a launcher version ({channelObject.VersionId})")
         {
-            Message =
-                $"New download mirror ({download.MirrorId}) url specified for channel {download.Channel} " +
-                $"in a launcher version ({channelObject.VersionId})",
             PerformedById = user.Id,
         });
 
@@ -633,8 +627,7 @@ public class LauncherInfoConfigurationController : Controller
 
         await database.SaveChangesAsync();
 
-        logger.LogInformation(
-            "New download with mirror {MirrorId} ({DownloadUrl}) in channel {Channel} created " +
+        logger.LogInformation("New download with mirror {MirrorId} ({DownloadUrl}) in channel {Channel} created " +
             "for launcher version ({Id}) by {Email}",
             download.MirrorId, download.DownloadUrl,
             download.Channel, channelObject.VersionId, user.Email);
@@ -696,13 +689,11 @@ public class LauncherInfoConfigurationController : Controller
 
         version.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Thrive version {version.ReleaseNumber} ({version.Id}) edited",
-
-            // TODO: there could be an extra info property where the description is stored
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Thrive version {version.ReleaseNumber} ({version.Id}) edited", description)
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -728,11 +719,11 @@ public class LauncherInfoConfigurationController : Controller
             return BadRequest("Version needs to be disabled before deleting");
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Thrive version {version.ReleaseNumber} ({version.Id}) deleted",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Thrive version {version.ReleaseNumber} ({version.Id}) deleted")
+            {
+                PerformedById = user.Id,
+            });
 
         database.LauncherThriveVersions.Remove(version);
 
@@ -777,11 +768,10 @@ public class LauncherInfoConfigurationController : Controller
         version.BumpUpdatedAt();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction(
+            $"Thrive version {version.ReleaseNumber} (previous: {previous?.ReleaseNumber}) " +
+            $"is now latest for stable: {version.Stable}")
         {
-            Message =
-                $"Thrive version {version.ReleaseNumber} (previous: {previous?.ReleaseNumber}) " +
-                $"is now latest for stable: {version.Stable}",
             PerformedById = user.Id,
         });
 
@@ -808,9 +798,8 @@ public class LauncherInfoConfigurationController : Controller
         version.BumpUpdatedAt();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Thrive version {version.ReleaseNumber} is now enabled")
         {
-            Message = $"Thrive version {version.ReleaseNumber} is now enabled",
             PerformedById = user.Id,
         });
 
@@ -836,9 +825,8 @@ public class LauncherInfoConfigurationController : Controller
         version.BumpUpdatedAt();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Thrive version {version.ReleaseNumber} is now disabled")
         {
-            Message = $"Thrive version {version.ReleaseNumber} is now disabled",
             PerformedById = user.Id,
         });
 
@@ -902,9 +890,8 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"New Thrive version {version.ReleaseNumber} created")
         {
-            Message = $"New Thrive version {version.ReleaseNumber} created",
             PerformedById = user.Id,
         });
 
@@ -986,11 +973,10 @@ public class LauncherInfoConfigurationController : Controller
 
         version.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction(
+            $"Thrive version {version.ReleaseNumber} ({version.Id}) platform {platformEnumValue} edited",
+            description)
         {
-            Message = $"Thrive version {version.ReleaseNumber} ({version.Id}) platform {platformEnumValue} edited",
-
-            // TODO: there could be an extra info property where the description is stored
             PerformedById = user.Id,
         });
 
@@ -1014,11 +1000,11 @@ public class LauncherInfoConfigurationController : Controller
             return NotFound();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Thrive version's ({platformObject.VersionId}) platform {platformEnumValue} deleted",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Thrive version's ({platformObject.VersionId}) platform {platformEnumValue} deleted")
+            {
+                PerformedById = user.Id,
+            });
 
         database.LauncherThriveVersionPlatforms.Remove(platformObject);
 
@@ -1054,11 +1040,11 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"New platform {platform.Platform} created for thrive version {version.ReleaseNumber}",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"New platform {platform.Platform} created for thrive version {version.ReleaseNumber}")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.LauncherThriveVersionPlatforms.AddAsync(platform);
         version.BumpUpdatedAt();
@@ -1128,11 +1114,10 @@ public class LauncherInfoConfigurationController : Controller
             return NotFound();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction(
+            $"Download with mirror {download.Mirror.InternalName} for Thrive version's " +
+            $"({download.VersionId}) platform {platformEnumValue} deleted")
         {
-            Message =
-                $"Download with mirror {download.Mirror.InternalName} for Thrive version's " +
-                $"({download.VersionId}) platform {platformEnumValue} deleted",
             PerformedById = user.Id,
         });
 
@@ -1188,11 +1173,10 @@ public class LauncherInfoConfigurationController : Controller
         }
 
         var user = HttpContext.AuthenticatedUserOrThrow();
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction(
+            $"New download mirror ({download.MirrorId}) url specified for platform {download.Platform} " +
+            $"in a thrive version ({platformObject.VersionId})")
         {
-            Message =
-                $"New download mirror ({download.MirrorId}) url specified for platform {download.Platform} " +
-                $"in a thrive version ({platformObject.VersionId})",
             PerformedById = user.Id,
         });
 
@@ -1200,8 +1184,7 @@ public class LauncherInfoConfigurationController : Controller
 
         await database.SaveChangesAsync();
 
-        logger.LogInformation(
-            "New download with mirror {MirrorId} ({DownloadUrl}) for platform {Platform} created " +
+        logger.LogInformation("New download with mirror {MirrorId} ({DownloadUrl}) for platform {Platform} created " +
             "in thrive version ({Id}) by {Email}",
             download.MirrorId, download.DownloadUrl,
             download.Platform, platformObject.VersionId, user.Email);

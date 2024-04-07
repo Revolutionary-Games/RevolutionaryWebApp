@@ -81,10 +81,9 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
         feed.Id = (await Entities.MaxAsync(f => (long?)f.Id) ?? 0) + 1;
 
-        var action = new AdminAction
+        var action = new AdminAction($"New Feed created, url: {feed.Url}, name: {feed.Name}")
         {
-            Message = $"New Feed created, url: {feed.Url}, name: {feed.Name}",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id,
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
         };
 
         await database.Feeds.AddAsync(feed);
@@ -124,11 +123,8 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         // Reset content time to allow the content to regenerate
         item.ContentUpdatedAt = null;
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Feed {item.Id} edited", description)
         {
-            Message = $"Feed {item.Id} edited",
-
-            // TODO: there could be an extra info property where the description is stored
             PerformedById = user.Id,
         });
 
@@ -200,9 +196,8 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
             return BadRequest("That webhook is already configured for this feed");
         }
 
-        var action = new AdminAction
+        var action = new AdminAction($"New Feed webhook created, feed: {id}, url: {webhook.WebhookUrl}")
         {
-            Message = $"New Feed webhook created, feed: {id}, url: {webhook.WebhookUrl}",
             PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
         };
 
@@ -231,9 +226,8 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        var action = new AdminAction
+        var action = new AdminAction($"Feed ({id}) webhook deleted", "Format was: " + item.CustomItemFormat)
         {
-            Message = $"Feed ({id}) webhook deleted",
             PerformedById = user.Id,
         };
 

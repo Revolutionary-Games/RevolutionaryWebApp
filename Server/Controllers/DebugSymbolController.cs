@@ -253,11 +253,8 @@ public class DebugSymbolController : Controller
 
         symbol.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"DebugSymbol {symbol.Id} edited", description)
         {
-            Message = $"DebugSymbol {symbol.Id} edited",
-
-            // TODO: there could be an extra info property where the description of the edit is stored
             PerformedById = user.Id,
         });
 

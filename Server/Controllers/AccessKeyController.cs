@@ -70,10 +70,9 @@ public class AccessKeyController : Controller
             KeyType = newKey.KeyType,
         };
 
-        var action = new AdminAction
+        var action = new AdminAction($"New access key ({key.Description}) created with scope: {key.KeyType}")
         {
-            Message = $"New access key ({key.Description}) created with scope: {key.KeyType}",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id,
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
         };
 
         await database.AccessKeys.AddAsync(key);
@@ -92,10 +91,9 @@ public class AccessKeyController : Controller
         if (key == null)
             return NotFound();
 
-        var action = new AdminAction
+        var action = new AdminAction($"Access key {key.Id} was deleted")
         {
-            Message = $"Access key {key.Id} was deleted",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id,
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
         };
 
         database.AccessKeys.Remove(key);

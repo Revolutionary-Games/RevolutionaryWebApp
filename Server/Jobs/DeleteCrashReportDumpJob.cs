@@ -75,20 +75,16 @@ public class DeleteCrashReportDumpJob
 
         await DeleteReportTempFile(report, localTempFileLocks, logger, cancellationToken);
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Deleted crash dump file for {report.Id}",
-        }, cancellationToken);
+        await database.LogEntries.AddAsync(new LogEntry($"Deleted crash dump file for {report.Id}"), cancellationToken);
 
         report.DumpLocalFileName = null;
         report.BumpUpdatedAt();
 
-        await database.SaveChangesWithConflictResolvingAsync(
-            conflictEntries =>
-            {
-                DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
-                report.DumpLocalFileName = null;
-                report.BumpUpdatedAt();
-            }, cancellationToken);
+        await database.SaveChangesWithConflictResolvingAsync(conflictEntries =>
+        {
+            DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflictEntries, report);
+            report.DumpLocalFileName = null;
+            report.BumpUpdatedAt();
+        }, cancellationToken);
     }
 }

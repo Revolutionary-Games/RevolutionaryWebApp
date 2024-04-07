@@ -777,11 +777,11 @@ public class LoginController : SSOLoginController
             if (ssoType == SsoTypeDevForum)
             {
                 // Conversion to a developer account
-                await Database.LogEntries.AddAsync(new LogEntry
-                {
-                    Message = "User is now a developer due to different SSO login type",
-                    TargetUser = user,
-                });
+                await Database.LogEntries.AddAsync(
+                    new LogEntry("User is now a developer due to different SSO login type")
+                    {
+                        TargetUser = user,
+                    });
 
                 user.Groups.Add(await developerGroup.Value);
                 user.OnGroupsChanged(jobClient);
@@ -827,11 +827,11 @@ public class LoginController : SSOLoginController
             }
             else
             {
-                await Database.LogEntries.AddAsync(new LogEntry
-                {
-                    Message = $"Username changed due to SSO login to \"{username}\"",
-                    TargetUserId = user.Id,
-                });
+                await Database.LogEntries.AddAsync(
+                    new LogEntry($"Username changed due to SSO login to \"{username}\"", "Previous: " + user.UserName)
+                    {
+                        TargetUserId = user.Id,
+                    });
 
                 user.UserName = username;
 
@@ -858,9 +858,8 @@ public class LoginController : SSOLoginController
 
             user.Suspended = false;
 
-            await Database.LogEntries.AddAsync(new LogEntry
+            await Database.LogEntries.AddAsync(new LogEntry("User unsuspended automatically due to SSO login success")
             {
-                Message = "User unsuspended automatically due to SSO login success",
                 TargetUserId = user.Id,
             });
 

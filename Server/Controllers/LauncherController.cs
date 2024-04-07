@@ -77,9 +77,8 @@ public class LauncherController : Controller
             CachedUserGroups = user.AccessCachedGroupsOrThrow(),
         });
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"New launcher link created from: {remoteAddress}")
         {
-            Message = $"New launcher link created from: {remoteAddress}",
             PerformedById = user.Id,
         });
 
@@ -127,11 +126,11 @@ public class LauncherController : Controller
 
         database.LauncherLinks.Remove(link);
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Launcher disconnected through the launcher API from: {remoteAddress}",
-            TargetUserId = user.Id,
-        });
+        await database.LogEntries.AddAsync(
+            new LogEntry($"Launcher disconnected through the launcher API from: {remoteAddress}")
+            {
+                TargetUserId = user.Id,
+            });
 
         await database.SaveChangesAsync();
 

@@ -76,11 +76,11 @@ public class CISecretsController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"New secret \"{request.SecretName}\" created for project {project.Id}",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"New secret \"{request.SecretName}\" created for project {project.Id}")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.CiSecrets.AddAsync(new CiSecret
         {
@@ -116,11 +116,11 @@ public class CISecretsController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"Secret \"{item.SecretName}\" ({item.CiSecretId}) deleted from project {project.Id}",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"Secret \"{item.SecretName}\" ({item.CiSecretId}) deleted from project {project.Id}")
+            {
+                PerformedById = user.Id,
+            });
 
         database.CiSecrets.Remove(item);
 

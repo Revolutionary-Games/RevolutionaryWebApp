@@ -106,11 +106,8 @@ public class AssociationMemberController : Controller
 
         member.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Association member {member.Id} edited", description)
         {
-            Message = $"Association member {member.Id} edited",
-
-            // TODO: there could be an extra info property where the description is stored
             PerformedById = user.Id,
         });
 
@@ -144,9 +141,8 @@ public class AssociationMemberController : Controller
 
         database.AssociationMembers.Remove(member);
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"Association member {member.Id} ({member.Email}) deleted")
         {
-            Message = $"Association member {member.Id} ({member.Email}) deleted",
             PerformedById = user.Id,
         });
 
@@ -185,11 +181,10 @@ public class AssociationMemberController : Controller
         };
         await database.AssociationMembers.AddAsync(member);
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction(member.CurrentPresident ?
+            $"New association president {member.Email} created" :
+            $"New association member {member.Email} created")
         {
-            Message = member.CurrentPresident ?
-                $"New association president {member.Email} created" :
-                $"New association member {member.Email} created",
             PerformedById = user.Id,
         });
 

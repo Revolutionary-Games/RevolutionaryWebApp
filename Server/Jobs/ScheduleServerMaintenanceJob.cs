@@ -45,10 +45,9 @@ public class ScheduleServerMaintenanceJob : IJob
 
         serverToMaintain.WantsMaintenance = true;
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Scheduled controlled server {serverToMaintain.Id} for termination due to maintenance",
-        }, cancellationToken);
+        await database.LogEntries.AddAsync(
+            new LogEntry($"Scheduled controlled server {serverToMaintain.Id} for termination due to maintenance"),
+            cancellationToken);
 
         await database.SaveChangesAsync(cancellationToken);
     }
@@ -64,10 +63,8 @@ public class ScheduleServerMaintenanceJob : IJob
 
         serverToMaintain.WantsMaintenance = true;
 
-        await database.LogEntries.AddAsync(new LogEntry
-        {
-            Message = $"Scheduled external server {serverToMaintain.Id} for maintenance",
-        }, cancellationToken);
+        await database.LogEntries.AddAsync(
+            new LogEntry($"Scheduled external server {serverToMaintain.Id} for maintenance"), cancellationToken);
 
         await database.SaveChangesAsync(cancellationToken);
     }

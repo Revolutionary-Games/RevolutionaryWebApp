@@ -123,9 +123,8 @@ public class CLAController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"New CLA with active status: {newCla.Active} created")
         {
-            Message = $"New CLA with active status: {newCla.Active} created",
             PerformedById = user.Id,
         });
 
@@ -236,8 +235,7 @@ public class CLAController : Controller
 
         var data = await query.OrderBy(s => s.Id).Take(10).ToListAsync();
 
-        return data.Select(s => s.ToSearchResult(
-                s.Email == email || (allowEmailInResult && s.Email.Contains(email!)),
+        return data.Select(s => s.ToSearchResult(s.Email == email || (allowEmailInResult && s.Email.Contains(email!)),
                 s.GithubAccount == githubAccount ||
                 (allowGithubInResult && s.GithubAccount != null && s.GithubAccount.Contains(githubAccount!))))
             .ToList();
@@ -275,8 +273,7 @@ public class CLAController : Controller
     /// </returns>
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost("checkSignatures")]
-    public async Task<ActionResult<List<string>>> BulkCheckSignatures(
-        [Required] [FromBody] BulkCLACheckRequest request)
+    public async Task<ActionResult<List<string>>> BulkCheckSignatures([Required] [FromBody] BulkCLACheckRequest request)
     {
         var cla = await database.Clas.Where(c => c.Active).FirstOrDefaultAsync();
 
@@ -599,8 +596,7 @@ public class CLAController : Controller
                 s.DeveloperUsername == signature.DeveloperUsername &&
                 s.UserId == userId && s.ValidUntil == null) != null)
         {
-            return BadRequest(
-                "A CLA has already been signed with the details you provided. Signing it multiple " +
+            return BadRequest("A CLA has already been signed with the details you provided. Signing it multiple " +
                 "times is not required");
         }
 
@@ -630,12 +626,12 @@ public class CLAController : Controller
         // Prepare the final text
         var signedDocumentText = CreateSignedDocumentText(cla, signature, finalSignature, user);
 
+        // TODO: switch signing to require a devcenter account once anyone can register (and the type below to action)
         logger.LogInformation(
             "CLA ({Id1}) signature created with ID {Id2}, with email: {Email} from: {RemoteIpAddress}", cla.Id,
             finalSignature.Id, finalSignature.Email, HttpContext.Connection.RemoteIpAddress);
-        await database.LogEntries.AddAsync(new LogEntry
+        await database.LogEntries.AddAsync(new LogEntry($"New CLA signature for CLA ({cla.Id}) created")
         {
-            Message = $"New CLA signature for CLA ({cla.Id}) created",
             TargetUserId = finalSignature.UserId,
         });
 

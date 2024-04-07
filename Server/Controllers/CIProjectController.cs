@@ -74,12 +74,11 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
             return BadRequest("Project name or repository full name is already in-use");
         }
 
-        // TODO: could maybe save the project first in order to get the ID for the log message...
-        var action = new AdminAction
-        {
-            Message = $"New CI project created, repo: {project.RepositoryFullName}, name: {project.Name}",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id,
-        };
+        var action =
+            new AdminAction($"New CI project created, repo: {project.RepositoryFullName}, name: {project.Name}")
+            {
+                PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
+            };
 
         await database.CiProjects.AddAsync(project);
         await database.AdminActions.AddAsync(action);

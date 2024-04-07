@@ -41,9 +41,13 @@ public class PrecompiledObjectVersionController : Controller
     private readonly IBackgroundJobClient jobClient;
     private readonly IDataProtector dataProtector;
 
-    public PrecompiledObjectVersionController(ILogger<PrecompiledObjectVersionController> logger,
-        NotificationsEnabledDb database, IGeneralRemoteStorage remoteStorage, IGeneralRemoteDownloadUrls downloadUrls,
-        IBackgroundJobClient jobClient, IDataProtectionProvider dataProtectionProvider)
+    public PrecompiledObjectVersionController(
+        ILogger<PrecompiledObjectVersionController> logger,
+        NotificationsEnabledDb database,
+        IGeneralRemoteStorage remoteStorage,
+        IGeneralRemoteDownloadUrls downloadUrls,
+        IBackgroundJobClient jobClient,
+        IDataProtectionProvider dataProtectionProvider)
     {
         this.logger = logger;
         this.database = database;
@@ -54,9 +58,12 @@ public class PrecompiledObjectVersionController : Controller
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResult<PrecompiledObjectVersionDTO>>> Get([Required] long objectId,
-        [Required] string sortColumn, [Required] SortDirection sortDirection,
-        [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
+    public async Task<ActionResult<PagedResult<PrecompiledObjectVersionDTO>>> Get(
+        [Required] long objectId,
+        [Required] string sortColumn,
+        [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page,
+        [Required] [Range(1, 100)] int pageSize)
     {
         var precompiled = await TryGetVisiblePrecompiled(objectId);
 
@@ -78,14 +85,17 @@ public class PrecompiledObjectVersionController : Controller
 
         var objects = await query.ToPagedResultAsync(page, pageSize);
 
-        return objects.ConvertResult(i =>
-            i.GetDTO(HttpContext.HasAuthenticatedUserWithAccessLevelExtended(GroupType.RestrictedUser, null) ==
-                HttpContextAuthorizationExtensions.AuthenticationResult.Success));
+        return objects.ConvertResult(
+            i =>
+                i.GetDTO(
+                    HttpContext.HasAuthenticatedUserWithAccessLevelExtended(GroupType.RestrictedUser, null) ==
+                    HttpContextAuthorizationExtensions.AuthenticationResult.Success));
     }
 
     [HttpPost("offerVersion")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
-    public async Task<ActionResult> OfferVersion([Required] long objectId,
+    public async Task<ActionResult> OfferVersion(
+        [Required] long objectId,
         [Required] [FromBody] PrecompiledObjectVersionDTO request)
     {
         var validator = new RecursiveDataAnnotationValidator();
@@ -111,7 +121,8 @@ public class PrecompiledObjectVersionController : Controller
 
     [HttpPost("startUpload")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
-    public async Task<ActionResult<UploadRequestResponse>> StartUpload([Required] long objectId,
+    public async Task<ActionResult<UploadRequestResponse>> StartUpload(
+        [Required] long objectId,
         [Required] [FromBody] PrecompiledObjectVersionDTO request)
     {
         var validator = new RecursiveDataAnnotationValidator();
@@ -191,13 +202,18 @@ public class PrecompiledObjectVersionController : Controller
 
         logger.LogInformation(
             "New PrecompiledObject version ({Id}) {Version} for {Platform} (tags: {Tags}) created by {Email}",
-            precompiledVersion.OwnedById, precompiledVersion.Version, precompiledVersion.Platform,
-            precompiledVersion.Tags, user.Email);
+            precompiledVersion.OwnedById,
+            precompiledVersion.Version,
+            precompiledVersion.Platform,
+            precompiledVersion.Tags,
+            user.Email);
 
         // Create a version to upload to
         var version = await precompiledVersion.StoredInItem.CreateNextVersion(database, user);
 
-        var file = await version.CreateStorageFile(database, DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime,
+        var file = await version.CreateStorageFile(
+            database,
+            DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime,
             request.Size);
 
         if (request.Size != file.Size)
@@ -205,20 +221,34 @@ public class PrecompiledObjectVersionController : Controller
 
         await database.SaveChangesAsync();
 
-        logger.LogInformation("Upload of PrecompiledObject {StorageName} starting from {RemoteIpAddress}",
-            precompiledVersion.StorageFileName, HttpContext.Connection.RemoteIpAddress);
+        logger.LogInformation(
+            "Upload of PrecompiledObject {StorageName} starting from {RemoteIpAddress}",
+            precompiledVersion.StorageFileName,
+            HttpContext.Connection.RemoteIpAddress);
 
         jobClient.Schedule<DeletePrecompiledObjectVersionIfUploadFailed>(
-            x => x.Execute(precompiledVersion.OwnedById, precompiledVersion.Version, precompiledVersion.Platform,
-                precompiledVersion.Tags, CancellationToken.None),
+            x => x.Execute(
+                precompiledVersion.OwnedById,
+                precompiledVersion.Version,
+                precompiledVersion.Platform,
+                precompiledVersion.Tags,
+                CancellationToken.None),
             AppInfo.RemoteStorageUploadExpireTime * 2);
 
         return new UploadRequestResponse
         {
-            UploadUrl = remoteStorage.CreatePresignedUploadURL(file.UploadPath,
+            UploadUrl = remoteStorage.CreatePresignedUploadURL(
+                file.UploadPath,
                 AppInfo.RemoteStorageUploadExpireTime),
-            VerifyToken = new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
-                file.Size.Value, file.Id, null, null, null)
+            VerifyToken = new StorageUploadVerifyToken(
+                dataProtector,
+                file.UploadPath,
+                file.StoragePath,
+                file.Size.Value,
+                file.Id,
+                null,
+                null,
+                null)
             {
                 // Version is last here to make sure version having ':' can't break the parsing
                 ExtraDataStore =
@@ -283,8 +313,11 @@ public class PrecompiledObjectVersionController : Controller
     }
 
     [HttpGet("{version}/{platform:int}/{tags:int}")]
-    public async Task<IActionResult> DownloadVersion([Required] long objectId,
-        [Required] string version, [Required] int platform, [Required] int tags)
+    public async Task<IActionResult> DownloadVersion(
+        [Required] long objectId,
+        [Required] string version,
+        [Required] int platform,
+        [Required] int tags)
     {
         if (version.Length > 200)
             return BadRequest("Too long version provided");
@@ -298,8 +331,11 @@ public class PrecompiledObjectVersionController : Controller
     }
 
     [HttpGet("{version}/{platform:int}/{tags:int}/link")]
-    public async Task<IActionResult> GetDownloadUrl([Required] long objectId,
-        [Required] string version, [Required] int platform, [Required] int tags)
+    public async Task<IActionResult> GetDownloadUrl(
+        [Required] long objectId,
+        [Required] string version,
+        [Required] int platform,
+        [Required] int tags)
     {
         if (version.Length > 200)
             return BadRequest("Too long version provided");
@@ -314,8 +350,11 @@ public class PrecompiledObjectVersionController : Controller
 
     [HttpGet("{version}/{platform:int}/{tags:int}/info")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<ActionResult<PrecompiledObjectVersionDTO>> GetSingle([Required] long objectId,
-        [Required] string version, [Required] int platform, [Required] int tags)
+    public async Task<ActionResult<PrecompiledObjectVersionDTO>> GetSingle(
+        [Required] long objectId,
+        [Required] string version,
+        [Required] int platform,
+        [Required] int tags)
     {
         if (version.Length > 200)
             return BadRequest("Too long version provided");
@@ -326,7 +365,10 @@ public class PrecompiledObjectVersionController : Controller
             return NotFound();
 
         var objectVersion = await database.PrecompiledObjectVersions.FindAsync(
-            precompiled.Id, version, (PackagePlatform)platform, (PrecompiledTag)tags);
+            precompiled.Id,
+            version,
+            (PackagePlatform)platform,
+            (PrecompiledTag)tags);
 
         if (objectVersion == null)
             return NotFound("No such version");
@@ -337,8 +379,11 @@ public class PrecompiledObjectVersionController : Controller
 
     [HttpDelete("{version}/{platform:int}/{tags:int}")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
-    public async Task<IActionResult> DeleteVersion([Required] long objectId,
-        [Required] string version, [Required] int platform, [Required] int tags)
+    public async Task<IActionResult> DeleteVersion(
+        [Required] long objectId,
+        [Required] string version,
+        [Required] int platform,
+        [Required] int tags)
     {
         if (version.Length > 200)
             return BadRequest("Too long version provided");
@@ -374,17 +419,19 @@ public class PrecompiledObjectVersionController : Controller
             extra = " (was deleted while still uploading)";
         }
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"PrecompiledObjectVersion {objectVersion.StorageFileName} deleted{extra}",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"PrecompiledObjectVersion {objectVersion.StorageFileName} deleted{extra}")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
         DeletePrecompiledObjectVersionIfUploadFailed.DeletePrecompiledObjectVersion(objectVersion, jobClient);
 
-        logger.LogInformation("PrecompiledObjectVersion {Identifier} deleted by {Email}", objectVersion.StorageFileName,
+        logger.LogInformation(
+            "PrecompiledObjectVersion {Identifier} deleted by {Email}",
+            objectVersion.StorageFileName,
             user.Email);
 
         return Ok("Object will be deleted in a few minutes");
@@ -411,13 +458,17 @@ public class PrecompiledObjectVersionController : Controller
     [NonAction]
     private Task<bool> CheckIfVersionAlreadyExists(PrecompiledObject precompiled, PrecompiledObjectVersionDTO request)
     {
-        return database.PrecompiledObjectVersions.AnyAsync(v =>
-            v.OwnedById == precompiled.Id && v.Version == request.Version && v.Platform == request.Platform &&
-            v.Tags == request.Tags);
+        return database.PrecompiledObjectVersions.AnyAsync(
+            v =>
+                v.OwnedById == precompiled.Id && v.Version == request.Version && v.Platform == request.Platform &&
+                v.Tags == request.Tags);
     }
 
     [NonAction]
-    private async Task<PrecompiledObjectVersion?> GetVersionForDownload(long objectId, string version, int platform,
+    private async Task<PrecompiledObjectVersion?> GetVersionForDownload(
+        long objectId,
+        string version,
+        int platform,
         int tags)
     {
         if (!remoteStorage.Configured)

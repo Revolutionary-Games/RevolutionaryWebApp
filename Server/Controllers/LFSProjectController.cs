@@ -105,11 +105,11 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"LFS project file tree refresh requested for {item.Id}",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"LFS project file tree refresh requested for {item.Id}")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -135,9 +135,8 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
 
         await database.Database.BeginTransactionAsync();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"LFS project file tree rebuilt for {item.Id}")
         {
-            Message = $"LFS project file tree rebuilt for {item.Id}",
             PerformedById = user.Id,
         });
 
@@ -177,11 +176,8 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
 
         item.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"LFS Project {item.Id} edited", description)
         {
-            Message = $"LFS Project {item.Id} edited",
-
-            // TODO: there could be an extra info property where the description is stored
             PerformedById = user.Id,
         });
 
@@ -227,10 +223,9 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
         }
 
         // TODO: could maybe save the project first in order to get the ID for the log message...
-        var action = new AdminAction
+        var action = new AdminAction($"New LFS project created, slug: {project.Slug}, name: {project.Name}")
         {
-            Message = $"New LFS project created, slug: {project.Slug}, name: {project.Name}",
-            PerformedById = HttpContext.AuthenticatedUser()!.Id,
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
         };
 
         await database.LfsProjects.AddAsync(project);

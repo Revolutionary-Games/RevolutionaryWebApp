@@ -120,9 +120,8 @@ public class BulkEmailController : Controller
             return Problem("The number of sent bulk emails changed while processing, please try again");
         }
 
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction($"A bulk email was sent to {bulkModel.Recipients} people")
         {
-            Message = $"A bulk email was sent to {bulkModel.Recipients} people",
             PerformedById = user.Id,
         });
 

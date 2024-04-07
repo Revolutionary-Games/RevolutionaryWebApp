@@ -73,10 +73,7 @@ public class DeleteOldCIBuildsJob : IJob
         {
             // Don't want to cancel here so that we can preserve the count of things we deleted
             // ReSharper disable MethodSupportsCancellation
-            await database.LogEntries.AddAsync(new LogEntry
-            {
-                Message = $"Deleted {deleted} old CI builds",
-            });
+            await database.LogEntries.AddAsync(new LogEntry($"Deleted {deleted} old CI builds"));
 
             await database.SaveChangesAsync();
 

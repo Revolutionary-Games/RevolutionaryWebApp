@@ -180,9 +180,8 @@ public class DevBuildsController : Controller
         if (!didSomething)
             return Ok("Nothing needed to be marked as verified");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"Build {id} marked verified")
         {
-            Message = $"Build {id} marked verified",
             PerformedById = user.Id,
         });
 
@@ -231,9 +230,8 @@ public class DevBuildsController : Controller
         if (!didSomething)
             return Ok("Nothing needed to be unverified");
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"Verification removed from build {id}")
         {
-            Message = $"Verification removed from build {id}",
             PerformedById = user.Id,
         });
 
@@ -253,6 +251,7 @@ public class DevBuildsController : Controller
             return NotFound();
 
         bool changes = false;
+        var previousDescription = build.Description;
 
         if (build.Description != request.Description)
         {
@@ -267,11 +266,11 @@ public class DevBuildsController : Controller
 
         var user = HttpContext.AuthenticatedUser()!;
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"Build {id} info modified",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"Build {id} info modified", "Previous description: " + previousDescription)
+            {
+                PerformedById = user.Id,
+            });
 
         logger.LogInformation("DevBuild {Id} was modified by {Email}", build.Id, user.Email);
 
@@ -327,11 +326,11 @@ public class DevBuildsController : Controller
         build.Important = true;
         build.Keep = true;
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
-        {
-            Message = $"Build {build.Id} along with siblings is now the BOTD",
-            PerformedById = user.Id,
-        });
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"Build {build.Id} along with siblings is now the BOTD")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
         logger.LogInformation("BOTD updated");
@@ -350,9 +349,8 @@ public class DevBuildsController : Controller
         await RemoveAllBOTDStatuses();
 
         var user = HttpContext.AuthenticatedUser()!;
-        await database.AdminActions.AddAsync(new AdminAction
+        await database.AdminActions.AddAsync(new AdminAction("BOTD unset")
         {
-            Message = "BOTD unset",
             PerformedById = user.Id,
         });
 
@@ -391,9 +389,8 @@ public class DevBuildsController : Controller
         build.Keep = true;
         build.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"Build {build.Id} is now set as kept")
         {
-            Message = $"Build {build.Id} is now set as kept",
             PerformedById = user.Id,
         });
 
@@ -437,11 +434,11 @@ public class DevBuildsController : Controller
 
         if (build.Important)
         {
-            await database.AdminActions.AddAsync(new AdminAction
-            {
-                Message = $"Build {build.Id} is no longer set as important (due to unmark keep)",
-                PerformedById = user.Id,
-            });
+            await database.AdminActions.AddAsync(
+                new AdminAction($"Build {build.Id} is no longer set as important (due to unmark keep)")
+                {
+                    PerformedById = user.Id,
+                });
 
             build.Important = false;
         }
@@ -449,9 +446,8 @@ public class DevBuildsController : Controller
         build.Keep = false;
         build.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry($"Build {build.Id} is no longer kept")
         {
-            Message = $"Build {build.Id} is no longer kept",
             PerformedById = user.Id,
         });
 

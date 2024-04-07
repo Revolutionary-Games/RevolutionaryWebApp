@@ -29,23 +29,20 @@ public sealed class DeleteOldServerLogsJobTests : IClassFixture<RealUnitTestData
         var database = fixture.Database;
         await using var transaction = await database.Database.BeginTransactionAsync();
 
-        var log1 = new LogEntry
+        var log1 = new LogEntry("Log message 1")
         {
-            Message = "Log message 1",
             CreatedAt = DateTime.UtcNow - TimeSpan.FromSeconds(30),
         };
         await database.LogEntries.AddAsync(log1);
 
-        var log2 = new LogEntry
+        var log2 = new LogEntry("Log message 2")
         {
-            Message = "Log message 2",
             CreatedAt = DateTime.UtcNow - TimeSpan.FromDays(10),
         };
         await database.LogEntries.AddAsync(log2);
 
-        var log3 = new LogEntry
+        var log3 = new LogEntry("Log message 3")
         {
-            Message = "Log message 3",
             CreatedAt = DateTime.UtcNow - AppInfo.DeleteServerLogsAfter - TimeSpan.FromSeconds(30),
         };
         await database.LogEntries.AddAsync(log3);

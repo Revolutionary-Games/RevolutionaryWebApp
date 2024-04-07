@@ -65,13 +65,11 @@ public class PrecompiledObjectController : BaseSoftDeletedResourceController<Pre
 
         precompiledObject.BumpUpdatedAt();
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"PrecompiledObject {precompiledObject.Id} edited",
-
-            // TODO: there could be an extra info property where the description is stored
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"PrecompiledObject {precompiledObject.Id} edited", description)
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
@@ -138,11 +136,11 @@ public class PrecompiledObjectController : BaseSoftDeletedResourceController<Pre
 
         await Entities.AddAsync(precompiledObject);
 
-        await database.AdminActions.AddAsync(new AdminAction
-        {
-            Message = $"New PrecompiledObject created with name \"{precompiledObject.Name}\"",
-            PerformedById = user.Id,
-        });
+        await database.AdminActions.AddAsync(
+            new AdminAction($"New PrecompiledObject created with name \"{precompiledObject.Name}\"")
+            {
+                PerformedById = user.Id,
+            });
 
         await database.SaveChangesAsync();
 
