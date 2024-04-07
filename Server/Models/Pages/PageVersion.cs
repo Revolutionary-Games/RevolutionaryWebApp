@@ -1,10 +1,12 @@
 namespace RevolutionaryWebApp.Server.Models.Pages;
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using SharedBase.Utilities;
+using Utilities;
 
 /// <summary>
 ///   A historical version of a page. Latest page content is in <see cref="VersionedPage.LatestContent"/> and that
@@ -40,11 +42,18 @@ public class PageVersion : ISoftDeletable
     public bool Deleted { get; set; }
 
     /// <summary>
-    ///   A reverse diff to go from the newer version of the page to this version of the page
+    ///   A reverse diff to go from the newer version of the page to this version of the page. Gives a bit of room
+    ///   on top of the page content length for JSON formatting
     /// </summary>
-    [StringLength(AppInfo.MaxPageLength + GlobalConstants.KIBIBYTE)]
+    [StringLength(AppInfo.MaxPageLength + GlobalConstants.KIBIBYTE * 32)]
     public string ReverseDiff { get; set; }
 
     public User? EditedBy { get; set; }
     public long? EditedById { get; set; }
+
+    public DiffData DecodeDiffData()
+    {
+        return JsonSerializer.Deserialize<DiffData>(ReverseDiff,
+            new JsonSerializerOptions(JsonSerializerDefaults.General)) ?? throw new NullDecodedJsonException();
+    }
 }

@@ -34,7 +34,7 @@
                         OnSortChanged="async column => await ChangeSort(column)"
                         GetSortClass="@SortClass"
                         ShowContentSpinner="@VisibleFetchInProgress"
-                        Columns="@columns"
+                        Columns="@columns" UseNonFixedColumns="@true"
                         ShowNoContent="@NoItemsFound">
             @if (Data != null)
             {
@@ -106,45 +106,20 @@
         {
             <form>
                 <div class="row">
-                    <div class="mb-3 col-md-6">
-                        <label class="form-label" for="newCIProjectName">Project Name</label>
-                        <input type="text" class="form-control" id="newCIProjectName" @bind="newName"
+                    <div class="mb-3 col-md-12">
+                        <label class="form-label" for="newPageTitle">Page Title</label>
+                        <input type="text" class="form-control" id="newPageTitle" @bind="newTitle"
                                @bind:event="oninput">
-                    </div>
-                    <div class="mb-3 col-md-6">
-                        <label class="form-label" for="newCIFullRepoName">Full Repository Name</label>
-                        <input type="text" class="form-control" id="newCIFullRepoName" @bind="newFullRepoName"
-                               placeholder="Owner/RepoName">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="mb-3 col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="newCIProjectPublic" @bind="newPublic">
-                            <label class="form-check-label" for="newCIProjectPublic">Visible to non-developers?</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="mb-3 col-12">
-                        <label class="form-label" for="newCIProjectCloneURL">Clone URL</label>
-                        <input type="text" class="form-control" id="newCIProjectCloneURL" @bind="newCloneURL">
                     </div>
                 </div>
 
+                @* TODO: templates *@
                 <div class="row">
-                    <div class="mb-3 col-md-6">
-                        <label class="form-label me-1" for="newCIProjectType">Type</label>
-                        <select class="form-select" id="newCIProjectType" @bind="newProjectType">
-                            @foreach (var name in Enum.GetNames<CIProjectType>())
-                            {
-                                <option value="@name">@name</option>
-                            }
+                    <div class="mb-3 col-md-12">
+                        <label class="form-label me-1" for="newPageTemplate">Template</label>
+                        <select class="form-select" id="newPageTemplate" @bind="newTemplate">
+                            <option value="@null">None</option>
                         </select>
-                    </div>
-                    <div class="mb-3 col-md-6">
-                        <label class="form-label" for="newCIProjectDefaultBranch">Default Branch Name</label>
-                        <input type="text" class="form-control" id="newCIProjectDefaultBranch" @bind="newDefaultBranch">
                     </div>
                 </div>
 
@@ -155,8 +130,8 @@
             </form>
         }
 
-        <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/CIProject?deleted=true"
-                               RestoreEndpoint="api/v1/CIProject/{0}/restore" />
+        <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/Pages?deleted=true"
+                               RestoreEndpoint="api/v1/Pages/{0}/restore" />
 
     </AccessLimited>
 
@@ -165,7 +140,7 @@
 
 @code {
 
-private readonly List<TableColumn> columns = new()
+    private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Title", true),
         new TableColumn("Live Link", false),
@@ -177,20 +152,20 @@ private readonly List<TableColumn> columns = new()
         new TableColumn("CreatedBy", false),
     };
 
+    // TODO: template parameter setting
+    // private readonly Dictionary<string, string> templateParameters = new();
+
+    // private List<VersionedPageTemplateInfo>? loadedTemplates;
+
     private string? createMessage;
     private SiteNoticeType createMessageType;
 
-    // TODO: fix
     private bool showNewForm;
     private bool processingNewForm;
-    private string? newName;
-    private string? newFullRepoName;
-    private bool newPublic;
-    private string? newCloneURL;
-    private CIProjectType newProjectType;
-    private string? newDefaultBranch;
+    private long? newTemplate;
+    private string? newTitle;
 
-    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newName);
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newTitle);
 
     public Pages() : base(new SortHelper("UpdatedAt", SortDirection.Descending))
     {
@@ -239,7 +214,6 @@ private readonly List<TableColumn> columns = new()
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
-    // TODO: fix
     private void ToggleCreateNew()
     {
         if (showNewForm)
@@ -252,12 +226,10 @@ private readonly List<TableColumn> columns = new()
             createMessage = null;
 
             // Reset form status
-            newName = null;
-            newFullRepoName = null;
-            newPublic = true;
-            newCloneURL = null;
-            newProjectType = CIProjectType.Github;
-            newDefaultBranch = "master";
+            newTitle = null;
+            newTemplate = null;
+
+            // templateParameters.Clear();
         }
 
         StateHasChanged();
@@ -267,9 +239,9 @@ private readonly List<TableColumn> columns = new()
     {
         createMessageType = SiteNoticeType.Danger;
 
-        if (newFullRepoName == null || newCloneURL == null || newDefaultBranch == null)
+        if (newTitle == null)
         {
-            createMessage = "Full repo name, clone URL, and default branch are required";
+            createMessage = "Missing title";
             await InvokeAsync(StateHasChanged);
             return;
         }
@@ -282,14 +254,13 @@ private readonly List<TableColumn> columns = new()
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/Pages", new CIProjectDTO
+            result = await Http.PostAsJsonAsync("api/v1/Pages", new VersionedPageDTO
             {
-                Name = newName!,
-                RepositoryFullName = newFullRepoName,
-                Public = newPublic,
-                RepositoryCloneUrl = newCloneURL,
-                ProjectType = newProjectType,
-                DefaultBranch = newDefaultBranch,
+                Title = newTitle,
+                Visibility = PageVisibility.HiddenDraft,
+                LatestContent = "(new)",
+                LastEditComment = "Initial page version",
+                VersionNumber = 1,
             });
         }
         catch (HttpRequestException e)
@@ -302,22 +273,39 @@ private readonly List<TableColumn> columns = new()
 
         processingNewForm = false;
 
+        var content = await result.Content.ReadAsStringAsync();
+
         if (!result.IsSuccessStatusCode)
         {
-            var content = await result.Content.ReadAsStringAsync();
-
             createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+
+            await InvokeAsync(StateHasChanged);
         }
         else
         {
-            createMessage = "New CI project created";
-            createMessageType = SiteNoticeType.Info;
-
-            // Stop showing the form
+            createMessage = "New page created. Will switch to editing it in 5 seconds";
             showNewForm = false;
-        }
 
-        await InvokeAsync(StateHasChanged);
+            long newPageId;
+
+            try
+            {
+                newPageId = long.Parse(content);
+            }
+            catch (Exception e)
+            {
+                createMessage = "New page created, but could not detect the ID of the new page: " + e.Message;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            createMessageType = SiteNoticeType.Success;
+
+            await InvokeAsync(StateHasChanged);
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            NavManager.NavigateTo($"/pages/{newPageId}");
+        }
     }
 
 }

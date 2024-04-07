@@ -7,10 +7,12 @@ using DevCenterCommunication.Models;
 public class VersionedPageDTO : ClientSideTimedModel
 {
     [Required]
+    [StringLength(AppInfo.MaxPageTitleLength, MinimumLength = 2)]
     public string Title { get; set; } = null!;
 
     public PageVisibility Visibility { get; set; }
 
+    [MaxLength(AppInfo.MaxPagePermalinkLength)]
     public string? Permalink { get; set; }
 
     public DateTime? PublishedAt { get; set; }

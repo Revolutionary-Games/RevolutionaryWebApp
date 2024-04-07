@@ -60,7 +60,11 @@ public static class AppInfo
 
     public const int MaxDiscordMessageLength = 2000;
 
+    public const int MaxPageTitleLength = 120;
+    public const int MaxPagePermalinkLength = 80;
     public const int MaxPageLength = GlobalConstants.MEBIBYTE * 2;
+
+    public const int MaxLogEntryExtraInfoLength = GlobalConstants.MEBIBYTE;
 
     public const int MaxPageEditCommentLength = GlobalConstants.KIBIBYTE;
 

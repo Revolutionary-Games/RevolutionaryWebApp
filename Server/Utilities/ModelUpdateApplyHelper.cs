@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using SharedBase.Utilities;
 
 public static class ModelUpdateApplyHelper
 {
@@ -39,8 +40,7 @@ public static class ModelUpdateApplyHelper
 
             if (requestProperty == null)
             {
-                throw new Exception(
-                    $"Invalid property ({requestName}) specified that doesn't exist in request model");
+                throw new Exception($"Invalid property ({requestName}) specified that doesn't exist in request model");
             }
 
             var oldValue = property.GetValue(model);
@@ -67,9 +67,9 @@ public static class ModelUpdateApplyHelper
             stringBuilder.Append("changed \"");
             stringBuilder.Append(property.Name);
             stringBuilder.Append("\" from: ");
-            stringBuilder.Append(ToUserReadableString(oldValue));
+            stringBuilder.Append(ToUserReadableString(oldValue, attribute.MaxLengthWhenDisplayingChanges));
             stringBuilder.Append(" to new value: ");
-            stringBuilder.Append(ToUserReadableString(newValue));
+            stringBuilder.Append(ToUserReadableString(newValue, attribute.MaxLengthWhenDisplayingChanges));
 
             changes = true;
 
@@ -104,7 +104,7 @@ public static class ModelUpdateApplyHelper
         return (true, stringBuilder.ToString(), changedFields);
     }
 
-    private static string ToUserReadableString(object? value)
+    private static string ToUserReadableString(object? value, int maxLength)
     {
         if (value == null)
             return "null";
@@ -115,6 +115,6 @@ public static class ModelUpdateApplyHelper
             return dateOnly.ToString("o");
         }
 
-        return JsonSerializer.Serialize(value);
+        return JsonSerializer.Serialize(value).Truncate(maxLength);
     }
 }

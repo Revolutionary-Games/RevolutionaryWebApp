@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;
+using SharedBase.Utilities;
 
 /// <summary>
 ///   A logged user performed action
@@ -12,8 +13,25 @@ using Shared.Models;
 [Index(nameof(PerformedById))]
 public class ActionLogEntry : BaseModel
 {
+    public ActionLogEntry(string message)
+    {
+        Message = message;
+    }
+
+    public ActionLogEntry(string message, string? extendedDescription) : this(message)
+    {
+        if (extendedDescription != null)
+            Extended = extendedDescription.Truncate(AppInfo.MaxLogEntryExtraInfoLength);
+    }
+
     [Required]
-    public string Message { get; set; } = string.Empty;
+    public string Message { get; set; }
+
+    /// <summary>
+    ///   Extended description of the message, not shown by default
+    /// </summary>
+    [MaxLength(AppInfo.MaxLogEntryExtraInfoLength)]
+    public string? Extended { get; set; }
 
     [AllowSortingBy]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

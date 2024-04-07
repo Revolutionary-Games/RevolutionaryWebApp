@@ -9,6 +9,8 @@ public class UpdateFromClientRequestAttribute : Attribute
     ///   If not null, overrides the property where an update is looked for
     /// </summary>
     public string? RequestPropertyName { get; set; }
+
+    public int MaxLengthWhenDisplayingChanges { get; set; } = 1000;
 }
 
 /// <summary>

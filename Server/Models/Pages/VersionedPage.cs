@@ -5,10 +5,12 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using Hangfire;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models.Pages;
+using Utilities;
 
 /// <summary>
 ///   Main model for all web pages, news posts etc.
@@ -22,29 +24,36 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
         Title = title;
     }
 
-    [StringLength(120)]
+    [StringLength(AppInfo.MaxPageTitleLength)]
     [AllowSortingBy]
+    [UpdateFromClientRequest]
     public string Title { get; set; }
 
     [StringLength(AppInfo.MaxPageLength)]
+    [UpdateFromClientRequest(MaxLengthWhenDisplayingChanges = 100)]
     public string LatestContent { get; set; } = string.Empty;
 
     // TODO: should this be here or in redis?
     // public string? CookedContent { get; set; }
 
+    [UpdateFromClientRequest]
     public PageVisibility Visibility { get; set; } = PageVisibility.HiddenDraft;
 
+    // TODO: should this be able to change?
     public PageType Type { get; set; }
 
     /// <summary>
     ///   All pages must have an internal name they are accessed at with URLs
     /// </summary>
+    [MaxLength(AppInfo.MaxPagePermalinkLength)]
+    [UpdateFromClientRequest]
     public string? Permalink { get; set; }
 
     [AllowSortingBy]
     public DateTime? PublishedAt { get; set; }
 
     [MaxLength(AppInfo.MaxPageEditCommentLength)]
+    [UpdateFromClientRequest]
     public string? LastEditComment { get; set; }
 
     public bool Deleted { get; set; }
@@ -88,5 +97,14 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
 
         // Current page version is always one higher than the previous one
         return previousVersionNumber + 1;
+    }
+
+    /// <summary>
+    ///   Must be called when this is edited. Clears all caches.
+    /// </summary>
+    public void OnEdited(IBackgroundJobClient jobClient)
+    {
+        // TODO: implement cache clearing
+        _ = jobClient;
     }
 }
