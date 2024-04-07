@@ -118,7 +118,9 @@
                     <div class="mb-3 col-md-12">
                         <label class="form-label me-1" for="newPageTemplate">Template</label>
                         <select class="form-select" id="newPageTemplate" @bind="newTemplate">
-                            <option value="@null">None</option>
+                            @* This is mandatory for the razor compiler to not error out *@
+                            @* ReSharper disable once RedundantCast *@
+                            <option value="@((long?)null)">None</option>
                         </select>
                     </div>
                 </div>
