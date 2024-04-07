@@ -64,7 +64,7 @@
         if (newData.Deleted)
         {
             OnDeleted();
-            return false;
+            return true;
         }
 
         return base.OnUpdateNotificationReceived(newData);

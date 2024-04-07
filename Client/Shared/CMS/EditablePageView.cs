@@ -40,9 +40,15 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
     protected override bool OnUpdateNotificationReceived(VersionedPageDTO newData)
     {
-        versionConflict = true;
-        StateHasChanged();
-        return false;
+        if (Data != null && Data.LatestContent != newData.LatestContent)
+        {
+            // Let the user know that some bad stuff is going to happen if they keep editing
+            versionConflict = true;
+            StateHasChanged();
+        }
+
+        // Allow the data to change (the main body editor is made so that it doesn't lose the changes)
+        return true;
     }
 
     protected void SuppressEditWarning()
