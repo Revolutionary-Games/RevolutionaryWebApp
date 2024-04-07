@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Shared.Notifications;
 
 using DevCenterCommunication.Models;
 using Models;
+using Models.Pages;
 
 /// <summary>
 ///   Notification about a single model page information being updated
@@ -108,5 +109,9 @@ public class LauncherThriveVersionDownloadUpdated : ModelUpdated<LauncherThriveV
 }
 
 public class PrecompiledObjectUpdated : ModelUpdated<PrecompiledObjectDTO>
+{
+}
+
+public class VersionedPageUpdated : ModelUpdated<VersionedPageDTO>
 {
 }

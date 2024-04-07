@@ -10,6 +10,7 @@ using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models.Pages;
+using Shared.Notifications;
 using Utilities;
 
 /// <summary>
@@ -17,7 +18,7 @@ using Utilities;
 /// </summary>
 [Index(nameof(Permalink), IsUnique = true)]
 [Index(nameof(Title), IsUnique = true)]
-public class VersionedPage : UpdateableModel, ISoftDeletable
+public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotifications
 {
     public VersionedPage(string title)
     {
@@ -70,9 +71,26 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
 
     // TODO: implement
     // public static string PermalinkFromTitle()
+
+    public VersionedPageInfo GetInfo()
+    {
+        return new VersionedPageInfo
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            CreatorId = CreatorId,
+            LastEditorId = LastEditorId,
+            Permalink = Permalink,
+            PublishedAt = PublishedAt,
+            Title = Title,
+            Visibility = Visibility,
+        };
+    }
+
     public VersionedPageDTO GetDTO(int currentVersion)
     {
-        return new()
+        return new VersionedPageDTO
         {
             Id = Id,
             CreatedAt = CreatedAt,
@@ -86,6 +104,8 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
             VersionNumber = currentVersion,
             CreatorId = CreatorId,
             LastEditorId = LastEditorId,
+            Type = Type,
+            Deleted = Deleted,
         };
     }
 
@@ -106,5 +126,41 @@ public class VersionedPage : UpdateableModel, ISoftDeletable
     {
         // TODO: implement cache clearing
         _ = jobClient;
+    }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        string singleGroup;
+        string prefix;
+
+        switch (Type)
+        {
+            case PageType.Template:
+                singleGroup = NotificationGroups.PageTemplateListUpdated;
+                prefix = NotificationGroups.PageTemplateUpdatedPrefix;
+                break;
+            case PageType.NormalPage:
+                singleGroup = NotificationGroups.PageListUpdated;
+                prefix = NotificationGroups.PageUpdatedPrefix;
+                break;
+            case PageType.Post:
+                singleGroup = NotificationGroups.PostListUpdated;
+                prefix = NotificationGroups.PostUpdatedPrefix;
+                break;
+            case PageType.WikiPage:
+                singleGroup = NotificationGroups.WikiPageListUpdated;
+                prefix = NotificationGroups.WikiPageUpdatedPrefix;
+                break;
+
+            default:
+                yield break;
+        }
+
+        yield return new Tuple<SerializedNotification, string>(
+            new PageListUpdated { Type = entityState.ToChangeType(), Item = GetInfo() },
+            singleGroup);
+
+        yield return new Tuple<SerializedNotification, string>(new VersionedPageUpdated { Item = GetDTO(-1) },
+            prefix + Id);
     }
 }

@@ -1,0 +1,62 @@
+@page "/pages/{Id:long}"
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inherits RevolutionaryWebApp.Client.Shared.CMS.EditablePageView
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Models.Pages
+@implements IAsyncDisposable
+
+<AccessLimited RequiredAccess="GroupType.SitePageEditor" OrHasOverride="GroupType.Admin">
+    <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+        @if (Data != null)
+        {
+            <PageTitleAndDetails Data="@Data" TypeName="Page"/>
+
+            <ResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Title" Id="@Data.Id"
+                                   DeleteURLBase="api/v1/Page"
+                                   DeletePromptTitle="Delete this page?" />
+
+            @if(true){
+                EditConflictNotice(__builder);
+            }
+
+            @if (Data.Visibility != PageVisibility.HiddenDraft)
+            {
+                <AccessLimited RequiredAccess="GroupType.SiteLayoutPublisher" OrHasOverride="GroupType.Admin">
+                    <AccessMissingContent>
+                        <StatusMessageShower Message="You may not have permission to edit this non-draft page"/>
+                    </AccessMissingContent>
+                </AccessLimited>
+            }
+
+            <PagePropertiesEditor Data="@Data"/>
+
+            <PageEditorWithPreview Data="@Data"/>
+
+            <DevCenterTitle>Edit Page @Id</DevCenterTitle>
+        }
+    </SingleResourceDisplayer>
+
+
+</AccessLimited>
+
+@code {
+
+    protected override PageType EditedPageType => PageType.NormalPage;
+
+    protected override Task<VersionedPageDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<VersionedPageDTO>($"api/v1/Pages/{Id}");
+    }
+
+    protected override Task OnFirstDataReceived()
+    {
+        return NotificationHandler.Register(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
+    }
+}

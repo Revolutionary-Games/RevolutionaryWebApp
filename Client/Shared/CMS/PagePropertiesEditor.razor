@@ -1,0 +1,10 @@
+@using RevolutionaryWebApp.Shared.Models.Pages
+<h3>PagePropertiesEditor</h3>
+
+@code {
+
+    [Parameter]
+    [EditorRequired]
+    public VersionedPageDTO Data { get; set; } = null!;
+
+}

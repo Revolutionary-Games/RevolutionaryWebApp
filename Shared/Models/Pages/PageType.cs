@@ -1,4 +1,4 @@
-namespace RevolutionaryWebApp.Server.Models.Pages;
+namespace RevolutionaryWebApp.Shared.Models.Pages;
 
 public enum PageType
 {

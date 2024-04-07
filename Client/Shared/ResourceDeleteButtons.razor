@@ -1,0 +1,190 @@
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inject HttpClient Http
+
+@if (UseErrorDisplay)
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"/>
+}
+
+@if (!Deleted)
+{
+    <Button class="@ClassContent" ButtonStyle="danger" OnPressed="@AskDeleteConfirm"
+            Enabled="@(!processing)" Spinner="@processing">
+        Delete
+    </Button>
+}
+else if (UsesSoftDelete)
+{
+    <Button class="@ClassContent" ButtonStyle="success" OnPressed="@PerformRestore"
+            Enabled="@(!processing)" Spinner="@processing">
+        Restore
+    </Button>
+}
+
+@code {
+
+    private bool processing;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public bool Deleted { get; set; }
+
+    [Parameter]
+    public bool UsesSoftDelete { get; set; } = true;
+
+    [Parameter]
+    [EditorRequired]
+    public string Name { get; set; } = null!;
+
+    [Parameter]
+    public long Id { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public string DeleteURLBase { get; set; } = null!;
+
+    /// <summary>
+    ///   Base URL part to restore with, if not specified defaults to also be the DeleteURLBase/id/restore
+    /// </summary>
+    [Parameter]
+    public string? RestoreURLBase { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public string DeletePromptTitle { get; set; } = null!;
+
+    /// <summary>
+    ///   Custom button class content to replace the default with bottom margin
+    /// </summary>
+    [Parameter]
+    public string? ButtonClass { get; set; }
+
+    [Parameter]
+    public EventCallback OnDeleted { get; set; }
+
+    [Parameter]
+    public EventCallback OnRestored { get; set; }
+
+    [Parameter]
+    public Action<string?, SiteNoticeType>? CustomErrorDisplay { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    private bool UseErrorDisplay => CustomErrorDisplay == null;
+
+    private string ClassContent => string.IsNullOrEmpty(ButtonClass) ? "mb-3" : ButtonClass;
+
+    private string DeleteURL => $"{DeleteURLBase}/{Id}";
+
+    private string RestoreURL => string.IsNullOrEmpty(RestoreURLBase) ?
+        $"{DeleteURLBase}/{Id}/restore" :
+        $"{RestoreURLBase}/{Id}";
+
+    private async void AskDeleteConfirm()
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmDelete.Name), Name);
+        parameters.Add(nameof(ConfirmDelete.SoftDelete), UsesSoftDelete);
+
+        var modal = Modal.Show<ConfirmDelete>(DeletePromptTitle, parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await PerformDelete();
+    }
+
+    private async Task PerformDelete()
+    {
+        processing = true;
+        SetStatusMessage(null, SiteNoticeType.Info);
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync(DeleteURL);
+        }
+        catch (HttpRequestException e)
+        {
+            SetStatusMessage($"Network request failed: {e.Message}", SiteNoticeType.Danger);
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            SetStatusMessage($"Error, server responded with: {content}, {result.StatusCode}", SiteNoticeType.Danger);
+        }
+        else
+        {
+            SetStatusMessage("Resource successfully deleted", SiteNoticeType.Info);
+            await OnDeleted.InvokeAsync();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PerformRestore()
+    {
+        processing = true;
+        SetStatusMessage(null, SiteNoticeType.Info);
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync(RestoreURL, new Dictionary<string, long> { { "Id", Id } });
+        }
+        catch (HttpRequestException e)
+        {
+            SetStatusMessage($"Network request failed: {e.Message}", SiteNoticeType.Danger);
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            SetStatusMessage($"Error, server responded with: {content}, {result.StatusCode}", SiteNoticeType.Danger);
+        }
+        else
+        {
+            SetStatusMessage("Resource successfully restored", SiteNoticeType.Info);
+            await OnRestored.InvokeAsync();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SetStatusMessage(string? message, SiteNoticeType noticeType)
+    {
+        if (UseErrorDisplay)
+        {
+            statusMessage = message;
+            statusMessageType = noticeType;
+        }
+        else
+        {
+            CustomErrorDisplay!.Invoke(message, noticeType);
+        }
+    }
+
+}

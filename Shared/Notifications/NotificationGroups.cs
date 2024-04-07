@@ -122,6 +122,15 @@ public static class NotificationGroups
     /// </summary>
     public const string InProgressCLASignatureUpdated = "InProgressCLA_";
 
+    public const string PageListUpdated = "Pages";
+    public const string PageUpdatedPrefix = "SPage_";
+    public const string PostListUpdated = "Posts";
+    public const string PostUpdatedPrefix = "SPage_";
+    public const string WikiPageListUpdated = "WikiPages";
+    public const string WikiPageUpdatedPrefix = "SWikiPages_";
+    public const string PageTemplateListUpdated = "PTemplates";
+    public const string PageTemplateUpdatedPrefix = "SPTemplate_";
+
     /// <summary>
     ///   This is always listened for a valid connected session, this is used to send very important messages
     ///   like logout requests.

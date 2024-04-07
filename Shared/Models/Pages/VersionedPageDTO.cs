@@ -29,4 +29,8 @@ public class VersionedPageDTO : ClientSideTimedModel
     public string? LastEditComment { get; set; }
 
     public int VersionNumber { get; set; }
+
+    public PageType Type { get; set; }
+
+    public bool Deleted { get; set; }
 }

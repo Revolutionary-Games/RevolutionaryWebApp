@@ -3,6 +3,7 @@
 @inject NavigationManager NavManager
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Shared
@@ -137,7 +138,7 @@
 
     </AccessLimited>
 
-    <PageTitle>Site Pages</PageTitle>
+    <DevCenterTitle>Site Pages</DevCenterTitle>
 </AccessLimited>
 
 @code {
@@ -175,7 +176,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await NotificationHandler.Register(this);
+        if (CurrentUserInfo.HasGroup(GroupType.SitePageEditor) || CurrentUserInfo.HasGroup(GroupType.Admin))
+            await NotificationHandler.Register(this);
+
         await base.OnInitializedAsync();
     }
 
