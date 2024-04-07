@@ -38,7 +38,7 @@ public class SiteNotificationsController : Controller
             user.Email, data.Message, data.Type);
 
         // As a site message is not a critical thing, only a normal log entry is created and not an admin action
-        var log = new AdminAction($"Ephemeral site message sent by \"{user.Name}\": {data.Message.Truncate()}",
+        var log = new AdminAction($"Ephemeral site message: {data.Message.Truncate()}",
             data.Message)
         {
             PerformedById = user.Id,

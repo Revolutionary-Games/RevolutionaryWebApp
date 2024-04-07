@@ -85,7 +85,7 @@ public class PagesController : Controller
     {
         var page = await database.VersionedPages.FindAsync(id);
 
-        if (page == null || page.Deleted || page.Type != PageType.NormalPage)
+        if (page == null || page.Type != PageType.NormalPage)
             return NotFound();
 
         var version = await page.GetCurrentVersion(database);
@@ -128,7 +128,7 @@ public class PagesController : Controller
 
         await database.SaveChangesAsync();
 
-        return Ok();
+        return Ok(page.Id.ToString());
     }
 
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]

@@ -1,0 +1,16 @@
+@if (Show)
+{
+    <StatusMessageShower Message="@Message" OnClosed="@OnClosed"/>
+}
+
+@code {
+    private const string Message = "This page has been modified. To safely save your changes open a new tab to this " +
+        "edit page and copy your changes there.";
+
+    [Parameter]
+    [EditorRequired]
+    public bool Show { get; set; }
+
+    [Parameter]
+    public EventCallback OnClosed { get; set; }
+}

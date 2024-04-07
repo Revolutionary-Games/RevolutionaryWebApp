@@ -14,12 +14,11 @@
             <PageTitleAndDetails Data="@Data" TypeName="Page"/>
 
             <ResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Title" Id="@Data.Id"
-                                   DeleteURLBase="api/v1/Page"
-                                   DeletePromptTitle="Delete this page?" />
+                                   DeleteURLBase="api/v1/Pages"
+                                   DeletePromptTitle="Delete this page?" OnDeleted="@OnDeleted"
+                                   OnRestored="@OnRestored"/>
 
-            @if(true){
-                EditConflictNotice(__builder);
-            }
+            <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
 
             @if (Data.Visibility != PageVisibility.HiddenDraft)
             {
@@ -59,4 +58,36 @@
     {
         await NotificationHandler.Unregister(this);
     }
+
+    protected override bool OnUpdateNotificationReceived(VersionedPageDTO newData)
+    {
+        if (newData.Deleted)
+        {
+            OnDeleted();
+            return false;
+        }
+
+        return base.OnUpdateNotificationReceived(newData);
+    }
+
+    private async void OnDeleted()
+    {
+        if (Data != null)
+        {
+            Data.Deleted = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnRestored()
+    {
+        if (Data != null)
+        {
+            Data.Deleted = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
 }

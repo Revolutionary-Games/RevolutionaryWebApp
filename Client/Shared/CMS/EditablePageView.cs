@@ -2,7 +2,6 @@ namespace RevolutionaryWebApp.Client.Shared.CMS;
 
 using System;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Components.Rendering;
 using RevolutionaryWebApp.Shared.Models;
 using RevolutionaryWebApp.Shared.Models.Pages;
 using RevolutionaryWebApp.Shared.Notifications;
@@ -12,8 +11,7 @@ using RevolutionaryWebApp.Shared.Notifications;
 /// </summary>
 public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, VersionedPageUpdated, long>
 {
-    // TODO: set to false
-    protected bool versionConflict = true;
+    protected bool versionConflict;
 
     protected abstract PageType EditedPageType { get; }
 
@@ -47,16 +45,9 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         return false;
     }
 
-    protected void EditConflictNotice(RenderTreeBuilder builder)
+    protected void SuppressEditWarning()
     {
-        if (!versionConflict)
-            return;
-
-        // TODO: ignore when current user edited page properties
-        builder.AddComponentParameter(0, nameof(StatusMessageShower.Message),
-            "This page has been modified. To safely save your changes open a new tab to this page and copy your " +
-            "changes there.");
-        builder.OpenComponent<StatusMessageShower>(0);
-        builder.CloseComponent();
+        versionConflict = false;
+        StateHasChanged();
     }
 }
