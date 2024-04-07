@@ -1,0 +1,159 @@
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models.Pages
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+}
+
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <form>
+        <div class="row">
+            <div class="mb-3 col-md-12">
+                <label class="form-label" for="newPageTitle">Page Title</label>
+                <input type="text" class="form-control" id="newPageTitle" @bind="newTitle"
+                       @bind:event="oninput">
+            </div>
+        </div>
+
+        @* TODO: templates *@
+        <div class="row">
+            <div class="mb-3 col-md-12">
+                <label class="form-label me-1" for="newPageTemplate">Template</label>
+                <select class="form-select" id="newPageTemplate" @bind="newTemplate">
+                    @* This is mandatory for the razor compiler to not error out *@
+                    @* ReSharper disable once RedundantCast *@
+                    <option value="@((long?)null)">None</option>
+                </select>
+            </div>
+        </div>
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+            Create
+        </Button>
+    </form>
+}
+
+
+
+@code {
+    // TODO: template parameter setting
+    // private readonly Dictionary<string, string> templateParameters = new();
+
+    // private List<VersionedPageTemplateInfo>? loadedTemplates;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private long? newTemplate;
+    private string? newTitle;
+
+    [Parameter]
+    [EditorRequired]
+    public string NewPageEditPathPrefix { get; set; } = string.Empty;
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newTitle);
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newTitle = null;
+            newTemplate = null;
+
+            // templateParameters.Clear();
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        createMessageType = SiteNoticeType.Danger;
+
+        if (newTitle == null)
+        {
+            createMessage = "Missing title";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = true;
+        createMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/Pages", new VersionedPageDTO
+            {
+                Title = newTitle,
+                Visibility = PageVisibility.HiddenDraft,
+                LatestContent = "(new)",
+                LastEditComment = "Initial page version",
+                VersionNumber = 1,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+
+            await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            createMessage = "New page created. Will switch to editing it in 5 seconds";
+            showNewForm = false;
+
+            long newPageId;
+
+            try
+            {
+                newPageId = long.Parse(content);
+            }
+            catch (Exception e)
+            {
+                createMessage = "New page created, but could not detect the ID of the new page: " + e.Message;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            createMessageType = SiteNoticeType.Success;
+
+            await InvokeAsync(StateHasChanged);
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            NavManager.NavigateTo($"{NewPageEditPathPrefix}{newPageId}");
+        }
+    }
+}
