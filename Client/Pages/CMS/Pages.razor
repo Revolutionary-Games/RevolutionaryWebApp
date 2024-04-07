@@ -196,10 +196,7 @@
 
     public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.CIProjectListUpdated);
-
-        if (currentUserGroups.HasGroup(GroupType.Developer))
-            groups.Add(NotificationGroups.PrivateCIProjectUpdated);
+        groups.Add(NotificationGroups.PageListUpdated);
     }
 
     public override async ValueTask DisposeAsync()

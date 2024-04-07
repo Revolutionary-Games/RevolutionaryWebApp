@@ -339,6 +339,21 @@ public class NotificationsHub : Hub<INotifications>
         return user.AccessCachedGroupsOrThrow().HasAccessLevel(level);
     }
 
+    /// <summary>
+    ///   Checks group membership, note that doesn't have an admin override (i.e. a separate admin check needs to be
+    ///   done when needed)
+    /// </summary>
+    private static bool RequireGroup(GroupType group, User? user)
+    {
+        if (group == GroupType.NotLoggedIn)
+            return true;
+
+        if (user == null)
+            return false;
+
+        return user.AccessCachedGroupsOrThrow().HasGroup(group);
+    }
+
     private async Task<bool> HandleSpecialGroupJoin(string groupName, User? user, Session? session)
     {
         _ = user;
@@ -690,6 +705,45 @@ public class NotificationsHub : Hub<INotifications>
                 return true;
 
             return item!.Public;
+        }
+
+        if (groupName == NotificationGroups.PageListUpdated ||
+            groupName.StartsWith(NotificationGroups.PageUpdatedPrefix))
+        {
+            if (RequireAccessLevel(GroupType.Admin, user))
+                return true;
+
+            return RequireGroup(GroupType.SitePageEditor, user);
+        }
+
+        if (groupName == NotificationGroups.PostListUpdated ||
+            groupName.StartsWith(NotificationGroups.PostUpdatedPrefix))
+        {
+            if (RequireAccessLevel(GroupType.Admin, user))
+                return true;
+
+            if (RequireAccessLevel(GroupType.Developer, user))
+                return true;
+
+            return RequireGroup(GroupType.PostPublisher, user);
+        }
+
+        if (groupName == NotificationGroups.PageTemplateListUpdated ||
+            groupName.StartsWith(NotificationGroups.PageTemplateUpdatedPrefix))
+        {
+            if (RequireAccessLevel(GroupType.Admin, user))
+                return true;
+
+            return RequireGroup(GroupType.TemplateEditor, user);
+        }
+
+        if (groupName == NotificationGroups.WikiPageListUpdated ||
+            groupName.StartsWith(NotificationGroups.WikiPageUpdatedPrefix))
+        {
+            if (RequireAccessLevel(GroupType.Admin, user))
+                return true;
+
+            return RequireGroup(GroupType.WikiEditor, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.FeedUpdatedPrefix) ||
