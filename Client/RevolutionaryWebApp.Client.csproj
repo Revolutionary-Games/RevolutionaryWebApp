@@ -13,7 +13,7 @@
     <PackageReference Include="BlazorPagination" Version="0.2.16" />
     <PackageReference Include="BlazorPro.BlazorSize" Version="6.2.2" />
     <PackageReference Include="HtmlSanitizer" Version="8.1.747-beta" />
-    <PackageReference Include="Markdig" Version="0.36.2" />
+    <PackageReference Include="Markdig" Version="0.37.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.3" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.3" />
