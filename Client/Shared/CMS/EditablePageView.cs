@@ -66,6 +66,12 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
             else
             {
                 userEditedContent = value;
+
+                if (!editedText)
+                {
+                    editedText = true;
+                    StateHasChanged();
+                }
             }
         }
     }
@@ -136,14 +142,14 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         return AccessHttp().GetFromJsonAsync<VersionedPageDTO>(GetPageEndpoint());
     }
 
-    protected void OnEdited()
+    protected void OnEdited(string text)
     {
         // When first editing something the version number is locked in of the object to detect later if there is an
         // edit conflict
         if (Data != null)
             editedVersion ??= Data.VersionNumber;
 
-        editedText = true;
+        EditableContent = text;
 
         SendNoticeAboutEditingPage();
     }
@@ -152,7 +158,12 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
     protected void OnPropertiesChanged()
     {
-        editedProperties = true;
+        if (!editedProperties)
+        {
+            editedProperties = true;
+            StateHasChanged();
+        }
+
         SendNoticeAboutEditingPage();
     }
 

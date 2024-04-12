@@ -1,10 +1,13 @@
-@using RevolutionaryWebApp.Shared.Models.Pages
 <h3>PageEditorWithPreview</h3>
 
 @code {
 
     [Parameter]
     [EditorRequired]
-    public VersionedPageDTO Data { get; set; } = null!;
+    public string OriginalText { get; set; } = string.Empty;
+
+    [Parameter]
+    [EditorRequired]
+    public Action<string> OnEdited { get; set; } = null!;
 
 }

@@ -1,0 +1,26 @@
+@using RevolutionaryWebApp.Shared.Models.Pages
+@using SharedBase.Utilities
+<h3>
+    Editing @TypeName @Data.Title.Truncate()
+    @if (Data.Deleted)
+    {
+        <span class="badge bg-danger ms-1">DELETED</span>
+    }
+    else if (Data.Visibility == PageVisibility.HiddenDraft)
+    {
+        <span class="badge bg-secondary ms-1">Draft</span>
+    }
+</h3>
+
+@code {
+
+    [Parameter]
+    [EditorRequired]
+    public VersionedPageDTO Data { get; set; } = null!;
+
+    [Parameter]
+    public bool ShowType { get; set; }
+
+    [Parameter]
+    public string TypeName { get; set; } = string.Empty;
+}

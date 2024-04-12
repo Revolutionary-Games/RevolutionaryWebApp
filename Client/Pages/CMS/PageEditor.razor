@@ -11,7 +11,7 @@
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {
-            <PageTitleAndDetails Data="@Data" TypeName="Page"/>
+            <PageEditTitle Data="@Data" TypeName="Page"/>
 
             <ResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Title" Id="@Data.Id"
                                    DeleteURLBase="api/v1/Pages"
@@ -33,9 +33,9 @@
 
             <PagePropertiesEditor Data="@Data"/>
 
-            <PageEditorWithPreview Data="@Data" OnEdited="@OnEdited"/>
+            <PageEditorWithPreview OriginalText="@Data.LatestContent" OnEdited="@OnEdited"/>
 
-            <PagePublishingControls Data="@Data"/>
+            <PagePublishingControls Data="@Data" OnPropertiesChanged="@OnPropertiesChanged"/>
 
             <StatusMessageShower Message="@saveMessage" Type="@saveMessageType" OnClosed="@ClearSaveMessage"/>
 
@@ -43,6 +43,8 @@
                     Spinner="@processingSave">
                 Save Changes
             </Button>
+
+            <PageEditFooter Data="@Data" />
 
             <DevCenterTitle>Edit Page @Id</DevCenterTitle>
         }

@@ -3,8 +3,9 @@
 <form>
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label class="form-label me-1" for="@($"editedPage{Data.Id}Visibility")">Visibility</label>
-            <select class="form-select" id="@($"editedPage{Data.Id}Visibility")" @bind="Data.Visibility">
+            <label class="form-label me-1" for="@($"editedPage{Data.Id}Visibility")">Updated Page Visibility</label>
+            <select class="form-select" id="@($"editedPage{Data.Id}Visibility")" @bind="Data.Visibility"
+                    @bind:after="@ReportChanges">
                 @foreach (var name in Enum.GetNames<PageVisibility>())
                 {
                     <option value="@name">@name</option>
@@ -34,21 +35,11 @@
 
             <div class="row">
                 <div class="mb-3 col-md-12">
-                    <label class="form-label me-1" for="newPageTemplate">Template</label>
-                    <select class="form-select" id="newPageTemplate" @bind="Data.Visibility">
-                        @foreach (var name in Enum.GetNames<PageVisibility>())
-                        {
-                            <option value="@name">@name</option>
-                        }
-                    </select>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="mb-3 col-md-12">
-                    <label class="form-label me-1" for="newPageTemplate">Template</label>
-                    <input class="form-input" id="newPageTemplate" @bind="Data.Permalink"
-                           placeholder="Permalink name or blank for automatic"/>
+                    <label class="form-label me-1" for="@($"editedPage{Data.Id}PublishLink")">Permalink</label>
+                    <input type="text" class="form-control" id="@($"editedPage{Data.Id}PublishLink")" @bind="Data.Permalink"
+                           @bind:after="@ReportChanges"
+                           placeholder="Permalink (optional)">
+                    <div class="form-text">Permalink is usually recommended to be left blank to automatically generate</div>
                 </div>
             </div>
 
@@ -66,19 +57,25 @@
 
 
 @code {
-    private PageVisibility originalVisibility;
-    private bool processing;
+    private PageVisibility? originalVisibility;
 
     [Parameter]
     [EditorRequired]
     public VersionedPageDTO Data { get; set; } = null!;
 
+    [Parameter]
+    public Action? OnPropertiesChanged { get; set; }
+
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
 
-        // TODO: check that this works
-        originalVisibility = Data.Visibility;
+        originalVisibility ??= Data.Visibility;
+    }
+
+    private void ReportChanges()
+    {
+        OnPropertiesChanged?.Invoke();
     }
 
 }

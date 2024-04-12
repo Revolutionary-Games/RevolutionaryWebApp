@@ -1,5 +1,47 @@
 @using RevolutionaryWebApp.Shared.Models.Pages
-<h3>PagePropertiesEditor</h3>
+<h3>Page Properties</h3>
+
+<form>
+    <div class="row">
+        <div class="col-md-12 mb-3">
+            <label class="form-label" for="@($"editedPage{Data.Id}Title")">Title</label>
+            <input type="text" class="form-control" id="@($"editedPage{Data.Id}Title")" @bind="Data.Title"
+                   placeholder="Page title (can be changed at any time)">
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Visibility (edit below)</label>
+            <div class="form-control">@Data.Visibility</div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Current Page Version</label>
+            <div class="form-control">@Data.VersionNumber</div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Page Type</label>
+            <div class="form-control">@Data.Type</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 col-xxl-8 mb-3">
+            <label class="form-label">Current Permalink</label>
+            <div class="form-control">@(Data.Permalink ?? "Not set yet")</div>
+            <div class="form-text">Permalink should not be updated as it breaks all existing links.</div>
+        </div>
+        <div class="col-md-4 col-xxl-2 mb-3">
+            <label class="form-label">Created At</label>
+            <div class="form-control"><RecentTimeShortener Time="@Data.CreatedAt"/></div>
+        </div>
+        <div class="col-md-4 col-xxl-2 mb-3">
+            <label class="form-label">Updated At</label>
+            <div class="form-control"><RecentTimeShortener Time="@Data.UpdatedAt"/></div>
+        </div>
+    </div>
+
+</form>
 
 @code {
 

@@ -1,0 +1,21 @@
+@using RevolutionaryWebApp.Shared.Models.Pages
+
+<ul class="mt-3">
+    @* TODO: link to live page *@
+    <li><strong>Permalink</strong>: @Data.Permalink</li>
+    @if (Data.Visibility != PageVisibility.HiddenDraft && Data.PublishedAt != null)
+    {
+        <li><strong>Published At</strong>: @Data.PublishedAt</li>
+    }
+    <li><strong>Updated At</strong>: <RecentTimeShortener Time="@Data.UpdatedAt"/></li>
+    <li><strong>Content Last Edited By</strong>: <UsernameDisplayer UserId="@Data.LastEditorId"/></li>
+    <li><strong>Edit Comment</strong>: @Data.LastEditComment</li>
+</ul>
+
+@code {
+
+    [Parameter]
+    [EditorRequired]
+    public VersionedPageDTO Data { get; set; } = null!;
+
+}
