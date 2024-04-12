@@ -36,4 +36,24 @@ public class VersionedPageDTO : ClientSideTimedModel
     public PageType Type { get; set; }
 
     public bool Deleted { get; set; }
+
+    public VersionedPageDTO Clone()
+    {
+        return new VersionedPageDTO
+        {
+            Id = Id,
+            UpdatedAt = UpdatedAt,
+            CreatedAt = CreatedAt,
+            Title = Title,
+            Permalink = Permalink,
+            PublishedAt = PublishedAt,
+            CreatorId = CreatorId,
+            LastEditorId = LastEditorId,
+            LatestContent = LatestContent,
+            LastEditComment = LastEditComment,
+            VersionNumber = VersionNumber,
+            Type = Type,
+            Deleted = Deleted,
+        };
+    }
 }

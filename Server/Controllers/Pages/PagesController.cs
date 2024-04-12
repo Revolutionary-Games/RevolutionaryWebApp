@@ -11,7 +11,9 @@ using DevCenterCommunication.Models;
 using DiffPlex;
 using Filters;
 using Hangfire;
+using Hubs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -32,13 +34,15 @@ public class PagesController : Controller
     private readonly ILogger<PagesController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
+    private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
     public PagesController(ILogger<PagesController> logger, NotificationsEnabledDb database,
-        IBackgroundJobClient jobClient)
+        IBackgroundJobClient jobClient, IHubContext<NotificationsHub, INotifications> notifications)
     {
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
+        this.notifications = notifications;
     }
 
     [HttpGet]
@@ -163,6 +167,15 @@ public class PagesController : Controller
             // Updating page content
             int version = await page.GetCurrentVersion(database);
 
+            if (version != pageDTO.VersionNumber)
+            {
+                return BadRequest(
+                    $"Page version mismatch. Someone has edited the page while you were editing it. " +
+                    $"Your version: {pageDTO.VersionNumber} is not the expected: {version}. Please open a new tab, " +
+                    $"copy your changes to it and save there. If this is a problem often it would be possible to add " +
+                    $"automatic edit merging in most cases.");
+            }
+
             var previousContent = page.LatestContent;
             var previousComment = page.LastEditComment;
             var previousAuthor = page.LastEditorId;
@@ -211,6 +224,8 @@ public class PagesController : Controller
                     PerformedById = user.Id,
                 });
             }
+
+            await EditNotificationsController.SendEditNotice(notifications, user, page.Id, true);
         }
         else
         {

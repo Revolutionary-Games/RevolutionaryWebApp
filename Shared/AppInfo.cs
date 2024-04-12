@@ -245,4 +245,7 @@ public static class AppInfo
 
     public static readonly TimeSpan NegativeAuthCacheTimeMax = TimeSpan.FromSeconds(15);
     public static readonly TimeSpan NegativeAuthCacheTime = TimeSpan.FromSeconds(5);
+
+    public static readonly TimeSpan TimeBetweenReportEditingPage = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan OtherUserEditStaleAfter = TimeSpan.FromMinutes(9);
 }

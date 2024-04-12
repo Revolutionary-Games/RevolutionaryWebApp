@@ -1,0 +1,49 @@
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Client.Services
+@inject UsernameRetriever UsernameRetriever
+@if (UserId != null)
+{
+    <StatusMessageShower Type="SiteNoticeType.Warning" Message="@Message"/>
+}
+
+@code {
+    private long? previousUserId;
+    private string resolvedUserName = "unknown";
+
+    [Parameter]
+    [EditorRequired]
+    public long? UserId { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public DateTime? AtTime { get; set; }
+
+    private string Message => $"Someone else is editing this page at the same time. Be careful. {resolvedUserName} " +
+        $"was editing this page at {AtTime!.Value:T}.";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (UserId != null && AtTime == null)
+        {
+            await Console.Error.WriteLineAsync("Warning shower was set an user id but no time");
+            AtTime = DateTime.Now;
+        }
+
+        await base.OnParametersSetAsync();
+
+        if (UserId != previousUserId)
+        {
+            previousUserId = UserId;
+            resolvedUserName = "unknown";
+
+            // Fetch username when needed
+            if (previousUserId != null)
+            {
+                // TODO: should this resolve somehow by not waiting here? To not block showing the message while
+                // getting the username
+                resolvedUserName = await UsernameRetriever.GetUsername(previousUserId.Value);
+            }
+        }
+    }
+
+}

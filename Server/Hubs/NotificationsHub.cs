@@ -158,7 +158,7 @@ public class NotificationsHub : Hub<INotifications>
         var user = Context.Items["User"] as User;
         var session = Context.Items["Session"] as Session;
 
-        // Special group joining has its own rules so it is done first
+        // Special group joining has its own rules, so it is done first
         if (await HandleSpecialGroupJoin(groupName, user, session))
             return;
 
@@ -433,7 +433,14 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.SymbolListUpdated:
             case NotificationGroups.PrivatePrecompiledObjectUpdated:
                 return RequireAccessLevel(GroupType.Developer, user);
+
+            // TODO: switch this to patron group
             case NotificationGroups.DevBuildsListUpdated:
+                return RequireAccessLevel(GroupType.User, user);
+
+            // This is not protected per-listened resource as finding out user ids of pages they are editing
+            // should not be a security problem
+            case NotificationGroups.PageEditNotice:
                 return RequireAccessLevel(GroupType.User, user);
             case NotificationGroups.LFSListUpdated:
             case NotificationGroups.CIProjectListUpdated:

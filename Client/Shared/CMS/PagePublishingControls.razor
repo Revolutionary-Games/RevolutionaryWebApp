@@ -1,0 +1,84 @@
+@using RevolutionaryWebApp.Shared.Models.Pages
+
+<form>
+    <div class="row">
+        <div class="mb-3 col-md-12">
+            <label class="form-label me-1" for="@($"editedPage{Data.Id}Visibility")">Visibility</label>
+            <select class="form-select" id="@($"editedPage{Data.Id}Visibility")" @bind="Data.Visibility">
+                @foreach (var name in Enum.GetNames<PageVisibility>())
+                {
+                    <option value="@name">@name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (originalVisibility != Data.Visibility)
+    {
+        <p>Page visibility will change!</p>
+
+        @if (Data.Visibility == PageVisibility.HiddenDraft)
+        {
+            <p>This page will become a draft again and will not be visible to the public anymore with its link</p>
+        }
+        else if (Data.Visibility == PageVisibility.Public)
+        {
+            <p>
+                This page will be <strong>PUBLISHED</strong>! If this is the first time this is published, publish
+                actions will run.
+            </p>
+
+            <p> Permalink will be automatically set, but you can set it manually below
+                (it should be <c>for-example-like-this</c>):
+            </p>
+
+            <div class="row">
+                <div class="mb-3 col-md-12">
+                    <label class="form-label me-1" for="newPageTemplate">Template</label>
+                    <select class="form-select" id="newPageTemplate" @bind="Data.Visibility">
+                        @foreach (var name in Enum.GetNames<PageVisibility>())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="mb-3 col-md-12">
+                    <label class="form-label me-1" for="newPageTemplate">Template</label>
+                    <input class="form-input" id="newPageTemplate" @bind="Data.Permalink"
+                           placeholder="Permalink name or blank for automatic"/>
+                </div>
+            </div>
+
+            <p>
+                Changing the permalink after publishing should basically be <strong>never</strong> done as that breaks
+                all existing links anywhere to the page.
+            </p>
+        }
+        else
+        {
+            <p>Note that this visibility type is experimental and shouldn't be used</p>
+        }
+    }
+</form>
+
+
+@code {
+    private PageVisibility originalVisibility;
+    private bool processing;
+
+    [Parameter]
+    [EditorRequired]
+    public VersionedPageDTO Data { get; set; } = null!;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // TODO: check that this works
+        originalVisibility = Data.Visibility;
+    }
+
+}

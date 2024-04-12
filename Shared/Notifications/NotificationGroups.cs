@@ -131,6 +131,8 @@ public static class NotificationGroups
     public const string PageTemplateListUpdated = "PTemplates";
     public const string PageTemplateUpdatedPrefix = "SPTemplate_";
 
+    public const string PageEditNotice = "PEditNotice";
+
     /// <summary>
     ///   This is always listened for a valid connected session, this is used to send very important messages
     ///   like logout requests.
