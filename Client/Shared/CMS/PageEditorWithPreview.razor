@@ -1,6 +1,64 @@
-<h3>PageEditorWithPreview</h3>
+<h3>Markdown Editor</h3>
+<small>
+    Edit this page's content below in <a href="https://commonmark.org/help/" target="_blank">markdown</a>
+    (longer <a href="https://www.markdownguide.org/basic-syntax/" target="_blank">tutorial</a>).
+    Preview will enable on any edit or by
+    <a href="#" @onclick="@EnablePreview" @onclick:preventDefault="@true">
+        clicking here
+    </a>.
+</small>
+
+<form class="mt-2">
+    <div class="row ms-2">
+        TODO: implement some kind of editing toolbar like link add helper, images, tables etc.
+    </div>
+    <div class="row">
+        <div class="@PreviewColumnClass mb-2">
+            <label class="form-label" for="@($"editedPage{Id}Content")">Page Text</label>
+            <textarea class="form-control" id="@($"editedPage{Id}Content")" @oninput="@OnTextChanged"
+                           placeholder="Page content (in markdown format)" style="min-height: 500px;">
+                @Text
+            </textarea>
+        </div>
+        <div class="@PreviewColumnClass mb-2">
+            <label class="form-label">@(showPreview ? "Preview" : "Preview (inactive)")</label>
+            <div class="form-control">
+                @if (showPreview)
+                {
+                    @* TODO: should pages use all markdown features, or at least when official pages / posts? *@
+                    <MarkdownRenderer MarkdownText="@Text" AllMarkdownFeatures="@false"
+                                      UpdateRenderDelay="@TimeSpan.FromSeconds(2)"/>
+                }
+                else
+                {
+                    <p>Edit the page text to active preview.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <Button ButtonStyle="secondary" Small="@true" OnPressed="@ToggleSingleColumn" class="mb-3">
+        Toggle Always Use Single Column Preview
+    </Button>
+</form>
 
 @code {
+
+    private bool showPreview;
+    private bool forceSingleColumn;
+
+    private string? editedText;
+
+    private string Text => editedText ?? OriginalText;
+
+    private string PreviewColumnClass => forceSingleColumn ? "col-xl-12" : "col-xl-6";
+
+    /// <summary>
+    ///   ID purely required to differentiate control names
+    /// </summary>
+    [Parameter]
+    [EditorRequired]
+    public long Id { get; set; }
 
     [Parameter]
     [EditorRequired]
@@ -9,5 +67,31 @@
     [Parameter]
     [EditorRequired]
     public Action<string> OnEdited { get; set; } = null!;
+
+    private void EnablePreview()
+    {
+        showPreview = true;
+    }
+
+    private void ToggleSingleColumn()
+    {
+        forceSingleColumn = !forceSingleColumn;
+    }
+
+    private void OnTextChanged(ChangeEventArgs e)
+    {
+        var edited = e.Value?.ToString();
+
+        if (edited != OriginalText && edited != null)
+        {
+            editedText = edited;
+            EnablePreview();
+            OnEdited.Invoke(editedText);
+        }
+        else
+        {
+            editedText = null;
+        }
+    }
 
 }

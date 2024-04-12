@@ -3,7 +3,7 @@
 <form>
     <div class="row">
         <div class="mb-3 col-md-12">
-            <label class="form-label me-1" for="@($"editedPage{Data.Id}Visibility")">Updated Page Visibility</label>
+            <label class="form-label me-1" for="@($"editedPage{Data.Id}Visibility")">Update Page Visibility</label>
             <select class="form-select" id="@($"editedPage{Data.Id}Visibility")" @bind="Data.Visibility"
                     @bind:after="@ReportChanges">
                 @foreach (var name in Enum.GetNames<PageVisibility>())

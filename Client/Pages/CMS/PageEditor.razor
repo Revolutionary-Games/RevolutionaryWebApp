@@ -33,7 +33,7 @@
 
             <PagePropertiesEditor Data="@Data"/>
 
-            <PageEditorWithPreview OriginalText="@Data.LatestContent" OnEdited="@OnEdited"/>
+            <PageEditorWithPreview Id="@Id" OriginalText="@Data.LatestContent" OnEdited="@OnEdited"/>
 
             <PagePublishingControls Data="@Data" OnPropertiesChanged="@OnPropertiesChanged"/>
 
