@@ -1,11 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Authorization;
 using Hubs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Models;
