@@ -53,6 +53,15 @@ function scrollToElement(id, smooth) {
     }
 }
 
+function getSelection(element) {
+    return [element.selectionStart, element.selectionEnd];
+}
+
+function setCaretAndFocus(element, caret){
+    element.setSelectionRange(caret, caret);
+    element.focus({preventScroll: true});
+}
+
 // Render latex math in element children
 function renderMath(element) {
     const targets = element.getElementsByClassName("math");

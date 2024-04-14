@@ -1,3 +1,4 @@
+@inject IJSRuntime JS
 <h3>Markdown Editor</h3>
 <small>
     Edit this page's content below in <a href="https://commonmark.org/help/" target="_blank">markdown</a>
@@ -10,14 +11,25 @@
 
 <form class="mt-2">
     <div class="row ms-2">
-        TODO: implement some kind of editing toolbar like link add helper, images, tables etc.
+        <div class="col-12 mb-2">
+        <Button Small="@true" OnPressed="@MakeTitleH1" ButtonStyle="secondary">H1</Button>
+        <Button Small="@true" OnPressed="@MakeTitleH2" ButtonStyle="secondary">H2</Button>
+        <Button Small="@true" OnPressed="@MakeTitleH3" ButtonStyle="secondary">H3</Button>
+        <Button Small="@true" OnPressed="@MakeTitleH4" ButtonStyle="secondary">H4</Button>
+        <Button Small="@true" OnPressed="@MakeList" ButtonStyle="secondary"><i class="fa-solid fa-list"></i></Button>
+        <Button Small="@true" OnPressed="@MakeCodeBlock" ButtonStyle="secondary">
+            <i class="fa-solid fa-code"></i>
+        </Button>
+        <span>TODO: implement link add helper, images, tables etc.</span>
+        </div>
     </div>
     <div class="row">
         <div class="@PreviewColumnClass mb-2">
             <label class="form-label" for="@($"editedPage{Id}Content")">Page Text</label>
             <textarea class="form-control" id="@($"editedPage{Id}Content")" @oninput="@OnTextChanged"
-                           placeholder="Page content (in markdown format)" style="min-height: 500px;">
-                @Text
+                           spellcheck="true" autocomplete="off" @ref="@textareaReference"
+                           placeholder="Page content (in markdown format)" style="min-height: 500px;"
+                           value="@Text">
             </textarea>
         </div>
         <div class="@PreviewColumnClass mb-2">
@@ -53,6 +65,8 @@
 
     private string PreviewColumnClass => forceSingleColumn ? "col-xl-12" : "col-xl-6";
 
+    ElementReference textareaReference;
+
     /// <summary>
     ///   ID purely required to differentiate control names
     /// </summary>
@@ -67,6 +81,14 @@
     [Parameter]
     [EditorRequired]
     public Action<string> OnEdited { get; set; } = null!;
+
+    enum SelectionType
+    {
+        // None / error
+        None,
+        SelectionRange,
+        CaretPosition,
+    }
 
     private void EnablePreview()
     {
@@ -94,4 +116,239 @@
         }
     }
 
+    // Selection / caret position helpers
+    private async ValueTask<(SelectionType ResultType, int StartOrCaret, int End)> GetSelectionOrCaret()
+    {
+        try
+        {
+            var potentialSelection = await ReadTextSelectionArea();
+
+            // When selection start and end is equal, there isn't a selection
+            if (potentialSelection[0] == potentialSelection[1])
+            {
+                return (SelectionType.CaretPosition, potentialSelection[0], 0);
+            }
+
+            // Make order consistent
+            if (potentialSelection[1] < potentialSelection[0])
+                (potentialSelection[0], potentialSelection[1]) = (potentialSelection[1], potentialSelection[0]);
+
+            return (SelectionType.SelectionRange, potentialSelection[0], potentialSelection[1]);
+        }
+        catch (Exception e)
+        {
+            await Console.Error.WriteLineAsync("Error reading selection area / caret: " + e);
+            return (SelectionType.None, 0, 0);
+        }
+    }
+
+    private ValueTask<int[]> ReadTextSelectionArea()
+    {
+        return JS.InvokeAsync<int[]>("getSelection", textareaReference);
+    }
+
+    private ValueTask FocusAndSetCaretPosition(int position)
+    {
+        return JS.InvokeVoidAsync("setCaretAndFocus", textareaReference, position);
+    }
+
+    // Text editing toolbar functions
+
+    private async Task MakeTitle(string titleMarkdown)
+    {
+        var (type, caret, _) = await GetSelectionOrCaret();
+
+        if (type == SelectionType.CaretPosition)
+        {
+            SpliceText(FindPreviousLineStart(caret), 0, titleMarkdown);
+            await FocusAndSetCaretPosition(FindLineEnd(caret));
+        }
+        else if (type == SelectionType.SelectionRange)
+        {
+            int insertPoint = caret;
+
+            SpliceText(insertPoint, 0, titleMarkdown);
+
+            // Add a newline if the insert point wasn't at the start of the line
+            if (InsertNewLineBeforeIfNotAtLineStart(insertPoint))
+            {
+                await FocusAndSetCaretPosition(FindPreviousLineStart(insertPoint + 3) + titleMarkdown.Length);
+            }
+            else
+            {
+                await FocusAndSetCaretPosition(FindPreviousLineStart(insertPoint) + titleMarkdown.Length);
+            }
+        }
+    }
+
+    private async void MakeList()
+    {
+        var (type, caret, _) = await GetSelectionOrCaret();
+
+        int markdownLength = 2;
+
+        if (type == SelectionType.CaretPosition)
+        {
+            int insertPoint = FindLineEnd(caret);
+            SpliceText(insertPoint, 0,
+                $"{Environment.NewLine}- Item 1{Environment.NewLine}- Item 2");
+
+            await FocusAndSetCaretPosition(FindPreviousLineStart(insertPoint + 3) + markdownLength);
+        }
+        else if (type == SelectionType.SelectionRange)
+        {
+            int insertPoint = caret;
+
+            SpliceText(insertPoint, 0, "- ");
+
+            if (InsertNewLineBeforeIfNotAtLineStart(insertPoint))
+            {
+                await FocusAndSetCaretPosition(FindPreviousLineStart(insertPoint + 3) + markdownLength);
+            }
+            else
+            {
+                await FocusAndSetCaretPosition(FindPreviousLineStart(insertPoint) + markdownLength);
+            }
+        }
+    }
+
+    private async void MakeCodeBlock()
+    {
+        var (type, caret, end) = await GetSelectionOrCaret();
+
+        int markdownLength = 3 + Environment.NewLine.Length;
+
+        if (type == SelectionType.CaretPosition)
+        {
+            int insertPoint = FindLineEnd(caret);
+            SpliceText(insertPoint, 0,
+                $"{Environment.NewLine}```{Environment.NewLine}Code here{Environment.NewLine}```");
+
+            // +3 is in the search here to not find the wrong line to select
+            await FocusAndSetCaretPosition(FindPreviousLineStart(insertPoint + 3) + markdownLength);
+        }
+        else if (type == SelectionType.SelectionRange)
+        {
+            int insertPoint = caret;
+
+            string codeWithNewLine = $"```{Environment.NewLine}";
+
+            SpliceText(insertPoint, 0, codeWithNewLine);
+
+            // Adding text affects the end point
+            int endOffset = codeWithNewLine.Length;
+
+            int targetPosition;
+
+            if (InsertNewLineBeforeIfNotAtLineStart(insertPoint))
+            {
+                targetPosition = FindPreviousLineStart(insertPoint + 3) + markdownLength;
+                endOffset += Environment.NewLine.Length;
+            }
+            else
+            {
+                targetPosition = FindPreviousLineStart(insertPoint) + markdownLength;
+            }
+
+            // Add the closing markdown
+            if (end + endOffset == FindLineEnd(end + endOffset))
+            {
+                SpliceText(end + endOffset, 0, $"{Environment.NewLine}```");
+            }
+            else
+            {
+                SpliceText(end + endOffset, 0, $"{Environment.NewLine}```{Environment.NewLine}");
+            }
+
+            await FocusAndSetCaretPosition(targetPosition);
+        }
+    }
+
+    private async void MakeTitleH1()
+    {
+        await MakeTitle("# ");
+    }
+
+    private async void MakeTitleH2()
+    {
+        await MakeTitle("## ");
+    }
+
+    private async void MakeTitleH3()
+    {
+        await MakeTitle("### ");
+    }
+
+    private async void MakeTitleH4()
+    {
+        await MakeTitle("#### ");
+    }
+
+    private void SpliceText(int offset, int removeCount, string insert)
+    {
+        var start = Text.Substring(0, offset);
+
+        if (offset + removeCount >= Text.Length)
+        {
+            editedText = start + insert;
+        }
+        else
+        {
+            var end = Text.Substring(offset + removeCount);
+
+            editedText = start + insert + end;
+        }
+
+        StateHasChanged();
+    }
+
+    private bool InsertNewLineBeforeIfNotAtLineStart(int point)
+    {
+        var lineStart = FindPreviousLineStart(point);
+
+        if (lineStart != point)
+        {
+            SpliceText(point, 0, Environment.NewLine);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///   Finds the start of the current line (index to first character) or the beginning of the text if this is the
+    ///   first line. When at line end already, will find the previous line
+    /// </summary>
+    private int FindPreviousLineStart(int startLookingFrom)
+    {
+        var text = Text;
+
+        // -1 to correctly work when at the end of a line
+        for (int i = Math.Min(startLookingFrom - 1, text.Length - 1); i >= 0; --i)
+        {
+            if (text[i] == '\n')
+                return i + 1;
+        }
+
+        // No line changes found
+        return 0;
+    }
+
+    /// <summary>
+    ///   Finds position of line ending newline (or end of text)
+    /// </summary>
+    private int FindLineEnd(int startLookingFrom)
+    {
+        var text = Text;
+
+        for (int i = Math.Max(startLookingFrom, 0); i < text.Length; ++i)
+        {
+            if (text[i] == '\n' || text[i] == '\r')
+            {
+                return i;
+            }
+        }
+
+        return text.Length;
+    }
 }
