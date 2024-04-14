@@ -77,14 +77,15 @@
                         <td><RecentTimeShortener Time="@item.UpdatedAt"/></td>
                         <td><UsernameDisplayer UserId="@item.LastEditorId"/></td>
                         <td><RecentTimeShortener Time="@item.CreatedAt"/></td>
-                        <td><UsernameDisplayer UserId="@item.CreatorId"/></td>
 
                         <td>
                             @if (item.PublishedAt != null)
                             {
-                                <RecentTimeShortener Time="@item.PublishedAt.Value"/>
+                            <RecentTimeShortener Time="@item.PublishedAt.Value"/>
                             }
                         </td>
+
+                        <td><UsernameDisplayer UserId="@item.CreatorId"/></td>
                     </tr>
                 }
             }
