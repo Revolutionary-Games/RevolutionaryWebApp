@@ -35,6 +35,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
     private bool editedProperties;
     private bool editedText;
 
+    private bool ignoreNextChangeNotice;
     private DateTime? lastReportedEditing;
     private Timer checkEditConflictTimer;
 
@@ -128,6 +129,13 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
         if (Data != null && Data.LatestContent != newData.LatestContent)
         {
+            // When saving ourselves, we need to ignore the update that we caused
+            if (ignoreNextChangeNotice)
+            {
+                ignoreNextChangeNotice = false;
+                return true;
+            }
+
             // Let the user know that some bad stuff is going to happen if they keep editing
             versionConflict = true;
             StateHasChanged();
@@ -232,6 +240,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         }
 
         await InvokeAsync(StateHasChanged);
+        ignoreNextChangeNotice = true;
 
         try
         {
@@ -253,6 +262,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
             saveMessage = $"Error saving. If there is a version conflict please open a new tab and copy your changes " +
                 $"there before attempting saving again. server responded with: {content}, {result.StatusCode}";
+            ignoreNextChangeNotice = false;
         }
         else
         {
