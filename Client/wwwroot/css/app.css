@@ -329,6 +329,48 @@ table.non-fixed {
     max-width: 100%;
 }
 
+.thrive-logo-container {
+    width: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 60px;
+}
+
+.thrive-logo {
+    min-height: 200px;
+    max-height: 200px;
+    width: auto;
+}
+
+@media (min-width: 1200px) {
+    .thrive-logo-container {
+        display: flex;
+    }
+}
+
+.main-site {
+    color: #dedede;
+    background-color: black;
+    /* TODO: switch to this project assets */
+    background-image: url("https://revolutionarygamesstudio.com/wp-content/uploads/2014/12/Planet-1.jpg");
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+    min-height: 100vh;
+}
+
+.main-page {
+    background-color: rgba(43,43,43,0.9);
+    padding-top: 10px;
+    border-radius: 3px;
+}
+
+.rendered-by {
+    color: #a0a0a0;
+    font-size: small;
+    margin: 10px 5px 10px 5px;
+}
+
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */
 /* https://github.com/villainoustourist/Blazor.Pagination/issues/11 */
 .sr-only {

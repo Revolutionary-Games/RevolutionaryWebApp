@@ -35,6 +35,8 @@ public static class AppInfo
 
     public const string SoftDeleteAttribute = "Deleted";
 
+    public const string IndexPermalinkName = "index";
+
     public const string MarkdownMimeType = "text/markdown; charset=UTF-8";
     public const string TarXZMimeType = "application/x-xz";
     public const string TarGZMimeType = "application/gzip";
