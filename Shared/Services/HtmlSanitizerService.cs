@@ -1,4 +1,4 @@
-namespace RevolutionaryWebApp.Client.Services;
+namespace RevolutionaryWebApp.Shared.Services;
 
 using System;
 using Ganss.Xss;

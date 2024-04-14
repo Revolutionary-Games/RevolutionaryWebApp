@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using RevolutionaryWebApp.Shared;
+using RevolutionaryWebApp.Shared.Services;
 using Services;
 using TextCopy;
 
