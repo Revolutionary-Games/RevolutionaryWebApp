@@ -29,6 +29,7 @@ using Microsoft.Net.Http.Headers;
 using Models;
 using Modulight.Modules.Hosting;
 using Services;
+using Shared.Services;
 using StackExchange.Redis;
 using StardustDL.RazorComponents.Markdown;
 using Utilities;
@@ -236,6 +237,9 @@ public class Startup
         services.AddSingleton<IGeneralRemoteDownloadUrls, GeneralRemoteDownloadUrls>();
         services.AddSingleton<ILocalTempFileLocks, LocalTempFileLocks>();
         services.AddSingleton<IRemoteResourceHashCalculator, RemoteResourceHashCalculator>();
+        services.AddSingleton<MarkdownService>();
+        services.AddSingleton<HtmlSanitizerService>();
+        services.AddSingleton<IPageRenderer, PageRenderer>();
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<LfsRemoteStorage>();
@@ -426,7 +430,10 @@ public class Startup
                 return Task.CompletedTask;
             });
 
-            // Fix for accessing these with ".something" as an URL suffix
+            // Map dynamic pages
+            // endpoints.MapFallbackToPage("/live/{*param}", "/_PageLive");
+
+            // Fix for accessing these with ".something" as a URL suffix
             endpoints.MapFallbackToPage("/files/{*param}", "/_Host");
             endpoints.MapFallbackToPage("/lfs/{*param}", "/_Host");
 

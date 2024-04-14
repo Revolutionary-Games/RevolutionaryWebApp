@@ -1,0 +1,19 @@
+@using System.Globalization
+@model RevolutionaryWebApp.Server.Controllers.Pages.RenderedPage
+@{
+    Layout = "_PageNormalLayout";
+
+    if (Model.ShowHeading)
+        ViewData["Title"] = Model.Title + " (preview)";
+
+    ViewData["Renderer"] = Model.ByServer;
+    ViewData["Duration"] = Model.RenderTime.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
+    ViewData["GeneratedAt"] = Model.RenderedAt.ToString("yyyy.MM.dd. HH:mm:ss", CultureInfo.InvariantCulture);
+    ViewData["UpdatedAt"] = Model.UpdatedAt;
+
+    ViewData["ShowLogo"] = true;
+}
+
+<div id="page" class="markdown">
+    @Html.Raw(Model.RenderedHtml)
+</div>

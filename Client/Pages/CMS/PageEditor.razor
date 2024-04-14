@@ -43,10 +43,13 @@
 
             <StatusMessageShower Message="@saveMessage" Type="@saveMessageType" OnClosed="@ClearSaveMessage"/>
 
-            <Button class="my-1" Enabled="@CanSaveChanges" OnPressed="@SaveChanges"
+            <Button class="mt-1 mb-2" Enabled="@CanSaveChanges" OnPressed="@SaveChanges"
                     Spinner="@processingSave">
                 Save Changes
             </Button>
+
+            <br/>
+            <a href="@($"/livePreview?pageId={Id}")" target="_blank">Preview Page (requires saving first)</a>
 
             <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
             <SimultaneousEditWarningShower UserId="@someoneElseEditId" AtTime="@someoneElseEditTime"/>
