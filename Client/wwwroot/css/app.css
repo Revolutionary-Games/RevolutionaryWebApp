@@ -324,6 +324,11 @@ table.non-fixed {
     border-radius: .25rem;
 }
 
+/* Markdown / page customization */
+.markdown img {
+    max-width: 100%;
+}
+
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */
 /* https://github.com/villainoustourist/Blazor.Pagination/issues/11 */
 .sr-only {
