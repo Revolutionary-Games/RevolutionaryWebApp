@@ -96,6 +96,9 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
             default:
                 throw new ArgumentOutOfRangeException();
         }
+
+        // Always listen for page editing status
+        groups.Add(NotificationGroups.PageEditNotice);
     }
 
     public async Task Handle(PageEditNotice notification, CancellationToken cancellationToken)
@@ -105,6 +108,10 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
         if (notification.PageId == Data.Id)
         {
+            // If editor is current user, ignore as it is us doing the change
+            if (notification.EditorUserId == GetCurrentUserId())
+                return;
+
             // Got notice that someone else is editing this page, show a warning
             someoneElseEditId = notification.EditorUserId;
             someoneElseEditTime = DateTime.Now;
@@ -118,6 +125,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
     }
 
     protected abstract string GetPageEndpoint();
+    protected abstract long GetCurrentUserId();
 
     protected override bool OnUpdateNotificationReceived(VersionedPageDTO newData)
     {

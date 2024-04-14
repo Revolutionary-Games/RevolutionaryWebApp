@@ -1,6 +1,7 @@
 @page "/pages/{Id:long}"
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
 @inherits RevolutionaryWebApp.Client.Shared.CMS.EditablePageView
 @using RevolutionaryWebApp.Client.Services
 @using RevolutionaryWebApp.Shared.Models.Enums
@@ -18,8 +19,6 @@
                                    DeletePromptTitle="Delete this page?" OnDeleted="@OnDeleted"
                                    OnRestored="@OnRestored"/>
 
-            <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
-            <SimultaneousEditWarningShower UserId="@someoneElseEditId" AtTime="@someoneElseEditTime"/>
             <StatusMessageShower Message="@saveMessage" Type="@saveMessageType" OnClosed="@ClearSaveMessage"/>
 
             @if (Data.Visibility != PageVisibility.HiddenDraft)
@@ -33,6 +32,9 @@
 
             <PagePropertiesEditor Data="@Data"/>
 
+            <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
+            <SimultaneousEditWarningShower UserId="@someoneElseEditId" AtTime="@someoneElseEditTime"/>
+
             <PageEditorWithPreview Id="@Id" OriginalText="@Data.LatestContent" OnEdited="@OnEdited"/>
 
             <PagePublishingControls Data="@Data" OnPropertiesChanged="@OnPropertiesChanged"/>
@@ -43,6 +45,9 @@
                     Spinner="@processingSave">
                 Save Changes
             </Button>
+
+            <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
+            <SimultaneousEditWarningShower UserId="@someoneElseEditId" AtTime="@someoneElseEditTime"/>
 
             <PageEditFooter Data="@Data" />
 
@@ -67,6 +72,11 @@
     protected override string GetPageEndpoint()
     {
         return $"api/v1/Pages/{Id}";
+    }
+
+    protected override long GetCurrentUserId()
+    {
+        return CurrentUserInfo.CurrentUserIdIfExists;
     }
 
     protected override HttpClient AccessHttp()

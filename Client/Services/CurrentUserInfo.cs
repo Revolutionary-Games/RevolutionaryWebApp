@@ -58,6 +58,8 @@ public class CurrentUserInfo : INotificationHandler<UserUpdated>
     public string? Username => Info?.Name;
     public string? Email => Info?.Email;
 
+    public long CurrentUserIdIfExists => Info?.Id ?? -1;
+
     public bool HasGroup(GroupType groupType)
     {
         // Everyone has public access
