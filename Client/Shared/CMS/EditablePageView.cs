@@ -144,6 +144,13 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
                 return true;
             }
 
+            // Disallow switch to incorrect latest version (-1 is sent when the server sends an update but it hasn't
+            // loaded all the versions)
+            if (newData.VersionNumber < 0)
+            {
+                newData.VersionNumber = Data.VersionNumber;
+            }
+
             // Let the user know that some bad stuff is going to happen if they keep editing
             versionConflict = true;
             StateHasChanged();
@@ -241,6 +248,14 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         dataToSend.LatestContent = EditableContent ?? string.Empty;
         dataToSend.VersionNumber = editedVersion ?? dataToSend.VersionNumber;
 
+        // When content has been edited, we expect the version number to increase, this allows multiple edits in a
+        // row
+        int nextVersionNumber = dataToSend.VersionNumber;
+        if (dataToSend.LatestContent != Data.LatestContent)
+        {
+            ++nextVersionNumber;
+        }
+
         if (!string.IsNullOrEmpty(Data.LatestContent) && string.IsNullOrWhiteSpace(dataToSend.LatestContent))
         {
             saveMessage = "Cannot set new page content to blank when it wasn't blank previously";
@@ -279,6 +294,9 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
             editedProperties = false;
             editedText = false;
             userEditedContent = null;
+
+            if (editedVersion != null)
+                editedVersion = nextVersionNumber;
         }
 
         await InvokeAsync(StateHasChanged);

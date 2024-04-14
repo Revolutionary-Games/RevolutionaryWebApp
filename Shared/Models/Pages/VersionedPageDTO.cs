@@ -85,6 +85,7 @@ public class VersionedPageDTO : ClientSideTimedModel
             UpdatedAt = UpdatedAt,
             CreatedAt = CreatedAt,
             Title = Title,
+            Visibility = Visibility,
             Permalink = Permalink,
             PublishedAt = PublishedAt,
             CreatorId = CreatorId,
