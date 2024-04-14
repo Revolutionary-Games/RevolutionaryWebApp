@@ -26,6 +26,8 @@ public class LivePreviewController : Controller
     public async Task<IActionResult> Get([Required] long pageId)
     {
         var timer = new Stopwatch();
+        timer.Start();
+
         var page = await database.VersionedPages.FindAsync(pageId);
 
         if (page == null || page.Deleted)
