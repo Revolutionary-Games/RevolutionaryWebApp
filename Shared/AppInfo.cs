@@ -170,7 +170,7 @@ public static class AppInfo
 
     // When changed would be nice to also update the value in RevolutionaryWebApp.Server.csproj
     public const int Major = 3;
-    public const int Minor = 0;
+    public const int Minor = 1;
 
     public const int DefaultMaxLauncherLinks = 5;
 

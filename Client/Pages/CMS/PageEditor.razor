@@ -24,7 +24,7 @@
 
             @if (Data.Visibility != PageVisibility.HiddenDraft)
             {
-                <AccessLimited RequiredAccess="GroupType.SiteLayoutPublisher" OrHasOverride="GroupType.Admin">
+                <AccessLimited RequiredAccess="GroupType.SitePagePublisher" OrHasOverride="GroupType.Admin">
                     <AccessMissingContent>
                         <StatusMessageShower Message="You may not have permission to edit this non-draft page"/>
                     </AccessMissingContent>

@@ -139,6 +139,8 @@ public class PagesController : Controller
     [HttpPut("{id:long}")]
     public async Task<ActionResult> UpdatePage([Required] long id, [Required] [FromBody] VersionedPageDTO pageDTO)
     {
+        // Maybe a transaction here helps against unintended duplicate edits
+        var transaction = await database.Database.BeginTransactionAsync();
         var page = await database.VersionedPages.FindAsync(id);
 
         if (page == null || page.Deleted || page.Type != PageType.NormalPage)
@@ -146,7 +148,7 @@ public class PagesController : Controller
 
         if (page.Visibility != pageDTO.Visibility)
         {
-            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.SiteLayoutPublisher,
+            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.SitePageEditor,
                     AuthenticationScopeRestriction.None) &&
                 !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
             {
@@ -189,8 +191,7 @@ public class PagesController : Controller
 
             if (version != pageDTO.VersionNumber)
             {
-                return BadRequest(
-                    $"Page version mismatch. Someone has edited the page while you were editing it. " +
+                return BadRequest($"Page version mismatch. Someone has edited the page while you were editing it. " +
                     $"Your version: {pageDTO.VersionNumber} is not the expected: {version}. Please open a new tab, " +
                     $"copy your changes to it and save there. If this is a problem often it would be possible to add " +
                     $"automatic edit merging in most cases.");
@@ -265,6 +266,7 @@ public class PagesController : Controller
         }
 
         await database.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         page.OnEdited(jobClient);
 
@@ -285,7 +287,7 @@ public class PagesController : Controller
 
         if (page.Visibility != PageVisibility.HiddenDraft)
         {
-            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.SiteLayoutPublisher,
+            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.SitePagePublisher,
                     AuthenticationScopeRestriction.None) &&
                 !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
             {
@@ -321,7 +323,7 @@ public class PagesController : Controller
 
         if (page.Visibility != PageVisibility.HiddenDraft)
         {
-            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.SiteLayoutPublisher,
+            if (!HttpContext.HasAuthenticatedUserWithGroup(GroupType.SitePagePublisher,
                     AuthenticationScopeRestriction.None) &&
                 !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
             {
