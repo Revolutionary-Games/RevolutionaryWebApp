@@ -154,6 +154,26 @@ public class PagesController : Controller
             }
         }
 
+        if (pageDTO.Visibility != PageVisibility.HiddenDraft)
+        {
+            // Needs to have a permalink when a page is visible
+            if (string.IsNullOrWhiteSpace(pageDTO.Permalink))
+            {
+                // Reuse existing permalink if there is one
+                if (string.IsNullOrWhiteSpace(page.Permalink))
+                {
+                    page.Permalink = VersionedPageDTO.GeneratePermalinkFromTitle(pageDTO.Title);
+                }
+
+                pageDTO.Permalink = page.Permalink;
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(pageDTO.Permalink))
+        {
+            // Don't override permalink if it is set already
+            pageDTO.Permalink = page.Permalink;
+        }
+
         if (await database.VersionedPages.AsNoTracking().FirstOrDefaultAsync(p => p.Id != page.Id &&
                 (p.Title == pageDTO.Title || (p.Permalink != null && p.Permalink == pageDTO.Permalink))) != null)
         {

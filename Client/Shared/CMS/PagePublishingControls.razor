@@ -39,7 +39,9 @@
                     <input type="text" class="form-control" id="@($"editedPage{Data.Id}PublishLink")" @bind="Data.Permalink"
                            @bind:after="@ReportChanges"
                            placeholder="Permalink (optional)">
-                    <div class="form-text">Permalink is usually recommended to be left blank to automatically generate</div>
+                    <div class="form-text">
+                        Automatic permalink: @VersionedPageDTO.GeneratePermalinkFromTitle(Data.Title)
+                    </div>
                 </div>
             </div>
 
