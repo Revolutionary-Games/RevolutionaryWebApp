@@ -36,7 +36,21 @@
 
     <div class="row">
         <div class="col-md-8 col-xxl-8 mb-3">
-            <label class="form-label">Current Permalink</label>
+            <label class="form-label">
+                Current Permalink
+                @if (Data.Visibility != PageVisibility.HiddenDraft && !string.IsNullOrWhiteSpace(Data.Permalink))
+                {
+                    switch (Data.Type)
+                    {
+                        case PageType.NormalPage:
+                            <a href="@($"/live/{Data.Permalink}")" target="_blank">(visit)</a>
+                            break;
+                        default:
+                            <span>(unknown link type)</span>
+                            break;
+                    }
+                }
+            </label>
             <div class="form-control">@(Data.Permalink ?? "Not set yet")</div>
             <div class="form-text">Permalink should not be updated as it breaks all existing links.</div>
         </div>
