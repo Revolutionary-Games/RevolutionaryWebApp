@@ -1,15 +1,21 @@
 namespace RevolutionaryWebApp.Server.Services;
 
+using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Controllers.Pages;
 using Microsoft.Extensions.Configuration;
 using Models.Pages;
+using Shared;
 using Shared.Services;
 
 public interface IPageRenderer
 {
+    internal const string NotFoundPageTitle = "404 - Not Found";
+    internal const string NotFoundPageText = "<p>No page exists at this address, please double check the link</p>";
+
     public ValueTask<RenderedPage> RenderPage(VersionedPage page, Stopwatch totalTimer);
+    public RenderedPage RenderNotFoundPage(Stopwatch totalTimer);
 }
 
 public class PageRenderer : IPageRenderer
@@ -37,6 +43,9 @@ public class PageRenderer : IPageRenderer
         {
             // TODO: control heading option in the versioned page
             ShowHeading = true,
+
+            // TODO: add option for this as well in the page
+            ShowLogo = page.Permalink == AppInfo.IndexPermalinkName,
         };
 
         if (!string.IsNullOrEmpty(serverName))
@@ -45,5 +54,22 @@ public class PageRenderer : IPageRenderer
         }
 
         return ValueTask.FromResult(result);
+    }
+
+    public RenderedPage RenderNotFoundPage(Stopwatch totalTimer)
+    {
+        var result = new RenderedPage(IPageRenderer.NotFoundPageTitle, IPageRenderer.NotFoundPageText, DateTime.UtcNow,
+            totalTimer.Elapsed)
+        {
+            ShowHeading = true,
+            ShowLogo = true,
+        };
+
+        if (!string.IsNullOrEmpty(serverName))
+        {
+            result.ByServer = serverName;
+        }
+
+        return result;
     }
 }

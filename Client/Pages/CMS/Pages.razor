@@ -45,8 +45,11 @@
                         <th scope="row"><NavLink href="@($"pages/{item.Id}")">@item.Title.Truncate(70)</NavLink></th>
                         @if (!string.IsNullOrEmpty(item.Permalink))
                         {
-                            // TODO: this needs to fetch the live site base URL from somewhere
-                            <td><a href="@($"/{item.Permalink}")" target="_blank">@item.Permalink.Truncate()</a></td>
+                            <td>
+                                <a href="@($"/live/{item.Permalink}")" target="_blank">
+                                    @item.Permalink.Truncate()
+                                </a>
+                            </td>
                         }
                         else if(item.Visibility != PageVisibility.HiddenDraft)
                         {
@@ -81,7 +84,7 @@
                         <td>
                             @if (item.PublishedAt != null)
                             {
-                            <RecentTimeShortener Time="@item.PublishedAt.Value"/>
+                                <RecentTimeShortener Time="@item.PublishedAt.Value"/>
                             }
                         </td>
 

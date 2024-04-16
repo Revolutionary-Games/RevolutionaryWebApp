@@ -361,7 +361,7 @@ table.non-fixed {
 
 .main-page {
     background-color: rgba(43,43,43,0.9);
-    padding-top: 10px;
+    padding-top: 15px;
     border-radius: 3px;
 }
 
@@ -369,6 +369,7 @@ table.non-fixed {
     color: #a0a0a0;
     font-size: small;
     margin: 10px 5px 10px 5px;
+    text-shadow: black 1px 1px;
 }
 
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */

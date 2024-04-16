@@ -430,9 +430,6 @@ public class Startup
                 return Task.CompletedTask;
             });
 
-            // Map dynamic pages
-            // endpoints.MapFallbackToPage("/live/{*param}", "/_PageLive");
-
             // Fix for accessing these with ".something" as a URL suffix
             endpoints.MapFallbackToPage("/files/{*param}", "/_Host");
             endpoints.MapFallbackToPage("/lfs/{*param}", "/_Host");

@@ -19,6 +19,8 @@ public class RenderedPage
 
     public bool ShowHeading { get; set; }
 
+    public bool ShowLogo { get; set; }
+
     public string Title { get; set; }
 
     public string RenderedHtml { get; set; }
@@ -29,4 +31,6 @@ public class RenderedPage
     public TimeSpan RenderTime { get; set; }
 
     public DateTime RenderedAt { get; set; } = DateTime.UtcNow;
+
+    public string? CanonicalUrl { get; set; }
 }

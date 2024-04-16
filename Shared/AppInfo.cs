@@ -250,4 +250,7 @@ public static class AppInfo
 
     public static readonly TimeSpan TimeBetweenReportEditingPage = TimeSpan.FromSeconds(30);
     public static readonly TimeSpan OtherUserEditStaleAfter = TimeSpan.FromMinutes(9);
+
+    public static readonly TimeSpan NotFoundPageCacheTime = TimeSpan.FromMinutes(2);
+    public static readonly TimeSpan MaxPageCacheTime = TimeSpan.FromDays(14);
 }

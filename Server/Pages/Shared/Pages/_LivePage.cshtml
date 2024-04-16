@@ -1,10 +1,12 @@
 @using System.Globalization
+@using Microsoft.Extensions.Configuration
 @model RevolutionaryWebApp.Server.Controllers.Pages.RenderedPage
+@inject IConfiguration Configuration
 @{
     Layout = "_PageNormalLayout";
 
     if (Model.ShowHeading)
-        ViewData["Title"] = Model.Title + " (preview)";
+        ViewData["Title"] = Model.Title;
 
     ViewData["Renderer"] = Model.ByServer;
     ViewData["Duration"] = Model.RenderTime.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
@@ -13,7 +15,22 @@
 
     ViewData["ShowLogo"] = Model.ShowLogo;
 
-    ViewData["AssetsBase"] = "";
+    ViewData["Canonical"] = Model.CanonicalUrl;
+
+    var assetCDN = Configuration["CDN:ContentBase"];
+    if (!string.IsNullOrEmpty(assetCDN))
+    {
+        if (assetCDN.EndsWith('/'))
+            throw new Exception("Content CDN base shouldn't end with a slash");
+
+        ViewData["AssetsBase"] = assetCDN;
+    }
+    else
+    {
+        ViewData["AssetsBase"] = "";
+    }
+
+    /* TODO: opengraph metadata */
 }
 
 <div id="main-outlet" class="markdown">

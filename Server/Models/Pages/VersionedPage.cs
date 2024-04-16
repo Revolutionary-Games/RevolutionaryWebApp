@@ -163,4 +163,38 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
         yield return new Tuple<SerializedNotification, string>(new VersionedPageUpdated { Item = GetDTO(-1) },
             prefix + Id);
     }
+
+    public TimeSpan CalculatedDesiredCacheTime()
+    {
+        var timeSinceUpdate = DateTime.UtcNow - UpdatedAt;
+
+        // Progressively increasing cache time when the page is older. We should have a working cache clean but just
+        // for safety new pages that might need a quick fix aren't cached for super long
+        if (timeSinceUpdate < TimeSpan.FromMinutes(10))
+        {
+            return TimeSpan.FromMinutes(2);
+        }
+
+        if (timeSinceUpdate < TimeSpan.FromMinutes(30))
+        {
+            return TimeSpan.FromMinutes(10);
+        }
+
+        if (timeSinceUpdate < TimeSpan.FromHours(12))
+        {
+            return TimeSpan.FromHours(1);
+        }
+
+        if (timeSinceUpdate < TimeSpan.FromDays(1))
+        {
+            return TimeSpan.FromHours(4);
+        }
+
+        if (timeSinceUpdate < TimeSpan.FromDays(8))
+        {
+            return TimeSpan.FromDays(1);
+        }
+
+        return AppInfo.MaxPageCacheTime;
+    }
 }
