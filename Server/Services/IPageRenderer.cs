@@ -42,7 +42,7 @@ public class PageRenderer : IPageRenderer
         var result = new RenderedPage(page.Title, rendered, page.UpdatedAt, totalTimer.Elapsed)
         {
             // TODO: control heading option in the versioned page
-            ShowHeading = true,
+            ShowHeading = page.Permalink != AppInfo.IndexPermalinkName,
 
             // TODO: add option for this as well in the page
             ShowLogo = page.Permalink == AppInfo.IndexPermalinkName,
