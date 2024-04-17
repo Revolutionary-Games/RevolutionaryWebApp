@@ -128,6 +128,7 @@ public abstract class BasePageController : Controller
             Type = HandledPageType,
             CreatorId = user.Id,
             LastEditComment = "Initial version",
+            LastEditorId = user.Id,
         };
 
         await database.VersionedPages.AddAsync(page);
