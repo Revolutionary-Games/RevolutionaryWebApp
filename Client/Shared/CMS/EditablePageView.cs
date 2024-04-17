@@ -248,6 +248,9 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         dataToSend.LatestContent = EditableContent ?? string.Empty;
         dataToSend.VersionNumber = editedVersion ?? dataToSend.VersionNumber;
 
+        // TODO: edit comment setting
+        dataToSend.LastEditComment = null;
+
         // When content has been edited, we expect the version number to increase, this allows multiple edits in a
         // row
         int nextVersionNumber = dataToSend.VersionNumber;
