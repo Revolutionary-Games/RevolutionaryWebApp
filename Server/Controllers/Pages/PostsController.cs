@@ -10,21 +10,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Models;
-using Models.Pages;
 using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
 
 /// <summary>
-///   Main controller for <see cref="VersionedPage"/> handling when used as static pages
+///   Controller for managing site posts.
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
-public class PagesController : BasePageController
+public class PostsController : BasePageController
 {
-    private readonly ILogger<PagesController> logger;
+    private readonly ILogger<PostsController> logger;
 
-    public PagesController(ILogger<PagesController> logger, NotificationsEnabledDb database,
+    public PostsController(ILogger<PostsController> logger, NotificationsEnabledDb database,
         IBackgroundJobClient jobClient, IHubContext<NotificationsHub, INotifications> notifications) : base(database,
         jobClient, notifications)
     {
@@ -32,12 +31,12 @@ public class PagesController : BasePageController
     }
 
     protected override ILogger Logger => logger;
-    protected override PageType HandledPageType => PageType.NormalPage;
+    protected override PageType HandledPageType => PageType.Post;
 
-    protected override GroupType PrimaryPublisherGroupType => GroupType.SitePagePublisher;
+    protected override GroupType PrimaryPublisherGroupType => GroupType.PostPublisher;
     protected override GroupType ExtraAccessGroup => GroupType.Admin;
 
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.PostEditor, AllowDevelopers = true)]
     public override Task<PagedResult<VersionedPageInfo>> GetList([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize, bool deleted = false)
@@ -45,31 +44,31 @@ public class PagesController : BasePageController
         return base.GetList(sortColumn, sortDirection, page, pageSize, deleted);
     }
 
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.PostEditor, AllowDevelopers = true)]
     public override Task<ActionResult<VersionedPageDTO>> GetSingle([Required] long id)
     {
         return base.GetSingle(id);
     }
 
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.PostEditor, AllowDevelopers = true)]
     public override Task<ActionResult> CreatePage([Required] [FromBody] VersionedPageDTO pageDTO)
     {
         return base.CreatePage(pageDTO);
     }
 
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.PostEditor, AllowDevelopers = true)]
     public override Task<ActionResult> UpdatePage([Required] long id, [Required] [FromBody] VersionedPageDTO pageDTO)
     {
         return base.UpdatePage(id, pageDTO);
     }
 
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.PostEditor, AllowDevelopers = true)]
     public override Task<ActionResult> DeleteResource([Required] long id)
     {
         return base.DeleteResource(id);
     }
 
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.PostEditor, AllowDevelopers = true)]
     public override Task<ActionResult> RestoreResource([Required] long id)
     {
         return base.RestoreResource(id);

@@ -1,17 +1,176 @@
 @page "/posts"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
 @using RevolutionaryWebApp.Shared.Models.Enums
-<AccessLimited RequiredAccess="GroupType.Developer">
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Client.Services
+@using System.Threading
+@using RevolutionaryWebApp.Shared.Models.Pages
+@using SharedBase.Utilities
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<PageListUpdated>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.Pages.VersionedPageInfo>
+<AccessLimited RequiredAccess="GroupType.PostEditor" OrHasOverride="GroupType.Developer">
     <h3>Posts</h3>
 
     <p>
         These are timed posts that appear on the main website as a news feed in chronological order.
     </p>
 
-    <p>TODO: implement</p>
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async e => await ChangePage(e)"
+                        OnSortChanged="async column => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns" UseNonFixedColumns="@true"
+                        ShowNoContent="@NoItemsFound">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    <tr @key="item.Id">
+                        <th scope="row">
+                            <NavLink href="@($"posts/{item.Id}")">@item.Title.Truncate(70)</NavLink>
+                        </th>
+                        @if (!string.IsNullOrEmpty(item.Permalink))
+                        {
+                            <td>
+                                <a href="@($"/live/{item.Permalink}")" target="_blank">
+                                    @item.Permalink.Truncate()
+                                </a>
+                            </td>
+                        }
+                        else if (item.Visibility != PageVisibility.HiddenDraft)
+                        {
+                            <td>MISSING</td>
+                        }
+                        else
+                        {
+                            <td></td>
+                        }
+
+                        <td>
+                            @switch (item.Visibility)
+                            {
+                                case PageVisibility.HiddenDraft:
+                                    <span class="badge bg-secondary">draft</span>
+                                    break;
+                                case PageVisibility.Public:
+                                    break;
+                                case PageVisibility.VisibleToDevelopers:
+                                    <span class="badge bg-warning">developer-only</span>
+                                    break;
+                                default:
+                                    <span>@item.Visibility.ToString()</span>
+                                    break;
+                            }
+                        </td>
+
+                        <td>
+                            <RecentTimeShortener Time="@item.UpdatedAt"/>
+                        </td>
+                        <td>
+                            <UsernameDisplayer UserId="@item.LastEditorId"/>
+                        </td>
+                        <td>
+                            <RecentTimeShortener Time="@item.CreatedAt"/>
+                        </td>
+
+                        <td>
+                            @if (item.PublishedAt != null)
+                            {
+                                <RecentTimeShortener Time="@item.PublishedAt.Value"/>
+                            }
+                        </td>
+
+                        <td>
+                            <UsernameDisplayer UserId="@item.CreatorId"/>
+                        </td>
+                    </tr>
+                }
+            }
+        </PaginatedTable>
+    }
+
+    <hr/>
+
+    <NewPageCreator NewPageEditPathPrefix="/posts/"/>
+
+    <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/Posts?deleted=true"
+                           RestoreEndpoint="api/v1/Posts/{0}/restore"/>
 
     <DevCenterTitle>Posts List</DevCenterTitle>
 </AccessLimited>
 
 @code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Title", true),
+        new TableColumn("Live Link", false),
+        new TableColumn("State", false),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Edited By", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Published At", false, "PublishedAt"),
+        new TableColumn("CreatedBy", false),
+    };
+
+    public Posts() : base(new SortHelper("CreatedAt", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CurrentUserInfo.HasGroup(GroupType.PostEditor) || CurrentUserInfo.HasGroup(GroupType.Developer))
+            await NotificationHandler.Register(this);
+
+        await base.OnInitializedAsync();
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(PageListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.PostListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<VersionedPageInfo>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<VersionedPageInfo>>(QueryHelpers.AddQueryString("api/v1/Posts", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
+    {
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
 
 }

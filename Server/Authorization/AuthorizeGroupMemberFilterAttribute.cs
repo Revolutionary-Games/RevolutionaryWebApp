@@ -61,6 +61,9 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
     /// </summary>
     public bool AllowAdmin { get; set; }
 
+    // TODO: should these be refactored to a general fallback group check?
+    public bool AllowDevelopers { get; set; }
+
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var result =
@@ -75,6 +78,13 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
 
                 if (AllowAdmin &&
                     context.HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, requiredRestriction))
+                {
+                    break;
+                }
+
+                if (AllowDevelopers &&
+                    context.HttpContext.HasAuthenticatedUserWithAccessLevelExtended(GroupType.Developer,
+                        requiredRestriction) == HttpContextAuthorizationExtensions.AuthenticationResult.Success)
                 {
                     break;
                 }

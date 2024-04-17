@@ -15,6 +15,9 @@ using Services;
 using Shared;
 using Shared.Models.Pages;
 
+/// <summary>
+///   Serves live, rendered, versions of static main site pages and news posts
+/// </summary>
 [Route("live")]
 public class LiveController : Controller
 {
@@ -62,8 +65,8 @@ public class LiveController : Controller
         }
 
         var page = await database.VersionedPages.AsNoTracking().FirstOrDefaultAsync(p =>
-            p.Permalink == permalink && p.Type == PageType.NormalPage && p.Visibility == PageVisibility.Public &&
-            !p.Deleted);
+            p.Permalink == permalink && (p.Type == PageType.NormalPage || p.Type == PageType.Post) &&
+            p.Visibility == PageVisibility.Public && !p.Deleted);
 
         if (page == null)
         {
@@ -85,6 +88,9 @@ public class LiveController : Controller
 
             return View("Pages/_LivePage", pageRenderer.RenderNotFoundPage(timer));
         }
+
+        // TODO: try to find in redis and only render if not rendered in the past 15 minutes (note when added page
+        // updates should flush the cache)
 
         // No caching in debug mode
 #if DEBUG
