@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Models;
 using Services;
 using Shared.Models.Enums;
+using Shared.Models.Pages;
 
 [Route("livePreview")]
 public class LivePreviewController : Controller
@@ -33,6 +34,11 @@ public class LivePreviewController : Controller
         if (page == null || page.Deleted)
         {
             return NotFound("No page to preview exists with the ID");
+        }
+
+        if (page.Type != PageType.Post && page.Type != PageType.NormalPage)
+        {
+            return BadRequest("Type of page is not compatible with this preview");
         }
 
         var rendered = await pageRenderer.RenderPage(page, timer);

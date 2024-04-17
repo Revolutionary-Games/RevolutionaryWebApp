@@ -1,0 +1,100 @@
+@page "/posts/{Id:long}"
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
+@inherits RevolutionaryWebApp.Client.Shared.CMS.EditablePageView
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Models.Pages
+@using RevolutionaryWebApp.Shared.Notifications
+
+<AccessLimited RequiredAccess="GroupType.PostEditor" OrHasOverride="GroupType.Developer">
+    <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
+        @if (Data != null)
+        {
+            <PageEditTitle Data="@Data" TypeName="Post"/>
+
+            <ResourceDeleteButtons Deleted="@Data.Deleted" Name="@Data.Title" Id="@Data.Id"
+                                   DeleteURLBase="api/v1/Posts"
+                                   DeletePromptTitle="Delete this post?" OnDeleted="@OnDeleted"
+                                   OnRestored="@OnRestored"/>
+
+            <StatusMessageShower Message="@saveMessage" Type="@saveMessageType" OnClosed="@ClearSaveMessage"/>
+
+            @if (Data.Visibility != PageVisibility.HiddenDraft)
+            {
+                <AccessLimited RequiredAccess="GroupType.PostPublisher" OrHasOverride="GroupType.Admin">
+                    <AccessMissingContent>
+                        <StatusMessageShower Message="You may not have permission to edit this published post"/>
+                    </AccessMissingContent>
+                </AccessLimited>
+            }
+
+            <PagePropertiesEditor Data="@Data"/>
+
+            <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
+            <SimultaneousEditWarningShower UserId="@someoneElseEditId" AtTime="@someoneElseEditTime"/>
+
+            <PageEditorWithPreview Id="@Id" OriginalText="@Data.LatestContent" OnEdited="@OnEdited"/>
+
+            <PagePublishingControls Data="@Data" OnPropertiesChanged="@OnPropertiesChanged"/>
+
+            <p>TODO: edit comment field</p>
+
+            <StatusMessageShower Message="@saveMessage" Type="@saveMessageType" OnClosed="@ClearSaveMessage"/>
+
+            <Button class="mt-1 mb-2" Enabled="@CanSaveChanges" OnPressed="@SaveChanges"
+                    Spinner="@processingSave">
+                Save Changes
+            </Button>
+
+            <br/>
+            <a href="@($"/livePreview?pageId={Id}")" target="_blank">Preview Page (requires saving first)</a>
+
+            <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
+            <SimultaneousEditWarningShower UserId="@someoneElseEditId" AtTime="@someoneElseEditTime"/>
+
+            <PageEditFooter Data="@Data" />
+
+            <p>TODO: page version history</p>
+
+            <DevCenterTitle>Edit Post @Id</DevCenterTitle>
+        }
+    </SingleResourceDisplayer>
+
+
+</AccessLimited>
+
+@code {
+
+    protected override PageType EditedPageType => PageType.Post;
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister((INotificationHandler<VersionedPageUpdated>)this);
+        await NotificationHandler.Unregister((INotificationHandler<PageEditNotice>)this);
+    }
+
+    protected override string GetPageEndpoint()
+    {
+        return $"api/v1/Posts/{Id}";
+    }
+
+    protected override long GetCurrentUserId()
+    {
+        return CurrentUserInfo.CurrentUserIdIfExists;
+    }
+
+    protected override HttpClient AccessHttp()
+    {
+        return Http;
+    }
+
+    protected override async Task OnFirstDataReceived()
+    {
+        await NotificationHandler.Register((INotificationHandler<VersionedPageUpdated>)this);
+        await NotificationHandler.Register((INotificationHandler<PageEditNotice>)this);
+    }
+
+}
