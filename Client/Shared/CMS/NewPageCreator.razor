@@ -61,6 +61,10 @@
     [EditorRequired]
     public string NewPageEditPathPrefix { get; set; } = string.Empty;
 
+    [Parameter]
+    [EditorRequired]
+    public string CreateAPIEndpoint { get; set; } = string.Empty;
+
     private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newTitle);
 
     private void ToggleCreateNew()
@@ -103,7 +107,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/Pages", new VersionedPageDTO
+            result = await Http.PostAsJsonAsync(CreateAPIEndpoint, new VersionedPageDTO
             {
                 Title = newTitle,
                 Visibility = PageVisibility.HiddenDraft,

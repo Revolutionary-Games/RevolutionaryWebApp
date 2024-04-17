@@ -97,7 +97,7 @@
 
     <hr />
 
-    <NewPageCreator NewPageEditPathPrefix="/pages/" />
+    <NewPageCreator NewPageEditPathPrefix="/pages/" CreateAPIEndpoint="api/v1/Pages" />
 
     <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/Pages?deleted=true"
                            RestoreEndpoint="api/v1/Pages/{0}/restore" />

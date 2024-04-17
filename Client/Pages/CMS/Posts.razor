@@ -106,7 +106,7 @@
 
     <hr/>
 
-    <NewPageCreator NewPageEditPathPrefix="/posts/"/>
+    <NewPageCreator NewPageEditPathPrefix="/posts/" CreateAPIEndpoint="api/v1/Posts"/>
 
     <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/Posts?deleted=true"
                            RestoreEndpoint="api/v1/Posts/{0}/restore"/>
