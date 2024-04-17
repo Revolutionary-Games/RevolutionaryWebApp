@@ -9,7 +9,7 @@
 
 <h3>User: @Id</h3>
 
-<AccessLimited RequiredAccess="@GroupType.RestrictedUser">
+<AccessLimited RequiredAccess="@GroupType.User" OrHasOverride="GroupType.RestrictedUser">
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {
