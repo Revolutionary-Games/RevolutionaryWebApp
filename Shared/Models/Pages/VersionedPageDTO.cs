@@ -62,7 +62,7 @@ public class VersionedPageDTO : ClientSideTimedModel
             {
                 builder.Append(character);
             }
-            else if (character is ' ' or (>= '{' and <= '~') or '/' or '\\' or (>= '(' and <= ',') or '&' or ';')
+            else if (character is ' ' or (>= '{' and <= '~') or '/' or '\\' or (>= '(' and <= ',') or '&' or ';' or '.')
             {
                 if (builder[^1] != '-')
                     builder.Append('-');
