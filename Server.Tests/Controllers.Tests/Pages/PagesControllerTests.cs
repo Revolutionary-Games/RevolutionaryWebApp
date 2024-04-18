@@ -25,7 +25,7 @@ using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseWithNotifications>, System.IDisposable
+public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseWithNotifications>, IDisposable
 {
     private readonly XunitLogger<PagesController> logger;
     private readonly SimpleFewUsersDatabaseWithNotifications fixture;
