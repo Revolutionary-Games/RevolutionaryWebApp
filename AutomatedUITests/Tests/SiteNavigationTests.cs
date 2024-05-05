@@ -1,5 +1,6 @@
 namespace AutomatedUITests.Tests;
 
+using System.Threading.Tasks;
 using Fixtures;
 using RevolutionaryWebApp.Server;
 using Xunit;
@@ -16,7 +17,7 @@ public class SiteNavigationTests : IClassFixture<WebHostServerFixture<Startup>>,
     }
 
     [Fact]
-    public async void Navigation_MainPageLoadsAndCanNavigate()
+    public async Task Navigation_MainPageLoadsAndCanNavigate()
     {
         var root = server.RootUri;
 

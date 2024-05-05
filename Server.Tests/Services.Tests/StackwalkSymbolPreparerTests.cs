@@ -29,7 +29,7 @@ public sealed class StackwalkSymbolPreparerTests : IClassFixture<SimpleFewDebugS
     }
 
     [Fact]
-    public async void SymbolPreparer_CreatesRightFolderStructure()
+    public async Task SymbolPreparer_CreatesRightFolderStructure()
     {
         var downloadUrlsMock = Substitute.For<IGeneralRemoteDownloadUrls>();
         downloadUrlsMock.Configured.Returns(true);
