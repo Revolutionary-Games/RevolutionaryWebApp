@@ -3,12 +3,10 @@ namespace RevolutionaryWebApp.Server.Controllers.Pages;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
 using DevCenterCommunication.Models;
-using DiffPlex;
 using Filters;
 using Hangfire;
 using Hubs;
@@ -29,16 +27,16 @@ using Utilities;
 /// </summary>
 public abstract class BasePageController : Controller
 {
-    protected readonly NotificationsEnabledDb database;
-    protected readonly IBackgroundJobClient jobClient;
-    protected readonly IHubContext<NotificationsHub, INotifications> notifications;
+    protected readonly NotificationsEnabledDb Database;
+    protected readonly IBackgroundJobClient JobClient;
+    protected readonly IHubContext<NotificationsHub, INotifications> Notifications;
 
     public BasePageController(NotificationsEnabledDb database, IBackgroundJobClient jobClient,
         IHubContext<NotificationsHub, INotifications> notifications)
     {
-        this.database = database;
-        this.jobClient = jobClient;
-        this.notifications = notifications;
+        Database = database;
+        JobClient = jobClient;
+        Notifications = notifications;
     }
 
     protected abstract ILogger Logger { get; }
@@ -61,7 +59,7 @@ public abstract class BasePageController : Controller
 
         try
         {
-            query = database.VersionedPages.AsNoTracking().OrderBy(sortColumn, sortDirection)
+            query = Database.VersionedPages.AsNoTracking().OrderBy(sortColumn, sortDirection)
                 .Where(p => p.Deleted == deleted && p.Type == HandledPageType);
         }
         catch (ArgumentException e)
@@ -92,12 +90,12 @@ public abstract class BasePageController : Controller
     [HttpGet("{id:long}")]
     public virtual async Task<ActionResult<VersionedPageDTO>> GetSingle([Required] long id)
     {
-        var page = await database.VersionedPages.FindAsync(id);
+        var page = await Database.VersionedPages.FindAsync(id);
 
         if (page == null || page.Type != HandledPageType)
             return NotFound();
 
-        var version = await page.GetCurrentVersion(database);
+        var version = await page.GetCurrentVersion(Database);
 
         return page.GetDTO(version);
     }
@@ -112,7 +110,7 @@ public abstract class BasePageController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
-        if (await database.VersionedPages.AsNoTracking().FirstOrDefaultAsync(p =>
+        if (await Database.VersionedPages.AsNoTracking().FirstOrDefaultAsync(p =>
                 p.Title == pageDTO.Title || (p.Permalink != null && p.Permalink == pageDTO.Permalink)) != null)
         {
             return BadRequest("Page with the given title or permalink already exists");
@@ -131,16 +129,16 @@ public abstract class BasePageController : Controller
             LastEditorId = user.Id,
         };
 
-        await database.VersionedPages.AddAsync(page);
+        await Database.VersionedPages.AddAsync(page);
 
-        await database.ActionLogEntries.AddAsync(
+        await Database.ActionLogEntries.AddAsync(
             new ActionLogEntry($"New page (\"{page.Title.Truncate()}\" type: {page.Type}) created")
             {
                 PerformedById = user.Id,
                 Extended = $"Title: {page.Title}, permalink: {page.Permalink}",
             });
 
-        await database.SaveChangesAsync();
+        await Database.SaveChangesAsync();
 
         return Ok(page.Id.ToString());
     }
@@ -150,8 +148,8 @@ public abstract class BasePageController : Controller
         [Required] [FromBody] VersionedPageDTO pageDTO)
     {
         // Maybe a transaction here helps against unintended duplicate edits
-        var transaction = await database.Database.BeginTransactionAsync();
-        var page = await database.VersionedPages.FindAsync(id);
+        var transaction = await Database.Database.BeginTransactionAsync();
+        var page = await Database.VersionedPages.FindAsync(id);
 
         if (page == null || page.Deleted || page.Type != HandledPageType)
             return NotFound();
@@ -192,7 +190,7 @@ public abstract class BasePageController : Controller
         if (pageDTO.Permalink != null && !ValidatePermalink(pageDTO.Permalink, out var fail))
             return fail;
 
-        if (await database.VersionedPages.AsNoTracking().FirstOrDefaultAsync(p => p.Id != page.Id &&
+        if (await Database.VersionedPages.AsNoTracking().FirstOrDefaultAsync(p => p.Id != page.Id &&
                 (p.Title == pageDTO.Title || (p.Permalink != null && p.Permalink == pageDTO.Permalink))) != null)
         {
             return BadRequest("Page with the given updated title or permalink already exists");
@@ -203,7 +201,7 @@ public abstract class BasePageController : Controller
         if (pageDTO.LatestContent != page.LatestContent)
         {
             // Updating page content
-            int version = await page.GetCurrentVersion(database);
+            int version = await page.GetCurrentVersion(Database);
 
             if (version != pageDTO.VersionNumber)
             {
@@ -229,22 +227,17 @@ public abstract class BasePageController : Controller
             // Added a new version, create a version from the old one
             if (!string.IsNullOrWhiteSpace(previousContent))
             {
-                // Create edit history from the previous version
-                var diff = Differ.Instance.CreateCharacterDiffs(page.LatestContent, previousContent, false);
+                // Create edit history from the previous version to preserve the old content in case it needs to be
+                // reverted to
+                var previousVersion = page.CreatePreviousVersion(version, previousContent);
+                previousVersion.EditedById = previousAuthor;
+                previousVersion.EditComment = previousComment;
 
-                var edit = new PageVersion(page, version,
-                    JsonSerializer.Serialize(new DiffData(diff),
-                        new JsonSerializerOptions(JsonSerializerDefaults.Web)))
-                {
-                    EditedById = previousAuthor,
-                    EditComment = previousComment,
-                };
-
-                await database.PageVersions.AddAsync(edit);
+                await Database.PageVersions.AddAsync(previousVersion);
 
                 ++version;
 
-                await database.ActionLogEntries.AddAsync(new ActionLogEntry(
+                await Database.ActionLogEntries.AddAsync(new ActionLogEntry(
                     $"Page {page.Id} (\"{page.Title.Truncate()}\") edited, version is now: {version}",
                     description)
                 {
@@ -254,7 +247,7 @@ public abstract class BasePageController : Controller
             else
             {
                 // This is the initial version / replaces the previous version as it was empty
-                await database.ActionLogEntries.AddAsync(new ActionLogEntry(
+                await Database.ActionLogEntries.AddAsync(new ActionLogEntry(
                     $"Page {page.Id} (\"{page.Title.Truncate()}\") edited, last version was blank, " +
                     $"version is now: {version}", description)
                 {
@@ -262,7 +255,7 @@ public abstract class BasePageController : Controller
                 });
             }
 
-            await EditNotificationsController.SendEditNotice(notifications, user, page.Id, true);
+            await EditNotificationsController.SendEditNotice(Notifications, user, page.Id, true);
         }
         else
         {
@@ -274,17 +267,17 @@ public abstract class BasePageController : Controller
 
             page.BumpUpdatedAt();
 
-            await database.ActionLogEntries.AddAsync(
+            await Database.ActionLogEntries.AddAsync(
                 new ActionLogEntry($"Page {page.Id} (\"{page.Title.Truncate()}\") properties updated", description)
                 {
                     PerformedById = user.Id,
                 });
         }
 
-        await database.SaveChangesAsync();
+        await Database.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        page.OnEdited(jobClient);
+        page.OnEdited(JobClient);
 
         return Ok();
     }
@@ -292,7 +285,7 @@ public abstract class BasePageController : Controller
     [HttpDelete("{id:long}")]
     public virtual async Task<ActionResult> DeleteResource([Required] long id)
     {
-        var page = await database.VersionedPages.FindAsync(id);
+        var page = await Database.VersionedPages.FindAsync(id);
 
         if (page == null || page.Type != HandledPageType)
             return NotFound();
@@ -313,13 +306,13 @@ public abstract class BasePageController : Controller
         page.Deleted = true;
         page.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(
+        await Database.ActionLogEntries.AddAsync(
             new ActionLogEntry($"Page {page.Id} (\"{page.Title.Truncate()}\") deleted")
             {
                 PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
             });
 
-        await database.SaveChangesAsync();
+        await Database.SaveChangesAsync();
 
         return Ok();
     }
@@ -327,7 +320,7 @@ public abstract class BasePageController : Controller
     [HttpPost("{id:long}/restore")]
     public virtual async Task<ActionResult> RestoreResource([Required] long id)
     {
-        var page = await database.VersionedPages.FindAsync(id);
+        var page = await Database.VersionedPages.FindAsync(id);
 
         if (page == null || page.Type != HandledPageType)
             return NotFound();
@@ -348,13 +341,13 @@ public abstract class BasePageController : Controller
         page.Deleted = false;
         page.BumpUpdatedAt();
 
-        await database.ActionLogEntries.AddAsync(
+        await Database.ActionLogEntries.AddAsync(
             new ActionLogEntry($"Page {page.Id} (\"{page.Title.Truncate()}\") restored")
             {
                 PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
             });
 
-        await database.SaveChangesAsync();
+        await Database.SaveChangesAsync();
 
         return Ok();
     }

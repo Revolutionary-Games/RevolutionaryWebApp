@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <UserSecretsId>RevolutionaryWebApp.Server.Tests-d590b09d-2b5b-4525-94b4-8bd4fadf732f</UserSecretsId>
-    <LangVersion>10</LangVersion>
+    <LangVersion>11</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 

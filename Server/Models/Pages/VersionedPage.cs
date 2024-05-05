@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using DiffPlex;
 using Hangfire;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -162,6 +164,15 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
 
         yield return new Tuple<SerializedNotification, string>(new VersionedPageUpdated { Item = GetDTO(-1) },
             prefix + Id);
+    }
+
+    public PageVersion CreatePreviousVersion(int currentVersion, string oldText)
+    {
+        var diff = Differ.Instance.CreateLineDiffs(LatestContent, oldText, false);
+
+        return new PageVersion(this, currentVersion,
+            JsonSerializer.Serialize(new DiffData(diff),
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)));
     }
 
     public TimeSpan CalculatedDesiredCacheTime()
