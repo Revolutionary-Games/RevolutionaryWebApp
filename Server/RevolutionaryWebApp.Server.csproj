@@ -13,7 +13,7 @@
     <PackageReference Include="AWSSDK.EC2" Version="3.7.326.1" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.307.28" />
     <PackageReference Include="DiffPlex" Version="1.7.2" />
-    <PackageReference Include="Discord.Net" Version="3.14.1" />
+    <PackageReference Include="Discord.Net" Version="3.15.0" />
     <PackageReference Include="EFCore.NamingConventions" Version="8.0.3" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.12" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.8" />
