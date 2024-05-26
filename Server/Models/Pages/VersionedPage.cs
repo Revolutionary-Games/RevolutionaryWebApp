@@ -6,13 +6,13 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using DiffPlex;
 using Hangfire;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models.Pages;
 using Shared.Notifications;
+using SharedBase.Utilities;
 using Utilities;
 
 /// <summary>
@@ -168,11 +168,10 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
 
     public PageVersion CreatePreviousVersion(int currentVersion, string oldText)
     {
-        var diff = Differ.Instance.CreateLineDiffs(LatestContent, oldText, false);
+        var diff = DiffGenerator.Default.Generate(LatestContent, oldText);
 
         return new PageVersion(this, currentVersion,
-            JsonSerializer.Serialize(new DiffData(diff),
-                new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+            JsonSerializer.Serialize(diff, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
     }
 
     public TimeSpan CalculatedDesiredCacheTime()
