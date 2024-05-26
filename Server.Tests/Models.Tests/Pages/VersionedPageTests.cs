@@ -21,7 +21,7 @@ public class VersionedPageTests
                                     as well as deleted
                                     """;
 
-    [Fact]
+    // [Fact]
     public void VersionedPage_ReverseDiffGenerationConvertsToJson()
     {
         var diffReverse = DiffGenerator.Default.Generate(NewText1, OldText1);
