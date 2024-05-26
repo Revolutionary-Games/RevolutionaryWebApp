@@ -733,23 +733,24 @@ public class LoginController : SSOLoginController
             Logger.LogInformation("Creating new account for SSO login: {Email} developer: {DeveloperLogin}",
                 email, developerLogin);
 
-            user = new User(email, username)
+            var newUser = new User(email, username)
             {
                 Local = false,
                 SsoSource = ssoType,
                 DisplayName = displayName,
             };
 
-            user.ComputeNormalizedEmail();
+            newUser.ComputeNormalizedEmail();
 
             if (developerLogin)
             {
-                user.Groups.Add(await developerGroup.Value);
-                user.OnGroupsChanged(jobClient, true);
+                newUser.Groups.Add(await developerGroup.Value);
+                newUser.OnGroupsChanged(jobClient, true);
             }
 
-            await Database.Users.AddAsync(user);
-            Models.User.OnNewUserCreated(user, jobClient);
+            await Database.Users.AddAsync(newUser);
+            Models.User.OnNewUserCreated(newUser, jobClient);
+            user = newUser;
         }
         else if (user.Local)
         {
@@ -783,6 +784,8 @@ public class LoginController : SSOLoginController
                         TargetUser = user,
                     });
 
+                // Groups are loaded with ComputeUserGroups
+                // ReSharper disable once EntityFramework.NPlusOne.IncompleteDataUsage
                 user.Groups.Add(await developerGroup.Value);
                 user.OnGroupsChanged(jobClient);
                 user.SsoSource = SsoTypeDevForum;
