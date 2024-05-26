@@ -22,7 +22,7 @@ public class VersionedPageTests
                                     """;
 
     // [Fact]
-    public void VersionedPage_ReverseDiffGenerationConvertsToJson()
+    private void VersionedPage_ReverseDiffGenerationConvertsToJson()
     {
         var diffReverse = DiffGenerator.Default.Generate(NewText1, OldText1);
 
