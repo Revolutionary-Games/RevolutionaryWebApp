@@ -37,7 +37,14 @@ public class VersionedPageTests
         // First check it didn't end up being empty
         Assert.NotEqual("{}", serialized);
 
-        Assert.Equal("some text", serialized);
+        // This forces the JSON format to not change at all, this should be a fine test as we'll store these in the
+        // database for a really long time so any difference is likely very terrible
+        Assert.Equal(
+            "{\"blocks\":[{\"offset\":1,\"refSkip\":0,\"ref1\":\"(start)\",\"ref2\":\"This is just some text\"," +
+            "\"delete\":[\"with multitude of lines\"],\"add\":[\"with multiple lines\"]}," +
+            "{\"offset\":1,\"refSkip\":0,\"ref1\":\"with multitude of lines\",\"ref2\":" +
+            "\"that may be changed in the future\",\"delete\":[\"and lines inserted\",\"as well as deleted\",\"\"]," +
+            "\"add\":[\"to be something else\"]}],\"winStyle\":false}", serialized);
 
         // And verify deserialize gives back the same result
         var deserialized = JsonSerializer.Deserialize<DiffData>(serialized);
