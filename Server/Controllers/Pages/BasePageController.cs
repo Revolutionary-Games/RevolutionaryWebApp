@@ -13,6 +13,7 @@ using Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
@@ -38,6 +39,11 @@ public abstract class BasePageController : Controller
         JobClient = jobClient;
         Notifications = notifications;
     }
+
+    /// <summary>
+    ///   Set to false when unit testing with in-memory database that doesn't support transactions
+    /// </summary>
+    public bool UsePageUpdateTransaction { get; set; } = true;
 
     protected abstract ILogger Logger { get; }
     protected abstract PageType HandledPageType { get; }
@@ -147,8 +153,11 @@ public abstract class BasePageController : Controller
     public virtual async Task<ActionResult> UpdatePage([Required] long id,
         [Required] [FromBody] VersionedPageDTO pageDTO)
     {
+        IDbContextTransaction? transaction = null;
+
         // Maybe a transaction here helps against unintended duplicate edits
-        var transaction = await Database.Database.BeginTransactionAsync();
+        if (UsePageUpdateTransaction)
+            transaction = await Database.Database.BeginTransactionAsync();
         var page = await Database.VersionedPages.FindAsync(id);
 
         if (page == null || page.Deleted || page.Type != HandledPageType)
@@ -275,7 +284,9 @@ public abstract class BasePageController : Controller
         }
 
         await Database.SaveChangesAsync();
-        await transaction.CommitAsync();
+
+        if (transaction != null)
+            await transaction.CommitAsync();
 
         page.OnEdited(JobClient);
 

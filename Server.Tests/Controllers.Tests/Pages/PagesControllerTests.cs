@@ -1,6 +1,8 @@
 namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests.Pages;
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -11,17 +13,22 @@ using Hangfire;
 using Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Server.Authorization;
 using Server.Controllers.Pages;
+using Server.Models;
 using Server.Services;
 using Shared;
+using Shared.Models.Enums;
 using Shared.Models.Pages;
 using TestUtilities.Utilities;
+using Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -101,6 +108,120 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         Assert.NotNull(deserialized);
         Assert.NotNull(deserialized.Results);
         Assert.Equal(1, deserialized.CurrentPage);
+    }
+
+    [Fact]
+    public async Task PagesController_OldVersionCreationWorks()
+    {
+        var jobsMock = Substitute.For<IBackgroundJobClient>();
+        var senderMock = Substitute.For<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IHubContext<NotificationsHub, INotifications>>();
+
+        var database =
+            new EditableInMemoryDatabaseFixtureWithNotifications(senderMock, "VersionedPageCreatesOldVersion");
+
+        var controller =
+            new PagesController(logger, database.NotificationsEnabledDatabase, jobsMock, notificationsMock)
+            {
+                UsePageUpdateTransaction = false,
+            };
+
+        Assert.Null(await fixture.Database.VersionedPages.FindAsync(1L));
+        var versions = await database.Database.PageVersions.Where(v => v.PageId == 1).ToListAsync();
+
+        Assert.Empty(versions);
+
+        var user = new User("test@example.com", "test2")
+        {
+            Id = 1,
+            Local = true,
+            Groups = new List<UserGroup>
+            {
+                new(GroupType.PostPublisher, GroupType.PostPublisher.ToString()),
+            },
+        };
+
+        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(user);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock,
+        };
+
+        await database.Database.Users.AddAsync(user);
+        await database.Database.SaveChangesAsync();
+
+        var dto = new VersionedPageDTO
+        {
+            Title = "test title",
+            Visibility = PageVisibility.HiddenDraft,
+            Permalink = "test",
+            Type = PageType.Post,
+            LastEditComment = "Initial version",
+        };
+
+        var result = await controller.CreatePage(dto);
+        Assert.IsType<OkObjectResult>(result);
+
+        var page = await database.Database.VersionedPages.FindAsync(1L);
+        Assert.NotNull(page);
+
+        // Page is now created, edit it next
+
+        dto.LatestContent = "This is the page's content";
+        dto.LastEditComment = "Update comment";
+
+        result = await controller.UpdatePage(page.Id, dto);
+        Assert.IsType<OkObjectResult>(result);
+
+        versions = await database.Database.PageVersions.Where(v => v.PageId == 1).ToListAsync();
+
+        Assert.Single(versions);
+
+        var version = versions.First();
+
+        Assert.Equal(0, version.Version);
+        Assert.Equal(page.Id, version.PageId);
+        Assert.False(version.Deleted);
+        Assert.Equal("Initial version", version.EditComment);
+        Assert.Equal(user.Id, version.EditedById);
+        Assert.NotEmpty(version.ReverseDiff);
+
+        // Do a second
+
+        dto.LatestContent = "This is the page's content\nWith a bit more content now";
+        dto.LastEditComment = "Another comment";
+
+        result = await controller.UpdatePage(page.Id, dto);
+        Assert.IsType<OkObjectResult>(result);
+
+        versions = await database.Database.PageVersions.Where(v => v.PageId == 1).OrderBy(v => v.Version).ToListAsync();
+
+        Assert.Equal(2, versions.Count);
+
+        version = versions.First();
+
+        Assert.Equal(0, version.Version);
+        Assert.Equal(page.Id, version.PageId);
+        Assert.False(version.Deleted);
+        Assert.Equal("Initial version", version.EditComment);
+        Assert.Equal(user.Id, version.EditedById);
+        Assert.NotEmpty(version.ReverseDiff);
+
+        version = versions.Last();
+
+        Assert.Equal(1, version.Version);
+        Assert.Equal(page.Id, version.PageId);
+        Assert.False(version.Deleted);
+        Assert.Equal("Update comment", version.EditComment);
+        Assert.Equal(user.Id, version.EditedById);
+        Assert.NotEmpty(version.ReverseDiff);
+    }
+
+    [Fact]
+    public void PagesController_RevertingOldVersionsWork()
+    {
+        var fixture = new EditableInMemoryDatabaseFixture("VersionedPageRevertWorks");
     }
 
     public void Dispose()
