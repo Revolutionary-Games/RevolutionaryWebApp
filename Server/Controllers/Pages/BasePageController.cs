@@ -149,6 +149,12 @@ public abstract class BasePageController : Controller
         return Ok(page.Id.ToString());
     }
 
+    /// <summary>
+    ///   Edits a page by user. Note that first edit for an empty page doesn't create a version history entry.
+    /// </summary>
+    /// <param name="id">Page to edit</param>
+    /// <param name="pageDTO">Updated data</param>
+    /// <returns>Action result indicating success</returns>
     [HttpPut("{id:long}")]
     public virtual async Task<ActionResult> UpdatePage([Required] long id,
         [Required] [FromBody] VersionedPageDTO pageDTO)
@@ -158,6 +164,7 @@ public abstract class BasePageController : Controller
         // Maybe a transaction here helps against unintended duplicate edits
         if (UsePageUpdateTransaction)
             transaction = await Database.Database.BeginTransactionAsync();
+
         var page = await Database.VersionedPages.FindAsync(id);
 
         if (page == null || page.Deleted || page.Type != HandledPageType)

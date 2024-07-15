@@ -166,56 +166,76 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         var page = await database.Database.VersionedPages.FindAsync(1L);
         Assert.NotNull(page);
 
-        // Page is now created, edit it next
+        // Page is now created, edit it next (this doesn't create a version yet as the initial content is empty)
 
         dto.LatestContent = "This is the page's content";
-        dto.LastEditComment = "Update comment";
+        dto.LastEditComment = "Comment";
+        dto.VersionNumber = 1;
 
         result = await controller.UpdatePage(page.Id, dto);
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<OkResult>(result);
 
-        versions = await database.Database.PageVersions.Where(v => v.PageId == 1).ToListAsync();
+        versions = await database.Database.PageVersions.Where(v => v.PageId == page.Id).ToListAsync();
+
+        Assert.Empty(versions);
+        Assert.Equal(dto.LastEditComment, page.LastEditComment);
+        Assert.Equal(dto.LatestContent, page.LatestContent);
+
+        // Second edit, now should create a version
+
+        dto.LatestContent = "This is the page's content\nWith a bit more content now";
+        dto.LastEditComment = "Update comment";
+        dto.VersionNumber = 1;
+
+        result = await controller.UpdatePage(page.Id, dto);
+        Assert.IsType<OkResult>(result);
+
+        versions = await database.Database.PageVersions.Where(v => v.PageId == page.Id).ToListAsync();
 
         Assert.Single(versions);
 
         var version = versions.First();
 
-        Assert.Equal(0, version.Version);
+        Assert.Equal(1, version.Version);
         Assert.Equal(page.Id, version.PageId);
         Assert.False(version.Deleted);
-        Assert.Equal("Initial version", version.EditComment);
+        Assert.Equal("Comment", version.EditComment);
         Assert.Equal(user.Id, version.EditedById);
         Assert.NotEmpty(version.ReverseDiff);
 
-        // Do a second
+        // Third edit
 
-        dto.LatestContent = "This is the page's content\nWith a bit more content now";
+        dto.LatestContent = "This is the page's content\nWith a bit more content now and even more content";
         dto.LastEditComment = "Another comment";
+        dto.VersionNumber = 2;
 
         result = await controller.UpdatePage(page.Id, dto);
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<OkResult>(result);
 
-        versions = await database.Database.PageVersions.Where(v => v.PageId == 1).OrderBy(v => v.Version).ToListAsync();
+        versions = await database.Database.PageVersions.Where(v => v.PageId == page.Id).OrderBy(v => v.Version)
+            .ToListAsync();
 
         Assert.Equal(2, versions.Count);
 
         version = versions.First();
 
-        Assert.Equal(0, version.Version);
+        Assert.Equal(1, version.Version);
         Assert.Equal(page.Id, version.PageId);
         Assert.False(version.Deleted);
-        Assert.Equal("Initial version", version.EditComment);
+        Assert.Equal("Comment", version.EditComment);
         Assert.Equal(user.Id, version.EditedById);
         Assert.NotEmpty(version.ReverseDiff);
 
         version = versions.Last();
 
-        Assert.Equal(1, version.Version);
+        Assert.Equal(2, version.Version);
         Assert.Equal(page.Id, version.PageId);
         Assert.False(version.Deleted);
         Assert.Equal("Update comment", version.EditComment);
         Assert.Equal(user.Id, version.EditedById);
         Assert.NotEmpty(version.ReverseDiff);
+
+        Assert.Equal("Another comment", page.LastEditComment);
     }
 
     [Fact]
