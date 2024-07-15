@@ -7,15 +7,8 @@ using Fixtures;
 using Server.Models;
 using Xunit;
 
-public class DevBuildTests : IClassFixture<EmptyDatabaseFixture>
+public class DevBuildTests
 {
-    private readonly EmptyDatabaseFixture fixture;
-
-    public DevBuildTests(EmptyDatabaseFixture fixture)
-    {
-        this.fixture = fixture;
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -43,6 +36,8 @@ public class DevBuildTests : IClassFixture<EmptyDatabaseFixture>
     [Fact]
     public async Task DevBuildVerification_CanValidateAndSaveCorrectBOTD()
     {
+        var fixture = new EditableInMemoryDatabaseFixture("CanSaveNewBOTD");
+
         var build = new DevBuild
         {
             BuildHash = "123445",
