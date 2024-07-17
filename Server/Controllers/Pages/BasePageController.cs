@@ -370,6 +370,83 @@ public abstract class BasePageController : Controller
         return Ok();
     }
 
+    /// <summary>
+    ///   Lists historical versions. It is recommended by default to sort by version number in descending order.
+    /// </summary>
+    /// <returns>List of historical version info</returns>
+    [HttpGet("{id:long}/versions")]
+    public virtual async Task<ActionResult<PagedResult<PageVersionInfo>>> ListResourceVersions([Required] long id,
+        [Required] string sortColumn, [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
+    {
+        var parentPage = await Database.VersionedPages.FindAsync(id);
+
+        if (parentPage == null || parentPage.Type != HandledPageType)
+            return NotFound();
+
+        IQueryable<PageVersion> query;
+
+        try
+        {
+            query = Database.PageVersions.AsNoTracking().Where(v => v.PageId == id).OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            Logger.LogWarning("Invalid requested order: {@E}", e);
+            throw new HttpResponseException { Value = "Invalid data selection or sort" };
+        }
+
+        // Remove big objects from the result (and for convenience convert to the info type at the same time)
+        var infoQuery = query.Select(p => new PageVersionInfo
+        {
+            PageId = p.PageId,
+            Version = p.Version,
+            EditComment = p.EditComment,
+            Deleted = p.Deleted,
+            EditedById = p.EditedById,
+            CreatedAt = p.CreatedAt,
+        });
+
+        var objects = await infoQuery.ToPagedResultAsync(page, pageSize);
+
+        return objects;
+    }
+
+    /// <summary>
+    ///   Gets historical version of a page. This is a POST request as generating the old text may be expensive if
+    ///   there are a lot of newer versions.
+    /// </summary>
+    /// <returns>The generated old version data or an error</returns>
+    [HttpPost("{id:long}/versions/{version:int}")]
+    public virtual async Task<ActionResult<PageVersionDTO>> GetResourceHistoricalVersion([Required] long id,
+        [Required] int version)
+    {
+        var parentPage = await Database.VersionedPages.FindAsync(id);
+
+        if (parentPage == null || parentPage.Type != HandledPageType)
+            return NotFound();
+
+        if (parentPage.Deleted)
+            return BadRequest("Page is in deleted state");
+
+        var pageVersion = await Database.PageVersions.FindAsync(id, version);
+
+        if (pageVersion == null)
+            return NotFound();
+
+        if (pageVersion.Deleted)
+            return BadRequest("Version is in deleted state");
+
+        var dto = pageVersion.GetDTO();
+
+        // Resolve the version content
+        throw new NotImplementedException();
+
+        // dto.PageContentAtVersion = ;
+
+        return dto;
+    }
+
     [NonAction]
     protected bool ValidatePermalink(string permalink, out ActionResult failure)
     {

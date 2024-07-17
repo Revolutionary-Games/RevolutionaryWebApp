@@ -1,15 +1,16 @@
 namespace RevolutionaryWebApp.Server.Models.Pages;
 
+using System;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
+using Shared.Models.Pages;
 using SharedBase.Utilities;
 
 /// <summary>
 ///   A historical version of a page. Latest page content is in <see cref="VersionedPage.LatestContent"/> and that
-///   would be version number one higher than the highest historical version
+///   would be version number one higher than the highest historical version.
 /// </summary>
 [Index(nameof(PageId), nameof(Version), IsUnique = true, IsDescending = new[] { false, true })]
 public class PageVersion : ISoftDeletable
@@ -33,11 +34,13 @@ public class PageVersion : ISoftDeletable
 
     public VersionedPage Page { get; set; } = null!;
 
+    [AllowSortingBy]
     public int Version { get; set; }
 
     [MaxLength(AppInfo.MaxPageEditCommentLength)]
     public string? EditComment { get; set; }
 
+    [AllowSortingBy]
     public bool Deleted { get; set; }
 
     /// <summary>
@@ -48,11 +51,42 @@ public class PageVersion : ISoftDeletable
     public string ReverseDiff { get; set; }
 
     public User? EditedBy { get; set; }
+
+    [AllowSortingBy]
     public long? EditedById { get; set; }
+
+    [AllowSortingBy]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DiffData DecodeDiffData()
     {
-        return JsonSerializer.Deserialize<DiffData>(ReverseDiff,
-            new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? throw new NullDecodedJsonException();
+        return PageVersionDTO.DecodeDiffData(ReverseDiff);
+    }
+
+    public PageVersionInfo GetInfo()
+    {
+        return new PageVersionInfo
+        {
+            PageId = PageId,
+            Version = Version,
+            EditComment = EditComment,
+            Deleted = Deleted,
+            EditedById = EditedById,
+            CreatedAt = CreatedAt,
+        };
+    }
+
+    public PageVersionDTO GetDTO()
+    {
+        return new PageVersionDTO
+        {
+            PageId = PageId,
+            Version = Version,
+            EditComment = EditComment,
+            Deleted = Deleted,
+            ReverseDiffRaw = ReverseDiff,
+            EditedById = EditedById,
+            CreatedAt = CreatedAt,
+        };
     }
 }

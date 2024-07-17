@@ -74,4 +74,19 @@ public class PagesController : BasePageController
     {
         return base.RestoreResource(id);
     }
+
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    public override Task<ActionResult<PagedResult<PageVersionInfo>>> ListResourceVersions([Required] long id,
+        [Required] string sortColumn, [Required] SortDirection sortDirection,
+        [Required] [Range(1, int.MaxValue)] int page, [Required] [Range(1, 100)] int pageSize)
+    {
+        return base.ListResourceVersions(id, sortColumn, sortDirection, page, pageSize);
+    }
+
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    public override Task<ActionResult<PageVersionDTO>> GetResourceHistoricalVersion([Required] long id,
+        [Required] int version)
+    {
+        return base.GetResourceHistoricalVersion(id, version);
+    }
 }
