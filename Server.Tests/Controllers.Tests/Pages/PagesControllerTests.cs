@@ -23,6 +23,7 @@ using NSubstitute;
 using Server.Authorization;
 using Server.Controllers.Pages;
 using Server.Models;
+using Server.Models.Pages;
 using Server.Services;
 using Shared;
 using Shared.Models.Enums;
@@ -239,13 +240,196 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
     }
 
     [Fact]
-    public void PagesController_RevertingOldVersionsWork()
+    public async Task PagesController_RevertingOldVersionsWork()
     {
-        var fixture = new EditableInMemoryDatabaseFixture("VersionedPageRevertWorks");
+        var content1 = """
+                       Page content
+                       with some stuff
+                       """;
+
+        var content2 = """
+                       Page content
+                       with some stuff
+                       and adding even more
+                       """;
+
+        var content3 = """
+                       Page content
+                       with some stuff
+                       and adding even more
+                       and arriving at a good version
+                       """;
+
+        var content4 = """
+                       Page content
+                       other stuff
+                       """;
+
+        var jobsMock = Substitute.For<IBackgroundJobClient>();
+        var senderMock = Substitute.For<IModelUpdateNotificationSender>();
+        var notificationsMock = Substitute.For<IHubContext<NotificationsHub, INotifications>>();
+
+        var database =
+            new EditableInMemoryDatabaseFixtureWithNotifications(senderMock, "VersionedPageRevertWorks");
+
+        var controller =
+            new PagesController(logger, database.NotificationsEnabledDatabase, jobsMock, notificationsMock)
+            {
+                UsePageUpdateTransaction = false,
+            };
+
+        var user = new User("test@example.com", "test2")
+        {
+            Id = 1,
+            Local = true,
+            Groups = new List<UserGroup>
+            {
+                new(GroupType.PostPublisher, GroupType.PostPublisher.ToString()),
+            },
+        };
+
+        var httpContextMock = HttpContextMockHelpers.CreateContextWithUser(user);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock,
+        };
+
+        await database.Database.Users.AddAsync(user);
+        await database.Database.SaveChangesAsync();
+
+        var dto = new VersionedPageDTO
+        {
+            Title = "Some Title",
+            Visibility = PageVisibility.HiddenDraft,
+            Permalink = "test",
+            Type = PageType.Post,
+            LastEditComment = "Initial version",
+        };
+
+        await controller.CreatePage(dto);
+
+        var page = await database.Database.VersionedPages.FindAsync(1L);
+        Assert.NotNull(page);
+
+        // Do some edits to fill in the edit history
+
+        dto.LatestContent = content1;
+        dto.LastEditComment = "Comment 1";
+        dto.VersionNumber = 1;
+
+        var result = await controller.UpdatePage(page.Id, dto);
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(dto.LatestContent, page.LatestContent);
+
+        dto.LatestContent = content2;
+        dto.LastEditComment = "Comment 2";
+        dto.VersionNumber = 1;
+
+        Assert.NotEqual(dto.LatestContent, page.LatestContent);
+        result = await controller.UpdatePage(page.Id, dto);
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(dto.LatestContent, page.LatestContent);
+
+        dto.LatestContent = content3;
+        dto.LastEditComment = "Comment 3";
+        dto.VersionNumber = 2;
+
+        result = await controller.UpdatePage(page.Id, dto);
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(dto.LatestContent, page.LatestContent);
+
+        dto.LatestContent = content4;
+        dto.LastEditComment = "Comment 4";
+        dto.VersionNumber = 3;
+
+        result = await controller.UpdatePage(page.Id, dto);
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(dto.LatestContent, page.LatestContent);
+
+        // Check version data is correctly setup
+        var historyResult = await controller.ListResourceVersions(page.Id, nameof(PageVersion.Version),
+            SortDirection.Ascending,
+            0, 20);
+
+        var history = Assert.IsType<ActionResult<PagedResult<PageVersionInfo>>>(historyResult).Value;
+
+        Assert.NotNull(history);
+        Assert.Equal(3, history.RowCount);
+
+        // Check that the history entries are correct
+        Assert.Equal(1, history.Results[0].Version);
+        Assert.Equal("Comment 1", history.Results[0].EditComment);
+
+        Assert.Equal(2, history.Results[1].Version);
+        Assert.Equal("Comment 2", history.Results[1].EditComment);
+
+        Assert.Equal(3, history.Results[2].Version);
+        Assert.Equal("Comment 3", history.Results[2].EditComment);
+
+        // Check constant stuff that is same for each item
+        foreach (var item in history.Results)
+        {
+            Assert.False(item.Deleted);
+            Assert.Equal(page.Id, item.PageId);
+            Assert.Equal(user.Id, item.EditedById);
+        }
+
+        // Check that original contents match
+        await CheckRetrievedContentMatches(controller, page.Id, 1, content1);
+        await CheckRetrievedContentMatches(controller, page.Id, 2, content2);
+        await CheckRetrievedContentMatches(controller, page.Id, 3, content3);
+        await CheckRetrievedContentMatches(controller, page.Id, 4, content4);
+
+        // Try reverting to a few versions
+        Assert.NotEqual(content2, page.LatestContent);
+        var revertResult = await controller.RevertResourceVersion(page.Id, 2);
+        Assert.IsType<OkResult>(revertResult);
+
+        Assert.Equal(content2, page.LatestContent);
+        Assert.Equal("Reveretd to stuff", page.LastEditComment);
+
+        // Second revert
+        Assert.NotEqual(content4, page.LatestContent);
+        revertResult = await controller.RevertResourceVersion(page.Id, 4);
+        Assert.IsType<OkResult>(revertResult);
+
+        Assert.Equal(content4, page.LatestContent);
+        Assert.Equal("Reveretd to stuff", page.LastEditComment);
+
+        // Check that reverts caused new history entries
+        var oldVersionCount = history.RowCount;
+
+        historyResult = await controller.ListResourceVersions(page.Id, nameof(PageVersion.Version),
+            SortDirection.Ascending, 0, 20);
+
+        history = Assert.IsType<ActionResult<PagedResult<PageVersionInfo>>>(historyResult).Value;
+
+        Assert.NotNull(history);
+        Assert.Equal(oldVersionCount + 2, history.RowCount);
+
+        Assert.Equal("Reverted to version 4", history.Results.Last().EditComment);
     }
 
     public void Dispose()
     {
         logger.Dispose();
+    }
+
+    private async Task CheckRetrievedContentMatches(PagesController controller, long pageId, int version,
+        string expected)
+    {
+        var versionResult = await controller.GetResourceHistoricalVersion(pageId, version);
+
+        var versionDTO = Assert.IsType<ActionResult<PageVersionDTO>>(versionResult).Value;
+
+        Assert.NotNull(versionDTO);
+
+        Assert.NotEmpty(versionDTO.ReverseDiffRaw);
+
+        Assert.Equal(version, versionDTO.Version);
+        Assert.Equal(pageId, versionDTO.PageId);
+
+        Assert.Equal(expected, versionDTO.PageContentAtVersion);
     }
 }

@@ -167,18 +167,11 @@ public abstract class BasePageController : Controller
 
         var page = await Database.VersionedPages.FindAsync(id);
 
-        if (page == null || page.Deleted || page.Type != HandledPageType)
+        if (page == null)
             return NotFound();
 
-        if (page.Visibility != pageDTO.Visibility)
-        {
-            if (!HttpContext.HasAuthenticatedUserWithGroup(PrimaryPublisherGroupType,
-                    AuthenticationScopeRestriction.None) &&
-                !HttpContext.HasAuthenticatedUserWithGroup(ExtraAccessGroup, AuthenticationScopeRestriction.None))
-            {
-                return this.WorkingForbid("You lack required permissions to edit visibility");
-            }
-        }
+        if (!CanEdit(page, pageDTO, out var editFail))
+            return editFail;
 
         if (pageDTO.Visibility != PageVisibility.HiddenDraft)
         {
@@ -439,12 +432,94 @@ public abstract class BasePageController : Controller
 
         var dto = pageVersion.GetDTO();
 
-        // Resolve the version content
-        throw new NotImplementedException();
-
-        // dto.PageContentAtVersion = ;
+        await ResolveVersionFullContent(dto);
 
         return dto;
+    }
+
+    [HttpPost("{id:long}/versions/{version:int}/revertTo")]
+    public virtual async Task<ActionResult> RevertResourceVersion([Required] long id,
+        [Required] int version)
+    {
+        IDbContextTransaction? transaction = null;
+
+        if (UsePageUpdateTransaction)
+            transaction = await Database.Database.BeginTransactionAsync();
+
+        var page = await Database.VersionedPages.FindAsync(id);
+
+        if (page == null)
+            return NotFound();
+
+        var pageDTO = page.GetDTO(-1);
+
+        if (!CanEdit(page, pageDTO, out var editFail))
+            return editFail;
+
+        // Load version after checking edit permission
+        var pageVersion = await Database.PageVersions.FindAsync(id, version);
+
+        if (pageVersion == null)
+            return NotFound();
+
+        if (pageVersion.Deleted)
+            return BadRequest("Version is in deleted state");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        var versionDTO = pageVersion.GetDTO();
+
+        await ResolveVersionFullContent(versionDTO);
+
+        if (string.IsNullOrWhiteSpace(versionDTO.PageContentAtVersion))
+        {
+            return BadRequest(
+                "Page content is empty at the specified version (or an internal server error caused the version " +
+                "text to be be incorrectly determined to be empty)");
+        }
+
+        if (versionDTO.PageContentAtVersion == page.LatestContent)
+            return Ok("Current text matches old version (not reverted)");
+
+        // Updating page content to revert to the old version
+        pageDTO.LatestContent = versionDTO.PageContentAtVersion;
+
+        var previousContent = page.LatestContent;
+        var previousComment = page.LastEditComment;
+        var previousAuthor = page.LastEditorId;
+
+        var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(page, pageDTO);
+
+        if (!changes)
+            return Problem("Changes to the model should have been applied, but didn't");
+
+        page.LastEditorId = user.Id;
+        page.LastEditComment = $"Reverted to version {version}";
+        page.BumpUpdatedAt();
+
+        var previousVersion = page.CreatePreviousVersion(await page.GetCurrentVersion(Database), previousContent);
+        previousVersion.EditedById = previousAuthor;
+        previousVersion.EditComment = previousComment;
+
+        await Database.PageVersions.AddAsync(previousVersion);
+
+        await Database.ActionLogEntries.AddAsync(new ActionLogEntry(
+            $"Page {page.Id} (\"{page.Title.Truncate()}\") reverted to version: {version}",
+            description)
+        {
+            PerformedById = user.Id,
+        });
+
+        await EditNotificationsController.SendEditNotice(Notifications, user, page.Id, true);
+
+        await Database.SaveChangesAsync();
+
+        if (transaction != null)
+            await transaction.CommitAsync();
+
+        page.OnEdited(JobClient);
+
+        return Ok();
     }
 
     [NonAction]
@@ -474,5 +549,55 @@ public abstract class BasePageController : Controller
 
         failure = new OkResult();
         return true;
+    }
+
+    private bool CanEdit(VersionedPage page, VersionedPageDTO pageDTO, out ActionResult failResult)
+    {
+        if (page.Type != HandledPageType)
+        {
+            failResult = NotFound();
+            return false;
+        }
+
+        if (page.Deleted)
+        {
+            failResult = BadRequest("Page is in deleted state");
+            return false;
+        }
+
+        // Changing visibility requires extra permissions
+        if (page.Visibility != pageDTO.Visibility)
+        {
+            if (!HttpContext.HasAuthenticatedUserWithGroup(PrimaryPublisherGroupType,
+                    AuthenticationScopeRestriction.None) &&
+                !HttpContext.HasAuthenticatedUserWithGroup(ExtraAccessGroup, AuthenticationScopeRestriction.None))
+            {
+                failResult = this.WorkingForbid("You lack required permissions to edit visibility");
+                return false;
+            }
+        }
+
+        // Published pages need extra permissions to edit
+        if (pageDTO.Visibility != PageVisibility.HiddenDraft)
+        {
+            if (!HttpContext.HasAuthenticatedUserWithGroup(PrimaryPublisherGroupType,
+                    AuthenticationScopeRestriction.None) &&
+                !HttpContext.HasAuthenticatedUserWithGroup(ExtraAccessGroup, AuthenticationScopeRestriction.None))
+            {
+                failResult = this.WorkingForbid("You lack required permissions to edit this as it is not a draft");
+                return false;
+            }
+        }
+
+        failResult = new OkResult();
+        return true;
+    }
+
+    [NonAction]
+    private async Task ResolveVersionFullContent(PageVersionDTO versionDTO)
+    {
+        throw new NotImplementedException();
+
+        // dto.PageContentAtVersion = ;
     }
 }

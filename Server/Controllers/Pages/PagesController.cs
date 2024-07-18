@@ -89,4 +89,11 @@ public class PagesController : BasePageController
     {
         return base.GetResourceHistoricalVersion(id, version);
     }
+
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    public override Task<ActionResult> RevertResourceVersion([Required] long id,
+        [Required] int version)
+    {
+        return base.RevertResourceVersion(id, version);
+    }
 }

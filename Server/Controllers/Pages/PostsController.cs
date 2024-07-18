@@ -88,4 +88,11 @@ public class PostsController : BasePageController
     {
         return base.GetResourceHistoricalVersion(id, version);
     }
+
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.PostEditor, AllowDevelopers = true)]
+    public override Task<ActionResult> RevertResourceVersion([Required] long id,
+        [Required] int version)
+    {
+        return base.RevertResourceVersion(id, version);
+    }
 }
