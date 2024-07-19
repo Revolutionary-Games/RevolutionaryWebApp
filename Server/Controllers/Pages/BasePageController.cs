@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Controllers.Pages;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
@@ -432,7 +433,15 @@ public abstract class BasePageController : Controller
 
         var dto = pageVersion.GetDTO();
 
-        await ResolveVersionFullContent(dto);
+        try
+        {
+            await ResolveVersionFullContent(parentPage, dto);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Generating old page content with diffs failed for viewing");
+            return Problem("Failed to generate old page content");
+        }
 
         return dto;
     }
@@ -469,7 +478,15 @@ public abstract class BasePageController : Controller
 
         var versionDTO = pageVersion.GetDTO();
 
-        await ResolveVersionFullContent(versionDTO);
+        try
+        {
+            await ResolveVersionFullContent(page, versionDTO);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Generating old page content with diffs failed for reverting to it");
+            return Problem("Failed to generate old page content");
+        }
 
         if (string.IsNullOrWhiteSpace(versionDTO.PageContentAtVersion))
         {
@@ -594,10 +611,35 @@ public abstract class BasePageController : Controller
     }
 
     [NonAction]
-    private async Task ResolveVersionFullContent(PageVersionDTO versionDTO)
+    private async Task ResolveVersionFullContent(VersionedPage page, PageVersionDTO versionDTO)
     {
-        throw new NotImplementedException();
+        var pageContent = page.LatestContent;
 
-        // dto.PageContentAtVersion = ;
+        // Apply reverse diffs to go from the latest content up to the specified old version
+        var otherOldVersions = await Database.PageVersions.AsNoTracking()
+            .Where(v => v.PageId == page.Id && v.Version > versionDTO.Version).OrderByDescending(v => v.Version)
+            .ToListAsync();
+
+        // TODO: if this ends up being a performance concern, add either memory or redis caching for like 15 minutes of
+        // historical contents of pages (long cache time is fine as historical versions cannot change)
+
+        var stringBuilder = new StringBuilder(pageContent.Length);
+
+        foreach (var oldVersion in otherOldVersions)
+        {
+            stringBuilder = DiffGenerator.Default.ApplyDiff(pageContent, oldVersion.DecodeDiffData(),
+                DiffGenerator.DiffMatchMode.NormalSlightDeviance, stringBuilder);
+
+            // TODO: maybe this could be a bit more efficient if the diff applying could take the old text in as a
+            // StringBuilder
+            pageContent = stringBuilder.ToString();
+        }
+
+        // After processing newer versions than versionDTO, process that last
+
+        stringBuilder = DiffGenerator.Default.ApplyDiff(pageContent, versionDTO.DecodeDiffData(),
+            DiffGenerator.DiffMatchMode.NormalSlightDeviance, stringBuilder);
+
+        versionDTO.PageContentAtVersion = stringBuilder.ToString();
     }
 }

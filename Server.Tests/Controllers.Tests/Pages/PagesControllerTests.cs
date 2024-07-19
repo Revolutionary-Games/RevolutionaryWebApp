@@ -367,6 +367,8 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         Assert.Equal(3, history.Results[2].Version);
         Assert.Equal("Comment 3", history.Results[2].EditComment);
 
+        // The 4th version is the current version so it doesn't exist in the history yet
+
         // Check constant stuff that is same for each item
         foreach (var item in history.Results)
         {
@@ -379,7 +381,8 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         await CheckRetrievedContentMatches(controller, page.Id, 1, content1);
         await CheckRetrievedContentMatches(controller, page.Id, 2, content2);
         await CheckRetrievedContentMatches(controller, page.Id, 3, content3);
-        await CheckRetrievedContentMatches(controller, page.Id, 4, content4);
+        Assert.IsType<NotFoundResult>(Assert
+            .IsType<ActionResult<PageVersionDTO>>(await controller.GetResourceHistoricalVersion(page.Id, 4)).Result);
 
         // Try reverting to a few versions
         Assert.NotEqual(content2, page.LatestContent);
@@ -387,7 +390,7 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         Assert.IsType<OkResult>(revertResult);
 
         Assert.Equal(content2, page.LatestContent);
-        Assert.Equal("Reveretd to stuff", page.LastEditComment);
+        Assert.Equal("Reverted to version 2", page.LastEditComment);
 
         // Second revert
         Assert.NotEqual(content4, page.LatestContent);
@@ -395,7 +398,7 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         Assert.IsType<OkResult>(revertResult);
 
         Assert.Equal(content4, page.LatestContent);
-        Assert.Equal("Reveretd to stuff", page.LastEditComment);
+        Assert.Equal("Reverted to version 4", page.LastEditComment);
 
         // Check that reverts caused new history entries
         var oldVersionCount = history.RowCount;
@@ -408,7 +411,8 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         Assert.NotNull(history);
         Assert.Equal(oldVersionCount + 2, history.RowCount);
 
-        Assert.Equal("Reverted to version 4", history.Results.Last().EditComment);
+        Assert.Equal("Reverted to version 2", history.Results.Last().EditComment);
+        Assert.Equal("Reverted to version 4", page.LastEditComment);
     }
 
     public void Dispose()
