@@ -16,7 +16,8 @@ using Shared.Models.Enums;
 using Shared.Models.Pages;
 
 /// <summary>
-///   Main controller for <see cref="VersionedPage"/> handling when used as static pages
+///   Main controller for <see cref="VersionedPage"/> handling when used as static pages (provides the API for
+///   managing the pages)
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]

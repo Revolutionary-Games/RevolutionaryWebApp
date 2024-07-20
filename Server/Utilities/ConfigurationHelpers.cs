@@ -10,6 +10,45 @@ public static class ConfigurationHelpers
         return new Uri(configuration["BaseUrl"] ?? throw new InvalidOperationException("Base url is missing"));
     }
 
+    public static Uri? GetLiveWWWBaseUrl(this IConfiguration configuration)
+    {
+        var live = configuration["CDN:LiveUrl"];
+
+        if (string.IsNullOrWhiteSpace(live))
+            return null;
+
+        return new Uri(live);
+    }
+
+    public static string GetCDNPrefixWWW(this IConfiguration configuration)
+    {
+        var value = configuration["CDN:ContentBase"];
+
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        if (value.EndsWith('/'))
+            throw new Exception("Content CDN base shouldn't end with a slash");
+
+        return value;
+    }
+
+    /// <summary>
+    ///   Gets the base URL that has all the WWW site assets underneath it. If CDN is configured returns what
+    ///   <see cref="GetCDNPrefixWWW"/> returns.
+    /// </summary>
+    /// <returns>Base URL for WWW assets</returns>
+    public static Uri GetWWWAssetBaseUrl(this IConfiguration configuration)
+    {
+        var cdn = GetCDNPrefixWWW(configuration);
+
+        if (!string.IsNullOrEmpty(cdn))
+            return new Uri(cdn);
+
+        // When not using a CDN assets are relative to the main base URL
+        return GetBaseUrl(configuration);
+    }
+
     /// <summary>
     ///   Returns a base url relative full url. TODO: if relative part is full url it should take precedence
     /// </summary>

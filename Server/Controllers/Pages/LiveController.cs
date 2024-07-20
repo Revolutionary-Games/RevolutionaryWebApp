@@ -14,6 +14,7 @@ using Models;
 using Services;
 using Shared;
 using Shared.Models.Pages;
+using Utilities;
 
 /// <summary>
 ///   Serves live, rendered, versions of static main site pages and news posts
@@ -30,15 +31,7 @@ public class LiveController : Controller
         this.database = database;
         this.pageRenderer = pageRenderer;
 
-        var cdn = configuration["CDN:LiveUrl"];
-        if (!string.IsNullOrWhiteSpace(cdn))
-        {
-            liveCDNBase = new Uri(cdn);
-        }
-        else
-        {
-            liveCDNBase = null;
-        }
+        liveCDNBase = configuration.GetLiveWWWBaseUrl();
     }
 
     [HttpGet("{*permalink}")]

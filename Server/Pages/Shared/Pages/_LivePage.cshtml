@@ -1,5 +1,6 @@
 @using System.Globalization
 @using Microsoft.Extensions.Configuration
+@using RevolutionaryWebApp.Server.Utilities
 @model RevolutionaryWebApp.Server.Controllers.Pages.RenderedPage
 @inject IConfiguration Configuration
 @{
@@ -17,18 +18,7 @@
 
     ViewData["Canonical"] = Model.CanonicalUrl;
 
-    var assetCDN = Configuration["CDN:ContentBase"];
-    if (!string.IsNullOrEmpty(assetCDN))
-    {
-        if (assetCDN.EndsWith('/'))
-            throw new Exception("Content CDN base shouldn't end with a slash");
-
-        ViewData["AssetsBase"] = assetCDN;
-    }
-    else
-    {
-        ViewData["AssetsBase"] = "";
-    }
+    ViewData["AssetsBase"] = Configuration.GetCDNPrefixWWW();
 
     /* TODO: opengraph metadata */
 }
