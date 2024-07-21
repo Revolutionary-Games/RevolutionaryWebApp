@@ -4,11 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.ServiceModel.Syndication;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Hangfire;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Services;
 using Shared;
 using Shared.Models.Pages;
 using Shared.Notifications;
@@ -174,6 +176,19 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
             JsonSerializer.Serialize(diff, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
     }
 
+    /// <summary>
+    ///   Generates a preview of this page based on the first 1 or 2 paragraphs. Can contain HTML formatting.
+    /// </summary>
+    /// <returns>A preview of this item (HTML format, not plain text)</returns>
+    public SyndicationContent GeneratePreview(IPageRenderer pageRenderer, Uri pageLink, int targetMaxLength = 350)
+    {
+        var (rendered, _) = pageRenderer.RenderPreview(this, pageLink.ToString(), targetMaxLength);
+
+        var preview = new TextSyndicationContent(rendered, TextSyndicationContentKind.Html);
+
+        return preview;
+    }
+
     public TimeSpan CalculatedDesiredCacheTime()
     {
         var timeSinceUpdate = DateTime.UtcNow - UpdatedAt;
@@ -206,5 +221,13 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
         }
 
         return AppInfo.MaxPageCacheTime;
+    }
+
+    public string GetOpenGraphType()
+    {
+        if (Type == PageType.NormalPage)
+            return "website";
+
+        return "article";
     }
 }

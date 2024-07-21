@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Models;
+using Services;
 using Shared.Models.Pages;
 using Utilities;
 
@@ -26,13 +27,15 @@ public class PostFeedController : Controller
     private const bool IndentFeedContent = true;
 
     private readonly ApplicationDbContext database;
+    private readonly IPageRenderer pageRenderer;
 
     private readonly Uri baseUrl;
     private readonly Uri wwwSiteAssetsBaseUrl;
 
-    public PostFeedController(IConfiguration configuration, ApplicationDbContext database)
+    public PostFeedController(IConfiguration configuration, ApplicationDbContext database, IPageRenderer pageRenderer)
     {
         this.database = database;
+        this.pageRenderer = pageRenderer;
         baseUrl = configuration.GetLiveWWWBaseUrl() ?? new Uri(configuration.GetBaseUrl(), "live/");
         wwwSiteAssetsBaseUrl = configuration.GetWWWAssetBaseUrl();
     }
@@ -95,8 +98,7 @@ public class PostFeedController : Controller
     [NonAction]
     private async Task<SyndicationFeed> GenerateFeed()
     {
-        var feed = new SyndicationFeed(
-            "Revolutionary Games Studio News",
+        var feed = new SyndicationFeed("Revolutionary Games Studio News",
             "News feed for Revolutionary Games Studio",
             baseUrl,
             "RevolutionaryGamesStudioNews",
@@ -114,9 +116,8 @@ public class PostFeedController : Controller
         var items = new List<SyndicationItem>();
 
         var posts = await database.VersionedPages.AsNoTracking()
-            .Where(
-                p => p.Type == PageType.Post && p.Visibility == PageVisibility.Public && !p.Deleted &&
-                    p.PublishedAt != null).OrderByDescending(p => p.PublishedAt).Take(FeedItemsToShow).ToListAsync();
+            .Where(p => p.Type == PageType.Post && p.Visibility == PageVisibility.Public && !p.Deleted &&
+                p.PublishedAt != null).OrderByDescending(p => p.PublishedAt).Take(FeedItemsToShow).ToListAsync();
 
         foreach (var post in posts)
         {
@@ -126,16 +127,13 @@ public class PostFeedController : Controller
             if (post.PublishedAt == null)
                 throw new Exception("DB returned item not matching the query (published at is null)");
 
-            items.Add(
-                new SyndicationItem(
-                    post.Title,
-                    post.GeneratePreview(),
-                    new Uri(baseUrl, post.Permalink),
-                    new Uri(baseUrl, post.Permalink).ToString(),
-                    post.UpdatedAt)
-                {
-                    PublishDate = post.PublishedAt.Value,
-                });
+            var postLink = new Uri(baseUrl, post.Permalink);
+
+            items.Add(new SyndicationItem(post.Title, post.GeneratePreview(pageRenderer, postLink),
+                postLink, postLink.ToString(), post.UpdatedAt)
+            {
+                PublishDate = post.PublishedAt.Value,
+            });
         }
 
         feed.Items = items;

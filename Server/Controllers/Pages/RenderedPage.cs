@@ -33,4 +33,10 @@ public class RenderedPage
     public DateTime RenderedAt { get; set; } = DateTime.UtcNow;
 
     public string? CanonicalUrl { get; set; }
+
+    // Opengraph info
+    public string? OpenGraphMetaDescription { get; set; }
+    public string? PreviewImage { get; set; }
+
+    public string OpenGraphPageType { get; set; } = "article";
 }

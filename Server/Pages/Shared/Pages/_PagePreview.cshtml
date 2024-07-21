@@ -6,6 +6,8 @@
     if (Model.ShowHeading)
         ViewData["Title"] = Model.Title + " (preview)";
 
+    ViewData["MetaTitle"] = Model.Title + " (preview)";
+
     ViewData["Renderer"] = Model.ByServer;
     ViewData["Duration"] = Model.RenderTime.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
     ViewData["GeneratedAt"] = Model.RenderedAt.ToString("yyyy.MM.dd. HH:mm:ss", CultureInfo.InvariantCulture);
@@ -14,6 +16,8 @@
     ViewData["ShowLogo"] = Model.ShowLogo;
 
     ViewData["AssetsBase"] = "";
+
+    ViewData["OpenGraphDescription"] = null;
 }
 
 <div id="main-outlet" class="markdown">

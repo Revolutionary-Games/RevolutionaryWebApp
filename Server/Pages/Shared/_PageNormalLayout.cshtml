@@ -5,13 +5,30 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <title>@ViewBag.Title</title>
-    <link href="@ViewBag.AssetsBase/css/bootstrap/bootstrap.min.css" rel="stylesheet"/>
-    <link href="@ViewBag.AssetsBase/css/app.css" rel="stylesheet"/>
+    <title>@ViewBag.MetaTitle - Revolutionary Games Studio</title>
     @if (ViewBag.Canonical != null)
     {
         <link rel="canonical" href="@ViewBag.Canonical"/>
+        <meta property="og:url" content="@ViewBag.Canonical" />
     }
+
+    <meta property="og:title" content="@ViewBag.MetaTitle"/>
+    @if (ViewBag.OpenGraphDescription != null)
+    {
+        <meta property="og:type" content="@ViewBag.OpenGraphPageType"/>
+
+        @if (ViewBag.OpenGraphImage != null)
+        {
+            <meta property="og:image" content="@ViewBag.OpenGraphImage"/>
+        }
+
+        <meta property="og:description" content="@ViewBag.OpenGraphDescription" />
+
+        <meta property="description" content="@ViewBag.OpenGraphDescription" />
+    }
+
+    <link href="@ViewBag.AssetsBase/css/bootstrap/bootstrap.min.css" rel="stylesheet"/>
+    <link href="@ViewBag.AssetsBase/css/app.css" rel="stylesheet"/>
 </head>
 
 <body>

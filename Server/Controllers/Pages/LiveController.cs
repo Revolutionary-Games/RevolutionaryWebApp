@@ -106,9 +106,11 @@ public class LiveController : Controller
             canonicalUrl = new Uri(liveCDNBase, permalink).ToString();
         }
 
-        var rendered = await pageRenderer.RenderPage(page, timer);
+        var rendered = await pageRenderer.RenderPage(page, true, timer);
 
         rendered.CanonicalUrl = canonicalUrl;
+
+        rendered.OpenGraphPageType = page.GetOpenGraphType();
 
         return View("Pages/_LivePage", rendered);
     }

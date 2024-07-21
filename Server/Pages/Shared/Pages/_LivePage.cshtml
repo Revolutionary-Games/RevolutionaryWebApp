@@ -9,6 +9,8 @@
     if (Model.ShowHeading)
         ViewData["Title"] = Model.Title;
 
+    ViewData["MetaTitle"] = Model.Title;
+
     ViewData["Renderer"] = Model.ByServer;
     ViewData["Duration"] = Model.RenderTime.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
     ViewData["GeneratedAt"] = Model.RenderedAt.ToString("yyyy.MM.dd. HH:mm:ss", CultureInfo.InvariantCulture);
@@ -20,7 +22,20 @@
 
     ViewData["AssetsBase"] = Configuration.GetCDNPrefixWWW();
 
-    /* TODO: opengraph metadata */
+    // Opengraph metadata
+    // https://ahrefs.com/blog/open-graph-meta-tags/
+    ViewData["OpenGraphDescription"] = Model.OpenGraphMetaDescription;
+    ViewData["OpenGraphPageType"] = Model.OpenGraphPageType;
+
+    if (Model.PreviewImage != null)
+    {
+        ViewData["OpenGraphImage"] = Model.PreviewImage;
+    }
+    else
+    {
+        // TODO: fallback default banner for pages with no images
+        ViewData["OpenGraphImage"] = null;
+    }
 }
 
 <div id="main-outlet" class="markdown">
