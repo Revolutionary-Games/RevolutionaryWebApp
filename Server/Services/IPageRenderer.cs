@@ -125,7 +125,7 @@ public class PageRenderer : IPageRenderer
         string? previewImage = null;
 
         var stringBuilder = new StringBuilder();
-        bool reachedLimit = false;
+        int limitLeft = targetMaxLength;
 
         var writer = new StringWriter(stringBuilder, CultureInfo.InvariantCulture);
 
@@ -135,22 +135,33 @@ public class PageRenderer : IPageRenderer
             if (previewImage == null)
                 LookForPreviewImage(node, ref previewImage);
 
-            if (HandleContentForPreview(node, targetMaxLength, stringBuilder, ref reachedLimit))
+            if (HandleContentForPreview(node, ref limitLeft))
             {
-                node.ToHtml(writer, fragmentFormatter);
+                // We don't want this to be written in the output, so only output the children
+                if (node is IHtmlBodyElement)
+                {
+                    foreach (var childNode in node.ChildNodes)
+                    {
+                        childNode.ToHtml(writer, fragmentFormatter);
+                    }
+                }
+                else
+                {
+                    node.ToHtml(writer, fragmentFormatter);
+                }
             }
         }
 
-        if (reachedLimit)
+        if (limitLeft <= 0)
         {
             // This is the three ellipsis character in html-encoded form
-            stringBuilder.Append("&#8230;");
+            stringBuilder.Append("&#8230; ");
         }
 
         // Add a read more link if truncated like there is on WordPress
-        if (reachedLimit && !string.IsNullOrEmpty(readMoreLink))
+        if (limitLeft <= 0 && !string.IsNullOrEmpty(readMoreLink))
         {
-            stringBuilder.Append($@"<a class=""more-link"" href=""{readMoreLink}"">Read More &#8594;</a>");
+            stringBuilder.Append($@" <a class=""more-link"" href=""{readMoreLink}"">Read More &#8594;</a>");
         }
 
         return (stringBuilder.ToString(), previewImage);
@@ -232,13 +243,10 @@ public class PageRenderer : IPageRenderer
         return (stringBuilder.ToString(), previewImage);
     }
 
-    private bool HandleContentForPreview(INode node, int maxLength, StringBuilder stringBuilder, ref bool reachedLimit)
+    private bool HandleContentForPreview(INode node, ref int limitLeft)
     {
         // Reach end if text length is too much when reaching this node
-        if (stringBuilder.Length > maxLength)
-            reachedLimit = true;
-
-        if (reachedLimit)
+        if (limitLeft <= 0)
             return false;
 
         switch (node)
@@ -289,13 +297,14 @@ public class PageRenderer : IPageRenderer
             // Elements that are trimmed (if too long)
             case IText text:
             {
-                int remainingLength = maxLength - stringBuilder.Length;
-                if (text.Data.Length < remainingLength)
+                if (text.Data.Length < limitLeft)
                 {
                     // Ellipsis is added later (as an HTML element) so this doesn't place the ellipsis
                     // There's a min length here so that the text isn't cut to have like just one character
-                    text.Data = text.Data.TruncateWithoutEllipsis(Math.Max(3, remainingLength));
+                    text.Data = text.Data.TruncateWithoutEllipsis(Math.Max(3, limitLeft));
                 }
+
+                limitLeft -= text.Data.Length;
 
                 break;
             }
@@ -305,19 +314,25 @@ public class PageRenderer : IPageRenderer
                 if (string.IsNullOrWhiteSpace(headingElement.Title))
                     return false;
 
-                int remainingLength = maxLength - stringBuilder.Length;
-                if (headingElement.Title.Length < remainingLength)
+                if (headingElement.Title.Length < limitLeft)
                 {
-                    headingElement.Title = headingElement.Title.TruncateWithoutEllipsis(Math.Max(3, remainingLength));
+                    headingElement.Title = headingElement.Title.TruncateWithoutEllipsis(Math.Max(3, limitLeft));
                 }
+
+                limitLeft -= headingElement.Title.Length;
 
                 break;
             }
+
+            default:
+                // Remove a few characters for each tag from the preview length
+                limitLeft -= 4;
+                break;
         }
 
         foreach (var childNode in node.ChildNodes.ToList())
         {
-            if (!HandleContentForPreview(childNode, maxLength, stringBuilder, ref reachedLimit))
+            if (!HandleContentForPreview(childNode, ref limitLeft))
             {
                 node.RemoveChild(childNode);
             }
