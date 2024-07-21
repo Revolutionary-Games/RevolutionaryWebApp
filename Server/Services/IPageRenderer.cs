@@ -1,4 +1,4 @@
-namespace RevolutionaryWebApp.Server.Services;
+﻿namespace RevolutionaryWebApp.Server.Services;
 
 using System;
 using System.Diagnostics;
@@ -24,6 +24,7 @@ public interface IPageRenderer
     internal const string NotFoundPageText = "<p>No page exists at this address, please double check the link</p>";
 
     public ValueTask<RenderedPage> RenderPage(VersionedPage page, bool renderOpenGraphMeta, Stopwatch totalTimer);
+
     public RenderedPage RenderNotFoundPage(Stopwatch totalTimer);
 
     /// <summary>
@@ -33,7 +34,13 @@ public interface IPageRenderer
     ///   Tuple of rendered HTML and a link to the first image (used as preview banner image) if there is one in the
     ///   page, otherwise null and site default banner should be used
     /// </returns>
-    (string Rendered, string? PreviewImage)
+    /// <remarks>
+    ///   <para>
+    ///     This is different from HtmlStringExtensions due to this removing many HTML element types that aren't good
+    ///     to have in really short previews.
+    ///   </para>
+    /// </remarks>
+    public (string Rendered, string? PreviewImage)
         RenderPreview(VersionedPage page, string? readMoreLink, int targetMaxLength);
 }
 
@@ -96,7 +103,9 @@ public class PageRenderer : IPageRenderer
         return ValueTask.FromResult(result);
     }
 
-    public (string Rendered, string? PreviewImage) RenderPreview(VersionedPage page, string? readMoreLink,
+    public (string Rendered, string? PreviewImage) RenderPreview(
+        VersionedPage page,
+        string? readMoreLink,
         int targetMaxLength)
     {
         // TODO: allow a special bbcode tag that overrides the page summary (needs to be removed in normal page
@@ -149,7 +158,10 @@ public class PageRenderer : IPageRenderer
 
     public RenderedPage RenderNotFoundPage(Stopwatch totalTimer)
     {
-        var result = new RenderedPage(IPageRenderer.NotFoundPageTitle, IPageRenderer.NotFoundPageText, DateTime.UtcNow,
+        var result = new RenderedPage(
+            IPageRenderer.NotFoundPageTitle,
+            IPageRenderer.NotFoundPageText,
+            DateTime.UtcNow,
             totalTimer.Elapsed)
         {
             ShowHeading = true,
@@ -193,7 +205,8 @@ public class PageRenderer : IPageRenderer
     ///   Creates an opengraph meta tag description for a page (the page needs to be rendered first)
     /// </summary>
     /// <returns>Opengraph meta information</returns>
-    private (string Description, string? PreviewImage) RenderOpenGraphMetaDescription(string rendered,
+    private (string Description, string? PreviewImage) RenderOpenGraphMetaDescription(
+        string rendered,
         int maxLength = 155)
     {
         // TODO: skipping youtube and bigger elements would be really nice to skip text from them leaking into the
@@ -289,6 +302,9 @@ public class PageRenderer : IPageRenderer
 
             case IHtmlHeadingElement headingElement:
             {
+                if (string.IsNullOrWhiteSpace(headingElement.Title))
+                    return false;
+
                 int remainingLength = maxLength - stringBuilder.Length;
                 if (headingElement.Title.Length < remainingLength)
                 {
@@ -319,6 +335,7 @@ public class PageRenderer : IPageRenderer
         switch (node)
         {
             // Elements that we don't want to extract text from
+            // TODO: some of the following should probably end the snippet if there's more than half text already
             case IHtmlImageElement:
             case IHtmlScriptElement:
             case IComment:
