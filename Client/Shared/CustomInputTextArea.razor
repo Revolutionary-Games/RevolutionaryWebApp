@@ -1,6 +1,7 @@
 @inherits InputTextArea
 
-<textarea @attributes="@AdditionalAttributes"
+@* Explicit cast required here to silence a warning *@
+<textarea @attributes="@(AdditionalAttributes as IEnumerable<KeyValuePair<string, object?>)"
        class="@CssClass"
        @bind="CurrentValueAsString"
        @bind:event="oninput"></textarea>

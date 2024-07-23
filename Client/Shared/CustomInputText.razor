@@ -1,6 +1,7 @@
 @inherits InputText
 
-<input @attributes="@AdditionalAttributes"
+@* Explicit cast required here to silence a warning *@
+<input @attributes="@(AdditionalAttributes as IEnumerable<KeyValuePair<string, object?>)"
        class="@CssClass"
        @bind="CurrentValueAsString"
        @bind:event="oninput" />
