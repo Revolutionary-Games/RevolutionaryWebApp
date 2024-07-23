@@ -36,9 +36,11 @@ public class BaseSSHAccess : IDisposable, IBaseSSHAccess
         // Result is the command output
         // Error is maybe the error stream?
 
+        // TODO: maybe should also try to read the exit signal if ExitStatus is null?
+
         return new CommandResult
         {
-            ExitCode = command.ExitStatus,
+            ExitCode = command.ExitStatus ?? -1,
             Error = command.Error,
             Result = result,
         };
