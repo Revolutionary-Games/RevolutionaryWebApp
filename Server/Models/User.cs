@@ -206,6 +206,14 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     public ICollection<PageVersion> CreatedPageVersions { get; set; } = new HashSet<PageVersion>();
     public ICollection<PageEditSuggestion> PageEditSuggestions { get; set; } = new HashSet<PageEditSuggestion>();
 
+    public ICollection<MediaFile> UploaderOfMediaFiles { get; set; } = new HashSet<MediaFile>();
+
+    public ICollection<MediaFile> LastModifierOfMediaFiles { get; set; } = new HashSet<MediaFile>();
+
+    public ICollection<MediaFolder> OwnerOfMediaFolders { get; set; } = new HashSet<MediaFolder>();
+
+    public ICollection<MediaFolder> LastModifierOfMediaFolders { get; set; } = new HashSet<MediaFolder>();
+
     public AssociationMember? AssociationMember { get; set; }
 
     /// <summary>

@@ -684,6 +684,22 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(d => d.SuggestedBy).WithMany(p => p.PageEditSuggestions).OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.Entity<MediaFile>(entity =>
+        {
+            entity.HasOne(d => d.LastModifiedBy).WithMany(p => p.LastModifierOfMediaFiles)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(d => d.UploadedBy).WithMany(p => p.UploaderOfMediaFiles)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<MediaFolder>(entity =>
+        {
+            entity.HasOne(d => d.LastModifiedBy).WithMany(p => p.LastModifierOfMediaFolders)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(d => d.OwnedBy).WithMany(p => p.OwnerOfMediaFolders)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
     }
 
     private Task SendUpdateNotifications(List<Tuple<SerializedNotification, string>>? messages)
