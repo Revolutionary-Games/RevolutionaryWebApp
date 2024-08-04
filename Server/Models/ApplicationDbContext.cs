@@ -88,6 +88,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<VersionedPage> VersionedPages { get; set; } = null!;
     public DbSet<PageVersion> PageVersions { get; set; } = null!;
     public DbSet<PageEditSuggestion> PageEditSuggestions { get; set; } = null!;
+    public DbSet<MediaFolder> MediaFolders { get; set; } = null!;
+    public DbSet<MediaFile> MediaFiles { get; set; } = null!;
 
     /// <summary>
     ///   If non-null this will be used to send model update notifications on save
@@ -699,6 +701,67 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(d => d.OwnedBy).WithMany(p => p.OwnerOfMediaFolders)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasData(new MediaFolder("Website Parts")
+                {
+                    Id = MediaFolder.WebsitePartsId,
+                    ContentReadAccess = GroupType.Developer,
+                    ContentWriteAccess = GroupType.SiteLayoutEditor,
+                    SubFolderModifyAccess = GroupType.Admin,
+                    FolderModifyAccess = GroupType.SystemOnly,
+                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                },
+                new MediaFolder("Website Pages")
+                {
+                    Id = MediaFolder.WebsitePagesId,
+                    ContentReadAccess = GroupType.Developer,
+                    ContentWriteAccess = GroupType.SiteLayoutEditor,
+                    SubFolderModifyAccess = GroupType.Admin,
+                    FolderModifyAccess = GroupType.SystemOnly,
+                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                },
+                new MediaFolder("Website Posts")
+                {
+                    Id = MediaFolder.WebsitePostsId,
+                    ContentReadAccess = GroupType.Developer,
+                    ContentWriteAccess = GroupType.SiteLayoutEditor,
+                    SubFolderModifyAccess = GroupType.Admin,
+                    FolderModifyAccess = GroupType.SystemOnly,
+                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                },
+                new MediaFolder("Wiki Media")
+                {
+                    Id = MediaFolder.WikiImagesId,
+                    ContentReadAccess = GroupType.Developer,
+                    ContentWriteAccess = GroupType.SiteLayoutEditor,
+                    SubFolderModifyAccess = GroupType.Admin,
+                    FolderModifyAccess = GroupType.SystemOnly,
+                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                },
+                new MediaFolder("User Avatars")
+                {
+                    Id = MediaFolder.AvatarsId,
+                    ContentReadAccess = GroupType.RestrictedUser,
+                    ContentWriteAccess = GroupType.User,
+                    SubFolderModifyAccess = GroupType.SystemOnly,
+                    FolderModifyAccess = GroupType.SystemOnly,
+                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                },
+                new MediaFolder("User Uploads")
+                {
+                    Id = MediaFolder.UserUploadsId,
+                    ContentReadAccess = GroupType.RestrictedUser,
+                    ContentWriteAccess = GroupType.User,
+                    SubFolderModifyAccess = GroupType.SystemOnly,
+                    FolderModifyAccess = GroupType.SystemOnly,
+                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                });
         });
     }
 
