@@ -259,7 +259,7 @@ public class NotificationsHub : Hub<INotifications>
             return false;
         }
 
-        // This lookup probably can timing attack leak the IDs of objects
+        // This lookup probably can timing-attack leak the IDs of objects
         item = existingItems.Find(keys);
 
         return item != null;
@@ -272,7 +272,7 @@ public class NotificationsHub : Hub<INotifications>
 
         if (long.TryParse(idRaw, out long id))
         {
-            // This lookup probably can timing attack leak the IDs of objects
+            // This lookup probably can timing-attack leak the IDs of objects
             item = existingItems.Find(id);
             return item != null;
         }
@@ -567,6 +567,51 @@ public class NotificationsHub : Hub<INotifications>
 
             // Only admins see secrets
             return RequireAccessLevel(GroupType.Admin, user);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.MediaFolderContentsUpdatedPrefix) ||
+            groupName.StartsWith(NotificationGroups.MediaFolderUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroup(groupName, database.MediaFolders, out var item))
+                return false;
+
+            if (RequireAccessLevel(GroupType.Admin, user))
+                return true;
+
+            // Write access allows also read
+            if (RequireAccessLevel(item!.ContentWriteAccess, user))
+                return true;
+
+            // Owner or last modifier can read
+            if (user != null)
+            {
+                if (item.LastModifiedById == user.Id || item.OwnedById == user.Id)
+                    return true;
+            }
+
+            return RequireAccessLevel(item.ContentReadAccess, user);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.MediaFileUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroup(groupName, database.MediaFiles, out var item))
+                return false;
+
+            if (RequireAccessLevel(GroupType.Admin, user))
+                return true;
+
+            // Write access allows also read
+            if (RequireAccessLevel(item!.ModifyAccess, user))
+                return true;
+
+            // Uploader or last modifier can read
+            if (user != null)
+            {
+                if (item.LastModifiedById == user.Id || item.UploadedById == user.Id)
+                    return true;
+            }
+
+            return RequireAccessLevel(item.MetadataVisibility, user);
         }
 
         if (groupName.StartsWith(NotificationGroups.PrecompiledObjectUpdatedPrefix))

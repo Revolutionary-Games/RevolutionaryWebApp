@@ -192,3 +192,13 @@ public class PrecompiledObjectListUpdated : ListUpdated<PrecompiledObjectInfo>
 public class PageListUpdated : ListUpdated<VersionedPageInfo>
 {
 }
+
+/// <summary>
+///   To avoid a bunch of notification groups, media folders just in general report that their contents were updated
+/// </summary>
+public class MediaFolderContentsUpdated : SerializedNotification
+{
+    // public ListItemChangeType Type { get; init; } = ListItemChangeType.ItemUpdated;
+
+    public long FolderId { get; init; }
+}

@@ -115,3 +115,11 @@ public class PrecompiledObjectUpdated : ModelUpdated<PrecompiledObjectDTO>
 public class VersionedPageUpdated : ModelUpdated<VersionedPageDTO>
 {
 }
+
+public class MediaFolderUpdated : ModelUpdated<MediaFolderDTO>
+{
+}
+
+public class MediaFileUpdated : ModelUpdated<MediaFileDTO>
+{
+}

@@ -7,13 +7,14 @@ using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
+using Shared.Notifications;
 using Utilities;
 
 /// <summary>
 ///   Folder that groups <see cref="MediaFile"/> objects
 /// </summary>
 [Index(nameof(Name), nameof(ParentFolderId), IsUnique = true)]
-public class MediaFolder : UpdateableModel
+public class MediaFolder : UpdateableModel, IUpdateNotifications
 {
     public const long WebsitePartsId = 1;
     public const long WebsitePagesId = 2;
@@ -103,5 +104,24 @@ public class MediaFolder : UpdateableModel
             LastModifiedById = LastModifiedById,
             DeleteIfEmpty = DeleteIfEmpty,
         };
+    }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return new Tuple<SerializedNotification, string>(new MediaFolderUpdated
+        {
+            Item = GetDTO(),
+        }, NotificationGroups.MediaFolderUpdatedPrefix + Id);
+
+        // For now only send update notifications for non-root folder
+        if (ParentFolderId != null)
+        {
+            // To avoid having a bunch of access checked update groups, there's now just a general info about the
+            // parent folder having its items updated
+            yield return new Tuple<SerializedNotification, string>(new MediaFolderContentsUpdated
+            {
+                FolderId = ParentFolderId.Value,
+            }, NotificationGroups.MediaFolderContentsUpdatedPrefix + ParentFolderId);
+        }
     }
 }

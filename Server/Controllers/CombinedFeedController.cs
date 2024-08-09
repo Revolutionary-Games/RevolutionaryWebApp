@@ -127,7 +127,7 @@ public class CombinedFeedController : Controller
         if (badRequest != null)
             return badRequest;
 
-        var user = HttpContext.AuthenticatedUser()!;
+        var user = HttpContext.AuthenticatedUserOrThrow();
 
         var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(feed, request);
 

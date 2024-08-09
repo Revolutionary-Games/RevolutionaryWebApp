@@ -1,12 +1,14 @@
 namespace RevolutionaryWebApp.Server.Models.Pages;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
+using Shared.Notifications;
 using Utilities;
 
 /// <summary>
@@ -15,7 +17,7 @@ using Utilities;
 /// </summary>
 [Index(nameof(GlobalId), IsUnique = true)]
 [Index(nameof(Name), nameof(FolderId), IsUnique = true)]
-public class MediaFile : UpdateableModel, ISoftDeletable
+public class MediaFile : UpdateableModel, ISoftDeletable, IUpdateNotifications
 {
     public MediaFile(string name, Guid globalId, MediaFolder folder, User? uploadedBy)
     {
@@ -109,5 +111,20 @@ public class MediaFile : UpdateableModel, ISoftDeletable
             Processed = Processed,
             Deleted = Deleted,
         };
+    }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return new Tuple<SerializedNotification, string>(new MediaFileUpdated
+        {
+            Item = GetDTO(),
+        }, NotificationGroups.MediaFileUpdatedPrefix + Id);
+
+        // To avoid having a bunch of access checked update groups, there's now just a general info about the
+        // parent folder having its items updated
+        yield return new Tuple<SerializedNotification, string>(new MediaFolderContentsUpdated
+        {
+            FolderId = FolderId,
+        }, NotificationGroups.MediaFolderContentsUpdatedPrefix + FolderId);
     }
 }

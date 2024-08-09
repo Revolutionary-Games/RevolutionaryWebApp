@@ -2,14 +2,15 @@ namespace RevolutionaryWebApp.Shared.Models.Pages;
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
 using DevCenterCommunication.Models;
 using Enums;
+using SharedBase.ModelVerifiers;
 
 public class MediaFileDTO : ClientSideTimedModel, IMediaFileInfo
 {
     [Required]
     [StringLength(100, MinimumLength = 2)]
+    [MayNotContain("/")]
     public string Name { get; set; } = string.Empty;
 
     public Guid GlobalId { get; set; }

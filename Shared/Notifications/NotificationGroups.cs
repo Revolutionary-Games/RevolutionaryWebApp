@@ -131,6 +131,10 @@ public static class NotificationGroups
     public const string PageTemplateListUpdated = "PTemplates";
     public const string PageTemplateUpdatedPrefix = "SPTemplate_";
 
+    public const string MediaFolderUpdatedPrefix = "SMFolder_";
+    public const string MediaFolderContentsUpdatedPrefix = "MFolder_";
+    public const string MediaFileUpdatedPrefix = "SMFile_";
+
     public const string PageEditNotice = "PEditNotice";
 
     /// <summary>
