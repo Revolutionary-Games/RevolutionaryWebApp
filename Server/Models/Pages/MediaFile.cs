@@ -2,11 +2,12 @@ namespace RevolutionaryWebApp.Server.Models.Pages;
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
+using Utilities;
 
 /// <summary>
 ///   Media file that is uploaded to be accessed through a CDN for a <see cref="VersionedPage"/> (this is a separate
@@ -36,10 +37,12 @@ public class MediaFile : UpdateableModel, ISoftDeletable
     ///   Name of the file. May not be changed after upload, otherwise links will break
     /// </summary>
     [MaxLength(100)]
+    [AllowSortingBy]
     public string Name { get; set; }
 
     public Guid GlobalId { get; set; }
 
+    [UpdateFromClientRequest]
     public long FolderId { get; set; }
 
     public MediaFolder Folder { get; set; }
@@ -48,11 +51,13 @@ public class MediaFile : UpdateableModel, ISoftDeletable
     ///   Additional groups of users who can see this item in folder listings etc. All media assets are publicly
     ///   downloadable if the name is known
     /// </summary>
+    [UpdateFromClientRequest]
     public GroupType MetadataVisibility { get; set; } = GroupType.SystemOnly;
 
     /// <summary>
     ///   Additional users who can modify this file (besides the uploader / last modifier)
     /// </summary>
+    [UpdateFromClientRequest]
     public GroupType ModifyAccess { get; set; } = GroupType.Admin;
 
     public long? UploadedById { get; set; }
@@ -71,32 +76,38 @@ public class MediaFile : UpdateableModel, ISoftDeletable
 
     public bool Deleted { get; set; }
 
-    public string GetStoragePath(MediaFileSize size)
+    public MediaFileInfo GetInfo()
     {
-        var extension = Path.GetExtension(Name);
-
-        var start = $"{GlobalId}/{Path.GetFileNameWithoutExtension(Name)}";
-
-        string sizeText;
-
-        switch (size)
+        return new MediaFileInfo
         {
-            case MediaFileSize.Original:
-                sizeText = string.Empty;
-                break;
-            case MediaFileSize.Large:
-                sizeText = "_large";
-                break;
-            case MediaFileSize.FitPage:
-                sizeText = "_fit";
-                break;
-            case MediaFileSize.Thumbnail:
-                sizeText = "_thumb";
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(size), size, null);
-        }
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Name = Name,
+            GlobalId = GlobalId,
+            MetadataVisibility = MetadataVisibility,
+            ModifyAccess = ModifyAccess,
+            UploadedById = UploadedById,
+            Processed = Processed,
+            Deleted = Deleted,
+        };
+    }
 
-        return start + sizeText + extension;
+    public MediaFileDTO GetDTO()
+    {
+        return new MediaFileDTO
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Name = Name,
+            GlobalId = GlobalId,
+            MetadataVisibility = MetadataVisibility,
+            ModifyAccess = ModifyAccess,
+            UploadedById = UploadedById,
+            LastModifiedById = LastModifiedById,
+            Processed = Processed,
+            Deleted = Deleted,
+        };
     }
 }

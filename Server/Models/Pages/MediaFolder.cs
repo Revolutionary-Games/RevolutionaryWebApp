@@ -4,7 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Models.Enums;
+using Shared.Models.Pages;
+using Utilities;
 
 /// <summary>
 ///   Folder that groups <see cref="MediaFile"/> objects
@@ -28,19 +31,27 @@ public class MediaFolder : UpdateableModel
     }
 
     [MaxLength(80)]
+    [AllowSortingBy]
+    [UpdateFromClientRequest]
     public string Name { get; set; }
 
     public long? ParentFolderId { get; set; }
 
     public MediaFolder? ParentFolder { get; set; }
 
+    [UpdateFromClientRequest]
     public GroupType ContentWriteAccess { get; set; } = GroupType.Developer;
 
+    [UpdateFromClientRequest]
     public GroupType ContentReadAccess { get; set; } = GroupType.Developer;
 
+    [UpdateFromClientRequest]
     public GroupType SubFolderModifyAccess { get; set; } = GroupType.Admin;
+
+    [UpdateFromClientRequest]
     public GroupType FolderModifyAccess { get; set; } = GroupType.Admin;
 
+    [UpdateFromClientRequest]
     public long? OwnedById { get; set; }
 
     public User? OwnedBy { get; set; }
@@ -58,4 +69,39 @@ public class MediaFolder : UpdateableModel
     public ICollection<MediaFolder> SubFolders { get; set; } = new HashSet<MediaFolder>();
 
     public ICollection<MediaFile> FolderItems { get; set; } = new HashSet<MediaFile>();
+
+    public MediaFolderInfo GetInfo()
+    {
+        return new MediaFolderInfo
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Name = Name,
+            ParentFolderId = ParentFolderId,
+            ContentWriteAccess = ContentWriteAccess,
+            ContentReadAccess = ContentReadAccess,
+            OwnedById = OwnedById,
+            LastModifiedById = LastModifiedById,
+        };
+    }
+
+    public MediaFolderDTO GetDTO()
+    {
+        return new MediaFolderDTO
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Name = Name,
+            ParentFolderId = ParentFolderId,
+            ContentWriteAccess = ContentWriteAccess,
+            ContentReadAccess = ContentReadAccess,
+            SubFolderModifyAccess = SubFolderModifyAccess,
+            FolderModifyAccess = FolderModifyAccess,
+            OwnedById = OwnedById,
+            LastModifiedById = LastModifiedById,
+            DeleteIfEmpty = DeleteIfEmpty,
+        };
+    }
 }
