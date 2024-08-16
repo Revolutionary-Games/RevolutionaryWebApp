@@ -144,7 +144,7 @@ public class MediaFolderController : Controller
             if (!userGroups.HasGroup(GroupType.Admin))
                 return this.WorkingForbid("Only admins can create top level folders");
 
-            await database.ActionLogEntries(
+            await database.ActionLogEntries.AddAsync(
                 new ActionLogEntry($"Folder \"{newFolder.Name.Truncate()}\" in root folder created")
                 {
                     PerformedById = user.Id,
@@ -155,7 +155,7 @@ public class MediaFolderController : Controller
             if (!userGroups.HasGroup(folder.SubFolderModifyAccess) && !userGroups.HasGroup(GroupType.Admin))
                 return this.WorkingForbid("You lack the permission to create subfolders in this folder");
 
-            await database.ActionLogEntries(new ActionLogEntry(
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry(
                 $"Folder \"{newFolder.Name.Truncate()}\" created in folder " +
                 $"\"{folder.Name.Truncate()}\" ({folder.Id})")
             {
