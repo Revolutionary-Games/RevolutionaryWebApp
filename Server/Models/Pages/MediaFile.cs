@@ -35,6 +35,20 @@ public class MediaFile : UpdateableModel, ISoftDeletable, IUpdateNotifications
         UploadedById = uploadedBy?.Id;
     }
 
+    public MediaFile(string name, Guid globalId, long folderId, long? uploadedById)
+    {
+        if (name.Contains('/'))
+            throw new ArgumentException("Name shouldn't contain a slash");
+
+        if (!name.Contains('.') || name.EndsWith('.'))
+            throw new ArgumentException("Name should have an extension");
+
+        Name = name;
+        GlobalId = globalId;
+        FolderId = folderId;
+        UploadedById = uploadedById;
+    }
+
     /// <summary>
     ///   Name of the file. May not be changed after upload, otherwise links will break
     /// </summary>
@@ -115,16 +129,20 @@ public class MediaFile : UpdateableModel, ISoftDeletable, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new MediaFileUpdated
-        {
-            Item = GetDTO(),
-        }, NotificationGroups.MediaFileUpdatedPrefix + Id);
+        yield return new Tuple<SerializedNotification, string>(
+            new MediaFileUpdated
+            {
+                Item = GetDTO(),
+            },
+            NotificationGroups.MediaFileUpdatedPrefix + Id);
 
         // To avoid having a bunch of access checked update groups, there's now just a general info about the
         // parent folder having its items updated
-        yield return new Tuple<SerializedNotification, string>(new MediaFolderContentsUpdated
-        {
-            FolderId = FolderId,
-        }, NotificationGroups.MediaFolderContentsUpdatedPrefix + FolderId);
+        yield return new Tuple<SerializedNotification, string>(
+            new MediaFolderContentsUpdated
+            {
+                FolderId = FolderId,
+            },
+            NotificationGroups.MediaFolderContentsUpdatedPrefix + FolderId);
     }
 }
