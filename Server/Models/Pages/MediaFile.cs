@@ -61,7 +61,7 @@ public class MediaFile : UpdateableModel, ISoftDeletable, IUpdateNotifications
     [UpdateFromClientRequest]
     public long FolderId { get; set; }
 
-    public MediaFolder Folder { get; set; }
+    public MediaFolder Folder { get; set; } = null!;
 
     /// <summary>
     ///   Additional groups of users who can see this item in folder listings etc. All media assets are publicly
