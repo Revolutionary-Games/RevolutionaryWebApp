@@ -624,6 +624,7 @@
             {
                 PublicAddress = IPAddress.Parse(newIP!),
                 SSHKeyFileName = newSSHKey!,
+                ReservedFor = "unset",
             });
         }
         catch (HttpRequestException e)
