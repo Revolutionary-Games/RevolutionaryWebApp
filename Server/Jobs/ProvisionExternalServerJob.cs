@@ -38,8 +38,8 @@ public class ProvisionExternalServerJob : BaseProvisionServerJob
         if (!server.ProvisionedFully)
         {
             Logger.LogTrace("External server {Id} not yet fully provisioned", id);
-            jobClient.Schedule<ProvisionControlledServerJob>(x => Execute(id, CancellationToken.None),
-                TimeSpan.FromSeconds(10));
+            jobClient.Schedule<ProvisionExternalServerJob>(x => Execute(id, CancellationToken.None),
+                TimeSpan.FromSeconds(60));
         }
         else
         {

@@ -14,7 +14,7 @@ public abstract class BaseProvisionServerJob
 {
     // TODO: put this somewhere more sensible
     public const string GeneralProvisionCommandPart =
-        "sudo dnf install -y --refresh podman curl git git-lfs gawk dotnet-runtime-6.0 && " +
+        "sudo dnf install -y --refresh podman curl git git-lfs gawk dotnet-runtime-8.0 && " +
         "git lfs install && sudo mkdir -p /executor_cache";
 
     protected readonly ILogger<BaseProvisionServerJob> Logger;
