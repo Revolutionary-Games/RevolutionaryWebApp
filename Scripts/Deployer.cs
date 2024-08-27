@@ -173,7 +173,7 @@ public class Deployer
 
     private async Task<bool> PerformMigration(string targetHost, CancellationToken cancellationToken)
     {
-        // This is ran before the build and is optional, so for now this is not build inside the build container
+        // This is run before the build and is optional, so for now this is not build inside the build container
 
         var startInfo = new ProcessStartInfo("dotnet");
         startInfo.ArgumentList.Add("ef");
