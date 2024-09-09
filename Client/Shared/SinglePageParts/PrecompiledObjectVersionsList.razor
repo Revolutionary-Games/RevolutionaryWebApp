@@ -109,6 +109,7 @@ else
     private static readonly Dictionary<PrecompiledTag, (char Letter, string Explanation)> TagDisplayMapping = new()
     {
         {PrecompiledTag.Debug,  ('D', "Debug mode binary")},
+        {PrecompiledTag.WithoutAvx,  ('S', "No AVX (SSE only)")},
     };
 
     // TODO: when not logged in hide the "created by" column entirely as it doesn't have any data
