@@ -209,23 +209,30 @@ public class Startup
         });
 
         services.AddHttpClient();
-        services.AddHttpClient(Options.DefaultName, httpClient => { httpClient.AddDevCenterUserAgent(); });
+        services.AddHttpClient(Options.DefaultName, httpClient =>
+        {
+            httpClient.AddDevCenterUserAgent();
+            httpClient.Timeout = TimeSpan.FromMinutes(1);
+        });
         services.AddHttpClient("github", httpClient =>
         {
             httpClient.BaseAddress = new Uri("https://api.github.com/");
             httpClient.DefaultRequestHeaders.Add(
                 HeaderNames.Accept, "application/vnd.github.v3+json");
             httpClient.AddDevCenterUserAgent();
+            httpClient.Timeout = TimeSpan.FromMinutes(1);
         });
         services.AddHttpClient("stackwalk", httpClient =>
         {
             httpClient.Timeout = TimeSpan.FromSeconds(120);
             httpClient.AddDevCenterUserAgent();
+            httpClient.Timeout = TimeSpan.FromMinutes(3);
         });
         services.AddHttpClient("discourse", httpClient =>
         {
             httpClient.Timeout = TimeSpan.FromSeconds(80);
             httpClient.AddDevCenterUserAgent();
+            httpClient.Timeout = TimeSpan.FromMinutes(1);
         });
 
         services.AddSingleton<IRegistrationStatus, RegistrationStatus>();
