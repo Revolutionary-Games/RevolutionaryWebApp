@@ -49,7 +49,7 @@
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
     <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.28" />
     <PackageReference Include="Svg.Skia" Version="2.0.0.1" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.1.0" />
     <PackageReference Include="System.Interactive.Async" Version="6.0.1" />
     <PackageReference Include="System.Security.Principal" Version="4.3.0" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="8.0.0" />
