@@ -1178,7 +1178,8 @@ public class StorageFilesController : Controller
                 CancellationToken.None), AppInfo.MultipartUploadTotalAllowedTime * 2);
         }
 
-        // TODO: queue a job to delete the version / UploadPath after a few hours if the upload fails
+        // TODO: queue a job to delete the version / UploadPath after a few hours if the upload fails (isn't that
+        // above?)
 
         var token = new UploadVerifyToken
         {

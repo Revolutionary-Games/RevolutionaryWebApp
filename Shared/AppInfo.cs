@@ -82,6 +82,9 @@ public static class AppInfo
     /// </summary>
     public const long MaxGeneralFileStoreSize = 4024L * GlobalConstants.MEBIBYTE;
 
+    public const long MaxMediaFileSize = 5 * GlobalConstants.MEBIBYTE;
+    public const int MaxMediaImageDimension = 10000;
+
     public const long FileSizeBeforeMultipartUpload = 70 * GlobalConstants.MEBIBYTE;
     public const long MultipartUploadChunkSize = 50 * GlobalConstants.MEBIBYTE;
     public const long MultipartUploadChunkSizeLarge = 100 * GlobalConstants.MEBIBYTE;
@@ -186,6 +189,10 @@ public static class AppInfo
     ///   Maximum size of our normal caches combined across all controllers (in bytes)
     /// </summary>
     public const int MaxNormalCacheSize = 150 * GlobalConstants.MEBIBYTE;
+
+    // TODO: add support for webm uploads
+    // public static readonly string[] MediaFileTypes = [".png", ".jpg", ".jpeg", ".gif", ".webm"];
+    public static readonly string[] MediaFileTypes = [".png", ".jpg", ".jpeg", ".gif"];
 
     /// <summary>
     ///   The interval in seconds that a session use is updated to the database

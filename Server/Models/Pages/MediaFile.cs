@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Models.Pages;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -20,22 +21,6 @@ using Utilities;
 [Index(nameof(Name), nameof(FolderId), IsUnique = true)]
 public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdateNotifications
 {
-    public MediaFile(string name, Guid globalId, MediaFolder folder, User? uploadedBy)
-    {
-        if (name.Contains('/'))
-            throw new ArgumentException("Name shouldn't contain a slash");
-
-        if (!name.Contains('.') || name.EndsWith('.'))
-            throw new ArgumentException("Name should have an extension");
-
-        Name = name;
-        GlobalId = globalId;
-        Folder = folder;
-        FolderId = folder.Id;
-        UploadedBy = uploadedBy;
-        UploadedById = uploadedBy?.Id;
-    }
-
     public MediaFile(string name, Guid globalId, long folderId, long? uploadedById)
     {
         if (name.Contains('/'))
@@ -63,6 +48,11 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
     public long FolderId { get; set; }
 
     public MediaFolder Folder { get; set; } = null!;
+
+    /// <summary>
+    ///   Size of the original file uploaded by the user (that is then processed to get the other size variants)
+    /// </summary>
+    public long OriginalFileSize { get; set; }
 
     /// <summary>
     ///   Additional groups of users who can see this item in folder listings etc. All media assets are publicly
@@ -99,6 +89,18 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
             return null;
 
         return MediaFileExtensions.GetStoragePath(this, size);
+    }
+
+    public string GetUploadPath()
+    {
+        var extension = Path.GetExtension(Name);
+
+        return $"@mediaUpload/{GlobalId}{extension}";
+    }
+
+    public string GetIntermediateProcessingPath()
+    {
+        return $"@processing/{GlobalId}:{Id}";
     }
 
     public MediaFileInfo GetInfo()

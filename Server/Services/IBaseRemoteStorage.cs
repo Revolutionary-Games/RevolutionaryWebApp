@@ -41,6 +41,7 @@ public interface IBaseRemoteStorage : IDisposable
     public Task<List<(string Key, string UploadId)>> ListMultipartUploads(CancellationToken cancellationToken);
 
     public Task<long> GetObjectSize(string path);
+    public Task<bool> DoesObjectExist(string path, CancellationToken cancellationToken);
     public Task MoveObject(string currentPath, string newPath);
 
     /// <summary>
@@ -289,6 +290,21 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
         return data.Headers.ContentLength;
     }
 
+    public async Task<bool> DoesObjectExist(string path, CancellationToken cancellationToken)
+    {
+        ThrowIfNotConfigured();
+
+        var data = await s3Client!.GetObjectMetadataAsync(bucket, path, cancellationToken);
+
+        if (data.HttpStatusCode != HttpStatusCode.OK && data.HttpStatusCode != HttpStatusCode.NotFound)
+            throw new Exception($"s3 object exit check failed failed: {data.HttpStatusCode}");
+
+        if (data.HttpStatusCode != HttpStatusCode.NotFound && data.Metadata.Count != 0)
+            return true;
+
+        return false;
+    }
+
     public async Task MoveObject(string currentPath, string newPath)
     {
         ThrowIfNotConfigured();
@@ -338,7 +354,9 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
         if (deleteResult.HttpStatusCode != HttpStatusCode.NoContent &&
             deleteResult.HttpStatusCode != HttpStatusCode.OK)
+        {
             throw new Exception($"s3 object delete failed, status: {deleteResult.HttpStatusCode}");
+        }
     }
 
     public async Task<IEnumerable<string>> ListFirstThousandFiles(CancellationToken cancellationToken)
