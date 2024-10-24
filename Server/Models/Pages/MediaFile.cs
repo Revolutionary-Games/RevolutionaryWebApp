@@ -9,6 +9,7 @@ using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
 using Shared.Notifications;
+using Shared.Utilities;
 using Utilities;
 
 /// <summary>
@@ -17,7 +18,7 @@ using Utilities;
 /// </summary>
 [Index(nameof(GlobalId), IsUnique = true)]
 [Index(nameof(Name), nameof(FolderId), IsUnique = true)]
-public class MediaFile : UpdateableModel, ISoftDeletable, IUpdateNotifications
+public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdateNotifications
 {
     public MediaFile(string name, Guid globalId, MediaFolder folder, User? uploadedBy)
     {
@@ -92,6 +93,14 @@ public class MediaFile : UpdateableModel, ISoftDeletable, IUpdateNotifications
 
     public bool Deleted { get; set; }
 
+    public string? GetStoragePath(MediaFileSize size)
+    {
+        if (Deleted || !Processed)
+            return null;
+
+        return MediaFileExtensions.GetStoragePath(this, size);
+    }
+
     public MediaFileInfo GetInfo()
     {
         return new MediaFileInfo
@@ -129,8 +138,7 @@ public class MediaFile : UpdateableModel, ISoftDeletable, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(
-            new MediaFileUpdated
+        yield return new Tuple<SerializedNotification, string>(new MediaFileUpdated
             {
                 Item = GetDTO(),
             },
@@ -138,8 +146,7 @@ public class MediaFile : UpdateableModel, ISoftDeletable, IUpdateNotifications
 
         // To avoid having a bunch of access checked update groups, there's now just a general info about the
         // parent folder having its items updated
-        yield return new Tuple<SerializedNotification, string>(
-            new MediaFolderContentsUpdated
+        yield return new Tuple<SerializedNotification, string>(new MediaFolderContentsUpdated
             {
                 FolderId = FolderId,
             },

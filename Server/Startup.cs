@@ -132,8 +132,7 @@ public class Startup
 
         services.AddResponseCompression(opts =>
         {
-            opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-                new[] { "application/octet-stream" });
+            opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octet-stream" });
         });
 
         // Built in aspnet rate limit configuration
@@ -217,8 +216,7 @@ public class Startup
         services.AddHttpClient("github", httpClient =>
         {
             httpClient.BaseAddress = new Uri("https://api.github.com/");
-            httpClient.DefaultRequestHeaders.Add(
-                HeaderNames.Accept, "application/vnd.github.v3+json");
+            httpClient.DefaultRequestHeaders.Add(HeaderNames.Accept, "application/vnd.github.v3+json");
             httpClient.AddDevCenterUserAgent();
             httpClient.Timeout = TimeSpan.FromMinutes(1);
         });
@@ -247,10 +245,13 @@ public class Startup
         services.AddSingleton<MarkdownService>();
         services.AddSingleton<HtmlSanitizerService>();
         services.AddSingleton<IPageRenderer, PageRenderer>();
+        services.AddSingleton<IMediaViewUrls, MediaViewUrls>();
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<LfsRemoteStorage>();
         services.AddScoped<IGeneralRemoteStorage, GeneralRemoteStorage>();
+        services.AddScoped<IUploadFileStorage, UploadFileStorage>();
+        services.AddScoped<IMediaStorage, MediaStorage>();
         services.AddScoped<IDevForumAPI, DevForumAPI>();
         services.AddScoped<ICommunityForumAPI, CommunityForumAPI>();
         services.AddScoped<RemoteServerHandler>();
@@ -341,29 +342,23 @@ public class Startup
         app.UseRouting();
 
         // Authentication to specific routes setup
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
             appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
 
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/api/v1/devbuild"),
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/v1/devbuild"),
             appBuilder => { appBuilder.UseMiddleware<AccessCodeAuthenticationMiddleware>(); });
 
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/hangfire"),
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/hangfire"),
             appBuilder => { appBuilder.UseMiddleware<CookieOnlyBasicAuthenticationMiddleware>(); });
 
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/api"),
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"),
             appBuilder => { appBuilder.UseMiddleware<TokenOrCookieAuthenticationMiddleware>(); });
 
-        app.UseWhen(
-            context => context.Request.Path.StartsWithSegments("/api"),
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"),
             appBuilder => { appBuilder.UseMiddleware<CSRFCheckerMiddleware>(); });
 
         // Auth for generated pages (non-API page gets)
-        app.UseWhen(
-            context => !context.Request.Path.StartsWithSegments("/api") &&
+        app.UseWhen(context => !context.Request.Path.StartsWithSegments("/api") &&
                 !context.Request.Path.StartsWithSegments("/hangfire"),
             appBuilder => { appBuilder.UseMiddleware<CookieOnlyBasicAuthenticationMiddleware>(); });
 
@@ -403,8 +398,8 @@ public class Startup
         {
             Authorization = new[]
             {
-                new HangfireDashboardAuthorization(
-                    app.ApplicationServices.GetRequiredService<ILogger<HangfireDashboardAuthorization>>()),
+                new HangfireDashboardAuthorization(app.ApplicationServices
+                    .GetRequiredService<ILogger<HangfireDashboardAuthorization>>()),
             },
             DefaultRecordsPerPage = 50,
             FaviconPath = "/favicon.ico",
@@ -484,8 +479,7 @@ public class Startup
         AddJobHelper<ScheduleServerMaintenanceJob>(configurationSection["ScheduleServerMaintenance"]);
         AddJobHelper<TimeoutInProgressClAsJob>(configurationSection["TimeoutInProgressCLAs"]);
         AddJobHelper<CancelStuckMultipartUploadsJob>(configurationSection["CancelStuckMultipartUploads"]);
-        AddJobHelper<RemoveOldCompletedMultipartUploadsJob>(
-            configurationSection["RemoveOldCompletedMultipartUploads"]);
+        AddJobHelper<RemoveOldCompletedMultipartUploadsJob>(configurationSection["RemoveOldCompletedMultipartUploads"]);
         AddJobHelper<DeleteAbandonedInProgressCLASignaturesJob>(
             configurationSection["DeleteAbandonedInProgressCLASignatures"]);
         AddJobHelper<DeleteStackwalkToolResultsJob>(configurationSection["DeleteStackwalkToolResults"]);
