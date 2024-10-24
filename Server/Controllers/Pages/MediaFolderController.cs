@@ -126,6 +126,9 @@ public class MediaFolderController : Controller
         if (!hasAccess)
             return NotFound("Not found or you don't have access to parent folder");
 
+        if (request.Name.StartsWith('@'))
+            return BadRequest("Name may not start with @");
+
         var user = HttpContext.AuthenticatedUserOrThrow();
         var userGroups = user.AccessCachedGroupsOrThrow();
 
@@ -199,6 +202,9 @@ public class MediaFolderController : Controller
             {
                 return BadRequest("New folder name is already in use");
             }
+
+            if (request.Name.StartsWith('@'))
+                return BadRequest("Name may not start with @");
         }
 
         var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(folder, request);
