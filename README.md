@@ -13,10 +13,10 @@ You can create a new account and a database for the account with `psql`:
 CREATE USER revolutionarywebapp WITH LOGIN PASSWORD 'PUTAPASSWORDHERE';
 ```
 
-### Redis
+### Redis (compatible)
 
-Redis is an optional dependency for sharing state between multiple
-instances (and remembering rate limit rates over restarts).
+Redis is basically required to run the app. A Redis alternative like
+KeyDB is recommended.
 
 The connection string to redis is configured in the app
 configuration. It's recommended to have a password on the redis.
@@ -106,6 +106,11 @@ dotnet watch run
 
 Then the development site should be available at http://localhost:5000
 now.
+
+A data protection certificate is required, it can be generated with:
+```sh
+openssl req -x509 -newkey ed25519 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes
+```
 
 ## Running
 
@@ -310,7 +315,7 @@ First prepare the server to deploy with all the software.
 
 For Rocky linux / Fedora you can install things with:
 ```sh
-dnf install aspnetcore-runtime-7.0 git postgresql-server redis nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget fontconfig-devel
+dnf install aspnetcore-runtime-7.0 git postgresql-server keydb nginx rsync cronie dnf-automatic emacs-nox certbot-nginx tmux wget fontconfig-devel
 ```
 Note that some packages are optional but better for a full production setup.
 

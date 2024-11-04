@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server;
 
 using System;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
@@ -70,7 +71,9 @@ public class Startup
             services.AddSingleton<IConnectionMultiplexer>(redis);
 
             services.AddDataProtection()
-                .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys");
+                .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys")
+                .ProtectKeysWithCertificate(
+                    X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"]));
 
             services.AddStackExchangeRedisCache(options =>
             {
@@ -82,7 +85,7 @@ public class Startup
                 options.Configuration = SharedStateRedisConnectionString;
 
                 // This already works for channel prefix
-                options.InstanceName = "ThriveDevSharedCache";
+                options.InstanceName = "ThriveWebSharedCache";
             });
         }
 
@@ -105,7 +108,7 @@ public class Startup
                 options =>
                 {
                     options.Configuration.ChannelPrefix =
-                        new RedisChannel("ThriveDevNotifications", RedisChannel.PatternMode.Literal);
+                        new RedisChannel("ThriveWebNotifications", RedisChannel.PatternMode.Literal);
                 });
         }
         else
