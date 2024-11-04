@@ -559,10 +559,9 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // This comparison for some reason sometimes passes when the element is null...
-        // So there's a separate null check in the JS code
-        if (!EqualityComparer<ElementReference>.Default.Equals(dropArea,
-            default))
+        // This was refactored as there was a warning comparing the entire area equality to "default" so hopefully
+        // this is equivalent
+        if (dropArea.Context != null)
         {
             await JS.InvokeVoidAsync("registerFileDropArea", dropArea, "filesToUploadSelection");
         }
