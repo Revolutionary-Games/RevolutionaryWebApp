@@ -10,7 +10,7 @@ using Shared.Models.Enums;
 ///   Verifies that there's an authenticated user with the required group before the route can be accessed.
 ///   Basic levels like <see cref="GroupType.NotLoggedIn"/> <see cref="GroupType.RestrictedUser"/> are not supported.
 ///   Other predefined groups are supported. This can be placed on a class to protect all methods in it, with
-///   optionally placing extra attributes on method to further restrict things.
+///   optionally placing extra attributes on methods to further restrict things.
 /// </summary>
 /// <remarks>
 ///   <para>

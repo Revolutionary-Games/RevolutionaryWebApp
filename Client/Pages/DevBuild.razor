@@ -16,7 +16,7 @@
     <h3>DevBuild (@Id)</h3>
 }
 
-<AccessLimited RequiredAccess="@GroupType.User">
+<AccessLimited RequiredAccess="GroupType.User">
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {

@@ -8,7 +8,7 @@
 
 <h3>Your Profile</h3>
 
-<AccessLimited RequiredAccess="@GroupType.User" OrHasOverride="GroupType.RestrictedUser">
+<AccessLimited RequiredAccess="GroupType.User" OrHasOverride="GroupType.RestrictedUser">
     <UserInfoPageContent User="@CurrentUserInfo.Info" />
 
     <br />

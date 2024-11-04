@@ -10,8 +10,22 @@
 @* For now only show something when info is ready, to reduce having infinite number of spinners on one page *@
 @if (CurrentUserInfo.InfoReady)
 {
-    if (CurrentUserInfo.HasGroup(RequiredAccess) ||
-        (OrHasOverride != GroupType.NotLoggedIn && CurrentUserInfo.HasGroup(OrHasOverride)))
+    bool hasAccess;
+
+    if (RequiredGroup.HasValue)
+    {
+        hasAccess = CurrentUserInfo.HasGroup(RequiredGroup.Value);
+    }
+    else
+    {
+        hasAccess = CurrentUserInfo.HasAccessLevel(RequiredAccess);
+    }
+
+    // Check access due to override
+    if (!hasAccess && (OrHasOverride != GroupType.NotLoggedIn && CurrentUserInfo.HasGroup(OrHasOverride)))
+        hasAccess = true;
+
+    if (hasAccess)
     {
         if (AuthorizedContent == null)
         {
@@ -46,12 +60,23 @@
 
 @code {
 
+    /// <summary>
+    ///   Requires current user to have this access level. Note doesn't work with non-access level groups, for those
+    ///   use <see cref="RequiredGroup"/>. Either this or group has to be specified.
+    /// </summary>
     [Parameter]
     public GroupType RequiredAccess { get; set; } = GroupType.Developer;
 
     /// <summary>
+    ///   If specified checks is the user in the given group (doesn't work with access levels). If specified always
+    ///   takes precedence over <see cref="RequiredAccess"/>.
+    /// </summary>
+    [Parameter]
+    public GroupType? RequiredGroup { get; set; }
+
+    /// <summary>
     ///   Allows specifying an additional group to check. For now this is used as a workaround for simple group checks
-    ///   that should have admin override.
+    ///   that should have admin override. Does not work with access levels in general.
     /// </summary>
     [Parameter]
     public GroupType OrHasOverride { get; set; } = GroupType.NotLoggedIn;

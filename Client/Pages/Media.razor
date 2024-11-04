@@ -1,6 +1,6 @@
 @page "/media"
 @using RevolutionaryWebApp.Shared.Models.Enums
-<AccessLimited RequiredAccess="GroupType.PostEditor" OrHasOverride="@GroupType.Developer"
+<AccessLimited RequiredGroup="GroupType.PostEditor" OrHasOverride="@GroupType.Developer"
                AutoRedirectIfNotLoggedIn="@true">
     <h3>Media</h3>
 

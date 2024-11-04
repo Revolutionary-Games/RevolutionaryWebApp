@@ -14,7 +14,7 @@
 @using SharedBase.Utilities
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<PageListUpdated>
 @inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.Pages.VersionedPageInfo>
-<AccessLimited RequiredAccess="GroupType.PostEditor" OrHasOverride="GroupType.Developer">
+<AccessLimited RequiredGroup="GroupType.PostEditor" OrHasOverride="GroupType.Developer">
     <h3>Posts</h3>
 
     <p>

@@ -38,7 +38,7 @@
                 </NavLink>
             </li>
         </AccessLimited>
-        <AccessLimited RequiredAccess="GroupType.SitePageEditor" OrHasOverride="GroupType.Admin"
+        <AccessLimited RequiredGroup="GroupType.SitePageEditor" OrHasOverride="GroupType.Admin"
                        AutoRedirectIfNotLoggedIn="@false">
             <li class="nav-item px-3">
                 <NavLink id="leftPagesButton" class="nav-link" href="pages">
@@ -53,7 +53,7 @@
                 </NavLink>
             </li>
         </AccessLimited>
-        <AccessLimited RequiredAccess="GroupType.SiteLayoutEditor" OrHasOverride="GroupType.Admin"
+        <AccessLimited RequiredGroup="GroupType.SiteLayoutEditor" OrHasOverride="GroupType.Admin"
                        AutoRedirectIfNotLoggedIn="@false">
             <li class="nav-item px-3">
                 <NavLink id="leftLayoutButton" class="nav-link" href="layout">

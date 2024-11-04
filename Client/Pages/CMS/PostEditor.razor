@@ -8,7 +8,7 @@
 @using RevolutionaryWebApp.Shared.Models.Pages
 @using RevolutionaryWebApp.Shared.Notifications
 
-<AccessLimited RequiredAccess="GroupType.PostEditor" OrHasOverride="GroupType.Developer">
+<AccessLimited RequiredGroup="GroupType.PostEditor" OrHasOverride="GroupType.Developer">
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {
@@ -23,7 +23,7 @@
 
             @if (Data.Visibility != PageVisibility.HiddenDraft)
             {
-                <AccessLimited RequiredAccess="GroupType.PostPublisher" OrHasOverride="GroupType.Admin">
+                <AccessLimited RequiredGroup="GroupType.PostPublisher" OrHasOverride="GroupType.Admin">
                     <AccessMissingContent>
                         <StatusMessageShower Message="You may not have permission to edit this published post"/>
                     </AccessMissingContent>
