@@ -12,14 +12,14 @@
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="AsyncKeyedLock" Version="7.0.2" />
-    <PackageReference Include="AWSSDK.EC2" Version="3.7.411.1" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.405.1" />
+    <PackageReference Include="AWSSDK.EC2" Version="3.7.414.2" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.405.9" />
     <PackageReference Include="Discord.Net" Version="3.16.0" />
     <PackageReference Include="EFCore.NamingConventions" Version="8.0.3" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.15" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />
     <PackageReference Include="MailKit" Version="4.8.0" />
-    <PackageReference Include="Markdig" Version="0.37.0" />
+    <PackageReference Include="Markdig" Version="0.38.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="8.0.10" />
@@ -45,7 +45,7 @@
     <PackageReference Include="RecursiveDataAnnotationsValidation" Version="2.0.0" />
     <PackageReference Include="SHA3.Net" Version="2.0.0" />
     <PackageReference Include="SimpleBase" Version="4.0.2" />
-    <PackageReference Include="SixLabors.Fonts" Version="2.0.4" />
+    <PackageReference Include="SixLabors.Fonts" Version="2.0.6" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.8" />
@@ -53,8 +53,8 @@
     <PackageReference Include="SSH.NET" Version="2024.1.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
     <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.28" />
-    <PackageReference Include="Svg.Skia" Version="2.0.0.1" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.1.2" />
+    <PackageReference Include="Svg.Skia" Version="2.0.0.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.0" />
     <PackageReference Include="System.Interactive.Async" Version="6.0.1" />
     <PackageReference Include="System.Security.Principal" Version="4.3.0" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="8.0.0" />
