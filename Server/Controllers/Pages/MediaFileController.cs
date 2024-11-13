@@ -88,7 +88,10 @@ public class MediaFileController : Controller
         var type = Path.GetExtension(request.Name);
 
         if (!AppInfo.MediaFileTypes.Contains(type))
-            return BadRequest("File type is not supported (as a media file)");
+        {
+            return BadRequest("File type is not supported (as a media file). Allowed types: " +
+                string.Join(", ", AppInfo.MediaFileTypes));
+        }
 
         if (await database.MediaFiles.AnyAsync(m => m.GlobalId == request.MediaFileId))
             return BadRequest("Conflicting UUID, please retry");
