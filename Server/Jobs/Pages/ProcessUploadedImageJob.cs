@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
 using Services;
+using Shared;
 using Shared.Models.Pages;
 using Shared.Utilities;
 using SixLabors.ImageSharp;
@@ -124,11 +125,7 @@ public class ProcessUploadedImageJob
             image.Metadata.XmpProfile = null;
 
             // Large
-            using var large = image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(2000, 0),
-            }));
+            using var large = CreateLargeImage(image, reSampler);
 
             // Can upload this while resizing the next one
             var uploadTask =
@@ -144,22 +141,14 @@ public class ProcessUploadedImageJob
             }
 
             // Page
-            using var page = image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(900, 0),
-            }));
+            using var page = CreatePageImage(image, reSampler);
 
             await uploadTask;
             uploadTask =
                 SaveAndUploadImage(page, encoder, pagePath, mimeType, imageDataStream, cancellationToken);
 
             // Thumbnail
-            using var thumbnail = image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(128, 0),
-            }));
+            using var thumbnail = CreateThumbnailImage(image, reSampler);
 
             await uploadTask;
             await SaveAndUploadImage(thumbnail, encoder, thumbPath, mimeType, imageDataStream, cancellationToken);
@@ -212,6 +201,77 @@ public class ProcessUploadedImageJob
         // This is not canceled as the data is already handled
         // ReSharper disable once MethodSupportsCancellation
         await database.SaveChangesAsync();
+    }
+
+    private static Image CreateLargeImage(Image image, LanczosResampler reSampler)
+    {
+        if (image.Width >= AppInfo.MediaResolutionLarge)
+        {
+            return image.Clone(i => i.Resize(new ResizeOptions
+            {
+                Sampler = reSampler,
+                Size = new Size(AppInfo.MediaResolutionLarge, 0),
+            }));
+        }
+
+        // Resize in other dimension if the aspect ratio was such as the first one wasn't too large
+        if (image.Height >= AppInfo.MediaResolutionLarge)
+        {
+            return image.Clone(i => i.Resize(new ResizeOptions
+            {
+                Sampler = reSampler,
+                Size = new Size(0, AppInfo.MediaResolutionLarge),
+            }));
+        }
+
+        // If the image is small, just pass through so that the other size variant is just the base image again
+        return image;
+    }
+
+    private static Image CreatePageImage(Image image, LanczosResampler reSampler)
+    {
+        if (image.Width >= AppInfo.MediaResolutionPage)
+        {
+            return image.Clone(i => i.Resize(new ResizeOptions
+            {
+                Sampler = reSampler,
+                Size = new Size(AppInfo.MediaResolutionPage, 0),
+            }));
+        }
+
+        if (image.Height >= AppInfo.MediaResolutionPage)
+        {
+            return image.Clone(i => i.Resize(new ResizeOptions
+            {
+                Sampler = reSampler,
+                Size = new Size(0, AppInfo.MediaResolutionPage),
+            }));
+        }
+
+        return image;
+    }
+
+    private static Image CreateThumbnailImage(Image image, LanczosResampler reSampler)
+    {
+        if (image.Width >= AppInfo.MediaResolutionThumbnail)
+        {
+            return image.Clone(i => i.Resize(new ResizeOptions
+            {
+                Sampler = reSampler,
+                Size = new Size(AppInfo.MediaResolutionThumbnail, 0),
+            }));
+        }
+
+        if (image.Height >= AppInfo.MediaResolutionThumbnail)
+        {
+            return image.Clone(i => i.Resize(new ResizeOptions
+            {
+                Sampler = reSampler,
+                Size = new Size(0, AppInfo.MediaResolutionThumbnail),
+            }));
+        }
+
+        return image;
     }
 
     private async Task SaveAndUploadImage(Image image, ImageEncoder encoder, string targetPath, string mime,

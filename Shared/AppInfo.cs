@@ -190,6 +190,10 @@ public static class AppInfo
     /// </summary>
     public const int MaxNormalCacheSize = 150 * GlobalConstants.MEBIBYTE;
 
+    public const int MediaResolutionLarge = 2000;
+    public const int MediaResolutionPage = 900;
+    public const int MediaResolutionThumbnail = 128;
+
     // TODO: add support for webm uploads
     // public static readonly string[] MediaFileTypes = [".png", ".jpg", ".jpeg", ".gif", ".webm"];
     public static readonly string[] MediaFileTypes = [".png", ".jpg", ".jpeg", ".gif"];
