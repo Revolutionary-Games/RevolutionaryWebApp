@@ -26,7 +26,7 @@
 
 <p>This is a service to store files needed for Thrive development, which aren't included in the code repository.</p>
 
-<Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="Files" />
+<Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="Files"/>
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -43,7 +43,7 @@ else
 {
     @if (shownFile != null)
     {
-        <ItemSideBar Item="@shownFile" PreventClose="@ShouldShowUploaderOverlay" />
+        <ItemSideBar Item="@shownFile" PreventClose="@ShouldShowUploaderOverlay"/>
 
         <DevCenterTitle>File @shownFile.Name</DevCenterTitle>
     }
@@ -53,7 +53,7 @@ else
     }
 
     <div class="block-container" @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave">
-        @if(ShouldShowUploaderOverlay)
+        @if (ShouldShowUploaderOverlay)
         {
             <div @ref="dropArea" class="block-overlay"
                  @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave" @ondrop="OnDrop"
@@ -92,6 +92,7 @@ else
                     {
                         <div>@currentFileUploadMessage</div>
                     }
+
                     <div class="spinner-border text-primary mb-3 drop-area" role="status">
                         <span class="visually-hidden">Uploading...</span>
                     </div>
@@ -99,7 +100,7 @@ else
 
                 <p class="drop-area">Drop files here to upload.</p>
 
-                <br class="mt-2 drop-area" />
+                <br class="mt-2 drop-area"/>
 
                 <form>
                     <div class="row">
@@ -111,10 +112,10 @@ else
                                    OnChange="OnInputFilesChanged"
                                    @ondragenter="HandleDragEnter"
                                    @ondragleave="HandleDragLeave"
-                                   multiple />
+                                   multiple/>
                     </div>
 
-                    <br class="drop-area" />
+                    <br class="drop-area"/>
                     <div class="row justify-content-center">
                         <Button class="my-1 me-1" Enabled="@(!uploadInProgress && filesToBeUploaded.Count > 0)"
                                 OnPressed="@StartFileSelectorUploads" Spinner="@uploadInProgress">
@@ -188,7 +189,7 @@ else
         @if (!showNewFolderCreate)
         {
             <StatusMessageShower Message="@createMessage" Type="@createMessageType" ExtraCSS="mt-1"
-                                 OnClosed="@ClearCreateMessage" />
+                                 OnClosed="@ClearCreateMessage"/>
         }
 
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" ExtraCSS="mt-1"
@@ -216,21 +217,21 @@ else
         @if (parsedFolderInfo?.ModificationLocked == true)
         {
             <Button Enabled="@CanEditLockedStatus" Spinner="@processing" class="mx-1"
-                ButtonStyle="@EditLockedStatusButtonType" OnPressed="@UnlockCurrentFolder">
+                    ButtonStyle="@EditLockedStatusButtonType" OnPressed="@UnlockCurrentFolder">
                 Unlock Folder Properties
             </Button>
         }
         else
         {
             <Button Enabled="@CanEditLockedStatus" Spinner="@processing" class="mx-1"
-                ButtonStyle="@EditLockedStatusButtonType" OnPressed="@LockCurrentFolder">
+                    ButtonStyle="@EditLockedStatusButtonType" OnPressed="@LockCurrentFolder">
                 Lock Folder Properties
             </Button>
         }
 
         @* Always show this to reduce flicker of the buttons *@
         <Button Enabled="@CanDeleteFolder" Spinner="@processing" class="me-1"
-            ButtonStyle="danger" OnPressed="@StartFolderDelete">
+                ButtonStyle="danger" OnPressed="@StartFolderDelete">
             Delete This Folder
         </Button>
 
@@ -285,7 +286,7 @@ else
 
                 @if (!parsedFolderInfo.Special && !parsedFolderInfo.ModificationLocked && folderIsWritable)
                 {
-                    <StorageItemFolderEditor Data="@parsedFolderInfo" />
+                    <StorageItemFolderEditor Data="@parsedFolderInfo"/>
                 }
             }
         }
@@ -334,7 +335,7 @@ else
                     </div>
                 </div>
 
-                <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+                <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
                 <Button class="my-1" Enabled="@(!processingNewForm && !string.IsNullOrEmpty(newFolderName))"
                         OnPressed="@CreateNew" Spinner="@processingNewForm">
                     Create
@@ -366,6 +367,7 @@ else
 }
 
 @code {
+
     private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Type", false),
@@ -431,21 +433,29 @@ else
 
     private ElementReference dropArea;
 
+    private bool registered;
+
     [CascadingParameter]
     public IModalService Modal { get; set; } = null!;
 
     private bool ShouldShowUploaderOverlay => showUploadOverlay || uploadInProgress || uploadErrors.Count > 0;
 
-    private bool CanEditLockedStatus => !processing && parsedFolderInfo is {Special: false } &&
+    private bool CanEditLockedStatus => !processing && parsedFolderInfo is { Special: false } &&
         (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || CurrentUserInfo.Info!.Id == parsedFolderInfo.OwnerId);
 
-    private bool CanDeleteFolder => !processing && parsedFolderInfo is {Special: false, ModificationLocked: false,
-        Important: false } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
-            && folderIsWritable));
+    private bool CanDeleteFolder => !processing && parsedFolderInfo is
+    {
+        Special: false, ModificationLocked: false,
+        Important: false
+    } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
+        && folderIsWritable));
 
-   private bool CanMoveFolder => parsedFolderInfo is {Special: false, ModificationLocked: false,
-       Important: false } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
-           && folderIsWritable));
+    private bool CanMoveFolder => parsedFolderInfo is
+    {
+        Special: false, ModificationLocked: false,
+        Important: false
+    } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
+        && folderIsWritable));
 
     private string EditLockedStatusButtonType
     {
@@ -474,8 +484,13 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        await NotificationHandler.Register<FolderContentsUpdated>(this);
-        await NotificationHandler.Register<StorageItemUpdated>(this);
+        if (!registered)
+        {
+            registered = true;
+            await NotificationHandler.Register<FolderContentsUpdated>(this);
+            await NotificationHandler.Register<StorageItemUpdated>(this);
+        }
+
         await base.OnParametersSetAsync();
         var pathParseTask = ParseCurrentPath();
 
@@ -540,7 +555,7 @@ else
         if (currentUserGroups.HasAccessLevel(GroupType.Developer))
             groups.Add(NotificationGroups.FolderContentsUpdatedDeveloperPrefix + folderId);
         if (currentUserGroups.HasAccessLevel(GroupType.Admin) || (parsedFolderInfo?.OwnerId != null &&
-            CurrentUserInfo?.Info?.Id == parsedFolderInfo.OwnerId))
+                CurrentUserInfo?.Info?.Id == parsedFolderInfo.OwnerId))
         {
             groups.Add(NotificationGroups.FolderContentsUpdatedOwnerPrefix + folderId);
         }
@@ -611,8 +626,7 @@ else
 
         try
         {
-            result = await Http.GetAsync(QueryHelpers.AddQueryString(
-                "api/v1/Files/itemFromPath","path", NonNullPath));
+            result = await Http.GetAsync(QueryHelpers.AddQueryString("api/v1/Files/itemFromPath", "path", NonNullPath));
         }
         catch (HttpRequestException e)
         {
@@ -900,7 +914,7 @@ else
 
             if (toUpload.Size > AppInfo.MaxGeneralFileStoreSize)
             {
-                uploadErrors.Add($"File \"{toUpload.Name}\" is too large. Max size is: "+
+                uploadErrors.Add($"File \"{toUpload.Name}\" is too large. Max size is: " +
                     $"{AppInfo.MaxGeneralFileStoreSize.BytesToMiB()}");
                 toUpload = null;
                 continue;
@@ -993,8 +1007,7 @@ else
 
         if (!result.IsSuccessStatusCode)
         {
-            throw new Exception(
-                $"Failed to check file duplicate status before upload: {content}, {result.StatusCode}");
+            throw new Exception($"Failed to check file duplicate status before upload: {content}, {result.StatusCode}");
         }
 
         if (result.StatusCode == HttpStatusCode.NoContent)
@@ -1078,12 +1091,12 @@ else
         if (upload.NextChunks == null || upload.NextChunks.Count < 1)
             throw new ArgumentException("Multipart upload didn't specify initial chunks to upload");
 
-        var startingChunks = upload.NextChunks.AsEnumerable().Chunk(
-            (int)Math.Ceiling(upload.NextChunks.Count / (float)AppInfo.MultipartSimultaneousUploads)).ToList();
+        var startingChunks = upload.NextChunks.AsEnumerable().Chunk((int)Math.Ceiling(
+            upload.NextChunks.Count / (float)AppInfo.MultipartSimultaneousUploads)).ToList();
 
         var uploadTasks = new List<ValueTask<string?>>();
 
-        // If there are less than MultipartSimultaneousUploads chunks, we have less tasks, or
+        // If there are less than MultipartSimultaneousUploads chunks, we have fewer tasks, or
         // when there are exactly 4 chunks to upload, we end up with 2 tasks. So we use the upload task count
         // here, but just guard against the case where we got too many chunks
         if (startingChunks.Count > AppInfo.MultipartSimultaneousUploads)
@@ -1114,7 +1127,7 @@ else
 
             if (string.IsNullOrEmpty(currentError))
             {
-                if(error == null)
+                if (error == null)
                 {
                     error = currentError;
                 }
@@ -1216,7 +1229,6 @@ else
 
         return null;
     }
-
 
     private async Task ReportFileUploadComplete(UploadFileResponse info)
     {
@@ -1437,4 +1449,5 @@ else
 
         await InvokeAsync(StateHasChanged);
     }
+
 }
