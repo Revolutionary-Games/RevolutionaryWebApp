@@ -445,15 +445,13 @@ else
 
     private bool CanDeleteFolder => !processing && parsedFolderInfo is
     {
-        Special: false, ModificationLocked: false,
-        Important: false
+        Special: false, ModificationLocked: false, Important: false,
     } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
         && folderIsWritable));
 
     private bool CanMoveFolder => parsedFolderInfo is
     {
-        Special: false, ModificationLocked: false,
-        Important: false
+        Special: false, ModificationLocked: false, Important: false,
     } && (CurrentUserInfo.Groups!.HasGroup(GroupType.Admin) || (parsedFolderInfo.ParentId != null
         && folderIsWritable));
 
