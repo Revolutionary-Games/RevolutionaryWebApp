@@ -22,7 +22,7 @@
     }
 
     // Check access due to override
-    if (!hasAccess && (OrHasOverride != GroupType.NotLoggedIn && CurrentUserInfo.HasGroup(OrHasOverride)))
+    if (!hasAccess && OrHasOverride != GroupType.NotLoggedIn && CurrentUserInfo.HasGroup(OrHasOverride))
         hasAccess = true;
 
     if (hasAccess)
