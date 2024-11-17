@@ -117,6 +117,59 @@ public class MediaFolderController : Controller
         return objects.ConvertResult(i => i.GetInfo());
     }
 
+    [HttpGet("parsePath")]
+    public async Task<ActionResult<MediaPathParseResult>> ParseMediaPath([MaxLength(500)] string? path)
+    {
+        var user = HttpContext.AuthenticatedUser();
+
+        if (user != null && HttpContext.AuthenticatedUserRestriction() != AuthenticationScopeRestriction.None)
+        {
+            return this.WorkingForbid("You authentication method has incorrect access restriction for this endpoint");
+        }
+
+        // Root folder
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return new MediaPathParseResult
+            {
+                ParentFolder = null,
+            };
+        }
+
+        var pathParts = path.Split('/');
+
+        MediaFolder? currentItem = null;
+
+        // This variant of path parse doesn't return the final item as compared to the main storage path parse
+        // MediaFolder? parentItem = null;
+
+        foreach (var part in pathParts)
+        {
+            // Skip empty parts to support starting with a slash or having multiple in a row
+            if (string.IsNullOrEmpty(part))
+                continue;
+
+            var currentId = currentItem?.Id;
+            var nextItem =
+                await database.MediaFolders.AsNoTracking()
+                    .FirstOrDefaultAsync(i => i.ParentFolderId == currentId && i.Name == part);
+
+            if (nextItem == null || !nextItem.IsReadableBy(user))
+            {
+                return NotFound($"Path part \"{part}\" doesn't exist or you don't have permission to view it. " +
+                    "Logging in may help.");
+            }
+
+            // parentItem = currentItem;
+            currentItem = nextItem;
+        }
+
+        return new MediaPathParseResult
+        {
+            ParentFolder = currentItem?.GetDTO(),
+        };
+    }
+
     [HttpPost("folders")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.User)]
     public async Task<IActionResult> CreateSubFolder([Required] long? parentFolder,

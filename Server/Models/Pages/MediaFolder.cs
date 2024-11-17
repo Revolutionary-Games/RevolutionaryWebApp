@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Shared;
+using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
 using Shared.Notifications;
@@ -70,6 +71,18 @@ public class MediaFolder : UpdateableModel, IUpdateNotifications
     public ICollection<MediaFolder> SubFolders { get; set; } = new HashSet<MediaFolder>();
 
     public ICollection<MediaFile> FolderItems { get; set; } = new HashSet<MediaFile>();
+
+    public bool IsReadableBy(User? user)
+    {
+        if (user == null)
+        {
+            return ContentReadAccess == GroupType.NotLoggedIn;
+        }
+
+        return user.AccessCachedGroupsOrThrow().HasGroup(ContentReadAccess) ||
+            user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Admin) || OwnedById == user.Id ||
+            LastModifiedById == user.Id;
+    }
 
     public MediaFolderInfo GetInfo()
     {
