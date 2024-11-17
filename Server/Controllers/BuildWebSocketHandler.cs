@@ -94,8 +94,7 @@ public sealed class BuildWebSocketHandler : IDisposable
 
             using WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
 
-            logger.LogInformation(
-                "Accepted build output connection for job {CIProjectId}-{CIBuildId}-{CIJobId} " +
+            logger.LogInformation("Accepted build output connection for job {CIProjectId}-{CIBuildId}-{CIJobId} " +
                 "from {RemoteIpAddress}", job.CiProjectId, job.CiBuildId, job.CiJobId,
                 context.Connection.RemoteIpAddress);
 
@@ -245,8 +244,7 @@ public sealed class BuildWebSocketHandler : IDisposable
                         {
                             if (activeSection != null)
                             {
-                                logger.LogError(
-                                    "Received a build output section start ({Name}) " +
+                                logger.LogError("Received a build output section start ({Name}) " +
                                     "while there's an active section ({SectionName})",
                                     activeSection.Name, message.SectionName);
                                 await SendMessage(new RealTimeBuildMessage
@@ -284,8 +282,7 @@ public sealed class BuildWebSocketHandler : IDisposable
                             {
                                 activeSection.CiJobOutputSectionId = ++sectionNumberCounter;
 
-                                logger.LogTrace(
-                                    "Creating output section: {CiProjectId}-{CiBuildId}-{CiJobId}-" +
+                                logger.LogTrace("Creating output section: {CiProjectId}-{CiBuildId}-{CiJobId}-" +
                                     "{CiJobOutputSectionId}", job.CiProjectId, job.CiBuildId, job.CiJobId,
                                     activeSection.CiJobOutputSectionId);
 
@@ -420,12 +417,11 @@ public sealed class BuildWebSocketHandler : IDisposable
             logger.LogError("Error in background output writer task: {@E}", e);
         }
 
-        using (var releaser = await outputLock.LockAsync(TimeSpan.FromSeconds(10)))
+        using var releaser = await outputLock.LockOrNullAsync(TimeSpan.FromSeconds(10));
+
+        if (releaser == null)
         {
-            if (!releaser.EnteredSemaphore)
-            {
-                logger.LogError("Failed to acquire output semaphore after 10 seconds");
-            }
+            logger.LogError("Failed to acquire output semaphore after 10 seconds");
         }
 
         if (error)
@@ -501,11 +497,10 @@ public sealed class BuildWebSocketHandler : IDisposable
     /// <param name="message">The message to send</param>
     private async Task SendMessageToWebsiteClients(RealTimeBuildMessage message)
     {
-        await notifications.Clients.Group(notificationGroup).ReceiveNotification(
-            new BuildMessageNotification
-            {
-                Message = message,
-            });
+        await notifications.Clients.Group(notificationGroup).ReceiveNotification(new BuildMessageNotification
+        {
+            Message = message,
+        });
     }
 
     private void AddPendingOutputToActiveSection()

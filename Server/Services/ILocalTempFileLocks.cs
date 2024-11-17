@@ -42,9 +42,8 @@ public interface ILocalTempFileLocks
     /// <param name="path">The file path</param>
     /// <param name="timeout">The time limit to wait for</param>
     /// <param name="cancellationToken">A cancellation token</param>
-    /// <returns>A disposable value.</returns>
-    public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync(string path, TimeSpan timeout,
-        CancellationToken cancellationToken);
+    /// <returns>A disposable value. Null on failure to lock</returns>
+    public ValueTask<IDisposable?> LockAsync(string path, TimeSpan timeout, CancellationToken cancellationToken);
 }
 
 public sealed class LocalTempFileLocks : ILocalTempFileLocks, IDisposable
@@ -86,10 +85,10 @@ public sealed class LocalTempFileLocks : ILocalTempFileLocks, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<AsyncKeyedLockTimeoutReleaser<string>> LockAsync(string path, TimeSpan timeout,
+    public ValueTask<IDisposable?> LockAsync(string path, TimeSpan timeout,
         CancellationToken cancellationToken)
     {
-        return asyncKeyedLocker.LockAsync(path, timeout, cancellationToken);
+        return asyncKeyedLocker.LockOrNullAsync(path, timeout, cancellationToken);
     }
 
     public string GetTempFilePath(string suffix)
