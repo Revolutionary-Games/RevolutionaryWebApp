@@ -105,7 +105,8 @@ public class StorageFilesController : Controller
 
             var currentId = currentItem?.Id;
             var nextItem =
-                await database.StorageItems.FirstOrDefaultAsync(i => i.ParentId == currentId && i.Name == part);
+                await database.StorageItems.AsNoTracking()
+                    .FirstOrDefaultAsync(i => i.ParentId == currentId && i.Name == part);
 
             if (nextItem == null || !nextItem.IsReadableBy(user))
             {
@@ -1582,7 +1583,7 @@ public class StorageFilesController : Controller
     /// <param name="item">The moved item</param>
     /// <param name="targetFolder">Path to the target folder</param>
     /// <param name="targetFolderInfoToCreateWith">
-    ///   If the target folder doesn't exist it will attempted to be created with this info
+    ///   If the target folder doesn't exist it will be attempted to be created with this info
     /// </param>
     /// <param name="user">The acting user doing the move whose permissions matter</param>
     /// <param name="restore">If true then this acts in restore mode rather than just pure file move mode</param>
@@ -1592,7 +1593,7 @@ public class StorageFilesController : Controller
     private async Task<string> MoveFile(StorageItem item, string targetFolder,
         StorageItemDeleteInfo? targetFolderInfoToCreateWith, User user, bool restore)
     {
-        // Find the target folder first to determine if it exists and the current user has access, or if it doesn't
+        // Find the target folder first to determine if it exists and the current user has access, or if it doesn't,
         // and we can create a new folder based on targetFolderInfoToCreateWith (if that is not null)
 
         var parsed = await ParsePathAsFarAsPossible(targetFolder, user);
@@ -1845,7 +1846,8 @@ public class StorageFilesController : Controller
 
             var currentId = lastSuccessfullyParsed?.Id;
             var nextItem =
-                await database.StorageItems.FirstOrDefaultAsync(s => s.ParentId == currentId && s.Name == part);
+                await database.StorageItems.AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.ParentId == currentId && s.Name == part);
 
             if (nextItem == null || (accessibleTo != null && !nextItem.IsReadableBy(accessibleTo)))
             {
