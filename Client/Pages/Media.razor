@@ -1,5 +1,27 @@
 @page "/media"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo CurrentUserInfo
+@using System.Net
+@using System.Text.Json
+@using System.Threading
+@using DevCenterCommunication.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Models.Pages
+@using RevolutionaryWebApp.Shared.Notifications
+@using SharedBase.Utilities
+@inherits BaseFileBrowser<RevolutionaryWebApp.Shared.Models.Pages.MediaBrowserEntry>
+@implements INotificationHandler<MediaFolderContentsUpdated>
+@implements INotificationHandler<MediaFileUpdated>
+@implements INotificationHandler<MediaFolderUpdated>
+
 <AccessLimited RequiredGroup="GroupType.PostEditor" OrHasOverride="@GroupType.Developer"
                AutoRedirectIfNotLoggedIn="@true">
     <h3>Media</h3>
@@ -7,13 +29,982 @@
     <p>
         This page allows uploading and managing small media files (like images) for embedding on pages. Note that all
         uploaded media is publicly visible as long as someone can figure out the link. Deleted images don't immediately
-        become inaccessible. If that is required please contact an admin.
+        become inaccessible (only after a retention period). If that is required please contact an admin.
+        When linking to images from pages please use the ID rather than direct link as that will automatically ensure
+        used images are not deleted.
     </p>
 
-    <p>TODO: implement this</p>
+    <Breadcrumbs BasePath="@BasePath" CurrentPath="@FileBrowserPath" RootPathName="Media"/>
 
-    <DevCenterTitle>Media Manager</DevCenterTitle>
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+
+        <DevCenterTitle>Media Manager</DevCenterTitle>
+    }
+    else
+    {
+        <DevCenterTitle>Media in "/@(FileBrowserPath ?? string.Empty)"</DevCenterTitle>
+
+        <div class="block-container" @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave">
+            @if (ShouldShowUploaderOverlay)
+            {
+                <div @ref="dropArea" class="block-overlay"
+                     @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave" @ondrop="OnDrop"
+                     @ondragover="HandleDragOver"
+                     @ondragover:preventDefault="@true"
+                     @ondrop:preventDefault="@true">
+
+                    @if (!folderContentsAreWritable)
+                    {
+                        <div class="alert alert-danger drop-area" role="alert">
+                            You don't have write access to this folder
+                        </div>
+                    }
+
+                    @foreach (var error in uploadErrors)
+                    {
+                        <p class="drop-area">Upload error: @error</p>
+                    }
+
+                    @if (uploadErrors.Count > 0)
+                    {
+                        <Button class="mb-1" Enabled="@(!uploadInProgress)" ButtonStyle="secondary"
+                                OnPressed="@ClearUploadErrors">
+                            Clear Errors
+                        </Button>
+                    }
+
+                    @if (!string.IsNullOrEmpty(uploadStatus))
+                    {
+                        <p>@uploadStatus</p>
+                    }
+
+                    @if (uploadInProgress)
+                    {
+                        @if (!string.IsNullOrEmpty(currentFileUploadMessage))
+                        {
+                            <div>@currentFileUploadMessage</div>
+                        }
+
+                        <div class="spinner-border text-primary mb-3 drop-area" role="status">
+                            <span class="visually-hidden">Uploading...</span>
+                        </div>
+                    }
+
+                    <p class="drop-area">Drop files here to upload.</p>
+
+                    <br class="mt-2 drop-area"/>
+
+                    <form>
+                        <div class="row">
+                            <label class="form-label drop-area pt-1 pe-1" for="mediaToUploadSelection">
+                                Or select media files to upload:
+                            </label>
+                            <InputFile id="mediaToUploadSelection"
+                                       accept="*"
+                                       OnChange="OnInputFilesChanged"
+                                       @ondragenter="HandleDragEnter"
+                                       @ondragleave="HandleDragLeave"
+                                       multiple/>
+                        </div>
+
+                        <br class="drop-area"/>
+                        <div class="row justify-content-center">
+                            <Button class="my-1 me-1" Enabled="@(!uploadInProgress && filesToBeUploaded.Count > 0)"
+                                    OnPressed="@StartFileSelectorUploads" Spinner="@uploadInProgress">
+                                Upload
+                            </Button>
+                            <Button class="my-1" Enabled="@(!uploadInProgress)" ButtonStyle="secondary"
+                                    OnPressed="@CloseUploaderFormIfCanBeClosed">
+                                Cancel
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                            OnPageChanged="async e => await ChangePage(e)"
+                            OnSortChanged="async column => await ChangeSort(column)"
+                            GetSortClass="@SortClass"
+                            ShowContentSpinner="@VisibleFetchInProgress"
+                            Columns="@columns"
+                            ShowNoContent="@NoItemsFound"
+                            UseNonFixedColumns="@true">
+                @if (Data != null)
+                {
+                    @foreach (var item in Data.Results)
+                    {
+                        var itemClass = string.Empty;
+
+                        if (item.Deleted)
+                        {
+                            itemClass = "bg-danger";
+                        }
+                        else if (item.DeleteQueued)
+                        {
+                            itemClass = "bg-dark";
+                        }
+                        else if (item.Processed)
+                        {
+                            itemClass = "bg-secondary";
+                        }
+
+                        <tr @key="item.Id">
+                            @if (item.Folder)
+                            {
+                                <td class="@itemClass">
+                                    <i class="fa-solid fa-folder"></i>
+                                    <span class="visually-hidden">Folder</span>
+                                </td>
+
+                                <th scope="row" class="@itemClass">
+                                    <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
+                                </th>
+
+                                <td class="@itemClass"></td>
+
+                                <td class="@itemClass"></td>
+                            }
+                            else
+                            {
+                                @* TODO: item preview images? *@
+                                <td class="@itemClass"></td>
+
+                                <td class="@itemClass">
+                                    <a href="/redirectToMedia/@item.GlobalId" target="_blank">@item.Name</a>
+                                </td>
+
+                                @if (item.Processed)
+                                {
+                                    <td class="@itemClass">@item.Id</td>
+                                }
+                                else
+                                {
+                                    <td class="@itemClass">
+                                        <span class="badge bg-danger">Unprocessed</span>
+                                    </td>
+                                }
+
+                                <td class="@itemClass">@item.Name.Truncate(40)</td>
+                            }
+
+                            <td class="@itemClass">@item.MetadataVisibility</td>
+
+                            <td class="@itemClass">
+                                <UsernameDisplayer UserId="@item.UploadedById"/>
+                            </td>
+
+                            <td class="@itemClass">@item.ModifyAccess</td>
+
+                            <td class="@itemClass">
+                                <RecentTimeShortener Time="@item.CreatedAt"/>
+                            </td>
+
+                            <td class="@itemClass">
+                                @if (folderContentsAreWritable && (!item.Folder || subfoldersAreModifiable))
+                                {
+                                    @if (!item.Deleted)
+                                    {
+                                        <Button ButtonStyle="success" Enabled="@false">Restore</Button>
+                                    }
+                                    else
+                                    {
+                                        <Button ButtonStyle="danger" Enabled="@false">Delete</Button>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </PaginatedTable>
+        </div>
+
+        @*These are always shown to avoid brief flashes while navigating *@
+        <Button Enabled="@folderContentsAreWritable" class="me-1" ButtonStyle="primary" OnPressed="@OpenUploaderForm">
+            Upload
+        </Button>
+
+        <AccessLimited AutoRedirectIfNotLoggedIn="@false" RequiredAccess="GroupType.User">
+
+            @if (!showNewFolderCreate)
+            {
+                <StatusMessageShower Message="@createMessage" Type="@createMessageType" ExtraCSS="mt-1"
+                                     OnClosed="@ClearCreateMessage"/>
+            }
+
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" ExtraCSS="mt-1"
+                                 OnClosed="@ClearStatusMessage"/>
+
+            <Button Enabled="@(parsedFolderInfo != null)" class="me-1" ButtonStyle="info"
+                    OnPressed="@(() => showFolderInfo = !showFolderInfo)">
+                @if (!showFolderInfo)
+                {
+                    <span>Show Folder Info</span>
+                }
+                else
+                {
+                    <span>Hide Folder Info</span>
+                }
+            </Button>
+            <Button Enabled="@subfoldersAreModifiable" class="me-1" ButtonStyle="success" OnPressed="@ToggleNewFolderCreate">
+                New Folder
+            </Button>
+
+            @if (showFolderInfo)
+            {
+                @if (parsedFolderInfo == null)
+                {
+                    <p class="mt-3">Folder info doesn't exist</p>
+                }
+                else
+                {
+                    <h5 class="mt-3">Info About Folder ID: @parsedFolderInfo.Id</h5>
+                    <ul>
+                        <li><strong>Name</strong>: @parsedFolderInfo.Name</li>
+                        <li><strong>Readable by</strong>: @parsedFolderInfo.ContentReadAccess</li>
+                        <li><strong>Writable by</strong>: @parsedFolderInfo.ContentWriteAccess</li>
+                        <li><strong>Subfolders modifiable by</strong>: @parsedFolderInfo.SubFolderModifyAccess</li>
+                        <li><strong>Folder modifiable by</strong>: @parsedFolderInfo.FolderModifyAccess</li>
+                        <li><strong>Parent</strong>: @(parsedFolderInfo.ParentFolderId?.ToString() ?? "root")</li>
+                        <li>
+                            <strong>Owned by</strong>:
+                            <UsernameDisplayer UserId="@parsedFolderInfo.OwnedById"/>
+                        </li>
+                        <li><strong>Created</strong>: <RecentTimeShortener Time="@parsedFolderInfo.CreatedAt"/></li>
+                        <li><strong>Updated</strong>: <RecentTimeShortener Time="@parsedFolderInfo.UpdatedAt"/></li>
+                        @if (parsedFolderInfo.LastModifiedById != null)
+                        {
+                            <li>
+                                <strong>Properties modified by</strong> (excluding contained files):
+                                <UsernameDisplayer UserId="@parsedFolderInfo.LastModifiedById"/>
+                            </li>
+                        }
+
+                        <li><strong>Automatically deleted if empty</strong>: @parsedFolderInfo.DeleteIfEmpty</li>
+
+                        @if (parsedFolderInfo.DeleteIfEmpty)
+                        {
+                            <li>
+                                This folder will be automatically deleted after some delay when it doesn't have any
+                                items in it.
+                            </li>
+                        }
+                    </ul>
+
+                    @if (folderIsModifiable)
+                    {
+                        @* TODO: implement modifying *@
+                        <p>TODO: implement media folder modify</p>
+                        <!--<MediaFolderEditor Data="@parsedFolderInfo"/>-->
+                    }
+                }
+            }
+
+            @if (showNewFolderCreate)
+            {
+                <form class="mt-3">
+                    <div class="row">
+                        <div class="mb-3 col-md-12">
+                            <label class="form-label" for="newFolderName">New Folder Name</label>
+                            <input type="text" class="form-control" id="newFolderName" @bind="newFolderName"
+                                   @bind:event="oninput">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="mb-3 col-md-3">
+                            <label class="form-label" for="newFolderReadAccess">Read Access</label>
+                            <select class="form-select" id="newFolderReadAccess" @bind="newFolderReadAccess">
+                                @foreach (var name in Enum.GetNames<GroupType>())
+                                {
+                                    <option value="@name">@name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3 col-md-3">
+                            <label class="form-label" for="newFolderWriteAccess">Content Access</label>
+                            <select class="form-select" id="newFolderWriteAccess" @bind="newFolderWriteAccess">
+                                @foreach (var name in Enum.GetNames<GroupType>())
+                                {
+                                    <option value="@name">@name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3 col-md-3">
+                            <label class="form-label" for="newFolderSubFolderAccess">Subfolder Modify Access</label>
+                            <select class="form-select" id="newFolderSubFolderAccess" @bind="newFolderSubFolderAccess">
+                                @foreach (var name in Enum.GetNames<GroupType>())
+                                {
+                                    <option value="@name">@name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3 col-md-3">
+                            <label class="form-label" for="newFolderModifyAccess">Folder Modify Access</label>
+                            <select class="form-select" id="newFolderModifyAccess" @bind="newFolderModifyAccess">
+                                @foreach (var name in Enum.GetNames<GroupType>())
+                                {
+                                    <option value="@name">@name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
+                    <Button class="my-1" Enabled="@(!processingNewForm && !string.IsNullOrEmpty(newFolderName))"
+                            OnPressed="@CreateNew" Spinner="@processingNewForm">
+                        Create
+                    </Button>
+                </form>
+            }
+
+        </AccessLimited>
+    }
+
+    @* TODO: usage stats for the media storage? *@
 </AccessLimited>
 
 @code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Type", false),
+        new TableColumn("Link", false),
+        new TableColumn("ID", false),
+        new TableColumn("Name", true),
+        new TableColumn("Visibility", false),
+        new TableColumn("Uploader", false),
+        new TableColumn("Modify", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Access", false),
+    };
+
+    private readonly List<string> uploadErrors = new();
+    private readonly List<IBrowserFile> filesToBeUploaded = new();
+
+    private bool folderPathParsed;
+
+    private long? parsedFolderId;
+    private MediaFolderDTO? parsedFolderInfo;
+
+    private bool folderContentsAreWritable;
+    private bool folderIsModifiable;
+    private bool subfoldersAreModifiable;
+
+    private bool showFolderInfo;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewFolderCreate;
+    private bool processingNewForm;
+
+    private string? newFolderName;
+    private GroupType newFolderReadAccess;
+    private GroupType newFolderWriteAccess;
+    private GroupType newFolderSubFolderAccess;
+    private GroupType newFolderModifyAccess;
+
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType;
+
+    private bool showUploadOverlay;
+    private bool uploadInProgress;
+    private string? uploadStatus;
+    private int dragLevel;
+
+    private string? currentFileUploadMessage;
+
+    /// <summary>
+    ///   If true uploading is in progress, and new uploads can't start
+    /// </summary>
+    private bool uploading;
+
+    private bool registered;
+
+    private ElementReference dropArea;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    private bool ShouldShowUploaderOverlay => showUploadOverlay || uploadInProgress || uploadErrors.Count > 0;
+
+    public Media()
+    {
+        BasePath = "/media";
+        RootFolderName = "Media";
+
+        DefaultPageSize = 50;
+
+        // We can only fetch data once we have parsed the current path to a folder id
+        AutoFetchDataOnInit = false;
+        AutoSetReactToParameterChangeAfterDataReceived = false;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!registered)
+        {
+            registered = true;
+            await NotificationHandler.Register<MediaFolderContentsUpdated>(this);
+            await NotificationHandler.Register<MediaFolderUpdated>(this);
+            await NotificationHandler.Register<MediaFileUpdated>(this);
+        }
+
+        await base.OnParametersSetAsync();
+        var pathParseTask = ParseCurrentPath();
+
+        await pathParseTask;
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(MediaFolderContentsUpdated notification, CancellationToken cancellationToken)
+    {
+        // Need to refresh folder if for the current folder
+        if (notification.FolderId == parsedFolderId)
+        {
+            WantsToFetchDataAgain = true;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task Handle(MediaFolderUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.Item.Id == parsedFolderInfo?.Id)
+        {
+            parsedFolderInfo = notification.Item;
+            StateHasChanged();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task Handle(MediaFileUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(new MediaBrowserListUpdated(notification));
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        // We can't register for listeners before the folder path is parsed to a folder id
+        if (!folderPathParsed)
+            return;
+
+        if (parsedFolderId != null)
+        {
+            // Current folder properties listening
+            groups.Add(NotificationGroups.MediaFolderUpdatedPrefix + parsedFolderId);
+
+            // And current folder contents listening
+            groups.Add(NotificationGroups.MediaFolderContentsUpdatedPrefix + parsedFolderId);
+        }
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister<MediaFolderContentsUpdated>(this);
+        await NotificationHandler.Unregister<MediaFolderUpdated>(this);
+        await NotificationHandler.Unregister<MediaFileUpdated>(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (dropArea.Context != null)
+        {
+            await JS.InvokeVoidAsync("registerFileDropArea", dropArea, "mediaToUploadSelection");
+        }
+    }
+
+    protected override Dictionary<string, string?> CreatePageRequestParams()
+    {
+        var requestParams = base.CreatePageRequestParams();
+
+        requestParams["parentId"] = parsedFolderId?.ToString() ?? string.Empty;
+
+        return requestParams;
+    }
+
+    protected override void PruneRequestParams(Dictionary<string, string?> queryParams)
+    {
+        base.PruneRequestParams(queryParams);
+
+        queryParams.Remove("parentId");
+    }
+
+    protected override async Task<PagedResult<MediaBrowserEntry>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        // Need to separately ask the folders, and the files as they are from different endpoints
+        // TODO: for optimization this could skip getting the folders again if page is over 0/1
+
+        var subFolders = await Http.GetFromJsonAsync<PagedResult<MediaFolderInfo>>(
+            QueryHelpers.AddQueryString("api/v1/MediaFolder/folders", requestParams)) ?? throw new NullDecodedJsonException();
+        var filesTask = Http.GetFromJsonAsync<PagedResult<MediaFolderInfo>>(
+            QueryHelpers.AddQueryString("api/v1/MediaFolder/items", requestParams));
+
+        var combinedResult = new PagedResult<MediaBrowserEntry>
+        {
+            CurrentPage = subFolders.CurrentPage,
+            PageSize = subFolders.PageSize,
+            PageCount = subFolders.PageCount,
+            RowCount = subFolders.RowCount,
+        };
+
+        var files = await filesTask ?? throw new NullDecodedJsonException();
+
+        if (combinedResult.PageSize != files.PageSize)
+        {
+            await Console.Error.WriteLineAsync("Unexpected page size for the files versus subfolders");
+        }
+
+        combinedResult.CurrentPage = files.CurrentPage;
+        combinedResult.PageCount = Math.Max(files.PageCount, combinedResult.PageCount);
+        combinedResult.RowCount += files.RowCount;
+
+        return combinedResult;
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
+    {
+        await base.OnQuerySent(requestParams);
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private async Task ParseCurrentPath()
+    {
+        folderPathParsed = false;
+        parsedFolderInfo = null;
+        folderIsModifiable = false;
+        folderContentsAreWritable = false;
+        subfoldersAreModifiable = false;
+        showNewFolderCreate = false;
+
+        VisibleFetchInProgress = true;
+        Error = null;
+
+        // When changing paths stop showing the folder move and old item related data
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.GetAsync(QueryHelpers.AddQueryString("api/v1/MediaFolder/parsePath", "path", NonNullPath));
+        }
+        catch (HttpRequestException e)
+        {
+            Error = $"Network request failed: {e.Message}";
+            VisibleFetchInProgress = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var content = await result.Content.ReadAsStringAsync();
+        VisibleFetchInProgress = false;
+
+        if (result.StatusCode != HttpStatusCode.OK)
+        {
+            Error = $"Failed to process current path: {content}";
+            if (string.IsNullOrEmpty(content))
+                Error += result.StatusCode.ToString();
+        }
+        else
+        {
+            var parsedResult = JsonSerializer.Deserialize<MediaPathParseResult>(content,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            if (parsedResult != null)
+            {
+                // FinalItem may be null here if we are looking at the root folder
+                folderPathParsed = true;
+
+                parsedFolderInfo = parsedResult.ParentFolder;
+
+                parsedFolderId = parsedFolderInfo?.Id;
+
+                VisibleFetchInProgress = true;
+
+                await NotificationHandler.NotifyWantedGroupsChanged();
+                await DetectWriteAccessToFolder();
+                await FetchData();
+            }
+            else
+            {
+                Error = "Failed to parse response JSON";
+            }
+        }
+    }
+
+    private async Task DetectWriteAccessToFolder()
+    {
+        if (parsedFolderId == null)
+        {
+            // Only admins can write to the root folder
+            folderContentsAreWritable = CurrentUserInfo.HasGroup(GroupType.Admin);
+            folderIsModifiable = false;
+            subfoldersAreModifiable = CurrentUserInfo.HasGroup(GroupType.Admin);
+        }
+        else
+        {
+            bool admin = CurrentUserInfo.HasGroup(GroupType.Admin);
+            folderContentsAreWritable = CurrentUserInfo.HasGroup(parsedFolderInfo!.ContentWriteAccess) || admin;
+            folderIsModifiable = CurrentUserInfo.HasGroup(parsedFolderInfo!.FolderModifyAccess) || admin;
+            subfoldersAreModifiable = CurrentUserInfo.HasGroup(parsedFolderInfo!.SubFolderModifyAccess) || admin;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleNewFolderCreate()
+    {
+        if (showNewFolderCreate)
+        {
+            showNewFolderCreate = false;
+        }
+        else
+        {
+            showNewFolderCreate = true;
+            createMessage = null;
+
+            // Reset form status
+            newFolderName = null;
+
+            // By default, use the parent folder access (unless at the root folder)
+            if (parsedFolderInfo != null)
+            {
+                newFolderReadAccess = parsedFolderInfo.ContentReadAccess;
+                newFolderWriteAccess = parsedFolderInfo.ContentWriteAccess;
+                newFolderModifyAccess = parsedFolderInfo.FolderModifyAccess;
+            }
+            else
+            {
+                newFolderReadAccess = GroupType.Developer;
+                newFolderWriteAccess = GroupType.Developer;
+                newFolderModifyAccess = GroupType.PostEditor;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/MediaFolder/folders", new MediaFolderDTO
+            {
+                Name = newFolderName!,
+                ParentFolderId = parsedFolderId,
+                DeleteIfEmpty = false,
+                ContentReadAccess = newFolderReadAccess,
+                ContentWriteAccess = newFolderWriteAccess,
+                FolderModifyAccess = newFolderModifyAccess,
+                SubFolderModifyAccess = newFolderSubFolderAccess,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = content;
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewFolderCreate = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleDragEnter()
+    {
+        // The drag level is a workaround for the problem of child elements receiving the drag enter before the
+        // parent receives drag leave (from the event bubbling up from the child)
+        // see: https://stackoverflow.com/questions/7110353/html5-dragleave-fired-when-hovering-a-child-element
+        ++dragLevel;
+        showUploadOverlay = dragLevel > 0;
+    }
+
+    private void HandleDragOver()
+    {
+        // This empty method is needed, otherwise drops are not detected
+    }
+
+    private void HandleDragLeave()
+    {
+        --dragLevel;
+        showUploadOverlay = dragLevel > 0;
+    }
+
+    private async Task OnDrop()
+    {
+        // Make sure the JS event listener gets in first
+        await Task.Delay(1);
+
+        // The above delay should have given enough time for OnInputFilesChanged to have run
+        Console.WriteLine("Auto-starting uploads as we got a drop event");
+
+        showUploadOverlay = true;
+        await StartUploads();
+    }
+
+    private async Task OnInputFilesChanged(InputFileChangeEventArgs args)
+    {
+        filesToBeUploaded.Clear();
+
+        if (args.FileCount < 1)
+            return;
+
+        try
+        {
+            if (args.FileCount > 1)
+            {
+                foreach (var file in args.GetMultipleFiles(100))
+                {
+                    filesToBeUploaded.Add(file);
+                }
+            }
+            else
+            {
+                filesToBeUploaded.Add(args.File);
+            }
+
+            await JS.InvokeVoidAsync("storeFileInputFilesForLaterUse", "mediaToUploadSelection");
+        }
+        catch (Exception e)
+        {
+            uploadErrors.Add($"Error processing InputFile change: {e}");
+        }
+    }
+
+    private Task StartFileSelectorUploads()
+    {
+        return StartUploads();
+    }
+
+    private void OpenUploaderForm()
+    {
+        showUploadOverlay = true;
+    }
+
+    private void CloseUploaderFormIfCanBeClosed()
+    {
+        showUploadOverlay = false;
+    }
+
+    private void ClearUploadErrors()
+    {
+        uploadErrors.Clear();
+    }
+
+    private async Task StartUploads()
+    {
+        if (uploading)
+        {
+            Console.WriteLine("Not starting another upload as one is in progress already");
+            return;
+        }
+
+        uploading = true;
+
+        await BeginNextUpload();
+
+        Console.WriteLine("Uploads are now finished");
+        uploading = false;
+    }
+
+    /// <summary>
+    ///   Starts uploading the next file we should upload. Or stops if we have no more files to upload.
+    ///   Should not be called directly, call StartUploads instead
+    /// </summary>
+    private async Task BeginNextUpload()
+    {
+        if (filesToBeUploaded.Count > 100)
+        {
+            uploadErrors.Add("Too many files to upload at once. Maximum is 100");
+            return;
+        }
+
+        IBrowserFile? toUpload = null;
+
+        while (filesToBeUploaded.Count > 0)
+        {
+            toUpload = filesToBeUploaded.First();
+            filesToBeUploaded.Remove(toUpload);
+
+            if (toUpload.Size > AppInfo.MaxMediaFileSize)
+            {
+                uploadErrors.Add($"File \"{toUpload.Name}\" is too large for media upload. Max size is: " +
+                    $"{AppInfo.MaxMediaFileSize.BytesToMiB()}");
+                toUpload = null;
+                continue;
+            }
+
+            break;
+        }
+
+        if (toUpload == null)
+        {
+            uploadInProgress = false;
+            uploadStatus = null;
+            showUploadOverlay = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        uploadStatus = $"Uploading: \"{toUpload.Name}\" with size of {toUpload.Size.BytesToMiB()}";
+        currentFileUploadMessage = null;
+        uploadInProgress = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Fetch URL and permission to upload
+            var uploadResponse = await GetFileUploadUrl(toUpload, parsedFolderInfo ??
+                throw new Exception("Can only upload media files to folders"));
+
+            // Then begin the file upload
+            await UploadFile(toUpload, uploadResponse);
+        }
+        catch (Exception e)
+        {
+            uploadErrors.Add($"Exception while uploading \"{toUpload.Name}\": {e.Message}");
+        }
+
+        // And start the next upload if we still have files to upload
+        await BeginNextUpload();
+    }
+
+    private async Task<UploadRequestResponse> GetFileUploadUrl(IBrowserFile file, MediaFolderDTO parentFolder)
+    {
+        var result = await Http.PostAsJsonAsync("api/v1/MediaFile/startUpload",
+            new UploadMediaFileRequestForm
+            {
+                MediaFileId = Guid.NewGuid(),
+                Name = file.Name,
+                Folder = parentFolder.Id,
+                Size = file.Size,
+                MetadataVisibility = parentFolder.ContentReadAccess,
+
+                // TODO: allow overriding this if wanted
+                ModifyAccess = parentFolder.ContentWriteAccess,
+            });
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            throw new Exception($"Couldn't start upload (either there's a file conflict or connection to server is lost): " +
+                $"{content}, {result.StatusCode}");
+        }
+
+        return JsonSerializer.Deserialize<UploadRequestResponse>(content,
+            HttpClientHelpers.GetOptionsWithSerializers()) ?? throw new NullDecodedJsonException();
+    }
+
+    private async Task UploadFile(IBrowserFile file, UploadRequestResponse info)
+    {
+        var error = await UploadSinglePartFile(file.Name, info.UploadUrl ??
+            throw new ArgumentException("no upload URL in non-multipart upload"));
+
+        if (!string.IsNullOrEmpty(error))
+        {
+            uploadErrors.Add(error);
+        }
+        else
+        {
+            // Upload is a success, report it
+            await ReportFileUploadComplete(new TokenForm
+            {
+                Token = info.VerifyToken,
+            });
+        }
+    }
+
+    private ValueTask<string> UploadSinglePartFile(string fileName, string url)
+    {
+        return JS.InvokeAsync<string>("putFormFile", fileName, url);
+    }
+
+    private async Task ReportFileUploadComplete(TokenForm info)
+    {
+        var result = await Http.PostAsJsonAsync("api/v1/MediaFile/finishUpload", info);
+
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            throw new Exception($"Failed to report finished upload: {content}, {result.StatusCode}");
+        }
+    }
+
+    /*private async Task FetchStorageStats()
+    {
+        loadingStats = true;
+        usageStatsLoadError = string.Empty;
+        usageStats = null;
+
+        try
+        {
+            usageStats = await Http.GetFromJsonAsync<StorageUsageStats>("api/v1/Files/totalUsed");
+        }
+        catch (Exception e)
+        {
+            usageStatsLoadError = e.Message;
+        }
+
+        loadingStats = false;
+        await InvokeAsync(StateHasChanged);
+    }*/
+
+    private void ClearStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private void ClearCreateMessage()
+    {
+        createMessage = null;
+    }
+
+    private class MediaBrowserListUpdated : ListUpdated<MediaBrowserEntry>
+    {
+        public MediaBrowserListUpdated(MediaFileUpdated notification)
+        {
+            Item = new MediaBrowserEntry(notification.Item);
+        }
+    }
 }

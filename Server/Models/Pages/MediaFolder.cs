@@ -84,6 +84,7 @@ public class MediaFolder : UpdateableModel, IUpdateNotifications
             ContentReadAccess = ContentReadAccess,
             OwnedById = OwnedById,
             LastModifiedById = LastModifiedById,
+            DeleteIfEmpty = DeleteIfEmpty,
         };
     }
 

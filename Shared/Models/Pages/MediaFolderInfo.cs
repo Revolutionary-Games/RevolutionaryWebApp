@@ -14,4 +14,6 @@ public class MediaFolderInfo : ClientSideTimedModel
     public GroupType ContentReadAccess { get; set; }
     public long? OwnedById { get; set; }
     public long? LastModifiedById { get; set; }
+
+    public bool DeleteIfEmpty { get; set; }
 }

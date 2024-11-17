@@ -132,6 +132,13 @@ public class MediaFolderController : Controller
         var user = HttpContext.AuthenticatedUserOrThrow();
         var userGroups = user.AccessCachedGroupsOrThrow();
 
+        if (request.ContentReadAccess == GroupType.NotLoggedIn || request.ContentWriteAccess == GroupType.NotLoggedIn ||
+            request.FolderModifyAccess == GroupType.NotLoggedIn ||
+            request.SubFolderModifyAccess == GroupType.NotLoggedIn)
+        {
+            return BadRequest("Can't give access to not logged in group");
+        }
+
         var newFolder = new MediaFolder(request.Name)
         {
             ParentFolder = folder,

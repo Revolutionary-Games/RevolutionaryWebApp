@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Shared.Models.Pages;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using DevCenterCommunication.Models;
 using Enums;
 
@@ -23,4 +24,66 @@ public class MediaFileInfo : ClientSideTimedModel, IMediaFileInfo
     public long? UploadedById { get; set; }
     public bool Processed { get; set; }
     public bool Deleted { get; set; }
+}
+
+/// <summary>
+///   Unified model for both folders and media files
+/// </summary>
+public class MediaBrowserEntry : ClientSideTimedModel
+{
+    public MediaBrowserEntry(MediaFileInfo file)
+    {
+        Folder = false;
+        Name = file.Name;
+        GlobalId = file.GlobalId;
+        MetadataVisibility = file.MetadataVisibility;
+        ModifyAccess = file.ModifyAccess;
+        UploadedById = file.UploadedById;
+        Processed = file.Processed;
+        Deleted = file.Deleted;
+    }
+
+    public MediaBrowserEntry(MediaFileDTO file)
+    {
+        Folder = false;
+        Name = file.Name;
+        GlobalId = file.GlobalId;
+        MetadataVisibility = file.MetadataVisibility;
+        ModifyAccess = file.ModifyAccess;
+        UploadedById = file.UploadedById;
+        Processed = file.Processed;
+        Deleted = file.Deleted;
+    }
+
+    public MediaBrowserEntry(MediaFolderInfo folder)
+    {
+        Folder = true;
+        Name = folder.Name;
+        MetadataVisibility = folder.ContentReadAccess;
+        ModifyAccess = folder.ContentWriteAccess;
+        UploadedById = folder.OwnedById;
+        Processed = true;
+        Deleted = false;
+        DeleteQueued = folder.DeleteIfEmpty;
+    }
+
+    [JsonConstructor]
+    public MediaBrowserEntry()
+    {
+    }
+
+    public bool Folder { get; set; }
+
+    [Required]
+    public string Name { get; set; } = string.Empty;
+
+    public Guid GlobalId { get; set; }
+
+    public GroupType MetadataVisibility { get; set; }
+    public GroupType ModifyAccess { get; set; }
+    public long? UploadedById { get; set; }
+    public bool Processed { get; set; }
+    public bool Deleted { get; set; }
+
+    public bool DeleteQueued { get; set; }
 }
