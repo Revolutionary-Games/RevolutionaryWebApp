@@ -1596,7 +1596,8 @@ public class StorageFilesController : Controller
         // Find the target folder first to determine if it exists and the current user has access, or if it doesn't,
         // and we can create a new folder based on targetFolderInfoToCreateWith (if that is not null)
 
-        var parsed = await ParsePathAsFarAsPossible(targetFolder, user);
+        // Tracking is used as we need to modify the database data here (when this needs to do something)
+        var parsed = await ParsePathAsFarAsPossible(targetFolder, user, false);
 
         StorageItem? finalFolderToMoveTo;
         string finalFolderPath;
@@ -1816,7 +1817,8 @@ public class StorageFilesController : Controller
     }
 
     [NonAction]
-    private async Task<InternalPathParseResult> ParsePathAsFarAsPossible(string path, User? accessibleTo)
+    private async Task<InternalPathParseResult> ParsePathAsFarAsPossible(string path, User? accessibleTo,
+        bool asNoTracking)
     {
         if (string.IsNullOrWhiteSpace(path))
             return new InternalPathParseResult(null);
@@ -1845,9 +1847,13 @@ public class StorageFilesController : Controller
                 return new InternalPathParseResult(pathParts.Take(i), lastSuccessfullyParsed);
 
             var currentId = lastSuccessfullyParsed?.Id;
-            var nextItem =
-                await database.StorageItems.AsNoTracking()
-                    .FirstOrDefaultAsync(s => s.ParentId == currentId && s.Name == part);
+
+            IQueryable<StorageItem> query = database.StorageItems;
+
+            if (asNoTracking)
+                query = query.AsNoTracking();
+
+            var nextItem = await query.FirstOrDefaultAsync(s => s.ParentId == currentId && s.Name == part);
 
             if (nextItem == null || (accessibleTo != null && !nextItem.IsReadableBy(accessibleTo)))
             {
