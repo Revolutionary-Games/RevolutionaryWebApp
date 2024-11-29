@@ -11,7 +11,8 @@ public class RegistrationFormData
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(CommunicationConstants.MAX_USERNAME_LENGTH, MinimumLength = CommunicationConstants.MIN_USERNAME_LENGTH)]
+    [StringLength(CommunicationConstants.MAX_USERNAME_LENGTH,
+        MinimumLength = CommunicationConstants.MIN_USERNAME_LENGTH)]
     [NoTrailingOrPrecedingSpace]
     public string Name { get; set; } = string.Empty;
 

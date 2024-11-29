@@ -728,7 +728,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 {
                     var white = new Rgb24(255, 255, 255);
 
-                    for (int y = 0; y < accessor.Height; y++)
+                    for (int y = 0; y < accessor.Height; ++y)
                     {
                         foreach (ref Rgb24 pixel in accessor.GetRowSpan(y))
                         {
