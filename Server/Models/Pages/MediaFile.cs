@@ -36,7 +36,8 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
     }
 
     /// <summary>
-    ///   Name of the file. May not be changed after upload, otherwise links will break
+    ///   Name of the file. May not be changed after upload, unless also the storage item in S3 is moved. Links to the
+    ///   original size will become useless (if they use the full name, which hopefully won't get used)
     /// </summary>
     [MaxLength(100)]
     [AllowSortingBy]

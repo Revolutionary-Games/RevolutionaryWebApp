@@ -11,28 +11,44 @@ public static class MediaFileExtensions
         var name = info.Name;
         var extension = Path.GetExtension(name);
 
-        var start = $"{info.GlobalId}/{Path.GetFileNameWithoutExtension(name)}";
+        if (size != MediaFileSize.Original)
+        {
+            return GetViewPath(info.GlobalId.ToString(), size, extension);
+        }
+
+        return $"{info.GlobalId}/{name}";
+    }
+
+    /// <summary>
+    ///   To facilitate easy linking, the other sizes except the original don't have the original file name in them
+    /// </summary>
+    /// <returns>Last part of the link to this media resource</returns>
+    /// <exception cref="ArgumentException">If original ize is attempted to be read</exception>
+    public static string GetViewPath(string globalId, MediaFileSize size, string extension)
+    {
+        if (size == MediaFileSize.Original)
+            throw new ArgumentException("Original size requires name to be known");
+
+        if (string.IsNullOrEmpty(extension) || extension[0] != '.')
+            throw new ArgumentException("Extension can't be empty or not start with a dot");
 
         string sizeText;
 
         switch (size)
         {
-            case MediaFileSize.Original:
-                sizeText = string.Empty;
-                break;
             case MediaFileSize.Large:
-                sizeText = "_large";
+                sizeText = "large";
                 break;
             case MediaFileSize.FitPage:
-                sizeText = "_fit";
+                sizeText = "page-fit";
                 break;
             case MediaFileSize.Thumbnail:
-                sizeText = "_thumb";
+                sizeText = "thumb";
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(size), size, null);
         }
 
-        return start + sizeText + extension;
+        return $"{globalId}/{sizeText}{extension}";
     }
 }
