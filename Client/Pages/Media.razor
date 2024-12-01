@@ -126,7 +126,8 @@
                 </div>
             }
 
-            <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+            <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage"
+                            PageCount="@Data?.PageCount"
                             OnPageChanged="async e => await ChangePage(e)"
                             OnSortChanged="async column => await ChangeSort(column)"
                             GetSortClass="@SortClass"
@@ -153,7 +154,7 @@
                             itemClass = "bg-secondary";
                         }
 
-                        <tr @key="item.Id">
+                        <tr @key="item.IdWithFolder">
                             @if (item.Folder)
                             {
                                 <td class="@itemClass">
@@ -250,7 +251,8 @@
                     <span>Hide Folder Info</span>
                 }
             </Button>
-            <Button Enabled="@subfoldersAreModifiable" class="me-1" ButtonStyle="success" OnPressed="@ToggleNewFolderCreate">
+            <Button Enabled="@subfoldersAreModifiable" class="me-1" ButtonStyle="success"
+                    OnPressed="@ToggleNewFolderCreate">
                 New Folder
             </Button>
 
@@ -274,8 +276,12 @@
                             <strong>Owned by</strong>:
                             <UsernameDisplayer UserId="@parsedFolderInfo.OwnedById"/>
                         </li>
-                        <li><strong>Created</strong>: <RecentTimeShortener Time="@parsedFolderInfo.CreatedAt"/></li>
-                        <li><strong>Updated</strong>: <RecentTimeShortener Time="@parsedFolderInfo.UpdatedAt"/></li>
+                        <li><strong>Created</strong>:
+                            <RecentTimeShortener Time="@parsedFolderInfo.CreatedAt"/>
+                        </li>
+                        <li><strong>Updated</strong>:
+                            <RecentTimeShortener Time="@parsedFolderInfo.UpdatedAt"/>
+                        </li>
                         @if (parsedFolderInfo.LastModifiedById != null)
                         {
                             <li>
@@ -545,32 +551,40 @@
 
     protected override async Task<PagedResult<MediaBrowserEntry>?> StartQuery(Dictionary<string, string?> requestParams)
     {
+        // Items don't exist in the root folder
+        bool hasItems = requestParams.ContainsKey("parentId") && !string.IsNullOrEmpty(requestParams["parentId"]);
+
         // Need to separately ask the folders, and the files as they are from different endpoints
+        // And the folders is not paged
         // TODO: for optimization this could skip getting the folders again if page is over 0/1
 
-        var subFolders = await Http.GetFromJsonAsync<PagedResult<MediaFolderInfo>>(
-            QueryHelpers.AddQueryString("api/v1/MediaFolder/folders", requestParams)) ?? throw new NullDecodedJsonException();
-        var filesTask = Http.GetFromJsonAsync<PagedResult<MediaFolderInfo>>(
-            QueryHelpers.AddQueryString("api/v1/MediaFolder/items", requestParams));
+        var foldersUrl = QueryHelpers.AddQueryString("api/v1/MediaFolder/folders", requestParams);
+        var itemsUrl = QueryHelpers.AddQueryString("api/v1/MediaFolder/items", requestParams);
+
+        var subFolders = await Http.GetFromJsonAsync<List<MediaFolderInfo>>(foldersUrl) ?? throw new NullDecodedJsonException();
+
+        if (!hasItems)
+        {
+            return new PagedResult<MediaBrowserEntry>
+            {
+                CurrentPage = 1,
+                PageSize = subFolders.Count,
+                PageCount = 1,
+                RowCount = subFolders.Count,
+                Results = subFolders.Select(f => new MediaBrowserEntry(f)).ToArray(),
+            };
+        }
+
+        var files = await Http.GetFromJsonAsync<PagedResult<MediaFolderInfo>>(itemsUrl) ?? throw new NullDecodedJsonException();
 
         var combinedResult = new PagedResult<MediaBrowserEntry>
         {
-            CurrentPage = subFolders.CurrentPage,
-            PageSize = subFolders.PageSize,
-            PageCount = subFolders.PageCount,
-            RowCount = subFolders.RowCount,
+            CurrentPage = files.CurrentPage,
+            PageSize = files.PageSize,
+            PageCount = files.PageCount,
+            RowCount = files.RowCount + subFolders.Count,
+            Results = subFolders.Select(f => new MediaBrowserEntry(f)).Concat(files.Results.Select(f => new MediaBrowserEntry(f))).ToArray(),
         };
-
-        var files = await filesTask ?? throw new NullDecodedJsonException();
-
-        if (combinedResult.PageSize != files.PageSize)
-        {
-            await Console.Error.WriteLineAsync("Unexpected page size for the files versus subfolders");
-        }
-
-        combinedResult.CurrentPage = files.CurrentPage;
-        combinedResult.PageCount = Math.Max(files.PageCount, combinedResult.PageCount);
-        combinedResult.RowCount += files.RowCount;
 
         return combinedResult;
     }
@@ -1007,4 +1021,5 @@
             Item = new MediaBrowserEntry(notification.Item);
         }
     }
+
 }

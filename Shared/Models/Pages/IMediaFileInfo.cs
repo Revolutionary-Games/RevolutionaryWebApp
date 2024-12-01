@@ -33,6 +33,9 @@ public class MediaBrowserEntry : ClientSideTimedModel
 {
     public MediaBrowserEntry(MediaFileInfo file)
     {
+        Id = file.Id;
+        CreatedAt = file.CreatedAt;
+        UpdatedAt = file.UpdatedAt;
         Folder = false;
         Name = file.Name;
         GlobalId = file.GlobalId;
@@ -45,6 +48,9 @@ public class MediaBrowserEntry : ClientSideTimedModel
 
     public MediaBrowserEntry(MediaFileDTO file)
     {
+        Id = file.Id;
+        CreatedAt = file.CreatedAt;
+        UpdatedAt = file.UpdatedAt;
         Folder = false;
         Name = file.Name;
         GlobalId = file.GlobalId;
@@ -57,6 +63,9 @@ public class MediaBrowserEntry : ClientSideTimedModel
 
     public MediaBrowserEntry(MediaFolderInfo folder)
     {
+        Id = folder.Id;
+        CreatedAt = folder.CreatedAt;
+        UpdatedAt = folder.UpdatedAt;
         Folder = true;
         Name = folder.Name;
         MetadataVisibility = folder.ContentReadAccess;
@@ -86,4 +95,7 @@ public class MediaBrowserEntry : ClientSideTimedModel
     public bool Deleted { get; set; }
 
     public bool DeleteQueued { get; set; }
+
+    [JsonIgnore]
+    public string IdWithFolder => Id + "-" + Folder;
 }
