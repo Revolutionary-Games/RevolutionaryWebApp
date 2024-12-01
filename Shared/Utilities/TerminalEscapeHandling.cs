@@ -102,7 +102,11 @@ public class TerminalEscapeHandling
     {
         foreach (var command in commands.Split(';'))
         {
-            var code = Convert.ToInt32(command);
+            if (!int.TryParse(command, out int code))
+            {
+                // Invalid colour command, reset back to default colour instead of trying to recover the parsing
+                return DefaultColour;
+            }
 
             switch (code)
             {
