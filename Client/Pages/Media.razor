@@ -666,8 +666,8 @@
     {
         if (parsedFolderId == null)
         {
-            // Only admins can write to the root folder
-            folderContentsAreWritable = CurrentUserInfo.HasGroup(GroupType.Admin);
+            // Only admins can write to the root folder (but even they cannot add items to the root folder)
+            folderContentsAreWritable = false;
             folderIsModifiable = false;
             subfoldersAreModifiable = CurrentUserInfo.HasGroup(GroupType.Admin);
         }
