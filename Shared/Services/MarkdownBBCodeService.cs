@@ -45,7 +45,7 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
                 // Potential special link, check if valid
                 var match = mediaLinkToConvertRegex.Match(rawContent, i);
 
-                if (match.Success && match.Index == 0)
+                if (match.Success && match.Index == i)
                 {
                     // Special handling for this image link content
                     var altText = match.Groups[1].Value;
