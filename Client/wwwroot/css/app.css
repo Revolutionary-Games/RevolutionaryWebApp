@@ -287,6 +287,11 @@ table.non-fixed {
     text-align: center;
 }
 
+.btn-close {
+    /* Restore old placing to make it work better in the sidebar */
+    float: right;
+}
+
 .preview-box {
     border: 1px solid black;
     min-width: 128px;
