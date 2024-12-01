@@ -113,7 +113,8 @@ public class MediaFolderController : Controller
                 (groups.HasGroup(f.MetadataVisibility) || groups.HasGroup(f.ModifyAccess) ||
                     groups.HasGroup(GroupType.Admin)))).AsQueryable();
 
-        var objects = await query.ToPagedResultAsync(page, pageSize);
+        // Use non-async variant as this is client-side calculated already
+        var objects = query.ToPagedResult(page, pageSize);
 
         return objects.ConvertResult(i => i.GetInfo());
     }

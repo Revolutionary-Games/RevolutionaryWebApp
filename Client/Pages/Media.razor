@@ -537,7 +537,7 @@
     {
         var requestParams = base.CreatePageRequestParams();
 
-        requestParams["parentId"] = parsedFolderId?.ToString() ?? string.Empty;
+        requestParams["parentFolder"] = parsedFolderId?.ToString() ?? string.Empty;
 
         return requestParams;
     }
@@ -546,13 +546,13 @@
     {
         base.PruneRequestParams(queryParams);
 
-        queryParams.Remove("parentId");
+        queryParams.Remove("parentFolder");
     }
 
     protected override async Task<PagedResult<MediaBrowserEntry>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         // Items don't exist in the root folder
-        bool hasItems = requestParams.ContainsKey("parentId") && !string.IsNullOrEmpty(requestParams["parentId"]);
+        bool hasItems = requestParams.ContainsKey("parentFolder") && !string.IsNullOrEmpty(requestParams["parentFolder"]);
 
         // Need to separately ask the folders, and the files as they are from different endpoints
         // And the folders is not paged
