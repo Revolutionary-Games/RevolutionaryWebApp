@@ -208,14 +208,18 @@
                             <td class="@itemClass">
                                 @if (folderContentsAreWritable && (!item.Folder || subfoldersAreModifiable))
                                 {
-                                    @if (!item.Deleted)
+                                    @if (item.Deleted)
                                     {
-                                        <Button ButtonStyle="success" Enabled="@false">Restore</Button>
+                                        <Button ButtonStyle="success btn-sm" Enabled="@false">Restore</Button>
                                     }
                                     else
                                     {
-                                        <Button ButtonStyle="danger" Enabled="@false">Delete</Button>
+                                        <Button ButtonStyle="danger btn-sm" Enabled="@false">Delete</Button>
                                     }
+                                }
+                                else
+                                {
+                                    <Button ButtonStyle="secondary btn-sm" Enabled="@false">Delete</Button>
                                 }
                             </td>
                         </tr>
