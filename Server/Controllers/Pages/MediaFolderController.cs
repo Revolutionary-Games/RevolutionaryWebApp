@@ -44,8 +44,8 @@ public class MediaFolderController : Controller
     /// <returns>Full list of subfolders, or an error result</returns>
     [HttpGet("folders")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.User)]
-    public async Task<ActionResult<List<MediaFolderInfo>>> ListFolderSubFolders([Required] long? parentFolder,
-        [Required] string sortColumn, [Required] SortDirection sortDirection)
+    public async Task<ActionResult<List<MediaFolderInfo>>> ListFolderSubFolders([Required] string sortColumn,
+        [Required] SortDirection sortDirection, long? parentFolder = null)
     {
         if ((await CheckFolderAccess(parentFolder)).HasAccess == false)
             return NotFound("Not found or you don't have access to the folder");
