@@ -25,6 +25,7 @@ using Utilities;
 ///   Allows managing media folders
 /// </summary>
 [ApiController]
+[Route("api/v1/[controller]")]
 public class MediaFolderController : Controller
 {
     private readonly ILogger<MediaFolderController> logger;

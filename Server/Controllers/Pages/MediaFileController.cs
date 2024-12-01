@@ -30,6 +30,7 @@ using Path = System.IO.Path;
 ///   handles)
 /// </summary>
 [ApiController]
+[Route("api/v1/[controller]")]
 public class MediaFileController : Controller
 {
     private const string MediaUploadProtectionPurposeString = "MediaFileController.Upload.v1";
