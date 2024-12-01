@@ -26,6 +26,10 @@ function getCSRFTokenExpiry() {
     return document.getElementById("csrfTokenExpiryTimestamp").value;
 }
 
+function getSiteConfig() {
+    return document.getElementById("siteConfig").value;
+}
+
 function getStaticHomePageNotice() {
     const element = document.getElementById("homePageNoticeTextSource");
 

@@ -25,15 +25,18 @@ public class CSRFTokenReader : ICSRFTokenReader
 {
     private readonly IJSRuntime jsRuntime;
     private readonly CurrentUserInfo currentUserInfo;
+    private readonly ClientMediaLinkConverter mediaLinkConverter;
 
     private UserToken tokenAndUser = null!;
 
     private DateTime csrfTokenExpires;
 
-    public CSRFTokenReader(IJSRuntime jsRuntime, CurrentUserInfo currentUserInfo)
+    public CSRFTokenReader(IJSRuntime jsRuntime, CurrentUserInfo currentUserInfo,
+        ClientMediaLinkConverter mediaLinkConverter)
     {
         this.jsRuntime = jsRuntime;
         this.currentUserInfo = currentUserInfo;
+        this.mediaLinkConverter = mediaLinkConverter;
     }
 
     public bool Valid => TimeRemaining > 0 && !string.IsNullOrEmpty(Token);
@@ -52,11 +55,27 @@ public class CSRFTokenReader : ICSRFTokenReader
             throw new InvalidOperationException("The page we loaded from didn't contain CSRF token");
 
         var timeStr = await jsRuntime.InvokeAsync<string>("getCSRFTokenExpiry");
+        var configRead = jsRuntime.InvokeAsync<string>("getSiteConfig");
 
         csrfTokenExpires = DateTime.Parse(timeStr, null, DateTimeStyles.RoundtripKind);
 
         // Send our initial user info through
         currentUserInfo.OnReceivedOurInfo(tokenAndUser.User);
+
+        // And other initial page data
+        rawData = await configRead;
+
+        try
+        {
+            var config = JsonSerializer.Deserialize<SiteConfigData>(rawData) ??
+                throw new InvalidOperationException("The page we loaded from didn't contain site config info");
+
+            mediaLinkConverter.OnReceiveBaseUrl(config.MediaBaseUrl);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to load site config data: {e.Message}");
+        }
     }
 
     public async Task ReportInitialUserIdToLocalStorage(ILocalStorageService localStorage)

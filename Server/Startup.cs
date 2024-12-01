@@ -247,8 +247,11 @@ public class Startup
         services.AddSingleton<IRemoteResourceHashCalculator, RemoteResourceHashCalculator>();
         services.AddSingleton<MarkdownService>();
         services.AddSingleton<HtmlSanitizerService>();
+        services.AddSingleton<IMarkdownBbCodeService, MarkdownBbCodeService>();
+        services.AddSingleton<IMediaLinkConverter, MediaLinkConverter>();
         services.AddSingleton<IPageRenderer, PageRenderer>();
         services.AddSingleton<IMediaViewUrls, MediaViewUrls>();
+        services.AddSingleton<SiteConfigForClientGenerator>();
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<LfsRemoteStorage>();

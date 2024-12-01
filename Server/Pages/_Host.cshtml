@@ -1,6 +1,7 @@
 ﻿@page
 @inject ITokenGenerator Jwt
 @inject StaticHomePageNotice StaticHomePageNotice
+@inject SiteConfigForClientGenerator SiteConfigForClientGenerator
 @using System.Text.Json
 @using RevolutionaryWebApp.Server.Authorization
 @using RevolutionaryWebApp.Server.Services
@@ -27,6 +28,7 @@
 
 <input type="hidden" id="csrfUserToken" value="@(GenerateUserTokenJSON())" />
 <input type="hidden" id="csrfTokenExpiryTimestamp" value="@GenerateExpiryTimeString()" />
+<input type="hidden" id="siteConfig" value="@GenerateSiteConfig()" />
 
 @if (StaticHomePageNotice.Enabled)
 {
@@ -92,6 +94,11 @@ else
         };
 
         return JsonSerializer.Serialize(result);
+    }
+
+    private string GenerateSiteConfig()
+    {
+        return SiteConfigForClientGenerator.GenerateString();
     }
 
 }

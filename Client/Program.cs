@@ -31,11 +31,17 @@ public class Program
 
         builder.Services.AddSingleton(_ => new CurrentUserInfo());
 
+        builder.Services.AddSingleton<ClientMediaLinkConverter>();
+
         builder.Services.AddSingleton<ICSRFTokenReader>(sp =>
-            new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>(), sp.GetRequiredService<CurrentUserInfo>()));
+            new CSRFTokenReader(sp.GetRequiredService<IJSRuntime>(), sp.GetRequiredService<CurrentUserInfo>(),
+                sp.GetRequiredService<ClientMediaLinkConverter>()));
 
         builder.Services.AddSingleton<HtmlSanitizerService>();
-        builder.Services.AddSingleton(sp => new MarkdownService(sp.GetRequiredService<HtmlSanitizerService>()));
+        builder.Services.AddSingleton<IMarkdownBbCodeService>(sp =>
+            new MarkdownBbCodeService(sp.GetRequiredService<ClientMediaLinkConverter>()));
+        builder.Services.AddSingleton(sp => new MarkdownService(sp.GetRequiredService<HtmlSanitizerService>(),
+            sp.GetRequiredService<IMarkdownBbCodeService>()));
 
         builder.Services.AddScoped(sp => new HttpClient
         {
@@ -49,8 +55,7 @@ public class Program
         builder.Services.AddBlazoredLocalStorage();
         builder.Services.AddMediaQueryService();
 
-        builder.Services.AddScoped(sp => new ComponentUrlHelper(
-            sp.GetRequiredService<IJSRuntime>(),
+        builder.Services.AddScoped(sp => new ComponentUrlHelper(sp.GetRequiredService<IJSRuntime>(),
             sp.GetRequiredService<NavigationManager>()));
 
         builder.Services.AddSingleton(sp =>
