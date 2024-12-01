@@ -8,13 +8,15 @@ using Markdig;
 public class MarkdownService
 {
     private readonly HtmlSanitizerService sanitizer;
+    private readonly IMarkdownBbCodeService markdownBbCodeService;
 
     private readonly MarkdownPipeline advancedPipeline;
     private readonly MarkdownPipeline basicPipeline;
 
-    public MarkdownService(HtmlSanitizerService sanitizer)
+    public MarkdownService(HtmlSanitizerService sanitizer, IMarkdownBbCodeService markdownBbCodeService)
     {
         this.sanitizer = sanitizer;
+        this.markdownBbCodeService = markdownBbCodeService;
 
         // TODO: support for custom media link hosts
 
@@ -39,21 +41,21 @@ public class MarkdownService
 
     public string MarkdownToHtmlWithAllFeatures(string markdown, bool sanitizeHtml = true)
     {
-        var html = Markdown.ToHtml(markdown, advancedPipeline);
+        var html = Markdown.ToHtml(markdownBbCodeService.PreParseContent(markdown), advancedPipeline);
 
         if (!sanitizeHtml)
-            return html;
+            return markdownBbCodeService.PostProcessContent(html);
 
-        return sanitizer.SanitizeHtml(html);
+        return markdownBbCodeService.PostProcessContent(sanitizer.SanitizeHtml(html));
     }
 
     public string MarkdownToHtmlLimited(string markdown, bool sanitizeHtml = true)
     {
-        var html = Markdown.ToHtml(markdown, basicPipeline);
+        var html = Markdown.ToHtml(markdownBbCodeService.PreParseContent(markdown), basicPipeline);
 
         if (!sanitizeHtml)
-            return html;
+            return markdownBbCodeService.PostProcessContent(html);
 
-        return sanitizer.SanitizeHtml(html);
+        return markdownBbCodeService.PostProcessContent(sanitizer.SanitizeHtml(html));
     }
 }
