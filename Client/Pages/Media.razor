@@ -587,7 +587,8 @@
             PageSize = files.PageSize,
             PageCount = files.PageCount,
             RowCount = files.RowCount + subFolders.Count,
-            Results = subFolders.Select(f => new MediaBrowserEntry(f)).Concat(files.Results.Select(f => new MediaBrowserEntry(f))).ToArray(),
+            Results = subFolders.Select(f => new MediaBrowserEntry(f)).Concat(
+                files.Results.Select(f => new MediaBrowserEntry(f))).ToArray(),
         };
 
         return combinedResult;
