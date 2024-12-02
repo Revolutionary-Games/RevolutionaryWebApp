@@ -174,9 +174,10 @@ public class MediaFolderController : Controller
 
     [HttpPost("folders")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.User)]
-    public async Task<IActionResult> CreateSubFolder([Required] long? parentFolder,
-        [Required] [FromBody] MediaFolderDTO request)
+    public async Task<IActionResult> CreateSubFolder([Required] [FromBody] MediaFolderDTO request)
     {
+        var parentFolder = request.ParentFolderId;
+
         var (hasAccess, folder) = await CheckFolderAccess(parentFolder);
         if (!hasAccess)
             return NotFound("Not found or you don't have access to parent folder");
