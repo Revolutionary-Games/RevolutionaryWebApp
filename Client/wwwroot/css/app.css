@@ -329,6 +329,11 @@ table.non-fixed {
     border-radius: .25rem;
 }
 
+.image-preview {
+    max-width: 128px;
+    max-height: 128px;
+}
+
 /* Markdown / page customization */
 .markdown img {
     max-width: 100%;

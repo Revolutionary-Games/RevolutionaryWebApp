@@ -5,6 +5,8 @@
 @inject ComponentUrlHelper URLHelper
 @inject NotificationHandler NotificationHandler
 @inject CurrentUserInfo CurrentUserInfo
+@inject ClientMediaLinkConverter ClientMediaLinkConverter
+@using System.IO
 @using System.Net
 @using System.Text.Json
 @using System.Threading
@@ -157,26 +159,26 @@
                         <tr @key="item.IdWithFolder">
                             @if (item.Folder)
                             {
-                                <td class="@itemClass">
-                                    <i class="fa-solid fa-folder"></i>
-                                    <span class="visually-hidden">Folder</span>
-                                </td>
-
                                 <th scope="row" class="@itemClass">
-                                    <NavLink href="@FolderLink(item.Name)">@item.Name</NavLink>
+                                    <span>
+                                        <i class="fa-solid fa-folder"></i>
+                                        <span class="visually-hidden">Folder</span>
+                                    </span>
+                                    <NavLink href="@FolderLink(item.Name)">@item.Name.Truncate(40)</NavLink>
                                 </th>
-
-                                <td class="@itemClass"></td>
 
                                 <td class="@itemClass"></td>
                             }
                             else
                             {
                                 @* TODO: item preview images? *@
-                                <td class="@itemClass"></td>
-
                                 <td class="@itemClass">
-                                    <a href="/redirectToMedia/@item.GlobalId" target="_blank">@item.Name</a>
+
+                                    <img src="@GetMediaItemPreviewUrl(item)" alt="image thumbnail " class="image-preview" />
+
+                                    <a href="/api/v1/MediaImage/@item.Id/redirect" target="_blank">
+                                        @item.Name.Truncate(40)
+                                    </a>
                                 </td>
 
                                 @if (item.Processed)
@@ -189,8 +191,6 @@
                                         <span class="badge bg-danger">Unprocessed</span>
                                     </td>
                                 }
-
-                                <td class="@itemClass">@item.Name.Truncate(40)</td>
                             }
 
                             <td class="@itemClass">@item.MetadataVisibility</td>
@@ -329,7 +329,7 @@
                         <div class="mb-3 col-md-3">
                             <label class="form-label" for="newFolderReadAccess">Read Access</label>
                             <select class="form-select" id="newFolderReadAccess" @bind="newFolderReadAccess">
-                                @foreach (var name in Enum.GetNames<GroupType>())
+                                @foreach (var name in GroupTypeExtensions.GetValidGroupTypes())
                                 {
                                     <option value="@name">@name</option>
                                 }
@@ -338,7 +338,7 @@
                         <div class="mb-3 col-md-3">
                             <label class="form-label" for="newFolderWriteAccess">Content Access</label>
                             <select class="form-select" id="newFolderWriteAccess" @bind="newFolderWriteAccess">
-                                @foreach (var name in Enum.GetNames<GroupType>())
+                                @foreach (var name in GroupTypeExtensions.GetValidGroupTypes())
                                 {
                                     <option value="@name">@name</option>
                                 }
@@ -347,7 +347,7 @@
                         <div class="mb-3 col-md-3">
                             <label class="form-label" for="newFolderSubFolderAccess">Subfolder Modify Access</label>
                             <select class="form-select" id="newFolderSubFolderAccess" @bind="newFolderSubFolderAccess">
-                                @foreach (var name in Enum.GetNames<GroupType>())
+                                @foreach (var name in GroupTypeExtensions.GetValidGroupTypes())
                                 {
                                     <option value="@name">@name</option>
                                 }
@@ -356,7 +356,7 @@
                         <div class="mb-3 col-md-3">
                             <label class="form-label" for="newFolderModifyAccess">Folder Modify Access</label>
                             <select class="form-select" id="newFolderModifyAccess" @bind="newFolderModifyAccess">
-                                @foreach (var name in Enum.GetNames<GroupType>())
+                                @foreach (var name in GroupTypeExtensions.GetValidGroupTypes())
                                 {
                                     <option value="@name">@name</option>
                                 }
@@ -382,13 +382,11 @@
 
     private readonly List<TableColumn> columns = new()
     {
-        new TableColumn("Type", false),
-        new TableColumn("Link", false),
-        new TableColumn("ID", false),
         new TableColumn("Name", true),
+        new TableColumn("ID", false),
         new TableColumn("Visibility", false),
         new TableColumn("Uploader", false),
-        new TableColumn("Modify", false),
+        new TableColumn("Writable By", false),
         new TableColumn("Created At", true, "CreatedAt"),
         new TableColumn("Access", false),
     };
@@ -707,12 +705,14 @@
                 newFolderReadAccess = parsedFolderInfo.ContentReadAccess;
                 newFolderWriteAccess = parsedFolderInfo.ContentWriteAccess;
                 newFolderModifyAccess = parsedFolderInfo.FolderModifyAccess;
+                newFolderSubFolderAccess = parsedFolderInfo.SubFolderModifyAccess;
             }
             else
             {
                 newFolderReadAccess = GroupType.Developer;
                 newFolderWriteAccess = GroupType.Developer;
                 newFolderModifyAccess = GroupType.PostEditor;
+                newFolderSubFolderAccess = GroupType.Admin;
             }
         }
 
@@ -1017,6 +1017,12 @@
     private void ClearCreateMessage()
     {
         createMessage = null;
+    }
+
+    private string GetMediaItemPreviewUrl(MediaBrowserEntry item)
+    {
+        return ClientMediaLinkConverter.TranslateImageLink(Path.GetExtension(item.Name), item.GlobalId.ToString(),
+            MediaFileSize.Thumbnail);
     }
 
     private class MediaBrowserListUpdated : ListUpdated<MediaBrowserEntry>
