@@ -709,8 +709,8 @@ public class ApplicationDbContext : DbContext
                     ContentWriteAccess = GroupType.SiteLayoutEditor,
                     SubFolderModifyAccess = GroupType.Admin,
                     FolderModifyAccess = GroupType.SystemOnly,
-                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
                 },
                 new MediaFolder("Website Pages")
                 {
@@ -719,8 +719,8 @@ public class ApplicationDbContext : DbContext
                     ContentWriteAccess = GroupType.SiteLayoutEditor,
                     SubFolderModifyAccess = GroupType.Admin,
                     FolderModifyAccess = GroupType.SystemOnly,
-                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
                 },
                 new MediaFolder("Website Posts")
                 {
@@ -729,8 +729,8 @@ public class ApplicationDbContext : DbContext
                     ContentWriteAccess = GroupType.SiteLayoutEditor,
                     SubFolderModifyAccess = GroupType.Admin,
                     FolderModifyAccess = GroupType.SystemOnly,
-                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
                 },
                 new MediaFolder("Wiki Media")
                 {
@@ -739,8 +739,8 @@ public class ApplicationDbContext : DbContext
                     ContentWriteAccess = GroupType.SiteLayoutEditor,
                     SubFolderModifyAccess = GroupType.Admin,
                     FolderModifyAccess = GroupType.SystemOnly,
-                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
                 },
                 new MediaFolder("User Avatars")
                 {
@@ -749,8 +749,8 @@ public class ApplicationDbContext : DbContext
                     ContentWriteAccess = GroupType.User,
                     SubFolderModifyAccess = GroupType.SystemOnly,
                     FolderModifyAccess = GroupType.SystemOnly,
-                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
                 },
                 new MediaFolder("User Uploads")
                 {
@@ -759,8 +759,8 @@ public class ApplicationDbContext : DbContext
                     ContentWriteAccess = GroupType.User,
                     SubFolderModifyAccess = GroupType.SystemOnly,
                     FolderModifyAccess = GroupType.SystemOnly,
-                    CreatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2014, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
                 });
         });
     }
