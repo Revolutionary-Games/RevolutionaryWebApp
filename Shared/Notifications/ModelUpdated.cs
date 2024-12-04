@@ -123,3 +123,7 @@ public class MediaFolderUpdated : ModelUpdated<MediaFolderDTO>
 public class MediaFileUpdated : ModelUpdated<MediaFileDTO>
 {
 }
+
+public class SiteLayoutPartUpdated : ModelUpdated<SiteLayoutPartDTO>
+{
+}

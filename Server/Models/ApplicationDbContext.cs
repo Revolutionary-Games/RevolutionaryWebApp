@@ -763,6 +763,13 @@ public class ApplicationDbContext : DbContext
                     UpdatedAt = new DateTime(2024, 8, 4, 19, 0, 0, DateTimeKind.Utc),
                 });
         });
+
+        modelBuilder.Entity<SiteLayoutPart>(entity =>
+        {
+            // This uses restrict as images should not be allowed to be deleted when use by layout parts
+            entity.HasOne(d => d.Image).WithMany(p => p.UsedInSiteParts).HasForeignKey(d => d.ImageId)
+                .HasPrincipalKey(p => p.GlobalId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     private Task SendUpdateNotifications(List<Tuple<SerializedNotification, string>>? messages)

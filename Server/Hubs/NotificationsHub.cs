@@ -434,7 +434,7 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.PrivatePrecompiledObjectUpdated:
                 return RequireAccessLevel(GroupType.Developer, user);
 
-            // TODO: switch this to patron group
+            // TODO: switch this to patron group (Patreon)
             case NotificationGroups.DevBuildsListUpdated:
                 return RequireAccessLevel(GroupType.User, user);
 
@@ -447,6 +447,9 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.CrashReportListUpdatedPublic:
             case NotificationGroups.PrecompiledObjectListUpdated:
                 return RequireAccessLevel(GroupType.NotLoggedIn, user);
+
+            case NotificationGroups.LayoutPartUpdated:
+                return RequireGroup(GroupType.SiteLayoutEditor, user);
         }
 
         // Then check prefixes

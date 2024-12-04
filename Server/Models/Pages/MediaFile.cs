@@ -84,6 +84,8 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
 
     public bool Deleted { get; set; }
 
+    public ICollection<SiteLayoutPart> UsedInSiteParts { get; set; } = new HashSet<SiteLayoutPart>();
+
     public string? GetStoragePath(MediaFileSize size)
     {
         if (Deleted || !Processed)

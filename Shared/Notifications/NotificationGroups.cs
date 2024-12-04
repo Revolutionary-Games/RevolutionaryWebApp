@@ -135,6 +135,8 @@ public static class NotificationGroups
     public const string MediaFolderContentsUpdatedPrefix = "MFolder_";
     public const string MediaFileUpdatedPrefix = "SMFile_";
 
+    public const string LayoutPartUpdated = "Layout";
+
     public const string PageEditNotice = "PEditNotice";
 
     /// <summary>
