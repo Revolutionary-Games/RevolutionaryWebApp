@@ -1,6 +1,5 @@
 namespace RevolutionaryWebApp.Shared.Converters;
 
-using System;
 using System.Collections.Generic;
 using Models.Enums;
 
