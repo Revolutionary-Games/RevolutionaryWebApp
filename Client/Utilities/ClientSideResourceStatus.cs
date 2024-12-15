@@ -25,10 +25,10 @@ public class ClientSideResourceStatus<T>
 
     public bool IsDeleted(long resourceId)
     {
-        if (!statuses.ContainsKey(resourceId))
+        if (!statuses.TryGetValue(resourceId, out var status))
             return false;
 
-        return statuses[resourceId].Deleted;
+        return status.Deleted;
     }
 
     public bool HasStatus(long resourceId)
@@ -38,7 +38,7 @@ public class ClientSideResourceStatus<T>
 
     /// <summary>
     ///   Clears all deleted flags. Useful when creating new objects where the ID is not known but may conflict with
-    ///   a previously deleted item and it needs to be shown.
+    ///   a previously deleted item, and it needs to be shown.
     /// </summary>
     public void ClearAllDeletedFlags()
     {
