@@ -48,7 +48,7 @@
     <PackageReference Include="RecursiveDataAnnotationsValidation" Version="2.0.0" />
     <PackageReference Include="SHA3.Net" Version="2.0.0" />
     <PackageReference Include="SimpleBase" Version="4.0.2" />
-    <PackageReference Include="SixLabors.Fonts" Version="2.0.6" />
+    <PackageReference Include="SixLabors.Fonts" Version="2.0.7" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.116.1" />
