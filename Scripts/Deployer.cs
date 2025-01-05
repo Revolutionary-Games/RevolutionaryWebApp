@@ -38,8 +38,8 @@ public class Deployer
     private const string CI_EXECUTOR_BUILT_FILE =
         BUILD_DATA_FOLDER + "/CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor";
 
-    private const string DEFAULT_PRODUCTION_DATABASE = "revolutionarywebapp";
-    private const string DEFAULT_STAGING_DATABASE = "revolutionarywebapp_staging";
+    private const string DEFAULT_PRODUCTION_DATABASE = "revwebapp";
+    private const string DEFAULT_STAGING_DATABASE = "revwebapp";
 
     private const string SSH_USERNAME = "root";
 
@@ -120,9 +120,20 @@ public class Deployer
             }
 
             ColourConsole.WriteNormalLine("Performing migration");
-            if (!await PerformMigration(options.MigrationHost, options.MigrationHashToVerify, cancellationToken))
+
+            // Ensure no other deploys will use the same migration file before we are done with it
+            using var migrationFileMutex = new Mutex(true, "Global\\RevolutionaryWebAppDeployMigrationMutex");
+
+            try
             {
-                return false;
+                if (!await PerformMigration(options.MigrationHost, options.MigrationHashToVerify, cancellationToken))
+                {
+                    return false;
+                }
+            }
+            finally
+            {
+                migrationFileMutex.ReleaseMutex();
             }
         }
         else
@@ -155,9 +166,6 @@ public class Deployer
     private async Task<bool> PerformMigration(string targetHost, string? hashToVerify,
         CancellationToken cancellationToken)
     {
-        // Ensure no other deploys will use the same migration file before we are done with it
-        using var migrationFileMutex = new Mutex(true, "Global\\RevolutionaryWebAppDeployMigrationMutex");
-
         // This is run before the build and is optional, so for now this is not build inside the build container
 
         var startInfo = new ProcessStartInfo("dotnet");
