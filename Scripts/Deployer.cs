@@ -1,5 +1,6 @@
 namespace Scripts;
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,6 +12,9 @@ using ScriptsBase.Models;
 using ScriptsBase.Utilities;
 using SharedBase.Utilities;
 
+/// <summary>
+///   Handles preparing files for deploy and performs database migrations
+/// </summary>
 public class Deployer
 {
     private const string NET_VERSION = "net9.0";
@@ -34,26 +38,18 @@ public class Deployer
     private const string CI_EXECUTOR_BUILT_FILE =
         BUILD_DATA_FOLDER + "/CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor";
 
-    private const string DEFAULT_TARGET_HOST_WWW_ROOT = "/var/www/revolutionarywebapp/{0}";
-    private const string DEFAULT_TARGET_HOST_APP_ROOT = "/opt/revolutionarywebapp/{0}";
-
-    private const string DEFAULT_PRODUCTION_HOST = "dev.revolutionarygamesstudio.com";
     private const string DEFAULT_PRODUCTION_DATABASE = "revolutionarywebapp";
-    private const string DEFAULT_PRODUCTION_SERVICE = "revolutionarywebapp";
-
-    private const string DEFAULT_STAGING_HOST = "staging.dev.revolutionarygamesstudio.com";
     private const string DEFAULT_STAGING_DATABASE = "revolutionarywebapp_staging";
-    private const string DEFAULT_STAGING_SERVICE = "revolutionarywebapp-staging";
 
     private const string SSH_USERNAME = "root";
 
-    private static readonly IReadOnlyList<string> CIExecutorExtraResources = new[]
-    {
+    private static readonly IReadOnlyList<string> CIExecutorExtraResources =
+    [
         "CIExecutor/bin/{0}/{1}/linux-x64/libMonoPosixHelper.so",
-    };
+    ];
 
-    private static readonly IReadOnlyList<string> PathsToCopyInContainer = new[]
-    {
+    private static readonly IReadOnlyList<string> PathsToCopyInContainer =
+    [
         "AutomatedUITests",
         "CIExecutor",
         "Client",
@@ -69,10 +65,10 @@ public class Deployer
         "global.json",
         "RevolutionaryWebApp.sln",
         "RevolutionaryWebApp.sln.DotSettings",
-    };
+    ];
 
-    private static readonly IReadOnlyList<string> PathsToDeleteInContainerAfterCopy = new[]
-    {
+    private static readonly IReadOnlyList<string> PathsToDeleteInContainerAfterCopy =
+    [
         "CIExecutor/bin",
         "CIExecutor/obj",
         "Client/bin",
@@ -83,7 +79,7 @@ public class Deployer
         "Server.Common/obj",
         "Shared/bin",
         "Shared/obj",
-    };
+    ];
 
     private readonly DeployOptions options;
 
@@ -98,43 +94,40 @@ public class Deployer
         Production,
     }
 
-    public enum MigrationMode
-    {
-        // TODO: add running only specific migrations mode
-        Idempotent,
-    }
-
     private string ClientBuiltWebroot => string.Format(CLIENT_BUILT_WEBROOT, options.BuildMode, NET_VERSION);
 
     private string ServerBuiltBase => string.Format(SERVER_BUILT_BASE, options.BuildMode, NET_VERSION);
 
     private string CIExecutorBuiltFile => string.Format(CI_EXECUTOR_BUILT_FILE, options.BuildMode, NET_VERSION);
 
-    private string TargetWWWRoot => string.Format(GetTargetWWWRoot(), options.Mode.ToString().ToLowerInvariant());
-
-    private string TargetAppRoot => string.Format(GetTargetAppRoot(), options.Mode.ToString().ToLowerInvariant());
-
     public async Task<bool> Run(CancellationToken cancellationToken)
     {
-        var targetHost = options.OverrideDeployHost;
-
-        if (string.IsNullOrEmpty(targetHost))
+        if (string.IsNullOrWhiteSpace(options.DeployTargetFolder))
         {
-            targetHost = options.Mode == DeployMode.Production ? DEFAULT_PRODUCTION_HOST : DEFAULT_STAGING_HOST;
+            ColourConsole.WriteErrorLine("Deployment target folder is a required parameter");
+            return false;
         }
 
-        ColourConsole.WriteInfoLine($"Starting deployment to {targetHost}");
+        ColourConsole.WriteInfoLine($"Starting deployment in mode {options.Mode}");
         cancellationToken.ThrowIfCancellationRequested();
 
-        // TODO: send site notification about the impending downtime
-
-        if (options.Migrate == true)
+        if (!string.IsNullOrEmpty(options.MigrationHost))
         {
+            if (string.IsNullOrEmpty(options.MigrationHashToVerify) && options.Mode == DeployMode.Production)
+            {
+                ColourConsole.WriteErrorLine("In production mode migration hash verification is required");
+                return false;
+            }
+
             ColourConsole.WriteNormalLine("Performing migration");
-            if (!await PerformMigration(targetHost, cancellationToken))
+            if (!await PerformMigration(options.MigrationHost, options.MigrationHashToVerify, cancellationToken))
             {
                 return false;
             }
+        }
+        else
+        {
+            ColourConsole.WriteWarningLine("Skipping migration");
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -144,42 +137,34 @@ public class Deployer
             return false;
         }
 
-        if (options.Deploy == true)
+        cancellationToken.ThrowIfCancellationRequested();
+
+        ColourConsole.WriteNormalLine("Performing deployment");
+        ColourConsole.WriteInfoLine("Preparing files");
+        if (!await CopyFiles(options.DeployTargetFolder, cancellationToken))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            ColourConsole.WriteNormalLine("Performing deployment");
-            ColourConsole.WriteInfoLine("Sending files");
-            if (!await SendFiles(targetHost, cancellationToken))
-            {
-                return false;
-            }
-
-            ColourConsole.WriteInfoLine("Restarting services on the server");
-            if (!await RestartTargetHostServices(targetHost, cancellationToken))
-            {
-                return false;
-            }
-
-            ColourConsole.WriteSuccessLine("Deployed successfully");
+            return false;
         }
-        else
-        {
-            ColourConsole.WriteNormalLine("Skipping deploy");
-        }
+
+        ColourConsole.WriteSuccessLine("Deploy files created successfully");
+        ColourConsole.WriteNormalLine("Copy files to the target host and restart the services to finish deploy");
 
         return true;
     }
 
-    private async Task<bool> PerformMigration(string targetHost, CancellationToken cancellationToken)
+    private async Task<bool> PerformMigration(string targetHost, string? hashToVerify,
+        CancellationToken cancellationToken)
     {
+        // Ensure no other deploys will use the same migration file before we are done with it
+        using var migrationFileMutex = new Mutex(true, "Global\\RevolutionaryWebAppDeployMigrationMutex");
+
         // This is run before the build and is optional, so for now this is not build inside the build container
 
         var startInfo = new ProcessStartInfo("dotnet");
         startInfo.ArgumentList.Add("ef");
         startInfo.ArgumentList.Add("migrations");
         startInfo.ArgumentList.Add("script");
-        startInfo.ArgumentList.Add($"--{options.MigrationMode.ToString().ToLowerInvariant()}");
+        startInfo.ArgumentList.Add("--idempotent");
         startInfo.ArgumentList.Add("--project");
         startInfo.ArgumentList.Add(EFTool.SERVER_PROJECT_FILE);
         startInfo.ArgumentList.Add("--context");
@@ -195,12 +180,37 @@ public class Deployer
             return false;
         }
 
-        ColourConsole.WriteWarningLine(
-            "Please check 'migration.sql' for accuracy, then press enter to continue (or CTRL-C to cancel)");
-        if (!await ConsoleHelpers.WaitForInputToContinue(cancellationToken))
+        if (hashToVerify != null)
         {
-            ColourConsole.WriteInfoLine("Migration canceled, quitting");
-            return false;
+            var hashRaw = await FileUtilities.CalculateSha3OfFile(MIGRATION_FILE, cancellationToken);
+            var hash = FileUtilities.HashToHex(hashRaw);
+
+            if (hash != hashToVerify || hash.Length < 5)
+            {
+                ColourConsole.WriteErrorLine("Migration hash has changed! Please manually verify everything is fine " +
+                    $"and then update the deployment parameters. Expected hash: {hashToVerify}");
+                ColourConsole.WriteNormalLine($"New hash: {hash}");
+                return false;
+            }
+        }
+        else
+        {
+            if (Console.IsInputRedirected)
+            {
+                ColourConsole.WriteWarningLine(
+                    "Continuing with no migration hash or user verification, hopefully everything is safe!");
+            }
+            else
+            {
+                ColourConsole.WriteWarningLine(
+                    "Please check 'migration.sql' for accuracy, then press enter to continue (or CTRL-C to cancel)");
+
+                if (!await ConsoleHelpers.WaitForInputToContinue(cancellationToken))
+                {
+                    ColourConsole.WriteInfoLine("Migration canceled, quitting");
+                    return false;
+                }
+            }
         }
 
         ColourConsole.WriteNormalLine("Sending migration to server");
@@ -367,7 +377,7 @@ public class Deployer
         return true;
     }
 
-    private async Task<bool> SendFiles(string targetHost, CancellationToken cancellationToken)
+    private async Task<bool> CopyFiles(string targetFolder, CancellationToken cancellationToken)
     {
         // Copy the CI executor to the webroot to be able to serve it
         ColourConsole.WriteNormalLine("Copying and compressing CI executor");
@@ -387,64 +397,44 @@ public class Deployer
         var startInfo = new ProcessStartInfo("rsync");
         startInfo.ArgumentList.Add("-hr");
         startInfo.ArgumentList.Add(ClientBuiltWebroot);
-        startInfo.ArgumentList.Add($"{SSH_USERNAME}@{targetHost}:{TargetWWWRoot}");
+        startInfo.ArgumentList.Add(Path.Join(targetFolder, "www") + "/");
         startInfo.ArgumentList.Add("--delete");
 
-        ColourConsole.WriteNormalLine("Sending client files");
+        ColourConsole.WriteNormalLine("Copying client files");
 
         var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken,
             !ColourConsole.DebugPrintingEnabled);
 
         if (result.ExitCode != 0)
         {
-            ColourConsole.WriteErrorLine("Failed to send files");
+            ColourConsole.WriteErrorLine("Failed to copy files");
             return false;
         }
 
         startInfo = new ProcessStartInfo("rsync");
         startInfo.ArgumentList.Add("-hr");
         startInfo.ArgumentList.Add(ServerBuiltBase);
-        startInfo.ArgumentList.Add($"{SSH_USERNAME}@{targetHost}:{TargetAppRoot}");
+        startInfo.ArgumentList.Add(Path.Join(targetFolder, "server") + "/");
         startInfo.ArgumentList.Add("--delete");
         startInfo.ArgumentList.Add("--exclude");
         startInfo.ArgumentList.Add("wwwroot");
 
-        // App settings is excluded as it has development environment secrets
+        // App settings is excluded as it has development environment secrets (in case it would get copied)
         startInfo.ArgumentList.Add("--exclude");
         startInfo.ArgumentList.Add("appsettings.Development.json");
 
-        ColourConsole.WriteNormalLine("Sending server files");
+        ColourConsole.WriteNormalLine("Copying server files");
 
         result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken,
             !ColourConsole.DebugPrintingEnabled);
 
         if (result.ExitCode != 0)
         {
-            ColourConsole.WriteErrorLine("Failed to send files (server)");
+            ColourConsole.WriteErrorLine("Failed to copy files (server)");
             return false;
         }
 
-        ColourConsole.WriteSuccessLine("Build Files synced to server");
-        return true;
-    }
-
-    private async Task<bool> RestartTargetHostServices(string targetHost, CancellationToken cancellationToken)
-    {
-        var startInfo = new ProcessStartInfo("ssh");
-        startInfo.ArgumentList.Add($"{SSH_USERNAME}@{targetHost}");
-        startInfo.ArgumentList.Add("systemctl");
-        startInfo.ArgumentList.Add("restart");
-        startInfo.ArgumentList.Add(GetServiceName());
-
-        var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken,
-            !ColourConsole.DebugPrintingEnabled);
-
-        if (result.ExitCode != 0)
-        {
-            ColourConsole.WriteErrorLine("Failed to restart services");
-            return false;
-        }
-
+        ColourConsole.WriteSuccessLine("Build files synced to install folder");
         return true;
     }
 
@@ -457,33 +447,6 @@ public class Deployer
             return DEFAULT_PRODUCTION_DATABASE;
 
         return DEFAULT_STAGING_DATABASE;
-    }
-
-    private string GetServiceName()
-    {
-        if (!string.IsNullOrEmpty(options.OverrideDeployServiceName))
-            return options.OverrideDeployServiceName;
-
-        if (options.Mode == DeployMode.Production)
-            return DEFAULT_PRODUCTION_SERVICE;
-
-        return DEFAULT_STAGING_SERVICE;
-    }
-
-    private string GetTargetWWWRoot()
-    {
-        if (!string.IsNullOrEmpty(options.OverrideDeployWWWRoot))
-            return options.OverrideDeployWWWRoot;
-
-        return DEFAULT_TARGET_HOST_WWW_ROOT;
-    }
-
-    private string GetTargetAppRoot()
-    {
-        if (!string.IsNullOrEmpty(options.OverrideDeployAppRoot))
-            return options.OverrideDeployAppRoot;
-
-        return DEFAULT_TARGET_HOST_APP_ROOT;
     }
 
     private string GetGrantFromType(string type, string databaseName)
@@ -503,40 +466,30 @@ public class Deployer
             HelpText = "Selects deployment target from the default staging or production environment")]
         public DeployMode Mode { get; set; }
 
-        [Option("migrate", Default = true,
-            HelpText = "When enabled the deploy target runs migrations before deployment")]
-        public bool? Migrate { get; set; }
+        [Option("migration-host", Default = null, MetaValue = "HOSTNAME",
+            HelpText = "Set the hostname to connect to migrate the database, if not set no migration is performed")]
+        public string? MigrationHost { get; set; }
 
-        [Option("migration-mode", Default = MigrationMode.Idempotent, MetaValue = "MODE",
+        [Option("install-target", Required = true, MetaValue = "FOLDER",
+            HelpText =
+                "Where to install the deployed files. These need to be then copied to the real server separately.")]
+        public string DeployTargetFolder { get; set; } = string.Empty;
+
+        // Turns out there really never was a need to run other kind of migrations
+        /*[Option("migration-mode", Default = MigrationMode.Idempotent, MetaValue = "MODE",
             HelpText = "Sets the used migration execution mode")]
-        public MigrationMode MigrationMode { get; set; }
+        public MigrationMode MigrationMode { get; set; }*/
 
-        [Option("deploy", Default = true,
-            HelpText = "Controls whether final deployment is actually performed")]
-        public bool? Deploy { get; set; }
+        [Option("check-migration", Default = null, MetaValue = "HASH",
+            HelpText = "If set a migration script is verified to match this sha3 hash")]
+        public string? MigrationHashToVerify { get; set; }
 
         [Option("dotnet-build-mode", Default = "Release", MetaValue = "MODE",
             HelpText = "Sets the target mode the dotnet build uses")]
         public string BuildMode { get; set; } = "Release";
 
-        [Option("override-deploy-www-folder", Default = null, MetaValue = "FOLDER",
-            HelpText = "Override the folder on the target server where deployment is performed")]
-        public string? OverrideDeployWWWRoot { get; set; }
-
-        [Option("override-deploy-app-folder", Default = null, MetaValue = "FOLDER",
-            HelpText = "Override the folder on the target server where deployment is performed")]
-        public string? OverrideDeployAppRoot { get; set; }
-
-        [Option("override-deploy-host", Default = null, MetaValue = "HOSTNAME",
-            HelpText = "Override the host the deployment targets")]
-        public string? OverrideDeployHost { get; set; }
-
         [Option("override-deploy-database", Default = null, MetaValue = "DATABASE",
             HelpText = "Override the database that is migrated on the target host")]
         public string? OverrideDeployDatabase { get; set; }
-
-        [Option("override-deploy-service-name", Default = null, MetaValue = "NAME",
-            HelpText = "Override the service name that is restarted on the target after deployment")]
-        public string? OverrideDeployServiceName { get; set; }
     }
 }
