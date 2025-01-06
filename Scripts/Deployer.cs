@@ -421,10 +421,24 @@ public class Deployer
             await BlazorBootFileHandler.RegenerateCompressedFiles(destination, cancellationToken);
         }
 
+        var clientTarget = Path.Join(targetFolder, "www");
+        var serverTarget = Path.Join(targetFolder, "server");
+
+        try
+        {
+            Directory.CreateDirectory(clientTarget);
+            Directory.CreateDirectory(serverTarget);
+        }
+        catch (Exception e)
+        {
+            ColourConsole.WriteErrorLine($"Failed to create install target folders: {e}");
+            return false;
+        }
+
         var startInfo = new ProcessStartInfo("rsync");
         startInfo.ArgumentList.Add("-hr");
         startInfo.ArgumentList.Add(ClientBuiltWebroot);
-        startInfo.ArgumentList.Add(Path.Join(targetFolder, "www") + "/");
+        startInfo.ArgumentList.Add(clientTarget + "/");
         startInfo.ArgumentList.Add("--delete");
 
         ColourConsole.WriteNormalLine("Copying client files");
@@ -434,14 +448,15 @@ public class Deployer
 
         if (result.ExitCode != 0)
         {
-            ColourConsole.WriteErrorLine("Failed to copy files");
+            ColourConsole.WriteNormalLine(result.FullOutput);
+            ColourConsole.WriteErrorLine("Failed to copy files (see above for output)");
             return false;
         }
 
         startInfo = new ProcessStartInfo("rsync");
         startInfo.ArgumentList.Add("-hr");
         startInfo.ArgumentList.Add(ServerBuiltBase);
-        startInfo.ArgumentList.Add(Path.Join(targetFolder, "server") + "/");
+        startInfo.ArgumentList.Add(serverTarget + "/");
         startInfo.ArgumentList.Add("--delete");
         startInfo.ArgumentList.Add("--exclude");
         startInfo.ArgumentList.Add("wwwroot");
