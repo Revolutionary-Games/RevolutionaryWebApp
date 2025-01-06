@@ -125,15 +125,25 @@ public class Deployer
             ColourConsole.WriteNormalLine("Performing migration");
 
             // Ensure no other deploys will use the same migration file before we are done with it
-            using var migrationFileMutex = new Mutex(false, "Global\\RevolutionaryWebAppDeployMigrationMutex");
-            if (!migrationFileMutex.WaitOne(TimeSpan.FromMinutes(15)))
+            await using var migrationFileMutex = new AsyncMutex("Global\\RevolutionaryWebAppDeployMigrationMutex");
+
+            var mutexAcquireTime = new CancellationTokenSource();
+            mutexAcquireTime.CancelAfter(TimeSpan.FromMinutes(15));
+
+            try
             {
-                ColourConsole.WriteErrorLine("Could not get migration mutex even after waiting many minutes");
+                await migrationFileMutex.AcquireAsync(mutexAcquireTime.Token);
+            }
+            catch (Exception e)
+            {
+                ColourConsole.WriteWarningLine("Cannot get global mutex lock: " + e);
                 return false;
             }
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (!await PerformMigration(options.MigrationHost, options.MigrationHashToVerify, cancellationToken))
                 {
                     return false;
@@ -141,7 +151,7 @@ public class Deployer
             }
             finally
             {
-                migrationFileMutex.ReleaseMutex();
+                await migrationFileMutex.ReleaseAsync();
             }
         }
         else
