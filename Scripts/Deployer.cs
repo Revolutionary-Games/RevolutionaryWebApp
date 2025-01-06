@@ -38,8 +38,11 @@ public class Deployer
     private const string CI_EXECUTOR_BUILT_FILE =
         BUILD_DATA_FOLDER + "/CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor";
 
-    private const string DEFAULT_PRODUCTION_DATABASE = "webapp";
-    private const string DEFAULT_STAGING_DATABASE = "webapp";
+    private const string DEFAULT_PRODUCTION_DATABASE = "revwebapp";
+    private const string DEFAULT_STAGING_DATABASE = "revwebapp";
+
+    private const string DEFAULT_PRODUCTION_USERNAME = "revwebapp_user";
+    private const string DEFAULT_STAGING_USERNAME = "revwebapp_user";
 
     private const string SSH_USERNAME = "root";
 
@@ -241,6 +244,7 @@ public class Deployer
         }
 
         var database = GetDatabaseName();
+        var username = GetUsername();
         ColourConsole.WriteNormalLine($"Running migration on database {database}...");
 
         var sshCommandStringBuilder = new StringBuilder();
@@ -278,8 +282,8 @@ public class Deployer
         sshCommandStringBuilder.Append(database);
         sshCommandStringBuilder.Append(" -c ");
         sshCommandStringBuilder.Append('\'');
-        sshCommandStringBuilder.Append(GetGrantFromType("TABLES", database));
-        sshCommandStringBuilder.Append(GetGrantFromType("SEQUENCES", database));
+        sshCommandStringBuilder.Append(GetGrantFromType("TABLES", username));
+        sshCommandStringBuilder.Append(GetGrantFromType("SEQUENCES", username));
         sshCommandStringBuilder.Append('\'');
         sshCommandStringBuilder.Append('"');
 
@@ -462,14 +466,25 @@ public class Deployer
         return DEFAULT_STAGING_DATABASE;
     }
 
-    private string GetGrantFromType(string type, string databaseName)
+    private string GetUsername()
+    {
+        if (!string.IsNullOrEmpty(options.OverrideUsername))
+            return options.OverrideUsername;
+
+        if (options.Mode == DeployMode.Production)
+            return DEFAULT_PRODUCTION_USERNAME;
+
+        return DEFAULT_STAGING_USERNAME;
+    }
+
+    private string GetGrantFromType(string type, string username)
     {
         if (type == "SEQUENCES")
         {
-            return $"GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {databaseName};";
+            return $"GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {username};";
         }
 
-        return $"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL {type} IN SCHEMA public TO {databaseName};";
+        return $"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL {type} IN SCHEMA public TO {username};";
     }
 
     [Verb("deploy", HelpText = "Perform site deployment")]
@@ -504,5 +519,9 @@ public class Deployer
         [Option("override-deploy-database", Default = null, MetaValue = "DATABASE",
             HelpText = "Override the database that is migrated on the target host")]
         public string? OverrideDeployDatabase { get; set; }
+
+        [Option("override-deploy-username", Default = null, MetaValue = "ROLE",
+            HelpText = "Override the role that is given access to new database resources")]
+        public string? OverrideUsername { get; set; }
     }
 }
