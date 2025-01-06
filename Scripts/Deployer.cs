@@ -122,7 +122,12 @@ public class Deployer
             ColourConsole.WriteNormalLine("Performing migration");
 
             // Ensure no other deploys will use the same migration file before we are done with it
-            using var migrationFileMutex = new Mutex(true, "Global\\RevolutionaryWebAppDeployMigrationMutex");
+            using var migrationFileMutex = new Mutex(false, "Global\\RevolutionaryWebAppDeployMigrationMutex");
+            if (!migrationFileMutex.WaitOne(TimeSpan.FromMinutes(15)))
+            {
+                ColourConsole.WriteErrorLine("Could not get migration mutex even after waiting many minutes");
+                return false;
+            }
 
             try
             {
