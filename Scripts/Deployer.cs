@@ -38,8 +38,8 @@ public class Deployer
     private const string CI_EXECUTOR_BUILT_FILE =
         BUILD_DATA_FOLDER + "/CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor";
 
-    private const string DEFAULT_PRODUCTION_DATABASE = "revwebapp";
-    private const string DEFAULT_STAGING_DATABASE = "revwebapp";
+    private const string DEFAULT_PRODUCTION_DATABASE = "webapp";
+    private const string DEFAULT_STAGING_DATABASE = "webapp";
 
     private const string SSH_USERNAME = "root";
 
