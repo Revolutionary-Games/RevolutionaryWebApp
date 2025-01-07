@@ -112,6 +112,10 @@ A data protection certificate is required, it can be generated with:
 openssl req -x509 -newkey ed25519 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes
 ```
 
+Note that some environments don't have working ed25519 keys, so for
+those the above command will need to have `rsa:4096` substituted as
+the key type.
+
 ## Running
 
 When cloning this repository, you need to clone
