@@ -19,7 +19,8 @@ public class Deployer
 {
     private const string NET_VERSION = "net9.0";
 
-    private const string BUILD_DATA_FOLDER = "build";
+    private const string BUILD_DATA_FOLDER_CONTAINER = "build";
+    private const string BUILD_DATA_FOLDER_PLAIN = ".";
     private const string CONTAINER_NUGET_CACHE_HOST = "build/nuget";
     private const string CONTAINER_NUGET_CACHE_TARGET = "/root/.nuget";
     private const string BUILDER_CONTAINER_NAME = "thrive/devcenter-builder:latest";
@@ -31,12 +32,6 @@ public class Deployer
 
     private const string MIGRATION_FILE = "migration.sql";
     private const string BLAZOR_BOOT_FILE = "blazor.boot.json";
-
-    private const string CLIENT_BUILT_WEBROOT = BUILD_DATA_FOLDER + "/Client/bin/{0}/{1}/publish/wwwroot/";
-    private const string SERVER_BUILT_BASE = BUILD_DATA_FOLDER + "/Server/bin/{0}/{1}/publish/";
-
-    private const string CI_EXECUTOR_BUILT_FILE =
-        BUILD_DATA_FOLDER + "/CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor";
 
     private const string DEFAULT_PRODUCTION_DATABASE = "revwebapp";
     private const string DEFAULT_STAGING_DATABASE = "revwebapp";
@@ -97,11 +92,17 @@ public class Deployer
         Production,
     }
 
-    private string ClientBuiltWebroot => string.Format(CLIENT_BUILT_WEBROOT, options.BuildMode, NET_VERSION);
+    private string BuildDataFolder => options.DisableContainer ? BUILD_DATA_FOLDER_PLAIN : BUILD_DATA_FOLDER_CONTAINER;
 
-    private string ServerBuiltBase => string.Format(SERVER_BUILT_BASE, options.BuildMode, NET_VERSION);
+    private string ClientBuiltWebroot => string.Format(BuildDataFolder + "/Client/bin/{0}/{1}/publish/wwwroot/",
+        options.BuildMode, NET_VERSION);
 
-    private string CIExecutorBuiltFile => string.Format(CI_EXECUTOR_BUILT_FILE, options.BuildMode, NET_VERSION);
+    private string ServerBuiltBase =>
+        string.Format(BuildDataFolder + "/Server/bin/{0}/{1}/publish/", options.BuildMode, NET_VERSION);
+
+    private string CIExecutorBuiltFile =>
+        string.Format(BuildDataFolder + "/CIExecutor/bin/{0}/{1}/linux-x64/publish/CIExecutor", options.BuildMode,
+            NET_VERSION);
 
     public async Task<bool> Run(CancellationToken cancellationToken)
     {
@@ -161,9 +162,22 @@ public class Deployer
 
         cancellationToken.ThrowIfCancellationRequested();
         ColourConsole.WriteNormalLine($"Building {options.BuildMode} files in a container");
-        if (!await PerformBuild(cancellationToken))
+
+        if (options.DisableContainer)
         {
-            return false;
+            ColourConsole.WriteNormalLine("Performing a non-container build. Hopefully the environment is setup " +
+                "correctly!");
+            if (!await PerformNonContainerBuild(cancellationToken))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (!await PerformBuild(cancellationToken))
+            {
+                return false;
+            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -316,7 +330,7 @@ public class Deployer
 
     private async Task<bool> PerformBuild(CancellationToken cancellationToken)
     {
-        Directory.CreateDirectory(BUILD_DATA_FOLDER);
+        Directory.CreateDirectory(BuildDataFolder);
         Directory.CreateDirectory(CONTAINER_NUGET_CACHE_HOST);
 
         if (Directory.Exists(BUILD_FOLDER_TO_ALWAYS_DELETE))
@@ -325,7 +339,7 @@ public class Deployer
         var nugetCache = Path.GetFullPath(CONTAINER_NUGET_CACHE_HOST);
 
         var sourceDirectory = Path.GetFullPath(".");
-        var buildTarget = Path.GetFullPath(BUILD_DATA_FOLDER);
+        var buildTarget = Path.GetFullPath(BuildDataFolder);
 
         ColourConsole.WriteDebugLine("Storing build result in: " + buildTarget);
 
@@ -384,6 +398,14 @@ public class Deployer
 
         ColourConsole.WriteSuccessLine("Build within the build container succeeded");
 
+        await VerifyBlazorBootFile(cancellationToken);
+
+        ColourConsole.WriteSuccessLine("Build finished.");
+        return true;
+    }
+
+    private async Task VerifyBlazorBootFile(CancellationToken cancellationToken)
+    {
         ColourConsole.WriteNormalLine("Making sure blazor.boot.json has correct hashes");
 
         bool foundABootFile = false;
@@ -399,6 +421,28 @@ public class Deployer
 
         if (!foundABootFile)
             ColourConsole.WriteWarningLine($"No {BLAZOR_BOOT_FILE} files found");
+    }
+
+    private async Task<bool> PerformNonContainerBuild(CancellationToken cancellationToken)
+    {
+        ColourConsole.WriteNormalLine("Writing published artifacts to current source tree");
+
+        var startInfo = new ProcessStartInfo("dotnet");
+        startInfo.ArgumentList.Add("publish");
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(options.BuildMode);
+
+        var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken, false);
+
+        if (result.ExitCode != 0)
+        {
+            ColourConsole.WriteErrorLine("Failed to run publish command. Is there a build or environment error?");
+            return false;
+        }
+
+        ColourConsole.WriteSuccessLine("Publish with dotnet succeeded");
+
+        await VerifyBlazorBootFile(cancellationToken);
 
         ColourConsole.WriteSuccessLine("Build finished.");
         return true;
@@ -415,7 +459,7 @@ public class Deployer
         // And it also needs extra files...
         foreach (var extraResource in CIExecutorExtraResources)
         {
-            var resource = Path.Join(BUILD_DATA_FOLDER, string.Format(extraResource, options.BuildMode, NET_VERSION));
+            var resource = Path.Join(BuildDataFolder, string.Format(extraResource, options.BuildMode, NET_VERSION));
             var destination = Path.Join(ClientBuiltWebroot, Path.GetFileName(resource));
             File.Copy(resource, destination, true);
             await BlazorBootFileHandler.RegenerateCompressedFiles(destination, cancellationToken);
@@ -548,5 +592,9 @@ public class Deployer
         [Option("override-deploy-username", Default = null, MetaValue = "ROLE",
             HelpText = "Override the role that is given access to new database resources")]
         public string? OverrideUsername { get; set; }
+
+        [Option("disable-container", Default = false,
+            HelpText = "Specify to not use a container build (should be only done if already inside a container)")]
+        public bool DisableContainer { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 # If the image version is updated here also Scripts/ContainerTool.cs needs to be updated
-# Also the Ansible control node uses this
+# The Ansible control node has a copy of this part of this file, so if this is updated things
+# need to be updated there as well
 FROM almalinux:9 as builder
 ENV DOTNET_VERSION "9.0"
 
