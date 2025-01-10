@@ -13,7 +13,7 @@ using ScriptsBase.Utilities;
 using SharedBase.Utilities;
 
 /// <summary>
-///   Handles preparing files for deploy and performs database migrations
+///   Handles preparing files for deploy and creates database migrations for running
 /// </summary>
 public class Deployer
 {
@@ -32,14 +32,6 @@ public class Deployer
 
     private const string MIGRATION_FILE = "migration.sql";
     private const string BLAZOR_BOOT_FILE = "blazor.boot.json";
-
-    private const string DEFAULT_PRODUCTION_DATABASE = "revwebapp";
-    private const string DEFAULT_STAGING_DATABASE = "revwebapp";
-
-    private const string DEFAULT_PRODUCTION_USERNAME = "revwebapp_user";
-    private const string DEFAULT_STAGING_USERNAME = "revwebapp_user";
-
-    private const string SSH_USERNAME = "root";
 
     private static readonly IReadOnlyList<string> CIExecutorExtraResources =
     [
@@ -115,78 +107,67 @@ public class Deployer
         ColourConsole.WriteInfoLine($"Starting deployment in mode {options.Mode}");
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!string.IsNullOrEmpty(options.MigrationHost))
+        ColourConsole.WriteNormalLine("Creating database migration");
+
+        // Ensure no other deploys will use the same migration file before we are done with it
+        // This kind of doesn't really matter anymore with the new architecture... (deploy script runs the
+        // migration now)
+        await using var migrationFileMutex = new AsyncMutex("Global\\RevolutionaryWebAppDeployMigrationMutex");
+
+        var mutexAcquireTime = new CancellationTokenSource();
+        mutexAcquireTime.CancelAfter(TimeSpan.FromMinutes(15));
+
+        try
         {
-            if (string.IsNullOrEmpty(options.MigrationHashToVerify) && options.Mode == DeployMode.Production)
+            await migrationFileMutex.AcquireAsync(mutexAcquireTime.Token);
+        }
+        catch (Exception e)
+        {
+            ColourConsole.WriteWarningLine("Cannot get global mutex lock: " + e);
+            return false;
+        }
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!await CreateMigration(options.MigrationHashToVerify, cancellationToken))
             {
-                ColourConsole.WriteErrorLine("In production mode migration hash verification is required");
                 return false;
             }
 
-            ColourConsole.WriteNormalLine("Performing migration");
+            cancellationToken.ThrowIfCancellationRequested();
+            ColourConsole.WriteNormalLine($"Building {options.BuildMode} files in a container");
 
-            // Ensure no other deploys will use the same migration file before we are done with it
-            await using var migrationFileMutex = new AsyncMutex("Global\\RevolutionaryWebAppDeployMigrationMutex");
-
-            var mutexAcquireTime = new CancellationTokenSource();
-            mutexAcquireTime.CancelAfter(TimeSpan.FromMinutes(15));
-
-            try
+            if (options.DisableContainer)
             {
-                await migrationFileMutex.AcquireAsync(mutexAcquireTime.Token);
-            }
-            catch (Exception e)
-            {
-                ColourConsole.WriteWarningLine("Cannot get global mutex lock: " + e);
-                return false;
-            }
-
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (!await PerformMigration(options.MigrationHost, options.MigrationHashToVerify, cancellationToken))
+                ColourConsole.WriteNormalLine("Performing a non-container build. Hopefully the environment is setup " +
+                    "correctly!");
+                if (!await PerformNonContainerBuild(cancellationToken))
                 {
                     return false;
                 }
             }
-            finally
+            else
             {
-                await migrationFileMutex.ReleaseAsync();
+                if (!await PerformBuild(cancellationToken))
+                {
+                    return false;
+                }
             }
-        }
-        else
-        {
-            ColourConsole.WriteWarningLine("Skipping migration");
-        }
 
-        cancellationToken.ThrowIfCancellationRequested();
-        ColourConsole.WriteNormalLine($"Building {options.BuildMode} files in a container");
+            cancellationToken.ThrowIfCancellationRequested();
 
-        if (options.DisableContainer)
-        {
-            ColourConsole.WriteNormalLine("Performing a non-container build. Hopefully the environment is setup " +
-                "correctly!");
-            if (!await PerformNonContainerBuild(cancellationToken))
+            ColourConsole.WriteNormalLine("Performing deployment");
+            ColourConsole.WriteInfoLine("Preparing files");
+            if (!await CopyFiles(options.DeployTargetFolder, cancellationToken))
             {
                 return false;
             }
         }
-        else
+        finally
         {
-            if (!await PerformBuild(cancellationToken))
-            {
-                return false;
-            }
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        ColourConsole.WriteNormalLine("Performing deployment");
-        ColourConsole.WriteInfoLine("Preparing files");
-        if (!await CopyFiles(options.DeployTargetFolder, cancellationToken))
-        {
-            return false;
+            await migrationFileMutex.ReleaseAsync();
         }
 
         ColourConsole.WriteSuccessLine("Deploy files created successfully");
@@ -195,10 +176,11 @@ public class Deployer
         return true;
     }
 
-    private async Task<bool> PerformMigration(string targetHost, string? hashToVerify,
+    private async Task<bool> CreateMigration(string? hashToVerify,
         CancellationToken cancellationToken)
     {
-        // This is run before the build and is optional, so for now this is not build inside the build container
+        // This is run before the build and doesn't make build artifacts,
+        // so for now this is not build inside the build container
 
         var startInfo = new ProcessStartInfo("dotnet");
         startInfo.ArgumentList.Add("ef");
@@ -235,95 +217,11 @@ public class Deployer
         }
         else
         {
-            if (Console.IsInputRedirected)
-            {
-                ColourConsole.WriteWarningLine(
-                    "Continuing with no migration hash or user verification, hopefully everything is safe!");
-            }
-            else
-            {
-                ColourConsole.WriteWarningLine(
-                    "Please check 'migration.sql' for accuracy, then press enter to continue (or CTRL-C to cancel)");
-
-                if (!await ConsoleHelpers.WaitForInputToContinue(cancellationToken))
-                {
-                    ColourConsole.WriteInfoLine("Migration canceled, quitting");
-                    return false;
-                }
-            }
+            ColourConsole.WriteNormalLine("Not verifying hash of generated migration");
         }
 
-        ColourConsole.WriteNormalLine("Sending migration to server");
-
-        startInfo = new ProcessStartInfo("scp");
-        startInfo.ArgumentList.Add(MIGRATION_FILE);
-        startInfo.ArgumentList.Add($"{SSH_USERNAME}@{targetHost}:{MIGRATION_FILE}");
-
-        result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken, false);
-
-        if (result.ExitCode != 0)
-        {
-            ColourConsole.WriteErrorLine("Failed to copy migration to server");
-            return false;
-        }
-
-        var database = GetDatabaseName();
-        var username = GetUsername();
-        ColourConsole.WriteNormalLine($"Running migration on database {database}...");
-
-        var sshCommandStringBuilder = new StringBuilder();
-
-        startInfo = new ProcessStartInfo("ssh");
-        startInfo.ArgumentList.Add($"{SSH_USERNAME}@{targetHost}");
-
-        sshCommandStringBuilder.Append("su - postgres -c ");
-        sshCommandStringBuilder.Append("\"");
-        sshCommandStringBuilder.Append("psql -d ");
-        sshCommandStringBuilder.Append(database);
-        sshCommandStringBuilder.Append("\"");
-        sshCommandStringBuilder.Append($" < {MIGRATION_FILE}");
-
-        startInfo.ArgumentList.Add(sshCommandStringBuilder.ToString());
-
-        result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken,
-            !ColourConsole.DebugPrintingEnabled);
-
-        if (result.ExitCode != 0)
-        {
-            ColourConsole.WriteNormalLine(result.FullOutput);
-            ColourConsole.WriteErrorLine("Failed to run migration on the server");
-            return false;
-        }
-
-        ColourConsole.WriteNormalLine("Migration succeeded");
-        ColourConsole.WriteInfoLine("Trying to fudge grants...");
-
-        sshCommandStringBuilder.Clear();
-        sshCommandStringBuilder.Append("su - postgres -c ");
-
-        sshCommandStringBuilder.Append('"');
-        sshCommandStringBuilder.Append("psql -d ");
-        sshCommandStringBuilder.Append(database);
-        sshCommandStringBuilder.Append(" -c ");
-        sshCommandStringBuilder.Append('\'');
-        sshCommandStringBuilder.Append(GetGrantFromType("TABLES", username));
-        sshCommandStringBuilder.Append(GetGrantFromType("SEQUENCES", username));
-        sshCommandStringBuilder.Append('\'');
-        sshCommandStringBuilder.Append('"');
-
-        startInfo.ArgumentList.Add(sshCommandStringBuilder.ToString());
-
-        result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken,
-            !ColourConsole.DebugPrintingEnabled);
-
-        if (result.ExitCode != 0)
-        {
-            ColourConsole.WriteNormalLine(result.FullOutput);
-            ColourConsole.WriteErrorLine("Failed to fudge grants");
-            return false;
-        }
-
-        ColourConsole.WriteSuccessLine("Migration complete");
+        ColourConsole.WriteSuccessLine("Migration file written");
+        ColourConsole.WriteNormalLine("Migration will need to be ran with the separate ansible deploy script");
 
         return true;
     }
@@ -479,6 +377,9 @@ public class Deployer
             return false;
         }
 
+        // Copy the migration file to the deployment target
+        File.Copy(MIGRATION_FILE, Path.Combine(targetFolder, MIGRATION_FILE), true);
+
         var startInfo = new ProcessStartInfo("rsync");
         startInfo.ArgumentList.Add("-hr");
         startInfo.ArgumentList.Add(ClientBuiltWebroot);
@@ -524,48 +425,12 @@ public class Deployer
         return true;
     }
 
-    private string GetDatabaseName()
-    {
-        if (!string.IsNullOrEmpty(options.OverrideDeployDatabase))
-            return options.OverrideDeployDatabase;
-
-        if (options.Mode == DeployMode.Production)
-            return DEFAULT_PRODUCTION_DATABASE;
-
-        return DEFAULT_STAGING_DATABASE;
-    }
-
-    private string GetUsername()
-    {
-        if (!string.IsNullOrEmpty(options.OverrideUsername))
-            return options.OverrideUsername;
-
-        if (options.Mode == DeployMode.Production)
-            return DEFAULT_PRODUCTION_USERNAME;
-
-        return DEFAULT_STAGING_USERNAME;
-    }
-
-    private string GetGrantFromType(string type, string username)
-    {
-        if (type == "SEQUENCES")
-        {
-            return $"GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {username};";
-        }
-
-        return $"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL {type} IN SCHEMA public TO {username};";
-    }
-
     [Verb("deploy", HelpText = "Perform site deployment")]
     public class DeployOptions : ScriptOptionsBase
     {
         [Option('m', "mode", Default = DeployMode.Staging, MetaValue = "MODE",
             HelpText = "Selects deployment target from the default staging or production environment")]
         public DeployMode Mode { get; set; }
-
-        [Option("migration-host", Default = null, MetaValue = "HOSTNAME",
-            HelpText = "Set the hostname to connect to migrate the database, if not set no migration is performed")]
-        public string? MigrationHost { get; set; }
 
         [Option("install-target", Required = true, MetaValue = "FOLDER",
             HelpText =
@@ -578,23 +443,17 @@ public class Deployer
         public MigrationMode MigrationMode { get; set; }*/
 
         [Option("check-migration", Default = null, MetaValue = "HASH",
-            HelpText = "If set a migration script is verified to match this sha3 hash")]
+            HelpText = "If set, the generated migration script is verified to match this sha3 hash")]
         public string? MigrationHashToVerify { get; set; }
 
         [Option("dotnet-build-mode", Default = "Release", MetaValue = "MODE",
             HelpText = "Sets the target mode the dotnet build uses")]
         public string BuildMode { get; set; } = "Release";
 
-        [Option("override-deploy-database", Default = null, MetaValue = "DATABASE",
-            HelpText = "Override the database that is migrated on the target host")]
-        public string? OverrideDeployDatabase { get; set; }
-
-        [Option("override-deploy-username", Default = null, MetaValue = "ROLE",
-            HelpText = "Override the role that is given access to new database resources")]
-        public string? OverrideUsername { get; set; }
-
         [Option("disable-container", Default = false,
-            HelpText = "Specify to not use a container build (should be only done if already inside a container)")]
+            HelpText =
+                "Specify to not use a container build (should be only done if already inside a container " +
+                "with correct environment)")]
         public bool DisableContainer { get; set; }
     }
 }
