@@ -17,6 +17,6 @@
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.2.0" />
     <PackageReference Include="HtmlSanitizer" Version="8.2.871-beta" />
-    <PackageReference Include="Markdig" Version="0.39.1" />
+    <PackageReference Include="Markdig" Version="0.40.0" />
   </ItemGroup>
 </Project>
