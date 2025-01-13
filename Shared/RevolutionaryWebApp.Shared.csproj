@@ -15,7 +15,7 @@
     <ProjectReference Include="..\RevolutionaryGamesCommon\FeedParser.Shared\FeedParser.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="1.1.2" />
+    <PackageReference Include="AngleSharp" Version="1.2.0" />
     <PackageReference Include="HtmlSanitizer" Version="8.2.871-beta" />
     <PackageReference Include="Markdig" Version="0.39.1" />
   </ItemGroup>
