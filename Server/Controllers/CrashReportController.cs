@@ -3,7 +3,6 @@ namespace RevolutionaryWebApp.Server.Controllers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,19 +32,22 @@ public class CrashReportController : Controller
 {
     private readonly ILogger<CrashReportController> logger;
     private readonly NotificationsEnabledDb database;
-    private readonly ILocalTempFileLocks localTempFileLocks;
     private readonly IBackgroundJobClient jobClient;
+
+    // These are kept for the eventual reimplementation of the crash upload API
+    // ReSharper disable NotAccessedField.Local
     private readonly DiscordNotifications discordNotifications;
     private readonly bool uploadEnabled;
     private readonly Uri baseUrl;
 
+    // ReSharper restore NotAccessedField.Local
+
     public CrashReportController(ILogger<CrashReportController> logger,
-        NotificationsEnabledDb database, IConfiguration configuration, ILocalTempFileLocks localTempFileLocks,
+        NotificationsEnabledDb database, IConfiguration configuration,
         IBackgroundJobClient jobClient, DiscordNotifications discordNotifications)
     {
         this.logger = logger;
         this.database = database;
-        this.localTempFileLocks = localTempFileLocks;
         this.jobClient = jobClient;
         this.discordNotifications = discordNotifications;
 
@@ -174,7 +176,7 @@ public class CrashReportController : Controller
         if (report == null)
             return NotFound();
 
-        if (report.DumpLocalFileName == null)
+        if (string.IsNullOrWhiteSpace(report.UploadStoragePath))
             return BadRequest("Report no longer has a crash dump file");
 
         await database.ActionLogEntries.AddAsync(
@@ -578,7 +580,7 @@ public class CrashReportController : Controller
                     Store = c.Store,
                     Version = c.Version,
                     DuplicateOfId = c.DuplicateOfId,
-                    DumpLocalFileName = c.DumpLocalFileName,
+                    UploadStoragePath = c.UploadStoragePath,
                     PrimaryCallstack = c.PrimaryCallstack,
                     CondensedCallstack = c.CondensedCallstack,
                     Description = c.Description,
@@ -605,7 +607,7 @@ public class CrashReportController : Controller
                 Version = c.Version,
                 WholeCrashDump = c.WholeCrashDump,
                 DuplicateOfId = c.DuplicateOfId,
-                DumpLocalFileName = c.DumpLocalFileName,
+                UploadStoragePath = c.UploadStoragePath,
                 PrimaryCallstack = c.PrimaryCallstack,
                 CondensedCallstack = c.CondensedCallstack,
                 Description = c.Description,

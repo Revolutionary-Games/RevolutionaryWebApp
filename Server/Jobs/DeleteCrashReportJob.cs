@@ -15,14 +15,14 @@ public class DeleteCrashReportJob
 {
     private readonly ILogger<DeleteCrashReportJob> logger;
     private readonly NotificationsEnabledDb database;
-    private readonly ILocalTempFileLocks localTempFileLocks;
+    private readonly IUploadFileStorage uploadFileStorage;
 
     public DeleteCrashReportJob(ILogger<DeleteCrashReportJob> logger, NotificationsEnabledDb database,
-        ILocalTempFileLocks localTempFileLocks)
+        IUploadFileStorage uploadFileStorage)
     {
         this.logger = logger;
         this.database = database;
-        this.localTempFileLocks = localTempFileLocks;
+        this.uploadFileStorage = uploadFileStorage;
     }
 
     public async Task Execute(long reportId, CancellationToken cancellationToken)
@@ -43,7 +43,7 @@ public class DeleteCrashReportJob
 
         if (duplicates.Count > 1)
         {
-            // First non-private item will be the new primary report and the other ones are the duplicates
+            // The first non-private-item will be the new primary report, and the other ones are the duplicates
             var newDuplicatePrimary = duplicates.FirstOrDefault(r => r.Public) ?? duplicates.First();
 
             newDuplicatePrimary.State = report.State;
@@ -73,11 +73,11 @@ public class DeleteCrashReportJob
                 cancellationToken);
         }
 
-        // Local dump file needs to be deleted
-        if (report.DumpLocalFileName != null)
+        // Dump file needs to be deleted
+        if (report.UploadStoragePath != null)
         {
-            await DeleteCrashReportDumpJob.DeleteReportTempFile(report, localTempFileLocks, logger,
-                cancellationToken);
+            if (await uploadFileStorage.DoesObjectExist(report.UploadStoragePath, cancellationToken))
+                await uploadFileStorage.DeleteObject(report.UploadStoragePath);
         }
 
         // Cancellation tokens are used even after that local file delete as it is not an error if the file is

@@ -86,11 +86,14 @@ public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashe
 
     public ICollection<CrashReport> Duplicates { get; set; } = new HashSet<CrashReport>();
 
-    public string? DumpLocalFileName { get; set; }
-
     // TODO: switch this to a proper notification system with subscription confirmations and users also being able
     // to watch reports
     public string? ReporterEmail { get; set; }
+
+    /// <summary>
+    ///   Where this crash report's dump exists in the storage. TODO: implement the new crash uploading endpoint
+    /// </summary>
+    public string? UploadStoragePath { get; set; }
 
     [Timestamp]
     public uint DbVersion { get; set; }
@@ -151,7 +154,7 @@ public class CrashReport : UpdateableModel, IUpdateNotifications, IContainsHashe
 
             // TODO: This kind of leaks information to unauthorized users, but there isn't much they can do with this
             // Fixing would require passing the remote user access level to this method as a parameter
-            CanReProcess = DumpLocalFileName != null,
+            CanReProcess = !string.IsNullOrEmpty(UploadStoragePath),
 
             AnonymizedReporterIp = includeAnonymizedIp ? IPHelpers.PartlyAnonymizedIP(UploadedFrom) : null,
         };

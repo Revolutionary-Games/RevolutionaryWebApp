@@ -11,24 +11,28 @@ using Models;
 using Services;
 using Utilities;
 
+/// <summary>
+///   Performs stackwalking with a local stackwalk service. This has concurrent execution disabled as that seems like
+///   the easiest way to make sure that these tasks can't take up a lot of processing power from other potential tasks.
+/// </summary>
 [DisableConcurrentExecution(1000)]
 public class StartStackwalkOnReportJob
 {
     private readonly ILogger<StartStackwalkOnReportJob> logger;
     private readonly NotificationsEnabledDb database;
-    private readonly ILocalTempFileLocks localTempFileLocks;
+    private readonly IUploadFileStorage uploadFileStorage;
     private readonly IStackwalk stackwalk;
     private readonly IBackgroundJobClient jobClient;
     private readonly IStackwalkSymbolPreparer symbolPreparer;
     private readonly string symbolFolder;
 
     public StartStackwalkOnReportJob(ILogger<StartStackwalkOnReportJob> logger, NotificationsEnabledDb database,
-        IConfiguration configuration, ILocalTempFileLocks localTempFileLocks, IStackwalk stackwalk,
+        IConfiguration configuration, IUploadFileStorage uploadFileStorage, IStackwalk stackwalk,
         IBackgroundJobClient jobClient, IStackwalkSymbolPreparer symbolPreparer)
     {
         this.logger = logger;
         this.database = database;
-        this.localTempFileLocks = localTempFileLocks;
+        this.uploadFileStorage = uploadFileStorage;
         this.stackwalk = stackwalk;
         this.jobClient = jobClient;
         this.symbolPreparer = symbolPreparer;
@@ -49,33 +53,35 @@ public class StartStackwalkOnReportJob
             return;
         }
 
-        if (string.IsNullOrEmpty(report.DumpLocalFileName))
+        if (string.IsNullOrEmpty(report.UploadStoragePath))
         {
-            logger.LogError("Can't stackwalk on report that no longer has local dump: {ReportId}", reportId);
+            logger.LogError("Can't stackwalk on report that no longer has dump: {ReportId}", reportId);
             return;
         }
+
+        // throw new NotImplementedException("Reimplement stackwalking with remotely stored files");
 
         var symbolPrepareTask = symbolPreparer.PrepareSymbolsInFolder(symbolFolder, cancellationToken);
 
         logger.LogInformation("Starting stackwalk on report {ReportId}", reportId);
 
-        var baseFolder =
-            localTempFileLocks.GetTempFilePath(CrashReport.CrashReportTempStorageFolderName);
-
-        var filePath = Path.Combine(baseFolder, report.DumpLocalFileName);
-
-        FileStream? dump = null;
-
-        // On Linux an open file should not impact deleting etc. so I'm pretty sure this is pretty safe
-        using (await localTempFileLocks.LockAsync(baseFolder, cancellationToken).ConfigureAwait(false))
+        // TODO: the following is untested
+        Stream dataContent;
+        try
         {
-            if (File.Exists(filePath))
-                dump = File.OpenRead(filePath);
+            dataContent = await uploadFileStorage.GetObjectContent(report.UploadStoragePath);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get dump file for report {ReportId}", reportId);
+            throw;
+        }
+        finally
+        {
+            await symbolPrepareTask;
         }
 
-        await symbolPrepareTask;
-
-        if (report.DumpLocalFileName == null || dump == null)
+        if (dataContent.Length < 0)
         {
             logger.LogError("Can't stackwalk on report with missing dump file: {ReportId}", reportId);
             return;
@@ -84,7 +90,7 @@ public class StartStackwalkOnReportJob
         var startTime = DateTime.UtcNow;
 
         // TODO: implement an async API in the stackwalk service and swap to using that here
-        var result = await stackwalk.PerformBlockingStackwalk(dump, report.Platform, cancellationToken);
+        var result = await stackwalk.PerformBlockingStackwalk(dataContent, report.Platform, cancellationToken);
         var primaryCallstack = stackwalk.FindPrimaryCallstack(result);
         var condensedCallstack = stackwalk.CondenseCallstack(primaryCallstack);
 

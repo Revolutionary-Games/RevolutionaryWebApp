@@ -21,9 +21,6 @@ public interface IStackwalk
 {
     public bool Configured { get; }
 
-    public Task<string> PerformBlockingStackwalk(string dumpFilePath, ThrivePlatform platform,
-        CancellationToken cancellationToken);
-
     public Task<string> PerformBlockingStackwalk(Stream dumpContent, ThrivePlatform platform,
         CancellationToken cancellationToken);
 
@@ -31,14 +28,14 @@ public interface IStackwalk
     ///   Tries to find the primary (crashing thread) callstack from a stackwalk decoded crash dump
     /// </summary>
     /// <param name="decodedDump">
-    ///   The stackwalk decoded output, for example from
-    ///   <see cref="PerformBlockingStackwalk(string, ThrivePlatform, CancellationToken)"/>
+    ///   The stackwalk decoded output, for example, from
+    ///   <see cref="PerformBlockingStackwalk"/>
     /// </param>
     /// <param name="fallback">
-    ///   If true then first few hundred characters are considered the primary callstack, if searching for it
+    ///   If true then first few hundred characters are considered the primary callstack if searching for it
     ///   failed
     /// </param>
-    /// <returns>The found primary callstack or null</returns>
+    /// <returns>Found primary callstack or null</returns>
     public string? FindPrimaryCallstack(string decodedDump, bool fallback = true);
 
     /// <summary>
@@ -82,12 +79,6 @@ public class Stackwalk : IStackwalk
 
     public bool Configured { get; }
 
-    public Task<string> PerformBlockingStackwalk(string dumpFilePath, ThrivePlatform platform,
-        CancellationToken cancellationToken)
-    {
-        return PerformBlockingStackwalk(File.OpenRead(dumpFilePath), platform, cancellationToken);
-    }
-
     public async Task<string> PerformBlockingStackwalk(Stream dumpContent, ThrivePlatform platform,
         CancellationToken cancellationToken)
     {
@@ -112,7 +103,7 @@ public class Stackwalk : IStackwalk
 
         form.Add(new StreamContent(dumpContent), "file", "file");
 
-        // Note that due to using POST here we can't use HttpCompletionOption.ResponseHeadersRead so we just need to
+        // Note that due to using POST here, we can't use HttpCompletionOption.ResponseHeadersRead so we just need to
         // deal with the fact that the response up to a few megabytes gets buffered here
         var response = await httpClient.PostAsync(url, form, cancellationToken);
 
@@ -123,8 +114,7 @@ public class Stackwalk : IStackwalk
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            throw new Exception(
-                $"Stackwalk service responded with unexpected status code ({response.StatusCode}): " +
+            throw new Exception($"Stackwalk service responded with unexpected status code ({response.StatusCode}): " +
                 responseContent.Truncate(120));
         }
 
