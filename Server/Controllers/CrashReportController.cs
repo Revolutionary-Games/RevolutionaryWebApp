@@ -35,12 +35,11 @@ public class CrashReportController : Controller
     private readonly IBackgroundJobClient jobClient;
 
     // These are kept for the eventual reimplementation of the crash upload API
-    // ReSharper disable NotAccessedField.Local
+    /*
     private readonly DiscordNotifications discordNotifications;
     private readonly bool uploadEnabled;
     private readonly Uri baseUrl;
-
-    // ReSharper restore NotAccessedField.Local
+    */
 
     public CrashReportController(ILogger<CrashReportController> logger,
         NotificationsEnabledDb database, IConfiguration configuration,
@@ -49,10 +48,16 @@ public class CrashReportController : Controller
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
-        this.discordNotifications = discordNotifications;
 
+        /*
+        this.discordNotifications = discordNotifications;
         uploadEnabled = Convert.ToBoolean(configuration["Crashes:Enabled"]);
         baseUrl = configuration.GetBaseUrl();
+        */
+
+        _ = discordNotifications;
+        _ = Convert.ToBoolean(configuration["Crashes:Enabled"]);
+        _ = configuration.GetBaseUrl();
     }
 
     [HttpGet]
@@ -360,8 +365,8 @@ public class CrashReportController : Controller
 
     [HttpPost]
     [EnableRateLimiting(RateLimitCategories.CrashReport)]
-    public ActionResult<CreateCrashReportResponse> CreateReport(
-        [Required] [FromForm] CreateCrashReportData request, [Required] IFormFile dump)
+    public ActionResult<CreateCrashReportResponse> CreateReport([Required] [FromForm] CreateCrashReportData request,
+        [Required] IFormFile dump)
     {
         return BadRequest(
             "Current versions of Thrive cannot create crash reports as such they are not being accepted " +

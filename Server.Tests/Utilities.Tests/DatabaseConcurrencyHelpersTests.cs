@@ -29,7 +29,7 @@ public class DatabaseConcurrencyHelpersTests : IClassFixture<RealUnitTestDatabas
         var item1 = new CrashReport
         {
             Description = "Test description",
-            DumpLocalFileName = "test.dmp",
+            UploadStoragePath = "test.dmp",
             UploadedFrom = new IPAddress(1234),
             ExitCodeOrSignal = "SIGSEGV",
             Logs = "logs",
@@ -45,15 +45,15 @@ public class DatabaseConcurrencyHelpersTests : IClassFixture<RealUnitTestDatabas
         Assert.NotEqual(UpdatedDescription, item1.Description);
         Assert.Equal(item1.Description, item1Instance2.Description);
         item1Instance2.Description = UpdatedDescription;
-        Assert.NotNull(item1Instance2.DumpLocalFileName);
+        Assert.NotNull(item1Instance2.UploadStoragePath);
 
         // Intentionally cause a conflict
         await fixture.Database.Database.ExecuteSqlInterpolatedAsync(
-            $"UPDATE crash_reports SET dump_local_file_name = NULL WHERE id = {item1.Id}");
+            $"UPDATE crash_reports SET upload_storage_path = NULL WHERE id = {item1.Id}");
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => database.SaveChangesAsync());
 
-        Assert.NotNull(item1Instance2.DumpLocalFileName);
+        Assert.NotNull(item1Instance2.UploadStoragePath);
 
         await database.SaveChangesWithConflictResolvingAsync(
             conflictEntries =>
@@ -66,6 +66,6 @@ public class DatabaseConcurrencyHelpersTests : IClassFixture<RealUnitTestDatabas
 
         Assert.Equal(UpdatedDescription, item1Instance2.Description);
 
-        Assert.Null(item1Instance2.DumpLocalFileName);
+        Assert.Null(item1Instance2.UploadStoragePath);
     }
 }
