@@ -358,10 +358,14 @@ public class CrashReportController : Controller
 
     [HttpPost]
     [EnableRateLimiting(RateLimitCategories.CrashReport)]
-    public async Task<ActionResult<CreateCrashReportResponse>> CreateReport(
+    public ActionResult<CreateCrashReportResponse> CreateReport(
         [Required] [FromForm] CreateCrashReportData request, [Required] IFormFile dump)
     {
-        if (!uploadEnabled)
+        return BadRequest(
+            "Current versions of Thrive cannot create crash reports as such they are not being accepted " +
+            "at the moment");
+
+        /*if (!uploadEnabled)
             return Problem("Crash uploading is not enabled on the server");
 
         if (dump.Length > AppInfo.MaxCrashDumpUploadSize)
@@ -484,7 +488,7 @@ public class CrashReportController : Controller
             DeleteKey = report.DeleteKey.ToString(),
         };
 
-        return Created($"reports/{response.CreatedId}", response);
+        return Created($"reports/{response.CreatedId}", response);*/
     }
 
     [HttpPost("checkDeleteKey")]
