@@ -90,9 +90,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<PageEditSuggestion> PageEditSuggestions { get; set; } = null!;
     public DbSet<MediaFolder> MediaFolders { get; set; } = null!;
     public DbSet<MediaFile> MediaFiles { get; set; } = null!;
+    public DbSet<MediaFileUsage> MediaFileUsages { get; set; } = null!;
+    public DbSet<SiteLayoutPart> SiteLayoutParts { get; set; } = null!;
 
     /// <summary>
-    ///   If non-null this will be used to send model update notifications on save
+    ///   If non-null, this will be used to send model update notifications on save
     /// </summary>
     public IModelUpdateNotificationSender? AutoSendNotifications { get; set; }
 
