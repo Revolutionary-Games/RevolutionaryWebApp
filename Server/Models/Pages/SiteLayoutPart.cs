@@ -13,6 +13,7 @@ using Utilities;
 ///   Part of the site layout like sidebar and top links (these are specified in the DB to allow easy modification of
 ///   these)
 /// </summary>
+[Index(nameof(PartType), nameof(Order), IsUnique = true)]
 public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
 {
     public SiteLayoutPart(string linkTarget, string altText, SiteLayoutPartType partType)
@@ -47,6 +48,11 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
     public MediaFile? Image { get; set; }
 
     /// <summary>
+    ///   Lower order items are shown first within their respective <see cref="PartType"/> (required to be unique)
+    /// </summary>
+    public int Order { get; set; }
+
+    /// <summary>
     ///   When set to false doesn't get rendered on pages
     /// </summary>
     [AllowSortingBy]
@@ -64,6 +70,7 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
             AltText = AltText,
             PartType = PartType,
             ImageId = ImageId?.ToString(),
+            Order = Order,
             Enabled = Enabled,
         };
     }

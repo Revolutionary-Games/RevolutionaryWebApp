@@ -18,5 +18,7 @@ public class SiteLayoutPartDTO : ClientSideTimedModel
     [MaxLength(128)]
     public string? ImageId { get; set; }
 
-    public bool Enabled { get; set; }
+    public int Order { get; set; }
+
+    public bool Enabled { get; set; } = true;
 }
