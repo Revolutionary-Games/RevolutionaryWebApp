@@ -124,6 +124,9 @@ public class MediaFileUpdated : ModelUpdated<MediaFileDTO>
 {
 }
 
+/// <summary>
+///   This is not actually sent as the list always shows all, so only listen for <see cref="SiteLayoutListUpdated"/>
+/// </summary>
 public class SiteLayoutPartUpdated : ModelUpdated<SiteLayoutPartDTO>
 {
 }

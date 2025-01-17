@@ -77,9 +77,17 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        yield return new Tuple<SerializedNotification, string>(new SiteLayoutPartUpdated
+        // The list is always fully viewed so this is not useful and not sent as a result
+        // yield return new Tuple<SerializedNotification, string>(new SiteLayoutPartUpdated
+        //     {
+        //         Item = GetDTO(),
+        //     },
+        //     NotificationGroups.LayoutPartUpdated);
+
+        yield return new Tuple<SerializedNotification, string>(new SiteLayoutListUpdated
             {
                 Item = GetDTO(),
+                Type = entityState.ToChangeType(),
             },
             NotificationGroups.LayoutPartUpdated);
     }

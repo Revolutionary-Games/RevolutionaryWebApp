@@ -193,6 +193,10 @@ public class PageListUpdated : ListUpdated<VersionedPageInfo>
 {
 }
 
+public class SiteLayoutListUpdated : ListUpdated<SiteLayoutPartDTO>
+{
+}
+
 /// <summary>
 ///   To avoid a bunch of notification groups, media folders just in general report that their contents were updated
 /// </summary>

@@ -1,18 +1,393 @@
 @page "/layout"
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using System.Threading
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Models.Pages
+@using RevolutionaryWebApp.Shared.Notifications
+@using SharedBase.Utilities
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<RevolutionaryWebApp.Shared.Notifications.SiteLayoutListUpdated>
+@inherits ListDataPage<RevolutionaryWebApp.Shared.Models.Pages.SiteLayoutPartDTO>
+
 <AccessLimited RequiredGroup="GroupType.SiteLayoutEditor" OrHasOverride="GroupType.Admin">
     <h3>Layout</h3>
 
     <p>
-        This site layout part allows customizing a few of the aspects (like sidebar links) that are shown when viewing
+        The site layout parts allow customizing a few of the aspects (like sidebar links) that are shown when viewing
         the main website.
     </p>
 
-    <p>TODO: implement</p>
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"/>
+
+        <SortableTable ShowLoading="@(Data == null)"
+                       OnSortChanged="@(async column => await ChangeSort(column))"
+                       GetSortClass="@SortClass"
+                       ShowContentSpinner="@VisibleFetchInProgress"
+                       Columns="@columns"
+                       ShowNoContent="@NoItemsFound">
+            @if (Data != null)
+            {
+                @foreach (var item in Data)
+                {
+                    if (resourceStatus.IsDeleted(item.Id))
+                        continue;
+
+                    var status = resourceStatus.GetStatus(item.Id);
+
+                    <tr @key="item.Id">
+                        <th @onclick="() => ToggleEdit(item)" class="clickable">
+                            <ItemExpander Expanded="@status.Expanded"/>
+                            <span class="ms-1">@item.Id</span>
+                        </th>
+                        <td>@item.PartType</td>
+                        <td>@item.Order</td>
+                        <td>
+                            @if (!item.Enabled)
+                            {
+                                <span class="badge bg-danger">Disabled</span>
+                            }
+                        </td>
+                        <td><a href="@item.LinkTarget" target="_blank">@item.LinkTarget.Truncate()</a></td>
+                        <td>@item.AltText.Truncate()</td>
+                        <td>
+                            <a href="@($"api/v1/MediaFile/{item.ImageId}/redirectToFolder")" target="_blank">
+                                @item.ImageId
+                            </a>
+                        </td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>
+                            <AdminResourceDeleteButtons Deleted="@false"
+                                                        Name="@($"Site Part {item.Id} {item.PartType}")" Id="@item.Id"
+                                                        ButtonClass="btn-sm" UsesSoftDelete="false"
+                                                        DeleteURLBase="@($"api/v1/LayoutPart/{item.Id}")"
+                                                        DeletePromptTitle="Delete this site part?"
+                                                        OnDeleted="@(() =>
+                                                                       resourceStatus.SetDeletedStatus(item.Id))"
+                                                        CustomErrorDisplay="@SetStatusMessage"/>
+                        </td>
+                    </tr>
+
+                    @if (status.Expanded)
+                    {
+                        var key = $"{item.Id}-details";
+                        @* TODO: firefox once again complains here about that relative now has an effect here *@
+                        <tr @key="key" style="position: relative;">
+                            <td colspan="@columns.Count" class="mb-2 expanded-box">
+                                <form class="d-flex flex-row align-items-center me-2">
+                                    <div class="form-check ms-1 me-2">
+                                        <input type="checkbox" class="form-check-input"
+                                               id="@($"enabledEditCheckbox{item.Id}")" @bind="item.Enabled">
+                                        <label class="form-check-label" for="@($"enabledEditCheckbox{item.Id}")">
+                                            Enabled
+                                        </label>
+                                    </div>
+
+                                    <p>TODO: implement editing</p>
+
+                                    @*<label class="form-label" for="@($"conditionEdit{item.Id}")">Condition:</label>
+                                    <select class="form-select ms-1 me-2" @bind="item.Condition"
+                                            id="@($"conditionEdit{item.Id}")">
+                                        @foreach (var name in Enum.GetNames<AutoCommentCondition>())
+                                        {
+                                            <option value="@name">@name</option>
+                                        }
+                                    </select>
+
+                                    <label class="form-label" for="@($"repositoryEdit{item.Id}")">Repo:</label>
+                                    <input type="text" class="form-control ms-1 me-2"
+                                           id="@($"repositoryEdit{item.Id}")" @bind="item.Repository">
+
+                                    <label class="form-label" for="@($"commentTextEdit{item.Id}")">Text:</label>
+                                    <textarea class="form-control ms-1 me-3" id="@($"commentTextEdit{item.Id}")"
+                                              @bind="item.CommentText"></textarea>
+
+                                    $1$ TODO: implement form error checking here #1#
+                                    <Button class="mb-2" type="submit" ButtonStyle="primary"
+                                            Enabled="@true" OnPressed="@(() => UpdateItem(item))"
+                                            Spinner="@status.Processing">
+                                        Save
+                                    </Button>*@
+                                </form>
+                                @if (status.Processing)
+                                {
+                                    <div class="overlay">
+                                        <div class="d-flex justify-content-center align-items-center"
+                                             style="height: 100%;">
+                                            <div class="spinner-border text-light" role="status">
+                                                <span class="visually-hidden">Processing...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            }
+        </SortableTable>
+
+        @if (!showNewForm)
+        {
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
+        }
+
+        <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+            New
+        </Button>
+
+        @if (showNewForm)
+        {
+            <form>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label" for="newAltText">Alt Text</label>
+                        <input type="text" class="form-control" id="newAltText" @bind="newAltText">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="newPartType">Part Type</label>
+                        <select class="form-select" id="newPartType" @bind="newPartType">
+                            @foreach (var name in Enum.GetNames<SiteLayoutPartType>())
+                            {
+                                <option value="@name">@name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <label class="form-label" for="newLinkTarget">Link Target</label>
+                        <input type="url" class="form-control" id="newLinkTarget" @bind="newLinkTarget">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label" for="newImageId">Image To Show</label>
+                        <input type="text" class="form-control" id="newImageId" @bind="newImageId"
+                               placeholder="Enter ID of media file to use as image instead of showing this as text">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="newOrder">Order (lower first)</label>
+                        <input type="number" class="form-control" id="newOrder" step="1" @bind="newOrder">
+                    </div>
+                </div>
+
+                <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
+                <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                    Create
+                </Button>
+            </form>
+        }
+    }
 
     <DevCenterTitle>Layout Manager</DevCenterTitle>
 </AccessLimited>
 
 @code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("Type", true, "PartType"),
+        new TableColumn("Order", false),
+        new TableColumn("Enabled", true),
+        new TableColumn("Link", false),
+        new TableColumn("Text", false),
+        new TableColumn("Image", false),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Actions", false),
+    };
+
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> resourceStatus = new();
+
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newLinkTarget = string.Empty;
+    private string newAltText = string.Empty;
+    private SiteLayoutPartType newPartType;
+    private string? newImageId;
+    private int newOrder;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newLinkTarget) &&
+        !string.IsNullOrEmpty(newAltText);
+
+    public Layout() : base(new SortHelper("Id", SortDirection.Descending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(SiteLayoutListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.LayoutPartUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<List<SiteLayoutPartDTO>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<List<SiteLayoutPartDTO>>(
+            QueryHelpers.AddQueryString("api/v1/LayoutPart", requestParams));
+    }
+
+    private void SetStatusMessage(string message, SiteNoticeType noticeType)
+    {
+        statusMessage = message;
+        statusMessageType = noticeType;
+        StateHasChanged();
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newLinkTarget = string.Empty;
+            newAltText = string.Empty;
+            newPartType = SiteLayoutPartType.Sidebar;
+            newImageId = null;
+            newOrder = 0;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        if (string.IsNullOrWhiteSpace(newImageId))
+            newImageId = null;
+
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/LayoutPart", new SiteLayoutPartDTO
+            {
+                LinkTarget = newLinkTarget,
+                AltText = newAltText,
+                PartType = newPartType,
+                ImageId = newImageId,
+                Order = newOrder,
+                Enabled = true,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New layout part created";
+            createMessageType = SiteNoticeType.Info;
+
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Delete(long partId)
+    {
+        var status = resourceStatus.GetStatus(partId);
+
+        status.Processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/LayoutPart/{partId}");
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Layout part deleted";
+            statusMessageType = SiteNoticeType.Danger;
+            resourceStatus.SetDeletedStatus(partId);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleEdit(SiteLayoutPartDTO part)
+    {
+        var status = resourceStatus.GetStatus(part.Id);
+        status.Expanded = !status.Expanded;
+    }
 
 }
