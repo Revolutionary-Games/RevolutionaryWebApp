@@ -72,7 +72,7 @@
                             <AdminResourceDeleteButtons Deleted="@false"
                                                         Name="@($"Site Part {item.Id} {item.PartType}")" Id="@item.Id"
                                                         ButtonClass="btn-sm" UsesSoftDelete="false"
-                                                        DeleteURLBase="@($"api/v1/LayoutPart/{item.Id}")"
+                                                        DeleteURLBase="@($"api/v1/SiteLayout/{item.Id}")"
                                                         DeletePromptTitle="Delete this site part?"
                                                         OnDeleted="@(() =>
                                                                        resourceStatus.SetDeletedStatus(item.Id))"
@@ -261,7 +261,7 @@
     protected override Task<List<SiteLayoutPartDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
         return Http.GetFromJsonAsync<List<SiteLayoutPartDTO>>(
-            QueryHelpers.AddQueryString("api/v1/LayoutPart", requestParams));
+            QueryHelpers.AddQueryString("api/v1/SiteLayout", requestParams));
     }
 
     private void SetStatusMessage(string message, SiteNoticeType noticeType)
@@ -307,7 +307,7 @@
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/LayoutPart", new SiteLayoutPartDTO
+            result = await Http.PostAsJsonAsync("api/v1/SiteLayout", new SiteLayoutPartDTO
             {
                 LinkTarget = newLinkTarget,
                 AltText = newAltText,
@@ -357,7 +357,7 @@
 
         try
         {
-            result = await Http.DeleteAsync($"api/v1/LayoutPart/{partId}");
+            result = await Http.DeleteAsync($"api/v1/SiteLayout/{partId}");
         }
         catch (HttpRequestException e)
         {

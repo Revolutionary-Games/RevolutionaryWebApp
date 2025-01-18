@@ -328,7 +328,7 @@ public class NotificationsHub : Hub<INotifications>
 
     private static bool RequireAccessLevel(GroupType level, User? user)
     {
-        // All site visitors have the not logged in access level
+        // All site visitors have the not-logged-in access level
         if (level == GroupType.NotLoggedIn)
             return true;
 
@@ -449,6 +449,9 @@ public class NotificationsHub : Hub<INotifications>
                 return RequireAccessLevel(GroupType.NotLoggedIn, user);
 
             case NotificationGroups.LayoutPartUpdated:
+                if (RequireAccessLevel(GroupType.Admin, user))
+                    return true;
+
                 return RequireGroup(GroupType.SiteLayoutEditor, user);
         }
 

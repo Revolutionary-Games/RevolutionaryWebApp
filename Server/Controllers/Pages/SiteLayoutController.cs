@@ -23,7 +23,7 @@ using Utilities;
 ///   Handles managing <see cref="SiteLayoutPart"/>
 /// </summary>
 [ApiController]
-[Route("[controller]")]
+[Route("api/v1/[controller]")]
 [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SiteLayoutEditor, AllowAdmin = true)]
 public class SiteLayoutController : Controller
 {
