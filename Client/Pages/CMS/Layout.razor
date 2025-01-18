@@ -36,7 +36,7 @@
                        OnSortChanged="@(async column => await ChangeSort(column))"
                        GetSortClass="@SortClass"
                        ShowContentSpinner="@VisibleFetchInProgress"
-                       Columns="@columns"
+                       Columns="@columns" UseNonFixedColumns="@true"
                        ShowNoContent="@NoItemsFound">
             @if (Data != null)
             {
@@ -152,11 +152,12 @@
         {
             <form>
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="mb-3 col-md-6">
                         <label class="form-label" for="newAltText">Alt Text</label>
-                        <input type="text" class="form-control" id="newAltText" @bind="newAltText">
+                        <input type="text" class="form-control" id="newAltText" @bind="newAltText"
+                               placeholder="Text to show when image is unset, or alt text for image when set">
                     </div>
-                    <div class="col-md-6">
+                    <div class="mb-3 col-md-6">
                         <label class="form-label" for="newPartType">Part Type</label>
                         <select class="form-select" id="newPartType" @bind="newPartType">
                             @foreach (var name in Enum.GetNames<SiteLayoutPartType>())
@@ -167,18 +168,19 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-12">
+                    <div class="mb-3 col-md-12">
                         <label class="form-label" for="newLinkTarget">Link Target</label>
-                        <input type="url" class="form-control" id="newLinkTarget" @bind="newLinkTarget">
+                        <input type="url" class="form-control" id="newLinkTarget" @bind="newLinkTarget"
+                               placeholder="https://example.com/some/page">
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="mb-3 col-md-6">
                         <label class="form-label" for="newImageId">Image To Show</label>
                         <input type="text" class="form-control" id="newImageId" @bind="newImageId"
                                placeholder="Enter ID of media file to use as image instead of showing this as text">
                     </div>
-                    <div class="col-md-6">
+                    <div class="mb-3 col-md-6">
                         <label class="form-label" for="newOrder">Order (lower first)</label>
                         <input type="number" class="form-control" id="newOrder" step="1" @bind="newOrder">
                     </div>
@@ -229,8 +231,8 @@
     [CascadingParameter]
     public IModalService Modal { get; set; } = null!;
 
-    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newLinkTarget) &&
-        !string.IsNullOrEmpty(newAltText);
+    private bool CanCreateNew => !processingNewForm && (!string.IsNullOrEmpty(newLinkTarget) ||
+        !string.IsNullOrEmpty(newAltText));
 
     public Layout() : base(new SortHelper("Id", SortDirection.Descending))
     {
