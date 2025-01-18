@@ -86,6 +86,12 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
 
     public ICollection<SiteLayoutPart> UsedInSiteParts { get; set; } = new HashSet<SiteLayoutPart>();
 
+    /// <summary>
+    ///   Generic usages that can come from quite many different sources, so for simplicity of querying this is a
+    ///   combined table
+    /// </summary>
+    public ICollection<MediaFileUsage> Usages { get; set; } = new HashSet<MediaFileUsage>();
+
     public string? GetStoragePath(MediaFileSize size)
     {
         if (Deleted || !Processed)

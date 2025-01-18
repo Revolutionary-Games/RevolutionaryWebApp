@@ -697,6 +697,14 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<MediaFileUsage>(entity =>
+        {
+            entity.HasKey(nameof(MediaFileUsage.MediaFileId), nameof(MediaFileUsage.Usage),
+                nameof(MediaFileUsage.UsedByResource));
+
+            entity.HasOne(d => d.MediaFile).WithMany(p => p.Usages).OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<MediaFolder>(entity =>
         {
             entity.HasOne(d => d.LastModifiedBy).WithMany(p => p.LastModifierOfMediaFolders)
