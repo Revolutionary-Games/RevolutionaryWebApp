@@ -43,16 +43,27 @@ public class DeleteUploadStorageFileJob
             mediaFile = await database.MediaFiles.FindAsync(new object[] { otherId }, cancellationToken);
 
             if (mediaFile == null)
+            {
                 logger.LogError("Cannot find related MediaFile in upload success check");
+            }
+            else
+            {
+                if (mediaFile.Processed)
+                {
+                    logger.LogInformation("Not deleting related media file to upload as it is already " +
+                        "processed (will just delete '{Path}')", path);
+                    mediaFile = null;
+                }
+            }
         }
 
         if (!exists)
         {
-            logger.LogDebug("Upload storage doesn't have file that would be expired: {Path}", path);
+            logger.LogDebug("Upload storage doesn't have file that would have failed to upload: {Path}", path);
         }
         else
         {
-            logger.LogInformation("Deleting failed upload storage item: {Path}", path);
+            logger.LogInformation("Deleting failed upload remote storage content: {Path}", path);
             await uploadFileStorage.DeleteObject(path);
         }
 
