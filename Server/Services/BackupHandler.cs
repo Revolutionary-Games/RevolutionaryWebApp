@@ -91,7 +91,7 @@ public class BackupHandler
 
         logger.LogInformation("Uploading backup {Name}", backup.Name);
         return storage.UploadFile(backup.Name, File.OpenRead(backupFile),
-            UseXZCompression ? AppInfo.TarXZMimeType : AppInfo.TarGZMimeType, cancellationToken);
+            UseXZCompression ? AppInfo.TarXZMimeType : AppInfo.TarGZMimeType, true, cancellationToken);
     }
 
     public async Task DeleteExcessBackups(ApplicationDbContext database, CancellationToken cancellationToken,

@@ -654,7 +654,7 @@ public class CLAController : Controller
         // Upload the signature to remote storage
         await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath,
             new MemoryStream(Encoding.UTF8.GetBytes(signedDocumentText)),
-            AppInfo.MarkdownMimeType, CancellationToken.None);
+            AppInfo.MarkdownMimeType, true, CancellationToken.None);
 
         // Delete the in-progress signature
         database.InProgressClaSignatures.Remove(signature);
