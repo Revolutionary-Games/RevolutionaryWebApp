@@ -579,7 +579,7 @@
             };
         }
 
-        var files = await Http.GetFromJsonAsync<PagedResult<MediaFolderInfo>>(itemsUrl) ?? throw new NullDecodedJsonException();
+        var files = await Http.GetFromJsonAsync<PagedResult<MediaFileInfo>>(itemsUrl) ?? throw new NullDecodedJsonException();
 
         var combinedResult = new PagedResult<MediaBrowserEntry>
         {
