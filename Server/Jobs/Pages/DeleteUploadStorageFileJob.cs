@@ -59,7 +59,7 @@ public class DeleteUploadStorageFileJob
 
         if (!exists)
         {
-            logger.LogDebug("Upload storage doesn't have file that we would like to delete: {Path}", path);
+            logger.LogInformation("Upload storage doesn't have file that we would have deleted: {Path}", path);
         }
         else
         {

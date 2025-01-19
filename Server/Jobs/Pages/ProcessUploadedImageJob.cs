@@ -191,10 +191,11 @@ public class ProcessUploadedImageJob
         }
         else
         {
+            logger.LogError("Error media file processing failed for: {Id}", mediaFile.Id);
             await OnError(mediaFile);
         }
 
-        // This is not canceled as the data is already handled
+        // This is not cancelled as the data is already handled
         // ReSharper disable once MethodSupportsCancellation
         await database.SaveChangesAsync();
     }
