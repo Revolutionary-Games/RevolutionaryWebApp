@@ -36,12 +36,6 @@ public class DeleteUploadStorageFileJob
     {
         var exists = await uploadFileStorage.DoesObjectExist(path, cancellationToken);
 
-        if (!exists)
-        {
-            logger.LogDebug("Upload storage doesn't have file that would be expired: {Path}", path);
-            return;
-        }
-
         MediaFile? mediaFile = null;
 
         if (otherThingToDelete == RelatedRecordType.MediaFile)
@@ -52,8 +46,15 @@ public class DeleteUploadStorageFileJob
                 logger.LogError("Cannot find related MediaFile in upload success check");
         }
 
-        logger.LogInformation("Deleting failed upload storage item: {Path}", path);
-        await uploadFileStorage.DeleteObject(path);
+        if (!exists)
+        {
+            logger.LogDebug("Upload storage doesn't have file that would be expired: {Path}", path);
+        }
+        else
+        {
+            logger.LogInformation("Deleting failed upload storage item: {Path}", path);
+            await uploadFileStorage.DeleteObject(path);
+        }
 
         switch (otherThingToDelete)
         {
@@ -77,7 +78,7 @@ public class DeleteUploadStorageFileJob
                 Extended = path,
             });
 
-        // This is not canceled as the data is already gone
+        // This is not cancelled as the data is already gone
         // ReSharper disable once MethodSupportsCancellation
         await database.SaveChangesAsync();
     }
