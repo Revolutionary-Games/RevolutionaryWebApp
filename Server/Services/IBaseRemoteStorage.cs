@@ -28,7 +28,9 @@ public interface IBaseRemoteStorage : IDisposable
     public Task<bool> BucketExists();
     public string CreatePresignedUploadURL(string path, TimeSpan expiresIn);
     public Task UploadText(string path, string data);
-    public Task UploadFile(string path, Stream data, string contentType, CancellationToken cancellationToken);
+
+    public Task UploadFile(string path, Stream data, string contentType, bool closeInputStream,
+        CancellationToken cancellationToken);
 
     public string CreatePreSignedDownloadURL(string path, TimeSpan expiresIn);
     public string CreatePresignedPostURL(string path, string mimeType, TimeSpan expiresIn);
@@ -245,7 +247,8 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
         });
     }
 
-    public Task UploadFile(string path, Stream data, string contentType, CancellationToken cancellationToken)
+    public Task UploadFile(string path, Stream data, string contentType, bool closeInputStream,
+        CancellationToken cancellationToken)
     {
         ThrowIfNotConfigured();
 
@@ -255,6 +258,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
             Key = path,
             InputStream = data,
             ContentType = contentType,
+            AutoCloseStream = closeInputStream,
         }, cancellationToken);
     }
 

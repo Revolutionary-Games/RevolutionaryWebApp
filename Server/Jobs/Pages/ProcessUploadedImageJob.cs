@@ -286,7 +286,9 @@ public class ProcessUploadedImageJob
         try
         {
             imageDataStream.Position = 0;
-            await mediaStorage.UploadFile(targetPath, imageDataStream, mime, cancellationToken);
+
+            // We reuse the stream, so we do not want it to be closed
+            await mediaStorage.UploadFile(targetPath, imageDataStream, mime, false, cancellationToken);
         }
         catch (Exception e)
         {
