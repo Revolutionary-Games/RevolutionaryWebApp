@@ -59,11 +59,11 @@ public class DeleteUploadStorageFileJob
 
         if (!exists)
         {
-            logger.LogDebug("Upload storage doesn't have file that would have failed to upload: {Path}", path);
+            logger.LogDebug("Upload storage doesn't have file that we would like to delete: {Path}", path);
         }
         else
         {
-            logger.LogInformation("Deleting failed upload remote storage content: {Path}", path);
+            logger.LogInformation("Deleting upload from remote storage content: {Path}", path);
             await uploadFileStorage.DeleteObject(path);
         }
 

@@ -127,9 +127,8 @@ public class ProcessUploadedImageJob
             // Large
             using var large = CreateLargeImage(image, reSampler);
 
-            // Can upload this while resizing the next one
-            var uploadTask =
-                SaveAndUploadImage(large, encoder, largePath, mimeType, imageDataStream, cancellationToken);
+            // Upload is waited for here, which might hopefully make sure this works correctly
+            await SaveAndUploadImage(large, encoder, largePath, mimeType, imageDataStream, cancellationToken);
 
             if (encoder is JpegEncoder)
             {
@@ -143,17 +142,14 @@ public class ProcessUploadedImageJob
             // Page
             using var page = CreatePageImage(image, reSampler);
 
-            await uploadTask;
-            uploadTask =
-                SaveAndUploadImage(page, encoder, pagePath, mimeType, imageDataStream, cancellationToken);
+            await SaveAndUploadImage(page, encoder, pagePath, mimeType, imageDataStream, cancellationToken);
 
             // Thumbnail
             using var thumbnail = CreateThumbnailImage(image, reSampler);
 
-            await uploadTask;
             await SaveAndUploadImage(thumbnail, encoder, thumbPath, mimeType, imageDataStream, cancellationToken);
 
-            // TODO: should non-lossless images have jpg variants generated for them for preview purposes?
+            // TODO: should lossless images have jpg variants generated for them for preview purposes?
 
             // And finally upload the original with the metadata stripped
             await SaveAndUploadImage(image, encoder, originalPath, mimeType, imageDataStream, cancellationToken);
@@ -191,7 +187,7 @@ public class ProcessUploadedImageJob
             // there are connection errors.
             jobClient.Schedule<DeleteUploadStorageFileJob>(
                 x => x.Execute(processPath, DeleteUploadStorageFileJob.RelatedRecordType.None, -1, cancellationToken),
-                TimeSpan.FromSeconds(5));
+                TimeSpan.FromSeconds(30));
         }
         else
         {
@@ -214,7 +210,7 @@ public class ProcessUploadedImageJob
             }));
         }
 
-        // Resize in other dimension if the aspect ratio was such as the first one wasn't too large
+        // Resize in another dimension if the aspect ratio was such as the first one wasn't too large
         if (image.Height >= AppInfo.MediaResolutionLarge)
         {
             return image.Clone(i => i.Resize(new ResizeOptions

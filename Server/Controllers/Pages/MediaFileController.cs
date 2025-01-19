@@ -207,7 +207,7 @@ public class MediaFileController : Controller
 
         try
         {
-            // Move the uploaded file to a path the user can't anymore access to overwrite it
+            // Move the uploaded file to a path the user can't any more access to overwrite it
             await fileStorage.MoveObject(uploadPath, processingPath);
 
             // Check the stored file size once again
@@ -265,7 +265,7 @@ public class MediaFileController : Controller
 
         logger.LogInformation("MediaFile {Id} is now uploaded and will be processed next", mediaFile.Id);
 
-        // The user uploading the file, will see the success but the processing likely won't be done yet
+        // The user uploading the file will see the success, but the processing likely won't be done yet
         return Ok();
     }
 
