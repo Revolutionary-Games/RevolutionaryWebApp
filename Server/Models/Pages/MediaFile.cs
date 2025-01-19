@@ -155,7 +155,7 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
             },
             NotificationGroups.MediaFileUpdatedPrefix + Id);
 
-        // To avoid having a bunch of access checked update groups, there's now just a general info about the
+        // To avoid having a bunch of access-checked update groups, there's now just a general info about the
         // parent folder having its items updated
         yield return new Tuple<SerializedNotification, string>(new MediaFolderContentsUpdated
             {

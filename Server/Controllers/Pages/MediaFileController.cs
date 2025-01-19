@@ -83,7 +83,7 @@ public class MediaFileController : Controller
         if (request.ModifyAccess == GroupType.NotLoggedIn || request.MetadataVisibility == GroupType.NotLoggedIn)
             return BadRequest("Access to not logged in is not allowed (currently)");
 
-        // Make sure name doesn't have weird whitespace
+        // Make sure the name doesn't have weird whitespace
         request.Name = request.Name.Trim();
 
         var type = Path.GetExtension(request.Name);
@@ -107,9 +107,9 @@ public class MediaFileController : Controller
 
         // Check for no write access
         if (user.Id != folder.LastModifiedById && user.Id != folder.OwnedById &&
-            !groups.HasGroup(folder.ContentWriteAccess))
+            !groups.HasGroup(folder.ContentWriteAccess) && !groups.HasAccessLevel(GroupType.Admin))
         {
-            // If user is allowed info about the folder we can at least show a more specific error
+            // If the user is allowed info about the folder, we can at least show a more specific error
             if (groups.HasGroup(folder.ContentReadAccess) || groups.HasGroup(folder.FolderModifyAccess))
             {
                 return BadRequest("You do not have write access to the specified media folder");
