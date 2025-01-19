@@ -25,6 +25,7 @@
     [Parameter]
     public long Id { get; set; }
 
+    /// <inheritdoc cref="ResourceDeleteButtons.DeleteURLBase"/>
     [Parameter]
     [EditorRequired]
     public string DeleteURLBase { get; set; } = null!;

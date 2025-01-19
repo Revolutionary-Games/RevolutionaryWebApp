@@ -40,12 +40,15 @@ else if (UsesSoftDelete)
     [Parameter]
     public long Id { get; set; }
 
+    /// <summary>
+    ///   Base of the delete-url which gets "/{id}" appended to the end
+    /// </summary>
     [Parameter]
     [EditorRequired]
     public string DeleteURLBase { get; set; } = null!;
 
     /// <summary>
-    ///   Base URL part to restore with, if not specified defaults to also be the DeleteURLBase/id/restore
+    ///   Base URL part to restore with, if not specified, defaults to also be the DeleteURLBase/id/restore
     /// </summary>
     [Parameter]
     public string? RestoreURLBase { get; set; }
@@ -55,7 +58,7 @@ else if (UsesSoftDelete)
     public string DeletePromptTitle { get; set; } = null!;
 
     /// <summary>
-    ///   Custom button class content to replace the default with bottom margin
+    ///   Custom button class content to replace the default with a bottom margin
     /// </summary>
     [Parameter]
     public string? ButtonClass { get; set; }

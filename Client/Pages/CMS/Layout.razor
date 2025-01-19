@@ -49,15 +49,42 @@
 
                     <tr @key="item.Id">
                         <th @onclick="() => ToggleEdit(item)" class="clickable">
-                            <ItemExpander Expanded="@status.Expanded"/>
+                            @if (status.Processing)
+                            {
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Updating...</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <ItemExpander Expanded="@status.Expanded"/>
+                            }
                             <span class="ms-1">@item.Id</span>
                         </th>
                         <td>@item.PartType</td>
                         <td>@item.Order</td>
                         <td>
-                            @if (!item.Enabled)
+                            @if (status.ClientSideEnable != null)
                             {
-                                <span class="badge bg-danger">Disabled</span>
+                                <div class="form-check ms-1 me-2">
+                                    <input type="checkbox" class="form-check-input"
+                                           id="@($"enabledEditCheckbox{item.Id}")" checked="@status.ClientSideEnable"
+                                           onchange="@((ChangeEventArgs e) => OnCheckboxChanged(item.Id, e))">
+                                    <label class="form-check-label" for="@($"enabledEditCheckbox{item.Id}")">
+                                        Enabled
+                                    </label>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-check ms-1 me-2">
+                                    <input type="checkbox" class="form-check-input"
+                                           id="@($"enabledEditCheckbox{item.Id}")" checked="@item.Enabled"
+                                           onchange="@((ChangeEventArgs e) => OnCheckboxChanged(item.Id, e))">
+                                    <label class="form-check-label" for="@($"enabledEditCheckbox{item.Id}")">
+                                        Enabled
+                                    </label>
+                                </div>
                             }
                         </td>
                         <td><a href="@item.LinkTarget" target="_blank">@item.LinkTarget.Truncate()</a></td>
@@ -67,12 +94,12 @@
                                 @item.ImageId
                             </a>
                         </td>
-                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
                         <td>
                             <AdminResourceDeleteButtons Deleted="@false"
                                                         Name="@($"Site Part {item.Id} {item.PartType}")" Id="@item.Id"
                                                         ButtonClass="btn-sm" UsesSoftDelete="false"
-                                                        DeleteURLBase="@($"api/v1/SiteLayout/{item.Id}")"
+                                                        DeleteURLBase="api/v1/SiteLayout"
                                                         DeletePromptTitle="Delete this site part?"
                                                         OnDeleted="@(() =>
                                                                        resourceStatus.SetDeletedStatus(item.Id))"
@@ -87,13 +114,6 @@
                         <tr @key="key" style="position: relative;">
                             <td colspan="@columns.Count" class="mb-2 expanded-box">
                                 <form class="d-flex flex-row align-items-center me-2">
-                                    <div class="form-check ms-1 me-2">
-                                        <input type="checkbox" class="form-check-input"
-                                               id="@($"enabledEditCheckbox{item.Id}")" @bind="item.Enabled">
-                                        <label class="form-check-label" for="@($"enabledEditCheckbox{item.Id}")">
-                                            Enabled
-                                        </label>
-                                    </div>
 
                                     <p>TODO: implement editing</p>
 
@@ -208,11 +228,11 @@
         new TableColumn("Link", false),
         new TableColumn("Text", false),
         new TableColumn("Image", false),
-        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Updated At", true, "UpdatedAt"),
         new TableColumn("Actions", false),
     };
 
-    private readonly ClientSideResourceStatus<ExpandableResourceStatus> resourceStatus = new();
+    private readonly ClientSideResourceStatus<ResourceStatus> resourceStatus = new();
 
     private string? statusMessage;
     private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
@@ -246,6 +266,11 @@
 
     public Task Handle(SiteLayoutListUpdated notification, CancellationToken cancellationToken)
     {
+        // If an item is updated, forget the clientside edits for it to make it appear again
+        var status = resourceStatus.GetStatus(notification.Item.Id);
+        status.ClientSideEnable = null;
+        status.Deleted = notification.Type == ListItemChangeType.ItemDeleted;
+
         return HandleItemNotification(notification);
     }
 
@@ -262,8 +287,8 @@
 
     protected override Task<List<SiteLayoutPartDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
-        return Http.GetFromJsonAsync<List<SiteLayoutPartDTO>>(
-            QueryHelpers.AddQueryString("api/v1/SiteLayout", requestParams));
+        return Http.GetFromJsonAsync<List<SiteLayoutPartDTO>>(QueryHelpers.AddQueryString("api/v1/SiteLayout",
+            requestParams));
     }
 
     private void SetStatusMessage(string message, SiteNoticeType noticeType)
@@ -346,10 +371,49 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task Delete(long partId)
+    private void ToggleEdit(SiteLayoutPartDTO part)
     {
-        var status = resourceStatus.GetStatus(partId);
+        var status = resourceStatus.GetStatus(part.Id);
+        status.Expanded = !status.Expanded;
+    }
 
+    private async Task OnCheckboxChanged(long itemId, ChangeEventArgs eventArgs)
+    {
+        if (Data == null)
+        {
+            throw new Exception("Data not yet received cannot toggle a checkbox");
+        }
+
+        var status = resourceStatus.GetStatus(itemId);
+
+        if (status.Processing)
+        {
+            throw new Exception("Item is already being processed");
+        }
+
+        var changedValue = (bool?)eventArgs.Value ?? false;
+
+        // Immediately update the local status to reflect in the GUI
+        status.ClientSideEnable = changedValue;
+
+        // Send a request to the server to update the database if the status is not what's on the server
+        var serverData = Data.FirstOrDefault(i => i.Id == itemId);
+
+        if (serverData != null)
+        {
+            if (serverData.Enabled == status.ClientSideEnable)
+            {
+                // Mark state change so that the GUI is updated
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+        }
+        else
+        {
+            await Console.Out.WriteLineAsync("Could not find received site layout part data, sending enabled update always");
+        }
+
+        // Need to update server status
         status.Processing = true;
         statusMessage = null;
         statusMessageType = SiteNoticeType.Danger;
@@ -359,7 +423,7 @@
 
         try
         {
-            result = await Http.DeleteAsync($"api/v1/SiteLayout/{partId}");
+            result = await Http.PatchAsync($"api/v1/SiteLayout/{itemId}?enabled={changedValue}", null);
         }
         catch (HttpRequestException e)
         {
@@ -376,20 +440,16 @@
             var content = await result.Content.ReadAsStringAsync();
             statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
         }
-        else
-        {
-            statusMessage = "Layout part deleted";
-            statusMessageType = SiteNoticeType.Danger;
-            resourceStatus.SetDeletedStatus(partId);
-        }
 
         await InvokeAsync(StateHasChanged);
     }
 
-    private void ToggleEdit(SiteLayoutPartDTO part)
+    private class ResourceStatus : ExpandableResourceStatus
     {
-        var status = resourceStatus.GetStatus(part.Id);
-        status.Expanded = !status.Expanded;
+        /// <summary>
+        ///   Used to remember here on the client side the latest checkbox status
+        /// </summary>
+        public bool? ClientSideEnable { get; set; }
     }
 
 }

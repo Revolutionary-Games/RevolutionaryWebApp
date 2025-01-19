@@ -136,7 +136,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 
     /// <summary>
     ///   Handles an item update notification. Unlike the paginated page this class always has all the data loaded
-    ///   (if data is loaded) so this can more comprehensively handle the notifications
+    ///   (if data is loaded), so this can more comprehensively handle the notifications
     /// </summary>
     /// <param name="notification">The update notification received from the server</param>
     public virtual async Task HandleItemNotification(ListUpdated<T> notification)

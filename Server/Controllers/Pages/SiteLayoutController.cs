@@ -60,6 +60,9 @@ public class SiteLayoutController : Controller
     [HttpPost]
     public async Task<IActionResult> CreateSiteLayoutPart([Required] [FromBody] SiteLayoutPartDTO request)
     {
+        if (!IsLinkValid(request.LinkTarget))
+            return BadRequest("Invalid format for link target");
+
         var siteLayoutPart = new SiteLayoutPart(request.LinkTarget, request.AltText, request.PartType)
         {
             Enabled = request.Enabled,
@@ -70,7 +73,13 @@ public class SiteLayoutController : Controller
             Order = request.Order,
         };
 
-        var user = HttpContext.AuthenticatedUser()!;
+        if (await database.SiteLayoutParts.AnyAsync(i =>
+                i.Order == request.Order && i.PartType == request.PartType))
+        {
+            return BadRequest("Order is already taken within the category");
+        }
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
 
         if (request.ImageId != null)
         {
@@ -117,6 +126,19 @@ public class SiteLayoutController : Controller
         if (siteLayoutPart == null)
             return NotFound();
 
+        if (!IsLinkValid(request.LinkTarget))
+            return BadRequest("Invalid format for link target");
+
+        if (request.Order != siteLayoutPart.Order)
+        {
+            // Check if the new order is available
+            if (await database.SiteLayoutParts.AnyAsync(i =>
+                    i.Order == request.Order && i.PartType == request.PartType))
+            {
+                return BadRequest("Order is already taken within the category");
+            }
+        }
+
         var oldImage = siteLayoutPart.ImageId;
 
         var user = HttpContext.AuthenticatedUserOrThrow();
@@ -154,6 +176,32 @@ public class SiteLayoutController : Controller
 
         logger.LogInformation("Site Layout Part {Id} edited by {Email}, changes: {Description}", siteLayoutPart.Id,
             user.Email, description);
+        return Ok();
+    }
+
+    [HttpPatch("{id:long}")]
+    public async Task<IActionResult> ToggleSiteLayoutEnabled([Required] long id, [Required] bool enabled)
+    {
+        // Find the site layout part by ID
+        var siteLayoutPart = await database.SiteLayoutParts.FindAsync(id);
+
+        if (siteLayoutPart == null)
+            return NotFound();
+
+        if (siteLayoutPart.Enabled == enabled)
+        {
+            // Nothing to do
+            return Ok("Already in desired state");
+        }
+
+        siteLayoutPart.Enabled = enabled;
+        siteLayoutPart.BumpUpdatedAt();
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Site layout part {Id} enabled status set to {Enabled}", siteLayoutPart.Id,
+            siteLayoutPart.Enabled);
+
         return Ok();
     }
 
@@ -197,5 +245,17 @@ public class SiteLayoutController : Controller
             return false;
 
         return true;
+    }
+
+    [NonAction]
+    private bool IsLinkValid(string link)
+    {
+        // ReSharper disable once HttpUrlsUsage
+        if (link.StartsWith("http://") || link.StartsWith("https://"))
+            return true;
+
+        // TODO: implement linking to internal pages
+
+        return false;
     }
 }
