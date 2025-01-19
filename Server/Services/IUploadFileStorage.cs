@@ -1,5 +1,6 @@
 namespace RevolutionaryWebApp.Server.Services;
 
+using System;
 using Microsoft.Extensions.Configuration;
 
 /// <summary>
@@ -13,7 +14,8 @@ public class UploadFileStorage : BaseRemoteStorage, IUploadFileStorage
 {
     public UploadFileStorage(IConfiguration configuration) : base(configuration["UploadStorage:S3Region"],
         configuration["UploadStorage:S3Endpoint"], configuration["UploadStorage:S3AccessKey"],
-        configuration["UploadStorage:S3SecretKey"], configuration["UploadStorage:S3Bucket"])
+        configuration["UploadStorage:S3SecretKey"], configuration["UploadStorage:S3Bucket"],
+        Convert.ToBoolean(configuration["UploadStorage:VerifyChecksums"]))
     {
     }
 }

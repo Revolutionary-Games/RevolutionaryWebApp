@@ -67,7 +67,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     private readonly string bucket;
 
     protected BaseRemoteStorage(string? region, string? endpoint, string? accessKeyId, string? secretAccessKey,
-        string? bucketName)
+        string? bucketName, bool verifyChecksums)
     {
         bucket = bucketName ?? string.Empty;
 
@@ -83,11 +83,20 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
             return;
         }
 
-        s3Client = new AmazonS3Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), new AmazonS3Config
+        var config = new AmazonS3Config
         {
             ServiceURL = endpoint,
             AuthenticationRegion = region,
-        });
+        };
+
+        if (!verifyChecksums)
+        {
+            // Disable checksum validation when using a service that doesn't support it
+            config.RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED;
+            config.ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED;
+        }
+
+        s3Client = new AmazonS3Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), config);
 
         Configured = true;
     }
