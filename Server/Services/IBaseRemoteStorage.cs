@@ -294,7 +294,19 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        var data = await s3Client!.GetObjectMetadataAsync(bucket, path, cancellationToken);
+        GetObjectMetadataResponse? data;
+        try
+        {
+            data = await s3Client!.GetObjectMetadataAsync(bucket, path, cancellationToken);
+        }
+        catch (AmazonS3Exception e)
+        {
+            // Convert exceptions to expected return value
+            if (e.ErrorCode == "NotFound")
+                return false;
+
+            throw;
+        }
 
         if (data.HttpStatusCode != HttpStatusCode.OK && data.HttpStatusCode != HttpStatusCode.NotFound)
             throw new Exception($"s3 object exit check failed failed: {data.HttpStatusCode}");
