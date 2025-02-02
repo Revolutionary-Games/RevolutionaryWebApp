@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server;
 
 using System;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -70,10 +71,16 @@ public class Startup
 
             services.AddSingleton<IConnectionMultiplexer>(redis);
 
+            var certificate = X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"]);
+
+            if (certificate == null || !certificate.HasPrivateKey)
+            {
+                throw new CryptographicException("Invalid certificate for key protection.");
+            }
+
             services.AddDataProtection()
                 .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys")
-                .ProtectKeysWithCertificate(
-                    X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"]));
+                .ProtectKeysWithCertificate(certificate);
 
             services.AddStackExchangeRedisCache(options =>
             {
@@ -91,7 +98,7 @@ public class Startup
 
         services.AddMemoryCache();
 
-        // Our custom cache where we limit the total size, used only by our controllers we can make use this cache
+        // Our custom cache, where we limit the total size, used only by our controllers we can make use of this cache
         // properly
         services.AddSingleton<CustomMemoryCache>();
 
