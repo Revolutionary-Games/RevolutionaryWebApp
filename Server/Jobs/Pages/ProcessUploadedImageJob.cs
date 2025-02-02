@@ -206,7 +206,8 @@ public class ProcessUploadedImageJob
             // Thumbnail
             using var thumbnail = CreateThumbnailImage(image, reSampler);
 
-            await SaveAndUploadImage(thumbnail, previewEncoder, thumbPath, mimeType, imageDataStream, cancellationToken);
+            await SaveAndUploadImage(thumbnail, previewEncoder, thumbPath, mimeType, imageDataStream,
+                cancellationToken);
 
             // TODO: should lossless images have jpg variants generated for them for preview purposes?
 
