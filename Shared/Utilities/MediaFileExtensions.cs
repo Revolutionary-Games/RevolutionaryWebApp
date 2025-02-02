@@ -9,10 +9,15 @@ public static class MediaFileExtensions
     public static string GetStoragePath(this IMediaFileInfo info, MediaFileSize size)
     {
         var name = info.Name;
-        var extension = Path.GetExtension(name);
 
         if (size != MediaFileSize.Original)
         {
+            var extension = Path.GetExtension(name);
+
+            // Thumbnails override the extension
+            if (size == MediaFileSize.Thumbnail)
+                extension = AppInfo.MediaPreviewFileExtension;
+
             return GetViewPath(info.GlobalId.ToString(), size, extension);
         }
 
@@ -44,6 +49,9 @@ public static class MediaFileExtensions
                 break;
             case MediaFileSize.Thumbnail:
                 sizeText = "thumb";
+
+                // Thumbnails are always a certain file type
+                extension = AppInfo.MediaPreviewFileExtension;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(size), size, null);

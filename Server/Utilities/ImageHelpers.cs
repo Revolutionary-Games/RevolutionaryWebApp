@@ -23,6 +23,7 @@ public static class ImageHelpers
         IResampler? reSampler = null)
     {
         reSampler ??= default(LanczosResampler);
+
         // reSampler ??= default(BicubicResampler);
 
         // If small enough, don't need to do anything

@@ -192,11 +192,16 @@ public static class AppInfo
 
     public const int MediaResolutionLarge = 2000;
     public const int MediaResolutionPage = 900;
-    public const int MediaResolutionThumbnail = 128;
+    public const int MediaResolutionThumbnail = 300;
+
+    // If this is changed, the code in ProcessUploadedImageJob needs also to be updated
+    public const string MediaPreviewFileExtension = ".webp";
+    public const int PreviewImageQuality = 92;
+    public const bool RemovePreviewAnimations = true;
 
     // TODO: add support for webm uploads
     // public static readonly string[] MediaFileTypes = [".png", ".jpg", ".jpeg", ".gif", ".webm"];
-    public static readonly string[] MediaFileTypes = [".webp", ".png", ".jpg", ".jpeg", ".avif", ".gif"];
+    public static readonly string[] MediaFileTypes = [".webp", ".png", ".jpg", ".jpeg", ".gif"];
 
     /// <summary>
     ///   The interval in seconds that a session-use is updated to the database

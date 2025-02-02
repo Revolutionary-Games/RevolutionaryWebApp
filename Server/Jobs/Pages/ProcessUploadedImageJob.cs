@@ -18,6 +18,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using Utilities;
@@ -63,6 +64,18 @@ public class ProcessUploadedImageJob
             return;
         }
 
+        ImageEncoder previewEncoder;
+
+        // Guard against changing this and forgetting to update this code
+        if (AppInfo.MediaPreviewFileExtension == ".webp")
+        {
+            previewEncoder = new WebpEncoder
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                Quality = AppInfo.PreviewImageQuality,
+            };
+        }
+
         var imageType = Path.GetExtension(mediaFile.Name);
 
         ImageEncoder encoder;
@@ -89,6 +102,16 @@ public class ProcessUploadedImageJob
         {
             encoder = new GifEncoder();
             mimeType = "image/gif";
+        }
+        else if (imageType == ".webp")
+        {
+            encoder = new WebpEncoder
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                Quality = 85,
+                Method = WebpEncodingMethod.BestQuality,
+            };
+            mimeType = "image/webp";
         }
         else
         {
@@ -117,6 +140,34 @@ public class ProcessUploadedImageJob
 
             using var image = await Image.LoadAsync(readStream, cancellationToken);
 
+            if (imageType == ".webp")
+            {
+                if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webpMetadata))
+                {
+                    // Check if it was compressed with a lossless format
+                    if (webpMetadata.FileFormat == WebpFileFormatType.Lossless)
+                    {
+                        // Re-create the encoder to keep the lossless format
+                        encoder = new WebpEncoder
+                        {
+                            FileFormat = WebpFileFormatType.Lossless,
+                            Method = WebpEncodingMethod.BestQuality,
+                        };
+                    }
+                    else if (webpMetadata.FileFormat == WebpFileFormatType.Lossy)
+                    {
+                    }
+                    else
+                    {
+                        logger.LogWarning("Unrecognized WebP file format");
+                    }
+                }
+                else
+                {
+                    logger.LogWarning("Could not retrieve WebP metadata");
+                }
+            }
+
             // TODO: orientation data might be something to keep:
             // https://github.com/SixLabors/ImageSharp.Web/discussions/226
 
@@ -130,12 +181,20 @@ public class ProcessUploadedImageJob
             // Upload is waited for here, which might hopefully make sure this works correctly
             await SaveAndUploadImage(large, encoder, largePath, mimeType, imageDataStream, cancellationToken);
 
+            // Make the smaller files slightly higher in quality if they are losslessly compressed
             if (encoder is JpegEncoder)
             {
-                // Make the smaller files slightly higher in quality if they are jpegs
                 encoder = new JpegEncoder
                 {
                     Quality = 85,
+                };
+            }
+            else if (encoder is WebpEncoder { FileFormat: WebpFileFormatType.Lossy })
+            {
+                encoder = new WebpEncoder
+                {
+                    Quality = 90,
+                    Method = WebpEncodingMethod.BestQuality,
                 };
             }
 
@@ -147,7 +206,7 @@ public class ProcessUploadedImageJob
             // Thumbnail
             using var thumbnail = CreateThumbnailImage(image, reSampler);
 
-            await SaveAndUploadImage(thumbnail, encoder, thumbPath, mimeType, imageDataStream, cancellationToken);
+            await SaveAndUploadImage(thumbnail, previewEncoder, thumbPath, mimeType, imageDataStream, cancellationToken);
 
             // TODO: should lossless images have jpg variants generated for them for preview purposes?
 
@@ -214,6 +273,15 @@ public class ProcessUploadedImageJob
 
     private static Image CreateThumbnailImage(Image image, IResampler reSampler)
     {
+        if (AppInfo.RemovePreviewAnimations && image.Frames.Count > 1)
+        {
+            // Need to have a clone with empty lambda here to not modify the original
+            image = image.Clone(i => _ = 0);
+
+            while (image.Frames.Count > 1)
+                image.Frames.RemoveFrame(image.Frames.Count - 1);
+        }
+
         return ImageHelpers.DownSampleImageIfLargerThan(image, AppInfo.MediaResolutionThumbnail,
             AppInfo.MediaResolutionThumbnail, reSampler);
     }
