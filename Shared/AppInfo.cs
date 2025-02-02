@@ -196,10 +196,10 @@ public static class AppInfo
 
     // TODO: add support for webm uploads
     // public static readonly string[] MediaFileTypes = [".png", ".jpg", ".jpeg", ".gif", ".webm"];
-    public static readonly string[] MediaFileTypes = [".png", ".jpg", ".jpeg", ".gif"];
+    public static readonly string[] MediaFileTypes = [".webp", ".png", ".jpg", ".jpeg", ".avif", ".gif"];
 
     /// <summary>
-    ///   The interval in seconds that a session use is updated to the database
+    ///   The interval in seconds that a session-use is updated to the database
     /// </summary>
     public static readonly TimeSpan LastUsedSessionAccuracy = TimeSpan.FromSeconds(60);
 
