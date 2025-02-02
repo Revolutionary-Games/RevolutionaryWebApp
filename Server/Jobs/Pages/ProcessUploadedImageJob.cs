@@ -20,6 +20,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using Utilities;
 
 /// <summary>
 ///   Processes an image to generate all the required sizes
@@ -97,9 +98,8 @@ public class ProcessUploadedImageJob
         if (mediaFile.GetIntermediateProcessingPath() != processPath)
             logger.LogError("Media file processing path doesn't match what is provided as a job parameter");
 
-        // TODO: which resizing algorithm should we use? Lanczos makes sharper preview images
-        // var reSampler = default(BicubicResampler);
-        var reSampler = default(LanczosResampler);
+        // Lanczos is used for sharper preview images
+        var reSampler = KnownResamplers.Lanczos3;
 
         logger.LogInformation("Processing all image sizes from: {ProcessPath}", processPath);
         bool success = true;
@@ -200,90 +200,32 @@ public class ProcessUploadedImageJob
         await database.SaveChangesAsync();
     }
 
-    private static Image CreateLargeImage(Image image, LanczosResampler reSampler)
+    private static Image CreateLargeImage(Image image, IResampler reSampler)
     {
-        if (image.Width >= AppInfo.MediaResolutionLarge)
-        {
-            return image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(AppInfo.MediaResolutionLarge, 0),
-            }));
-        }
-
-        // Resize in another dimension if the aspect ratio was such as the first one wasn't too large
-        if (image.Height >= AppInfo.MediaResolutionLarge)
-        {
-            return image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(0, AppInfo.MediaResolutionLarge),
-            }));
-        }
-
-        // If the image is small, just pass through so that the other size variant is just the base image again
-        return image;
+        return ImageHelpers.DownSampleImageIfLargerThan(image, AppInfo.MediaResolutionLarge,
+            AppInfo.MediaResolutionLarge, reSampler);
     }
 
-    private static Image CreatePageImage(Image image, LanczosResampler reSampler)
+    private static Image CreatePageImage(Image image, IResampler reSampler)
     {
-        if (image.Width >= AppInfo.MediaResolutionPage)
-        {
-            return image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(AppInfo.MediaResolutionPage, 0),
-            }));
-        }
-
-        if (image.Height >= AppInfo.MediaResolutionPage)
-        {
-            return image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(0, AppInfo.MediaResolutionPage),
-            }));
-        }
-
-        return image;
+        return ImageHelpers.DownSampleImageIfLargerThan(image, AppInfo.MediaResolutionPage, AppInfo.MediaResolutionPage,
+            reSampler);
     }
 
-    private static Image CreateThumbnailImage(Image image, LanczosResampler reSampler)
+    private static Image CreateThumbnailImage(Image image, IResampler reSampler)
     {
-        if (image.Width >= AppInfo.MediaResolutionThumbnail)
-        {
-            return image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(AppInfo.MediaResolutionThumbnail, 0),
-            }));
-        }
-
-        if (image.Height >= AppInfo.MediaResolutionThumbnail)
-        {
-            return image.Clone(i => i.Resize(new ResizeOptions
-            {
-                Sampler = reSampler,
-                Size = new Size(0, AppInfo.MediaResolutionThumbnail),
-            }));
-        }
-
-        return image;
+        return ImageHelpers.DownSampleImageIfLargerThan(image, AppInfo.MediaResolutionThumbnail,
+            AppInfo.MediaResolutionThumbnail, reSampler);
     }
 
     private async Task SaveAndUploadImage(Image image, ImageEncoder encoder, string targetPath, string mime,
         MemoryStream imageDataStream, CancellationToken cancellationToken)
     {
-        // Rewind the stream
-        imageDataStream.Position = 0;
-
-        await image.SaveAsync(imageDataStream, encoder, cancellationToken: cancellationToken);
+        await ImageHelpers.SaveImageToMemoryStream(image, imageDataStream, encoder, cancellationToken);
 
         // Then upload
         try
         {
-            imageDataStream.Position = 0;
-
             // We reuse the stream, so we do not want it to be closed
             await mediaStorage.UploadFile(targetPath, imageDataStream, mime, false, cancellationToken);
         }
