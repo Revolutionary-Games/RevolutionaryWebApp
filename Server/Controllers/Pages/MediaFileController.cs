@@ -23,6 +23,7 @@ using Shared.Models.Enums;
 using Shared.Models.Pages;
 using SharedBase.Utilities;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
 using Path = System.IO.Path;
 
 /// <summary>
@@ -246,6 +247,16 @@ public class MediaFileController : Controller
                 await fileStorage.DeleteObject(processingPath);
                 return BadRequest("Maximum image file dimensions are " +
                     $"{AppInfo.MaxMediaImageDimension}x{AppInfo.MaxMediaImageDimension}");
+            }
+
+            if (info.FrameMetadataCollection.Count > 1)
+            {
+                // Animated image, disallow if a png
+                if (info.Metadata.DecodedImageFormat is PngFormat)
+                {
+                    await fileStorage.DeleteObject(processingPath);
+                    return BadRequest("Animated PNG images are not supported");
+                }
             }
         }
         catch (Exception e)
