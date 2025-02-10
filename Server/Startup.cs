@@ -454,6 +454,8 @@ public class Startup
             endpoints.MapFallbackToPage("/_Host");
         });
 
+        CheckCertificateExpiry(logger, Configuration, app.ApplicationServices);
+
         SetupDefaultJobs(Configuration.GetSection("Tasks:CronJobs"));
 
         // Early load the registration status
@@ -461,6 +463,33 @@ public class Startup
 
         // Early load the redirect verification to check that BaseUrl is set
         app.ApplicationServices.GetRequiredService<RedirectVerifier>();
+    }
+
+    private static void CheckCertificateExpiry(ILogger<Startup> logger, IConfiguration configuration,
+        IServiceProvider databaseServiceProvider)
+    {
+        if (string.IsNullOrEmpty(configuration["DataProtection:Certificate"]))
+        {
+            logger.LogWarning("No certificate to check expiry of");
+            return;
+        }
+
+        var certificate = X509Certificate2.CreateFromPem(configuration["DataProtection:Certificate"]);
+
+        var validity = certificate.NotAfter - DateTime.Now;
+
+        if (validity.TotalDays > 365)
+        {
+            return;
+        }
+
+        logger.LogWarning("Data protection certificate is about to expire in {Days} days", validity.TotalDays);
+
+        using var scope = databaseServiceProvider.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        database.LogEntries.Add(new LogEntry($"Data protection certificate will expire in {validity.TotalDays} days"));
+        database.SaveChanges();
     }
 
     private static void AddJobHelper<T>(string? schedule)
