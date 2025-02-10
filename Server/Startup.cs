@@ -71,7 +71,8 @@ public class Startup
 
             services.AddSingleton<IConnectionMultiplexer>(redis);
 
-            var certificate = X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"]);
+            var certificate = X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"],
+                Configuration["DataProtection:KeyPEM"]);
 
             if (certificate == null || !certificate.HasPrivateKey)
             {

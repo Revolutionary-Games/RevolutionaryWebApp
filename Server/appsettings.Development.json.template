@@ -8,6 +8,10 @@
   "CSRF": {
     "Secret": "PUTARANDOMSTRINGHERE"
   },
+  "DataProtection": {
+    "Certificate": "-----BEGIN CERTIFICATE-----PUT YOUR CERTIFICATE HERE",
+    "KeyPEM": "-----BEGIN PRIVATE KEY-----PUT YOUR PRIVATE KEY HERE"
+  },
   "ConnectionStrings": {
     "WebApiConnection": "User ID=revolutionarywebapp;Password=PASSWORDHERE;Server=localhost;Port=5432;Database=revolutionarywebapp;Pooling=true;"
   },

@@ -109,12 +109,14 @@ now.
 
 A data protection certificate is required, it can be generated with:
 ```sh
-openssl req -x509 -newkey ed25519 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes
 ```
 
-Note that some environments don't have working ed25519 keys, so for
-those the above command will need to have `rsa:4096` substituted as
-the key type.
+In the future changing the key algorithm to `ed25519` might be possible.
+
+Once generated the contents of the files need to be put into the right
+`Certificate` and `KeyPEM` fields in the web app config JSON /
+environment variable.
 
 ## Running
 
