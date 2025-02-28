@@ -664,8 +664,14 @@ public class CLAController : Controller
 
         if (!string.IsNullOrEmpty(finalSignature.GithubAccount))
         {
+            logger.LogInformation("Got CLA with a github username, will re-check pull requests by {GithubAccount}",
+                finalSignature.GithubAccount);
             jobClient.Enqueue<CheckPullRequestsAfterNewSignatureJob>(x =>
                 x.Execute(finalSignature.GithubAccount, CancellationToken.None));
+        }
+        else
+        {
+            logger.LogInformation("Signature with no GitHub account made");
         }
 
         return Ok();

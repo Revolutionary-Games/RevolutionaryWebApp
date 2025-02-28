@@ -102,7 +102,10 @@ public class CheckPullRequestStatusJob
             return true;
         }
 
-        if (oldStatus.HasValue)
+        // Only use cached old status if the CLA is signed.
+        // This makes sure that the occasionally happening problems where some PR doesn't get updated even if a CLA is
+        // made are fixed.
+        if (oldStatus is true)
             return oldStatus.Value;
 
         var active = await database.Clas.FirstOrDefaultAsync(c => c.Active);
