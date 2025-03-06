@@ -346,8 +346,7 @@ public sealed class CIExecutor : IDisposable
                             if (protocolSocket == null)
                                 throw new Exception("protocolSocket has been destroyed");
 
-                            await protocolSocket.Write(
-                                new RealTimeBuildMessage
+                            await protocolSocket.Write(new RealTimeBuildMessage
                                     { Type = BuildSectionMessageType.BuildOutput, Output = "..." },
                                 CancellationToken.None);
                         }
@@ -532,8 +531,8 @@ public sealed class CIExecutor : IDisposable
 
             var folder = currentBuildRootFolder ?? throw new Exception("build root folder not set");
 
-            // LFS is not skipped here as SetupCaches is relied on to copy the master branch data as a base
-            await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, folder, false, CancellationToken.None);
+            // LFS is skipped here as this has caused a lot of extra bandwidth
+            await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, folder, true, CancellationToken.None);
 
             // Fetch the ref
             await QueueSendBasicMessage($"Fetching the ref: {ciRef}");
@@ -542,18 +541,15 @@ public sealed class CIExecutor : IDisposable
             // Also fetch the default branch for comparing changes against it
             await GitRunHelpers.Fetch(folder, defaultBranch, ciOrigin, CancellationToken.None);
 
-            await GitRunHelpers.Checkout(folder, ciCommit, false, CancellationToken.None, true);
+            await GitRunHelpers.Checkout(folder, ciCommit, true, CancellationToken.None, true);
             await QueueSendBasicMessage($"Checked out commit {ciCommit}");
 
             await GitRunHelpers.UpdateSubmodules(folder, true, true, CancellationToken.None);
             await QueueSendBasicMessage("Submodules are up to date");
 
-            // Clean out non-ignored files
-            var deleted = await GitRunHelpers.Clean(folder, CancellationToken.None);
+            Dictionary<string, string> notAppliedCaches = new Dictionary<string, string>();
 
-            await QueueSendBasicMessage($"Cleaned non-ignored extra files: {deleted}");
-
-            // Handling of shared cache paths with symlinks
+            // Early set up any LFS (git) related caches to save on bandwidth
             if (cacheConfig!.Shared != null)
             {
                 foreach (var tuple in cacheConfig.Shared)
@@ -564,40 +560,35 @@ public sealed class CIExecutor : IDisposable
                     var fullSource = Path.Join(currentBuildRootFolder, source);
                     var fullDestination = Path.Join(sharedCacheFolder, destination);
 
-                    // TODO: is a separate handling needed for when the fullSource is a single file and
-                    // not a directory?
-
-                    var isAlreadySymlink = Directory.Exists(fullSource) &&
-                        new UnixSymbolicLinkInfo(fullSource).IsSymbolicLink;
-
-                    if (Directory.Exists(fullSource) && !Directory.Exists(fullDestination) && !isAlreadySymlink)
+                    if (!source.StartsWith(".git"))
                     {
-                        await QueueSendBasicMessage($"Using existing folder to create shared cache {destination}");
-                        Directory.Move(fullSource, fullDestination);
-                    }
-
-                    if (!Directory.Exists(fullDestination))
-                    {
-                        await QueueSendBasicMessage($"Creating new shared cache {destination}");
-                        Directory.CreateDirectory(fullDestination);
-                    }
-
-                    if (isAlreadySymlink)
+                        // Something to handle later
+                        notAppliedCaches[fullSource] = fullDestination;
                         continue;
-
-                    if (Directory.Exists(fullSource))
-                    {
-                        await QueueSendBasicMessage(
-                            $"Deleting existing directory to link to shared cache {destination}");
-                        Directory.Delete(fullSource, true);
                     }
 
-                    // Make sure the folder we are going to create the symbolic link in exists
-                    Directory.CreateDirectory(PathParser.GetParentPath(fullSource));
-
-                    await QueueSendBasicMessage($"Using shared cache {destination}");
-                    new UnixSymbolicLinkInfo(fullSource).CreateSymbolicLinkTo(fullDestination);
+                    await QueueSendBasicMessage($"Early handling git cache {source} to {destination}");
+                    await HandleSharedCache(fullSource, fullDestination, destination);
                 }
+            }
+
+            // And only now pull the LFS
+            await GitRunHelpers.LfsPull(folder, CancellationToken.None);
+            await QueueSendBasicMessage("LFS file pull completed");
+
+            // Clean out non-ignored files
+            var deleted = await GitRunHelpers.Clean(folder, CancellationToken.None);
+
+            await QueueSendBasicMessage($"Cleaned non-ignored extra files: {deleted}");
+
+            // Handling of shared cache paths with symlinks
+            foreach (var tuple in notAppliedCaches)
+            {
+                var fullSource = tuple.Key;
+                var fullDestination = tuple.Value;
+
+                await HandleSharedCache(fullSource, fullDestination,
+                    Path.GetDirectoryName(fullDestination) ?? fullDestination);
             }
 
             await QueueSendBasicMessage("Repository checked out");
@@ -606,6 +597,42 @@ public sealed class CIExecutor : IDisposable
         {
             await EndSectionWithFailure($"Error cloning / checking out: {e}");
         }
+    }
+
+    private async Task HandleSharedCache(string fullSource, string fullDestination, string destination)
+    {
+        // TODO: is a separate handling needed for when the fullSource is a single file and
+        // not a directory?
+
+        var isAlreadySymlink = Directory.Exists(fullSource) &&
+            new UnixSymbolicLinkInfo(fullSource).IsSymbolicLink;
+
+        if (Directory.Exists(fullSource) && !Directory.Exists(fullDestination) && !isAlreadySymlink)
+        {
+            await QueueSendBasicMessage($"Using existing folder to create shared cache {destination}");
+            Directory.Move(fullSource, fullDestination);
+        }
+
+        if (!Directory.Exists(fullDestination))
+        {
+            await QueueSendBasicMessage($"Creating new shared cache {destination}");
+            Directory.CreateDirectory(fullDestination);
+        }
+
+        if (isAlreadySymlink)
+            return;
+
+        if (Directory.Exists(fullSource))
+        {
+            await QueueSendBasicMessage($"Deleting existing directory to link to shared cache {destination}");
+            Directory.Delete(fullSource, true);
+        }
+
+        // Make sure the folder we are going to create the symbolic link in exists
+        Directory.CreateDirectory(PathParser.GetParentPath(fullSource));
+
+        await QueueSendBasicMessage($"Using shared cache {destination}");
+        new UnixSymbolicLinkInfo(fullSource).CreateSymbolicLinkTo(fullDestination);
     }
 
     private async Task SetupImages()
@@ -866,8 +893,7 @@ public sealed class CIExecutor : IDisposable
     private void AddMountConfiguration(List<string> arguments)
     {
         arguments.Add("--mount");
-        arguments.Add(
-            $"type=bind,source={currentBuildRootFolder},destination={currentBuildRootFolder},relabel=shared");
+        arguments.Add($"type=bind,source={currentBuildRootFolder},destination={currentBuildRootFolder},relabel=shared");
         arguments.Add("--mount");
         arguments.Add($"type=bind,source={sharedCacheFolder},destination={sharedCacheFolder},relabel=shared");
     }
