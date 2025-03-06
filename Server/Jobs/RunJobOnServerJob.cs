@@ -56,8 +56,7 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
     {
         // Includes are needed here to provide fully populated data for update notifications
         var job = await Database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
-            .FirstOrDefaultAsync(
-                j => j.CiProjectId == ciProjectId && j.CiBuildId == ciBuildId && j.CiJobId == ciJobId,
+            .FirstOrDefaultAsync(j => j.CiProjectId == ciProjectId && j.CiBuildId == ciBuildId && j.CiJobId == ciJobId,
                 cancellationToken);
 
         BaseServer? server;
@@ -143,11 +142,11 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
             return;
         }
 
-        // Queue a job to lock writing to the CI image if it isn't write protected yet
+        // Queue a job to lock writing to the CI image if it isn't write-protected yet
         if (imageItem.WriteAccess != FileAccess.Nobody)
         {
-            Logger.LogInformation(
-                "Storage item {Id} used as CI image is not write locked, queuing a job to lock it", imageItem.Id);
+            Logger.LogInformation("Storage item {Id} used as CI image is not write locked, queuing a job to lock it",
+                imageItem.Id);
 
             // To ensure the upload time is expired, this is upload time + 5 minutes
             JobClient.Schedule<LockCIImageItemJob>(x => x.Execute(imageItem.Id, CancellationToken.None),
@@ -289,14 +288,13 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
 
         JobClient.Schedule<CheckCIJobOutputHasConnectedJob>(
             x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, CancellationToken.None),
-            TimeSpan.FromMinutes(5));
+            AppInfo.CIJobMaxConnectionTime);
 
         JobClient.Schedule<CancelCIBuildIfStuckJob>(
             x => x.Execute(ciProjectId, ciBuildId, ciJobId, serverId, server.IsExternal, CancellationToken.None),
-            TimeSpan.FromMinutes(61));
+            AppInfo.AssumeCIJobStuckAfter);
 
-        Logger.LogInformation(
-            "CI job startup succeeded, now it's up to the executor to contact us with updates");
+        Logger.LogInformation("CI job startup succeeded, now it's up to the executor to contact us with updates");
     }
 
     private static string CreateDownloadCommand(string filePath, string hash, string downloadUrl)
@@ -399,8 +397,7 @@ public class RunJobOnServerJob : BaseCIJobManagingJob
         // This deletes everything (maybe sometimes it would be better to leave the downloaded images alone)
         // "-f" is very important here to prevent this just getting locked up forever
         var cleanupResult =
-            sshAccess.RunCommand(
-                "sudo rm -rf /executor_cache/* && rm -rf ~/images && podman system reset -f");
+            sshAccess.RunCommand("sudo rm -rf /executor_cache/* && rm -rf ~/images && podman system reset -f");
 
         if (!cleanupResult.Success)
         {

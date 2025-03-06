@@ -231,6 +231,10 @@ public static class AppInfo
 
     public static readonly TimeSpan WaitBeforeNameRetrieveBatchStart = TimeSpan.FromMilliseconds(100);
 
+    public static readonly TimeSpan AssumeCIJobStuckAfter = TimeSpan.FromMinutes(121);
+
+    public static readonly TimeSpan CIJobMaxConnectionTime = TimeSpan.FromMinutes(5);
+
     /// <summary>
     ///   This should be high enough to allow at least one reconnection attempt
     /// </summary>
