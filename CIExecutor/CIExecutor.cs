@@ -573,8 +573,10 @@ public sealed class CIExecutor : IDisposable
             }
 
             // And only now pull the LFS
+            var timer = new Stopwatch();
+            timer.Start();
             await GitRunHelpers.LfsPull(folder, CancellationToken.None);
-            await QueueSendBasicMessage("LFS file pull completed");
+            await QueueSendBasicMessage($"LFS file pull completed in {timer.Elapsed}");
 
             // Clean out non-ignored files
             var deleted = await GitRunHelpers.Clean(folder, CancellationToken.None);
