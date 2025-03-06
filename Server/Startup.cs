@@ -260,6 +260,7 @@ public class Startup
         services.AddSingleton<IPageRenderer, PageRenderer>();
         services.AddSingleton<IMediaViewUrls, MediaViewUrls>();
         services.AddSingleton<SiteConfigForClientGenerator>();
+        services.AddSingleton<HealthTracker>();
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<LfsRemoteStorage>();
