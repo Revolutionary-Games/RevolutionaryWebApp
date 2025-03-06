@@ -589,8 +589,7 @@ public sealed class CIExecutor : IDisposable
                 var fullSource = tuple.Key;
                 var fullDestination = tuple.Value;
 
-                await HandleSharedCache(fullSource, fullDestination,
-                    Path.GetDirectoryName(fullDestination) ?? fullDestination);
+                await HandleSharedCache(fullSource, fullDestination, Path.GetFileName(fullDestination));
             }
 
             await QueueSendBasicMessage("Repository checked out");
@@ -626,7 +625,8 @@ public sealed class CIExecutor : IDisposable
 
         if (Directory.Exists(fullSource))
         {
-            await QueueSendBasicMessage($"Deleting existing directory to link to shared cache {destination}");
+            await QueueSendBasicMessage(
+                $"Deleting existing directory {Path.GetFileName(fullSource)} to link to shared cache {destination}");
             Directory.Delete(fullSource, true);
         }
 
