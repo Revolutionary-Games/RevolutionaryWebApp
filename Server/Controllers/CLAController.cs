@@ -626,6 +626,20 @@ public class CLAController : Controller
         // Prepare the final text
         var signedDocumentText = CreateSignedDocumentText(cla, signature, finalSignature, user);
 
+        // This seems the most failure-prone thing here, so this is done first to then have smooth sailing afterwards
+        try
+        {
+            // Upload the signature to remote storage
+            await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath,
+                new MemoryStream(Encoding.UTF8.GetBytes(signedDocumentText)),
+                AppInfo.MarkdownMimeType, true, CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to upload signed document to remote storage");
+            return Problem("Failed to upload signed document to remote storage. Please try again.");
+        }
+
         // TODO: switch signing to require a devcenter account once anyone can register (and the type below to action)
         logger.LogInformation(
             "CLA ({Id1}) signature created with ID {Id2}, with email: {Email} from: {RemoteIpAddress}", cla.Id,
@@ -651,11 +665,6 @@ public class CLAController : Controller
                 },
             }, CancellationToken.None);
 
-        // Upload the signature to remote storage
-        await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath,
-            new MemoryStream(Encoding.UTF8.GetBytes(signedDocumentText)),
-            AppInfo.MarkdownMimeType, true, CancellationToken.None);
-
         // Delete the in-progress signature
         database.InProgressClaSignatures.Remove(signature);
         await database.SaveChangesAsync();
@@ -666,8 +675,10 @@ public class CLAController : Controller
         {
             logger.LogInformation("Got CLA with a github username, will re-check pull requests by {GithubAccount}",
                 finalSignature.GithubAccount);
-            jobClient.Enqueue<CheckPullRequestsAfterNewSignatureJob>(x =>
-                x.Execute(finalSignature.GithubAccount, CancellationToken.None));
+
+            // Maybe added delay here will fix something?
+            jobClient.Schedule<CheckPullRequestsAfterNewSignatureJob>(x =>
+                x.Execute(finalSignature.GithubAccount, CancellationToken.None), TimeSpan.FromSeconds(15));
         }
         else
         {
