@@ -627,17 +627,37 @@ public class CLAController : Controller
         var signedDocumentText = CreateSignedDocumentText(cla, signature, finalSignature, user);
 
         // This seems the most failure-prone thing here, so this is done first to then have smooth sailing afterwards
-        try
+        int attempts = 10;
+        while (true)
         {
-            // Upload the signature to remote storage
-            await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath,
-                new MemoryStream(Encoding.UTF8.GetBytes(signedDocumentText)),
-                AppInfo.MarkdownMimeType, true, CancellationToken.None);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Failed to upload signed document to remote storage");
-            return Problem("Failed to upload signed document to remote storage. Please try again.");
+            --attempts;
+
+            try
+            {
+                // Upload the signature to remote storage
+                await signatureStorage.UploadFile(finalSignature.ClaSignatureStoragePath,
+                    new MemoryStream(Encoding.UTF8.GetBytes(signedDocumentText)),
+                    AppInfo.MarkdownMimeType, true, CancellationToken.None);
+
+                break;
+            }
+            catch (Exception e)
+            {
+                if (attempts > 0)
+                {
+                    logger.LogWarning("Retrying upload of signed document to remote storage");
+                    await Task.Delay(TimeSpan.FromSeconds(3), CancellationToken.None);
+                    continue;
+                }
+
+                logger.LogError(e, "Failed to upload signed document to remote storage (will delete signature)");
+
+                // Need to delete the signature to not fail to sign it again
+                database.ClaSignatures.Remove(finalSignature);
+                await database.SaveChangesAsync();
+
+                return Problem("Failed to upload signed document to remote storage. Please try again.");
+            }
         }
 
         // TODO: switch signing to require a devcenter account once anyone can register (and the type below to action)
