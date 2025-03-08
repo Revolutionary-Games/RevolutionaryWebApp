@@ -1,9 +1,9 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -25,7 +25,6 @@ using Services;
 using Shared;
 using Shared.Models;
 using SharedBase.Utilities;
-using Utilities;
 
 [ApiController]
 [Route("api/v1/webhook/github")]
@@ -53,7 +52,7 @@ public class GithubWebhookController : Controller
     {
         var hook = await database.GithubWebhooks.FindAsync(AppInfo.SingleResourceTableRowId);
 
-        if (hook == null)
+        if (hook == null || string.IsNullOrEmpty(hook.Secret))
         {
             logger.LogWarning("Github webhook secret is not configured, can't process webhook");
             return BadRequest("Incorrect secret");
@@ -273,10 +272,31 @@ public class GithubWebhookController : Controller
             };
         }
 
+        if (HttpContext.Request.Headers.ContentLength == null)
+        {
+            throw new HttpResponseException
+            {
+                Value = new BasicJSONErrorResult("Invalid request", "Missing Content-Length header").ToString(),
+            };
+        }
+
         var actualSignature = header[0];
 
-        var readBody = await Request.ReadBodyAsync();
-        var rawPayload = readBody.Buffer.ToArray();
+        var buffer = new MemoryStream();
+
+        // This should read the entire request even if it is being buffered
+        await Request.Body.CopyToAsync(buffer);
+
+        var rawPayload = buffer.ToArray();
+
+        if (rawPayload.Length != HttpContext.Request.Headers.ContentLength)
+        {
+            throw new HttpResponseException
+            {
+                Value = new BasicJSONErrorResult("Invalid request",
+                    "Content-Length header doesn't match actual payload length").ToString(),
+            };
+        }
 
         var neededSignature = "sha256=" + Convert.ToHexString(new HMACSHA256(Encoding.UTF8.GetBytes(hook.Secret))
             .ComputeHash(rawPayload)).ToLowerInvariant();
