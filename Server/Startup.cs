@@ -261,6 +261,7 @@ public class Startup
         services.AddSingleton<IMediaViewUrls, MediaViewUrls>();
         services.AddSingleton<SiteConfigForClientGenerator>();
         services.AddSingleton<HealthTracker>();
+        services.AddSingleton<ImageGenerator>();
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<LfsRemoteStorage>();
