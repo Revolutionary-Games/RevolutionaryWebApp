@@ -187,7 +187,7 @@
 
                                     <Button ButtonStyle="primary" class="btn-sm ms-1"
                                             OnPressed="@(() => CopyMarkdown(item))">
-                                        @if (!markDownCopied)
+                                        @if (!markDownCopied.TryGetValue(item.Id, out var value) && value)
                                         {
                                             <span>Copy Markdown</span>
                                         }
@@ -411,6 +411,8 @@
     private readonly List<string> uploadErrors = new();
     private readonly List<IBrowserFile> filesToBeUploaded = new();
 
+    private readonly Dictionary<long, bool> markDownCopied = new();
+
     private bool folderPathParsed;
 
     private long? parsedFolderId;
@@ -452,8 +454,6 @@
     private bool registered;
 
     private ElementReference dropArea;
-
-    private bool markDownCopied;
 
     [CascadingParameter]
     public IModalService Modal { get; set; } = null!;
@@ -1046,12 +1046,12 @@
 
     private async Task CopyMarkdown(MediaBrowserEntry item)
     {
-        markDownCopied = false;
+        markDownCopied[item.Id] = false;
         await InvokeAsync(StateHasChanged);
 
         await Clipboard.SetTextAsync(item.GetMarkdown());
 
-        markDownCopied = true;
+        markDownCopied[item.Id] = true;
         await InvokeAsync(StateHasChanged);
     }
 
