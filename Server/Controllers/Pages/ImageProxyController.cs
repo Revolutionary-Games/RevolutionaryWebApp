@@ -2,12 +2,10 @@ namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Primitives;
+using StackExchange.Redis;
 
 /// <summary>
 ///   Handles requesting images on behalf of clients and returning them. This helps with hiding client IPs and
@@ -23,10 +21,10 @@ public class ImageProxyController : Controller
 
     private static readonly TimeSpan YoutubeCacheTime = TimeSpan.FromHours(8);
 
-    private readonly RedisCache cache;
+    private readonly IConnectionMultiplexer cache;
     private readonly IHttpClientFactory httpClientFactory;
 
-    public ImageProxyController(RedisCache cache, IHttpClientFactory httpClientFactory)
+    public ImageProxyController(IConnectionMultiplexer cache, IHttpClientFactory httpClientFactory)
     {
         this.cache = cache;
         this.httpClientFactory = httpClientFactory;
@@ -35,20 +33,23 @@ public class ImageProxyController : Controller
     [HttpGet("youtubeThumbnail/{id}")]
     public async Task<IActionResult> YoutubeThumbnail(string id)
     {
-        var key = "ImageProxy:YoutubeThumbnail:" + id;
+        var key = new RedisKey("ImageProxy:YoutubeThumbnail:" + id);
 
-        var existing = await cache.GetAsync(key);
+        var database = cache.GetDatabase();
 
-        if (existing != null)
+        var existing = await database.StringGetAsync(key);
+
+        if (!existing.IsNullOrEmpty)
         {
             // Detect failure
-            if (existing.Length <= 10 && Encoding.UTF8.GetString(existing) == "FAIL")
+            var data = existing.ToString();
+            if (data == "FAIL")
             {
                 Response.Headers.CacheControl = new StringValues("public, max-age=500");
                 return Problem("Could not retrieve image from YouTube");
             }
 
-            return File(existing, "image/jpeg");
+            return File(data, "image/jpeg");
         }
 
         var url = string.Format(YoutubeImageUrl, id);
@@ -59,36 +60,31 @@ public class ImageProxyController : Controller
 
         if (response.IsSuccessStatusCode && response.Content.Headers.ContentType?.MediaType == "image/jpeg")
         {
-            return await OnImageSuccessfullyRetrieved(response, key);
+            return await OnImageSuccessfullyRetrieved(response, key, database);
         }
 
         response = await client.GetAsync(backupUrl);
 
         if (response.IsSuccessStatusCode && response.Content.Headers.ContentType?.MediaType == "image/jpeg")
         {
-            return await OnImageSuccessfullyRetrieved(response, key);
+            return await OnImageSuccessfullyRetrieved(response, key, database);
         }
 
         Response.Headers.CacheControl = new StringValues("public, max-age=500");
 
         // Save the failure result to cache in case someone bombards our endpoints with invalid IDs
-        await cache.SetAsync(key, Encoding.UTF8.GetBytes("FAIL"), new DistributedCacheEntryOptions
-        {
-            AbsoluteExpiration = new DateTimeOffset(DateTime.UtcNow, TimeSpan.FromSeconds(300)),
-        });
+        await database.StringSetAsync(key, new RedisValue("FAIL"), TimeSpan.FromSeconds(300));
 
         return Problem("Could not retrieve image from YouTube");
     }
 
     [NonAction]
-    private async Task<IActionResult> OnImageSuccessfullyRetrieved(HttpResponseMessage response, string key)
+    private async Task<IActionResult> OnImageSuccessfullyRetrieved(HttpResponseMessage response, RedisKey key,
+        IDatabase database)
     {
         var data = await response.Content.ReadAsByteArrayAsync();
 
-        await cache.SetAsync(key, data, new DistributedCacheEntryOptions
-        {
-            AbsoluteExpiration = new DateTimeOffset(DateTime.UtcNow, YoutubeCacheTime),
-        });
+        await database.StringSetAsync(key, data, YoutubeCacheTime);
 
         Response.Headers.CacheControl = new StringValues("public, max-age=3600");
         return File(data, "image/jpeg");
