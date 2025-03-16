@@ -53,6 +53,8 @@ public class CSRFCheckerMiddleware : IMiddleware
                 !requestPath.StartsWithSegments("/api/v1/download_lfs") &&
                 !requestPath.StartsWithSegments("/api/v1/feed") &&
                 !requestPath.StartsWithSegments("/api/v1/MediaFile/view") &&
+                !requestPath.StartsWithSegments("/api/v1/ImageProxy") &&
+                !requestPath.StartsWithSegments("/api/v1/ImageGenerator") &&
                 !requestPath.StartsWithSegments("/LoginController/"))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
