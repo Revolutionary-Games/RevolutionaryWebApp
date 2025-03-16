@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Shared.Models.Pages;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Text.Json.Serialization;
 using DevCenterCommunication.Models;
 using Enums;
@@ -98,4 +99,12 @@ public class MediaBrowserEntry : ClientSideTimedModel
 
     [JsonIgnore]
     public string IdWithFolder => Id + "-" + Folder;
+
+    public string GetMarkdown()
+    {
+        // For now only implemented for image-type entries
+        var sanitizedName = Name.Replace(']', '_').Replace('[', '_');
+
+        return $"![{sanitizedName}](media:{Path.GetExtension(Name)}:{GlobalId})";
+    }
 }

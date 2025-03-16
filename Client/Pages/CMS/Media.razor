@@ -6,6 +6,7 @@
 @inject NotificationHandler NotificationHandler
 @inject CurrentUserInfo CurrentUserInfo
 @inject ClientMediaLinkConverter ClientMediaLinkConverter
+@inject IClipboard Clipboard
 @using System.IO
 @using System.Net
 @using System.Text.Json
@@ -19,6 +20,7 @@
 @using RevolutionaryWebApp.Shared.Models.Pages
 @using RevolutionaryWebApp.Shared.Notifications
 @using SharedBase.Utilities
+@using TextCopy
 @inherits BaseFileBrowser<RevolutionaryWebApp.Shared.Models.Pages.MediaBrowserEntry>
 @implements INotificationHandler<MediaFolderContentsUpdated>
 @implements INotificationHandler<MediaFileUpdated>
@@ -176,11 +178,24 @@
                                 @* TODO: item preview images? *@
                                 <td class="@itemClass">
 
-                                    <img src="@GetMediaItemPreviewUrl(item)" alt="image thumbnail " class="image-preview" />
+                                    <img src="@GetMediaItemPreviewUrl(item)" alt="image thumbnail "
+                                         class="image-preview"/>
 
-                                    <a href="/api/v1/MediaImage/@item.Id/redirect" target="_blank">
+                                    <a href="/api/v1/MediaFile/view/@item.Id" target="_blank">
                                         @item.Name.Truncate(40)
                                     </a>
+
+                                    <Button ButtonStyle="primary" class="btn-sm ms-1"
+                                            OnPressed="@(() => CopyMarkdown(item))">
+                                        @if (!markDownCopied)
+                                        {
+                                            <span>Copy Markdown</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Copied</span>
+                                        }
+                                    </Button>
                                 </td>
 
                                 @if (item.Processed)
@@ -438,6 +453,8 @@
 
     private ElementReference dropArea;
 
+    private bool markDownCopied;
+
     [CascadingParameter]
     public IModalService Modal { get; set; } = null!;
 
@@ -587,8 +604,8 @@
             PageSize = files.PageSize,
             PageCount = files.PageCount,
             RowCount = files.RowCount + subFolders.Count,
-            Results = subFolders.Select(f => new MediaBrowserEntry(f)).Concat(
-                files.Results.Select(f => new MediaBrowserEntry(f))).ToArray(),
+            Results = subFolders.Select(f =>
+                new MediaBrowserEntry(f)).Concat(files.Results.Select(f => new MediaBrowserEntry(f))).ToArray(),
         };
 
         return combinedResult;
@@ -1025,6 +1042,17 @@
     {
         return ClientMediaLinkConverter.TranslateImageLink(Path.GetExtension(item.Name), item.GlobalId.ToString(),
             MediaFileSize.Thumbnail);
+    }
+
+    private async Task CopyMarkdown(MediaBrowserEntry item)
+    {
+        markDownCopied = false;
+        await InvokeAsync(StateHasChanged);
+
+        await Clipboard.SetTextAsync(item.GetMarkdown());
+
+        markDownCopied = true;
+        await InvokeAsync(StateHasChanged);
     }
 
     private class MediaBrowserListUpdated : ListUpdated<MediaBrowserEntry>

@@ -13,6 +13,7 @@ using Jobs.Pages;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
@@ -42,13 +43,18 @@ public class MediaFileController : Controller
     private readonly IBackgroundJobClient jobClient;
     private readonly ITimeLimitedDataProtector dataProtector;
 
-    public MediaFileController(ILogger<MediaFileController> logger, NotificationsEnabledDb database,
-        IUploadFileStorage fileStorage, IDataProtectionProvider dataProtectionProvider, IBackgroundJobClient jobClient)
+    private readonly string viewBaseUrl;
+
+    public MediaFileController(ILogger<MediaFileController> logger, IConfiguration configuration,
+        NotificationsEnabledDb database, IUploadFileStorage fileStorage, IDataProtectionProvider dataProtectionProvider,
+        IBackgroundJobClient jobClient)
     {
         this.logger = logger;
         this.database = database;
         this.fileStorage = fileStorage;
         this.jobClient = jobClient;
+
+        viewBaseUrl = configuration["MediaStorage:Download:URL"] ?? string.Empty;
 
         dataProtector = dataProtectionProvider.CreateProtector(MediaUploadProtectionPurposeString)
             .ToTimeLimitedDataProtector();
@@ -74,6 +80,44 @@ public class MediaFileController : Controller
         }
 
         return mediaFile.GetDTO();
+    }
+
+    [HttpGet("view/{id:long}")]
+    public async Task<ActionResult<MediaFileDTO>> RedirectToView([Required] long id)
+    {
+        var mediaFile = await database.MediaFiles.FindAsync(id);
+
+        if (mediaFile == null)
+            return NotFound();
+
+        if (string.IsNullOrEmpty(viewBaseUrl))
+            return Problem("Media view URL is not configured on the server");
+
+        var user = HttpContext.AuthenticatedUser();
+
+        if (user == null)
+        {
+            if (mediaFile.MetadataVisibility != GroupType.NotLoggedIn)
+                return NotFound();
+        }
+        else
+        {
+            var groups = user.AccessCachedGroupsOrThrow();
+
+            if (user.Id != mediaFile.UploadedById && user.Id != mediaFile.LastModifiedById &&
+                !groups.HasGroup(mediaFile.MetadataVisibility) && !groups.HasGroup(mediaFile.ModifyAccess))
+            {
+                // Can't see this item
+                return NotFound();
+            }
+        }
+
+        var path = mediaFile.GetStoragePath(MediaFileSize.Original);
+
+        if (string.IsNullOrEmpty(path))
+            return NotFound();
+
+        return Redirect(new Uri(new Uri(viewBaseUrl), path).ToString());
     }
 
     [HttpPost("startUpload")]
