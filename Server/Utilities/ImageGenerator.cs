@@ -27,12 +27,17 @@ public sealed class ImageGenerator : IDisposable
     private const string JuraFontUrl = "https://dev.revolutionarygamesstudio.com/api/v1/download/179252";
     private const string ThriveFontUrl = "https://dev.revolutionarygamesstudio.com/api/v1/download/179255";
 
+    private const string ProgressUpdateBackgroundUrl =
+        "https://dev.revolutionarygamesstudio.com/api/v1/download/179256";
+
     private readonly IHttpClientFactory httpClientFactory;
 
     private readonly SemaphoreSlim fontDownloadSemaphore = new(1, 1);
 
     private FontFamily? juraFont;
     private FontFamily? thriveFont;
+
+    private Image<Rgb24>? progressUpdateBackground;
 
     public ImageGenerator(IHttpClientFactory httpClientFactory)
     {
@@ -63,17 +68,23 @@ public sealed class ImageGenerator : IDisposable
     public async Task<byte[]> GenerateProgressUpdateBanner(DateTime date)
     {
         await GetMissingBannerFontsIfNeeded();
+        await GetProgressUpdateBackgroundImageIfNeeded();
 
-        using var image = new Image<Rgb24>(ProgressUpdateBannerWidth, ProgressUpdateBannerHeight, Color.WhiteSmoke);
+        using var image = new Image<Rgb24>(ProgressUpdateBannerWidth, ProgressUpdateBannerHeight, Color.Black);
 
-        // Draw initials in the center
         var font = juraFont!.Value.CreateFont(96, FontStyle.Regular);
-        var titleFont = thriveFont!.Value.CreateFont(128, FontStyle.Regular);
 
-        // TODO: actually implement all the parts and the fancy background image
+        // Setting bold here does nothing
+        // var font = juraFont!.Value.CreateFont(96, FontStyle.Bold);
+
+        var titleFont = thriveFont!.Value.CreateFont(128, FontStyle.Regular);
 
         image.Mutate(ctx =>
         {
+            // Draw the background
+            ctx.DrawImage(progressUpdateBackground!, new Point(0, 0), 1.0f);
+
+            // The progress update text
             ctx.DrawText(new RichTextOptions(font)
             {
                 TextAlignment = TextAlignment.Center,
@@ -84,12 +95,13 @@ public sealed class ImageGenerator : IDisposable
                 VerticalAlignment = VerticalAlignment.Center,
             }, "PROGRESS\nUPDATE", Color.Black);
 
+            // And the current date
             ctx.DrawText(new RichTextOptions(font)
             {
                 TextAlignment = TextAlignment.Center,
                 Font = font,
                 Origin = new PointF(ProgressUpdateBannerWidth / 2.0f,
-                    ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 4.0f),
+                    ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 6.0f),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             }, date.ToString("MMMM dd yyyy", CultureInfo.InvariantCulture), Color.Black);
@@ -179,6 +191,34 @@ public sealed class ImageGenerator : IDisposable
                 fontDownloadSemaphore.Release();
             }
         }
+    }
+
+    private async ValueTask GetProgressUpdateBackgroundImageIfNeeded()
+    {
+        if (progressUpdateBackground == null)
+        {
+            await fontDownloadSemaphore.WaitAsync();
+            try
+            {
+                progressUpdateBackground ??= await DownloadImage(ProgressUpdateBackgroundUrl);
+            }
+            finally
+            {
+                fontDownloadSemaphore.Release();
+            }
+        }
+    }
+
+    private async Task<Image<Rgb24>> DownloadImage(string downloadUrl)
+    {
+        using var client = httpClientFactory.CreateClient();
+
+        var response = await client.GetAsync(downloadUrl);
+        response.EnsureSuccessStatusCode();
+
+        var content = await response.Content.ReadAsStreamAsync();
+
+        return await Image.LoadAsync<Rgb24>(content);
     }
 
     private async Task<FontCollection> DownloadFont(string fontUrl)
