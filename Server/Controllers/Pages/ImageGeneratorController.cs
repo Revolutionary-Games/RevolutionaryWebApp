@@ -40,7 +40,8 @@ public class ImageGeneratorController : Controller
 
         try
         {
-            parsedDate = DateTime.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToUniversalTime();
+            parsedDate = DateTime.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal);
         }
         catch (FormatException)
         {
