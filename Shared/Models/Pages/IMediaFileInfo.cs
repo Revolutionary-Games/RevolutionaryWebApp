@@ -105,6 +105,12 @@ public class MediaBrowserEntry : ClientSideTimedModel
         // For now only implemented for image-type entries
         var sanitizedName = Name.Replace(']', '_').Replace('[', '_');
 
-        return $"![{sanitizedName}](media:{Path.GetExtension(Name)}:{GlobalId})";
+        var extension = Path.GetExtension(Name);
+
+        // Format requires skipping the leading dot, so remove that
+        if (extension.StartsWith('.'))
+            extension = extension.Substring(1);
+
+        return $"![{sanitizedName}](media:{extension}:{GlobalId})";
     }
 }

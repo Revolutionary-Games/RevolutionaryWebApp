@@ -187,7 +187,7 @@
 
                                     <Button ButtonStyle="primary" class="btn-sm ms-1"
                                             OnPressed="@(() => CopyMarkdown(item))">
-                                        @if (!markDownCopied.TryGetValue(item.Id, out var value) && value)
+                                        @if (!markDownCopied.TryGetValue(item.Id, out var value) || !value)
                                         {
                                             <span>Copy Markdown</span>
                                         }

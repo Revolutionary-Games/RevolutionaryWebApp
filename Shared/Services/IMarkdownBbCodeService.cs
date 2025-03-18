@@ -1,7 +1,7 @@
 namespace RevolutionaryWebApp.Shared.Services;
 
 /// <summary>
-///   Adds Thrive-customized bbcode parsing to extend markdown with some important features for pages
+///   Adds Thrive-customized bbcode parsing to extend Markdown with some important features for pages
 /// </summary>
 public interface IMarkdownBbCodeService
 {

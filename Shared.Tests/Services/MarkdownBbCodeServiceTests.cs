@@ -23,6 +23,22 @@ public class MarkdownBbCodeServiceTests
         Assert.Equal("![alt text here](https://example.com/c815f12d-604c-4e2d-a8ce-6b03992d0046.png)", converted);
     }
 
+    [Fact]
+    public void BbCode_ImageLinkWithDotInExtensionIsNotReplaced()
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+
+        linkConverter.TranslateImageLink(".png", "c815f12d-604c-4e2d-a8ce-6b03992d0046", Arg.Any<MediaFileSize>())
+            .Returns("https://example.com/c815f12d-604c-4e2d-a8ce-6b03992d0046.png");
+
+        var bbCodeService = new MarkdownBbCodeService(linkConverter);
+
+        var converted =
+            bbCodeService.PreParseContent("![alt text here](media:.png:c815f12d-604c-4e2d-a8ce-6b03992d0046)");
+
+        Assert.NotEqual("![alt text here](https://example.com/c815f12d-604c-4e2d-a8ce-6b03992d0046.png)", converted);
+    }
+
     [Theory]
     [InlineData("![alt](media:jpg:c815f12d-654c-4e2d-a8ce-6b03992d0046)",
         "![alt](https://example.com/c815f12d-654c-4e2d-a8ce-6b03992d0046.jpg)")]
@@ -36,6 +52,8 @@ public class MarkdownBbCodeServiceTests
         "[![alt](https://example.com/c815f12d-654c-4e2d-a8ce-6b03992d0046.png)](https://extra.link)")]
     [InlineData("this is text with ![image](media:png:c815f12d-654c-4e2d-a8ce-6b03992d0046) in the middle",
         "this is text with ![image](https://example.com/c815f12d-654c-4e2d-a8ce-6b03992d0046.png) in the middle")]
+    [InlineData("![2025-03-13_13.55.22.4537.png](media:png:2c26ba15-f944-4693-b2c5-76d3dbebb70e)",
+        "![2025-03-13_13.55.22.4537.png](https://example.com/2c26ba15-f944-4693-b2c5-76d3dbebb70e.png)")]
     public void BbCode_ImageLinkWorks(string raw, string expected)
     {
         var linkConverter = Substitute.For<IMediaLinkConverter>();
@@ -70,7 +88,8 @@ public class MarkdownBbCodeServiceTests
 
         Assert.Equal(raw, converted);
 
-        linkConverter.DidNotReceive().TranslateImageLink(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<MediaFileSize>());
+        linkConverter.DidNotReceive()
+            .TranslateImageLink(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<MediaFileSize>());
     }
 
     /// <summary>
