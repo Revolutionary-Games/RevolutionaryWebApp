@@ -24,13 +24,13 @@ public static class ColourHelpers
         int hue = hashBytes[0] % 360;
 
         // Saturation: 50-100%
-        double saturation = hashBytes[1] % 50 + 50;
+        int saturation = hashBytes[1] % 50 + 50;
 
         // Lightness: 30-70%
-        double lightness = hashBytes[2] % 40 + 30;
+        int lightness = hashBytes[2] % 40 + 30;
 
         // Convert the result
-        return FromHsl(hue, saturation / 100, lightness / 100);
+        return FromHsl(hue, saturation / 100.0, lightness / 100.0);
     }
 
     public static bool HasSufficientContrast(Color background, Color text, double threshold = 4.5)
