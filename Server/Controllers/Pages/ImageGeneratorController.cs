@@ -127,7 +127,7 @@ public class ImageGeneratorController : Controller
         // Not cached, so we need to generate a new one
         var imageBytes = await imageGenerator.GenerateLetterAvatar(initials, backgroundColor);
 
-        await cacheDatabase.StringSetAsync(key, imageBytes, TimeSpan.FromHours(4));
+        await cacheDatabase.StringSetAsync(key, imageBytes, TimeSpan.FromHours(2));
 
         Response.Headers.CacheControl = new StringValues($"public, max-age={AvatarCacheTime}");
 
