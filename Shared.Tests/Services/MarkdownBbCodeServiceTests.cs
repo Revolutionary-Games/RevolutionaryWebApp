@@ -67,7 +67,7 @@ public class MarkdownBbCodeServiceTests
 
         Assert.Equal(expected, converted);
 
-        // Make sure post-process doesn't mess with things
+        // Make sure the post-process doesn't mess with things
         Assert.Equal(expected, bbCodeService.PostProcessContent(converted));
     }
 
@@ -92,6 +92,54 @@ public class MarkdownBbCodeServiceTests
             .TranslateImageLink(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<MediaFileSize>());
     }
 
+    [Theory]
+    [InlineData("[puImage]2025-07-05[/puImage]",
+        "![Progress Update Banner 2025-07-05](/generated/puBanner/2025-07-05)")]
+    [InlineData("# A nice PU\n[puImage]2025-08-05[/puImage]\n\nwith some content",
+        "# A nice PU\n![Progress Update Banner 2025-08-05](/generated/puBanner/2025-08-05)\n\nwith some content")]
+    [InlineData("[puImage][/puImage]", "[puImage][/puImage]")]
+    [InlineData("[puImage]a[/puImage]", "[puImage]a[/puImage]")]
+    [InlineData("[rand]2025-08-05[/rand]", "[rand]2025-08-05[/rand]")]
+    public void BbCode_CustomBbCodeWorks(string raw, string expected)
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+
+        var bbCodeService = new MarkdownBbCodeService(linkConverter);
+
+        var converted = bbCodeService.PreParseContent(raw);
+
+        Assert.Equal(expected, converted);
+    }
+
+    [Theory]
+    [InlineData("[puImage][/puImage]", "[puImage][/puImage]")]
+    [InlineData("[puImage]a[/puImage]", "[puImage]a[/puImage]")]
+    [InlineData("[rand]2025-08-05[/rand]", "[rand]2025-08-05[/rand]")]
+    public void BbCode_CustomBbCodeDoesNotReplaceUnintendedStuff(string raw, string expected)
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+
+        var bbCodeService = new MarkdownBbCodeService(linkConverter);
+
+        var converted = bbCodeService.PreParseContent(raw);
+
+        Assert.Equal(expected, converted);
+    }
+
+    [Fact]
+    public void BbCode_GeneratedImagePrefixWorks()
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+
+        linkConverter.GetGeneratedAndProxyImagePrefix().Returns("/testPrefix");
+
+        var bbCodeService = new MarkdownBbCodeService(linkConverter);
+
+        var converted = bbCodeService.PreParseContent("[puImage]2025-07-05[/puImage]");
+
+        Assert.Equal("![Progress Update Banner 2025-07-05](/testPrefix/generated/puBanner/2025-07-05)", converted);
+    }
+
     /// <summary>
     ///   This tests a function that didn't really end up being useful
     /// </summary>
@@ -110,6 +158,11 @@ public class MarkdownBbCodeServiceTests
     private class DummyConverter : IMediaLinkConverter
     {
         public string TranslateImageLink(string imageType, string globalId, MediaFileSize size)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public string GetGeneratedAndProxyImagePrefix()
         {
             throw new System.NotImplementedException();
         }

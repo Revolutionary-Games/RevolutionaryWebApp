@@ -28,4 +28,11 @@ public class MediaLinkConverter : IMediaLinkConverter
 
         return baseUrl + MediaFileExtensions.GetViewPath(globalId, size, imageType);
     }
+
+    public string GetGeneratedAndProxyImagePrefix()
+    {
+        // These server-rendered pages are shown served already from the CDN, which has an implicit "/live" root,
+        // so we return just an empty prefix here
+        return string.Empty;
+    }
 }

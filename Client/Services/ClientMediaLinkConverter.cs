@@ -20,6 +20,12 @@ public class ClientMediaLinkConverter : IMediaLinkConverter
         return baseUrl + MediaFileExtensions.GetViewPath(globalId, size, imageType);
     }
 
+    public string GetGeneratedAndProxyImagePrefix()
+    {
+        // Client side rendering is on the dev site, so the live prefix is needed
+        return "/live";
+    }
+
     public void OnReceiveBaseUrl(string configMediaBaseUrl)
     {
         baseUrl = configMediaBaseUrl;
