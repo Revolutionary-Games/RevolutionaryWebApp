@@ -21,6 +21,16 @@ public interface IMediaLinkConverter
     /// <returns>Prefix for</returns>
     public string GetGeneratedAndProxyImagePrefix();
 
+    // This isn't really a "media link" but it's very closely related and convenient to put these here
+
+    /// <summary>
+    ///   Return the prefix for an internal page link (prefixing a permalink with this results in the full link)
+    /// </summary>
+    /// <returns>Prefix for page links</returns>
+    public string GetInternalPageLinkPrefix();
+
+    // TODO: add wiki etc. other page link types
+
     /// <summary>
     ///   Parses a media link to its image parts
     /// </summary>
@@ -49,7 +59,7 @@ public interface IMediaLinkConverter
 
         imageGlobalId = parts[2];
 
-        // Could maybe check if the GUID is valid format
+        // Could maybe check if the GUID is a valid format
 
         return true;
     }

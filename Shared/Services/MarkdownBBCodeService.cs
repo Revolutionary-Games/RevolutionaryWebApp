@@ -8,7 +8,7 @@ using Models.Pages;
 public class MarkdownBbCodeService : IMarkdownBbCodeService
 {
     private readonly Regex likelyNeedToDoSomething =
-        new(@"(\!\[[^\)\]]*\]\(media:)|([/\w+])", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
+        new(@"(\!\[[^\)\]]*\]\(media:)|([/\w+])|(\]\(page:)", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
     private readonly Regex mediaLinkToConvertRegex = new(
         @"\!\[([^\)\]]*)\]\(media:([\w\.]+):([a-f0-9\-]+)(\s*'[^']*')?\)",
@@ -32,16 +32,21 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
         int startIndex = 0;
         bool hasStart = false;
 
+        void FlushPending(int i)
+        {
+            if (hasStart)
+            {
+                result.Append(rawContent.Substring(startIndex, i - startIndex));
+                hasStart = false;
+            }
+        }
+
         for (int i = 0; i < rawContent.Length; ++i)
         {
             if (rawContent[i] == '[')
             {
                 // Clear pending text to not cause issues when a tag is actually detected and processed
-                if (hasStart)
-                {
-                    result.Append(rawContent.Substring(startIndex, i - startIndex));
-                    hasStart = false;
-                }
+                FlushPending(i);
 
                 if (TryHandleCustomTag(rawContent, ref i, result))
                     continue;
@@ -50,11 +55,7 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
             if (rawContent[i] == '!' && IsMatch(rawContent, i, "!["))
             {
                 // Handle currently pending text
-                if (hasStart)
-                {
-                    result.Append(rawContent.Substring(startIndex, i - startIndex));
-                    hasStart = false;
-                }
+                FlushPending(i);
 
                 // Potential special link, check if valid
                 var match = mediaLinkToConvertRegex.Match(rawContent, i);
@@ -82,6 +83,24 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
 
                     // Skip input until the end of the replaced image
                     i += match.Length - 1;
+                    continue;
+                }
+            }
+            else if (rawContent[i] == '(' && i > 0 && rawContent[i - 1] == ']')
+            {
+                if (IsMatch(rawContent, i + 1, "page:"))
+                {
+                    FlushPending(i);
+
+                    result.Append('(');
+
+                    // Add the link prefix
+                    result.Append(mediaLinkConverter.GetInternalPageLinkPrefix());
+                    result.Append('/');
+
+                    // And then let the normal character copying handle the actual link content but skipping the data
+                    // we handled already, which is length of ```(page:```
+                    i += 6 - 1;
                     continue;
                 }
             }

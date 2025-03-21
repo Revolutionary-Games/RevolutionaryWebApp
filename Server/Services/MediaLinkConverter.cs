@@ -10,7 +10,7 @@ public class MediaLinkConverter : IMediaLinkConverter
 {
     private readonly string baseUrl;
 
-    private readonly string proxyImageBase;
+    private readonly string cdnSiteBaseUrl;
 
     public MediaLinkConverter(IConfiguration configuration)
     {
@@ -24,11 +24,11 @@ public class MediaLinkConverter : IMediaLinkConverter
 
         // Server rendered pages can be shown through the CDN (published) or as previews, so for max compatibility
         // we always use the CDN URL as a prefix
-        proxyImageBase = configuration["CDN:LiveUrl"] ?? string.Empty;
+        cdnSiteBaseUrl = configuration["CDN:LiveUrl"] ?? string.Empty;
 
         // Except when it is not configured, we assume we are running locally without a CDN
-        if (string.IsNullOrWhiteSpace(proxyImageBase))
-            proxyImageBase = "/live";
+        if (string.IsNullOrWhiteSpace(cdnSiteBaseUrl))
+            cdnSiteBaseUrl = "/live";
     }
 
     public string TranslateImageLink(string imageType, string globalId, MediaFileSize size)
@@ -41,6 +41,11 @@ public class MediaLinkConverter : IMediaLinkConverter
 
     public string GetGeneratedAndProxyImagePrefix()
     {
-        return proxyImageBase;
+        return cdnSiteBaseUrl;
+    }
+
+    public string GetInternalPageLinkPrefix()
+    {
+        return cdnSiteBaseUrl;
     }
 }

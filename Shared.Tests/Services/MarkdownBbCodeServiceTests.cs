@@ -126,6 +126,30 @@ public class MarkdownBbCodeServiceTests
         Assert.Equal(expected, converted);
     }
 
+    [Theory]
+    [InlineData("[link](page:progress-update-07-05-2025)",
+        "[link](https://www.example.com/progress-update-07-05-2025)")]
+    [InlineData("[a description](page:another-page)",
+        "[a description](https://www.example.com/another-page)")]
+    [InlineData("](page:another-page",
+        "](https://www.example.com/another-page")]
+    [InlineData("([a description](page:another-page)", "([a description](https://www.example.com/another-page)")]
+    [InlineData("[a description](page:another-page)](", "[a description](https://www.example.com/another-page)](")]
+    [InlineData("(", "(")]
+    [InlineData("](", "](")]
+    public void BbCode_PageLinksWork(string raw, string expected)
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+
+        linkConverter.GetInternalPageLinkPrefix().Returns("https://www.example.com");
+
+        var bbCodeService = new MarkdownBbCodeService(linkConverter);
+
+        var converted = bbCodeService.PreParseContent(raw);
+
+        Assert.Equal(expected, converted);
+    }
+
     [Fact]
     public void BbCode_GeneratedImagePrefixWorks()
     {
@@ -163,6 +187,11 @@ public class MarkdownBbCodeServiceTests
         }
 
         public string GetGeneratedAndProxyImagePrefix()
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public string GetInternalPageLinkPrefix()
         {
             throw new System.NotImplementedException();
         }

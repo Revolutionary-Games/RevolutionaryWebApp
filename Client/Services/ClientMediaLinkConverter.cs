@@ -26,6 +26,11 @@ public class ClientMediaLinkConverter : IMediaLinkConverter
         return "/live";
     }
 
+    public string GetInternalPageLinkPrefix()
+    {
+        return "/live";
+    }
+
     public void OnReceiveBaseUrl(string configMediaBaseUrl)
     {
         baseUrl = configMediaBaseUrl;
