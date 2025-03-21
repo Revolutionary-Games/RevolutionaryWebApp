@@ -24,7 +24,7 @@ public class MarkdownBbCodeServiceTests
     }
 
     [Fact]
-    public void BbCode_ImageLinkWithDotInExtensionIsNotReplaced()
+    public void BbCode_ImageLinkWithDotInExtensionWorks()
     {
         var linkConverter = Substitute.For<IMediaLinkConverter>();
 
@@ -36,7 +36,7 @@ public class MarkdownBbCodeServiceTests
         var converted =
             bbCodeService.PreParseContent("![alt text here](media:.png:c815f12d-604c-4e2d-a8ce-6b03992d0046)");
 
-        Assert.NotEqual("![alt text here](https://example.com/c815f12d-604c-4e2d-a8ce-6b03992d0046.png)", converted);
+        Assert.Equal("![alt text here](https://example.com/c815f12d-604c-4e2d-a8ce-6b03992d0046.png)", converted);
     }
 
     [Theory]

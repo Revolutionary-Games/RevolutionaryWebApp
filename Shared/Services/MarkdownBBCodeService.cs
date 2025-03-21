@@ -10,7 +10,8 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
     private readonly Regex likelyNeedToDoSomething =
         new(@"(\!\[[^\)\]]*\]\(media:)|([/\w+])", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
-    private readonly Regex mediaLinkToConvertRegex = new(@"\!\[([^\)\]]*)\]\(media:(\w+):([a-f0-9\-]+)(\s*'[^']*')?\)",
+    private readonly Regex mediaLinkToConvertRegex = new(
+        @"\!\[([^\)\]]*)\]\(media:([\w\.]+):([a-f0-9\-]+)(\s*'[^']*')?\)",
         RegexOptions.Compiled, TimeSpan.FromMilliseconds(500));
 
     private readonly IMediaLinkConverter mediaLinkConverter;
