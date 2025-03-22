@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Client.Shared;
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Timers;
@@ -99,6 +100,8 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
         }
     }
 
+    protected bool NewItemRequiresFullReFetch { get; set; }
+
     /// <summary>
     ///   Computes the fetch timer interval based on how many times data has been fetched
     /// </summary>
@@ -177,6 +180,41 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
                 {
                     Console.WriteLine("Got a list notification delete before data was loaded, ignoring for now");
                     break;
+                }
+
+                if (NewItemRequiresFullReFetch)
+                {
+                    Console.WriteLine("Doing a full re-fetch of data because a new item was added (and our data " +
+                        "type doesn't support adding single new items correctly)");
+                    WantsToFetchDataAgain = true;
+                    break;
+                }
+
+                // If receiving a notification about a new item with 0 ID, fix that
+                if (notification is { Type: ListItemChangeType.ItemAdded, Item.Id: 0 })
+                {
+                    // TODO: come up with a better solution than this workaround
+                    // TODO: https://github.com/Revolutionary-Games/RevolutionaryWebApp/issues/1137
+                    if (notification.Item is ClientSideModel clientSideModel && Data is IEnumerable enumerableData)
+                    {
+                        long maxId = -1;
+
+                        foreach (var item in enumerableData)
+                        {
+                            if (item is IIdentifiable identifiable)
+                                maxId = Math.Max(maxId, identifiable.Id);
+                        }
+
+                        if (maxId > 0)
+                        {
+                            Console.WriteLine("Fixing 0 ID item in new item notification to be the a higher ID");
+
+                            // Multiply by 10 here to add a 0 suffix to the predicted number, and this should hopefully
+                            // not conflict,
+                            // which would in the worst case allow the user to replace server data unexpectedly
+                            clientSideModel.Id = (maxId + 1) * 10;
+                        }
+                    }
                 }
 
                 await SingleItemAddReceived(notification.Item);
