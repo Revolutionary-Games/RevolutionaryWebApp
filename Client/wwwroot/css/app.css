@@ -386,10 +386,15 @@ table.non-fixed {
     font-size: 1.5rem;
     text-decoration: none;
     color: white;
+    text-transform: uppercase;
 }
 
 .main-bar-nav-link:hover {
     color: #6ACDEB;
+}
+
+.current-active-page {
+    color: #ACACAC !important;
 }
 
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */

@@ -50,7 +50,16 @@
                         @foreach (RenderingLayoutPart navItem in ViewBag.TopNav)
                         {
                             <span class="mx-3 p-1">
-                                <a class="main-bar-nav-link" href="@navItem.LinkTarget">@navItem.AltText</a>
+                                @if (navItem.Active)
+                                {
+                                    <a class="main-bar-nav-link current-active-page" href="@navItem.LinkTarget" aria-current="page">
+                                        @navItem.AltText
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="main-bar-nav-link" href="@navItem.LinkTarget">@navItem.AltText</a>
+                                }
                             </span>
                         }
                     </div>

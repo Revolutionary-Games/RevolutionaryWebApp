@@ -79,9 +79,23 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
     public RenderingLayoutPart GetRenderingData(string activeLink, IMediaLinkConverter linkConverter)
     {
         bool isPageLink = LinkTarget.StartsWith("page:");
+        string linkTarget;
 
-        return new RenderingLayoutPart(
-            isPageLink ? $"{linkConverter.GetInternalPageLinkPrefix()}/{LinkTarget}" : LinkTarget, AltText)
+        if (isPageLink)
+        {
+            var permalink = LinkTarget.Substring(5);
+
+            if (permalink == AppInfo.IndexPermalinkName)
+                permalink = string.Empty;
+
+            linkTarget = $"{linkConverter.GetInternalPageLinkPrefix()}/{permalink}";
+        }
+        else
+        {
+            linkTarget = LinkTarget;
+        }
+
+        return new RenderingLayoutPart(linkTarget, AltText)
         {
             Active = isPageLink && LinkTarget.EndsWith(activeLink),
 
