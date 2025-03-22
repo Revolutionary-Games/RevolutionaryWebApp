@@ -187,7 +187,7 @@
 
                                     <Button ButtonStyle="primary" class="btn-sm ms-1"
                                             OnPressed="@(() => CopyMarkdown(item))">
-                                        @if (!markDownCopied.TryGetValue(item.Id, out var value) || !value)
+                                        @if (markdownCopied != item.Id)
                                         {
                                             <span>Copy Markdown</span>
                                         }
@@ -201,6 +201,18 @@
                                 @if (item.Processed)
                                 {
                                     <td class="@itemClass">@item.Id</td>
+
+                                    <Button ButtonStyle="primary" class="btn-sm ms-1"
+                                            OnPressed="@(() => CopyGuid(item))">
+                                        @if (guidCopied != item.Id)
+                                        {
+                                            <span>UUID</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Copied</span>
+                                        }
+                                    </Button>
                                 }
                                 else
                                 {
@@ -411,7 +423,7 @@
     private readonly List<string> uploadErrors = new();
     private readonly List<IBrowserFile> filesToBeUploaded = new();
 
-    private readonly Dictionary<long, bool> markDownCopied = new();
+
 
     private bool folderPathParsed;
 
@@ -447,9 +459,12 @@
     private string? currentFileUploadMessage;
 
     /// <summary>
-    ///   If true uploading is in progress, and new uploads can't start
+    ///   If true, uploading is in progress, and new uploads can't start
     /// </summary>
     private bool uploading;
+
+    private long markdownCopied = -1;
+    private long guidCopied = -1;
 
     private bool registered;
 
@@ -1046,12 +1061,25 @@
 
     private async Task CopyMarkdown(MediaBrowserEntry item)
     {
-        markDownCopied[item.Id] = false;
+        markdownCopied = -1;
+        guidCopied = -1;
         await InvokeAsync(StateHasChanged);
 
         await Clipboard.SetTextAsync(item.GetMarkdown());
 
-        markDownCopied[item.Id] = true;
+        markdownCopied = item.Id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CopyGuid(MediaBrowserEntry item)
+    {
+        markdownCopied = -1;
+        guidCopied = -1;
+        await InvokeAsync(StateHasChanged);
+
+        await Clipboard.SetTextAsync(item.GlobalId.ToString());
+
+        guidCopied = item.Id;
         await InvokeAsync(StateHasChanged);
     }
 
