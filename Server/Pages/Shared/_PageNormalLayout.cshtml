@@ -37,17 +37,16 @@
         <article class="content px-4 container">
             @if (ViewBag.ShowLogo == true)
             {
-                @* TODO: put to proper media storage *@
                 <div class="row thrive-logo-container">
                     <img class="thrive-logo" alt="Revolutionary Games Logo"
-                         src="https://revolutionarygamesstudio.com/wp-content/uploads/2016/03/Header-3.png"/>
+                         src="https://thrive-media.b-cdn.net/d8b0d013-99eb-4df5-825c-a60eecf959df/Header-3.png"/>
                 </div>
             }
             <div class="row">
                 Top bar nav links here
             </div>
-            <div class="row gx-4">
-                <div class="col-md-8 main-page">
+            <div class="row gx-5">
+                <div class="col-md-8 main-page pt-4">
                     @if (ViewBag.Title != null)
                     {
                         <h1>@ViewData["Title"]</h1>
