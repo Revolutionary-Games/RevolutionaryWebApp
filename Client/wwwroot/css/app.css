@@ -362,8 +362,7 @@ table.non-fixed {
 .main-site {
     color: #dedede;
     background-color: black;
-    /* TODO: switch to this project assets */
-    background-image: url("https://revolutionarygamesstudio.com/wp-content/uploads/2014/12/Planet-1.jpg");
+    background-image: url("https://thrive-media.b-cdn.net/cc49a24f-9f52-40fd-9b92-ec28a86086aa/Planet-1.jpg");
     background-repeat: no-repeat;
     background-size: 100% auto;
     min-height: 100vh;
@@ -380,6 +379,17 @@ table.non-fixed {
     font-size: small;
     margin: 10px 5px 10px 5px;
     text-shadow: black 1px 1px;
+}
+
+/* Main site nav link bars */
+.main-bar-nav-link {
+    font-size: 1.5rem;
+    text-decoration: none;
+    color: white;
+}
+
+.main-bar-nav-link:hover {
+    color: #6ACDEB;
 }
 
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */
