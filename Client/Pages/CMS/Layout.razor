@@ -507,7 +507,7 @@
             var permalink = itemLinkTarget.Substring("page:".Length);
 
             // Special case for home page
-            if (permalink == "index")
+            if (permalink == AppInfo.IndexPermalinkName)
                 permalink = string.Empty;
 
             // This component should only be visible from the "backend" version of the site, so we can just assume

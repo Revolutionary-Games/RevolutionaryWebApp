@@ -1,6 +1,7 @@
 ﻿namespace RevolutionaryWebApp.Server.Services;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -15,6 +16,7 @@ using Controllers.Pages;
 using Microsoft.Extensions.Configuration;
 using Models.Pages;
 using Shared;
+using Shared.Models.Pages;
 using Shared.Services;
 using SharedBase.Utilities;
 
@@ -23,9 +25,10 @@ public interface IPageRenderer
     internal const string NotFoundPageTitle = "404 - Not Found";
     internal const string NotFoundPageText = "<p>No page exists at this address, please double check the link</p>";
 
-    public ValueTask<RenderedPage> RenderPage(VersionedPage page, bool renderOpenGraphMeta, Stopwatch totalTimer);
+    public ValueTask<RenderedPage> RenderPage(VersionedPage page, List<SiteLayoutPart> layoutParts,
+        bool renderOpenGraphMeta, Stopwatch totalTimer);
 
-    public RenderedPage RenderNotFoundPage(Stopwatch totalTimer);
+    public RenderedPage RenderNotFoundPage(List<SiteLayoutPart> layoutParts, Stopwatch totalTimer);
 
     /// <summary>
     ///   Creates a rendered preview of a page
@@ -47,6 +50,7 @@ public interface IPageRenderer
 public class PageRenderer : IPageRenderer
 {
     private readonly MarkdownService markdownService;
+    private readonly IMediaLinkConverter linkConverter;
     private readonly string? serverName;
 
     private readonly HtmlParser htmlParser = new();
@@ -55,15 +59,18 @@ public class PageRenderer : IPageRenderer
     // TODO: is this safe to have as a shared variable? (this is a singleton service)
     private readonly IElement partialFragmentContext;
 
-    public PageRenderer(IConfiguration configuration, MarkdownService markdownService)
+    public PageRenderer(IConfiguration configuration, MarkdownService markdownService,
+        IMediaLinkConverter linkConverter)
     {
         this.markdownService = markdownService;
+        this.linkConverter = linkConverter;
         serverName = configuration["ServerName"];
 
         partialFragmentContext = htmlParser.ParseDocument(string.Empty).DocumentElement;
     }
 
-    public ValueTask<RenderedPage> RenderPage(VersionedPage page, bool renderOpenGraphMeta, Stopwatch totalTimer)
+    public ValueTask<RenderedPage> RenderPage(VersionedPage page, List<SiteLayoutPart> layoutParts,
+        bool renderOpenGraphMeta, Stopwatch totalTimer)
     {
         // TODO: handle storage access links etc. this will need async
 
@@ -71,7 +78,7 @@ public class PageRenderer : IPageRenderer
 
         // TODO: Youtube? and other special bbcode stuff
 
-        // TODO: post processing? (stuff like rel no follow)
+        // TODO: post processing? (stuff like rel no follow for normal user-specified content)
 
         string? description = null;
         string? image = null;
@@ -80,6 +87,9 @@ public class PageRenderer : IPageRenderer
             (description, image) = RenderOpenGraphMetaDescription(rendered);
         }
 
+        // Fallback to the title here should only happen when previewing
+        var (sidebar, topNav) = ProcessLayoutParts(layoutParts, page.Permalink ?? page.Title);
+
         var result = new RenderedPage(page.Title, rendered, page.UpdatedAt, totalTimer.Elapsed)
         {
             // TODO: control heading option in the versioned page
@@ -87,6 +97,9 @@ public class PageRenderer : IPageRenderer
 
             // TODO: add option for this as well in the page
             ShowLogo = page.Permalink == AppInfo.IndexPermalinkName,
+
+            TopNavigation = topNav,
+            Sidebar = sidebar,
         };
 
         if (!string.IsNullOrEmpty(serverName))
@@ -103,8 +116,7 @@ public class PageRenderer : IPageRenderer
         return ValueTask.FromResult(result);
     }
 
-    public (string Rendered, string? PreviewImage) RenderPreview(
-        VersionedPage page,
+    public (string Rendered, string? PreviewImage) RenderPreview(VersionedPage page,
         string? readMoreLink,
         int targetMaxLength)
     {
@@ -167,16 +179,20 @@ public class PageRenderer : IPageRenderer
         return (stringBuilder.ToString(), previewImage);
     }
 
-    public RenderedPage RenderNotFoundPage(Stopwatch totalTimer)
+    public RenderedPage RenderNotFoundPage(List<SiteLayoutPart> layoutParts, Stopwatch totalTimer)
     {
-        var result = new RenderedPage(
-            IPageRenderer.NotFoundPageTitle,
+        var (sidebar, topNav) = ProcessLayoutParts(layoutParts, "NOT FOUND");
+
+        var result = new RenderedPage(IPageRenderer.NotFoundPageTitle,
             IPageRenderer.NotFoundPageText,
             DateTime.UtcNow,
             totalTimer.Elapsed)
         {
             ShowHeading = true,
             ShowLogo = true,
+
+            Sidebar = sidebar,
+            TopNavigation = topNav,
         };
 
         if (!string.IsNullOrEmpty(serverName))
@@ -212,12 +228,38 @@ public class PageRenderer : IPageRenderer
         return false;
     }
 
+    private (List<RenderingLayoutPart>? Sidebar, List<RenderingLayoutPart>? TopNavigation) ProcessLayoutParts(
+        List<SiteLayoutPart> layoutParts, string activeLink)
+    {
+        List<RenderingLayoutPart>? top = null;
+        List<RenderingLayoutPart>? side = null;
+
+        foreach (var layoutPart in layoutParts)
+        {
+            switch (layoutPart.PartType)
+            {
+                case SiteLayoutPartType.TopLink:
+                    top ??= new List<RenderingLayoutPart>();
+                    top.Add(layoutPart.GetRenderingData(activeLink, linkConverter));
+                    break;
+                case SiteLayoutPartType.Sidebar:
+                    side ??= new List<RenderingLayoutPart>();
+                    side.Add(layoutPart.GetRenderingData(activeLink, linkConverter));
+                    break;
+                case SiteLayoutPartType.SmallSocialsBar:
+                    // TODO: handling for this
+                    break;
+            }
+        }
+
+        return (side, top);
+    }
+
     /// <summary>
-    ///   Creates an opengraph meta tag description for a page (the page needs to be rendered first)
+    ///   Creates an opengraph meta-tag description for a page (the page needs to be rendered first)
     /// </summary>
-    /// <returns>Opengraph meta information</returns>
-    private (string Description, string? PreviewImage) RenderOpenGraphMetaDescription(
-        string rendered,
+    /// <returns>Opengraph meta-information</returns>
+    private (string Description, string? PreviewImage) RenderOpenGraphMetaDescription(string rendered,
         int maxLength = 155)
     {
         // TODO: skipping youtube and bigger elements would be really nice to skip text from them leaking into the

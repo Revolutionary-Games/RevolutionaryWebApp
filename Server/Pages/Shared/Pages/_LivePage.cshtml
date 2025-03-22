@@ -22,6 +22,9 @@
 
     ViewData["AssetsBase"] = Configuration.GetCDNPrefixWWW();
 
+    ViewData["TopNav"] = Model.TopNavigation;
+    ViewData["Sidebar"] = Model.Sidebar;
+
     // Opengraph metadata
     // https://ahrefs.com/blog/open-graph-meta-tags/
     ViewData["OpenGraphDescription"] = Model.OpenGraphMetaDescription;

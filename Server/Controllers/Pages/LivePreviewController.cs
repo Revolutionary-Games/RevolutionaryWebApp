@@ -41,7 +41,9 @@ public class LivePreviewController : Controller
             return BadRequest("Type of page is not compatible with this preview");
         }
 
-        var rendered = await pageRenderer.RenderPage(page, false, timer);
+        var parts = await LiveController.GetSiteLayoutParts(database, page.Type);
+
+        var rendered = await pageRenderer.RenderPage(page, parts, false, timer);
 
         return View("Pages/_PagePreview", rendered);
     }

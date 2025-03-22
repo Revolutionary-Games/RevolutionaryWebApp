@@ -1,6 +1,8 @@
 namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System;
+using System.Collections.Generic;
+using Models.Pages;
 
 public class RenderedPage
 {
@@ -33,6 +35,11 @@ public class RenderedPage
     public DateTime RenderedAt { get; set; } = DateTime.UtcNow;
 
     public string? CanonicalUrl { get; set; }
+
+    // Navigation and sidebar
+    public List<RenderingLayoutPart>? TopNavigation { get; set; }
+
+    public List<RenderingLayoutPart>? Sidebar { get; set; }
 
     // Opengraph info
     public string? OpenGraphMetaDescription { get; set; }

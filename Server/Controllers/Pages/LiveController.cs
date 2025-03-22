@@ -1,8 +1,10 @@
 namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
@@ -11,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Models;
+using Models.Pages;
 using Services;
 using Shared;
 using Shared.Models.Pages;
@@ -32,6 +35,14 @@ public class LiveController : Controller
         this.pageRenderer = pageRenderer;
 
         liveCDNBase = configuration.GetLiveWWWBaseUrl();
+    }
+
+    [NonAction]
+    public static async Task<List<SiteLayoutPart>> GetSiteLayoutParts(ApplicationDbContext database, PageType pageType)
+    {
+        // TODO: wiki handling
+
+        return await database.SiteLayoutParts.AsNoTracking().Where(l => l.Enabled).OrderBy(l => l.Order).ToListAsync();
     }
 
     [HttpGet("{*permalink}")]
@@ -76,10 +87,12 @@ public class LiveController : Controller
                 return NotFound("Site resources should not be attempted to be fetched from this URL");
             }
 
-            // For normal missing page, render a not found page
+            var parts = await GetSiteLayoutParts(database, PageType.Post);
+
+            // For a normal missing page, render a not found page
             HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
 
-            return View("Pages/_LivePage", pageRenderer.RenderNotFoundPage(timer));
+            return View("Pages/_LivePage", pageRenderer.RenderNotFoundPage(parts, timer));
         }
 
         // TODO: try to find in redis and only render if not rendered in the past 15 minutes (note when added page
@@ -106,7 +119,9 @@ public class LiveController : Controller
             canonicalUrl = new Uri(liveCDNBase, permalink).ToString();
         }
 
-        var rendered = await pageRenderer.RenderPage(page, true, timer);
+        var realPageParts = await GetSiteLayoutParts(database, page.Type);
+
+        var rendered = await pageRenderer.RenderPage(page, realPageParts, true, timer);
 
         rendered.CanonicalUrl = canonicalUrl;
 

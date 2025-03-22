@@ -1,4 +1,5 @@
 @using System.Globalization
+@using RevolutionaryWebApp.Server.Models.Pages
 <!DOCTYPE html>
 <html lang="en">
 
@@ -42,9 +43,17 @@
                          src="https://thrive-media.b-cdn.net/d8b0d013-99eb-4df5-825c-a60eecf959df/Header-3.png"/>
                 </div>
             }
-            <div class="row">
-                Top bar nav links here
-            </div>
+            @if (ViewBag.TopNav != null)
+            {
+                <div class="row">
+                    <ul>
+                        @foreach (RenderingLayoutPart navItem in ViewBag.TopNav)
+                        {
+                            <li>@navItem.AltText</li>
+                        }
+                    </ul>
+                </div>
+            }
             <div class="row gx-5">
                 <div class="col-md-8 main-page pt-4">
                     @if (ViewBag.Title != null)
@@ -56,7 +65,17 @@
                     @RenderBody()
                 </div>
                 <div class="col-md-4">
-                    <p>Sidebar</p>
+                    @if (ViewBag.Sidebar != null)
+                    {
+                        @foreach (RenderingLayoutPart navItem in ViewBag.Sidebar)
+                        {
+                            <div class="main-site-sidebar-item py-1">@navItem.AltText</div>
+                        }
+                    }
+                    else
+                    {
+                        <p>Sidebar is not configured</p>
+                    }
                 </div>
             </div>
             <div class="row rendered-by">
