@@ -87,7 +87,9 @@
                                 </div>
                             }
                         </td>
-                        <td><a href="@item.LinkTarget" target="_blank">@item.LinkTarget.Truncate()</a></td>
+                        <td>
+                            <a href="@ResolveTarget(item.LinkTarget)" target="_blank">@item.LinkTarget.Truncate()</a>
+                        </td>
                         <td>@item.AltText.Truncate()</td>
                         <td>
                             <a href="@($"api/v1/MediaFile/{item.ImageId}/redirectToFolder")" target="_blank">
@@ -115,31 +117,36 @@
                             <td colspan="@columns.Count" class="mb-2 expanded-box">
                                 <form class="d-flex flex-row align-items-center me-2">
 
-                                    <p>TODO: implement editing</p>
-
-                                    @*<label class="form-label" for="@($"conditionEdit{item.Id}")">Condition:</label>
-                                    <select class="form-select ms-1 me-2" @bind="item.Condition"
-                                            id="@($"conditionEdit{item.Id}")">
-                                        @foreach (var name in Enum.GetNames<AutoCommentCondition>())
+                                    <label class="form-label" for="@($"partTypeEdit{item.Id}")">Part Type:</label>
+                                    <select class="form-select ms-1 me-2" @bind="item.PartType"
+                                            id="@($"partTypeEdit{item.Id}")">
+                                        @foreach (var name in Enum.GetNames<SiteLayoutPartType>())
                                         {
                                             <option value="@name">@name</option>
                                         }
                                     </select>
 
-                                    <label class="form-label" for="@($"repositoryEdit{item.Id}")">Repo:</label>
+                                    <label class="form-label" for="@($"linkTargetEdit{item.Id}")">Link Target:</label>
                                     <input type="text" class="form-control ms-1 me-2"
-                                           id="@($"repositoryEdit{item.Id}")" @bind="item.Repository">
+                                           id="@($"linkTargetEdit{item.Id}")" @bind="item.LinkTarget">
 
-                                    <label class="form-label" for="@($"commentTextEdit{item.Id}")">Text:</label>
-                                    <textarea class="form-control ms-1 me-3" id="@($"commentTextEdit{item.Id}")"
-                                              @bind="item.CommentText"></textarea>
+                                    <label class="form-label" for="@($"altTextEdit{item.Id}")">Alt Text:</label>
+                                    <input type="text" class="form-control ms-1 me-2"
+                                           id="@($"altTextEdit{item.Id}")" @bind="item.AltText">
 
-                                    $1$ TODO: implement form error checking here #1#
-                                    <Button class="mb-2" type="submit" ButtonStyle="primary"
+                                    <label class="form-label" for="@($"imageIdEdit{item.Id}")">Image ID:</label>
+                                    <input type="text" class="form-control ms-1 me-2"
+                                           id="@($"imageIdEdit{item.Id}")" @bind="item.ImageId">
+
+                                    <label class="form-label" for="@($"orderEdit{item.Id}")">Order:</label>
+                                    <input type="number" class="form-control ms-1 me-2"
+                                           id="@($"orderEdit{item.Id}")" @bind="item.Order">
+
+                                    <Button class="mb-2 mt-2" type="submit" ButtonStyle="primary"
                                             Enabled="@true" OnPressed="@(() => UpdateItem(item))"
                                             Spinner="@status.Processing">
                                         Save
-                                    </Button>*@
+                                    </Button>
                                 </form>
                                 @if (status.Processing)
                                 {
@@ -444,12 +451,71 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private async Task UpdateItem(SiteLayoutPartDTO part)
+    {
+        var status = resourceStatus.GetStatus(part.Id);
+
+        status.Processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PutAsJsonAsync($"api/v1/SiteLayout/{part.Id}", part);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Site part updated";
+            statusMessageType = SiteNoticeType.Primary;
+            status.Expanded = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
     private class ResourceStatus : ExpandableResourceStatus
     {
         /// <summary>
         ///   Used to remember here on the client side the latest checkbox status
         /// </summary>
         public bool? ClientSideEnable { get; set; }
+    }
+
+    private string ResolveTarget(string itemLinkTarget)
+    {
+        if (itemLinkTarget.StartsWith("page:"))
+        {
+            // Resolve the page link
+            var permalink = itemLinkTarget.Substring("page:".Length);
+
+            // Special case for home page
+            if (permalink == "index")
+                permalink = string.Empty;
+
+            // This component should only be visible from the "backend" version of the site, so we can just assume
+            // a prefix like this
+            return $"/live/{permalink}";
+        }
+
+        return itemLinkTarget;
     }
 
 }

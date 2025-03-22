@@ -254,7 +254,11 @@ public class SiteLayoutController : Controller
         if (link.StartsWith("http://") || link.StartsWith("https://"))
             return true;
 
-        // TODO: implement linking to internal pages
+        // Internal page link
+        if (link.StartsWith("page:") && !link.Contains(' '))
+            return true;
+
+        // TODO: other page categories
 
         return false;
     }
