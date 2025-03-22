@@ -364,7 +364,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 
         // Can now start a new fetch
 
-        // First disable this timer
+        // First, disable this timer
         fetchStartTimer.Enabled = false;
 
         // Then start the fetch
