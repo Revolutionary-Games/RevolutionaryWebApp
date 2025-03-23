@@ -517,6 +517,15 @@ div.main-site-sidebar-item {
     background-color: #3e8e41;
 }
 
+.open-youtube {
+    text-decoration: none;
+    text-align: center;
+}
+
+.open-youtube:hover {
+    color: white;
+}
+
 .youtube-embed-container {
     position: relative;
     padding-bottom: 56.25%; /* 16:9 aspect ratio */
