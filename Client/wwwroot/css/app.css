@@ -369,7 +369,7 @@ table.non-fixed {
 }
 
 .main-page {
-    background-color: rgba(43,43,43,0.9);
+    background-color: rgba(43, 43, 43, 0.9);
     padding-top: 15px;
     border-radius: 3px;
 }
@@ -409,7 +409,7 @@ div.main-site-sidebar-item {
 }
 
 .main-site-sidebar-item a {
-    color:#6ACDEB;
+    color: #6ACDEB;
     text-decoration: none;
 }
 
@@ -428,6 +428,114 @@ div.main-site-sidebar-item {
     .top-social-links {
         display: none;
     }
+}
+
+/* Youtube link support */
+.youtube-placeholder {
+    max-width: 640px;
+    margin: 0 auto;
+    background-color: black;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.youtube-placeholder-below {
+    margin-bottom: 8px;
+}
+
+.thumbnail-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    cursor: pointer;
+}
+
+.youtube-thumbnail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.play-button-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.9;
+    transition: opacity 0.3s;
+}
+
+.thumbnail-container:hover .play-button-overlay {
+    opacity: 1;
+}
+
+.youtube-controls {
+    background-color: rgba(73, 73, 73);
+    padding: 10px;
+}
+
+.controls-row {
+    display: flex;
+    margin-bottom: 10px;
+    justify-content: space-around;
+}
+
+.controls-row:last-child {
+    margin-bottom: 0;
+}
+
+.youtube-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background-color: #ff0000;
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.3s;
+    flex-grow: 1;
+    margin: 0 5px;
+}
+
+.youtube-btn:hover {
+    background-color: #cc0000;
+}
+
+.accept-cookies {
+    background-color: #4CAF50;
+    width: 65%;
+}
+
+.accept-cookies:hover {
+    background-color: #3e8e41;
+}
+
+.youtube-embed-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+}
+
+.youtube-embed-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.css-play-button {
+    width: 68px;
+    height: 48px;
+    position: relative;
+    background-color: #f00;
+    border-radius: 10px;
+    content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='48' viewBox='0 0 68 48'%3E%3Cpath class='play-button-bg' d='M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z' fill='%23f00'%3E%3C/path%3E%3Cpath d='M 45,24 27,14 27,34' fill='%23fff'%3E%3C/path%3E%3C/svg%3E");
 }
 
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */
