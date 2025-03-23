@@ -118,6 +118,10 @@ public class ImageGeneratorController : Controller
         var backgroundColor = ColourHelpers.GenerateBackgroundColor(name);
 
         // Cache key that *may* be shared with multiple names, though not the most likely
+
+        // TODO: it is probably actually pretty useless to cache avatars in redis as they are small and it seems
+        // like OutputCache is caching these itself?
+
         var key = new RedisKey("ImageGenerator:LetterAvatar:" + initials + ":" + backgroundColor.ToHex());
         var cacheDatabase = cache.GetDatabase();
         var value = await cacheDatabase.StringGetAsync(key);
