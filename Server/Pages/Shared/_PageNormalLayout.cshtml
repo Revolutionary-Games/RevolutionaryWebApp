@@ -37,6 +37,16 @@
 <div class="page main-site">
     <main>
         <article class="content px-4 container">
+            @if (ViewBag.Socials != null)
+            {
+                <div class="top-social-links">
+                    @foreach (RenderingLayoutPart navItem in ViewBag.Socials)
+                    {
+                        @await Html.PartialAsync("Components/_SocialsItem", navItem)
+                    }
+                </div>
+            }
+
             @if (ViewBag.ShowLogo == true)
             {
                 <div class="row thrive-logo-container">
@@ -125,6 +135,16 @@
                                     </li>
                                 }
                             </ul>
+                        }
+
+                        @if (ViewBag.Socials != null)
+                        {
+                            <div class="socials-sidebar-links">
+                                @foreach (RenderingLayoutPart navItem in ViewBag.Socials)
+                                {
+                                    @await Html.PartialAsync("Components/_SocialsItem", navItem)
+                                }
+                            </div>
                         }
                     }
                     else

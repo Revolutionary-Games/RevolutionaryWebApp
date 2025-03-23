@@ -81,6 +81,15 @@ public class SiteLayoutController : Controller
             };
         }
 
+        // When creating social links, various settings are unsupported
+        if (request.PartType == SiteLayoutPartType.SmallSocialsBar)
+        {
+            request.DisplayMode = LayoutPartDisplayMode.Normal;
+
+            if (string.IsNullOrEmpty(request.LinkTarget))
+                return BadRequest("Link target is required for social links");
+        }
+
         var siteLayoutPart = new SiteLayoutPart(request.LinkTarget, request.AltText, request.PartType)
         {
             Enabled = request.Enabled,

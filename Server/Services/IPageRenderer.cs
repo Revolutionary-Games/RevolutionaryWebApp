@@ -88,7 +88,7 @@ public class PageRenderer : IPageRenderer
         }
 
         // Fallback to the title here should only happen when previewing
-        var (sidebar, topNav) = ProcessLayoutParts(layoutParts, page.Permalink ?? page.Title);
+        var (sidebar, topNav, socials) = ProcessLayoutParts(layoutParts, page.Permalink ?? page.Title);
 
         var result = new RenderedPage(page.Title, rendered, page.UpdatedAt, totalTimer.Elapsed)
         {
@@ -100,6 +100,7 @@ public class PageRenderer : IPageRenderer
 
             TopNavigation = topNav,
             Sidebar = sidebar,
+            Socials = socials,
         };
 
         if (!string.IsNullOrEmpty(serverName))
@@ -181,7 +182,7 @@ public class PageRenderer : IPageRenderer
 
     public RenderedPage RenderNotFoundPage(List<SiteLayoutPart> layoutParts, Stopwatch totalTimer)
     {
-        var (sidebar, topNav) = ProcessLayoutParts(layoutParts, "NOT FOUND");
+        var (sidebar, topNav, socials) = ProcessLayoutParts(layoutParts, "NOT FOUND");
 
         var result = new RenderedPage(IPageRenderer.NotFoundPageTitle,
             IPageRenderer.NotFoundPageText,
@@ -193,6 +194,7 @@ public class PageRenderer : IPageRenderer
 
             Sidebar = sidebar,
             TopNavigation = topNav,
+            Socials = socials,
         };
 
         if (!string.IsNullOrEmpty(serverName))
@@ -228,11 +230,12 @@ public class PageRenderer : IPageRenderer
         return false;
     }
 
-    private (List<RenderingLayoutPart>? Sidebar, List<RenderingLayoutPart>? TopNavigation) ProcessLayoutParts(
-        List<SiteLayoutPart> layoutParts, string activeLink)
+    private (List<RenderingLayoutPart>? Sidebar, List<RenderingLayoutPart>? TopNavigation, List<RenderingLayoutPart>?
+        Socials) ProcessLayoutParts(List<SiteLayoutPart> layoutParts, string activeLink)
     {
         List<RenderingLayoutPart>? top = null;
         List<RenderingLayoutPart>? side = null;
+        List<RenderingLayoutPart>? socials = null;
 
         foreach (var layoutPart in layoutParts)
         {
@@ -247,12 +250,13 @@ public class PageRenderer : IPageRenderer
                     side.Add(layoutPart.GetRenderingData(activeLink, linkConverter));
                     break;
                 case SiteLayoutPartType.SmallSocialsBar:
-                    // TODO: handling for this
+                    socials ??= new List<RenderingLayoutPart>();
+                    socials.Add(layoutPart.GetRenderingData(activeLink, linkConverter));
                     break;
             }
         }
 
-        return (side, top);
+        return (side, top, socials);
     }
 
     /// <summary>

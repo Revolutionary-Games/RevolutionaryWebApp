@@ -41,6 +41,8 @@ public class RenderedPage
 
     public List<RenderingLayoutPart>? Sidebar { get; set; }
 
+    public List<RenderingLayoutPart>? Socials { get; set; }
+
     // Opengraph info
     public string? OpenGraphMetaDescription { get; set; }
     public string? PreviewImage { get; set; }

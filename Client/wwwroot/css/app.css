@@ -417,6 +417,19 @@ div.main-site-sidebar-item {
     color: #56A7BF;
 }
 
+.top-social-links {
+    position: relative;
+    top: 5px;
+    left: 0;
+    z-index: 1;
+}
+
+@media (max-width: 779px) {
+    .top-social-links {
+        display: none;
+    }
+}
+
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */
 /* https://github.com/villainoustourist/Blazor.Pagination/issues/11 */
 .sr-only {
