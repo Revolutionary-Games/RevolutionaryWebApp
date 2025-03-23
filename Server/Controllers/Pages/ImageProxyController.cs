@@ -1,7 +1,9 @@
 namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System;
+using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
@@ -49,7 +51,8 @@ public class ImageProxyController : Controller
                 return Problem("Could not retrieve image from YouTube");
             }
 
-            return File(data, "image/jpeg");
+            var stream = new MemoryStream(Encoding.ASCII.GetBytes(data));
+            return File(stream, "image/jpeg");
         }
 
         var url = string.Format(YoutubeImageUrl, id);

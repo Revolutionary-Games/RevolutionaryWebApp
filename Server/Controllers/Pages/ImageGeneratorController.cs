@@ -2,6 +2,8 @@ namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System;
 using System.Globalization;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -64,8 +66,10 @@ public class ImageGeneratorController : Controller
                 return NotFound();
             }
 
+            var stream = new MemoryStream(Encoding.ASCII.GetBytes(value.ToString()));
+
             Response.Headers.CacheControl = new StringValues($"public, max-age={ProgressUpdateBannerCacheTime}");
-            return File(value.ToString(), "image/webp");
+            return File(stream, "image/webp");
         }
 
         // Ensure the image is asked for a valid date so that we aren't infinitely generating all the different
@@ -121,7 +125,8 @@ public class ImageGeneratorController : Controller
         if (!value.IsNullOrEmpty)
         {
             Response.Headers.CacheControl = new StringValues($"public, max-age={AvatarCacheTime}");
-            return File(value.ToString(), "image/webp");
+            var stream = new MemoryStream(Encoding.ASCII.GetBytes(value.ToString()));
+            return File(stream, "image/webp");
         }
 
         // Not cached, so we need to generate a new one
