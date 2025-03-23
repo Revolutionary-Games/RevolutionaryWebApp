@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AngleSharp.Io;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -31,7 +32,7 @@ public class FeedController : Controller
 
     // Redirect some common things feed's readers might attempt to access
     [HttpGet]
-    [ResponseCache(Duration = 500)]
+    [OutputCache(Duration = 500)]
     public IActionResult Get()
     {
         return Redirect(configuration.GetBaseUrl().ToString());
@@ -39,7 +40,7 @@ public class FeedController : Controller
 
     [HttpGet("favicon.png")]
     [HttpGet("favicon.ico")]
-    [ResponseCache(Duration = 500)]
+    [OutputCache(Duration = 500)]
     public IActionResult GetFavicon()
     {
         return Redirect(new Uri(configuration.GetBaseUrl(), "/favicon.png").ToString());

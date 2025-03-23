@@ -12,6 +12,7 @@ using Authorization;
 using BlazorPagination;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,7 @@ public class ReleaseStatsController : Controller
     }
 
     [HttpGet]
-    [ResponseCache(Duration = 900)]
+    [OutputCache(Duration = 900)]
     public async Task<ActionResult<List<RepoReleaseStats>>> Get()
     {
         var configs = await database.ReposForReleaseStats.AsNoTracking().OrderBy(r => r.QualifiedName)
@@ -64,7 +65,7 @@ public class ReleaseStatsController : Controller
     }
 
     [HttpGet("{name}")]
-    [ResponseCache(Duration = 900, VaryByQueryKeys = new[] { "name" })]
+    [OutputCache(Duration = 900, VaryByRouteValueNames = new[] { "name" })]
     public async Task<ActionResult<RepoReleaseStats>> GetSingle([Required] string name)
     {
         name = name.Replace(":", "/");

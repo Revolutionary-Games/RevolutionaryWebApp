@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Models;
@@ -43,7 +44,7 @@ public class PostFeedController : Controller
     // The plain "HttpGet" defines which is the default feed format
 
     [HttpGet("rss.xml")]
-    [ResponseCache(Duration = 900)]
+    [OutputCache(Duration = 900)]
     public async Task<IActionResult> GetRss()
     {
         var feed = await GenerateFeed();
@@ -70,7 +71,7 @@ public class PostFeedController : Controller
 
     [HttpGet]
     [HttpGet("atom.xml")]
-    [ResponseCache(Duration = 900)]
+    [OutputCache(Duration = 900)]
     public async Task<IActionResult> GetAtom()
     {
         var feed = await GenerateFeed();

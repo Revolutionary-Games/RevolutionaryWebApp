@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using DevCenterCommunication.Utilities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -155,7 +156,7 @@ public class LauncherInfoController : Controller
     }
 
     [HttpGet]
-    [ResponseCache(Duration = 600)]
+    [OutputCache(Duration = 600)]
     public async Task<ActionResult<Stream>> GetInfoForLauncher()
     {
         var info = await GenerateLauncherInfoObject(database, configuration);

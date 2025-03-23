@@ -10,6 +10,7 @@ using BlazorPagination;
 using DevCenterCommunication.Models;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -37,7 +38,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpGet]
-    [ResponseCache(Duration = 300)]
+    [OutputCache(Duration = 300)]
     public async Task<ActionResult<DevBuildsStatisticsDTO>> Get()
     {
         var buildsSize = await database.DevBuilds.Include(b => b.StorageItem).SumAsync(b =>

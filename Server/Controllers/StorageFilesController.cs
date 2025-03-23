@@ -19,6 +19,7 @@ using Jobs;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -191,8 +192,8 @@ public class StorageFilesController : Controller
         return objects.ConvertResult(i => i.GetInfo());
     }
 
-    [ResponseCache(Duration = 1800)]
     [HttpGet("totalUsed")]
+    [OutputCache(Duration = 1800)]
     public async Task<StorageUsageStats> CalculateTotalStorage()
     {
         // Fetch the IDs for the DevBuild folders to ignore their sizes

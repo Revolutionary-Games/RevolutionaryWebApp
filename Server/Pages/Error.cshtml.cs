@@ -3,10 +3,11 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 
 #pragma warning disable SA1649
 
-[ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+[OutputCache(Duration = 0, NoStore = true)]
 [IgnoreAntiforgeryToken]
 public class
     ErrorModel : PageModel

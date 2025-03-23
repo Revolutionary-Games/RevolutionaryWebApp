@@ -32,6 +32,7 @@ using Models;
 using Modulight.Modules.Hosting;
 using Services;
 using Shared.Services;
+using SharedBase.Utilities;
 using StackExchange.Redis;
 using StardustDL.RazorComponents.Markdown;
 using Utilities;
@@ -127,7 +128,17 @@ public class Startup
         services.AddSingleton<IModelUpdateNotificationSender, ModelUpdateNotificationSender>();
 
         // Caching used for expensive API endpoints
-        services.AddResponseCaching(options => { options.UseCaseSensitivePaths = true; });
+        services.AddOutputCache(options =>
+        {
+            options.DefaultExpirationTimeSpan = TimeSpan.FromMinutes(5);
+
+            options.UseCaseSensitivePaths = true;
+            options.MaximumBodySize = GlobalConstants.MEBIBYTE * 4;
+
+            // TODO: policies?
+            options.AddPolicy("ShortLived", builder =>
+                builder.Expire(TimeSpan.FromSeconds(30)));
+        });
 
         services.AddControllersWithViews(options => { options.OutputFormatters.Add(new HtmlTextFormatter()); })
             .AddJsonOptions(_ =>
@@ -408,7 +419,7 @@ public class Startup
             app.UseStaticFiles();
         }
 
-        app.UseResponseCaching();
+        app.UseOutputCache();
 
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
