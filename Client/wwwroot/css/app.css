@@ -417,6 +417,10 @@ div.main-site-sidebar-item {
     color: #56A7BF;
 }
 
+.main-site-sidebar-item img {
+    width: 100%;
+}
+
 .top-social-links {
     position: relative;
     top: 5px;
