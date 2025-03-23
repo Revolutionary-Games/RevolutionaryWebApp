@@ -200,19 +200,19 @@
 
                                 @if (item.Processed)
                                 {
-                                    <td class="@itemClass">@item.Id</td>
-
-                                    <Button ButtonStyle="primary" class="btn-sm ms-1"
-                                            OnPressed="@(() => CopyGuid(item))">
-                                        @if (guidCopied != item.Id)
-                                        {
-                                            <span>UUID</span>
-                                        }
-                                        else
-                                        {
-                                            <span>Copied</span>
-                                        }
-                                    </Button>
+                                    <td class="@itemClass">
+                                        @item.Id <Button ButtonStyle="primary" class="btn-sm ms-1"
+                                                         OnPressed="@(() => CopyGuid(item))">
+                                            @if (guidCopied != item.Id)
+                                            {
+                                                <span>UUID</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Copied</span>
+                                            }
+                                        </Button>
+                                    </td>
                                 }
                                 else
                                 {
@@ -422,8 +422,6 @@
 
     private readonly List<string> uploadErrors = new();
     private readonly List<IBrowserFile> filesToBeUploaded = new();
-
-
 
     private bool folderPathParsed;
 
