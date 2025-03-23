@@ -4,4 +4,6 @@ public enum LayoutPartDisplayMode
 {
     Normal = 0,
     List,
+    Spacer,
+    Separator,
 }

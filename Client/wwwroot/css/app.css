@@ -409,12 +409,12 @@ div.main-site-sidebar-item {
 }
 
 .main-site-sidebar-item a {
-    color: #0366d6;
+    color:#6ACDEB;
     text-decoration: none;
 }
 
 .main-site-sidebar-item a:hover {
-    color: #6ACDEB;
+    color: #56A7BF;
 }
 
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */

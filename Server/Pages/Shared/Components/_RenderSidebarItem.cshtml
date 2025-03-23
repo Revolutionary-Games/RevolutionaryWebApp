@@ -1,0 +1,26 @@
+@model RevolutionaryWebApp.Server.Models.Pages.RenderingLayoutPart
+
+@if (Model.LinkTarget != null)
+{
+    <a href="@Model.LinkTarget">
+        @if (Model.Image != null)
+        {
+            <img src="@Model.Image" alt="@Model.AltText"/>
+        }
+        else
+        {
+            @Model.AltText
+        }
+    </a>
+}
+else
+{
+    @if (Model.Image != null)
+    {
+        <img src="@Model.Image" alt="@Model.AltText"/>
+    }
+    else
+    {
+        @Model.AltText
+    }
+}

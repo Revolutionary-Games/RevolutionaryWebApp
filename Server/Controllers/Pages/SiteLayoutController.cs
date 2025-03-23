@@ -67,6 +67,20 @@ public class SiteLayoutController : Controller
         if (request.LinkTarget != null && !IsLinkValid(request.LinkTarget))
             return BadRequest("Invalid format for link target");
 
+        // If creating a special item, force text to be specific
+        if (request.DisplayMode is LayoutPartDisplayMode.Spacer or LayoutPartDisplayMode.Separator)
+        {
+            if (request.LinkTarget != null)
+                return BadRequest("Spacer and separator parts cannot have a link target");
+
+            request.AltText = request.DisplayMode switch
+            {
+                LayoutPartDisplayMode.Spacer => "SPACER",
+                LayoutPartDisplayMode.Separator => "SEPARATOR",
+                _ => throw new ArgumentOutOfRangeException(),
+            };
+        }
+
         var siteLayoutPart = new SiteLayoutPart(request.LinkTarget, request.AltText, request.PartType)
         {
             Enabled = request.Enabled,

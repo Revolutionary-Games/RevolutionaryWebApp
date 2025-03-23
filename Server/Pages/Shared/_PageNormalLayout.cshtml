@@ -50,6 +50,13 @@
                     <div class="d-flex flex-row align-items-center justify-content-center">
                         @foreach (RenderingLayoutPart navItem in ViewBag.TopNav)
                         {
+                            if (navItem.DisplayMode is LayoutPartDisplayMode.Separator or LayoutPartDisplayMode.Spacer)
+                            {
+                                <span class="mx-4 p-1">
+                                </span>
+                                continue;
+                            }
+
                             <span class="mx-3 p-1">
                                 @if (navItem.Active)
                                 {
@@ -84,13 +91,25 @@
 
                         foreach (RenderingLayoutPart navItem in ViewBag.Sidebar)
                         {
-                            if (navItem.DisplayMode == LayoutPartDisplayMode.List)
+                            switch (navItem.DisplayMode)
                             {
-                                listItems = true;
-                                continue;
+                                case LayoutPartDisplayMode.List:
+                                    listItems = true;
+                                    continue;
+                                case LayoutPartDisplayMode.Separator:
+                                    <div class="main-site-sidebar-item py-1">
+                                        <hr/>
+                                    </div>
+                                    continue;
+                                case LayoutPartDisplayMode.Spacer:
+                                    <div class="main-site-sidebar-item py-2">
+                                    </div>
+                                    continue;
                             }
 
-                            <div class="main-site-sidebar-item py-1">@navItem.AltText</div>
+                            <div class="main-site-sidebar-item py-1">
+                                @await Html.PartialAsync("Components/_RenderSidebarItem", navItem)
+                            </div>
                         }
 
                         if (listItems)
@@ -98,10 +117,12 @@
                             <ul>
                                 @foreach (RenderingLayoutPart navItem in ViewBag.Sidebar)
                                 {
-                                    if (navItem.DisplayMode == LayoutPartDisplayMode.List)
-                                    {
-                                        <li class="main-site-sidebar-item">@navItem.AltText</li>
-                                    }
+                                    if (navItem.DisplayMode != LayoutPartDisplayMode.List)
+                                        continue;
+
+                                    <li class="main-site-sidebar-item">
+                                        @await Html.PartialAsync("Components/_RenderSidebarItem", navItem)
+                                    </li>
                                 }
                             </ul>
                         }
