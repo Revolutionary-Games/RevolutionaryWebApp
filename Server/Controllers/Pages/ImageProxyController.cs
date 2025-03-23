@@ -3,7 +3,6 @@ namespace RevolutionaryWebApp.Server.Controllers.Pages;
 using System;
 using System.IO;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
@@ -51,7 +50,7 @@ public class ImageProxyController : Controller
                 return Problem("Could not retrieve image from YouTube");
             }
 
-            var stream = new MemoryStream(Encoding.ASCII.GetBytes(data));
+            var stream = new MemoryStream(Convert.FromBase64String(data));
             return File(stream, "image/jpeg");
         }
 
@@ -87,7 +86,7 @@ public class ImageProxyController : Controller
     {
         var data = await response.Content.ReadAsByteArrayAsync();
 
-        await database.StringSetAsync(key, data, YoutubeCacheTime);
+        await database.StringSetAsync(key, Convert.ToBase64String(data), YoutubeCacheTime);
 
         Response.Headers.CacheControl = new StringValues("public, max-age=3600");
         return File(data, "image/jpeg");

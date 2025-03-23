@@ -66,7 +66,7 @@ public class ImageGeneratorController : Controller
                 return NotFound();
             }
 
-            var stream = new MemoryStream(Encoding.ASCII.GetBytes(value.ToString()));
+            var stream = new MemoryStream(Convert.FromBase64String(result));
 
             Response.Headers.CacheControl = new StringValues($"public, max-age={ProgressUpdateBannerCacheTime}");
             return File(stream, "image/webp");
@@ -102,7 +102,7 @@ public class ImageGeneratorController : Controller
 
         var imageBytes = await imageGenerator.GenerateProgressUpdateBanner(parsedDate);
 
-        await cacheDatabase.StringSetAsync(key, imageBytes, TimeSpan.FromHours(8));
+        await cacheDatabase.StringSetAsync(key, Convert.ToBase64String(imageBytes), TimeSpan.FromHours(8));
 
         Response.Headers.CacheControl = new StringValues($"public, max-age={ProgressUpdateBannerCacheTime}");
 
@@ -129,14 +129,14 @@ public class ImageGeneratorController : Controller
         if (!value.IsNullOrEmpty)
         {
             Response.Headers.CacheControl = new StringValues($"public, max-age={AvatarCacheTime}");
-            var stream = new MemoryStream(Encoding.ASCII.GetBytes(value.ToString()));
+            var stream = new MemoryStream(Convert.FromBase64String(value.ToString()));
             return File(stream, "image/webp");
         }
 
         // Not cached, so we need to generate a new one
         var imageBytes = await imageGenerator.GenerateLetterAvatar(initials, backgroundColor);
 
-        await cacheDatabase.StringSetAsync(key, imageBytes, TimeSpan.FromHours(2));
+        await cacheDatabase.StringSetAsync(key, Convert.ToBase64String(imageBytes), TimeSpan.FromHours(2));
 
         Response.Headers.CacheControl = new StringValues($"public, max-age={AvatarCacheTime}");
 
