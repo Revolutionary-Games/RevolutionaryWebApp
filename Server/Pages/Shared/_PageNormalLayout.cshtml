@@ -1,5 +1,6 @@
 @using System.Globalization
 @using RevolutionaryWebApp.Server.Models.Pages
+@using RevolutionaryWebApp.Shared.Models.Pages
 <!DOCTYPE html>
 <html lang="en">
 
@@ -52,7 +53,8 @@
                             <span class="mx-3 p-1">
                                 @if (navItem.Active)
                                 {
-                                    <a class="main-bar-nav-link current-active-page" href="@navItem.LinkTarget" aria-current="page">
+                                    <a class="main-bar-nav-link current-active-page" href="@navItem.LinkTarget"
+                                       aria-current="page">
                                         @navItem.AltText
                                     </a>
                                 }
@@ -78,9 +80,30 @@
                 <div class="col-md-4">
                     @if (ViewBag.Sidebar != null)
                     {
-                        @foreach (RenderingLayoutPart navItem in ViewBag.Sidebar)
+                        bool listItems = false;
+
+                        foreach (RenderingLayoutPart navItem in ViewBag.Sidebar)
                         {
+                            if (navItem.DisplayMode == LayoutPartDisplayMode.List)
+                            {
+                                listItems = true;
+                                continue;
+                            }
+
                             <div class="main-site-sidebar-item py-1">@navItem.AltText</div>
+                        }
+
+                        if (listItems)
+                        {
+                            <ul>
+                                @foreach (RenderingLayoutPart navItem in ViewBag.Sidebar)
+                                {
+                                    if (navItem.DisplayMode == LayoutPartDisplayMode.List)
+                                    {
+                                        <li class="main-site-sidebar-item">@navItem.AltText</li>
+                                    }
+                                }
+                            </ul>
                         }
                     }
                     else

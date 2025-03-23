@@ -17,10 +17,10 @@ using Utilities;
 [Index(nameof(PartType), nameof(Order), IsUnique = true)]
 public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
 {
-    public SiteLayoutPart(string linkTarget, string altText, SiteLayoutPartType partType)
+    public SiteLayoutPart(string? linkTarget, string altText, SiteLayoutPartType partType)
     {
-        if (string.IsNullOrWhiteSpace(linkTarget))
-            throw new ArgumentException("Link target must be provided", nameof(linkTarget));
+        if (string.IsNullOrWhiteSpace(linkTarget) && string.IsNullOrWhiteSpace(altText))
+            throw new ArgumentException("Link target or text must be provided", nameof(linkTarget));
 
         LinkTarget = linkTarget;
         AltText = altText;
@@ -30,12 +30,12 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
     [MaxLength(255)]
     [AllowSortingBy]
     [UpdateFromClientRequest]
-    public string LinkTarget { get; set; }
+    public string? LinkTarget { get; set; }
 
     /// <summary>
     ///   Alt text or the text that represents this link if there's no <see cref="ImageId"/>
     /// </summary>
-    [MaxLength(100)]
+    [MaxLength(128)]
     [AllowSortingBy]
     [UpdateFromClientRequest]
     public string AltText { get; set; }
@@ -44,9 +44,18 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
     [UpdateFromClientRequest]
     public SiteLayoutPartType PartType { get; set; }
 
+    [UpdateFromClientRequest]
+    public LayoutPartDisplayMode DisplayMode { get; set; }
+
     public Guid? ImageId { get; set; }
 
     public MediaFile? Image { get; set; }
+
+    /// <summary>
+    ///   Extension of the image file. Defaults to ".png" if not defined
+    /// </summary>
+    [MaxLength(64)]
+    public string? ImageType { get; set; }
 
     /// <summary>
     ///   Lower order items are shown first within their respective <see cref="PartType"/> (required to be unique)
@@ -69,6 +78,7 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
             UpdatedAt = UpdatedAt,
             LinkTarget = LinkTarget,
             AltText = AltText,
+            DisplayMode = DisplayMode,
             PartType = PartType,
             ImageId = ImageId?.ToString(),
             Order = Order,
@@ -78,31 +88,37 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
 
     public RenderingLayoutPart GetRenderingData(string activeLink, IMediaLinkConverter linkConverter)
     {
-        bool isPageLink = LinkTarget.StartsWith("page:");
-        string linkTarget;
+        bool isPageLink = false;
+        string? linkTarget = null;
 
-        if (isPageLink)
+        if (LinkTarget != null)
         {
-            var permalink = LinkTarget.Substring(5);
+            isPageLink = LinkTarget.StartsWith("page:");
 
-            if (permalink == AppInfo.IndexPermalinkName)
-                permalink = string.Empty;
+            if (isPageLink)
+            {
+                var permalink = LinkTarget.Substring(5);
 
-            linkTarget = $"{linkConverter.GetInternalPageLinkPrefix()}/{permalink}";
-        }
-        else
-        {
-            linkTarget = LinkTarget;
+                if (permalink == AppInfo.IndexPermalinkName)
+                    permalink = string.Empty;
+
+                linkTarget = $"{linkConverter.GetInternalPageLinkPrefix()}/{permalink}";
+            }
+            else
+            {
+                linkTarget = LinkTarget;
+            }
         }
 
         return new RenderingLayoutPart(linkTarget, AltText)
         {
-            Active = isPageLink && LinkTarget.EndsWith(activeLink),
+            Active = isPageLink && LinkTarget!.EndsWith(activeLink),
 
-            // TODO: allow specifying the image type in the part
             Image = ImageId != null ?
-                linkConverter.TranslateImageLink(".png", ImageId.Value.ToString(), MediaFileSize.FitPage) :
+                linkConverter.TranslateImageLink(ImageType ?? ".png", ImageId.Value.ToString(), MediaFileSize.FitPage) :
                 null,
+
+            DisplayMode = DisplayMode,
 
             // Order should be followed, but just in case this data is ever needed, it is copied
             Order = Order,
@@ -133,12 +149,13 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
 public class RenderingLayoutPart
 {
     public bool Active;
-    public string LinkTarget;
+    public string? LinkTarget;
     public string AltText;
+    public LayoutPartDisplayMode DisplayMode;
     public string? Image;
     public int Order;
 
-    public RenderingLayoutPart(string linkTarget, string altText)
+    public RenderingLayoutPart(string? linkTarget, string altText)
     {
         LinkTarget = linkTarget;
         AltText = altText;

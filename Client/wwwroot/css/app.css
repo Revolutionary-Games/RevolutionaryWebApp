@@ -397,6 +397,26 @@ table.non-fixed {
     color: #ACACAC !important;
 }
 
+div.main-site-sidebar-item {
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+    color: #ACACAC;
+}
+
+.main-site-sidebar-item li {
+    text-align: left;
+}
+
+.main-site-sidebar-item a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+.main-site-sidebar-item a:hover {
+    color: #6ACDEB;
+}
+
 /* Compatibility for Blazor Pagination until it is updated for bootstrap 5 */
 /* https://github.com/villainoustourist/Blazor.Pagination/issues/11 */
 .sr-only {

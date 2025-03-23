@@ -5,9 +5,8 @@ using DevCenterCommunication.Models;
 
 public class SiteLayoutPartDTO : ClientSideTimedModel
 {
-    [Required]
-    [StringLength(255, MinimumLength = 3)]
-    public string LinkTarget { get; set; } = string.Empty;
+    [MaxLength(255)]
+    public string? LinkTarget { get; set; }
 
     [Required]
     [StringLength(100, MinimumLength = 2)]
@@ -17,6 +16,8 @@ public class SiteLayoutPartDTO : ClientSideTimedModel
 
     [MaxLength(128)]
     public string? ImageId { get; set; }
+
+    public LayoutPartDisplayMode DisplayMode { get; set; }
 
     public int Order { get; set; }
 

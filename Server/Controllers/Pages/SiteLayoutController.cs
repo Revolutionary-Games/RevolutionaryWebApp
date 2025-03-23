@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Controllers.Pages;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -60,7 +61,10 @@ public class SiteLayoutController : Controller
     [HttpPost]
     public async Task<IActionResult> CreateSiteLayoutPart([Required] [FromBody] SiteLayoutPartDTO request)
     {
-        if (!IsLinkValid(request.LinkTarget))
+        if (string.IsNullOrWhiteSpace(request.LinkTarget))
+            request.LinkTarget = null;
+
+        if (request.LinkTarget != null && !IsLinkValid(request.LinkTarget))
             return BadRequest("Invalid format for link target");
 
         var siteLayoutPart = new SiteLayoutPart(request.LinkTarget, request.AltText, request.PartType)
@@ -69,6 +73,7 @@ public class SiteLayoutController : Controller
             PartType = request.PartType,
             LinkTarget = request.LinkTarget,
             AltText = request.AltText,
+            DisplayMode = request.DisplayMode,
 
             Order = request.Order,
         };
@@ -86,11 +91,14 @@ public class SiteLayoutController : Controller
             if (!Guid.TryParse(request.ImageId, out var parsedGuid))
                 return BadRequest("Invalid image ID format (it must be a GUID)");
 
-            if (!await VerifyImageIdIsValid(parsedGuid))
-                return BadRequest("Invalid image ID (please check media browser to find image IDs)");
+            var (valid, extension) = await VerifyImageIdIsValid(parsedGuid);
+
+            if (!valid)
+                return BadRequest("Invalid image ID (please check media browser to find image UUIDs)");
 
             // Images are automatically marked as using a foreign key on the GUID when referenced by a part
             siteLayoutPart.ImageId = parsedGuid;
+            siteLayoutPart.ImageType = extension;
         }
 
         await database.SiteLayoutParts.AddAsync(siteLayoutPart);
@@ -126,7 +134,10 @@ public class SiteLayoutController : Controller
         if (siteLayoutPart == null)
             return NotFound();
 
-        if (!IsLinkValid(request.LinkTarget))
+        if (string.IsNullOrWhiteSpace(request.LinkTarget))
+            request.LinkTarget = null;
+
+        if (request.LinkTarget != null && !IsLinkValid(request.LinkTarget))
             return BadRequest("Invalid format for link target");
 
         if (request.Order != siteLayoutPart.Order)
@@ -150,12 +161,15 @@ public class SiteLayoutController : Controller
             if (!Guid.TryParse(request.ImageId, out var parsedGuid))
                 return BadRequest("Invalid image ID format (it must be a GUID)");
 
-            if (!await VerifyImageIdIsValid(parsedGuid))
+            var (valid, extension) = await VerifyImageIdIsValid(parsedGuid);
+
+            if (!valid)
                 return BadRequest("Invalid image ID (please check media browser to find image IDs)");
 
             if (siteLayoutPart.ImageId != parsedGuid)
             {
                 siteLayoutPart.ImageId = parsedGuid;
+                siteLayoutPart.ImageType = extension;
                 changes = true;
                 description += $", image changed from {oldImage} to {parsedGuid}";
             }
@@ -234,22 +248,26 @@ public class SiteLayoutController : Controller
     }
 
     [NonAction]
-    private async Task<bool> VerifyImageIdIsValid(Guid imageId)
+    private async Task<(bool Valid, string? Extension)> VerifyImageIdIsValid(Guid imageId)
     {
         var image = await database.MediaFiles.FirstOrDefaultAsync(m => m.GlobalId == imageId);
 
         if (image == null)
-            return false;
+            return (false, null);
 
         if (image.Deleted)
-            return false;
+            return (false, null);
 
-        return true;
+        return (true, Path.GetExtension(image.Name));
     }
 
     [NonAction]
     private bool IsLinkValid(string link)
     {
+        // Whitespace is disallowed
+        if (link.Contains(' '))
+            return false;
+
         // ReSharper disable once HttpUrlsUsage
         if (link.StartsWith("http://") || link.StartsWith("https://"))
             return true;
