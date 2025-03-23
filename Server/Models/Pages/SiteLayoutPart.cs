@@ -60,6 +60,7 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
     /// <summary>
     ///   Lower order items are shown first within their respective <see cref="PartType"/> (required to be unique)
     /// </summary>
+    [UpdateFromClientRequest]
     public int Order { get; set; }
 
     /// <summary>
