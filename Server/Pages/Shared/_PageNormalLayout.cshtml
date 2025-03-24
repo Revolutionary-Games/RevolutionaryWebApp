@@ -31,9 +31,16 @@
 
     <link href="@ViewBag.AssetsBase/css/bootstrap/bootstrap.min.css" rel="stylesheet"/>
     <link href="@ViewBag.AssetsBase/css/app.css" rel="stylesheet"/>
+    <script src="/page.js"></script>
 </head>
 
 <body>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        detectYouTubeVideos(document.body);
+    });
+</script>
+
 <div class="page main-site">
     <main>
         <article class="content px-4 container">
