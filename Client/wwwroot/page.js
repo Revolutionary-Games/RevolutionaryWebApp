@@ -59,7 +59,7 @@ function enableAllCookieForms(){
         try {
             enabled = getYouTubeAlwaysEnabled();
         } catch{
-            form.appendChild(document.createElement("<p>Local storage is not available, setting will not be saved</p>"));
+            form.appendChild(document.createTextNode("Local storage is not available, setting will not be saved!"));
             continue;
         }
 
