@@ -11,6 +11,8 @@ public class HtmlSanitizerService
     {
         sanitizer.AllowedAttributes.Add("class");
         sanitizer.AllowedClasses.Add("math");
+        sanitizer.AllowedClasses.Add("youtube-cookie-form");
+        sanitizer.AllowedClasses.Add("form-option");
     }
 
     public string SanitizeHtml(string html)
