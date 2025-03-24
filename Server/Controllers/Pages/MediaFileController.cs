@@ -139,6 +139,11 @@ public class MediaFileController : Controller
                 string.Join(", ", AppInfo.MediaFileTypes));
         }
 
+        // Disallow some special names
+        var nameWithoutExtension = Path.GetFileNameWithoutExtension(request.Name);
+        if (nameWithoutExtension is "large" or "page-fit" or "thumb")
+            return BadRequest("File name is a reserved special name. Please rename the file and try again.");
+
         if (await database.MediaFiles.AnyAsync(m => m.GlobalId == request.MediaFileId))
             return BadRequest("Conflicting UUID, please retry");
 
