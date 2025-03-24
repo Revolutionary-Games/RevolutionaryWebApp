@@ -482,6 +482,15 @@ public class PageRenderer : IPageRenderer
 
                 break;
             }
+
+            case IHtmlDivElement divElement:
+            {
+                // Skip YouTube videos
+                if (divElement.ClassList.Contains("youtube-placeholder"))
+                    return true;
+
+                break;
+            }
         }
 
         foreach (var childNode in node.ChildNodes.ToList())

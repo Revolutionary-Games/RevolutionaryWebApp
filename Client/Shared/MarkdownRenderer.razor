@@ -48,7 +48,7 @@
     public bool SanitizeHtml { get; set; } = true;
 
     /// <summary>
-    ///   If set then there's this much delay between the text updating and it being re-rendered on subsequent updates
+    ///   If set, then there's this much delay between the text updating and it being re-rendered on subsequent updates
     /// </summary>
     [Parameter]
     public TimeSpan? UpdateRenderDelay { get; set; }
@@ -93,10 +93,12 @@
     {
         base.OnAfterRender(firstRender);
 
-        // Trigger JS needed to make the markdown fully work
+        // Trigger JS needed to make the Markdown fully work
         if (mathEnabled && renderedElementReference != null)
         {
             JS.InvokeVoidAsync("renderMath", renderedElementReference);
+
+            // TODO: invoke the page.js detect youtube videos
         }
     }
 

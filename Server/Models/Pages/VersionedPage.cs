@@ -119,7 +119,7 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
         var previousVersionNumber =
             await database.PageVersions.Where(v => v.PageId == id).MaxAsync(v => (int?)v.Version) ?? 0;
 
-        // Current page version is always one higher than the previous one
+        // The current page version is always one higher than the previous one
         return previousVersionNumber + 1;
     }
 

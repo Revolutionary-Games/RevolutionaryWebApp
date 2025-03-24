@@ -14,6 +14,8 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
         @"\!\[([^\)\]]*)\]\(media:([\w\.]+):([a-f0-9\-]+)(\s*'[^']*')?\)",
         RegexOptions.Compiled, TimeSpan.FromMilliseconds(500));
 
+    private readonly Regex youtubeMarkdownRegex = new(@"\[youtube\](\w+)\[/youtube\]", RegexOptions.Compiled);
+
     private readonly IMediaLinkConverter mediaLinkConverter;
 
     public MarkdownBbCodeService(IMediaLinkConverter mediaLinkConverter)
@@ -122,8 +124,29 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
 
     public string PostProcessContent(string html)
     {
-        // TODO: implement youtube embedding (with privacy friendly options to only view after accepting cookies)
-        return html;
+        StringBuilder? result = null;
+
+        // Detect and handle YouTube
+        var matches = youtubeMarkdownRegex.Matches(html);
+        for (int i = 0; i < matches.Count; ++i)
+        {
+            var match = matches[i];
+            var videoId = match.Groups[1].Value;
+
+            // ReSharper disable once CommentTypo
+            // The video is invalid if it has dots in the name or `youtu.be`
+            // Resharper disable once StringLiteralTypo
+            if (videoId.Contains('.') || videoId.Contains("youtu.be"))
+                continue;
+
+            // Initialize data conversion if needed
+            result ??= new StringBuilder(html);
+
+            // TODO: should we try to remove like containing <p> elements?
+            result.Replace(match.Value, GenerateYoutubeEmbedCode(videoId));
+        }
+
+        return result?.ToString() ?? html;
     }
 
     private static bool IsMatch(string input, int index, string pattern)
@@ -165,6 +188,33 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
         }
 
         stringBuilder.Append(')');
+    }
+
+    private string GenerateYoutubeEmbedCode(string videoId)
+    {
+        var prefix = mediaLinkConverter.GetGeneratedAndProxyImagePrefix();
+
+        return $"""
+                <div class="youtube-placeholder" data-video-id="{videoId}">
+                    <div class="thumbnail-container">
+                        <img class="youtube-thumbnail" alt="YouTube Video Thumbnail" src="{prefix}/imageProxy/youtubeThumbnail/{videoId}"/>
+                        <div class="play-button-overlay">
+                            <div class="css-play-button"></div>
+                        </div>
+                    </div>
+                    <div class="youtube-controls">
+                        <div class="controls-row">
+                            Viewing embedded videos on this page uses YouTube cookies.
+                            You accept these third-party and tracking cookies by clicking play.
+                        </div>
+                        <div class="controls-row">
+                            <a class="youtube-btn open-youtube" href="https://www.youtube.com/watch?v={videoId}" target="_blank">View on YouTube</a>
+                            <button class="youtube-btn accept-cookies">Always Accept YouTube Cookies</button>
+                        </div>
+                    </div>
+                    <div class="youtube-embed-container" style="display: none;"></div>
+                </div><div class="youtube-placeholder-below"></div>
+                """;
     }
 
     /// <summary>
