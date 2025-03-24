@@ -14,7 +14,10 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
         @"\!\[([^\)\]]*)\]\(media:([\w\.]+):([a-f0-9\-]+)(\s*'[^']*')?\)",
         RegexOptions.Compiled, TimeSpan.FromMilliseconds(500));
 
-    private readonly Regex youtubeMarkdownRegex = new(@"\[youtube\](\w+)\[/youtube\]", RegexOptions.Compiled);
+    // This could sometimes remove a trailing </p> if a forward <p> didn't exist, but hopefully that's rare enough
+    // to not need to consider that
+    private readonly Regex youtubeMarkdownRegex =
+        new(@"(<p>\s*)?\[youtube\](\w+)\[/youtube\](\s*</p>)?", RegexOptions.Compiled);
 
     private readonly IMediaLinkConverter mediaLinkConverter;
 
@@ -131,7 +134,7 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
         for (int i = 0; i < matches.Count; ++i)
         {
             var match = matches[i];
-            var videoId = match.Groups[1].Value;
+            var videoId = match.Groups[2].Value;
 
             // ReSharper disable once CommentTypo
             // The video is invalid if it has dots in the name or `youtu.be`
@@ -142,7 +145,6 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
             // Initialize data conversion if needed
             result ??= new StringBuilder(html);
 
-            // TODO: should we try to remove like containing <p> elements?
             result.Replace(match.Value, GenerateYoutubeEmbedCode(videoId));
         }
 
