@@ -199,7 +199,8 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
         return $"""
                 <div class="youtube-placeholder" data-video-id="{videoId}">
                     <div class="thumbnail-container">
-                        <img class="youtube-thumbnail" alt="YouTube Video Thumbnail" src="{prefix}/imageProxy/youtubeThumbnail/{videoId}"/>
+                        <img class="youtube-thumbnail" alt="YouTube Video Thumbnail" 
+                            src="{prefix}/imageProxy/youtubeThumbnail/{videoId}"/>
                         <div class="play-button-overlay">
                             <div class="css-play-button"></div>
                         </div>
@@ -210,7 +211,8 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
                             You accept these third-party and tracking cookies by clicking play.
                         </div>
                         <div class="controls-row">
-                            <a class="youtube-btn open-youtube" href="https://www.youtube.com/watch?v={videoId}" target="_blank">View on YouTube</a>
+                            <a class="youtube-btn open-youtube" href="https://www.youtube.com/watch?v={videoId}" 
+                                target="_blank">View on YouTube</a>
                             <button class="youtube-btn accept-cookies">Always Accept YouTube Cookies</button>
                         </div>
                     </div>
