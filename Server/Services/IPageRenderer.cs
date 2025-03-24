@@ -437,7 +437,7 @@ public class PageRenderer : IPageRenderer
                 return true;
             }
 
-            // Elements that have text extracted
+            // Elements that have text parts extracted
             case IText text:
             {
                 if (string.IsNullOrWhiteSpace(text.Data))
@@ -451,6 +451,10 @@ public class PageRenderer : IPageRenderer
                     stringBuilder.Append(' ');
                     --remainingLength;
                 }
+
+                // Stop processing if there wasn't any text left to extract
+                if (remainingLength <= 0)
+                    break;
 
                 stringBuilder.Append(text.Data.Trim().Truncate(remainingLength));
 
