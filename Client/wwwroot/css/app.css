@@ -428,6 +428,16 @@ div.main-site-sidebar-item {
     z-index: 1;
 }
 
+.socials-sidebar-links {
+    display: flex;
+    flex-direction: row;
+    /*justify-content: space-around;*/
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
 @media (max-width: 779px) {
     .top-social-links {
         display: none;
