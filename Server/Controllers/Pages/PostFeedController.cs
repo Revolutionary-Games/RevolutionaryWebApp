@@ -22,6 +22,7 @@ using Utilities;
 ///   RSS feed for the published posts
 /// </summary>
 [Route("feed")]
+[Route("live/feed")]
 public class PostFeedController : Controller
 {
     private const int FeedItemsToShow = 20;
