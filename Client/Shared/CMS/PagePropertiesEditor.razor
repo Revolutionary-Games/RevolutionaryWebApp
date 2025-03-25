@@ -42,7 +42,7 @@
                 {
                     switch (Data.Type)
                     {
-                        case PageType.NormalPage:
+                        case PageType.NormalPage or PageType.Post:
                             <a href="@($"/live/{Data.Permalink}")" target="_blank">(visit)</a>
                             break;
                         default:
