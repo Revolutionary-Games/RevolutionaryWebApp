@@ -344,7 +344,7 @@ table.non-fixed {
     display: none;
     align-items: center;
     justify-content: center;
-    margin-bottom: 60px;
+    margin-bottom: 0;
 }
 
 .thrive-logo {
