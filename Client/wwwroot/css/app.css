@@ -444,6 +444,34 @@ div.main-site-sidebar-item {
     }
 }
 
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+/* Markdown tables support */
+.markdown table {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+}
+
+.markdown table th,
+.markdown table td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Various other markdown element customizations */
+.markdown code {
+    background-color: #222;
+    padding: 2px;
+}
+
 /* Youtube link support */
 .youtube-placeholder {
     max-width: 640px;

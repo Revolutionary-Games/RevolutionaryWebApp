@@ -13,6 +13,7 @@ public class HtmlSanitizerService
         sanitizer.AllowedClasses.Add("math");
         sanitizer.AllowedClasses.Add("youtube-cookie-form");
         sanitizer.AllowedClasses.Add("form-option");
+        sanitizer.AllowedClasses.Add("center");
     }
 
     public string SanitizeHtml(string html)
