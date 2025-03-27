@@ -254,6 +254,12 @@ public class Startup
             httpClient.AddDevCenterUserAgent();
             httpClient.Timeout = TimeSpan.FromMinutes(1);
         });
+        services.AddHttpClient("bunny", httpClient =>
+        {
+            httpClient.BaseAddress = new Uri("https://api.bunny.net/");
+            httpClient.AddDevCenterUserAgent();
+            httpClient.Timeout = TimeSpan.FromMinutes(1);
+        });
 
         services.AddSingleton<IRegistrationStatus, RegistrationStatus>();
         services.AddSingleton<ITokenGenerator, TokenGenerator>();
