@@ -699,10 +699,11 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<MediaFileUsage>(entity =>
         {
-            entity.HasKey(nameof(MediaFileUsage.MediaFileId), nameof(MediaFileUsage.Usage),
-                nameof(MediaFileUsage.UsedByResource));
+            entity.HasKey(nameof(MediaFileUsage.UsedByResource), nameof(MediaFileUsage.Usage),
+                nameof(MediaFileUsage.MediaFileGuid));
 
-            entity.HasOne(d => d.MediaFile).WithMany(p => p.Usages).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(d => d.MediaFile).WithMany(p => p.Usages).HasForeignKey(d => d.MediaFileGuid)
+                .HasPrincipalKey(p => p.GlobalId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<MediaFolder>(entity =>
