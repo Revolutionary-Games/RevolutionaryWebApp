@@ -10,6 +10,7 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
     private readonly Regex likelyNeedToDoSomething =
         new(@"(\!\[[^\)\]]*\]\(media:)|([/\w+])|(\]\(page:)", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
+    // Note that there are similar regexes in BasePageController which must be updated if necessary
     private readonly Regex mediaLinkToConvertRegex = new(
         @"\!\[([^\)\]]*)\]\(media:([\w\.]+):([a-f0-9\-]+)(\s*'[^']*')?\)",
         RegexOptions.Compiled, TimeSpan.FromMilliseconds(500));

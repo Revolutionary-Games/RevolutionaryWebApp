@@ -4,6 +4,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
@@ -29,6 +30,13 @@ using Utilities;
 /// </summary>
 public abstract class BasePageController : Controller
 {
+    // Note that there are similar regexes in MarkdownBBCodeService that need to be updated if these are
+    public static readonly Regex MediaLinkCountingRegex =
+        new(@"media:[\w\.]+:[a-f0-9\-]+", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
+
+    public static readonly Regex MediaLinkIDExtractingRegex =
+        new(@"media:[\w\.]+:([a-f0-9\-]+)", RegexOptions.Compiled, TimeSpan.FromSeconds(10));
+
     protected readonly NotificationsEnabledDb Database;
     protected readonly IBackgroundJobClient JobClient;
     protected readonly IHubContext<NotificationsHub, INotifications> Notifications;
@@ -42,7 +50,7 @@ public abstract class BasePageController : Controller
     }
 
     /// <summary>
-    ///   Set to false when unit testing with in-memory database that doesn't support transactions
+    ///   Set to false when unit testing with an in-memory database that doesn't support transactions
     /// </summary>
     public bool UsePageUpdateTransaction { get; set; } = true;
 
@@ -52,8 +60,24 @@ public abstract class BasePageController : Controller
     protected abstract GroupType PrimaryPublisherGroupType { get; }
     protected abstract GroupType ExtraAccessGroup { get; }
 
+    [NonAction]
+    public static bool CheckPageContentRespectsLimits(string content, out ActionResult? failure)
+    {
+        // Count images and fail if more than 100
+        var imageCount = MediaLinkCountingRegex.Matches(content).Count;
+
+        if (imageCount > 100)
+        {
+            failure = new BadRequestObjectResult("Pages may at most use 100 images");
+            return false;
+        }
+
+        failure = null;
+        return true;
+    }
+
     /// <summary>
-    ///   Get List of pages. Should be overridden in base classes, otherwise this endpoint is exposed without
+    ///   Get a List of pages. Should be overridden in base classes, otherwise this endpoint is exposed without
     ///   authentication.
     /// </summary>
     /// <returns>Page info objects</returns>
@@ -126,6 +150,9 @@ public abstract class BasePageController : Controller
         if (pageDTO.Permalink != null && !ValidatePermalink(pageDTO.Permalink, out var fail))
             return fail;
 
+        // Note that if initial content was to be allowed, CheckPageContentRespectsLimits must be called here
+        // And also would need to refresh used media
+
         var page = new VersionedPage(pageDTO.Title)
         {
             Visibility = pageDTO.Visibility,
@@ -151,7 +178,7 @@ public abstract class BasePageController : Controller
     }
 
     /// <summary>
-    ///   Edits a page by user. Note that first edit for an empty page doesn't create a version history entry.
+    ///   Edits a page by user. Note that the first edit for an empty page doesn't create a version history entry.
     /// </summary>
     /// <param name="id">Page to edit</param>
     /// <param name="pageDTO">Updated data</param>
@@ -179,7 +206,7 @@ public abstract class BasePageController : Controller
             // Needs to have a permalink when a page is visible
             if (string.IsNullOrWhiteSpace(pageDTO.Permalink))
             {
-                // Reuse existing permalink if there is one
+                // Reuse an existing permalink if there is one
                 if (string.IsNullOrWhiteSpace(page.Permalink))
                 {
                     page.Permalink = VersionedPageDTO.GeneratePermalinkFromTitle(pageDTO.Title);
@@ -188,7 +215,7 @@ public abstract class BasePageController : Controller
                 pageDTO.Permalink = page.Permalink;
             }
 
-            // Published at is set the first time page is saved when visible
+            // Published at is set the first time the page is saved when visible
             page.PublishedAt ??= DateTime.UtcNow;
         }
         else if (string.IsNullOrWhiteSpace(pageDTO.Permalink))
@@ -199,6 +226,15 @@ public abstract class BasePageController : Controller
 
         if (pageDTO.Permalink != null && !ValidatePermalink(pageDTO.Permalink, out var fail))
             return fail;
+
+        // Enforce content limits so that someone doesn't create a page with hundred thousand images
+        if (!CheckPageContentRespectsLimits(pageDTO.LatestContent, out var failure))
+        {
+            if (failure != null)
+                return failure;
+
+            return BadRequest("Page content exceeds allowed limits (unknown which limit was violated)");
+        }
 
         if (await Database.VersionedPages.AsNoTracking().FirstOrDefaultAsync(p => p.Id != page.Id &&
                 (p.Title == pageDTO.Title || (p.Permalink != null && p.Permalink == pageDTO.Permalink))) != null)
@@ -290,7 +326,6 @@ public abstract class BasePageController : Controller
             await transaction.CommitAsync();
 
         page.OnEdited(JobClient);
-
         return Ok();
     }
 

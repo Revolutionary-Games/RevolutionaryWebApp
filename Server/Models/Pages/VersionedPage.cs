@@ -6,9 +6,11 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.ServiceModel.Syndication;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
 using Interfaces;
+using Jobs.Pages;
 using Microsoft.EntityFrameworkCore;
 using Services;
 using Shared;
@@ -18,7 +20,7 @@ using SharedBase.Utilities;
 using Utilities;
 
 /// <summary>
-///   Main model for all web pages, news posts etc.
+///   Main model for all web pages, news posts, etc.
 /// </summary>
 [Index(nameof(Permalink), IsUnique = true)]
 [Index(nameof(Title), IsUnique = true)]
@@ -128,8 +130,8 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
     /// </summary>
     public void OnEdited(IBackgroundJobClient jobClient)
     {
-        // TODO: implement cache clearing
-        _ = jobClient;
+        jobClient.Enqueue<UpdatePageUsedMediaJob>(x => x.Execute(Id, CancellationToken.None));
+        jobClient.Schedule<ClearPageCDNCacheJob>(x => x.Execute(Id, CancellationToken.None), TimeSpan.FromSeconds(15));
     }
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
