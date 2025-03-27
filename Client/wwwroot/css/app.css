@@ -468,8 +468,12 @@ div.main-site-sidebar-item {
 
 /* Various other markdown element customizations */
 .markdown code {
-    background-color: #222;
+    background-color: #333;
     padding: 2px;
+}
+
+.markdown pre code {
+    color: white;
 }
 
 /* Youtube link support */
