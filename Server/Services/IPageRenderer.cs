@@ -264,7 +264,7 @@ public class PageRenderer : IPageRenderer
     /// </summary>
     /// <returns>Opengraph meta-information</returns>
     private (string Description, string? PreviewImage) RenderOpenGraphMetaDescription(string rendered,
-        int maxLength = 155)
+        int maxLength = 250)
     {
         // TODO: skipping youtube and bigger elements would be really nice to skip text from them leaking into the
         // summary
