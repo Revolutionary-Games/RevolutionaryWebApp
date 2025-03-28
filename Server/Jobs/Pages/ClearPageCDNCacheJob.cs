@@ -71,6 +71,15 @@ public class ClearPageCDNCacheJob
             // Ensure the response status is a success
             response.EnsureSuccessStatusCode();
 
+            // Clear also the URL with a trailing '/' as that is also a valid way to access the page
+            request.RequestUri = new Uri(finalUrl + "/");
+
+            if (!request.RequestUri.ToString().EndsWith("/"))
+                throw new Exception("Failed to append trailing slash to URL");
+
+            response = await client.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
             logger.LogInformation("Successfully cleared CDN cache for page ({PageId}) at URL: {FinalUrl}", pageId,
                 finalUrl);
         }
