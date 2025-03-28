@@ -74,6 +74,28 @@ public class LiveController : Controller
 
         if (page == null)
         {
+            // If page not found, then try redirects first
+
+            // Redirects don't use trailing slashes
+            permalink = permalink.TrimEnd('/');
+
+            // Try to find a redirect
+            var redirect = await database.PageRedirects.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.FromPath == permalink);
+
+            if (redirect != null)
+            {
+                HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
+                {
+                    MaxAge = AppInfo.PageRedirectCacheTime,
+                    Public = true,
+                }.ToString();
+
+                var target = redirect.GetTarget(liveCDNBase);
+
+                return Redirect(target);
+            }
+
             HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
             {
                 MaxAge = AppInfo.NotFoundPageCacheTime,

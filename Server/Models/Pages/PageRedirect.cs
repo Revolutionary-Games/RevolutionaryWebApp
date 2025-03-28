@@ -52,10 +52,13 @@ public class PageRedirect : IUpdateNotifications
 
         if (cdnBase == null)
         {
-            if (!ToUrl.StartsWith("/"))
-                ToUrl = "/" + ToUrl;
+            var url = ToUrl;
 
-            return ToUrl;
+            if (!ToUrl.StartsWith("/"))
+                url = "/" + url;
+
+            // Add the "live" prefix if we aren't going through a CDN
+            return "/live" + url;
         }
 
         if (!ToUrl.StartsWith("/"))
