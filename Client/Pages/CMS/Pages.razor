@@ -102,6 +102,17 @@
     <DeletedResourceViewer ButtonClass="mb-3" FetchListEndpoint="api/v1/Pages?deleted=true"
                            RestoreEndpoint="api/v1/Pages/{0}/restore" />
 
+    <AccessLimited RequiredGroup="GroupType.RedirectEditor" OrHasOverride="GroupType.Admin">
+        <hr />
+        <h3>Page Redirects</h3>
+        <p>
+            Redirects can be created to redirect requests from an <u>unused</u> (real pages always take precedence)
+            permalink to another URL.
+        </p>
+
+        <PageRedirects/>
+    </AccessLimited>
+
     <DevCenterTitle>Site Pages</DevCenterTitle>
 </AccessLimited>
 

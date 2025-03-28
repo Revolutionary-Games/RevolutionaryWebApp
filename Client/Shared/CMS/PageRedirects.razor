@@ -1,0 +1,356 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
+@using System.Threading
+@using SharedBase.Utilities
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Pages
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<PageRedirectListUpdated>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.Pages.PageRedirectDTO>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Error
+    </div>
+}
+else
+{
+    <StatusMessageShower Message="@message" Type="@messageType"/>
+
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async e => await ChangePage(e)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns"
+                    ShowNoContent="@NoItemsFound"
+                    UseNonFixedColumns="true">
+        @if (Data != null)
+        {
+            @foreach (var item in Data.Results)
+            {
+                var status = clientSideResourceStatus.GetStatus(item.Id);
+
+                <tr @key="item.Id">
+                    <th @onclick="() => ToggleEdit(item)" class="clickable">
+                        <ItemExpander Expanded="@status.Expanded"/>
+                        <span class="ms-1">@item.FromPath.Truncate()</span>
+                    </th>
+                    <td>@item.ToUrl.Truncate(50)</td>
+                    <td>
+                        <RecentTimeShortener Time="@item.UpdatedAt"/>
+                    </td>
+                    <td>
+                        <RecentTimeShortener Time="@item.CreatedAt"/>
+                    </td>
+                </tr>
+
+                @if (status.Expanded)
+                {
+                    var key = $"{item.Id}-details";
+                    @* TODO: firefox once again complains here about that relative now has an effect here *@
+                    <tr @key="key" style="position: relative;">
+                        <td colspan="@columns.Count" class="mb-2 expanded-box">
+                            <form class="d-flex flex-row align-items-center me-2">
+                                <label class="form-label" for="@($"targetEdit{item.Id}")">Link To:</label>
+                                <input type="text" class="form-control ms-1 me-2"
+                                       id="@($"targetEdit{item.Id}")" @bind="item.ToUrl">
+
+                                <Button class="ms-1" type="submit" ButtonStyle="primary"
+                                        Enabled="@(!status.Processing)" OnPressed="@(() => UpdateItem(item))"
+                                        Spinner="@status.Processing">
+                                    Save
+                                </Button>
+                                <Button class="ms-1" type="button" ButtonStyle="danger"
+                                        Enabled="@(!status.Processing)" OnPressed="@(() => VerifyDeleteRedirect(item))"
+                                        Spinner="@status.Processing">
+                                    Delete
+                                </Button>
+                            </form>
+                            @if (status.Processing)
+                            {
+                                <div class="overlay">
+                                    <div class="d-flex justify-content-center align-items-center"
+                                         style="height: 100%;">
+                                        <div class="spinner-border text-light" role="status">
+                                            <span class="visually-hidden">Processing...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (!showNewForm)
+{
+    <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
+}
+
+<Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+    New
+</Button>
+
+@if (showNewForm)
+{
+    <form>
+        <div class="row">
+            <div class="mb-3 col-12">
+                <label class="form-label" for="newRedirectFrom">From Permalink</label>
+                <input type="text" class="form-control" id="newRedirectFrom" @bind="newFromLink"
+                       @bind:event="oninput" placeholder="Permalink to redirect from"/>
+            </div>
+        </div>
+        <div class="row">
+            <div class="mb-3 col-12">
+                <label class="form-label" for="newRedirectTarget">To Url / Page</label>
+                <input type="text" class="form-control" id="newRedirectTarget" @bind="newToLink" @bind:event="oninput"
+                       placeholder="Redirect to page / URL"/>
+            </div>
+        </div>
+
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
+        <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+            Create
+        </Button>
+    </form>
+}
+
+@code {
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Permalink From", true, "FromPath"),
+        new TableColumn("To", false),
+        new TableColumn("Updated At", true, "UpdatedAt"),
+        new TableColumn("Created At", true, "CreatedAt"),
+    };
+
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
+
+    private string? message;
+    private SiteNoticeType messageType;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string newFromLink = string.Empty;
+    private string newToLink = string.Empty;
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newFromLink) && !string.IsNullOrEmpty(newToLink);
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    public PageRedirects() : base(new SortHelper("FromPath", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(PageRedirectListUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.PageRedirectListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<PageRedirectDTO>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<PageRedirectDTO>>(QueryHelpers.AddQueryString("api/v1/RedirectManagement", requestParams));
+    }
+
+    private bool IsProcessing(long redirectId)
+    {
+        return clientSideResourceStatus.GetStatus(redirectId).Processing;
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newFromLink = string.Empty;
+            newToLink = string.Empty;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/RedirectManagement", new PageRedirectDTO
+            {
+                FromPath = newFromLink,
+                ToUrl = newToLink,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = "New redirect created";
+            createMessageType = SiteNoticeType.Success;
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task VerifyDeleteRedirect(PageRedirectDTO redirect)
+    {
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmDelete.Name), $"Redirect from {redirect.FromPath.Truncate(50)}" },
+        };
+
+        var modal = Modal.Show<ConfirmDelete>("Delete auto redirect?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await DeleteRedirect(redirect.Id, redirect.FromPath);
+    }
+
+    private async Task DeleteRedirect(long id, string from)
+    {
+        var status = clientSideResourceStatus.GetStatus(id);
+
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync(QueryHelpers.AddQueryString("api/v1/RedirectManagement", "from", from));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Redirect deleted";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateItem(PageRedirectDTO redirect)
+    {
+        var status = clientSideResourceStatus.GetStatus(redirect.Id);
+
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PutAsJsonAsync("api/v1/RedirectManagement", redirect);
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Redirect updated";
+            messageType = SiteNoticeType.Primary;
+            status.Expanded = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleEdit(PageRedirectDTO redirect)
+    {
+        var status = clientSideResourceStatus.GetStatus(redirect.Id);
+        status.Expanded = !status.Expanded;
+    }
+
+}

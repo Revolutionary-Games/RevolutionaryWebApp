@@ -106,17 +106,6 @@ public class RedirectManagementController : Controller
         return Ok();
     }
 
-    [HttpGet("{from}")]
-    public async Task<ActionResult<PageRedirectDTO>> GetPageRedirect([Required] string from)
-    {
-        var result = await database.PageRedirects.FindAsync(from);
-
-        if (result == null)
-            return NotFound();
-
-        return result.GetDTO();
-    }
-
     [HttpPut]
     public async Task<IActionResult> UpdatePageRedirect([Required] [FromBody] PageRedirectDTO request)
     {
@@ -146,7 +135,7 @@ public class RedirectManagementController : Controller
         return Ok();
     }
 
-    [HttpDelete("{from}")]
+    [HttpDelete]
     public async Task<IActionResult> DeletePageRedirect([Required] string from)
     {
         var redirect = await database.PageRedirects.FindAsync(from);
