@@ -148,7 +148,7 @@ public class NotificationsHub : Hub<INotifications>
                     RecordAccessLevel.Admin :
                     RecordAccessLevel.Private));
 
-            // Could send some user specific notices here
+            // Could send some user-specific notices here
             // await Clients.Caller.ReceiveSiteNotice(SiteNoticeType.Primary, "hey you connected");
         }
     }
@@ -216,7 +216,7 @@ public class NotificationsHub : Hub<INotifications>
             return false;
         }
 
-        // This lookup probably can timing attack leak the IDs of objects
+        // This lookup probably can timing-attack leak the IDs of objects
         item = existingItems.Find(id);
 
         return item != null;
@@ -406,7 +406,7 @@ public class NotificationsHub : Hub<INotifications>
 
     private async Task<bool> IsUserAllowedInGroup(string groupName, User? user)
     {
-        // First check explicitly named groups
+        // First, check explicitly named groups
         switch (groupName)
         {
             case NotificationGroups.UserListUpdated:
@@ -438,7 +438,7 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.DevBuildsListUpdated:
                 return RequireAccessLevel(GroupType.User, user);
 
-            // This is not protected per-listened resource as finding out user ids of pages they are editing
+            // This is not a protected per-listened resource as finding out user ids of pages they are editing
             // should not be a security problem
             case NotificationGroups.PageEditNotice:
                 return RequireAccessLevel(GroupType.User, user);
@@ -453,6 +453,12 @@ public class NotificationsHub : Hub<INotifications>
                     return true;
 
                 return RequireGroup(GroupType.SiteLayoutEditor, user);
+
+            case NotificationGroups.PageRedirectListUpdated:
+                if (RequireAccessLevel(GroupType.Admin, user))
+                    return true;
+
+                return RequireGroup(GroupType.RedirectEditor, user);
         }
 
         // Then check prefixes

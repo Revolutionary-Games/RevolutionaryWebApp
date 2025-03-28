@@ -45,7 +45,7 @@ public class SiteLayoutController : Controller
 
         try
         {
-            query = database.SiteLayoutParts.OrderBy(sortColumn, sortDirection);
+            query = database.SiteLayoutParts.AsNoTracking().OrderBy(sortColumn, sortDirection);
         }
         catch (ArgumentException e)
         {

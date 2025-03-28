@@ -137,6 +137,8 @@ public static class NotificationGroups
 
     public const string LayoutPartUpdated = "Layout";
 
+    public const string PageRedirectListUpdated = "PRedirects";
+
     public const string PageEditNotice = "PEditNotice";
 
     /// <summary>

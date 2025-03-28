@@ -92,6 +92,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<MediaFile> MediaFiles { get; set; } = null!;
     public DbSet<MediaFileUsage> MediaFileUsages { get; set; } = null!;
     public DbSet<SiteLayoutPart> SiteLayoutParts { get; set; } = null!;
+    public DbSet<PageRedirect> PageRedirects { get; set; } = null!;
 
     /// <summary>
     ///   If non-null, this will be used to send model update notifications on save

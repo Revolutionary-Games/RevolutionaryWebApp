@@ -35,6 +35,7 @@ public enum GroupType
     SitePagePublisher = 10,
     WikiEditor = 11,
     PostEditor = 12,
+    RedirectEditor = 13,
 
     // TODO: add patreon and association status (maybe association status is fine to stay with the old system?)
 

@@ -273,4 +273,5 @@ public static class AppInfo
 
     public static readonly TimeSpan NotFoundPageCacheTime = TimeSpan.FromMinutes(2);
     public static readonly TimeSpan MaxPageCacheTime = TimeSpan.FromDays(14);
+    public static readonly TimeSpan PageRedirectCacheTime = TimeSpan.FromHours(2);
 }
