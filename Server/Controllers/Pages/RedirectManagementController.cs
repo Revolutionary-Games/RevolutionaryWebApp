@@ -82,6 +82,9 @@ public class RedirectManagementController : Controller
                 return BadRequest("Target path must not start with a slash");
         }
 
+        if (request.ToUrl == request.FromPath)
+            return BadRequest("Cannot redirect to itself");
+
         var redirect = new PageRedirect(request.FromPath, request.ToUrl);
 
         if (await database.PageRedirects.AnyAsync(r => r.FromPath == redirect.FromPath))
@@ -115,6 +118,9 @@ public class RedirectManagementController : Controller
             return NotFound();
 
         var user = HttpContext.AuthenticatedUserOrThrow();
+
+        if (request.ToUrl == request.FromPath)
+            return BadRequest("Cannot redirect to itself");
 
         var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(redirect, request);
 
