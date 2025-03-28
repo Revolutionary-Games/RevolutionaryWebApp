@@ -58,15 +58,8 @@ public class LiveController : Controller
         var timer = new Stopwatch();
         timer.Start();
 
-        if (!HttpContext.Request.Headers.TryGetValue("X-Pull", out var values) || values.Count < 1 ||
-            string.IsNullOrWhiteSpace(values[0]))
-        {
-            // Force redirect to CDN if a CDN is configured for live pages
-            if (liveCDNBase != null)
-            {
-                return RedirectPermanent(new Uri(liveCDNBase, permalink).ToString());
-            }
-        }
+        if (CheckIfShouldRedirectToCDN(permalink, out var actionResult))
+            return actionResult ?? Problem("Unexpected redirect handling error");
 
         var page = await database.VersionedPages.AsNoTracking().FirstOrDefaultAsync(p =>
             p.Permalink == permalink && (p.Type == PageType.NormalPage || p.Type == PageType.Post) &&
@@ -134,6 +127,92 @@ public class LiveController : Controller
         }.ToString();
 #endif
 
+        var realPageParts = await GetSiteLayoutParts(database, page.Type);
+
+        var rendered = await pageRenderer.RenderPage(page, realPageParts, true, timer);
+
+        SetCanonicalUrl(permalink, rendered);
+
+        rendered.OpenGraphPageType = page.GetOpenGraphType();
+
+        return View("Pages/_LivePage", rendered);
+    }
+
+    [HttpGet("news/{page:int=0}")]
+    [HttpGet("news/page/{page:int}")]
+    [HttpGet("news/page/{page:int}/")]
+    public async Task<IActionResult> GetNewsFeedPage(int page = 0)
+    {
+        if (page < 1)
+            page = 1;
+
+        var permalink = $"news/{page}";
+
+        if (CheckIfShouldRedirectToCDN(permalink, out var actionResult))
+            return actionResult ?? Problem("Unexpected redirect handling error");
+
+        var timer = new Stopwatch();
+        timer.Start();
+
+        // TODO: generate the news feed raw text (including images)
+        var newsPage = new VersionedPage(page > 1 ? $"News Feed (page {page})" : "News Feed")
+        {
+            Type = PageType.NormalPage,
+            Visibility = PageVisibility.Public,
+            Permalink = permalink,
+            LatestContent = "TODO: implement a news feed",
+
+            // TODO: take from latest published post publish time
+            UpdatedAt = DateTime.UtcNow,
+        };
+
+        // News feed updates on the CDN every 15 minutes
+#if DEBUG
+        HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
+        {
+            NoCache = true,
+        }.ToString();
+#else
+        HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
+        {
+            MaxAge = TimeSpan.FromMinutes(15),
+            Public = true,
+        }.ToString();
+#endif
+
+        var realPageParts = await GetSiteLayoutParts(database, PageType.NormalPage);
+
+        var rendered = await pageRenderer.RenderPage(newsPage, realPageParts, true, timer);
+        rendered.OpenGraphMetaDescription = "News feed for Revolutionary Games Studio";
+
+        SetCanonicalUrl(permalink, rendered);
+
+        rendered.OpenGraphPageType = "website";
+
+        return View("Pages/_LivePage", rendered);
+    }
+
+    [NonAction]
+    private bool CheckIfShouldRedirectToCDN(string permalink, out IActionResult? actionResult)
+    {
+        if (!HttpContext.Request.Headers.TryGetValue("X-Pull", out var values) || values.Count < 1 ||
+            string.IsNullOrWhiteSpace(values[0]))
+        {
+            // Force redirect to CDN if a CDN is configured for live pages
+            if (liveCDNBase != null)
+            {
+                actionResult = RedirectPermanent(new Uri(liveCDNBase, permalink).ToString());
+                return true;
+            }
+        }
+
+        actionResult = null;
+        return false;
+    }
+
+    [NonAction]
+    private void SetCanonicalUrl(string permalink, RenderedPage rendered)
+    {
         // Set canonical URL for the live site
         string? canonicalUrl = null;
         if (liveCDNBase != null)
@@ -141,14 +220,6 @@ public class LiveController : Controller
             canonicalUrl = new Uri(liveCDNBase, permalink).ToString();
         }
 
-        var realPageParts = await GetSiteLayoutParts(database, page.Type);
-
-        var rendered = await pageRenderer.RenderPage(page, realPageParts, true, timer);
-
         rendered.CanonicalUrl = canonicalUrl;
-
-        rendered.OpenGraphPageType = page.GetOpenGraphType();
-
-        return View("Pages/_LivePage", rendered);
     }
 }
