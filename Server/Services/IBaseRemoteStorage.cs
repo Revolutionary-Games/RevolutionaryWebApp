@@ -252,14 +252,28 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        return s3Client!.PutObjectAsync(new PutObjectRequest
+        // Ensure we're at the beginning of the stream
+        if (data.CanSeek)
+        {
+            data.Position = 0;
+        }
+
+        var request = new PutObjectRequest
         {
             BucketName = bucket,
             Key = path,
             InputStream = data,
             ContentType = contentType,
             AutoCloseStream = closeInputStream,
-        }, cancellationToken);
+        };
+
+        // For MemoryStream specifically, set the content length explicitly
+        if (data is MemoryStream memoryStream)
+        {
+            request.Headers.ContentLength = memoryStream.Length;
+        }
+
+        return s3Client!.PutObjectAsync(request, cancellationToken);
     }
 
     public string CreatePreSignedDownloadURL(string path, TimeSpan expiresIn)
