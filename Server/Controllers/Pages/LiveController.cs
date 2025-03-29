@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Models;
 using Models.Pages;
@@ -25,14 +26,19 @@ using Utilities;
 [Route("live")]
 public class LiveController : Controller
 {
+    private const int NewsPerPage = 10;
+
     private readonly ApplicationDbContext database;
     private readonly IPageRenderer pageRenderer;
+    private readonly CustomMemoryCache cache;
     private readonly Uri? liveCDNBase;
 
-    public LiveController(IConfiguration configuration, ApplicationDbContext database, IPageRenderer pageRenderer)
+    public LiveController(IConfiguration configuration, ApplicationDbContext database, IPageRenderer pageRenderer,
+        CustomMemoryCache cache)
     {
         this.database = database;
         this.pageRenderer = pageRenderer;
+        this.cache = cache;
 
         liveCDNBase = configuration.GetLiveWWWBaseUrl();
     }
@@ -43,6 +49,15 @@ public class LiveController : Controller
         // TODO: wiki handling
 
         return await database.SiteLayoutParts.AsNoTracking().Where(l => l.Enabled).OrderBy(l => l.Order).ToListAsync();
+    }
+
+    [NonAction]
+    public static string CacheKeyForNewsFeedPage(int page)
+    {
+        if (page <= 0)
+            page = 1;
+
+        return "NewsFeedPageRender_" + page;
     }
 
     [HttpGet("{*permalink}")]
@@ -89,6 +104,7 @@ public class LiveController : Controller
                 return Redirect(target);
             }
 
+            // And then fallback to rendering a not found page
             HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
             {
                 MaxAge = AppInfo.NotFoundPageCacheTime,
@@ -110,9 +126,6 @@ public class LiveController : Controller
             return View("Pages/_LivePage", pageRenderer.RenderNotFoundPage(parts, timer));
         }
 
-        // TODO: try to find in redis and only render if not rendered in the past 15 minutes (note when added page
-        // updates should flush the cache)
-
         // No caching in debug mode
 #if DEBUG
         HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
@@ -127,6 +140,17 @@ public class LiveController : Controller
         }.ToString();
 #endif
 
+        var key = "RenderedPageVeryShortCache_" + page.Id;
+
+        // Do a very short memory caching time to avoid someone trying to intentionally go past the cache
+        if (cache.Cache.TryGetValue(key, out var cached) && cached is RenderedPage cachedRender)
+        {
+            return View("Pages/_LivePage", cachedRender);
+        }
+
+        // TODO: try to find in redis and only render if not rendered in the past 15 minutes (note when added page
+        // updates should flush the cache)
+
         var realPageParts = await GetSiteLayoutParts(database, page.Type);
 
         var rendered = await pageRenderer.RenderPage(page, realPageParts, true, timer);
@@ -134,6 +158,13 @@ public class LiveController : Controller
         SetCanonicalUrl(permalink, rendered);
 
         rendered.OpenGraphPageType = page.GetOpenGraphType();
+
+        // Caching time has to be way lower than 15 seconds as that's how long after a page edit the CDN is purged
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromSeconds(9))
+            .SetPriority(CacheItemPriority.Low).SetSize(rendered.RenderedHtml.Length + 200);
+
+        cache.Cache.Set(key, rendered, cacheEntryOptions);
 
         return View("Pages/_LivePage", rendered);
     }
@@ -154,6 +185,62 @@ public class LiveController : Controller
         var timer = new Stopwatch();
         timer.Start();
 
+        var key = CacheKeyForNewsFeedPage(page);
+
+        if (cache.Cache.TryGetValue(key, out var cached) && cached is RenderedPage cachedRender)
+        {
+            if (cachedRender.Title.Contains("Not Found"))
+            {
+                SetNewsFeedCacheTime(true);
+                HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            }
+            else
+            {
+                SetNewsFeedCacheTime(false);
+            }
+
+            return View("Pages/_LivePage", cachedRender);
+        }
+
+        // TODO: redis caching as this is pretty extra expensive due to the way we need to prepare all the posts
+        // that fall on this page
+
+        var realPageParts = await GetSiteLayoutParts(database, PageType.NormalPage);
+
+        var pages = await database.VersionedPages.AsNoTracking()
+            .Where(p => p.Type == PageType.Post && p.PublishedAt != null && p.Visibility == PageVisibility.Public &&
+                !p.Deleted).OrderByDescending(p => p.PublishedAt).Skip((page - 1) * NewsPerPage).Take(NewsPerPage + 1)
+            .ToListAsync();
+
+        if (pages.Count < 1)
+        {
+            // No news found / page number too high
+            var notFoundRender = await pageRenderer.RenderPage(new VersionedPage("News Feed (Not Found)")
+            {
+                Type = PageType.NormalPage,
+                Visibility = PageVisibility.Public,
+                Permalink = permalink,
+                LatestContent = "No news found / page number is too high",
+            }, realPageParts, false, timer);
+
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(3))
+                .SetPriority(CacheItemPriority.Low).SetSize(notFoundRender.RenderedHtml.Length + 200);
+
+            cache.Cache.Set(key, notFoundRender, cacheEntryOptions);
+
+            SetNewsFeedCacheTime(true);
+
+            HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            return View("Pages/_LivePage", notFoundRender);
+        }
+
+        // We fetch an extra page to know when there are more pages to view
+        bool hasNext = pages.Count > NewsPerPage;
+        pages.RemoveAt(pages.Count - 1);
+
+        bool hasPrevious = page > 1;
+
         // TODO: generate the news feed raw text (including images)
         var newsPage = new VersionedPage(page > 1 ? $"News Feed (page {page})" : "News Feed")
         {
@@ -165,6 +252,36 @@ public class LiveController : Controller
             // TODO: take from latest published post publish time
             UpdatedAt = DateTime.UtcNow,
         };
+
+        SetNewsFeedCacheTime(false);
+
+        var rendered = await pageRenderer.RenderPage(newsPage, realPageParts, true, timer);
+        rendered.OpenGraphMetaDescription = "News feed for Revolutionary Games Studio";
+
+        SetCanonicalUrl(permalink, rendered);
+
+        rendered.OpenGraphPageType = "website";
+
+        var fullRenderCacheOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
+            .SetPriority(CacheItemPriority.High).SetSize(rendered.RenderedHtml.Length + 200);
+
+        cache.Cache.Set(key, rendered, fullRenderCacheOptions);
+
+        return View("Pages/_LivePage", rendered);
+    }
+
+    private void SetNewsFeedCacheTime(bool notFound)
+    {
+        if (notFound)
+        {
+            HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
+            {
+                MaxAge = TimeSpan.FromMinutes(5),
+                Public = true,
+            }.ToString();
+            return;
+        }
 
         // News feed updates on the CDN every 15 minutes
 #if DEBUG
@@ -179,17 +296,6 @@ public class LiveController : Controller
             Public = true,
         }.ToString();
 #endif
-
-        var realPageParts = await GetSiteLayoutParts(database, PageType.NormalPage);
-
-        var rendered = await pageRenderer.RenderPage(newsPage, realPageParts, true, timer);
-        rendered.OpenGraphMetaDescription = "News feed for Revolutionary Games Studio";
-
-        SetCanonicalUrl(permalink, rendered);
-
-        rendered.OpenGraphPageType = "website";
-
-        return View("Pages/_LivePage", rendered);
     }
 
     [NonAction]
