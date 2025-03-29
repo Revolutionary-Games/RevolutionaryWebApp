@@ -45,6 +45,9 @@ public interface IPageRenderer
     /// </remarks>
     public (string Rendered, string? PreviewImage)
         RenderPreview(VersionedPage page, string? readMoreLink, int targetMaxLength);
+
+    public (List<RenderingLayoutPart>? Sidebar, List<RenderingLayoutPart>? TopNavigation, List<RenderingLayoutPart>?
+        Socials) ProcessLayoutParts(List<SiteLayoutPart> layoutParts, string activeLink);
 }
 
 public class PageRenderer : IPageRenderer
@@ -165,12 +168,6 @@ public class PageRenderer : IPageRenderer
             }
         }
 
-        if (limitLeft <= 0)
-        {
-            // This is the three ellipsis character in html-encoded form
-            stringBuilder.Append("&#8230; ");
-        }
-
         // Add a read more link if truncated like there is on WordPress
         if (limitLeft <= 0 && !string.IsNullOrEmpty(readMoreLink))
         {
@@ -205,32 +202,7 @@ public class PageRenderer : IPageRenderer
         return result;
     }
 
-    private static bool LookForPreviewImage(INode node, ref string? previewImage)
-    {
-        switch (node)
-        {
-            case IHtmlImageElement imgImageElement:
-            {
-                if (!string.IsNullOrEmpty(imgImageElement.Source))
-                {
-                    previewImage = imgImageElement.Source;
-                    return true;
-                }
-
-                break;
-            }
-        }
-
-        foreach (var childNode in node.ChildNodes)
-        {
-            if (LookForPreviewImage(childNode, ref previewImage))
-                return true;
-        }
-
-        return false;
-    }
-
-    private (List<RenderingLayoutPart>? Sidebar, List<RenderingLayoutPart>? TopNavigation, List<RenderingLayoutPart>?
+    public (List<RenderingLayoutPart>? Sidebar, List<RenderingLayoutPart>? TopNavigation, List<RenderingLayoutPart>?
         Socials) ProcessLayoutParts(List<SiteLayoutPart> layoutParts, string activeLink)
     {
         List<RenderingLayoutPart>? top = null;
@@ -259,6 +231,31 @@ public class PageRenderer : IPageRenderer
         return (side, top, socials);
     }
 
+    private static bool LookForPreviewImage(INode node, ref string? previewImage)
+    {
+        switch (node)
+        {
+            case IHtmlImageElement imgImageElement:
+            {
+                if (!string.IsNullOrEmpty(imgImageElement.Source))
+                {
+                    previewImage = imgImageElement.Source;
+                    return true;
+                }
+
+                break;
+            }
+        }
+
+        foreach (var childNode in node.ChildNodes)
+        {
+            if (LookForPreviewImage(childNode, ref previewImage))
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>
     ///   Creates an opengraph meta-tag description for a page (the page needs to be rendered first)
     /// </summary>
@@ -266,8 +263,8 @@ public class PageRenderer : IPageRenderer
     private (string Description, string? PreviewImage) RenderOpenGraphMetaDescription(string rendered,
         int maxLength = 250)
     {
-        // TODO: skipping youtube and bigger elements would be really nice to skip text from them leaking into the
-        // summary
+        // TODO: skipping bigger elements would be really nice to skip text from them leaking into the summary
+        // YouTube content is already skipped
 
         // TODO: maybe there's another sensible approach (like extracting text from the raw markdown for opengraph)
         var fragment = htmlParser.ParseFragment(rendered, partialFragmentContext);
@@ -340,14 +337,25 @@ public class PageRenderer : IPageRenderer
                 return false;
             }
 
+            case IHtmlDivElement divElement:
+            {
+                // Skip YouTube videos
+                if (divElement.ClassList.Contains("youtube-placeholder"))
+                    return false;
+
+                break;
+            }
+
             // Elements that are trimmed (if too long)
             case IText text:
             {
                 if (text.Data.Length < limitLeft)
                 {
-                    // Ellipsis is added later (as an HTML element) so this doesn't place the ellipsis
-                    // There's a min length here so that the text isn't cut to have like just one character
-                    text.Data = text.Data.TruncateWithoutEllipsis(Math.Max(3, limitLeft));
+                    // Ellipsis is added later (as an HTML element), so this doesn't place the ellipsis
+                    // There's a min length here so that the text isn't cut to have like just one character.
+                    // Add the HTML ellipsis here so that it is placed within the body of the text and not in a
+                    // separate section afterwards.
+                    text.Data = text.Data.TruncateWithoutEllipsis(Math.Max(3, limitLeft)) + "&#8230;";
                 }
 
                 limitLeft -= text.Data.Length;
@@ -362,7 +370,8 @@ public class PageRenderer : IPageRenderer
 
                 if (headingElement.Title.Length < limitLeft)
                 {
-                    headingElement.Title = headingElement.Title.TruncateWithoutEllipsis(Math.Max(3, limitLeft));
+                    headingElement.Title =
+                        headingElement.Title.TruncateWithoutEllipsis(Math.Max(3, limitLeft)) + "&#8230;";
                 }
 
                 limitLeft -= headingElement.Title.Length;

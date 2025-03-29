@@ -4,9 +4,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +34,7 @@ public class LiveController : Controller
     private readonly IPageRenderer pageRenderer;
     private readonly CustomMemoryCache cache;
     private readonly Uri? liveCDNBase;
+    private readonly string serverName;
 
     public LiveController(IConfiguration configuration, ApplicationDbContext database, IPageRenderer pageRenderer,
         CustomMemoryCache cache)
@@ -41,6 +44,10 @@ public class LiveController : Controller
         this.cache = cache;
 
         liveCDNBase = configuration.GetLiveWWWBaseUrl();
+        serverName = configuration["ServerName"] ?? "server";
+
+        if (string.IsNullOrEmpty(serverName))
+            serverName = "server";
     }
 
     [NonAction]
@@ -237,34 +244,127 @@ public class LiveController : Controller
 
         // We fetch an extra page to know when there are more pages to view
         bool hasNext = pages.Count > NewsPerPage;
-        pages.RemoveAt(pages.Count - 1);
+
+        if (hasNext)
+            pages.RemoveAt(pages.Count - 1);
 
         bool hasPrevious = page > 1;
 
         // TODO: generate the news feed raw text (including images)
-        var newsPage = new VersionedPage(page > 1 ? $"News Feed (page {page})" : "News Feed")
-        {
-            Type = PageType.NormalPage,
-            Visibility = PageVisibility.Public,
-            Permalink = permalink,
-            LatestContent = "TODO: implement a news feed",
 
-            // TODO: take from latest published post publish time
-            UpdatedAt = DateTime.UtcNow,
-        };
+        var newsPageHtml = new StringBuilder(500);
+        string? firstImage = null;
+
+        void AddNextPreviousNavigation()
+        {
+            if (!hasNext && !hasPrevious)
+                return;
+
+            newsPageHtml.Append("<div style=\"width: 100%\">");
+
+            if (hasPrevious)
+            {
+                newsPageHtml.Append(
+                    $"<a href=\"/live/news/page/{page - 1}\" style=\"float: left\" class=\"news-feed-item\">" +
+                    "&larr; Older posts</a>");
+            }
+
+            if (hasNext)
+            {
+                newsPageHtml.Append(
+                    $"<a href=\"/live/news/page/{page + 1}\" style=\"float: right\" class=\"news-feed-item\">" +
+                    "Newer posts &rarr;</a>");
+            }
+
+            newsPageHtml.Append("</div>");
+        }
+
+        AddNextPreviousNavigation();
+
+        foreach (var pageInFeed in pages)
+        {
+            if (pageInFeed.Permalink == null)
+            {
+                newsPageHtml.Append("<p>Permalink not set</p>");
+                continue;
+            }
+
+            string pageLink;
+
+            if (liveCDNBase != null)
+            {
+                pageLink = new Uri(liveCDNBase, pageInFeed.Permalink).ToString();
+            }
+            else
+            {
+                pageLink = $"/live/{pageInFeed.Permalink}";
+            }
+
+            var (preview, previewImage) = pageRenderer.RenderPreview(pageInFeed, pageLink, 500);
+
+            newsPageHtml.Append("<h2 style=\"margin-bottom 0; border-bottom: 1px solid #6ACDEB;\">");
+            newsPageHtml.Append($"<a href=\"{pageLink}\" class=\"news-feed-item\">{pageInFeed.Title}</a></h2>\n");
+
+            if (pageInFeed.PublishedAt == null)
+            {
+                newsPageHtml.Append("<p>PUBLISHED AT MISSING</p>");
+            }
+            else
+            {
+                newsPageHtml.Append("<div class=\"posted-at-time\">Posted on ");
+                newsPageHtml.Append($"<a href=\"{pageLink}\" class=\"news-feed-item\">");
+                newsPageHtml.Append(
+                    pageInFeed.PublishedAt.Value.ToString("MMMM dd, yyyy", CultureInfo.InvariantCulture));
+                newsPageHtml.Append("</a>");
+                newsPageHtml.Append("</div>\n");
+            }
+
+            if (previewImage != null)
+            {
+                newsPageHtml.Append("<div style=\"display: flex; justify-content: center; margin: 5px;\">");
+                newsPageHtml.Append(
+                    $"<img src=\"{previewImage}\" alt=\"page preview image for {pageInFeed.Permalink}\"/>\n");
+                newsPageHtml.Append("</div>\n");
+            }
+
+            newsPageHtml.Append(preview);
+            newsPageHtml.Append("<br/>\n");
+
+            if (previewImage != null)
+                firstImage = previewImage;
+        }
+
+        newsPageHtml.Append("<br/>\n");
+        AddNextPreviousNavigation();
 
         SetNewsFeedCacheTime(false);
 
-        var rendered = await pageRenderer.RenderPage(newsPage, realPageParts, true, timer);
-        rendered.OpenGraphMetaDescription = "News feed for Revolutionary Games Studio";
+        var (sidebar, top, socials) = pageRenderer.ProcessLayoutParts(realPageParts, "news");
+
+        var rendered = new RenderedPage(page > 1 ? $"News Feed (page {page})" : "News Feed", newsPageHtml.ToString(),
+            pages[0].PublishedAt ?? DateTime.UtcNow, timer.Elapsed)
+        {
+            OpenGraphPageType = "website",
+            OpenGraphMetaDescription = "News feed for Revolutionary Games Studio",
+            PreviewImage = firstImage,
+            ByServer = serverName,
+            TopNavigation = top,
+            Sidebar = sidebar,
+            Socials = socials,
+        };
 
         SetCanonicalUrl(permalink, rendered);
 
-        rendered.OpenGraphPageType = "website";
-
+        // Lowered cache time in debug mode
+#if DEBUG
+        var fullRenderCacheOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromSeconds(5))
+            .SetPriority(CacheItemPriority.High).SetSize(rendered.RenderedHtml.Length + 200);
+#else
         var fullRenderCacheOptions = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
             .SetPriority(CacheItemPriority.High).SetSize(rendered.RenderedHtml.Length + 200);
+#endif
 
         cache.Cache.Set(key, rendered, fullRenderCacheOptions);
 

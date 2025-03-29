@@ -14,11 +14,6 @@ public class RenderedPage
         RenderTime = renderTime;
     }
 
-    /// <summary>
-    ///   False when no page and view should give 404 special handling.
-    /// </summary>
-    public bool Found { get; set; }
-
     public bool ShowHeading { get; set; }
 
     public bool ShowLogo { get; set; }
