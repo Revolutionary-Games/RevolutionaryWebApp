@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
@@ -12,6 +13,7 @@ using DevCenterCommunication.Models;
 using Filters;
 using Hangfire;
 using Hubs;
+using Jobs.Pages;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -201,6 +203,8 @@ public abstract class BasePageController : Controller
         if (!CanEdit(page, pageDTO, out var editFail))
             return editFail;
 
+        bool newlyPublished = false;
+
         if (pageDTO.Visibility != PageVisibility.HiddenDraft)
         {
             // Needs to have a permalink when a page is visible
@@ -216,7 +220,11 @@ public abstract class BasePageController : Controller
             }
 
             // Published at is set the first time the page is saved when visible
-            page.PublishedAt ??= DateTime.UtcNow;
+            if (page.PublishedAt == null)
+            {
+                page.PublishedAt = DateTime.UtcNow;
+                newlyPublished = true;
+            }
         }
         else if (string.IsNullOrWhiteSpace(pageDTO.Permalink))
         {
@@ -326,6 +334,13 @@ public abstract class BasePageController : Controller
             await transaction.CommitAsync();
 
         page.OnEdited(JobClient);
+
+        if (newlyPublished)
+        {
+            JobClient.Schedule<OnNewPagePublishedJob>(x => x.Execute(page.Id, CancellationToken.None),
+                TimeSpan.FromSeconds(60));
+        }
+
         return Ok();
     }
 
