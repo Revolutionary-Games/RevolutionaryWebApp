@@ -12,6 +12,7 @@ using System.Xml;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Models;
 using Services;
@@ -30,14 +31,17 @@ public class PostFeedController : Controller
 
     private readonly ApplicationDbContext database;
     private readonly IPageRenderer pageRenderer;
+    private readonly CustomMemoryCache cache;
 
     private readonly Uri baseUrl;
     private readonly Uri wwwSiteAssetsBaseUrl;
 
-    public PostFeedController(IConfiguration configuration, ApplicationDbContext database, IPageRenderer pageRenderer)
+    public PostFeedController(IConfiguration configuration, ApplicationDbContext database, IPageRenderer pageRenderer,
+        CustomMemoryCache cache)
     {
         this.database = database;
         this.pageRenderer = pageRenderer;
+        this.cache = cache;
         baseUrl = configuration.GetLiveWWWBaseUrl() ?? new Uri(configuration.GetBaseUrl(), "live/");
         wwwSiteAssetsBaseUrl = configuration.GetWWWAssetBaseUrl();
     }
@@ -100,6 +104,18 @@ public class PostFeedController : Controller
     [NonAction]
     private async Task<SyndicationFeed> GenerateFeed()
     {
+        var cacheKey = "PostSyndicationFeed";
+
+        // This extra caching is probably not completely needed as the endpoints above are already cached, but this
+        // memory cache is probably inexpensive enough to not cause any problems
+        if (cache.Cache.TryGetValue(cacheKey, out var existingFeedRaw) &&
+            existingFeedRaw is SyndicationFeed existingFeed)
+        {
+            return existingFeed;
+        }
+
+        int length = 50 + wwwSiteAssetsBaseUrl.ToString().Length * 2;
+
         var feed = new SyndicationFeed("Revolutionary Games Studio News",
             "News feed for Revolutionary Games Studio",
             baseUrl,
@@ -131,14 +147,22 @@ public class PostFeedController : Controller
 
             var postLink = new Uri(baseUrl, post.Permalink);
 
-            items.Add(new SyndicationItem(post.Title, post.GeneratePreview(pageRenderer, postLink),
-                postLink, postLink.ToString(), post.UpdatedAt)
+            var preview = post.GeneratePreview(pageRenderer, postLink, out var previewLength);
+
+            length += previewLength + post.Permalink.Length + post.Title.Length;
+
+            items.Add(new SyndicationItem(post.Title, preview, postLink, postLink.ToString(), post.UpdatedAt)
             {
                 PublishDate = post.PublishedAt.Value,
             });
         }
 
         feed.Items = items;
+
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromSeconds(60)).SetPriority(CacheItemPriority.Low).SetSize(length);
+
+        cache.Cache.Set(cacheKey, feed, cacheEntryOptions);
 
         return feed;
     }
