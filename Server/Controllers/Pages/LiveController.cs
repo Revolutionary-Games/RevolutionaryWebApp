@@ -281,6 +281,11 @@ public class LiveController : Controller
 
         AddNextPreviousNavigation();
 
+        var baseUrl = liveCDNBase?.ToString();
+
+        if (string.IsNullOrEmpty(baseUrl))
+            baseUrl = $"{Request.Scheme}://{Request.Host}/live/";
+
         foreach (var pageInFeed in pages)
         {
             if (pageInFeed.Permalink == null)
@@ -300,7 +305,7 @@ public class LiveController : Controller
                 pageLink = $"/live/{pageInFeed.Permalink}";
             }
 
-            var (preview, previewImage) = pageRenderer.RenderPreview(pageInFeed, pageLink, 500);
+            var (preview, previewImage) = pageRenderer.RenderPreview(pageInFeed, baseUrl, pageLink, 500);
 
             newsPageHtml.Append("<h2 style=\"margin-bottom 0; border-bottom: 1px solid #6ACDEB;\">");
             newsPageHtml.Append($"<a href=\"{pageLink}\" class=\"news-feed-item\">{pageInFeed.Title}</a></h2>\n");
