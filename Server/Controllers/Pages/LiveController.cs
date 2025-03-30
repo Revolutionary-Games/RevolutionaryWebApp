@@ -333,7 +333,7 @@ public class LiveController : Controller
             }
 
             newsPageHtml.Append(preview);
-            newsPageHtml.Append("<br/>\n");
+            newsPageHtml.Append("\n<br/><br/>\n");
 
             if (previewImage != null)
                 firstImage = previewImage;
