@@ -599,6 +599,10 @@ a:hover.news-feed-item {
 .open-youtube {
     text-decoration: none;
     text-align: center;
+
+    /* Vertical alignment */
+    display: flex;
+    align-items: center;
 }
 
 .open-youtube:hover {
