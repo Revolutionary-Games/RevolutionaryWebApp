@@ -438,6 +438,22 @@ div.main-site-sidebar-item {
     margin-bottom: 10px;
 }
 
+.mobile-sidebar-separator {
+    margin-bottom: 45px;
+    color: #6ACDEB;
+}
+
+.mobile-sidebar-separator hr {
+    min-height: 2px;
+    color: #6ACDEB;
+}
+
+@media (min-width: 778px) {
+    .mobile-sidebar-separator {
+        display: none;
+    }
+}
+
 @media (max-width: 779px) {
     .top-social-links {
         display: none;
