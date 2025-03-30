@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Jobs.Pages;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -57,9 +58,24 @@ public class OnNewPagePublishedJob
                 return;
             }
 
+            var cdnUrlsToClear = new List<string> { "news", "news/page/0", "news/page/0/" };
+
+            // Should clear cache for the previously latest published page as that will link to the new page now
+            var previous = await database.VersionedPages.AsNoTracking()
+                .Where(p => p.Type == PageType.Post && p.PublishedAt != null && p.PublishedAt < page.PublishedAt &&
+                    p.Visibility == PageVisibility.Public && !p.Deleted && p.Id != page.Id)
+                .OrderByDescending(p => p.PublishedAt).FirstOrDefaultAsync(cancellationToken);
+
+            if (previous is { Permalink: not null })
+            {
+                logger.LogInformation("Clearing cache for previously latest published page");
+                cdnUrlsToClear.Add(previous.Permalink);
+                cdnUrlsToClear.Add(previous.Permalink + "/");
+            }
+
             using var client = clientFactory.CreateClient("bunny");
 
-            foreach (var permalink in new[] { "news", "news/page/0", "news/page/0/" })
+            foreach (var permalink in cdnUrlsToClear)
             {
                 var finalUrl = new Uri(baseUrl, permalink).ToString();
 

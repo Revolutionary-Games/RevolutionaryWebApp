@@ -358,11 +358,11 @@ public class LiveController : Controller
         // Lowered cache time in debug mode
 #if DEBUG
         var fullRenderCacheOptions = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromSeconds(5))
+            .SetAbsoluteExpiration(TimeSpan.FromSeconds(1))
             .SetPriority(CacheItemPriority.High).SetSize(rendered.RenderedHtml.Length + 200);
 #else
         var fullRenderCacheOptions = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(1))
             .SetPriority(CacheItemPriority.High).SetSize(rendered.RenderedHtml.Length + 200);
 #endif
 

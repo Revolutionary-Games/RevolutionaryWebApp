@@ -338,7 +338,7 @@ public abstract class BasePageController : Controller
         if (newlyPublished)
         {
             JobClient.Schedule<OnNewPagePublishedJob>(x => x.Execute(page.Id, CancellationToken.None),
-                TimeSpan.FromSeconds(60));
+                TimeSpan.FromSeconds(65));
         }
 
         return Ok();
