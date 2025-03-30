@@ -178,7 +178,6 @@ public class LiveController : Controller
 
     [HttpGet("news/{page:int=0}")]
     [HttpGet("news/page/{page:int}")]
-    [HttpGet("news/page/{page:int}/")]
     public async Task<IActionResult> GetNewsFeedPage(int page = 0)
     {
         if (page < 1)
@@ -250,8 +249,6 @@ public class LiveController : Controller
 
         bool hasPrevious = page > 1;
 
-        // TODO: generate the news feed raw text (including images)
-
         var newsPageHtml = new StringBuilder(500);
         string? firstImage = null;
 
@@ -260,20 +257,27 @@ public class LiveController : Controller
             if (!hasNext && !hasPrevious)
                 return;
 
-            newsPageHtml.Append("<div style=\"width: 100%\">");
-
-            if (hasPrevious)
-            {
-                newsPageHtml.Append(
-                    $"<a href=\"/live/news/page/{page - 1}\" style=\"float: left\" class=\"news-feed-item\">" +
-                    "&larr; Older posts</a>");
-            }
+            newsPageHtml.Append("<div style=\"display: flex; justify-content: space-between; width: 100%\">");
 
             if (hasNext)
             {
-                newsPageHtml.Append(
-                    $"<a href=\"/live/news/page/{page + 1}\" style=\"float: right\" class=\"news-feed-item\">" +
-                    "Newer posts &rarr;</a>");
+                newsPageHtml.Append($"<a href=\"/live/news/page/{page + 1}\" class=\"news-feed-item\">");
+                newsPageHtml.Append("&larr; Older posts</a>");
+            }
+            else
+            {
+                // Add an empty spacer to maintain the layout even when the link is missing
+                newsPageHtml.Append("<div></div>");
+            }
+
+            if (hasPrevious)
+            {
+                newsPageHtml.Append($"<a href=\"/live/news/page/{page - 1}\" class=\"news-feed-item\">");
+                newsPageHtml.Append("Newer posts &rarr;</a>");
+            }
+            else
+            {
+                newsPageHtml.Append("<div></div>");
             }
 
             newsPageHtml.Append("</div>");
