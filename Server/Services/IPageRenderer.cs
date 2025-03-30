@@ -31,7 +31,8 @@ public interface IPageRenderer
     public RenderedPage RenderNotFoundPage(List<SiteLayoutPart> layoutParts, Stopwatch totalTimer);
 
     /// <summary>
-    ///   Creates a rendered preview of a page
+    ///   Creates a rendered preview of a page. Needs to have an expected base URL so that relative links work
+    ///   correctly.
     /// </summary>
     /// <returns>
     ///   Tuple of rendered HTML and a link to the first image (used as preview banner image) if there is one in the
@@ -44,7 +45,7 @@ public interface IPageRenderer
     ///   </para>
     /// </remarks>
     public (string Rendered, string? PreviewImage)
-        RenderPreview(VersionedPage page, string? readMoreLink, int targetMaxLength);
+        RenderPreview(VersionedPage page, string parsedUrlBase, string? readMoreLink, int targetMaxLength);
 
     public (List<RenderingLayoutPart>? Sidebar, List<RenderingLayoutPart>? TopNavigation, List<RenderingLayoutPart>?
         Socials) ProcessLayoutParts(List<SiteLayoutPart> layoutParts, string activeLink);
@@ -120,9 +121,8 @@ public class PageRenderer : IPageRenderer
         return ValueTask.FromResult(result);
     }
 
-    public (string Rendered, string? PreviewImage) RenderPreview(VersionedPage page,
-        string? readMoreLink,
-        int targetMaxLength)
+    public (string Rendered, string? PreviewImage) RenderPreview(VersionedPage page, string parsedUrlBase,
+        string? readMoreLink, int targetMaxLength)
     {
         // TODO: allow a special bbcode tag that overrides the page summary (needs to be removed in normal page
         // rendering)
@@ -134,9 +134,15 @@ public class PageRenderer : IPageRenderer
         // has normal links.
         var rendered = markdownService.MarkdownToHtmlLimited(page.LatestContent);
 
+        // Need to use this very convoluted way to get base URL to work correctly
+        var wrapper = $@"<!DOCTYPE html><html><head><base href=""{parsedUrlBase}""></head>
+        <body>{rendered}</body></html>";
+
+        var document = htmlParser.ParseDocument(wrapper);
+
         // Grab up to max length data from the rendered HTML (and remove unwanted elements)
         // TODO: is there a way to do this *without* needing to parse the data?
-        var fragment = htmlParser.ParseFragment(rendered, partialFragmentContext);
+        var fragment = document.Body!.ChildNodes;
 
         string? previewImage = null;
 
@@ -349,13 +355,13 @@ public class PageRenderer : IPageRenderer
             // Elements that are trimmed (if too long)
             case IText text:
             {
-                if (text.Data.Length < limitLeft)
+                if (text.Data.Length > limitLeft)
                 {
                     // Ellipsis is added later (as an HTML element), so this doesn't place the ellipsis
                     // There's a min length here so that the text isn't cut to have like just one character.
                     // Add the HTML ellipsis here so that it is placed within the body of the text and not in a
                     // separate section afterwards.
-                    text.Data = text.Data.TruncateWithoutEllipsis(Math.Max(3, limitLeft)) + "&#8230;";
+                    text.Data = text.Data.TruncateWithoutEllipsis(Math.Max(3, limitLeft)) + "\u2026";
                 }
 
                 limitLeft -= text.Data.Length;
@@ -368,10 +374,10 @@ public class PageRenderer : IPageRenderer
                 if (string.IsNullOrWhiteSpace(headingElement.Title))
                     return false;
 
-                if (headingElement.Title.Length < limitLeft)
+                if (headingElement.Title.Length > limitLeft)
                 {
                     headingElement.Title =
-                        headingElement.Title.TruncateWithoutEllipsis(Math.Max(3, limitLeft)) + "&#8230;";
+                        headingElement.Title.TruncateWithoutEllipsis(Math.Max(3, limitLeft)) + "\u2026";
                 }
 
                 limitLeft -= headingElement.Title.Length;
