@@ -182,9 +182,11 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
     ///   Generates a preview of this page based on the first 1 or 2 paragraphs. Can contain HTML formatting.
     /// </summary>
     /// <returns>A preview of this item (HTML format, not plain text)</returns>
-    public SyndicationContent GeneratePreview(IPageRenderer pageRenderer, Uri pageLink, out int usedMemory, int targetMaxLength = 350)
+    public SyndicationContent GeneratePreview(IPageRenderer pageRenderer, Uri pageLink, out int usedMemory,
+        int targetMaxLength = 350)
     {
-        var (rendered, _) = pageRenderer.RenderPreview(this, pageLink.ToString(), targetMaxLength);
+        var (rendered, _) = pageRenderer.RenderPreview(this, $"{pageLink.Scheme}://{pageLink.Host}",
+            pageLink.ToString(), targetMaxLength);
 
         var preview = new TextSyndicationContent(rendered, TextSyndicationContentKind.Html);
 
