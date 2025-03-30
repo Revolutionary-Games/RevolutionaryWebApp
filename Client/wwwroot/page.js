@@ -105,3 +105,43 @@ function saveYouTubePreference(enabled) {
     localStorage.setItem("ThriveYTCookies", enabled.toString());
 }
 
+// Mobile navigation implementation
+function enableMobileNavigation(){
+    const hamburgerButton = document.getElementById('nav-menu-button');
+    const mobileNav = document.getElementById('mobile-nav');
+    const backdrop = document.getElementById('backdrop');
+
+    // Toggle navigation when hamburger is clicked
+    hamburgerButton.addEventListener('click', function() {
+        hamburgerButton.classList.toggle('active');
+        mobileNav.classList.toggle('active');
+        backdrop.classList.toggle('active');
+
+        const isExpanded = hamburgerButton.classList.contains('active');
+        hamburgerButton.setAttribute('aria-expanded', isExpanded.toString());
+    });
+
+    // Close the menu when clicking on a nav link
+    const navLinks = document.querySelectorAll('.mobile-nav a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            hamburgerButton.classList.remove('active');
+            mobileNav.classList.remove('active');
+            backdrop.classList.remove('active');
+            hamburgerButton.setAttribute('aria-expanded', 'false');
+        });
+    });
+
+    // Close the menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.mobile-header') &&
+            !event.target.closest('.mobile-nav') &&
+            mobileNav.classList.contains('active'))
+        {
+            hamburgerButton.classList.remove('active');
+            mobileNav.classList.remove('active');
+            backdrop.classList.remove('active');
+            hamburgerButton.setAttribute('aria-expanded', 'false');
+        }
+    });
+}

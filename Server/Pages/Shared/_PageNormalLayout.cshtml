@@ -40,11 +40,65 @@
     document.addEventListener('DOMContentLoaded', () => {
         detectYouTubeVideos(document.body);
         enableAllCookieForms();
+        enableMobileNavigation();
     });
 </script>
 
+<!-- Mobile page navigation -->
+<header class="mobile-header">
+    <div class="header-logo">
+        <a href="/"><img src="/page-favicon.png" alt="logo"/>
+            <span style="margin-left: 16px; padding-top: 6px">Thrive</span>
+        </a>
+    </div>
+    <button class="hamburger" id="nav-menu-button" aria-label="Menu" aria-expanded="false">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+    </button>
+</header>
+
+<!-- Navigation menu that slides down -->
+<nav class="mobile-nav" id="mobile-nav">
+    <ul>
+        @if (ViewBag.Socials != null)
+        {
+            @foreach (RenderingLayoutPart navItem in ViewBag.TopNav)
+            {
+                if (navItem.DisplayMode is LayoutPartDisplayMode.Separator or LayoutPartDisplayMode.Spacer)
+                {
+                    <li class="mx-4 p-1"></li>
+                    continue;
+                }
+
+                <li>
+                    @if (navItem.Active)
+                    {
+                        <a class="main-bar-nav-link current-active-page" href="@navItem.LinkTarget"
+                           aria-current="page">
+                            @navItem.AltText
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="main-bar-nav-link" href="@navItem.LinkTarget">@navItem.AltText</a>
+                    }
+                </li>
+            }
+        }
+        else
+        {
+            <li><a href="/">Home</a></li>
+        }
+    </ul>
+</nav>
+
+<div class="backdrop" id="backdrop"></div>
+
+<!-- Main page body -->
 <div class="page main-site">
     <main>
+        <div class="mobile-spacer"></div>
         <article class="content px-4 container">
             @if (ViewBag.Socials != null)
             {
@@ -66,7 +120,7 @@
             }
             @if (ViewBag.TopNav != null)
             {
-                <div class="row py-2">
+                <div class="row py-2 desktop-top-nav">
                     <div class="d-flex flex-row align-items-center justify-content-center">
                         @foreach (RenderingLayoutPart navItem in ViewBag.TopNav)
                         {
