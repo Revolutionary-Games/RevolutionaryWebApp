@@ -160,7 +160,7 @@ public class LiveController : Controller
 
         var realPageParts = await GetSiteLayoutParts(database, page.Type);
 
-        var rendered = await pageRenderer.RenderPage(page, realPageParts, true, timer);
+        var rendered = await pageRenderer.RenderPage(page, GetViewMetadataBaseUrl(), realPageParts, true, timer);
 
         SetCanonicalUrl(permalink, rendered);
 
@@ -218,6 +218,8 @@ public class LiveController : Controller
                 !p.Deleted).OrderByDescending(p => p.PublishedAt).Skip((page - 1) * NewsPerPage).Take(NewsPerPage + 1)
             .ToListAsync();
 
+        var baseUrl = GetViewMetadataBaseUrl();
+
         if (pages.Count < 1)
         {
             // No news found / page number too high
@@ -227,7 +229,7 @@ public class LiveController : Controller
                 Visibility = PageVisibility.Public,
                 Permalink = permalink,
                 LatestContent = "No news found / page number is too high",
-            }, realPageParts, false, timer);
+            }, baseUrl, realPageParts, false, timer);
 
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(3))
@@ -284,11 +286,6 @@ public class LiveController : Controller
         }
 
         AddNextPreviousNavigation();
-
-        var baseUrl = liveCDNBase?.ToString();
-
-        if (string.IsNullOrEmpty(baseUrl))
-            baseUrl = $"{Request.Scheme}://{Request.Host}/live/";
 
         foreach (var pageInFeed in pages)
         {
@@ -380,6 +377,18 @@ public class LiveController : Controller
         return View("Pages/_LivePage", rendered);
     }
 
+    [NonAction]
+    private string GetViewMetadataBaseUrl()
+    {
+        var baseUrl = liveCDNBase?.ToString();
+
+        if (string.IsNullOrEmpty(baseUrl))
+            baseUrl = $"{Request.Scheme}://{Request.Host}/live/";
+
+        return baseUrl;
+    }
+
+    [NonAction]
     private void SetNewsFeedCacheTime(bool notFound)
     {
         if (notFound)

@@ -25,8 +25,8 @@ public interface IPageRenderer
     internal const string NotFoundPageTitle = "404 - Not Found";
     internal const string NotFoundPageText = "<p>No page exists at this address, please double check the link</p>";
 
-    public ValueTask<RenderedPage> RenderPage(VersionedPage page, List<SiteLayoutPart> layoutParts,
-        bool renderOpenGraphMeta, Stopwatch totalTimer);
+    public ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
+        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, Stopwatch totalTimer);
 
     public RenderedPage RenderNotFoundPage(List<SiteLayoutPart> layoutParts, Stopwatch totalTimer);
 
@@ -60,21 +60,16 @@ public class PageRenderer : IPageRenderer
     private readonly HtmlParser htmlParser = new();
     private readonly HtmlMarkupFormatter fragmentFormatter = new();
 
-    // TODO: is this safe to have as a shared variable? (this is a singleton service)
-    private readonly IElement partialFragmentContext;
-
     public PageRenderer(IConfiguration configuration, MarkdownService markdownService,
         IMediaLinkConverter linkConverter)
     {
         this.markdownService = markdownService;
         this.linkConverter = linkConverter;
         serverName = configuration["ServerName"];
-
-        partialFragmentContext = htmlParser.ParseDocument(string.Empty).DocumentElement;
     }
 
-    public ValueTask<RenderedPage> RenderPage(VersionedPage page, List<SiteLayoutPart> layoutParts,
-        bool renderOpenGraphMeta, Stopwatch totalTimer)
+    public ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
+        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, Stopwatch totalTimer)
     {
         // TODO: handle storage access links etc. this will need async
 
@@ -88,7 +83,7 @@ public class PageRenderer : IPageRenderer
         string? image = null;
         if (renderOpenGraphMeta)
         {
-            (description, image) = RenderOpenGraphMetaDescription(rendered);
+            (description, image) = RenderOpenGraphMetaDescription(rendered, metadataBaseUrl);
         }
 
         // Fallback to the title here should only happen when previewing
@@ -133,6 +128,9 @@ public class PageRenderer : IPageRenderer
         // embedded images). Should have a separate mode that doesn't render advanced embeds like youtube, but just
         // has normal links.
         var rendered = markdownService.MarkdownToHtmlLimited(page.LatestContent);
+
+        if (string.IsNullOrWhiteSpace(rendered))
+            return ("(blank page)", null);
 
         // Need to use this very convoluted way to get base URL to work correctly
         var wrapper = $@"<!DOCTYPE html><html><head><base href=""{parsedUrlBase}""></head>
@@ -267,13 +265,21 @@ public class PageRenderer : IPageRenderer
     /// </summary>
     /// <returns>Opengraph meta-information</returns>
     private (string Description, string? PreviewImage) RenderOpenGraphMetaDescription(string rendered,
-        int maxLength = 250)
+        string imageBaseUrl, int maxLength = 250)
     {
+        if (string.IsNullOrWhiteSpace(rendered))
+            return ("(blank page)", null);
+
         // TODO: skipping bigger elements would be really nice to skip text from them leaking into the summary
         // YouTube content is already skipped
 
         // TODO: maybe there's another sensible approach (like extracting text from the raw markdown for opengraph)
-        var fragment = htmlParser.ParseFragment(rendered, partialFragmentContext);
+        var wrapper = $@"<!DOCTYPE html><html><head><base href=""{imageBaseUrl}""></head>
+        <body>{rendered}</body></html>";
+
+        var document = htmlParser.ParseDocument(wrapper);
+
+        var fragment = document.Body!.ChildNodes;
 
         string? previewImage = null;
 

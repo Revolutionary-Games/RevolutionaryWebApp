@@ -43,7 +43,9 @@ public class LivePreviewController : Controller
 
         var parts = await LiveController.GetSiteLayoutParts(database, page.Type);
 
-        var rendered = await pageRenderer.RenderPage(page, parts, false, timer);
+        // Extra image etc. resources go to the "live" endpoint that are linked in metadata
+        var rendered =
+            await pageRenderer.RenderPage(page, $"{Request.Scheme}://{Request.Host}/live/", parts, false, timer);
 
         return View("Pages/_PagePreview", rendered);
     }
