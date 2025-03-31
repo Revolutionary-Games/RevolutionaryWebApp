@@ -163,7 +163,9 @@ public class LiveController : Controller
 
         var realPageParts = await GetSiteLayoutParts(database, page.Type);
 
-        var rendered = await pageRenderer.RenderPage(page, GetViewMetadataBaseUrl(), realPageParts, true, timer);
+        var viewBaseUrl = GetViewMetadataBaseUrl();
+
+        var rendered = await pageRenderer.RenderPage(page, viewBaseUrl, realPageParts, true, timer);
 
         SetCanonicalUrl(permalink, rendered);
 
@@ -173,6 +175,15 @@ public class LiveController : Controller
         if (page.Type == PageType.Post)
         {
             rendered.PublishedAt = page.PublishedAt;
+
+            // Load navigation
+            var (previous, next) = await GetAdjacentPosts(page);
+
+            if (previous != null)
+                rendered.PreviousLink = (previous.Title, $"{viewBaseUrl}/{previous.Permalink}");
+
+            if (next != null)
+                rendered.NextLink = (next.Title, $"{viewBaseUrl}/{next.Permalink}");
         }
 
         // Caching time has to be way lower than 15 seconds as that's how long after a page edit the CDN is purged
@@ -420,5 +431,65 @@ public class LiveController : Controller
         }
 
         rendered.CanonicalUrl = canonicalUrl;
+    }
+
+    [NonAction]
+    private async Task<(NavInfo? Previous, NavInfo? Next)> GetAdjacentPosts(VersionedPage page)
+    {
+        if (page.PublishedAt == null)
+            return (null, null);
+
+        var currentPublishedAt = page.PublishedAt.Value;
+
+        // Get one post older and one post newer
+
+        /*
+        // This is optimised for the number of DB queries to avoid round trips
+        // TODO: this doesn't work:
+        var adjacentPosts = await database.VersionedPages
+            .Where(p =>
+                p.PublishedAt != null && p.Visibility == PageVisibility.Public &&
+                p.Type == PageType.Post && !p.Deleted && (
+                    p.PublishedAt < currentPublishedAt ||
+                    p.PublishedAt > currentPublishedAt))
+
+            // Do some complex sorting to get one before and one after as the 2 first results
+            .OrderBy(p => p.PublishedAt < currentPublishedAt ? 0 : 1)
+            .ThenByDescending(p =>
+                p.PublishedAt < currentPublishedAt ? p.PublishedAt : null)
+            .ThenBy(p => p.PublishedAt > currentPublishedAt ? p.PublishedAt : DateTime.MaxValue)
+            .Select(p => new NavInfo(p.Title, p.Permalink, p.PublishedAt!.Value))
+            .Take(2)
+            .ToListAsync();
+
+        var previous = adjacentPosts.FirstOrDefault(p => p.PublishedAt < currentPublishedAt);
+        var next = adjacentPosts.FirstOrDefault(p => p.PublishedAt > currentPublishedAt);
+        */
+
+        var previous = await database.VersionedPages.Where(p =>
+                p.PublishedAt != null && p.Visibility == PageVisibility.Public &&
+                p.Type == PageType.Post && !p.Deleted && p.PublishedAt < currentPublishedAt)
+            .OrderByDescending(p => p.PublishedAt)
+            .Take(1).Select(p => new NavInfo(p.Title, p.Permalink)).FirstOrDefaultAsync();
+
+        var next = await database.VersionedPages.Where(p =>
+                p.PublishedAt != null && p.Visibility == PageVisibility.Public &&
+                p.Type == PageType.Post && !p.Deleted && p.PublishedAt > currentPublishedAt)
+            .OrderBy(p => p.PublishedAt)
+            .Take(1).Select(p => new NavInfo(p.Title, p.Permalink)).FirstOrDefaultAsync();
+
+        return (previous, next);
+    }
+
+    private class NavInfo
+    {
+        public string Title;
+        public string? Permalink;
+
+        public NavInfo(string title, string? permalink)
+        {
+            Title = title;
+            Permalink = permalink;
+        }
     }
 }
