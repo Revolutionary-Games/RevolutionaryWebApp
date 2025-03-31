@@ -152,7 +152,7 @@
                 <div class="col-md-8 main-page pt-4">
                     @if (ViewBag.PreviousLink != null || ViewBag.NextLink != null)
                     {
-                        <div class="news-feed-navigation" style="margin-bottom: 5px;">
+                        <div class="news-feed-navigation" style="margin-bottom: 10px;">
                             @if (ViewBag.PreviousLink != null)
                             {
                                 <a class="news-feed-item" href="@ViewBag.PreviousLink">
@@ -182,13 +182,18 @@
                     {
                         <h1>@ViewData["Title"]</h1>
                         <hr/>
+
+                        @if (ViewBag.PublishedAt != null)
+                        {
+                            <div class="posted-at-time">Posted on @ViewBag.PublishedAt</div>
+                        }
                     }
 
                     @RenderBody()
 
                     @if (ViewBag.PreviousLink != null || ViewBag.NextLink != null)
                     {
-                        <div class="news-feed-navigation" style="margin-top: 20px; margin-bottom: 5px;">
+                        <div class="news-feed-navigation" style="margin-top: 25px; margin-bottom: 7px;">
                             @if (ViewBag.PreviousLink != null)
                             {
                                 <a class="news-feed-item" href="@ViewBag.PreviousLink">

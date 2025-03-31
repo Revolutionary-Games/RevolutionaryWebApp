@@ -24,6 +24,8 @@ public class RenderedPage
 
     public DateTime UpdatedAt { get; set; }
 
+    public DateTime? PublishedAt { get; set; }
+
     public string ByServer { get; set; } = "server";
     public TimeSpan RenderTime { get; set; }
 

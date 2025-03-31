@@ -16,6 +16,11 @@
     ViewData["GeneratedAt"] = Model.RenderedAt.ToString("yyyy.MM.dd. HH:mm:ss", CultureInfo.InvariantCulture);
     ViewData["UpdatedAt"] = Model.UpdatedAt;
 
+    if (Model.PublishedAt != null)
+    {
+        ViewData["PublishedAt"] = Model.PublishedAt.Value.ToString("MMMM dd, yyyy", CultureInfo.InvariantCulture);
+    }
+
     ViewData["ShowLogo"] = Model.ShowLogo;
 
     ViewData["Canonical"] = Model.CanonicalUrl;

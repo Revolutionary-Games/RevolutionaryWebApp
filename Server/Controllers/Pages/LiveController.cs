@@ -169,6 +169,12 @@ public class LiveController : Controller
 
         rendered.OpenGraphPageType = page.GetOpenGraphType();
 
+        // Post dates and navigation
+        if (page.Type == PageType.Post)
+        {
+            rendered.PublishedAt = page.PublishedAt;
+        }
+
         // Caching time has to be way lower than 15 seconds as that's how long after a page edit the CDN is purged
         var cacheEntryOptions = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(TimeSpan.FromSeconds(9))
