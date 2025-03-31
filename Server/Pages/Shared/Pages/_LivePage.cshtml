@@ -26,6 +26,18 @@
     ViewData["Sidebar"] = Model.Sidebar;
     ViewData["Socials"] = Model.Socials;
 
+    if (Model.PreviousLink != null)
+    {
+        ViewData["PreviousLink"] = Model.PreviousLink.Value.Link;
+        ViewData["PreviousLinkText"] = Model.PreviousLink.Value.Title;
+    }
+
+    if (Model.NextLink != null)
+    {
+        ViewData["NextLink"] = Model.NextLink.Value.Link;
+        ViewData["NextLinkText"] = Model.NextLink.Value.Title;
+    }
+
     // Opengraph metadata
     // https://ahrefs.com/blog/open-graph-meta-tags/
     ViewData["OpenGraphDescription"] = Model.OpenGraphMetaDescription;

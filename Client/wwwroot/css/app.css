@@ -651,6 +651,13 @@ a:hover.news-feed-item {
     text-align: center;
 }
 
+/* news feed navigation on pages */
+.news-feed-navigation {
+    display: flex;
+    justify-content: space-between;
+    width: 100%
+}
+
 /* Markdown tables support */
 .markdown table {
     width: 100%;

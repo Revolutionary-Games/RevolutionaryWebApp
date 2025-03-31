@@ -53,7 +53,10 @@ public class LiveController : Controller
     [NonAction]
     public static async Task<List<SiteLayoutPart>> GetSiteLayoutParts(ApplicationDbContext database, PageType pageType)
     {
-        // TODO: wiki handling
+        if (pageType == PageType.WikiPage)
+        {
+            // TODO: wiki handling
+        }
 
         return await database.SiteLayoutParts.AsNoTracking().Where(l => l.Enabled).OrderBy(l => l.Order).ToListAsync();
     }
@@ -249,43 +252,8 @@ public class LiveController : Controller
         if (hasNext)
             pages.RemoveAt(pages.Count - 1);
 
-        bool hasPrevious = page > 1;
-
         var newsPageHtml = new StringBuilder(500);
         string? firstImage = null;
-
-        void AddNextPreviousNavigation()
-        {
-            if (!hasNext && !hasPrevious)
-                return;
-
-            newsPageHtml.Append("<div style=\"display: flex; justify-content: space-between; width: 100%\">");
-
-            if (hasNext)
-            {
-                newsPageHtml.Append($"<a href=\"/live/news/page/{page + 1}\" class=\"news-feed-item\">");
-                newsPageHtml.Append("&larr; Older posts</a>");
-            }
-            else
-            {
-                // Add an empty spacer to maintain the layout even when the link is missing
-                newsPageHtml.Append("<div></div>");
-            }
-
-            if (hasPrevious)
-            {
-                newsPageHtml.Append($"<a href=\"/live/news/page/{page - 1}\" class=\"news-feed-item\">");
-                newsPageHtml.Append("Newer posts &rarr;</a>");
-            }
-            else
-            {
-                newsPageHtml.Append("<div></div>");
-            }
-
-            newsPageHtml.Append("</div>");
-        }
-
-        AddNextPreviousNavigation();
 
         foreach (var pageInFeed in pages)
         {
@@ -341,7 +309,6 @@ public class LiveController : Controller
         }
 
         newsPageHtml.Append("<br/>\n");
-        AddNextPreviousNavigation();
 
         SetNewsFeedCacheTime(false);
 
@@ -357,6 +324,8 @@ public class LiveController : Controller
             TopNavigation = top,
             Sidebar = sidebar,
             Socials = socials,
+            PreviousLink = hasNext ? ("Older posts", $"{baseUrl}/news/page/{page + 1}") : null,
+            NextLink = page > 1 ? ("Newer posts", $"{baseUrl}/news/page/{page - 1}") : null,
         };
 
         SetCanonicalUrl(permalink, rendered);
@@ -383,7 +352,7 @@ public class LiveController : Controller
         var baseUrl = liveCDNBase?.ToString();
 
         if (string.IsNullOrEmpty(baseUrl))
-            baseUrl = $"{Request.Scheme}://{Request.Host}/live/";
+            baseUrl = $"{Request.Scheme}://{Request.Host}/live";
 
         return baseUrl;
     }

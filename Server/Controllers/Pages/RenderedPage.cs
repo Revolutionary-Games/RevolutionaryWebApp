@@ -43,4 +43,7 @@ public class RenderedPage
     public string? PreviewImage { get; set; }
 
     public string OpenGraphPageType { get; set; } = "article";
+
+    public (string Title, string Link)? PreviousLink { get; set; }
+    public (string Title, string Link)? NextLink { get; set; }
 }

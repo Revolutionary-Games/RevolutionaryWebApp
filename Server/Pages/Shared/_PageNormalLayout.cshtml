@@ -31,7 +31,7 @@
 
     <link href="@ViewBag.AssetsBase/css/bootstrap/bootstrap.min.css" rel="stylesheet"/>
     <link href="@ViewBag.AssetsBase/css/app.css" rel="stylesheet"/>
-    <link rel="icon" type="image/png" href="/page-favicon.png" />
+    <link rel="icon" type="image/png" href="/page-favicon.png"/>
     <script src="/page.js"></script>
 </head>
 
@@ -150,6 +150,34 @@
             }
             <div class="row gx-5">
                 <div class="col-md-8 main-page pt-4">
+                    @if (ViewBag.PreviousLink != null || ViewBag.NextLink != null)
+                    {
+                        <div class="news-feed-navigation" style="margin-bottom: 5px;">
+                            @if (ViewBag.PreviousLink != null)
+                            {
+                                <a class="news-feed-item" href="@ViewBag.PreviousLink">
+                                    &larr; @ViewBag.PreviousLinkText
+                                </a>
+                            }
+                            else
+                            {
+                                // Empty spacer needed to maintain item balance
+                                <div></div>
+                            }
+
+                            @if (ViewBag.NextLink != null)
+                            {
+                                <a class="news-feed-item" href="@ViewBag.NextLink">
+                                    @ViewBag.NextLinkText &rarr;
+                                </a>
+                            }
+                            else
+                            {
+                                <div></div>
+                            }
+                        </div>
+                    }
+
                     @if (ViewBag.Title != null)
                     {
                         <h1>@ViewData["Title"]</h1>
@@ -157,6 +185,33 @@
                     }
 
                     @RenderBody()
+
+                    @if (ViewBag.PreviousLink != null || ViewBag.NextLink != null)
+                    {
+                        <div class="news-feed-navigation" style="margin-top: 20px; margin-bottom: 5px;">
+                            @if (ViewBag.PreviousLink != null)
+                            {
+                                <a class="news-feed-item" href="@ViewBag.PreviousLink">
+                                    &larr; @ViewBag.PreviousLinkText
+                                </a>
+                            }
+                            else
+                            {
+                                <div></div>
+                            }
+
+                            @if (ViewBag.NextLink != null)
+                            {
+                                <a class="news-feed-item" href="@ViewBag.NextLink">
+                                    @ViewBag.NextLinkText &rarr;
+                                </a>
+                            }
+                            else
+                            {
+                                <div></div>
+                            }
+                        </div>
+                    }
                 </div>
                 <div class="col-md-4">
                     <div class="mobile-sidebar-separator">
@@ -210,7 +265,9 @@
                                 @foreach (RenderingLayoutPart navItem in ViewBag.Socials)
                                 {
                                     <a href="@navItem.LinkTarget" target="_blank">
-                                        <img src="@navItem.Image" alt="@navItem.AltText" width="32" height="32" class="mx-1"/></a>
+                                        <img src="@navItem.Image" alt="@navItem.AltText" width="32" height="32"
+                                             class="mx-1"/>
+                                    </a>
                                 }
                             </div>
                         }
