@@ -24,6 +24,7 @@ using Utilities;
 /// </summary>
 [Index(nameof(Permalink), IsUnique = true)]
 [Index(nameof(Title), IsUnique = true)]
+[Index(nameof(PublishedAt), nameof(Visibility))]
 public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotifications
 {
     public VersionedPage(string title)
