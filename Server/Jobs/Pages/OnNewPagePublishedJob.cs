@@ -83,15 +83,9 @@ public class OnNewPagePublishedJob
                 {
                     var request =
                         new HttpRequestMessage(HttpMethod.Post, "purge" + QueryString.Create("url", finalUrl));
-
                     request.Headers.Add("AccessKey", bunnyAPIKey);
 
                     var response = await client.SendAsync(request, cancellationToken);
-
-                    // Ensure the response status is a success
-                    response.EnsureSuccessStatusCode();
-
-                    response = await client.SendAsync(request, cancellationToken);
                     response.EnsureSuccessStatusCode();
 
                     logger.LogInformation("Successfully cleared CDN cache for: {FinalUrl}", finalUrl);
