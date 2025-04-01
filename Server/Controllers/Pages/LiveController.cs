@@ -180,10 +180,10 @@ public class LiveController : Controller
             var (previous, next) = await GetAdjacentPosts(page);
 
             if (previous != null)
-                rendered.PreviousLink = (previous.Title, $"{viewBaseUrl}/{previous.Permalink}");
+                rendered.PreviousLink = (previous.Title, $"{viewBaseUrl}{previous.Permalink}");
 
             if (next != null)
-                rendered.NextLink = (next.Title, $"{viewBaseUrl}/{next.Permalink}");
+                rendered.NextLink = (next.Title, $"{viewBaseUrl}{next.Permalink}");
         }
 
         // Caching time has to be way lower than 15 seconds as that's how long after a page edit the CDN is purged
@@ -341,8 +341,8 @@ public class LiveController : Controller
             TopNavigation = top,
             Sidebar = sidebar,
             Socials = socials,
-            PreviousLink = hasNext ? ("Older posts", $"{baseUrl}/news/page/{page + 1}") : null,
-            NextLink = page > 1 ? ("Newer posts", $"{baseUrl}/news/page/{page - 1}") : null,
+            PreviousLink = hasNext ? ("Older posts", $"{baseUrl}news/page/{page + 1}") : null,
+            NextLink = page > 1 ? ("Newer posts", $"{baseUrl}news/page/{page - 1}") : null,
         };
 
         SetCanonicalUrl(permalink, rendered);
@@ -369,7 +369,7 @@ public class LiveController : Controller
         var baseUrl = liveCDNBase?.ToString();
 
         if (string.IsNullOrEmpty(baseUrl))
-            baseUrl = $"{Request.Scheme}://{Request.Host}/live";
+            baseUrl = $"{Request.Scheme}://{Request.Host}/live/";
 
         return baseUrl;
     }

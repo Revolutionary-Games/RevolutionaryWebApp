@@ -10,6 +10,11 @@ public static class ConfigurationHelpers
         return new Uri(configuration["BaseUrl"] ?? throw new InvalidOperationException("Base url is missing"));
     }
 
+    /// <summary>
+    ///   CDN base of the live website view. This should have a trailing slash when converted to a string.
+    /// </summary>
+    /// <param name="configuration">Config to read from</param>
+    /// <returns>Configured CDN or null if not configured</returns>
     public static Uri? GetLiveWWWBaseUrl(this IConfiguration configuration)
     {
         var live = configuration["CDN:LiveUrl"];
