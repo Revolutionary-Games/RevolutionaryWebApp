@@ -72,11 +72,8 @@ public class ClearPageCDNCacheJob
 
             // Clear also the URL with a trailing '/' as that is also a valid way to access the page
             request = new HttpRequestMessage(HttpMethod.Post,
-                "purge" + QueryString.Create("url", new Uri(finalUrl + "/").ToString()));
+                "purge" + QueryString.Create("url", new Uri(finalUrl) + "/"));
             request.Headers.Add("AccessKey", bunnyAPIKey);
-
-            if (request.RequestUri?.ToString().EndsWith("/") != true)
-                throw new Exception("Failed to append trailing slash to URL");
 
             response = await client.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
