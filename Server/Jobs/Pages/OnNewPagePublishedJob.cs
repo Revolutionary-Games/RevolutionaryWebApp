@@ -58,7 +58,7 @@ public class OnNewPagePublishedJob
                 return;
             }
 
-            var cdnUrlsToClear = new List<string> { "news", "news/page/0", "news/page/0/" };
+            var cdnUrlsToClear = new List<string> { "news", "news/", "news/page/0", "news/page/0/" };
 
             // Should clear cache for the previously latest published page as that will link to the new page now
             var previous = await database.VersionedPages.AsNoTracking()
