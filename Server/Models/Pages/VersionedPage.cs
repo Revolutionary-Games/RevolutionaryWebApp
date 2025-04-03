@@ -76,9 +76,6 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
     public User? LastEditor { get; set; }
     public long? LastEditorId { get; set; }
 
-    // TODO: implement
-    // public static string PermalinkFromTitle()
-
     public VersionedPageInfo GetInfo()
     {
         return new VersionedPageInfo
