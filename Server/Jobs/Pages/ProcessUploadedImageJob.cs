@@ -58,7 +58,7 @@ public class ProcessUploadedImageJob
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error while trying to clear storage of failed uploaded");
+                logger.LogError(e, "Error while trying to clear storage of failed upload");
             }
 
             return;
