@@ -30,6 +30,8 @@ public sealed class ImageGenerator : IDisposable
     private const string ProgressUpdateBackgroundUrl =
         "https://dev.revolutionarygamesstudio.com/api/v1/download/179256";
 
+    private const string ProgressUpdateBanner2 = "https://dev.revolutionarygamesstudio.com/api/v1/download/179375";
+
     private readonly IHttpClientFactory httpClientFactory;
 
     private readonly SemaphoreSlim fontDownloadSemaphore = new(1, 1);
@@ -38,6 +40,7 @@ public sealed class ImageGenerator : IDisposable
     private FontFamily? thriveFont;
 
     private Image<Rgb24>? progressUpdateBackground;
+    private Image<Rgb24>? progressUpdateBackground2;
 
     public ImageGenerator(IHttpClientFactory httpClientFactory)
     {
@@ -45,7 +48,7 @@ public sealed class ImageGenerator : IDisposable
     }
 
     /// <summary>
-    ///   Helper to generate initials (1 or 2 letters)
+    ///   Helper to generate initials (one or two letters)
     /// </summary>
     /// <param name="name">Name / username</param>
     /// <returns>Initials</returns>
@@ -68,7 +71,17 @@ public sealed class ImageGenerator : IDisposable
     public async Task<byte[]> GenerateProgressUpdateBanner(DateTime date)
     {
         await GetMissingBannerFontsIfNeeded();
-        await GetProgressUpdateBackgroundImageIfNeeded();
+
+        var fontColour = Color.Black;
+        int version = 1;
+
+        if (date > new DateTime(2025, 03, 25))
+        {
+            version = 2;
+            fontColour = Color.White;
+        }
+
+        var backgroundImage = await GetProgressUpdateBackgroundImage(version);
 
         using var image = new Image<Rgb24>(ProgressUpdateBannerWidth, ProgressUpdateBannerHeight, Color.Black);
 
@@ -82,7 +95,7 @@ public sealed class ImageGenerator : IDisposable
         image.Mutate(ctx =>
         {
             // Draw the background
-            ctx.DrawImage(progressUpdateBackground!, new Point(0, 0), 1.0f);
+            ctx.DrawImage(backgroundImage, new Point(0, 0), 1.0f);
 
             // The progress update text
             ctx.DrawText(new RichTextOptions(font)
@@ -93,18 +106,26 @@ public sealed class ImageGenerator : IDisposable
                     ProgressUpdateBannerHeight / 2.0f - ProgressUpdateBannerHeight / 6.0f),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-            }, "PROGRESS\nUPDATE", Color.Black);
+            }, "PROGRESS\nUPDATE", fontColour);
 
             // And the current date
+            var dateLocation = new PointF(ProgressUpdateBannerWidth / 2.0f,
+                ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 6.0f);
+
+            if (version > 1)
+            {
+                dateLocation = new PointF(ProgressUpdateBannerWidth / 2.0f,
+                    ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 4.0f);
+            }
+
             ctx.DrawText(new RichTextOptions(font)
             {
                 TextAlignment = TextAlignment.Center,
                 Font = font,
-                Origin = new PointF(ProgressUpdateBannerWidth / 2.0f,
-                    ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 6.0f),
+                Origin = dateLocation,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-            }, date.ToString("MMMM dd yyyy", CultureInfo.InvariantCulture), Color.Black);
+            }, date.ToString("MMMM dd yyyy", CultureInfo.InvariantCulture), fontColour);
         });
 
         // Save the image after generating
@@ -193,20 +214,40 @@ public sealed class ImageGenerator : IDisposable
         }
     }
 
-    private async ValueTask GetProgressUpdateBackgroundImageIfNeeded()
+    private async ValueTask<Image<Rgb24>> GetProgressUpdateBackgroundImage(int version)
     {
-        if (progressUpdateBackground == null)
+        if (version < 2)
+        {
+            if (progressUpdateBackground == null)
+            {
+                await fontDownloadSemaphore.WaitAsync();
+                try
+                {
+                    progressUpdateBackground ??= await DownloadImage(ProgressUpdateBackgroundUrl);
+                }
+                finally
+                {
+                    fontDownloadSemaphore.Release();
+                }
+            }
+
+            return progressUpdateBackground;
+        }
+
+        if (progressUpdateBackground2 == null)
         {
             await fontDownloadSemaphore.WaitAsync();
             try
             {
-                progressUpdateBackground ??= await DownloadImage(ProgressUpdateBackgroundUrl);
+                progressUpdateBackground2 ??= await DownloadImage(ProgressUpdateBanner2);
             }
             finally
             {
                 fontDownloadSemaphore.Release();
             }
         }
+
+        return progressUpdateBackground2;
     }
 
     private async Task<Image<Rgb24>> DownloadImage(string downloadUrl)
