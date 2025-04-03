@@ -450,11 +450,14 @@ div.main-site-sidebar-item, .main-site.main-site-sidebar-item {
 .socials-sidebar-links {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     /*justify-content: space-around;*/
     justify-content: center;
     align-items: center;
     margin-top: 10px;
     margin-bottom: 10px;
+    /* Consistent spacing around items */
+    gap: 4px;
 }
 
 .mobile-sidebar-separator {
