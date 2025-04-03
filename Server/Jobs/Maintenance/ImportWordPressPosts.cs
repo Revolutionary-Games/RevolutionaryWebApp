@@ -211,7 +211,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
             if (databaseImage == null)
             {
                 databaseImage = await HandleImageImport(editableContent, postDate, localBase, parentFolder, imageName,
-                    match);
+                    match.Groups[0].Value);
 
                 // If null, it was a banner already replaced in the text
                 if (databaseImage == null)
@@ -259,7 +259,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
     }
 
     private async Task<MediaFile?> HandleImageImport(StringBuilder editableContent, string postDate, string localBase,
-        MediaFolder parentFolder, string imageName, Match match)
+        MediaFolder parentFolder, string imageName, string fullMatchMarkdown)
     {
         var sourceFile = Path.Join(localBase, imageName);
 
@@ -270,7 +270,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
         {
             logger.LogInformation("Image {ImageName} is a PU banner, replacing with bbcode", imageName);
 
-            editableContent.Replace(match.Groups[0].Value, $"[puImage]{postDate}[/puImage]");
+            editableContent.Replace(fullMatchMarkdown, $"[puImage]{postDate}[/puImage]");
             return null;
         }
 
@@ -282,6 +282,9 @@ public class ImportWordPressPosts : MaintenanceJobBase
             ModifyAccess = GroupType.SitePagePublisher,
             OriginalFileSize = new FileInfo(sourceFile).Length,
         };
+
+        if (databaseImage.OriginalFileSize < 100)
+            throw new Exception($"Image is very small ({imageName}), will not consider it valid");
 
         if (await database.MediaFiles.AnyAsync(m => m.GlobalId == databaseImage.GlobalId))
             throw new Exception("Conflicting UUID, please retry");
