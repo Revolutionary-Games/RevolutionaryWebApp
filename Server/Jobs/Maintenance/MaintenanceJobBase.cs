@@ -47,6 +47,9 @@ public abstract class MaintenanceJobBase
 
         var previousMessage = operation.ExtendedDescription;
 
+        // Set failed here to allow the job to signal a failure
+        operation.Failed = false;
+
         try
         {
             await RunOperation(operation, cancellationToken);
@@ -74,13 +77,14 @@ public abstract class MaintenanceJobBase
             throw;
         }
 
-        operation.Failed = false;
         operation.FinishedAt = DateTime.UtcNow;
 
+        // If no message was set, just use a generic "success"
         if (operation.ExtendedDescription == previousMessage)
             operation.ExtendedDescription = "Success";
 
-        logger.LogInformation("Maintenance job {OperationId} succeeded", operationId);
+        if (!operation.Failed)
+            logger.LogInformation("Maintenance job {OperationId} succeeded", operationId);
 
         // Don't want to cancel after success
         // ReSharper disable once MethodSupportsCancellation
