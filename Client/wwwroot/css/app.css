@@ -595,6 +595,10 @@ div.main-site-sidebar-item {
     min-height: 70px;
 }
 
+.desktop-top-nav {
+    margin-top: 10px;
+}
+
 @media (min-width: 769px) {
     .mobile-sidebar-separator {
         display: none;
