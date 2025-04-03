@@ -2,7 +2,6 @@ namespace RevolutionaryWebApp.Server.Jobs.Maintenance;
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -346,15 +345,12 @@ public class ImportWordPressPosts : MaintenanceJobBase
             PublishedAt = date,
         };
 
-        // TODO: enable
-        logger.LogInformation("TODO: enable actually saving");
+        logger.LogInformation("Saving imported page {Title}", title);
 
-        // await database.VersionedPages.AddAsync(page);
+        await database.VersionedPages.AddAsync(page);
 
         // We must have the ID here, so I guess we are saving database changes now
         await database.SaveChangesAsync();
-
-        return;
 
         // We need to run some post-import actions. So queue those long into the future to make sure they will run
         jobClient.Schedule<UpdatePageUsedMediaJob>(x => x.Execute(page.Id, CancellationToken.None),
