@@ -83,8 +83,8 @@ public class ImageGeneratorController : Controller
         else
         {
             // Check the database if there is a page for the date
-            var minTime = parsedDate - TimeSpan.FromMinutes(30);
-            var maxTime = parsedDate + TimeSpan.FromDays(1);
+            var minTime = (parsedDate - TimeSpan.FromHours(4)).ToUniversalTime();
+            var maxTime = (parsedDate + TimeSpan.FromDays(1)).ToUniversalTime();
             if (!await database.VersionedPages.AnyAsync(p => p.PublishedAt > minTime && p.PublishedAt < maxTime))
             {
                 logger.LogWarning("PU image requested for invalid date: {Date}", date);
