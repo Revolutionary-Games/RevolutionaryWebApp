@@ -41,6 +41,16 @@ public class ImportWordPressPosts : MaintenanceJobBase
 
     private readonly Regex imageRegex = new(@"!\[.*?\]\(images\/(.*?)\)", RegexOptions.Compiled);
 
+    private readonly Regex simpleYouTubeRegex =
+        new(@"https:\/\/www\.youtube\.com\/watch\?v=(.*)\&?\W?", RegexOptions.Compiled);
+
+    private readonly Regex weaverYouTubeRegex =
+        new(@"\\\[weaver\\_?youtube\s*(.+)\W*sd=\d* percent=\d* center=\d* rel=\d* https=\d* privacy=\d* controls=\d* "
+            + @"showinfo=\d*\\\]", RegexOptions.Compiled);
+
+    private readonly Regex youtubeIframeRegex =
+        new(@"<iframe .*src=\""https:\/\/www\.youtube\.com\/embed\/(.*)\W?.*""\s.*<\/iframe>", RegexOptions.Compiled);
+
     public ImportWordPressPosts(ILogger<ImportWordPressPosts> logger,
         ApplicationDbContext operationDb, NotificationsEnabledDb operationStatusDb,
         ILocalTempFileLocks tempFileLocks, IBackgroundJobClient jobClient, IUploadFileStorage fileStorage) : base(
@@ -219,7 +229,30 @@ public class ImportWordPressPosts : MaintenanceJobBase
         // Detect other changes we may want to make, like YouTube embedding
         if (fullText.Contains("youtube"))
         {
-            Debugger.Break();
+            // Try to replace the stuff with our YouTube handling regexes
+            matches = simpleYouTubeRegex.Matches(fullText);
+
+            foreach (Match match in matches)
+            {
+                editableContent.Replace(match.Groups[0].Value,
+                    $"[youtube]{match.Groups[1].Value.Replace("\\", string.Empty).Trim()}[/youtube]");
+            }
+
+            matches = weaverYouTubeRegex.Matches(fullText);
+
+            foreach (Match match in matches)
+            {
+                editableContent.Replace(match.Groups[0].Value,
+                    $"[youtube]{match.Groups[1].Value.Replace("\\", string.Empty).Trim()}[/youtube]");
+            }
+
+            matches = youtubeIframeRegex.Matches(fullText);
+
+            foreach (Match match in matches)
+            {
+                editableContent.Replace(match.Groups[0].Value,
+                    $"[youtube]{match.Groups[1].Value.Replace("\\", string.Empty).Trim()}[/youtube]");
+            }
         }
 
         return imageCount;
