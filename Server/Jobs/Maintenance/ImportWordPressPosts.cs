@@ -202,6 +202,11 @@ public class ImportWordPressPosts : MaintenanceJobBase
             // Detect the image name and check if it exists already
             var imageName = match.Groups[1].Value;
 
+            var typeRaw = Path.GetExtension(imageName);
+
+            if (string.IsNullOrEmpty(typeRaw))
+                throw new Exception($"Image has no extension: {imageName}");
+
             var databaseImage =
                 await database.MediaFiles.FirstOrDefaultAsync(m =>
                     m.FolderId == parentFolder.Id && m.Name == imageName);
@@ -217,7 +222,6 @@ public class ImportWordPressPosts : MaintenanceJobBase
                     continue;
             }
 
-            var typeRaw = Path.GetExtension(imageName);
             var type = typeRaw.Substring(1);
 
             // And then finally we will replace the link with the image
