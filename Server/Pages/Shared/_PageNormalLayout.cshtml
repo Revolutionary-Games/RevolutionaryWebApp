@@ -181,7 +181,7 @@
                     @if (ViewBag.Title != null)
                     {
                         <h1>@ViewData["Title"]</h1>
-                        <hr/>
+                        <hr style="margin-top: 0; margin-bottom: 10px;"/>
 
                         @if (ViewBag.PublishedAt != null)
                         {
@@ -193,7 +193,7 @@
 
                     @if (ViewBag.PreviousLink != null || ViewBag.NextLink != null)
                     {
-                        <div class="news-feed-navigation" style="margin-top: 25px; margin-bottom: 7px;">
+                        <div class="news-feed-navigation" style="margin-top: auto; margin-bottom: 7px;">
                             @if (ViewBag.PreviousLink != null)
                             {
                                 <a class="news-feed-item" href="@ViewBag.PreviousLink">

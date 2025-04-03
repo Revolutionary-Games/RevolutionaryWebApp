@@ -15,18 +15,36 @@ a, .btn-link {
     color: #0366d6;
 }
 
-a.active {
+/* fix for links in navlinks */
+.nav-link:focus.active {
     color: #6c757d;
 }
 
-a.active:hover {
+/* Links brighter blue to look good on the black background on the main site */
+.main-site a {
+    color: #6ACDEB;
+}
+
+.main-site a:hover {
+    color: #56A7BF;
+}
+
+a.active, .main-site a.active {
+    color: #6c757d;
+}
+
+a.active:hover, .main-site a.active:hover {
     color: #6c757d;
     cursor: default;
 }
 
-/* fix for links in navlinks */
-.nav-link:focus.active {
-    color: #6c757d;
+/* Also h1 etc. colour to match the links / the old main website */
+.main-site h1, .main-site h2, .main-site h3, .main-site h4, .main-site h5, .main-site h6 {
+    color: #6ACDEB;
+}
+
+.main-site hr {
+    color: #6ACDEB;
 }
 
 .nav-link:hover {
@@ -372,6 +390,8 @@ table.non-fixed {
     background-color: rgba(43, 43, 43, 0.9);
     padding-top: 15px;
     border-radius: 3px;
+    display: flex;
+    flex-direction: column;
 }
 
 .rendered-by {
@@ -385,11 +405,15 @@ table.non-fixed {
 .main-bar-nav-link {
     font-size: 1.5rem;
     text-decoration: none;
-    color: white;
     text-transform: uppercase;
+    color: white;
 }
 
-.main-bar-nav-link:hover {
+.main-site a.main-bar-nav-link  {
+    color: white;
+}
+
+.main-bar-nav-link:hover, .main-site a.main-bar-nav-link:hover {
     color: #6ACDEB;
 }
 
@@ -397,7 +421,7 @@ table.non-fixed {
     color: #ACACAC !important;
 }
 
-div.main-site-sidebar-item {
+div.main-site-sidebar-item, .main-site.main-site-sidebar-item {
     width: 100%;
     max-width: 100%;
     text-align: center;
@@ -409,12 +433,7 @@ div.main-site-sidebar-item {
 }
 
 .main-site-sidebar-item a {
-    color: #6ACDEB;
     text-decoration: none;
-}
-
-.main-site-sidebar-item a:hover {
-    color: #56A7BF;
 }
 
 .main-site-sidebar-item img {
@@ -777,6 +796,9 @@ a:hover.news-feed-item {
     /* Vertical alignment */
     display: flex;
     align-items: center;
+
+    /* reset text-colour on the link */
+    color: white !important;
 }
 
 .open-youtube:hover {
