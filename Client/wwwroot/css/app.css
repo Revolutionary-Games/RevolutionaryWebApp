@@ -39,9 +39,14 @@ a.active:hover, .main-site a.active:hover {
 }
 
 /* Also h1 etc. colour to match the links / the old main website */
-.main-site h1, .main-site h2, .main-site h3, .main-site h4, .main-site h5, .main-site h6 {
+.main-site h1 {
     color: #6ACDEB;
 }
+
+/* Actually the subheadings are not blue on the older website */
+/*.main-site h2, .main-site h3, .main-site h4, .main-site h5, .main-site h6 {
+    color: #6ACDEB;
+ */
 
 .main-site hr {
     color: #6ACDEB;
@@ -409,7 +414,7 @@ table.non-fixed {
     color: white;
 }
 
-.main-site a.main-bar-nav-link  {
+.main-site a.main-bar-nav-link {
     color: white;
 }
 
