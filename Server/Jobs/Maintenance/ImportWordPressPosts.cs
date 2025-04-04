@@ -211,7 +211,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
             if (string.IsNullOrEmpty(typeRaw))
                 throw new Exception($"Image has no extension: {imageName}");
 
-            if (imageName.Contains('&') || imageName.Contains('?'))
+            if (imageName.Contains('&') || imageName.Contains('?') || typeRaw.Contains(':'))
                 throw new Exception($"Image name contains invalid characters: {imageName}");
 
             var databaseImage =
