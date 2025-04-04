@@ -43,10 +43,12 @@ a.active:hover, .main-site a.active:hover {
     color: #6ACDEB;
 }
 
-/* Actually the subheadings are not blue on the older website */
-/*.main-site h2, .main-site h3, .main-site h4, .main-site h5, .main-site h6 {
-    color: #6ACDEB;
- */
+.main-site h2, .main-site h3, .main-site h4, .main-site h5, .main-site h6 {
+    font-weight: bold;
+    margin-top: 20px;
+    /* Actually the subheadings are not blue on the older website */
+    /*color: #6ACDEB;*/
+}
 
 .main-site hr {
     color: #6ACDEB;
