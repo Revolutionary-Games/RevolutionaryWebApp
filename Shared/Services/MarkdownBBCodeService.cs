@@ -8,7 +8,7 @@ using Models.Pages;
 public class MarkdownBbCodeService : IMarkdownBbCodeService
 {
     private readonly Regex likelyNeedToDoSomething =
-        new(@"(\!\[[^\)\]]*\]\(media:)|([/\w+])|(\]\(page:)", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
+        new(@"(\!\[[^\)\]]*\]\(media:)|([/\w+])|(\]\(page:)|iframe", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
     // Note that there are similar regexes in BasePageController which must be updated if necessary
     private readonly Regex mediaLinkToConvertRegex = new(
@@ -56,6 +56,26 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
 
                 if (TryHandleCustomTag(rawContent, ref i, result))
                     continue;
+            }
+
+            if (rawContent[i] == '<')
+            {
+                // Disallow iframes
+                if (IsMatch(rawContent, i + 1, "iframe"))
+                {
+                    FlushPending(i);
+                    result.Append("&lt;iframe&gt;");
+                    i += 7;
+                    continue;
+                }
+
+                if (IsMatch(rawContent, i + 1, "/iframe"))
+                {
+                    FlushPending(i);
+                    result.Append("&lt;/iframe&gt;");
+                    i += 8;
+                    continue;
+                }
             }
 
             if (rawContent[i] == '!' && IsMatch(rawContent, i, "!["))

@@ -164,6 +164,21 @@ public class MarkdownBbCodeServiceTests
         Assert.Equal("![Progress Update Banner 2025-07-05](/testPrefix/generated/puBanner/2025-07-05)", converted);
     }
 
+    [Theory]
+    [InlineData("<iframe>", "&lt;iframe&gt;")]
+    [InlineData("so<iframe>it is", "so&lt;iframe&gt;it is")]
+    [InlineData("<iframe>with stuff</iframe>", "&lt;iframe&gt;with stuff&lt;/iframe&gt;")]
+    public void BbCode_UnknownIFramesAreRemoved(string raw, string expected)
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+
+        var bbCodeService = new MarkdownBbCodeService(linkConverter);
+
+        var converted = bbCodeService.PreParseContent(raw);
+
+        Assert.Equal(expected, converted);
+    }
+
     /// <summary>
     ///   This tests a function that didn't really end up being useful
     /// </summary>
