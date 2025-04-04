@@ -52,6 +52,14 @@ a.active:hover, .main-site a.active:hover {
     color: #6ACDEB;
 }
 
+blockquote {
+    margin-left: 10px;
+}
+
+.main-site blockquote {
+    margin-left: 20px;
+}
+
 .nav-link:hover {
     text-decoration: underline;
 }
