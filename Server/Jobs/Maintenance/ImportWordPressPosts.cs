@@ -94,7 +94,11 @@ public class ImportWordPressPosts : MaintenanceJobBase
         int imageCount = 0;
         int errors = 0;
 
-        foreach (var post in Directory.EnumerateFiles(baseFolder, "*.md", SearchOption.AllDirectories))
+        // Sort all the found files to import things in date order
+        var thingsToProcess =
+            Directory.EnumerateFiles(baseFolder, "*.md", SearchOption.AllDirectories).Order().ToList();
+
+        foreach (var post in thingsToProcess)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
