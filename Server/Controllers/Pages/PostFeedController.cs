@@ -131,6 +131,9 @@ public class PostFeedController : Controller
             ImageUrl = new Uri(wwwSiteAssetsBaseUrl, "favicon.ico"),
         };
 
+        var author = new SyndicationPerson("revolutionarygamesstudio@gmail.com", "Revolutionary Games",
+            baseUrl.ToString());
+
         var items = new List<SyndicationItem>();
 
         var posts = await database.VersionedPages.AsNoTracking()
@@ -154,6 +157,9 @@ public class PostFeedController : Controller
             items.Add(new SyndicationItem(post.Title, preview, postLink, postLink.ToString(), post.UpdatedAt)
             {
                 PublishDate = post.PublishedAt.Value,
+
+                // TODO: allow overriding per post
+                Authors = { author },
             });
         }
 
