@@ -179,6 +179,33 @@ public class MarkdownBbCodeServiceTests
         Assert.Equal(expected, converted);
     }
 
+    [Theory]
+    [InlineData("[youtube]PFaX-MuNgfI[/youtube]",
+        "<div class=\"youtube-placeholder\" data-video-id=\"PFaX-MuNgfI\">\n    " +
+        "<div class=\"thumbnail-container\">\n        <img class=\"youtube-thumbnail\" " +
+        "alt=\"YouTube Video Thumbnail\" \n            src=\"/imageProxy/youtubeThumbnail/PFaX-MuNgfI\"/>\n        " +
+        "<div class=\"play-button-overlay\">\n            <div class=\"css-play-button\"></div>\n        </div>\n    " +
+        "</div>\n    <div class=\"youtube-controls\">\n        <div class=\"controls-row\">\n            " +
+        "Viewing embedded videos on this page uses YouTube cookies.\n            You accept these third-party and " +
+        "tracking cookies by clicking play.\n        </div>\n        <div class=\"controls-row\">\n            " +
+        "<a class=\"youtube-btn open-youtube\" href=\"https://www.youtube.com/watch?v=PFaX-MuNgfI\" " +
+        "\n                target=\"_blank\">View on YouTube</a>\n            " +
+        "<button class=\"youtube-btn accept-cookies\">Always Accept YouTube Cookies</button>\n        </div>\n    " +
+        "</div>\n    <div class=\"youtube-embed-container\" style=\"display: none;\"></div>\n</div>" +
+        "<div class=\"youtube-placeholder-below\"></div>\n")]
+    public void BbCode_YoutubeRenderingWorks(string raw, string expected)
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+
+        var bbCodeService = new MarkdownBbCodeService(linkConverter);
+
+        var markdownService = new MarkdownService(new HtmlSanitizerService(), bbCodeService);
+
+        var converted = markdownService.MarkdownToHtmlWithAllFeatures(raw);
+
+        Assert.Equal(expected, converted);
+    }
+
     /// <summary>
     ///   This tests a function that didn't really end up being useful
     /// </summary>

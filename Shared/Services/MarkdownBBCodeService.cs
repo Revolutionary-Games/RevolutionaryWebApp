@@ -18,7 +18,7 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
     // This could sometimes remove a trailing </p> if a forward <p> didn't exist, but hopefully that's rare enough
     // to not need to consider that
     private readonly Regex youtubeMarkdownRegex =
-        new(@"(<p>\s*)?\[youtube\](\w+)\[/youtube\](\s*</p>)?", RegexOptions.Compiled);
+        new(@"(<p>\s*)?\[youtube\]([\w-]+)\[/youtube\](\s*</p>)?", RegexOptions.Compiled);
 
     private readonly IMediaLinkConverter mediaLinkConverter;
 
@@ -160,8 +160,11 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
             // ReSharper disable once CommentTypo
             // The video is invalid if it has dots in the name or `youtu.be`
             // Resharper disable once StringLiteralTypo
-            if (videoId.Contains('.') || videoId.Contains("youtu.be"))
+            if (videoId.Contains('.') || videoId.Contains("youtu.be") || videoId.Contains("http") ||
+                videoId.Contains("youtube"))
+            {
                 continue;
+            }
 
             // Initialize data conversion if needed
             result ??= new StringBuilder(html);
