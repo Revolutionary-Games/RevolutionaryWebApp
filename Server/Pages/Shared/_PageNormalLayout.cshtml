@@ -3,7 +3,6 @@
 @using RevolutionaryWebApp.Shared.Models.Pages
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
@@ -27,6 +26,19 @@
         <meta property="og:description" content="@ViewBag.OpenGraphDescription"/>
 
         <meta property="description" content="@ViewBag.OpenGraphDescription"/>
+    }
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@@Thrive_Game">
+    <meta name="twitter:title" content="@ViewBag.MetaTitle">
+    @if (ViewBag.OpenGraphDescription != null)
+    {
+        <meta name="twitter:description" content="@ViewBag.OpenGraphDescription"/>
+    }
+
+    @if (ViewBag.OpenGraphImage != null)
+    {
+        <meta name="twitter:image" content="@ViewBag.OpenGraphImage"/>
     }
 
     <link href="@ViewBag.AssetsBase/css/bootstrap/bootstrap.min.css" rel="stylesheet"/>
