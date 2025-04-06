@@ -70,6 +70,21 @@ public class LiveController : Controller
         return "NewsFeedPageRender_" + page;
     }
 
+    /// <summary>
+    ///   Serves a robots.txt file allowing all crawling. To stop 404 results
+    /// </summary>
+    [HttpGet("robots.txt")]
+    public ContentResult GetRobotsTxt()
+    {
+        HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
+        {
+            MaxAge = TimeSpan.FromDays(1),
+            Public = true,
+        }.ToString();
+
+        return Content("User-agent: *\nAllow: /", "text/plain", Encoding.UTF8);
+    }
+
     [HttpGet("{*permalink}")]
     public async Task<IActionResult> GetPage([Required] string permalink)
     {
