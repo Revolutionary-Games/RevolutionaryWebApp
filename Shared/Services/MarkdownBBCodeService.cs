@@ -20,6 +20,12 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
     private readonly Regex youtubeMarkdownRegex =
         new(@"(<p>\s*)?\[youtube\]([\w-]+)\[/youtube\](\s*</p>)?", RegexOptions.Compiled);
 
+    private readonly Regex steamMarkdownRegex =
+        new(@"(<p>\s*)?\[steam\]([\w]+)\[/steam\](\s*</p>)?", RegexOptions.Compiled);
+
+    private readonly Regex itchMarkdownRegex =
+        new(@"(<p>\s*)?\[thriveItch\](\s*</p>)?", RegexOptions.Compiled);
+
     private readonly IMediaLinkConverter mediaLinkConverter;
 
     public MarkdownBbCodeService(IMediaLinkConverter mediaLinkConverter)
@@ -170,6 +176,37 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
             result ??= new StringBuilder(html);
 
             result.Replace(match.Value, GenerateYoutubeEmbedCode(videoId));
+        }
+
+        // Handle Steam widgets
+        matches = steamMarkdownRegex.Matches(html);
+        for (int i = 0; i < matches.Count; ++i)
+        {
+            var match = matches[i];
+            var appId = match.Groups[2].Value;
+
+            // Initialize data conversion if needed
+            result ??= new StringBuilder(html);
+
+            result.Replace(match.Value,
+                $"<iframe src=\"https://store.steampowered.com/widget/{appId}/?" +
+                "utm_source=homepage&utm_campaign=mycampaign\" width=\"500\" height=\"200\"></iframe>");
+        }
+
+        // Handle itch.io widgets
+        matches = itchMarkdownRegex.Matches(html);
+        for (int i = 0; i < matches.Count; ++i)
+        {
+            var match = matches[i];
+
+            // Initialize data conversion if needed
+            result ??= new StringBuilder(html);
+
+            // As this has quite many customized parts, for now only Thrive can be referred to like this
+            result.Replace(match.Value,
+                "<iframe frameborder=\"0\" src=\"https://itch.io/embed/1217889\" width=\"552\" height=\"167\">" +
+                "<a href=\"https://revolutionarygames.itch.io/thrive\">" +
+                "Thrive by Revolutionary Games Studio</a></iframe>");
         }
 
         return result?.ToString() ?? html;

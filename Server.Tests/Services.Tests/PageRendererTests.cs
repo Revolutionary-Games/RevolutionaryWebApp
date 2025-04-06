@@ -1,6 +1,8 @@
 namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
 
 using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using Server.Models.Pages;
@@ -44,6 +46,30 @@ public class PageRendererTests
 
         Assert.Equal(expected, result);
         Assert.Equal(expectedImage, previewImage);
+    }
+
+    [Theory]
+    [InlineData("[steam]1779200[/steam]", "[steam]")]
+    [InlineData("[thriveItch]", "[thriveItch]")]
+    public async Task PageRenderer_SpecificMarkdownIsDetected(string text, string notExpected)
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+        linkConverter.GetGeneratedAndProxyImagePrefix().Returns("https://example.com/prefix");
+
+        var renderer = CreateRenderer(linkConverter);
+
+        var page = new VersionedPage("Example post 1")
+        {
+            PublishedAt = publishedAt,
+            LatestContent = text,
+            Type = PageType.Post,
+            Visibility = PageVisibility.Public,
+        };
+
+        var result = await
+            renderer.RenderPage(page, "https://example.com/", [], false, new Stopwatch());
+
+        Assert.DoesNotContain(notExpected, result.RenderedHtml);
     }
 
     private PageRenderer CreateRenderer(IMediaLinkConverter linkConverter)
