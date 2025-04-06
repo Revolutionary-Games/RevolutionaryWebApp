@@ -121,10 +121,15 @@ public class MediaFileController : Controller
         return Redirect(new Uri(new Uri(viewBaseUrl), path).ToString());
     }
 
-    [HttpGet("{id:long}/redirectToFolder")]
-    public async Task<ActionResult<MediaFileDTO>> RedirectToFolder([Required] long id)
+    [HttpGet("redirectToFolder/{id}")]
+    public async Task<ActionResult<MediaFileDTO>> RedirectToFolder([Required] string id)
     {
-        var mediaFile = await database.MediaFiles.FindAsync(id);
+        if (!Guid.TryParse(id, out var parsedId))
+        {
+            return BadRequest("Invalid ID format");
+        }
+
+        var mediaFile = await database.MediaFiles.FirstOrDefaultAsync(m => m.GlobalId == parsedId);
 
         if (mediaFile == null)
             return NotFound();

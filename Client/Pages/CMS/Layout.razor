@@ -97,7 +97,7 @@
                         </td>
                         <td>@item.AltText.Truncate()</td>
                         <td>
-                            <a href="@($"api/v1/MediaFile/{item.ImageId}/redirectToFolder")" target="_blank">
+                            <a href="@($"api/v1/MediaFile/redirectToFolder/{item.ImageId}")" target="_blank">
                                 @item.ImageId
                             </a>
                         </td>
