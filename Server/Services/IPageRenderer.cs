@@ -122,10 +122,7 @@ public class PageRenderer : IPageRenderer
         // TODO: allow a special bbcode tag that overrides the page summary (needs to be removed in normal page
         // rendering)
 
-        // TODO: special handling mode for youtube and other advanced links
-
-        // TODO: render the content as HTML and then grab the first portion to be the preview (but remove any
-        // embedded images). Should have a separate mode that doesn't render advanced embeds like youtube, but just
+        // TODO: Should have a separate mode that doesn't render advanced embeds like youtube, but just
         // has normal links.
         var rendered = markdownService.MarkdownToHtmlLimited(page.LatestContent);
 
@@ -157,18 +154,11 @@ public class PageRenderer : IPageRenderer
 
             if (HandleContentForPreview(node, ref limitLeft))
             {
-                // We don't want this to be written in the output, so only output the children
-                if (node is IHtmlBodyElement)
-                {
-                    foreach (var childNode in node.ChildNodes)
-                    {
-                        childNode.ToHtml(writer, fragmentFormatter);
-                    }
-                }
-                else
-                {
-                    node.ToHtml(writer, fragmentFormatter);
-                }
+                // Skip writing any elements that don't have any text
+                if (!node.HasTextNodes())
+                    continue;
+
+                node.ToHtml(writer, fragmentFormatter);
             }
         }
 
@@ -402,6 +392,12 @@ public class PageRenderer : IPageRenderer
             if (!HandleContentForPreview(childNode, ref limitLeft))
             {
                 node.RemoveChild(childNode);
+            }
+            else
+            {
+                // Delete the child if there's no text left in it
+                if (string.IsNullOrWhiteSpace(node.TextContent))
+                    node.RemoveChild(childNode);
             }
         }
 
