@@ -51,6 +51,7 @@ public class PageRendererTests
     [Theory]
     [InlineData("[steam]1779200[/steam]", "[steam]")]
     [InlineData("[thriveItch]", "[thriveItch]")]
+    [InlineData("[center]", "[center]")]
     public async Task PageRenderer_SpecificMarkdownIsDetected(string text, string notExpected)
     {
         var linkConverter = Substitute.For<IMediaLinkConverter>();

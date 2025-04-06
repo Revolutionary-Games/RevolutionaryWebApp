@@ -178,6 +178,15 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
             result.Replace(match.Value, GenerateYoutubeEmbedCode(videoId));
         }
 
+        // Centering tags
+        if (html.Contains("[center]"))
+        {
+            result ??= new StringBuilder(html);
+
+            result.Replace("[center]", "<span class=\"center\"><span>");
+            result.Replace("[/center]", "</span></span>");
+        }
+
         // Handle Steam widgets
         matches = steamMarkdownRegex.Matches(html);
         for (int i = 0; i < matches.Count; ++i)
