@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Threading;
@@ -118,6 +119,52 @@ public class MediaFileController : Controller
             return NotFound();
 
         return Redirect(new Uri(new Uri(viewBaseUrl), path).ToString());
+    }
+
+    [HttpGet("{id:long}/redirectToFolder")]
+    public async Task<ActionResult<MediaFileDTO>> RedirectToFolder([Required] long id)
+    {
+        var mediaFile = await database.MediaFiles.FindAsync(id);
+
+        if (mediaFile == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUser();
+
+        if (user == null)
+        {
+            if (mediaFile.MetadataVisibility != GroupType.NotLoggedIn)
+                return NotFound();
+        }
+        else
+        {
+            var groups = user.AccessCachedGroupsOrThrow();
+
+            if (user.Id != mediaFile.UploadedById && user.Id != mediaFile.LastModifiedById &&
+                !groups.HasGroup(mediaFile.MetadataVisibility) && !groups.HasGroup(mediaFile.ModifyAccess))
+            {
+                // Can't see this item
+                return NotFound();
+            }
+        }
+
+        List<string> reversePath = new();
+
+        long? parent = mediaFile.FolderId;
+
+        while (parent != null)
+        {
+            var folder = await database.MediaFolders.FindAsync(parent);
+
+            if (folder == null)
+                return NotFound();
+
+            reversePath.Add(folder.Name);
+            parent = folder.ParentFolderId;
+        }
+
+        reversePath.Reverse();
+        return Redirect("/media/" + string.Join('/', reversePath));
     }
 
     [HttpPost("startUpload")]
