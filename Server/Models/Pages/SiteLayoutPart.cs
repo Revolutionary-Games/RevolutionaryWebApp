@@ -89,13 +89,12 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
 
     public RenderingLayoutPart GetRenderingData(string activeLink, IMediaLinkConverter linkConverter)
     {
-        bool isPageLink = false;
         string? linkTarget = null;
         bool active = false;
 
         if (LinkTarget != null)
         {
-            isPageLink = LinkTarget.StartsWith("page:");
+            var isPageLink = LinkTarget.StartsWith("page:");
 
             if (isPageLink)
             {
