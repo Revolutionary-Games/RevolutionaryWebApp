@@ -699,6 +699,11 @@ a:hover.news-feed-item {
     width: 100%
 }
 
+/* Makes sure items don't meet in the middle which looks bad */
+.news-feed-navigation .news-feed-item {
+    max-width: 45%;
+}
+
 /* Markdown tables support */
 .markdown table {
     width: 100%;
