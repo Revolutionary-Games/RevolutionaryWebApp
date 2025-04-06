@@ -91,6 +91,7 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
     {
         bool isPageLink = false;
         string? linkTarget = null;
+        bool active = false;
 
         if (LinkTarget != null)
         {
@@ -104,6 +105,12 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
                     permalink = string.Empty;
 
                 linkTarget = $"{linkConverter.GetInternalPageLinkPrefix()}/{permalink}";
+
+                // Detecting the active link is pretty complex as the special index value needs handling
+                active = LinkTarget.EndsWith(activeLink) ||
+                    (permalink == AppInfo.IndexPermalinkName && string.IsNullOrEmpty(activeLink)) ||
+                    ((permalink == "/" || string.IsNullOrEmpty(permalink)) &&
+                        (activeLink == AppInfo.IndexPermalinkName || string.IsNullOrEmpty(activeLink)));
             }
             else
             {
@@ -113,7 +120,7 @@ public class SiteLayoutPart : UpdateableModel, IUpdateNotifications
 
         return new RenderingLayoutPart(linkTarget, AltText)
         {
-            Active = isPageLink && LinkTarget!.EndsWith(activeLink),
+            Active = active,
 
             Image = ImageId != null ?
                 linkConverter.TranslateImageLink(ImageType ?? ".png", ImageId.Value.ToString(), MediaFileSize.FitPage) :
