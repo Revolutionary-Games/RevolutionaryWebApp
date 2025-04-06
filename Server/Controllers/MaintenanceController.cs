@@ -153,8 +153,11 @@ public class MaintenanceController : Controller
     {
         yield return ("recountFolders", "Recount all folder items (fixes inaccurate counts)", StartFolderRecount);
         yield return ("cleanSessions", "Delete all sessions that are older than one hour", StartCleanSessions);
-        yield return ("importWordPress", "Import WordPress posts (from temp/wordpress-import)",
-            StartWordPressImportPosts);
+        yield return ("cleanStaticCDN", "Purge static assets from CDN", CleanStaticCDN);
+
+        // Not required for now
+        // yield return ("importWordPress", "Import WordPress posts (from temp/wordpress-import)",
+        //     StartWordPressImportPosts);
     }
 
     [NonAction]
@@ -173,5 +176,11 @@ public class MaintenanceController : Controller
     private static void StartWordPressImportPosts(IBackgroundJobClient jobClient, long operationId)
     {
         jobClient.Enqueue<ImportWordPressPosts>(x => x.Execute(operationId, CancellationToken.None));
+    }
+
+    [NonAction]
+    private static void CleanStaticCDN(IBackgroundJobClient jobClient, long operationId)
+    {
+        jobClient.Enqueue<CleanStaticCDNJob>(x => x.Execute(operationId, CancellationToken.None));
     }
 }
