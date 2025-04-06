@@ -246,7 +246,7 @@ table.non-fixed {
 .block-overlay {
     position: absolute;
     height: calc(100% - 18px);
-    min-height: 300px;
+    min-height: 350px;
     width: calc(100% - 30px);
     top: 9px;
     left: 15px;
