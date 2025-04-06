@@ -17,10 +17,15 @@ using StackExchange.Redis;
 [Route("live/imageProxy")]
 public class ImageProxyController : Controller
 {
-    private const string YoutubeImageUrl = "https://img.youtube.com/vi/{0}/maxresdefault.jpg";
-    private const string YoutubeImageBackupUrl = "https://img.youtube.com/vi/{0}/default.jpg";
+    private static readonly string[] YoutubeImageUrls =
+    [
+        "https://img.youtube.com/vi/{0}/maxresdefault.jpg",
+        "https://img.youtube.com/vi/{0}/hqdefault.jpg",
+        "https://img.youtube.com/vi/{0}/mqdefault.jpg",
+        "https://img.youtube.com/vi/{0}/default.jpg",
+    ];
 
-    private static readonly TimeSpan YoutubeCacheTime = TimeSpan.FromHours(8);
+    private static readonly TimeSpan YoutubeCacheTime = TimeSpan.FromHours(12);
 
     private readonly IConnectionMultiplexer cache;
     private readonly IHttpClientFactory httpClientFactory;
@@ -54,22 +59,18 @@ public class ImageProxyController : Controller
             return File(stream, "image/jpeg");
         }
 
-        var url = string.Format(YoutubeImageUrl, id);
-        var backupUrl = string.Format(YoutubeImageBackupUrl, id);
-
         using var client = httpClientFactory.CreateClient();
-        var response = await client.GetAsync(url);
 
-        if (response.IsSuccessStatusCode && response.Content.Headers.ContentType?.MediaType == "image/jpeg")
+        foreach (var template in YoutubeImageUrls)
         {
-            return await OnImageSuccessfullyRetrieved(response, key, database);
-        }
+            var url = string.Format(template, id);
 
-        response = await client.GetAsync(backupUrl);
+            var response = await client.GetAsync(url);
 
-        if (response.IsSuccessStatusCode && response.Content.Headers.ContentType?.MediaType == "image/jpeg")
-        {
-            return await OnImageSuccessfullyRetrieved(response, key, database);
+            if (response.IsSuccessStatusCode && response.Content.Headers.ContentType?.MediaType == "image/jpeg")
+            {
+                return await OnImageSuccessfullyRetrieved(response, key, database);
+            }
         }
 
         Response.Headers.CacheControl = new StringValues("public, max-age=500");
