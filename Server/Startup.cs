@@ -66,23 +66,12 @@ public class Startup
     {
         services.AddOptions();
 
+        ConnectionMultiplexer? redis = null;
         if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))
         {
-            var redis = ConnectionMultiplexer.Connect(SharedStateRedisConnectionString);
+            redis = ConnectionMultiplexer.Connect(SharedStateRedisConnectionString);
 
             services.AddSingleton<IConnectionMultiplexer>(redis);
-
-            var certificate = X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"],
-                Configuration["DataProtection:KeyPEM"]);
-
-            if (certificate == null || !certificate.HasPrivateKey)
-            {
-                throw new CryptographicException("Invalid certificate for key protection.");
-            }
-
-            services.AddDataProtection()
-                .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys")
-                .ProtectKeysWithCertificate(certificate);
 
             services.AddStackExchangeRedisCache(options =>
             {
@@ -96,6 +85,41 @@ public class Startup
                 // This already works for channel prefix
                 options.InstanceName = "ThriveWebSharedCache";
             });
+        }
+
+        var certificate = X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"],
+            Configuration["DataProtection:KeyPEM"]);
+
+        if (certificate == null || !certificate.HasPrivateKey)
+        {
+            throw new CryptographicException("Invalid certificate for key protection.");
+        }
+
+        // Setup data protection storage. Database is vastly preferred in production use.
+        if (!string.IsNullOrWhiteSpace(Configuration.GetConnectionString("KeyDBConnection")))
+        {
+            services.AddDataProtection()
+                .PersistKeysToDbContext<ProtectionKeyContext>()
+                .ProtectKeysWithCertificate(certificate)
+                .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+
+            services.AddDbContextPool<ProtectionKeyContext>(opts =>
+            {
+                opts.UseSnakeCaseNamingConvention();
+                opts.UseNpgsql();
+            });
+        }
+        else
+        {
+            if (redis == null)
+                throw new Exception("Either redis or key storage database is required");
+
+            Console.WriteLine("Using redis for data protection, this is only recommended in development usage");
+
+            services.AddDataProtection()
+                .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys")
+                .ProtectKeysWithCertificate(certificate)
+                .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
         }
 
         services.AddMemoryCache();
