@@ -209,6 +209,32 @@ public class EFTool
             }
         }
 
+        if (options.Sql)
+        {
+            ColourConsole.WriteInfoLine("Creating migration script 'migration.sql'");
+            didSomething = true;
+
+            var startInfo = new ProcessStartInfo("dotnet");
+            startInfo.ArgumentList.Add("ef");
+            startInfo.ArgumentList.Add("migrations");
+            startInfo.ArgumentList.Add("script");
+            startInfo.ArgumentList.Add("--idempotent");
+            startInfo.ArgumentList.Add("--project");
+            startInfo.ArgumentList.Add(SERVER_PROJECT_FILE);
+            startInfo.ArgumentList.Add("--context");
+            startInfo.ArgumentList.Add(context);
+            startInfo.ArgumentList.Add("-o");
+            startInfo.ArgumentList.Add("migration.sql");
+
+            var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken, false);
+
+            if (result.ExitCode != 0)
+            {
+                ColourConsole.WriteErrorLine("Failed to create migration sql");
+                return false;
+            }
+        }
+
         if (!didSomething)
         {
             ColourConsole.WriteErrorLine("No operations to perform specified");
@@ -279,5 +305,9 @@ public class EFTool
         [Option('t', "target", Default = null, MetaValue = "DATABASE_TYPE",
             HelpText = "Specify which database to operate on (Normal or Keys)")]
         public DatabaseType Target { get; set; } = DatabaseType.Normal;
+
+        [Option("sql", Default = false,
+            HelpText = "Create an identical SQL script to run against the database")]
+        public bool Sql { get; set; }
     }
 }
