@@ -107,7 +107,7 @@ public class Startup
             }
 
             // Setup data protection storage. Database is vastly preferred in production use.
-            if (!hasKeysDb)
+            if (hasKeysDb)
             {
                 services.AddDataProtection()
                     .PersistKeysToDbContext<ProtectionKeyContext>()
