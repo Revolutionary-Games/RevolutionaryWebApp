@@ -17,10 +17,13 @@ public class EFTool
     public const string SERVER_PROJECT_FILE = "Server/RevolutionaryWebApp.Server.csproj";
     public const string SERVER_FOLDER = "Server/";
     public const string DB_CONTEXT = "ApplicationDbContext";
+    public const string DB_CONTEXT_KEYS = "ProtectionKeyContext";
 
     private readonly Regex aspNetVersionRegex = new(@"Include=""Microsoft\.AspNetCore\..+"" Version=""([0-9.]+)""");
 
     private readonly EFOptions options;
+
+    private readonly string context = DB_CONTEXT;
 
     public EFTool(EFOptions options)
     {
@@ -41,6 +44,17 @@ public class EFTool
             options.Remove = true;
             options.Create = options.Redo[1];
             options.Migrate = true;
+        }
+
+        switch (options.Target)
+        {
+            case EFOptions.DatabaseType.Normal:
+                break;
+            case EFOptions.DatabaseType.Keys:
+                context = DB_CONTEXT_KEYS;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 
@@ -107,7 +121,7 @@ public class EFTool
             startInfo.ArgumentList.Add("update");
             startInfo.ArgumentList.Add(options.Downgrade);
             startInfo.ArgumentList.Add("--context");
-            startInfo.ArgumentList.Add(DB_CONTEXT);
+            startInfo.ArgumentList.Add(context);
 
             var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken, false);
 
@@ -133,7 +147,7 @@ public class EFTool
             startInfo.ArgumentList.Add("migrations");
             startInfo.ArgumentList.Add("remove");
             startInfo.ArgumentList.Add("--context");
-            startInfo.ArgumentList.Add(DB_CONTEXT);
+            startInfo.ArgumentList.Add(context);
 
             var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken, false);
 
@@ -158,7 +172,7 @@ public class EFTool
             startInfo.ArgumentList.Add("add");
             startInfo.ArgumentList.Add(options.Create);
             startInfo.ArgumentList.Add("--context");
-            startInfo.ArgumentList.Add(DB_CONTEXT);
+            startInfo.ArgumentList.Add(context);
 
             var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken, false);
 
@@ -184,7 +198,7 @@ public class EFTool
             startInfo.ArgumentList.Add("database");
             startInfo.ArgumentList.Add("update");
             startInfo.ArgumentList.Add("--context");
-            startInfo.ArgumentList.Add(DB_CONTEXT);
+            startInfo.ArgumentList.Add(context);
 
             var result = await ProcessRunHelpers.RunProcessAsync(startInfo, cancellationToken, false);
 
@@ -227,6 +241,12 @@ public class EFTool
     [Verb("ef", HelpText = "Perform EntityFramework (ef) helper operations")]
     public class EFOptions : ScriptOptionsBase
     {
+        public enum DatabaseType
+        {
+            Normal,
+            Keys,
+        }
+
         [Option('i', "install", Default = false,
             HelpText = "Install the tool (if already installed use \"-u\" instead)")]
         public bool Install { get; set; }
@@ -255,5 +275,9 @@ public class EFTool
         [Option("redo", Default = null, MetaValue = "DOWNGRADE_TO LATEST_MIGRATION", Separator = ',',
             HelpText = "Down migrates the db and recreates the latest migration")]
         public IList<string>? Redo { get; set; }
+
+        [Option('t', "target", Default = null, MetaValue = "DATABASE_TYPE",
+            HelpText = "Specify which database to operate on (Normal or Keys)")]
+        public DatabaseType Target { get; set; } = DatabaseType.Normal;
     }
 }

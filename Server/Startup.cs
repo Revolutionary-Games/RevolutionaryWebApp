@@ -95,6 +95,13 @@ public class Startup
             throw new CryptographicException("Invalid certificate for key protection.");
         }
 
+        // This has to be always created when not needed to make EF tool work
+        services.AddDbContextPool<ProtectionKeyContext>(opts =>
+        {
+            opts.UseSnakeCaseNamingConvention();
+            opts.UseNpgsql(Configuration.GetConnectionString("KeyDBConnection"));
+        });
+
         // Setup data protection storage. Database is vastly preferred in production use.
         if (!string.IsNullOrWhiteSpace(Configuration.GetConnectionString("KeyDBConnection")))
         {
@@ -102,12 +109,6 @@ public class Startup
                 .PersistKeysToDbContext<ProtectionKeyContext>()
                 .ProtectKeysWithCertificate(certificate)
                 .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
-
-            services.AddDbContextPool<ProtectionKeyContext>(opts =>
-            {
-                opts.UseSnakeCaseNamingConvention();
-                opts.UseNpgsql();
-            });
         }
         else
         {
