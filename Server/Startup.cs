@@ -87,14 +87,6 @@ public class Startup
             });
         }
 
-        var certificate = X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"],
-            Configuration["DataProtection:KeyPEM"]);
-
-        if (certificate == null || !certificate.HasPrivateKey)
-        {
-            throw new CryptographicException("Invalid certificate for key protection.");
-        }
-
         // This has to be always created when not needed to make EF tool work
         services.AddDbContextPool<ProtectionKeyContext>(opts =>
         {
@@ -102,25 +94,42 @@ public class Startup
             opts.UseNpgsql(Configuration.GetConnectionString("KeyDBConnection"));
         });
 
-        // Setup data protection storage. Database is vastly preferred in production use.
-        if (!string.IsNullOrWhiteSpace(Configuration.GetConnectionString("KeyDBConnection")))
+        var hasKeysDb = string.IsNullOrWhiteSpace(Configuration.GetConnectionString("KeyDBConnection"));
+
+        if (hasKeysDb || redis != null)
         {
-            services.AddDataProtection()
-                .PersistKeysToDbContext<ProtectionKeyContext>()
-                .ProtectKeysWithCertificate(certificate)
-                .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+            var certificate = X509Certificate2.CreateFromPem(Configuration["DataProtection:Certificate"],
+                Configuration["DataProtection:KeyPEM"]);
+
+            if (certificate == null || !certificate.HasPrivateKey)
+            {
+                throw new CryptographicException("Invalid certificate for key protection.");
+            }
+
+            // Setup data protection storage. Database is vastly preferred in production use.
+            if (!hasKeysDb)
+            {
+                services.AddDataProtection()
+                    .PersistKeysToDbContext<ProtectionKeyContext>()
+                    .ProtectKeysWithCertificate(certificate)
+                    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+            }
+            else
+            {
+                if (redis == null)
+                    throw new Exception("Either redis or key storage database is required");
+
+                Console.WriteLine("Using redis for data protection, this is only recommended in development usage");
+
+                services.AddDataProtection()
+                    .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys")
+                    .ProtectKeysWithCertificate(certificate)
+                    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+            }
         }
         else
         {
-            if (redis == null)
-                throw new Exception("Either redis or key storage database is required");
-
-            Console.WriteLine("Using redis for data protection, this is only recommended in development usage");
-
-            services.AddDataProtection()
-                .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys")
-                .ProtectKeysWithCertificate(certificate)
-                .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+            Console.WriteLine("No data protection storage configured, this should only be allowed in EF scripts");
         }
 
         services.AddMemoryCache();
