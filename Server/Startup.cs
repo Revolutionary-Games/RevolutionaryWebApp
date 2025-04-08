@@ -94,7 +94,7 @@ public class Startup
             opts.UseNpgsql(Configuration.GetConnectionString("KeyDBConnection"));
         });
 
-        var hasKeysDb = string.IsNullOrWhiteSpace(Configuration.GetConnectionString("KeyDBConnection"));
+        var hasKeysDb = !string.IsNullOrWhiteSpace(Configuration.GetConnectionString("KeyDBConnection"));
 
         if (hasKeysDb || redis != null)
         {
