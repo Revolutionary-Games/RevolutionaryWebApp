@@ -112,7 +112,8 @@ public class Startup
                 services.AddDataProtection()
                     .PersistKeysToDbContext<ProtectionKeyContext>()
                     .ProtectKeysWithCertificate(certificate)
-                    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+                    .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
+                    .SetApplicationName("RevolutionaryWebApp");
             }
             else
             {
@@ -124,7 +125,8 @@ public class Startup
                 services.AddDataProtection()
                     .PersistKeysToStackExchangeRedis(redis, "RevolutionaryWebDataProtectionKeys")
                     .ProtectKeysWithCertificate(certificate)
-                    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+                    .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
+                    .SetApplicationName("RevolutionaryWebApp");
             }
         }
         else
