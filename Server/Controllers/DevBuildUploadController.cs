@@ -33,11 +33,11 @@ public class DevBuildUploadController : Controller
     /// <summary>
     ///   Platforms which we accept devbuilds for
     /// </summary>
-    private static readonly List<string> AllowedDevBuildPlatforms = new()
-    {
+    private static readonly List<string> AllowedDevBuildPlatforms =
+    [
         "Linux/X11",
         "Windows Desktop",
-    };
+    ];
 
     private readonly ILogger<DevBuildUploadController> logger;
     private readonly NotificationsEnabledDb database;
@@ -110,16 +110,26 @@ public class DevBuildUploadController : Controller
 
         var result = new DevObjectOfferResult();
 
+        var sha3Values = request.Objects.Select(o => o.Sha3).ToList();
+
+        if (sha3Values.Count < 1)
+            return BadRequest("At least one object must be offered");
+
+        // For efficiency with a separate DB server, do just a single query
+        var allExisting = await database.DehydratedObjects.Include(d => d.StorageItem)
+            .Where(d => sha3Values.Contains(d.Sha3)).ToListAsync();
+
         foreach (var obj in request.Objects)
         {
-            var existing = await database.DehydratedObjects.Include(d => d.StorageItem)
-                .FirstOrDefaultAsync(d => d.Sha3 == obj.Sha3);
+            // Linear scan is probably fast enough here
+            var existing = allExisting.FirstOrDefault(d => d.Sha3 == obj.Sha3);
 
             if (existing != null)
             {
                 if (existing.StorageItem == null)
                     throw new NotLoadedModelNavigationException();
 
+                // TODO: this would be *really* nice to do in a combined query above
                 var version = await existing.StorageItem.GetHighestVersion(database);
                 if (version is { Uploading: false })
                     continue;
@@ -183,7 +193,7 @@ public class DevBuildUploadController : Controller
             }
             else if (await existing.IsUploaded(database))
             {
-                // This is OK result so that the CI doesn't fail in case it ends up with a duplicate build
+                // This is an OK result so that the CI doesn't fail in case it ends up with a duplicate build
                 // If this is hit, this will actually fail in CI, but the offer mechanism should prevent this case
                 return Ok("Can't upload a new version of an existing build");
             }
@@ -248,16 +258,20 @@ public class DevBuildUploadController : Controller
 
         // Apply objects
 
-        var dehydrated = await request.RequiredDehydratedObjects.ToAsyncEnumerable().SelectAwait(hash =>
-                new ValueTask<DehydratedObject?>(
-                    database.DehydratedObjects.FirstOrDefaultAsync(d => d.Sha3 == hash)))
-            .ToListAsync();
+        var sha3Values = request.RequiredDehydratedObjects.ToList();
 
-        if (dehydrated.Any(item => item == null))
+        // For efficiency with a separate DB server, do just a single query
+        var dehydrated = await database.DehydratedObjects.Where(d => sha3Values.Contains(d.Sha3)).ToListAsync();
+
+        // This linear scan should be efficient enough CPU-wise
+        if (sha3Values.Any(s => dehydrated.All(d => d.Sha3 != s)))
             return BadRequest("One or more dehydrated object hashes doesn't exist");
 
+        if (sha3Values.Count != dehydrated.Count)
+            throw new Exception("Fetched sha3 list is different, this shouldn't happen");
+
         foreach (var dehydratedObject in dehydrated)
-            existing.DehydratedObjects.Add(dehydratedObject!);
+            existing.DehydratedObjects.Add(dehydratedObject);
 
         if (existing.StorageItem == null)
             throw new NotLoadedModelNavigationException();
@@ -279,12 +293,10 @@ public class DevBuildUploadController : Controller
             throw new Exception("this shouldn't happen");
         }
 
-        return new DevBuildUploadResult(
-            remoteStorage.CreatePresignedUploadURL(file.UploadPath,
+        return new DevBuildUploadResult(remoteStorage.CreatePresignedUploadURL(file.UploadPath,
                 AppInfo.RemoteStorageUploadExpireTime),
             new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
-                file.Size.Value,
-                file.Id, existing.Id, null, request.BuildZipHash).ToString());
+                file.Size.Value, file.Id, existing.Id, null, request.BuildZipHash).ToString());
     }
 
     /// <summary>
@@ -297,6 +309,9 @@ public class DevBuildUploadController : Controller
         var failResult = GetAccessStatus(out var anonymous);
         if (failResult != null)
             return failResult;
+
+        if (request.Objects.Count < 1)
+            return BadRequest("Must provide at least one object to upload");
 
         if (!remoteStorage.Configured)
         {
@@ -327,11 +342,16 @@ public class DevBuildUploadController : Controller
 
         var expiresAt = DateTime.UtcNow + AppInfo.RemoteStorageUploadExpireTime;
 
+        // Save on some DB queries
+        var sha3Values = request.Objects.Select(o => o.Sha3).ToList();
+        var dehydratedAll = await database.DehydratedObjects.Include(d => d.StorageItem)
+            .Where(d => sha3Values.Contains(d.Sha3)).ToListAsync();
+
         foreach (var obj in request.Objects)
         {
-            var dehydrated = await database.DehydratedObjects.Include(d => d.StorageItem)
-                .FirstOrDefaultAsync(d => d.Sha3 == obj.Sha3);
+            var dehydrated = dehydratedAll.FirstOrDefault(d => d.Sha3 == obj.Sha3);
 
+            // TODO: see if this IsUploaded check could load DB data from a single call to make fewer DB queries
             if (dehydrated != null && await dehydrated.IsUploaded(database))
             {
                 continue;
@@ -381,13 +401,10 @@ public class DevBuildUploadController : Controller
             logger.LogInformation("Upload of a dehydrated object ({Sha3}) starting from {RemoteIpAddress}",
                 obj.Sha3, HttpContext.Connection.RemoteIpAddress);
 
-            result.Upload.Add(new DehydratedUploadResult.ObjectToUpload(
-                obj.Sha3,
-                remoteStorage.CreatePresignedUploadURL(file.UploadPath,
-                    AppInfo.RemoteStorageUploadExpireTime),
+            result.Upload.Add(new DehydratedUploadResult.ObjectToUpload(obj.Sha3,
+                remoteStorage.CreatePresignedUploadURL(file.UploadPath, AppInfo.RemoteStorageUploadExpireTime),
                 new StorageUploadVerifyToken(dataProtector, file.UploadPath, file.StoragePath,
-                    file.Size.Value,
-                    file.Id, null, obj.Sha3, null).ToString()));
+                    file.Size.Value, file.Id, null, obj.Sha3, null).ToString()));
         }
 
         await database.SaveChangesAsync();
@@ -518,7 +535,7 @@ public class DevBuildUploadController : Controller
     ///   Checks the access to the devbuild endpoint
     /// </summary>
     /// <param name="anonymous">Whether this is an anonymous (unsafe) upload or not</param>
-    /// <returns>A failure result. If not null the main action should return this</returns>
+    /// <returns>A failure result. If not null, the main action should return this</returns>
     [NonAction]
     private ActionResult? GetAccessStatus(out bool anonymous)
     {
