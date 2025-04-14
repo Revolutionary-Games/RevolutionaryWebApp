@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <LangVersion>12</LangVersion>
     <Nullable>enable</Nullable>
-    <Version>2.17.0</Version>
+    <Version>3.2.0</Version>
     <!-- TODO: re-enable once we are on .NET 9 (also see below the version pinning) -->
     <NoWarn>NU1608</NoWarn>
   </PropertyGroup>
