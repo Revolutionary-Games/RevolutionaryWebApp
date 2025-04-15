@@ -600,7 +600,7 @@ public class Startup
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
-        // This is kept here if in the future more hashed fields are needed to be added so this might be needed
+        // This is kept here if in the future more hashed fields are needed to be added, so this might be needed
         // in the future as well to update info in the db
         // BackgroundJob.Enqueue<QueueRecomputeHashIfNeededJob>(x => x.Execute(CancellationToken.None));
     }

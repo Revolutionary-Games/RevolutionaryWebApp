@@ -85,7 +85,7 @@ public static class UserGroupDataExtensions
     /// </exception>
     public static bool HasAccessLevel(this IUserGroupData currentAccess, GroupType requiredAccess)
     {
-        // All possible groups and not logged in users are this access level
+        // All possible groups and not logged-in users are this access level
         if (requiredAccess == GroupType.NotLoggedIn)
             return true;
 

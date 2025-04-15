@@ -47,8 +47,9 @@ public static class HttpContextAuthorizationExtensions
     }
 
     /// <summary>
-    ///   Checks for current user access level. This exists to make checking for restricted level or above work, as
-    ///   no higher users can actually be in the restricted group.
+    ///   Checks for the current user access level.
+    ///   This exists to make checking for restricted level or above work, as no higher users can actually be in the
+    ///   restricted group.
     /// </summary>
     public static AuthenticationResult HasAuthenticatedUserWithAccessLevelExtended(this HttpContext context,
         GroupType requiredAccess, AuthenticationScopeRestriction? requiredRestriction)

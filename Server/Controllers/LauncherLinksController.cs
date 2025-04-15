@@ -39,7 +39,7 @@ public class LauncherLinksController : Controller
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 50)] int pageSize)
     {
-        // Only admins can view other user's info
+        // Only admins can view another user's info
         if (userId != HttpContext.AuthenticatedUser()!.Id &&
             !HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None))
         {
