@@ -126,7 +126,7 @@
 <AccessLimited RequiredAccess="GroupType.Admin">
     @if (!LookingAtSelf)
     {
-        <p>TODO: group management controls</p>
+        <UserGroupManager Id="@User.Id"/>
     }
 </AccessLimited>
 

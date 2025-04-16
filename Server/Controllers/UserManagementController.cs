@@ -250,7 +250,7 @@ public class UserManagementController : Controller
 
         Session? session = null;
 
-        // For safety we never give out the real ids of the session, so we need to here find the actual
+        // For safety, we never give out the real ids of the session, so we need to here find the actual
         // target session
         foreach (var potentialSession in sessions)
         {

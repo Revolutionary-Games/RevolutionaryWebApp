@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Models;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Shared;
+using Shared.Models;
 using Shared.Models.Enums;
 
 /// <summary>
@@ -25,4 +26,13 @@ public class UserGroup
     public ICollection<User> Members { get; set; } = new HashSet<User>();
 
     public UserGroupExtraData? ExtraData { get; set; }
+
+    public UserGroupInfo GetInfo()
+    {
+        return new UserGroupInfo
+        {
+            Id = Id,
+            Name = Name,
+        };
+    }
 }

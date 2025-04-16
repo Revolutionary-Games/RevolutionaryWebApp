@@ -1,0 +1,236 @@
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inject HttpClient Http
+
+<StatusMessageShower Message="@actionResult" Type="@actionResultType"/>
+
+@if (managingGroups)
+{
+    <h4>Group Editor</h4>
+
+    if (loadingGroups)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+    else
+    {
+        /* Existing groups */
+        if (groups is { Count: > 0 })
+        {
+            <ul>
+                @foreach (var group in groups)
+                {
+                    <li class="mb-1">
+                        @group.Name
+
+                        @if (group.Id >= GroupType.SystemOnly)
+                        {
+                            <Button class="ms-1" ButtonStyle="danger" Enabled="@(!doingDelete)" Spinner="@doingDelete"
+                                    Small="@true" OnPressed="@(() => RemoveFromGroup(group))">
+                                Remove
+                            </Button>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p>No existing groups found</p>
+        }
+
+        /* Adding new groups */
+        <p class="mt-3">
+            Admin, developer, or Patreon user management is not done through this tool. After group change, it will
+            take a minute or so before the changes are reflected.
+        </p>
+
+        <form>
+            <div class="row">
+                <div class="mb-3 col-md-5">
+                    <label for="newGroup" class="form-label">Group to Add</label>
+                    <select id="newGroup" class="form-select" @bind="newGroup" disabled="@doingAdd">
+
+                        @foreach (var entry in Enum.GetValues<GroupType>())
+                        {
+                            // Skip some stuff we don't want to show
+                            if (entry is <= GroupType.SystemOnly or >= GroupType.Custom)
+                                continue;
+
+                            <option value="@entry">@entry.ToString()</option>
+                        }
+
+                        <option value="custom" disabled="disabled">Custom...</option>
+                    </select>
+                </div>
+            </div>
+
+            @if (newGroup >= GroupType.Custom)
+            {
+                @* TODO: custom group handling *@
+            }
+
+            <Button class="mb-1" ButtonStyle="success" Enabled="@(!doingAdd)" Spinner="@doingAdd"
+                    type="submit" OnPressed="@StartAddToGroup">
+                Add
+            </Button>
+            <Button class="mb-1 ms-1" ButtonStyle="secondary" OnPressed="@ToggleEdit">Cancel</Button>
+        </form>
+    }
+}
+else
+{
+    <Button class="mb-1" ButtonStyle="primary" OnPressed="@ToggleEdit">
+        Edit Groups
+    </Button>
+}
+
+@code {
+    private bool managingGroups;
+
+    private List<UserGroupInfo>? groups;
+
+    private bool loadingGroups;
+    private bool doingDelete;
+    private bool doingAdd;
+
+    private GroupType newGroup;
+
+    private string? actionResult;
+    private SiteNoticeType actionResultType = SiteNoticeType.Danger;
+
+    [Parameter]
+    [EditorRequired]
+    public long Id { get; set; }
+
+    private async Task ToggleEdit()
+    {
+        if (managingGroups)
+        {
+            managingGroups = false;
+        }
+        else
+        {
+            managingGroups = true;
+            newGroup = 0;
+            await FetchUserGroups();
+        }
+    }
+
+    private async Task FetchUserGroups()
+    {
+        loadingGroups = true;
+        actionResult = null;
+        actionResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            groups = await Http.GetFromJsonAsync<List<UserGroupInfo>>($"api/v1/UserManagement/{Id}/groups") ??
+                throw new Exception("Received an empty response");
+        }
+        catch (HttpRequestException e)
+        {
+            actionResult = $"Network request failed: {e.Message}";
+            loadingGroups = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        loadingGroups = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StartAddToGroup()
+    {
+        doingAdd = true;
+        actionResult = null;
+        actionResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PutAsync($"api/v1/UserManagement/{Id}/groups/{(int)newGroup}",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            actionResult = $"Network request failed: {e.Message}";
+            doingAdd = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        doingAdd = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            actionResult = $"Failed to add user to group. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionResult = $"User is now in group {newGroup}";
+            actionResultType = SiteNoticeType.Success;
+
+            // Update our local data
+            groups?.Add(new UserGroupInfo
+            {
+                Id = newGroup,
+
+                // TODO: this name is not always fully accurate...
+                Name = newGroup.ToString(),
+            });
+
+            newGroup = 0;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveFromGroup(UserGroupInfo groupInfo)
+    {
+        doingDelete = true;
+        actionResult = null;
+        actionResultType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/UserManagement/{Id}/groups/{(int)groupInfo.Id}");
+        }
+        catch (HttpRequestException e)
+        {
+            actionResult = $"Network request failed: {e.Message}";
+            doingDelete = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        doingDelete = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            actionResult = $"Failed to remove user from group. Server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            actionResult = $"User has been removed from {groupInfo.Id}";
+            actionResultType = SiteNoticeType.Warning;
+
+            // Update our local data
+            groups?.RemoveAll(g => g.Id == groupInfo.Id);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}
