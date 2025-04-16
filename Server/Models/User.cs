@@ -80,7 +80,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     public string? HashedLfsToken { get; set; }
 
     [AllowSortingBy]
-    public bool Suspended { get; set; }
+    public DateTime? SuspendedUntil { get; set; }
 
     public string? SuspendedReason { get; set; }
     public bool SuspendedManually { get; set; }
@@ -103,6 +103,12 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     [NotMapped]
     public bool IsAuthenticated { get => true; set => throw new NotSupportedException(); }
 
+    [NotMapped]
+    public bool Suspended => SuspendedUntil != null && SuspendedUntil > DateTime.UtcNow;
+
+    /// <summary>
+    ///   Alias to <see cref="UserName"/>
+    /// </summary>
     [NotMapped]
     public string Name { get => UserName; set => UserName = value; }
 
@@ -367,7 +373,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
             case RecordAccessLevel.Public:
                 break;
             case RecordAccessLevel.Admin:
-                info.Suspended = Suspended;
+                info.SuspendedUntil = SuspendedUntil;
                 info.SuspendedReason = SuspendedReason;
                 info.SuspendedManually = SuspendedManually;
 

@@ -1,5 +1,6 @@
 namespace RevolutionaryWebApp.Shared.Models;
 
+using System;
 using System.ComponentModel.DataAnnotations;
 using DevCenterCommunication.Models;
 
@@ -20,7 +21,7 @@ public class UserDTO : ClientSideTimedModel
     public bool HasLfsToken { get; set; }
     public int TotalLauncherLinks { get; set; }
 
-    public bool Suspended { get; set; }
+    public DateTime? SuspendedUntil { get; set; }
     public string? SuspendedReason { get; set; }
     public bool SuspendedManually { get; set; }
 

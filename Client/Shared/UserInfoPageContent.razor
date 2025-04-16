@@ -45,9 +45,19 @@
         <li><strong>Restricted</strong>: @User.Groups.HasGroup(GroupType.RestrictedUser)</li>
         <li><strong>Created At</strong>: @User.CreatedAt.ToLocalTime().ToString("G")</li>
         <li><strong>Updated At</strong>: @User.UpdatedAt.ToLocalTime().ToString("G")</li>
-        <li><strong>Suspended</strong>: @User.Suspended</li>
-        <li><strong>Suspension reason</strong>: @User.SuspendedReason</li>
-        <li><strong>Suspended manually</strong>: @User.SuspendedManually</li>
+        @if (User.SuspendedUntil != null && User.SuspendedUntil > DateTime.UtcNow)
+        {
+            <li><strong>Suspended</strong>: <strong>YES</strong> until:
+                @User.SuspendedUntil.Value.ToLocalTime().ToString("G")</li>
+            <li><strong>Suspended manually</strong>: @User.SuspendedManually</li>
+            <li><strong>Suspension reason</strong>: @User.SuspendedReason</li>
+        }
+        else
+        {
+            <li><strong>Suspended</strong>: No</li>
+            <li><strong>Previous Suspension reason</strong>: @User.SuspendedReason</li>
+        }
+
     </AccessLimited>
 </ul>
 
@@ -194,7 +204,7 @@ else
     </Button>
     <br />
 
-    @if (!User.Suspended)
+    @if (User.SuspendedUntil == null)
     {
         @if (showSuspensionReasonEntry)
         {

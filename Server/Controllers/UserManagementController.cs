@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
+using Shared.Forms;
 using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Notifications;
@@ -287,10 +288,10 @@ public class UserManagementController : Controller
     [HttpPost("{id:long}/suspend")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]
     [RequireSudoMode]
-    public async Task<ActionResult> SuspendUser([Required] long id, [Required] [FromBody] string reason)
+    public async Task<ActionResult> SuspendUser([Required] long id, [Required] [FromBody] UserSuspendRequest request)
     {
-        if (string.IsNullOrWhiteSpace(reason) || reason.Length > 200)
-            return BadRequest("Reason not provided or it is too long");
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return BadRequest("Reason not provided");
 
         var user = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Id == id);
         var actingUser = HttpContext.AuthenticatedUserOrThrow();
@@ -307,12 +308,19 @@ public class UserManagementController : Controller
         if (user.Suspended)
             return BadRequest("User already suspended");
 
-        user.Suspended = true;
+        var earliestUnsuspendTime = DateTime.UtcNow + TimeSpan.FromMinutes(60);
+
+        if (request.SuspendedUntil < earliestUnsuspendTime)
+            return BadRequest("Suspended until time is too early (user needs to be suspended for longer)");
+
+        user.SuspendedUntil = request.SuspendedUntil;
         user.SuspendedManually = true;
-        user.SuspendedReason = reason;
+        user.SuspendedReason = request.Reason;
 
         await database.AdminActions.AddAsync(
-            new AdminAction($"User {user.UserName} suspended manually for reason \"{reason}\"")
+            new AdminAction(
+                $"User {user.UserName} suspended manually for reason \"{request.Reason}\" " +
+                $"until {request.SuspendedUntil:yyyy-MM-dd HH:mm:ss}")
             {
                 PerformedById = actingUser.Id,
                 TargetUserId = user.Id,
@@ -321,7 +329,7 @@ public class UserManagementController : Controller
         await database.SaveChangesAsync();
 
         logger.LogInformation("User ({Email}) suspended by {Email2} for reason: {Reason}",
-            user.Email, actingUser.Email, reason);
+            user.Email, actingUser.Email, request.Reason);
 
         await LogoutEverywhere(user, actingUser);
 
@@ -338,7 +346,7 @@ public class UserManagementController : Controller
         if (user == null)
             return NotFound();
 
-        if (!user.Suspended)
+        if (user.SuspendedUntil == null)
             return BadRequest("User is not suspended");
 
         if (user == actingUser)
@@ -348,7 +356,7 @@ public class UserManagementController : Controller
         user.ProcessGroupDataFromLoadedGroups();
 
         user.SuspendedManually = false;
-        user.Suspended = false;
+        user.SuspendedUntil = null;
 
         await database.AdminActions.AddAsync(new AdminAction("User unsuspended manually")
         {
@@ -383,7 +391,11 @@ public class UserManagementController : Controller
         // TODO: logging out discourse sessions once we have those managed through this account system
 
         if (sessions.Count < 1)
+        {
+            // This doesn't try to log out the user from external sources, as the user must have a session to have
+            // triggered this action
             return;
+        }
 
         if (actingUser.Id != user.Id)
         {
