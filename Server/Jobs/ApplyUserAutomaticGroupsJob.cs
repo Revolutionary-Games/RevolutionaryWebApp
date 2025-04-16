@@ -15,7 +15,8 @@ public class ApplyUserAutomaticGroupsJob(ILogger<ApplyUserAutomaticGroupsJob> lo
 {
     public async Task Execute(string email, CancellationToken cancellationToken)
     {
-        var user = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+        var user = await database.Users.Include(u => u.Groups)
+            .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 
         if (user == null)
         {
