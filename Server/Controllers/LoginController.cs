@@ -273,7 +273,7 @@ public class LoginController : SSOLoginController
             return Redirect(QueryHelpers.AddQueryString("/login", "error", "Invalid username or password"));
         }
 
-        // Suspended user cannot login
+        // Suspended user cannot log in
         if (user.Suspended)
         {
             return CreateSuspendedUserRedirect(user);
@@ -415,7 +415,8 @@ public class LoginController : SSOLoginController
             }
         }
 
-        return Redirect(QueryHelpers.AddQueryString("/login", "error", $"Your account is suspended {suspension}"));
+        return Redirect(QueryHelpers.AddQueryString("/login", "error",
+            $"Your account is suspended {suspension} until {user.SuspendedUntil:u}"));
     }
 
     [NonAction]
