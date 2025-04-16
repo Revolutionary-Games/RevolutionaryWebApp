@@ -298,8 +298,6 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(e => e.UserName).HasColumnName("name").IsRequired();
 
-            entity.Property(e => e.Suspended).HasDefaultValue(false);
-
             entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
         });
 
