@@ -39,13 +39,18 @@ public class CheckAllUserAutomaticGroups(ILogger<CheckAllUserAutomaticGroups> lo
         var patreonSettingsWrapper = new Lazy<Task<PatreonSettings>>(() => Task.FromResult(patreonSettings));
 
         // Load all users that may need Patreon applying or removing
-        var users = await database.Users.Where(u => patronEmails.Contains(u.Email) || u.Groups.Contains(patreonGroup))
+        // Hopefully we never have so many users that we would run out of memory here doing this all at once
+        var users = await database.Users.Include(u => u.Groups)
+            .Where(u => patronEmails.Contains(u.Email) || u.Groups.Contains(patreonGroup))
             .ToListAsync(cancellationToken);
 
         bool changes = false;
 
         foreach (var user in users)
         {
+            // Need to have groups available
+            user.ProcessGroupDataFromLoadedGroups();
+
             if (await UserGroupApplyHandler.ApplyUserGroupsIfNeeded(user, database, logger, patreonSettingsWrapper,
                     jobClient, cancellationToken))
             {
