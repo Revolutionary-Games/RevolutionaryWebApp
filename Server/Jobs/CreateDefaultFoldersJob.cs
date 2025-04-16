@@ -65,6 +65,7 @@ public class CreateDefaultFoldersJob : IJob
         itemsToRecompute.Add(await CreateDefaultFolder("Symbols", null, FileAccess.Developer, FileAccess.Nobody, false,
             cancellationToken));
 
+        // This doesn't absolutely have to be patron-only, but the files inside this are configured to be patron-only
         itemsToRecompute.Add(await CreateDefaultFolder("Precompiled", null, FileAccess.User, FileAccess.Nobody, true,
             cancellationToken));
 

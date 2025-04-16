@@ -195,7 +195,7 @@ public class PrecompiledObjectVersionController : Controller
         await database.StorageItems.AddAsync(storageItem);
         await database.PrecompiledObjectVersions.AddAsync(precompiledVersion);
 
-        // This save will fail if duplicate version was attempted
+        // This save will fail if a duplicate version was attempted
         await database.SaveChangesAsync();
 
         jobClient.Enqueue<CountFolderItemsJob>(x => x.Execute(folder.Id, CancellationToken.None));

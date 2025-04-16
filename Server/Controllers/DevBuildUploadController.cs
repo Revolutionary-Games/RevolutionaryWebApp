@@ -227,7 +227,7 @@ public class DevBuildUploadController : Controller
                     Parent = folder,
                     Ftype = FileType.File,
                     Special = true,
-                    ReadAccess = FileAccess.User,
+                    ReadAccess = FileAccess.Patron,
                     WriteAccess = FileAccess.Nobody,
                 };
 
@@ -370,7 +370,7 @@ public class DevBuildUploadController : Controller
                     Parent = folder,
                     Ftype = FileType.File,
                     Special = true,
-                    ReadAccess = FileAccess.User,
+                    ReadAccess = FileAccess.Patron,
                     WriteAccess = FileAccess.Nobody,
                 };
 
