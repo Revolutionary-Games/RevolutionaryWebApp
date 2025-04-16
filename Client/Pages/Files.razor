@@ -264,8 +264,12 @@ else
                             <UsernameDisplayer UserId="@parsedFolderInfo.OwnerId"/>
                         }
                     </li>
-                    <li><strong>Created</strong>: <RecentTimeShortener Time="@parsedFolderInfo.CreatedAt"/></li>
-                    <li><strong>Updated</strong>: <RecentTimeShortener Time="@parsedFolderInfo.UpdatedAt"/></li>
+                    <li><strong>Created</strong>:
+                        <RecentTimeShortener Time="@parsedFolderInfo.CreatedAt"/>
+                    </li>
+                    <li><strong>Updated</strong>:
+                        <RecentTimeShortener Time="@parsedFolderInfo.UpdatedAt"/>
+                    </li>
                     @if (parsedFolderInfo.LastModifiedById != null)
                     {
                         <li>
@@ -297,7 +301,8 @@ else
         {
             <p class="mt-2">Select the folder to move this folder to:</p>
 
-            <FolderSelector CurrentPath="@targetMovePath" NonWritableWarning="@true" OnFolderChange="@BrowseMoveFolder"/>
+            <FolderSelector CurrentPath="@targetMovePath" NonWritableWarning="@true"
+                            OnFolderChange="@BrowseMoveFolder"/>
 
             <Button Enabled="@(!processing)" class="mb-1" ButtonStyle="primary" OnPressed="@PerformMove"
                     Spinner="@processing">
@@ -1093,8 +1098,8 @@ else
         if (upload.NextChunks == null || upload.NextChunks.Count < 1)
             throw new ArgumentException("Multipart upload didn't specify initial chunks to upload");
 
-        var startingChunks = upload.NextChunks.AsEnumerable().Chunk((int)Math.Ceiling(
-            upload.NextChunks.Count / (float)AppInfo.MultipartSimultaneousUploads)).ToList();
+        var startingChunks = upload.NextChunks.AsEnumerable().Chunk(
+            (int)Math.Ceiling(upload.NextChunks.Count / (float)AppInfo.MultipartSimultaneousUploads)).ToList();
 
         var uploadTasks = new List<ValueTask<string?>>();
 
