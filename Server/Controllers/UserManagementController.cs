@@ -317,21 +317,28 @@ public class UserManagementController : Controller
         user.SuspendedManually = true;
         user.SuspendedReason = request.Reason;
 
-        await database.AdminActions.AddAsync(
-            new AdminAction(
-                $"User {user.UserName} suspended manually for reason \"{request.Reason}\" " +
-                $"until {request.SuspendedUntil:yyyy-MM-dd HH:mm:ss}")
-            {
-                PerformedById = actingUser.Id,
-                TargetUserId = user.Id,
-            });
+        await database.AdminActions.AddAsync(new AdminAction(
+            $"User {user.UserName} suspended manually for reason \"{request.Reason}\" " +
+            $"until {request.SuspendedUntil:yyyy-MM-dd HH:mm:ss}")
+        {
+            PerformedById = actingUser.Id,
+            TargetUserId = user.Id,
+        });
 
         await database.SaveChangesAsync();
 
         logger.LogInformation("User ({Email}) suspended by {Email2} for reason: {Reason}",
             user.Email, actingUser.Email, request.Reason);
 
-        await LogoutEverywhere(user, actingUser);
+        try
+        {
+            await LogoutEverywhere(user, actingUser);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to logout user everywhere when suspending");
+            return Problem("Failed to logout user everywhere, but suspension was successful");
+        }
 
         return Ok("User suspended");
     }
@@ -388,12 +395,13 @@ public class UserManagementController : Controller
         var id = user.Id;
         var sessions = await database.Sessions.Where(s => s.UserId == id).ToListAsync();
 
-        // TODO: logging out discourse sessions once we have those managed through this account system
+        var externalLogout = LogoutExternalSessions(user.Id);
 
         if (sessions.Count < 1)
         {
             // This doesn't try to log out the user from external sources, as the user must have a session to have
             // triggered this action
+            await externalLogout;
             return;
         }
 
@@ -418,8 +426,6 @@ public class UserManagementController : Controller
 
         database.Sessions.RemoveRange(sessions);
         await database.SaveChangesAsync();
-
-        var externalLogout = LogoutExternalSessions(user.Id);
 
         await InvalidateSessions(sessions.Select(s => s.Id));
 
