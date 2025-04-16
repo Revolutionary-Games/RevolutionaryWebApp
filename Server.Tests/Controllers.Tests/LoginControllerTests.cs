@@ -548,8 +548,9 @@ public sealed class LoginControllerTests : IDisposable
         var configuration = CreateConfiguration(false, true);
 
         await using var database =
-            CreateMemoryDatabase(nameof(LoginController_AutoUnsuspendDoesNotOverrideManualSuspension),
-                notificationsMock);
+            CreateMemoryDatabase(
+                nameof(LoginController_BadPatronStatusDisallowsLogin) +
+                $"{userSuspended}-{patronSuspended}-{rewardTier}", notificationsMock);
 
         await SeedPatronData(database, patronSuspended, rewardTier);
 
@@ -557,9 +558,9 @@ public sealed class LoginControllerTests : IDisposable
         {
             Local = false,
             SsoSource = LoginController.SsoTypePatreon,
-            SuspendedUntil = DateTime.UtcNow + TimeSpan.FromDays(30),
+            SuspendedUntil = userSuspended ? DateTime.UtcNow + TimeSpan.FromDays(30) : null,
             SuspendedManually = false,
-            SuspendedReason = "aaa",
+            SuspendedReason = "Test suspension reason.",
         };
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
