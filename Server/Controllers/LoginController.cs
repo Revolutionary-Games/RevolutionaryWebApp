@@ -786,22 +786,6 @@ public class LoginController : SSOLoginController
                     false);
             }
 
-            if (patronLogin)
-            {
-                // Add the Patreon group if missing
-                if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.PatreonSupporter))
-                {
-                    user.Groups.Add(await patreonGroup.Value);
-                    user.OnGroupsChanged(jobClient, false);
-                    user.BumpUpdatedAt();
-
-                    await Database.LogEntries.AddAsync(new LogEntry("Added Patreon group to user due to SSO login")
-                    {
-                        TargetUser = user,
-                    });
-                }
-            }
-
             // TODO: remove most of these account type changes
             if (ssoType == SsoTypeDevForum)
             {
@@ -839,6 +823,24 @@ public class LoginController : SSOLoginController
         {
             Logger.LogInformation("Suspended user tried to login");
             return (CreateSuspendedUserRedirect(user), false);
+        }
+
+        if (patronLogin)
+        {
+            // Add the Patreon group if missing
+            if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.PatreonSupporter))
+            {
+                user.Groups.Add(await patreonGroup.Value);
+                user.OnGroupsChanged(jobClient, false);
+                user.BumpUpdatedAt();
+
+                await Database.LogEntries.AddAsync(new LogEntry("Added Patreon group to user due to SSO login")
+                {
+                    TargetUser = user,
+                });
+
+                Logger.LogInformation("Added Patreon group to user {Email} due to SSO login", user.Email);
+            }
         }
 
         // Change username from SSO login

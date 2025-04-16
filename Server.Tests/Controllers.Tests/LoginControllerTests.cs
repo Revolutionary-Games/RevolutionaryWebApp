@@ -250,7 +250,7 @@ public sealed class LoginControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task LoginController_UnsuspendSSOPatron()
+    public async Task LoginController_AppliesMissingPatronGroup()
     {
         string? seenSessionId = null;
         var cookiesMock = Substitute.For<IResponseCookies>();
@@ -264,7 +264,7 @@ public sealed class LoginControllerTests : IDisposable
         var configuration = CreateConfiguration(false, true);
 
         await using var database =
-            CreateMemoryDatabase(nameof(LoginController_UnsuspendSSOPatron), notificationsMock);
+            CreateMemoryDatabase(nameof(LoginController_AppliesMissingPatronGroup), notificationsMock);
 
         await SeedPatronData(database);
 
@@ -272,9 +272,6 @@ public sealed class LoginControllerTests : IDisposable
         {
             Local = false,
             SsoSource = LoginController.SsoTypePatreon,
-            SuspendedUntil = DateTime.UtcNow + TimeSpan.FromDays(30),
-            SuspendedManually = false,
-            SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
         };
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
@@ -298,6 +295,8 @@ public sealed class LoginControllerTests : IDisposable
             CSRF = CSRFValue,
         });
 
+        Assert.DoesNotContain(user.Groups, g => g.Id == GroupType.PatreonSupporter);
+
         var redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
 
         Assert.False(redirectResult.Permanent);
@@ -314,7 +313,6 @@ public sealed class LoginControllerTests : IDisposable
 
         Assert.NotNull(session);
         Assert.Null(session.User);
-        Assert.True(user.Suspended);
 
         Assert.Equal(LoginController.SsoTypePatreon, session.StartedSsoLogin);
         Assert.NotNull(session.SsoNonce);
@@ -343,12 +341,16 @@ public sealed class LoginControllerTests : IDisposable
 
         Assert.NotEqual(session, newSession);
 
-        // First session is deleted
+        // The first session is deleted
         Assert.Null(await database.Sessions.FirstOrDefaultAsync(s => s.Id == session.Id));
 
         Assert.Null(newSession.StartedSsoLogin);
         Assert.Null(newSession.SsoNonce);
         Assert.False(user.Suspended);
+
+        var user2 = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Id == user.Id);
+        Assert.NotNull(user2);
+        Assert.Contains(user2.Groups, g => g.Id == GroupType.PatreonSupporter);
 
         Assert.Equal(user, newSession.User);
 
@@ -361,6 +363,8 @@ public sealed class LoginControllerTests : IDisposable
     [Fact]
     public async Task LoginController_AutoUnsuspendDoesNotOverrideManualSuspension()
     {
+        // Note that log in no longer auto unsuspends, so this test shouldn't be able to detect anything any more...
+
         string? seenSessionId = null;
         var cookiesMock = Substitute.For<IResponseCookies>();
         cookiesMock.When(cookies =>
@@ -384,7 +388,7 @@ public sealed class LoginControllerTests : IDisposable
             SsoSource = LoginController.SsoTypePatreon,
             SuspendedUntil = DateTime.UtcNow + TimeSpan.FromDays(30),
             SuspendedManually = true,
-            SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
+            SuspendedReason = "aaa",
         };
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
@@ -468,7 +472,7 @@ public sealed class LoginControllerTests : IDisposable
             SsoSource = LoginController.SsoTypePatreon,
             SuspendedUntil = DateTime.UtcNow + TimeSpan.FromDays(30),
             SuspendedManually = false,
-            SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
+            SuspendedReason = "aaa",
         };
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
@@ -550,6 +554,9 @@ public sealed class LoginControllerTests : IDisposable
             new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(dbName).Options;
 
         var database = new NotificationsEnabledDb(dbOptions, notificationSender);
+
+        database.UserGroups.Add(new UserGroup(GroupType.PatreonSupporter, "Patreon Supporter"));
+        database.SaveChanges();
 
         return database;
     }
