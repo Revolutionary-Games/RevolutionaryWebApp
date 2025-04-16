@@ -552,6 +552,8 @@ else
             groups.Add(NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix + folderId);
         if (currentUserGroups.HasAccessLevel(GroupType.User))
             groups.Add(NotificationGroups.FolderContentsUpdatedUserPrefix + folderId);
+        if (currentUserGroups.HasGroup(GroupType.PatreonSupporter))
+            groups.Add(NotificationGroups.FolderContentsUpdatedPatronPrefix + folderId);
         if (currentUserGroups.HasAccessLevel(GroupType.Developer))
             groups.Add(NotificationGroups.FolderContentsUpdatedDeveloperPrefix + folderId);
         if (currentUserGroups.HasAccessLevel(GroupType.Admin) || (parsedFolderInfo?.OwnerId != null &&

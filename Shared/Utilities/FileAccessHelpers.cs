@@ -10,7 +10,7 @@ public static class FileAccessHelpers
     public static bool IsAccessibleTo(this FileAccess access, IUserGroupData? userGroups, long? userId,
         long? objectOwnerId)
     {
-        // Everyone has access to public
+        // Everyone has access to public folders
         if (access == FileAccess.Public)
             return true;
 
@@ -29,7 +29,12 @@ public static class FileAccessHelpers
 
         if (userGroups.HasAccessLevel(GroupType.Developer))
         {
-            return access is FileAccess.User or FileAccess.RestrictedUser or FileAccess.Developer;
+            return access is FileAccess.User or FileAccess.RestrictedUser or FileAccess.Patron or FileAccess.Developer;
+        }
+
+        if (userGroups.HasGroup(GroupType.PatreonSupporter))
+        {
+            return access is FileAccess.User or FileAccess.RestrictedUser or FileAccess.Patron;
         }
 
         if (userGroups.HasGroup(GroupType.RestrictedUser))
@@ -50,6 +55,8 @@ public static class FileAccessHelpers
                 return "restricted users";
             case FileAccess.User:
                 return "users";
+            case FileAccess.Patron:
+                return "patrons";
             case FileAccess.Developer:
                 return "developers";
             case FileAccess.OwnerOrAdmin:
@@ -81,6 +88,11 @@ public static class FileAccessHelpers
             case "users":
             case "user":
                 return FileAccess.User;
+            case "patrons":
+            case "patron":
+            case "patreon":
+            case "Patreon":
+                return FileAccess.Patron;
             case "developers":
             case "developer":
                 return FileAccess.Developer;

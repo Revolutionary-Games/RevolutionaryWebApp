@@ -55,6 +55,10 @@ public class FileAccessTests
         Assert.True(FileAccess.Developer.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, 1));
         Assert.True(FileAccess.Developer.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, 2));
 
+        Assert.True(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, null));
+        Assert.True(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, 1));
+        Assert.True(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, 2));
+
         Assert.False(FileAccess.OwnerOrAdmin.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, null));
         Assert.True(FileAccess.OwnerOrAdmin.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, 1));
         Assert.False(FileAccess.OwnerOrAdmin.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, 2));
@@ -62,6 +66,39 @@ public class FileAccessTests
         Assert.False(FileAccess.Nobody.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, null));
         Assert.False(FileAccess.Nobody.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, 1));
         Assert.False(FileAccess.Nobody.IsAccessibleTo(new CachedUserGroups(GroupType.Developer), 1, 2));
+    }
+
+    [Fact]
+    public void FileAccessTests_PatronValuesWork()
+    {
+        Assert.True(FileAccess.Public.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, null));
+        Assert.True(FileAccess.Public.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 1));
+        Assert.True(FileAccess.Public.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 2));
+
+        Assert.True(
+            FileAccess.RestrictedUser.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, null));
+        Assert.True(FileAccess.RestrictedUser.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 1));
+        Assert.True(FileAccess.RestrictedUser.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 2));
+
+        Assert.True(FileAccess.User.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, null));
+        Assert.True(FileAccess.User.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 1));
+        Assert.True(FileAccess.User.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 2));
+
+        Assert.False(FileAccess.Developer.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, null));
+        Assert.True(FileAccess.Developer.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 1));
+        Assert.False(FileAccess.Developer.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 2));
+
+        Assert.True(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, null));
+        Assert.True(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 1));
+        Assert.True(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 2));
+
+        Assert.False(FileAccess.OwnerOrAdmin.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, null));
+        Assert.True(FileAccess.OwnerOrAdmin.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 1));
+        Assert.False(FileAccess.OwnerOrAdmin.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 2));
+
+        Assert.False(FileAccess.Nobody.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, null));
+        Assert.False(FileAccess.Nobody.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 1));
+        Assert.False(FileAccess.Nobody.IsAccessibleTo(new CachedUserGroups(GroupType.PatreonSupporter), 1, 2));
     }
 
     [Fact]
@@ -82,6 +119,10 @@ public class FileAccessTests
         Assert.False(FileAccess.Developer.IsAccessibleTo(new CachedUserGroups(GroupType.User), 1, null));
         Assert.True(FileAccess.Developer.IsAccessibleTo(new CachedUserGroups(GroupType.User), 1, 1));
         Assert.False(FileAccess.Developer.IsAccessibleTo(new CachedUserGroups(GroupType.User), 1, 2));
+
+        Assert.False(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.User), 1, null));
+        Assert.True(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.User), 1, 1));
+        Assert.False(FileAccess.Patron.IsAccessibleTo(new CachedUserGroups(GroupType.User), 1, 2));
 
         Assert.False(FileAccess.OwnerOrAdmin.IsAccessibleTo(new CachedUserGroups(GroupType.User), 1, null));
         Assert.True(FileAccess.OwnerOrAdmin.IsAccessibleTo(new CachedUserGroups(GroupType.User), 1, 1));

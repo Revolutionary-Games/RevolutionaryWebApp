@@ -49,6 +49,7 @@ public static class NotificationGroups
     public const string FolderContentsUpdatedPublicPrefix = "PubFolder_";
     public const string FolderContentsUpdatedRestrictedUserPrefix = "RUserFolder_";
     public const string FolderContentsUpdatedUserPrefix = "UserFolder_";
+    public const string FolderContentsUpdatedPatronPrefix = "PatronFolder_";
     public const string FolderContentsUpdatedDeveloperPrefix = "DeveloperFolder_";
     public const string FolderContentsUpdatedOwnerPrefix = "OwnerFolder_";
 

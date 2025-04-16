@@ -698,6 +698,18 @@ public class NotificationsHub : Hub<INotifications>
             return CheckFolderContentsAccess(user, GroupType.User, item);
         }
 
+        if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedPatronPrefix))
+        {
+            if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))
+                return false;
+
+            // Patreon level is not a real level, so we need this special check here
+            if (!RequireGroup(GroupType.PatreonSupporter, user) && !RequireAccessLevel(GroupType.Developer, user))
+                return false;
+
+            return CheckFolderContentsAccess(user, GroupType.User, item);
+        }
+
         if (groupName.StartsWith(NotificationGroups.FolderContentsUpdatedDeveloperPrefix))
         {
             if (!GetTargetFolderFromGroup(groupName, database.StorageItems, out var item))

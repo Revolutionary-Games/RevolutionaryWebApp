@@ -415,6 +415,15 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 }, NotificationGroups.FolderContentsUpdatedUserPrefix + parent);
 
                 break;
+
+            case FileAccess.Patron:
+                yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
+                {
+                    Type = type,
+                    Item = info,
+                }, NotificationGroups.FolderContentsUpdatedPatronPrefix + parent);
+
+                break;
             case FileAccess.Developer:
                 yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
