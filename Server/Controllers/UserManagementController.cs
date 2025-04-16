@@ -308,6 +308,8 @@ public class UserManagementController : Controller
         if (user.Suspended)
             return BadRequest("User already suspended");
 
+        request.SuspendedUntil = request.SuspendedUntil.ToUniversalTime();
+
         var earliestUnsuspendTime = DateTime.UtcNow + TimeSpan.FromMinutes(60);
 
         if (request.SuspendedUntil < earliestUnsuspendTime)
