@@ -54,6 +54,11 @@ public class UserGroupController(ILogger<UserGroupController> logger, Notificati
     public async Task<ActionResult<List<UserGroupInfo>>> AddGroup([Required] long id, [Required] int groupId)
     {
         var convertedId = (GroupType)groupId;
+
+        // Disallow groups not managed through this
+        if (convertedId <= GroupType.SystemOnly)
+            return BadRequest("Cannot add system-assigned groups");
+
         var group = await database.UserGroups.FirstOrDefaultAsync(g => g.Id == convertedId);
 
         if (group == null)
@@ -94,6 +99,11 @@ public class UserGroupController(ILogger<UserGroupController> logger, Notificati
     public async Task<ActionResult<List<UserGroupInfo>>> RemoveGroup([Required] long id, [Required] int groupId)
     {
         var convertedId = (GroupType)groupId;
+
+        // Disallow groups not managed through this
+        if (convertedId <= GroupType.SystemOnly)
+            return BadRequest("Cannot remove system-assigned groups");
+
         var user = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
