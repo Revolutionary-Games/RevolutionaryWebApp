@@ -126,7 +126,7 @@ public static class NotificationGroups
     public const string PageListUpdated = "Pages";
     public const string PageUpdatedPrefix = "SPage_";
     public const string PostListUpdated = "Posts";
-    public const string PostUpdatedPrefix = "SPage_";
+    public const string PostUpdatedPrefix = "SPost_";
     public const string WikiPageListUpdated = "WikiPages";
     public const string WikiPageUpdatedPrefix = "SWikiPages_";
     public const string PageTemplateListUpdated = "PTemplates";
