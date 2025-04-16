@@ -201,6 +201,7 @@ public class MediaFolderController : Controller
             ContentReadAccess = request.ContentReadAccess,
             ContentWriteAccess = request.ContentWriteAccess,
             FolderModifyAccess = request.FolderModifyAccess,
+            SubFolderModifyAccess = request.SubFolderModifyAccess,
             OwnedById = user.Id,
         };
 
