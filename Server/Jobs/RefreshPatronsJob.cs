@@ -15,22 +15,10 @@ using Utilities;
 ///   Refreshes all patron info and queues the group apply job
 /// </summary>
 [DisableConcurrentExecution(1200)]
-public class RefreshPatronsJob : IJob
+public class RefreshPatronsJob(ILogger<RefreshPatronsJob> logger, NotificationsEnabledDb database,
+    IBackgroundJobClient jobClient)
+    : IJob
 {
-    private readonly ILogger<RefreshPatronsJob> logger;
-    private readonly NotificationsEnabledDb database;
-    private readonly IBackgroundJobClient jobClient;
-
-    public RefreshPatronsJob(
-        ILogger<RefreshPatronsJob> logger,
-        NotificationsEnabledDb database,
-        IBackgroundJobClient jobClient)
-    {
-        this.logger = logger;
-        this.database = database;
-        this.jobClient = jobClient;
-    }
-
     public async Task Execute(CancellationToken cancellationToken)
     {
         // TODO: if we ever have more patrons (unlikely) than can be kept in memory, this needs a different
@@ -49,12 +37,8 @@ public class RefreshPatronsJob : IJob
 
             foreach (var actualPatron in await api.GetPatrons(settings, cancellationToken))
             {
-                await PatreonGroupHandler.HandlePatreonPledgeObject(
-                    actualPatron.Pledge,
-                    actualPatron.User,
-                    actualPatron.Reward?.Id,
-                    database,
-                    jobClient);
+                await PatreonGroupHandler.HandlePatreonPledgeObject(actualPatron.Pledge,
+                    actualPatron.User, actualPatron.Reward?.Id, database, jobClient);
 
                 if (cancellationToken.IsCancellationRequested)
                     throw new TaskCanceledException();
@@ -65,8 +49,7 @@ public class RefreshPatronsJob : IJob
 
         foreach (var toDelete in patrons.Where(p => p.Marked == false))
         {
-            await database.LogEntries.AddAsync(
-                new LogEntry(
+            await database.LogEntries.AddAsync(new LogEntry(
                     $"Destroying patron ({toDelete.Id}) because it is unmarked " +
                     "(wasn't found from fresh data from Patreon)"),
                 cancellationToken);
@@ -74,9 +57,9 @@ public class RefreshPatronsJob : IJob
             logger.LogInformation("Deleted unmarked Patron {Id}", toDelete.Id);
             database.Patrons.Remove(toDelete);
 
-            // The webhook notification should already queue an SSO suspend check, this whole refresh thing is just
-            // a safety measure in case we miss a webhook, so it is not absolutely necessary for us to queue an SSO
-            // check for the email here
+            // The webhook notification should already queue a user group check, this whole refresh thing is just
+            // a safety measure in case we miss a webhook, so it is not absolutely necessary to queue a check here.
+            // There is CheckAllUserAutomaticGroups as a fallback as well.
         }
 
         await database.SaveChangesAsync(cancellationToken);

@@ -153,8 +153,8 @@ public class PatreonWebhookController : Controller
                 if (patron != null)
                 {
                     database.Patrons.Remove(patron);
-                    jobClient.Schedule<CheckSSOUserSuspensionJob>(x => x.Execute(email, CancellationToken.None),
-                        TimeSpan.FromSeconds(15));
+                    jobClient.Schedule<ApplyUserAutomaticGroupsJob>(x => x.Execute(email, CancellationToken.None),
+                        TimeSpan.FromSeconds(30));
                 }
                 else
                 {

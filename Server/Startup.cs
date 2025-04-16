@@ -567,7 +567,6 @@ public class Startup
     private void SetupDefaultJobs(IConfigurationSection configurationSection)
     {
         AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
-        AddJobHelper<CheckAllSSOUsersJob>(configurationSection["CheckAllSSOUsers"]);
         AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
         AddJobHelper<RefreshLFSProjectFileTreesJob>(configurationSection["RefreshLFSFileTrees"]);
         AddJobHelper<RefreshLFSObjectStatisticsJob>(configurationSection["RefreshLFSObjectStatistics"]);
@@ -597,6 +596,8 @@ public class Startup
         AddJobHelper<DeleteOldCIJobOutputJob>(configurationSection["DeleteOldCIJobOutput"]);
         AddJobHelper<DeleteOldCIBuildsJob>(configurationSection["DeleteOldCIBuilds"]);
         AddJobHelper<CleanOldPrecompiledObjectVersionsJob>(configurationSection["CleanOldPrecompiledObjectVersions"]);
+        AddJobHelper<ClearPassedSuspensionTimes>(configurationSection["ClearPassedSuspensionTimes"]);
+        AddJobHelper<CheckAllUserAutomaticGroups>(configurationSection["CheckAllUserAutomaticGroups"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

@@ -76,6 +76,14 @@ public static class PatreonGroupHandler
                     Marked = true,
                 });
 
+                // Queue user group apply if there's an account
+                // TODO: email aliases
+                if (await database.Users.AnyAsync(u => u.Email == email))
+                {
+                    jobClient.Schedule<ApplyUserAutomaticGroupsJob>(x => x.Execute(email, CancellationToken.None),
+                        TimeSpan.FromSeconds(90));
+                }
+
                 return true;
             }
 
@@ -85,7 +93,7 @@ public static class PatreonGroupHandler
         patron.Marked = true;
 
         bool changes = false;
-        bool reapplySuspension = false;
+        bool reApplyGroups = false;
 
         if (declined)
         {
@@ -96,7 +104,7 @@ public static class PatreonGroupHandler
 
                 patron.Suspended = true;
                 patron.SuspendedReason = "Payment failed on Patreon";
-                reapplySuspension = true;
+                reApplyGroups = true;
 
                 changes = true;
             }
@@ -110,7 +118,7 @@ public static class PatreonGroupHandler
             patron.PledgeAmountCents = pledgeCents;
             patron.Username = username;
             patron.Suspended = false;
-            reapplySuspension = true;
+            reApplyGroups = true;
 
             changes = true;
         }
@@ -120,16 +128,17 @@ public static class PatreonGroupHandler
                 new LogEntry($"A patron ({patron.Id}) is no longer declined on Patreon's side"));
 
             patron.Suspended = false;
-            reapplySuspension = true;
+            reApplyGroups = true;
 
             changes = true;
         }
 
-        if (reapplySuspension)
+        if (reApplyGroups)
         {
             // Need to wait for this job as the changes aren't saved immediately
-            jobClient.Schedule<CheckSSOUserSuspensionJob>(x => x.Execute(patron.Email, CancellationToken.None),
-                TimeSpan.FromSeconds(60));
+            // TODO: email aliases
+            jobClient.Schedule<ApplyUserAutomaticGroupsJob>(x => x.Execute(patron.Email, CancellationToken.None),
+                TimeSpan.FromSeconds(90));
         }
 
         return changes;
