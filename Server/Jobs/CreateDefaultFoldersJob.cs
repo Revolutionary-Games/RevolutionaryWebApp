@@ -40,7 +40,7 @@ public class CreateDefaultFoldersJob : IJob
                 true, cancellationToken),
         };
 
-        var builds = await CreateDefaultFolder(DevBuildFolderName, null, FileAccess.User, FileAccess.Nobody, true,
+        var builds = await CreateDefaultFolder(DevBuildFolderName, null, FileAccess.Patron, FileAccess.Nobody, true,
             cancellationToken);
 
         itemsToRecompute.Add(builds);
@@ -54,9 +54,9 @@ public class CreateDefaultFoldersJob : IJob
                 throw new NullReferenceException("devbuilds folder failed to be retrieved");
         }
 
-        itemsToRecompute.Add(await CreateDefaultFolder("Objects", builds, FileAccess.User, FileAccess.Nobody, true,
+        itemsToRecompute.Add(await CreateDefaultFolder("Objects", builds, FileAccess.Patron, FileAccess.Nobody, true,
             cancellationToken));
-        itemsToRecompute.Add(await CreateDefaultFolder("Dehydrated", builds, FileAccess.User, FileAccess.Nobody, true,
+        itemsToRecompute.Add(await CreateDefaultFolder("Dehydrated", builds, FileAccess.Patron, FileAccess.Nobody, true,
             cancellationToken));
 
         itemsToRecompute.Add(await CreateDefaultFolder("Public", null, FileAccess.Public, FileAccess.Developer, false,
