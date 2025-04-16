@@ -32,8 +32,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                 values: new object[] { 14, new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672), "Inbuilt group, cannot be modified", new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672) });
 
             // Special value migration for FileAccess
-            migrationBuilder.Sql("UPDATE storage_items SET read_access = read_access + 1 WHERE read_access > 2;");
-            migrationBuilder.Sql("UPDATE storage_items SET write_access = write_access + 1 WHERE write_access > 2;");
+            migrationBuilder.Sql("UPDATE storage_items SET read_access = read_access + 1 WHERE read_access > 1;");
+            migrationBuilder.Sql("UPDATE storage_items SET write_access = write_access + 1 WHERE write_access > 1;");
         }
 
         /// <inheritdoc />
