@@ -361,6 +361,93 @@ public sealed class LoginControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task LoginController_PatreonLoginCreatesAccount()
+    {
+        string? seenSessionId = null;
+        var cookiesMock = Substitute.For<IResponseCookies>();
+        cookiesMock.When(cookies =>
+                cookies.Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>()))
+            .Do(x => { seenSessionId = x.ArgAt<string>(1).Split(':')[0]; });
+
+        SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
+            out var patreonMock, out var requestCookiesMock, out var httpContextMock);
+
+        var configuration = CreateConfiguration(false, true);
+
+        await using var database =
+            CreateMemoryDatabase(nameof(LoginController_PatreonLoginCreatesAccount), notificationsMock);
+
+        await SeedPatronData(database);
+
+        Assert.Null(await database.Users.FirstOrDefaultAsync(u => u.Email == PatronEmail));
+
+        var controller = new LoginController(logger, database, configuration, csrfMock,
+            new RedirectVerifier(configuration), patreonMock, jobClientMock);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock,
+        };
+
+        // Perform start login request
+        var result = await controller.StartSsoLogin(new SsoStartFormData
+        {
+            SsoType = LoginController.SsoTypePatreon,
+            CSRF = CSRFValue,
+        });
+
+        var redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
+
+        Assert.False(redirectResult.Permanent);
+        Assert.StartsWith(DummyPatreonLogin, redirectResult.Url);
+        IReadOnlyDictionary<string, string> data = QueryHelpers.ParseQuery(redirectResult.Url).SelectFirstStringValue();
+        Assert.Contains("state", data);
+
+        Assert.NotNull(seenSessionId);
+        var session = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+
+        Assert.NotNull(session);
+        Assert.Null(session.User);
+
+        Assert.Equal(LoginController.SsoTypePatreon, session.StartedSsoLogin);
+        Assert.NotNull(session.SsoNonce);
+
+        // Perform return request
+        requestCookiesMock.TryGetValue(AppInfo.SessionCookieName, out Arg.Any<string>()!)
+            .Returns(x =>
+            {
+                x[1] = seenSessionId + ":-1";
+                return true;
+            });
+
+        result = await controller.SsoReturnPatreon(data["state"], PatreonReturnCode, null);
+
+        redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
+
+        Assert.False(redirectResult.Permanent);
+        Assert.Equal("/", redirectResult.Url);
+
+        var newSession = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+
+        Assert.NotNull(newSession);
+
+        Assert.Null(newSession.StartedSsoLogin);
+        Assert.Null(newSession.SsoNonce);
+
+        var user = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Email == PatronEmail);
+
+        Assert.NotNull(user);
+        Assert.False(user.Suspended);
+        Assert.Contains(user.Groups, g => g.Id == GroupType.PatreonSupporter);
+
+        Assert.Equal(user, newSession.User);
+
+        VerifyPatreonCalls(patreonMock);
+    }
+
+    [Fact]
     public async Task LoginController_AutoUnsuspendDoesNotOverrideManualSuspension()
     {
         // Note that log in no longer auto unsuspends, so this test shouldn't be able to detect anything any more...
@@ -555,9 +642,6 @@ public sealed class LoginControllerTests : IDisposable
 
         var database = new NotificationsEnabledDb(dbOptions, notificationSender);
 
-        database.UserGroups.Add(new UserGroup(GroupType.PatreonSupporter, "Patreon Supporter"));
-        database.SaveChanges();
-
         return database;
     }
 
@@ -581,6 +665,8 @@ public sealed class LoginControllerTests : IDisposable
             VipRewardId = "4567",
             CreatorToken = "Creator-0101",
         });
+
+        await database.UserGroups.AddAsync(new UserGroup(GroupType.PatreonSupporter, "Patreon Supporter"));
 
         await database.SaveChangesAsync();
     }
