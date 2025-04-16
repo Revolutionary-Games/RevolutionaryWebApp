@@ -39,6 +39,11 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
         }
     }
 
+    /// <summary>
+    ///   A group (not access level!) that also allows access if the user is missing the primary one
+    /// </summary>
+    public GroupType AllowFallbackGroup { get; set; } = GroupType.NotLoggedIn;
+
     /// <inheritdoc cref="AuthorizeBasicAccessLevelFilterAttribute.RequiredRestriction"/>
     public string? RequiredRestriction
     {
@@ -84,6 +89,13 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
 
                 if (AllowDevelopers &&
                     context.HttpContext.HasAuthenticatedUserWithAccessLevelExtended(GroupType.Developer,
+                        requiredRestriction) == HttpContextAuthorizationExtensions.AuthenticationResult.Success)
+                {
+                    break;
+                }
+
+                if (AllowFallbackGroup > GroupType.SystemOnly &&
+                    context.HttpContext.HasAuthenticatedUserWithGroupExtended(AllowFallbackGroup,
                         requiredRestriction) == HttpContextAuthorizationExtensions.AuthenticationResult.Success)
                 {
                     break;

@@ -7,8 +7,10 @@ using Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Services;
+using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
+using Utilities;
 
 [Route("livePreview")]
 public class LivePreviewController : Controller
@@ -23,7 +25,8 @@ public class LivePreviewController : Controller
     }
 
     [HttpGet]
-    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true)]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SitePageEditor, AllowAdmin = true,
+        AllowFallbackGroup = GroupType.PostEditor)]
     public async Task<IActionResult> Get([Required] long pageId)
     {
         var timer = new Stopwatch();
@@ -40,6 +43,18 @@ public class LivePreviewController : Controller
         {
             return BadRequest("Type of page is not compatible with this preview");
         }
+
+        var groups = HttpContext.AuthenticatedUserOrThrow().AccessCachedGroupsOrThrow();
+
+        if (page.Visibility == PageVisibility.VisibleToDevelopers)
+        {
+            if (!groups.HasAccessLevel(GroupType.Developer))
+            {
+                return this.WorkingForbid("Only developers can view pages with this visibility");
+            }
+        }
+
+        // TODO: should this check more in detail with the page permissions?
 
         var parts = await LiveController.GetSiteLayoutParts(database, page.Type);
 
