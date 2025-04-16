@@ -46,7 +46,8 @@
                 </NavLink>
             </li>
         </AccessLimited>
-        <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredAccess="GroupType.Developer" OrHasOverride="GroupType.PostEditor"
+                       AutoRedirectIfNotLoggedIn="@false">
             <li class="nav-item px-3">
                 <NavLink id="leftPostsButton" class="nav-link" href="posts">
                     <i class="fa-solid fa-newspaper nav-icon"></i> Website Posts

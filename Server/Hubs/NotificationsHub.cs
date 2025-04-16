@@ -801,7 +801,7 @@ public class NotificationsHub : Hub<INotifications>
             if (RequireAccessLevel(GroupType.Developer, user))
                 return true;
 
-            return RequireGroup(GroupType.PostPublisher, user);
+            return RequireGroup(GroupType.PostPublisher, user) || RequireGroup(GroupType.PostEditor, user);
         }
 
         if (groupName == NotificationGroups.PageTemplateListUpdated ||

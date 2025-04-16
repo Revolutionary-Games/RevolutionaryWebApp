@@ -23,7 +23,7 @@ public class UpdateUserGroupCacheJob
 
     public async Task Execute(long userId, CancellationToken cancellationToken)
     {
-        var targetUser = await database.Users.FindAsync(userId);
+        var targetUser = await database.Users.FindAsync([userId], cancellationToken);
 
         if (targetUser == null)
         {
