@@ -54,7 +54,8 @@ public class LivePreviewController : Controller
             }
         }
 
-        // TODO: should this check more in detail with the page permissions?
+        // TODO: should this check more in detail with the page permissions? This now allows cross-reading posts and
+        // pages for users that have just single one of those edit permissions
 
         var parts = await LiveController.GetSiteLayoutParts(database, page.Type);
 
