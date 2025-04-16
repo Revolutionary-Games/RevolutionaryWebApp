@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.ServiceModel.Syndication;
 using System.Text;
@@ -71,6 +72,13 @@ public class PostFeedController : Controller
             await xmlWriter.FlushAsync();
         }
 
+        // Try setting an extra cache control header, though with OutputCache this seems to not have an effect
+        HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
+        {
+            MaxAge = TimeSpan.FromMinutes(15),
+            Public = true,
+        }.ToString();
+
         return File(stream.ToArray(), "application/rss+xml; charset=utf-8");
     }
 
@@ -97,6 +105,12 @@ public class PostFeedController : Controller
             rssFormatter.WriteTo(xmlWriter);
             await xmlWriter.FlushAsync();
         }
+
+        HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
+        {
+            MaxAge = TimeSpan.FromMinutes(15),
+            Public = true,
+        }.ToString();
 
         return File(stream.ToArray(), "application/atom+xml; charset=utf-8");
     }
