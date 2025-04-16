@@ -153,7 +153,7 @@ public class LauncherLinksController : Controller
     }
 
     [HttpPost]
-    [AuthorizeBasicAccessLevelFilter]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.PatreonSupporter, AllowDevelopers = true)]
     public async Task<IActionResult> CreateLinkCode()
     {
         var user = HttpContext.AuthenticatedUserOrThrow();

@@ -11,6 +11,7 @@ using Models;
 using Services;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using Utilities;
 
 public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
@@ -32,7 +33,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
         if (result != AuthMethodResult.Nothing)
             return result != AuthMethodResult.Error;
 
-        // Or in Authorization header
+        // Or in the Authorization header
         result = await CheckAuthorizationHeader(context);
         if (result != AuthMethodResult.Nothing)
             return result != AuthMethodResult.Error;
@@ -79,7 +80,8 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
             if (user != null && user.Suspended != true)
             {
-                // When using tokens we can't cache the groups list in the session object so we need to load them here
+                // When using tokens, we can't cache the group list in the session object, so we need to load them here
+                // TODO: caching for this?
                 await user.ComputeUserGroups(database);
 
                 OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, null);
@@ -114,7 +116,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
             if (!tokenValue.Contains(' ') && tokenValue.Length < AppInfo.MaxTokenLength)
             {
-                // In another format (only check launcher link if no spaces, as that might be basic authentication
+                // In another format (only check the launcher link if no spaces, as that might be basic authentication
                 // (handled separately in the LFS authentication middleware)
                 return await CheckLauncherLink(context, tokenValue);
             }
@@ -192,23 +194,18 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
             return AuthMethodResult.Error;
         }
 
-        // TODO: this should probably be removed? or not used just here
+        // TODO: this should probably be removed? or not used just here (as this should never happen)
         if (context.Connection.RemoteIpAddress == null)
         {
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(
-                new BasicJSONErrorResult("Internal server error",
-                        "Internal server error when getting remote address")
-                    .ToString());
+            await context.Response.WriteAsync(new BasicJSONErrorResult("Internal server error",
+                    "Internal server error when getting remote address")
+                .ToString());
             return AuthMethodResult.Error;
         }
 
-        // As total API calls is updated anyway, the last connection and last IP are updated at the same time
-        link.LastConnection = DateTime.UtcNow;
-        link.LastIp = context.Connection.RemoteIpAddress.ToString();
-        link.TotalApiCalls += 1;
-
         var groups = link.CachedUserGroups;
+        bool needsSave = false;
 
         if (groups == null)
         {
@@ -216,11 +213,36 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
             // sessions where the opposite design is used)
             await link.User.ComputeUserGroups(database);
             link.CachedUserGroups = link.User.AccessCachedGroupsOrThrow();
+            groups = link.CachedUserGroups;
+            needsSave = true;
         }
         else
         {
             link.User.SetGroupsFromLauncherLinkCache(groups);
         }
+
+        // Ensure the user still has access to launcher linking
+        if (!groups.HasAccessLevel(GroupType.Developer) && !groups.HasGroup(GroupType.PatreonSupporter))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(new BasicJSONErrorResult("No launcher access",
+                    "Your account does not have launcher access to the DevCenter")
+                .ToString());
+
+            if (needsSave)
+            {
+                // Save the computed groups to the database
+                await database.SaveChangesAsync();
+            }
+
+            return AuthMethodResult.Error;
+        }
+
+        // As total API calls are updated anyway, the last connection and last IP are updated at the same time
+        link.LastConnection = DateTime.UtcNow;
+        link.LastIp = context.Connection.RemoteIpAddress.ToString();
+        link.TotalApiCalls += 1;
 
         // TODO: maybe run this part in a task (to block the authentication for less time)
         await database.SaveChangesAsync();

@@ -360,12 +360,14 @@ public class LauncherController : Controller
 
         await user.ComputeUserGroups(database);
 
-        if (!user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.User))
+        var groups = user.AccessCachedGroupsOrThrow();
+
+        if (!groups.HasAccessLevel(GroupType.Developer) && !groups.HasGroup(GroupType.PatreonSupporter))
         {
             throw new HttpResponseException
             {
                 Status = StatusCodes.Status403Forbidden,
-                Value = new BasicJSONErrorResult("Restricted account",
+                Value = new BasicJSONErrorResult("Missing launcher access",
                     "Your account is not allowed to create launcher links"),
             };
         }

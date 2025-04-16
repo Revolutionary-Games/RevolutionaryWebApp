@@ -93,7 +93,7 @@
                                     <select class="form-select ms-1" value="@item.Priority"
                                             @onchange="async args => await UpdatePriority(item, args)">
                                         @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
-                                                      (AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority) + 1))
+                                                      AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
                                         {
                                             <option value="@value">@value</option>
                                         }

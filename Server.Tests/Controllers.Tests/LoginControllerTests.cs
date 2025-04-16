@@ -150,8 +150,7 @@ public sealed class LoginControllerTests : IDisposable
         {
             Local = true,
             UserName = "test",
-            Suspended = false,
-            PasswordHash = Passwords.CreateSaltedPasswordHash(password, new byte[] { 55, 12, 55, 50 }),
+            PasswordHash = Passwords.CreateSaltedPasswordHash(password, [55, 12, 55, 50]),
         };
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
@@ -215,8 +214,8 @@ public sealed class LoginControllerTests : IDisposable
         var user = new User("test+login@example.com", "test")
         {
             Local = true,
-            Suspended = true,
-            PasswordHash = Passwords.CreateSaltedPasswordHash(password, new byte[] { 55, 12, 55, 50 }),
+            SuspendedUntil = DateTime.UtcNow + TimeSpan.FromDays(30),
+            PasswordHash = Passwords.CreateSaltedPasswordHash(password, [55, 12, 55, 50]),
         };
         user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         await database.Users.AddAsync(user);
@@ -273,7 +272,7 @@ public sealed class LoginControllerTests : IDisposable
         {
             Local = false,
             SsoSource = LoginController.SsoTypePatreon,
-            Suspended = true,
+            SuspendedUntil = DateTime.UtcNow + TimeSpan.FromDays(30),
             SuspendedManually = false,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
         };
@@ -383,7 +382,7 @@ public sealed class LoginControllerTests : IDisposable
         {
             Local = false,
             SsoSource = LoginController.SsoTypePatreon,
-            Suspended = true,
+            SuspendedUntil = DateTime.UtcNow + TimeSpan.FromDays(30),
             SuspendedManually = true,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
         };
@@ -467,7 +466,7 @@ public sealed class LoginControllerTests : IDisposable
         {
             Local = false,
             SsoSource = LoginController.SsoTypePatreon,
-            Suspended = userSuspended,
+            SuspendedUntil = DateTime.UtcNow + TimeSpan.FromDays(30),
             SuspendedManually = false,
             SuspendedReason = SSOSuspendHandler.LoginOptionNoLongerValidText,
         };

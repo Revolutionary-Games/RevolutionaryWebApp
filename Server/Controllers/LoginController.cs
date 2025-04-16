@@ -75,7 +75,7 @@ public class LoginController : SSOLoginController
     /// </summary>
     /// <param name="session">Session to give the cookie for</param>
     /// <param name="response">Response to put cookie in</param>
-    /// <param name="useSecureCookies">If true the cookie is marked to only be passed with HTTPS</param>
+    /// <param name="useSecureCookies">If true, the cookie is marked to only be passed with HTTPS</param>
     [NonAction]
     public static void SetSessionCookie(Session session, HttpResponse response, bool useSecureCookies = true)
     {
@@ -603,7 +603,7 @@ public class LoginController : SSOLoginController
                 username = usernameRaw[0];
             }
 
-            var tuple = await HandleSsoLoginToAccount(session, email, username, ssoType, developer);
+            var tuple = await HandleSsoLoginToAccount(session, email, username, ssoType, developer, false);
             requireSave = !tuple.Saved;
             return tuple.Result;
         }
@@ -686,7 +686,7 @@ public class LoginController : SSOLoginController
             // TODO: alias handling
             // email = patron.EmailAlias ?? patron.Email;
 
-            var tuple = await HandleSsoLoginToAccount(session, email, patron.Username, SsoTypePatreon, false);
+            var tuple = await HandleSsoLoginToAccount(session, email, patron.Username, SsoTypePatreon, false, true);
             requireSave = !tuple.Saved;
             return tuple.Result;
         }
@@ -705,7 +705,7 @@ public class LoginController : SSOLoginController
 
     [NonAction]
     private async Task<(IActionResult Result, bool Saved)> HandleSsoLoginToAccount(Session session, string? email,
-        string? username, string ssoType, bool developerLogin)
+        string? username, string ssoType, bool developerLogin, bool patronLogin)
     {
         // Ensure whitespace is consistent
         email = email?.Trim();
@@ -726,6 +726,10 @@ public class LoginController : SSOLoginController
         var developerGroup = new Lazy<Task<UserGroup>>(async () =>
             await Database.UserGroups.FindAsync(GroupType.Developer) ??
             throw new Exception("Developer group not found"));
+
+        var patreonGroup = new Lazy<Task<UserGroup>>(async () =>
+            await Database.UserGroups.FindAsync(GroupType.PatreonSupporter) ??
+            throw new Exception("Patreon group not found"));
 
         if (user == null)
         {
@@ -748,12 +752,20 @@ public class LoginController : SSOLoginController
                 newUser.OnGroupsChanged(jobClient, true);
             }
 
+            if (patronLogin)
+            {
+                newUser.Groups.Add(await patreonGroup.Value);
+                newUser.OnGroupsChanged(jobClient, true);
+            }
+
             await Database.Users.AddAsync(newUser);
             Models.User.OnNewUserCreated(newUser, jobClient);
             user = newUser;
         }
         else if (user.Local)
         {
+            // TODO: implement better local flow to allow SSO logins to local accounts
+
             // TODO: allow (non-developers) to login using different sso
             // Maybe developers with 2fa should be allowed?
             return (Redirect(QueryHelpers.AddQueryString("/login", "error",
@@ -772,6 +784,22 @@ public class LoginController : SSOLoginController
                 return (Redirect(QueryHelpers.AddQueryString("/login", "error",
                         "Your account is a developer account. You need to login through the Development Forums.")),
                     false);
+            }
+
+            if (patronLogin)
+            {
+                // Add the Patreon group if missing
+                if (!user.AccessCachedGroupsOrThrow().HasGroup(GroupType.PatreonSupporter))
+                {
+                    user.Groups.Add(await patreonGroup.Value);
+                    user.OnGroupsChanged(jobClient, false);
+                    user.BumpUpdatedAt();
+
+                    await Database.LogEntries.AddAsync(new LogEntry("Added Patreon group to user due to SSO login")
+                    {
+                        TargetUser = user,
+                    });
+                }
             }
 
             // TODO: remove most of these account type changes
@@ -809,11 +837,8 @@ public class LoginController : SSOLoginController
 
         if (user.Suspended)
         {
-            if (!await CheckCanAutoUnsuspend(user))
-            {
-                Logger.LogInformation("Suspended user tried to login, SSO auto unsuspend not possible");
-                return (CreateSuspendedUserRedirect(user), false);
-            }
+            Logger.LogInformation("Suspended user tried to login");
+            return (CreateSuspendedUserRedirect(user), false);
         }
 
         // Change username from SSO login
@@ -844,33 +869,6 @@ public class LoginController : SSOLoginController
 
         var result = await FinishSsoLoginToAccount(user, session);
         return (result, true);
-    }
-
-    [NonAction]
-    private async Task<bool> CheckCanAutoUnsuspend(User user)
-    {
-        // Manually suspended users cannot auto-unsuspend
-        if (user.SuspendedManually)
-            return false;
-
-        if (user.SuspendedReason != null &&
-            user.SuspendedReason.Contains(SSOSuspendHandler.LoginOptionNoLongerValidText))
-        {
-            Logger.LogInformation("Auto un-suspending user as SSO login is about to succeed for {Email}",
-                user.Email);
-
-            user.Suspended = false;
-
-            await Database.LogEntries.AddAsync(new LogEntry("User unsuspended automatically due to SSO login success")
-            {
-                TargetUserId = user.Id,
-            });
-
-            // We rely on save happening later
-            return true;
-        }
-
-        return false;
     }
 
     [NonAction]
