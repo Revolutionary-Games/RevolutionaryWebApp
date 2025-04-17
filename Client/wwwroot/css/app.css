@@ -452,7 +452,9 @@ div.main-site-sidebar-item, .main-site.main-site-sidebar-item {
 }
 
 .main-site-sidebar-item img {
-    width: 100%;
+    /* Not using width here to avoid stretching items */
+    max-width: 100%;
+    margin-top: 5px;
 }
 
 .top-social-links {
