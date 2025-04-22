@@ -736,6 +736,9 @@ else
 
     private void PreventGapsInSelectedWeightedChoices(MeetingPollDTO poll, Dictionary<int, VoteData> voteData)
     {
+        // Parameter kept in case it is needed to be references
+        _ = poll;
+
         // Make sure the numbers have no gaps by redoing them
         int nextValue = 0;
 
