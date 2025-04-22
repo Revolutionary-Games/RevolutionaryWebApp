@@ -126,10 +126,10 @@ public class LauncherController : Controller
 
         database.LauncherLinks.Remove(link);
 
-        await database.LogEntries.AddAsync(
-            new LogEntry($"Launcher disconnected through the launcher API from: {remoteAddress}")
+        await database.ActionLogEntries.AddAsync(
+            new ActionLogEntry($"Launcher disconnected through the launcher API from: {remoteAddress}")
             {
-                TargetUserId = user.Id,
+                PerformedById = user.Id,
             });
 
         await database.SaveChangesAsync();
