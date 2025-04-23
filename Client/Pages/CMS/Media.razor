@@ -736,6 +736,10 @@
                 newFolderWriteAccess = parsedFolderInfo.ContentWriteAccess;
                 newFolderModifyAccess = parsedFolderInfo.FolderModifyAccess;
                 newFolderSubFolderAccess = parsedFolderInfo.SubFolderModifyAccess;
+
+                // Don't make system folders
+                if (newFolderModifyAccess == GroupType.SystemOnly)
+                    newFolderModifyAccess = GroupType.Admin;
             }
             else
             {
