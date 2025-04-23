@@ -195,6 +195,9 @@ public class MediaFolderController : Controller
             return BadRequest("Can't give access to not logged in group");
         }
 
+        if (request.FolderModifyAccess == GroupType.SystemOnly)
+            return BadRequest("Cannot create a folder only modifiable by system");
+
         var newFolder = new MediaFolder(request.Name)
         {
             ParentFolder = folder,
@@ -323,6 +326,9 @@ public class MediaFolderController : Controller
 
         if (!user.AccessCachedGroupsOrThrow().HasGroup(folder.FolderModifyAccess))
             return this.WorkingForbid("You lack permission to delete this folder");
+
+        if (folder.FolderModifyAccess == GroupType.SystemOnly)
+            return BadRequest("Cannot request deletion of system folder");
 
         if (delayedDelete)
         {
