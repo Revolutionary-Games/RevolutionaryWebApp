@@ -198,6 +198,10 @@ public class MediaFolderController : Controller
         if (request.FolderModifyAccess == GroupType.SystemOnly)
             return BadRequest("Cannot create a folder only modifiable by system");
 
+        // Other than this being system only are kind of fine as an admin can fix the mistake, so only this is checked
+        if (request.ContentReadAccess == GroupType.SystemOnly)
+            return BadRequest("Cannot create a folder only readable by system");
+
         var newFolder = new MediaFolder(request.Name)
         {
             ParentFolder = folder,
