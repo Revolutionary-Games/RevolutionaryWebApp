@@ -98,7 +98,7 @@ public class MeetingsController : Controller
         if (await GetMeetingMember(meeting.Id, user.Id) != null)
             return BadRequest("You have already joined this meeting");
 
-        // Don't allow if already started and grace period is over
+        // Don't allow if already started and the grace period is over
         if (DateTime.UtcNow > meeting.StartsAt + meeting.JoinGracePeriod)
         {
             return BadRequest("You are too late to join this meeting");

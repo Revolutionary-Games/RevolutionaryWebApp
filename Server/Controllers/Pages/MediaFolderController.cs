@@ -38,7 +38,7 @@ public class MediaFolderController : Controller
     }
 
     /// <summary>
-    ///   Lists subfolders. Always returns all results as that makes things a lot simpler in terms of permission
+    ///   List subfolders. Always returns all results as that makes things a lot simpler in terms of permission
     ///   checks.
     /// </summary>
     /// <returns>Full list of subfolders, or an error result</returns>
@@ -107,7 +107,7 @@ public class MediaFolderController : Controller
         var userId = user?.Id;
         var groups = user?.AccessCachedGroupsOrThrow();
 
-        // Apply filtering, due to it being complex it sadly needs to be performed on the client side instead of the DB
+        // Apply filtering, due to it being complex, it sadly needs to be performed on the client side instead of the DB
         query = query.AsEnumerable().Where(f =>
             f.UploadedById == userId || f.LastModifiedById == userId || (groups != null &&
                 (groups.HasGroup(f.MetadataVisibility) || groups.HasGroup(f.ModifyAccess) ||
@@ -253,11 +253,28 @@ public class MediaFolderController : Controller
         if (!hasAccess || folder == null)
             return NotFound("Not found or you don't have access to the folder");
 
+        request.OwnedById ??= folder.OwnedById;
+
         var user = HttpContext.AuthenticatedUserOrThrow();
         var userGroups = user.AccessCachedGroupsOrThrow();
 
         if (!userGroups.HasGroup(folder.FolderModifyAccess) && !userGroups.HasGroup(GroupType.Admin))
             return this.WorkingForbid("You lack permission to edit this folder");
+
+        // System folder handling
+        if (folder.FolderModifyAccess == GroupType.SystemOnly)
+            return BadRequest("Cannot edit system folders");
+
+        if (request.FolderModifyAccess == GroupType.SystemOnly)
+            return BadRequest("Cannot turn folders into system folders");
+
+        if (request.OwnedById != folder.OwnedById)
+        {
+            // Changing ownership
+            // For now only allow admins to do this
+            if (!userGroups.HasAccessLevel(GroupType.Admin))
+                return this.WorkingForbid("Only admins can change ownership of media folders");
+        }
 
         if (request.Name != folder.Name)
         {

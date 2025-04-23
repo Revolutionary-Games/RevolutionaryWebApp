@@ -1,0 +1,156 @@
+@inject HttpClient Http
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Models.Pages
+
+@if (showForm)
+{
+    <EditForm EditContext="@editContext" OnValidSubmit="@Save">
+        <DataAnnotationsValidator/>
+
+        <div class="row">
+            <div class="mb-3 col-md-12">
+                <label class="form-label" for="@($"editName-{Data.Id}")">Folder Name</label>
+                <CustomInputText class="form-control" id="@($"editName-{Data.Id}")"
+                                 @bind-Value="editedData!.Name" placeholder="Folder name"
+                                 DisplayName="Folder Name"/>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="mb-3 col-md-3">
+                <label class="form-label" for="@($"editReadAccess-{Data.Id}")">Read Access</label>
+                <InputSelect class="form-select" id="@($"editReadAccess-{Data.Id}")"
+                             @bind-Value="editedData!.ContentReadAccess">
+                    @foreach (var name in GroupTypeExtensions.GetValidGroupTypes())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3 col-md-3">
+                <label class="form-label" for="@($"editWriteAccess-{Data.Id}")">Content Access</label>
+                <InputSelect class="form-select" id="@($"editWriteAccess-{Data.Id}")"
+                             @bind-Value="editedData!.ContentWriteAccess">
+                    @foreach (var name in GroupTypeExtensions.GetValidGroupTypes())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3 col-md-3">
+                <label class="form-label" for="@($"editSubFolderAccess-{Data.Id}")">Subfolder Modify Access</label>
+                <InputSelect class="form-select" id="@($"editSubFolderAccess-{Data.Id}")"
+                             @bind-Value="editedData!.SubFolderModifyAccess">
+                    @foreach (var name in GroupTypeExtensions.GetValidGroupTypes())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3 col-md-3">
+                <label class="form-label" for="@($"editModifyAccess-{Data.Id}")">Folder Modify Access</label>
+                <InputSelect class="form-select" id="@($"editModifyAccess-{Data.Id}")"
+                             @bind-Value="editedData!.FolderModifyAccess">
+                    @foreach (var name in GroupTypeExtensions.GetValidGroupTypes())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+
+        <ValidationSummary/>
+
+        <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"/>
+        <Button class="my-1 me-1" Enabled="@(!processing)" type="submit" Spinner="@processing"
+                ButtonStyle="primary">
+            Save
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="@Cancel">
+            Cancel
+        </Button>
+    </EditForm>
+}
+else
+{
+    <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@HideStatusMessage"/>
+
+    <Button Enabled="@true" ButtonStyle="secondary" OnPressed="@ShowForm">Edit</Button>
+}
+
+@code {
+
+    private bool showForm;
+    private bool processing;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+
+    private EditContext editContext = null!;
+
+    private MediaFolderDTO? editedData;
+
+    [Parameter]
+    [EditorRequired]
+    public MediaFolderDTO Data { get; set; } = null!;
+
+    private void ShowForm()
+    {
+        editedData = Data.Clone();
+
+        statusMessage = null;
+        showForm = true;
+
+        editContext = new EditContext(editedData);
+    }
+
+    private void Cancel()
+    {
+        showForm = false;
+    }
+
+    private void HideStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private async Task Save()
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PutAsJsonAsync($"api/v1/MediaFolder/folders/{Data.Id}", editedData!);
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Changes saved";
+            statusMessageType = SiteNoticeType.Primary;
+            showForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

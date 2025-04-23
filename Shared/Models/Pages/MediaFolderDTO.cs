@@ -21,4 +21,23 @@ public class MediaFolderDTO : ClientSideTimedModel
     public long? LastModifiedById { get; set; }
 
     public bool DeleteIfEmpty { get; set; }
+
+    public MediaFolderDTO Clone()
+    {
+        return new MediaFolderDTO
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Name = Name,
+            ParentFolderId = ParentFolderId,
+            ContentWriteAccess = ContentWriteAccess,
+            ContentReadAccess = ContentReadAccess,
+            SubFolderModifyAccess = SubFolderModifyAccess,
+            FolderModifyAccess = FolderModifyAccess,
+            OwnedById = OwnedById,
+            LastModifiedById = LastModifiedById,
+            DeleteIfEmpty = DeleteIfEmpty,
+        };
+    }
 }
