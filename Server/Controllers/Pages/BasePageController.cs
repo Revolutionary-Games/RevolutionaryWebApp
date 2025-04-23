@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -184,7 +185,7 @@ public abstract class BasePageController : Controller
     /// </summary>
     /// <param name="id">Page to edit</param>
     /// <param name="pageDTO">Updated data</param>
-    /// <returns>Action result indicating success</returns>
+    /// <returns>Action result indicating success (returns new page version as string)</returns>
     [HttpPut("{id:long}")]
     public virtual async Task<ActionResult> UpdatePage([Required] long id,
         [Required] [FromBody] VersionedPageDTO pageDTO)
@@ -252,10 +253,12 @@ public abstract class BasePageController : Controller
 
         var user = HttpContext.AuthenticatedUserOrThrow();
 
+        // This is always fetched as that allows more easily returning the latest page version number
+        int version = await page.GetCurrentVersion(Database);
+
         if (pageDTO.LatestContent != page.LatestContent)
         {
             // Updating page content
-            int version = await page.GetCurrentVersion(Database);
 
             if (version != pageDTO.VersionNumber)
             {
@@ -341,7 +344,11 @@ public abstract class BasePageController : Controller
                 TimeSpan.FromSeconds(65));
         }
 
-        return Ok();
+        // Return the resulting version number so that the client can stay in-sync on the times the version doesn't
+        // increment (for example, on first save)
+        // This should not be necessary:
+        // await page.GetCurrentVersion(Database)).ToString();
+        return Ok(version.ToString(CultureInfo.InvariantCulture));
     }
 
     [HttpDelete("{id:long}")]

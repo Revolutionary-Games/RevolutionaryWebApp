@@ -251,7 +251,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         // TODO: edit comment setting
         dataToSend.LastEditComment = null;
 
-        // When content has been edited, we expect the version number to increase, this allows multiple edits in a
+        // When content has been edited, we expect the version number to increase; this allows multiple edits in a
         // row
         int nextVersionNumber = dataToSend.VersionNumber;
         if (dataToSend.LatestContent != Data.LatestContent)
@@ -280,12 +280,11 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
             return;
         }
 
+        var content = await result.Content.ReadAsStringAsync();
         processingSave = false;
 
         if (!result.IsSuccessStatusCode)
         {
-            var content = await result.Content.ReadAsStringAsync();
-
             saveMessage = $"Error saving. If there is a version conflict please open a new tab and copy your changes " +
                 $"there before attempting saving again. server responded with: {content}, {result.StatusCode}";
             ignoreNextChangeNotice = false;
@@ -300,6 +299,17 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
             if (editedVersion != null)
                 editedVersion = nextVersionNumber;
+
+            // If we received an updated version number from the server, use that instead of what we calculated as
+            // this fixes edits when a new version wasn't created (for example, when the previous version was blank)
+            if (int.TryParse(content, out var serverVersionNumber))
+            {
+                if (editedVersion != serverVersionNumber)
+                {
+                    editedVersion = serverVersionNumber;
+                    Console.WriteLine("Using updated version number from server: " + serverVersionNumber);
+                }
+            }
         }
 
         await InvokeAsync(StateHasChanged);
