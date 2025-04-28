@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -201,6 +202,12 @@ public class LauncherInfoController : Controller
 
         finalContent.Position = 0;
         HttpContext.Response.ContentType = "application/octet-stream";
+
+        HttpContext.Response.Headers.CacheControl = new CacheControlHeaderValue
+        {
+            MaxAge = TimeSpan.FromMinutes(15),
+            Public = true,
+        }.ToString();
 
         return finalContent;
     }

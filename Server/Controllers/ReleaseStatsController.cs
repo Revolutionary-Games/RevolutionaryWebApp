@@ -43,7 +43,7 @@ public class ReleaseStatsController : Controller
     }
 
     [HttpGet]
-    [OutputCache(Duration = 900)]
+    [ResponseCache(Duration = 900)]
     public async Task<ActionResult<List<RepoReleaseStats>>> Get()
     {
         var configs = await database.ReposForReleaseStats.AsNoTracking().OrderBy(r => r.QualifiedName)
@@ -65,7 +65,7 @@ public class ReleaseStatsController : Controller
     }
 
     [HttpGet("{name}")]
-    [OutputCache(Duration = 900, VaryByRouteValueNames = new[] { "name" })]
+    [ResponseCache(Duration = 900, VaryByQueryKeys = ["name"])]
     public async Task<ActionResult<RepoReleaseStats>> GetSingle([Required] string name)
     {
         name = name.Replace(":", "/");

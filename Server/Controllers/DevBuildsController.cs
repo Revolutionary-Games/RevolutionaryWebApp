@@ -38,7 +38,7 @@ public class DevBuildsController : Controller
     }
 
     [HttpGet]
-    [OutputCache(Duration = 300)]
+    [ResponseCache(Duration = 300)]
     public async Task<ActionResult<DevBuildsStatisticsDTO>> Get()
     {
         var buildsSize = await database.DevBuilds.Include(b => b.StorageItem).SumAsync(b =>

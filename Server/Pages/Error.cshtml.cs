@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.OutputCaching;
 
 #pragma warning disable SA1649
 
-[OutputCache(Duration = 0, NoStore = true)]
+[ResponseCache(Duration = 0, NoStore = true)]
 [IgnoreAntiforgeryToken]
 public class
     ErrorModel : PageModel

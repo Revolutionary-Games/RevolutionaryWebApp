@@ -193,7 +193,7 @@ public class StorageFilesController : Controller
     }
 
     [HttpGet("totalUsed")]
-    [OutputCache(Duration = 1800)]
+    [ResponseCache(Duration = 1800)]
     public async Task<StorageUsageStats> CalculateTotalStorage()
     {
         // Fetch the IDs for the DevBuild folders to ignore their sizes

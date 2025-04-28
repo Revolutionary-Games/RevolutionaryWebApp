@@ -176,13 +176,20 @@ public class Startup
                 builder.Expire(TimeSpan.FromSeconds(30)));
         });
 
+        // This caching allows automatically setting the response header, so we also use this to save on some code
+        services.AddResponseCaching(options =>
+        {
+            options.MaximumBodySize = GlobalConstants.MEBIBYTE * 4;
+        });
+
         services.AddControllersWithViews(options => { options.OutputFormatters.Add(new HtmlTextFormatter()); })
             .AddJsonOptions(_ =>
             {
                 // Custom serializers for now also need to be configured in NotificationHelpers.ReceiveNotification
                 // As well as in the Client project
 
-                // This doesn't seem to do anything... So manual deserialize on client needs case insensitive mode on
+                // This doesn't seem to do anything...
+                // So manual deserialize on the client needs a case-insensitive mode on
                 // options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             });
 
@@ -190,7 +197,7 @@ public class Startup
 
         services.AddResponseCompression(opts =>
         {
-            opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octet-stream" });
+            opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/octet-stream"]);
         });
 
         // Built in aspnet rate limit configuration
@@ -465,11 +472,11 @@ public class Startup
 
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
-            Authorization = new[]
-            {
+            Authorization =
+            [
                 new HangfireDashboardAuthorization(app.ApplicationServices
                     .GetRequiredService<ILogger<HangfireDashboardAuthorization>>()),
-            },
+            ],
             DefaultRecordsPerPage = 50,
             FaviconPath = "/favicon.ico",
         });
