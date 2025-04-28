@@ -10,7 +10,6 @@ using BlazorPagination;
 using DevCenterCommunication.Models;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
