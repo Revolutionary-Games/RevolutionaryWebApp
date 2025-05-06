@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Models.Pages;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Linq;
 using System.ServiceModel.Syndication;
 using System.Text.Json;
@@ -180,7 +181,7 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
     ///   Generates a preview of this page based on the first 1 or 2 paragraphs. Can contain HTML formatting.
     /// </summary>
     /// <returns>A preview of this item (HTML format, not plain text)</returns>
-    public SyndicationContent GeneratePreview(IPageRenderer pageRenderer, Uri pageLink, out int usedMemory,
+    public TextSyndicationContent GeneratePreview(IPageRenderer pageRenderer, Uri pageLink, out int usedMemory,
         int targetMaxLength = 350)
     {
         var (rendered, _) = pageRenderer.RenderPreview(this, $"{pageLink.Scheme}://{pageLink.Host}",
@@ -190,6 +191,19 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
 
         usedMemory = rendered.Length;
         return preview;
+    }
+
+    public async Task<(TextSyndicationContent Content, int Length)> GenerateFullSyndicationContent(
+        IPageRenderer pageRenderer, Uri pageLink)
+    {
+        var stopWatch = new Stopwatch();
+        var rendered =
+            await pageRenderer.RenderPage(this, $"{pageLink.Scheme}://{pageLink.Host}", [], false, stopWatch);
+
+        var preview = new TextSyndicationContent(rendered.RenderedHtml, TextSyndicationContentKind.Html);
+
+        var usedMemory = rendered.RenderedHtml.Length;
+        return (preview, usedMemory);
     }
 
     public TimeSpan CalculatedDesiredCacheTime()

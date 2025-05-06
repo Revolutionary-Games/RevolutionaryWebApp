@@ -154,6 +154,9 @@ public class PostFeedController : Controller
             .Where(p => p.Type == PageType.Post && p.Visibility == PageVisibility.Public && !p.Deleted &&
                 p.PublishedAt != null).OrderByDescending(p => p.PublishedAt).Take(FeedItemsToShow).ToListAsync();
 
+        // Set to false if no full text should be in the feed
+        bool first = true;
+
         foreach (var post in posts)
         {
             if (string.IsNullOrEmpty(post.Permalink))
@@ -164,17 +167,39 @@ public class PostFeedController : Controller
 
             var postLink = new Uri(baseUrl, post.Permalink);
 
-            var preview = post.GeneratePreview(pageRenderer, postLink, out var previewLength);
+            // The first post gets full content here to give some balance between data usage and letting RSS readers
+            // to read the full post in the client without opening a browser
+            int previewLength;
+            SyndicationContent preview;
+
+            if (first)
+            {
+                (preview, previewLength) = await post.GenerateFullSyndicationContent(pageRenderer, postLink);
+            }
+            else
+            {
+                preview = post.GeneratePreview(pageRenderer, postLink, out previewLength);
+            }
 
             length += previewLength + post.Permalink.Length + post.Title.Length;
 
-            items.Add(new SyndicationItem(post.Title, preview, postLink, postLink.ToString(), post.UpdatedAt)
+            var item = new SyndicationItem(post.Title, preview, postLink, postLink.ToString(), post.UpdatedAt)
             {
                 PublishDate = post.PublishedAt.Value,
 
                 // TODO: allow overriding per post
                 Authors = { author },
-            });
+            };
+
+            if (first)
+            {
+                item.Summary = post.GeneratePreview(pageRenderer, postLink, out var extraLength);
+                length += extraLength;
+            }
+
+            items.Add(item);
+
+            first = false;
         }
 
         feed.Items = items;
