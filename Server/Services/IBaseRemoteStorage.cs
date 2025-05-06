@@ -198,9 +198,9 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
             });
 
             parts.AddRange(response.Parts);
-            continueParts = response.NextPartNumberMarker.ToString(CultureInfo.InvariantCulture);
+            continueParts = response.NextPartNumberMarker?.ToString(CultureInfo.InvariantCulture);
         }
-        while (response.IsTruncated);
+        while (response.IsTruncated == true);
 
         return parts;
     }
@@ -230,7 +230,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
             nextKeyMarker = response.NextKeyMarker;
             nextUploadIdMarker = response.NextUploadIdMarker;
         }
-        while (response.IsTruncated);
+        while (response.IsTruncated == true);
 
         return parts;
     }
@@ -437,7 +437,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
             nextContinuationToken = response.NextContinuationToken;
         }
-        while (response.IsTruncated);
+        while (response.IsTruncated == true);
 
         return files;
     }
