@@ -39,6 +39,9 @@ public class ImageProxyController : Controller
     [HttpGet("youtubeThumbnail/{id}")]
     public async Task<IActionResult> YoutubeThumbnail(string id)
     {
+        if (id.Contains("."))
+            return BadRequest("Invalid YouTube ID");
+
         var key = new RedisKey("ImageProxy:YoutubeThumbnail:" + id);
 
         var database = cache.GetDatabase();
@@ -82,7 +85,9 @@ public class ImageProxyController : Controller
     }
 
     [NonAction]
-    private async Task<IActionResult> OnImageSuccessfullyRetrieved(HttpResponseMessage response, RedisKey key,
+    private async Task<IActionResult> OnImageSuccessfullyRetrieved(
+        HttpResponseMessage response,
+        RedisKey key,
         IDatabase database)
     {
         var data = await response.Content.ReadAsByteArrayAsync();
