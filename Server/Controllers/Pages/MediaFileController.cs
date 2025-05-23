@@ -191,6 +191,16 @@ public class MediaFileController : Controller
                 string.Join(", ", AppInfo.MediaFileTypes));
         }
 
+        // If name contains non-ascii characters
+        foreach (var c in request.Name)
+        {
+            if (!char.IsAscii(c))
+                return BadRequest("File name contains non-ascii characters. Only ASCII characters are allowed.");
+
+            if (char.IsControl(c))
+                return BadRequest("File name contains control characters.");
+        }
+
         // Disallow some special names
         var nameWithoutExtension = Path.GetFileNameWithoutExtension(request.Name);
         if (nameWithoutExtension is "large" or "page-fit" or "thumb")

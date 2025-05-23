@@ -1395,8 +1395,8 @@ public class StorageFilesController : Controller
             return false;
         }
 
-        // 32 is ' ' (space) and all character codes below it are control codes
-        if (name.Any(c => c < 32))
+        // 32 is ` ` (space) and all character codes below it are control codes
+        if (name.Any(c => c < 32) || name.Any(char.IsControl))
         {
             badRequest = BadRequest("Name contains a control character or a null byte");
             return false;
@@ -1413,6 +1413,15 @@ public class StorageFilesController : Controller
         if (name.StartsWith('@') || (name.Length <= 5 && int.TryParse(name, out int _)))
         {
             badRequest = BadRequest("You specified a disallowed name");
+            return false;
+        }
+
+        // Due to header encoding problems, only ascii characters should be allowed
+        // TODO: fix the actual underlying problem
+        if (name.Any(c => !char.IsAscii(c)))
+        {
+            badRequest = BadRequest("Name contains non-ascii characters " +
+                "(due to header encoding problems this is not allowed)");
             return false;
         }
 
