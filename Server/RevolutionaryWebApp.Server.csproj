@@ -57,7 +57,6 @@
     <PackageReference Include="SmartFormat.NET" Version="3.6.0" />
     <PackageReference Include="SSH.NET" Version="2025.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.58" />
-    <PackageReference Include="StardustDL.RazorComponents.Markdown" Version="0.0.3.28" />
     <PackageReference Include="Svg.Skia" Version="3.0.4" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.13.0" />
     <PackageReference Include="System.Interactive.Async" Version="6.0.3" />

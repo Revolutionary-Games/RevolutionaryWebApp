@@ -29,12 +29,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Models;
-using Modulight.Modules.Hosting;
 using Services;
 using Shared.Services;
 using SharedBase.Utilities;
 using StackExchange.Redis;
-using StardustDL.RazorComponents.Markdown;
 using Utilities;
 
 public class Startup
@@ -139,12 +137,6 @@ public class Startup
         // Our custom cache, where we limit the total size, used only by our controllers we can make use of this cache
         // properly
         services.AddSingleton<CustomMemoryCache>();
-
-        services.AddModules(moduleHostBuilder =>
-        {
-            // moduleHostBuilder.AddMarkdownModule();
-            moduleHostBuilder.UseRazorComponentClientModules().AddMarkdownModule();
-        });
 
         // TODO: message pack protocol
         if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))
@@ -360,7 +352,7 @@ public class Startup
             options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
         });
 
-        // Always running discord bot in the background (only runs if configured in app settings)
+        // Always running discord bot in the background (only runs if configured in the app settings)
         services.AddScoped<RevolutionaryDiscordBotService>();
         services.AddHostedService<BotServiceRunner>();
     }
