@@ -225,7 +225,10 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
                 UploadIdMarker = nextUploadIdMarker,
             }, cancellationToken);
 
-            parts.AddRange(response.MultipartUploads.Select(u => (u.Key, u.UploadId)));
+            if (response.MultipartUploads != null)
+            {
+                parts.AddRange(response.MultipartUploads.Select(u => (u.Key, u.UploadId)));
+            }
 
             nextKeyMarker = response.NextKeyMarker;
             nextUploadIdMarker = response.NextUploadIdMarker;
