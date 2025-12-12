@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
 using Filters;
@@ -154,14 +155,10 @@ public class LFSController : Controller
             status = objects.Where(o => o.Error != null).Select(o => o.Error!.Code).First();
         }
 
-        return new ObjectResult(
-            new LFSResponse
-            {
-                Objects = objects,
-            })
+        return new ObjectResult(new LFSResponse { Objects = objects })
         {
             StatusCode = status,
-            ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
+            ContentTypes = [AppInfo.GitLfsContentType],
         };
     }
 
@@ -386,11 +383,12 @@ public class LFSController : Controller
     }
 
     [NonAction]
-    private async ValueTask<LFSResponse.LFSObject> HandleDownload(LfsProject project, LFSRequest.LFSObject obj)
+    private async ValueTask<LFSResponse.LFSObject> HandleDownload(LfsProject project, LFSRequest.LFSObject obj,
+        CancellationToken cancellationToken)
     {
         var existingObject = await database.LfsObjects
             .Where(o => o.LfsOid == obj.Oid && o.LfsProjectId == project.Id).Include(o => o.LfsProject)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (existingObject == null)
         {
@@ -432,11 +430,12 @@ public class LFSController : Controller
     }
 
     [NonAction]
-    private async ValueTask<LFSResponse.LFSObject> HandleUpload(LfsProject project, LFSRequest.LFSObject obj)
+    private async ValueTask<LFSResponse.LFSObject> HandleUpload(LfsProject project, LFSRequest.LFSObject obj,
+        CancellationToken cancellationToken)
     {
         var existingObject = await database.LfsObjects
             .Where(o => o.LfsOid == obj.Oid && o.LfsProjectId == project.Id).Include(o => o.LfsProject)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (existingObject != null)
         {
@@ -525,9 +524,11 @@ public class LFSController : Controller
         switch (operation)
         {
             case LFSRequest.OperationType.Download:
-                return await objects.ToAsyncEnumerable().SelectAwait(o => HandleDownload(project, o)).ToListAsync();
+                return await objects.ToAsyncEnumerable().Select(async (o, c) => await HandleDownload(project, o, c))
+                    .ToListAsync();
             case LFSRequest.OperationType.Upload:
-                return await objects.ToAsyncEnumerable().SelectAwait(o => HandleUpload(project, o)).ToListAsync();
+                return await objects.ToAsyncEnumerable().Select(async (o, c) => await HandleUpload(project, o, c))
+                    .ToListAsync();
             default:
                 throw new ArgumentOutOfRangeException();
         }

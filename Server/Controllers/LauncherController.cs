@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Controllers;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
 using DevCenterCommunication.Models;
@@ -325,7 +326,7 @@ public class LauncherController : Controller
 
         var objects = await request.Objects.ToAsyncEnumerable()
             .Select(i => i.Sha3)
-            .SelectAwait(i => GetDehydratedFromHash(i, user)).ToListAsync();
+            .Select(async (i, c) => await GetDehydratedFromHash(i, user, c)).ToListAsync();
 
         logger.LogInformation("{Count} dehydrated objects downloaded from {RemoteAddress} with the launcher",
             objects.Count, HttpContext.Connection.RemoteIpAddress);
@@ -388,10 +389,10 @@ public class LauncherController : Controller
 
     [NonAction]
     private async ValueTask<DehydratedObjectDownloads.DehydratedObjectDownload> GetDehydratedFromHash(string sha3,
-        User user)
+        User user, CancellationToken cancellationToken)
     {
         var dehydrated = await database.DehydratedObjects.Include(d => d.StorageItem)
-            .FirstOrDefaultAsync(d => d.Sha3 == sha3);
+            .FirstOrDefaultAsync(d => d.Sha3 == sha3, cancellationToken);
 
         if (dehydrated == null)
         {
