@@ -145,6 +145,9 @@ public class TokensController : Controller
         if (target.LfsToken == null && target.ApiToken == null)
             return Ok("Tokens already cleared");
 
+        // Must load groups to be able to save changes
+        await target.ComputeUserGroups(database);
+
         var user = HttpContext.AuthenticatedUser()!;
         logger.LogInformation("Force clearing tokens on user {Id} by admin {Email}", target.Id, user.Email);
 
