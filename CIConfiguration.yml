@@ -2,11 +2,11 @@ version: 1
 
 jobs:
   test:
-    image: thrive/devcenter-ci:v7
+    image: thrive/devcenter-ci:v8
     cache:
       loadFrom:
-        - v3-{Branch}-build
-      writeTo: v3-{Branch}-build
+        - v4-{Branch}-build
+      writeTo: v4-{Branch}-build
       system:
         /root/.nuget: v3-nuget
         /root/.cache/ms-playwright: v1-playwright
@@ -26,11 +26,11 @@ jobs:
           name: Test
           command: dotnet test
   lint:
-    image: thrive/devcenter-ci:v7
+    image: thrive/devcenter-ci:v8
     cache:
       loadFrom:
-        - v3-{Branch}-build
-      writeTo: v3-{Branch}-build
+        - v4-{Branch}-build
+      writeTo: v4-{Branch}-build
       system:
         /root/.nuget: v3-nuget
     steps:
