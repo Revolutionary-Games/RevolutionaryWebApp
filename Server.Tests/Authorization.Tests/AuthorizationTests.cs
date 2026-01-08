@@ -91,25 +91,34 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(csrfValue, user1, true).Returns(true);
 
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton(csrfMock);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
-                services.AddScoped<CSRFCheckerMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton(csrfMock);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                        services.AddScoped<CSRFCheckerMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
+                        services.AddControllers();
+                        services.AddRouting();
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseMiddleware<CSRFCheckerMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseMiddleware<CSRFCheckerMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
         requestBuilder.AddHeader(HeaderNames.Cookie,
@@ -143,30 +152,39 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
         csrfMock.IsValidCSRFToken(csrfValue, user3, true).Returns(true);
         csrfMock.IsValidCSRFToken(csrfValue, user4, true).Returns(true);
 
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton(csrfMock);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
-                services.AddScoped<CSRFCheckerMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton(csrfMock);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                        services.AddScoped<CSRFCheckerMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
-                services.AddAuthentication(options =>
-                {
-                    options.DefaultForbidScheme = "forbidScheme";
-                    options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
-                });
+                        services.AddControllers();
+                        services.AddRouting();
+                        services.AddAuthentication(options =>
+                        {
+                            options.DefaultForbidScheme = "forbidScheme";
+                            options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+                        });
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseMiddleware<CSRFCheckerMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseMiddleware<CSRFCheckerMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         // User 1 requests
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy/user").ToString());
@@ -312,27 +330,36 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
     [Fact]
     public async Task Authorization_ClassAttributeWorksCorrectly()
     {
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
-                services.AddAuthentication(options =>
-                {
-                    options.DefaultForbidScheme = "forbidScheme";
-                    options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
-                });
+                        services.AddControllers();
+                        services.AddRouting();
+                        services.AddAuthentication(options =>
+                        {
+                            options.DefaultForbidScheme = "forbidScheme";
+                            options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+                        });
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         // Test that the attributes stack in an expected way
         await CheckGetResponseCode(server, "/accessFilterTest/nonWorkingNoLogin", null, -1,
@@ -399,27 +426,36 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
     [Fact]
     public async Task Authorization_NoClassAttributeWorksCorrectly()
     {
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
-                services.AddAuthentication(options =>
-                {
-                    options.DefaultForbidScheme = "forbidScheme";
-                    options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
-                });
+                        services.AddControllers();
+                        services.AddRouting();
+                        services.AddAuthentication(options =>
+                        {
+                            options.DefaultForbidScheme = "forbidScheme";
+                            options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+                        });
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         // "noLogin" path access
         await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", null, -1, HttpStatusCode.NoContent);
@@ -469,27 +505,36 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
     [Fact]
     public async Task Authorization_WrongUserIdDisallowsAccess()
     {
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
-                services.AddAuthentication(options =>
-                {
-                    options.DefaultForbidScheme = "forbidScheme";
-                    options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
-                });
+                        services.AddControllers();
+                        services.AddRouting();
+                        services.AddAuthentication(options =>
+                        {
+                            options.DefaultForbidScheme = "forbidScheme";
+                            options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+                        });
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", null, 0, HttpStatusCode.NoContent);
         await CheckGetResponseCode(server, "/accessFilterTest2/noLogin", users.SessionIdNotLoggedIn, -1,
@@ -515,27 +560,36 @@ public class AuthorizationTests : IClassFixture<SimpleFewUsersDatabase>
     [Fact]
     public async Task Authorization_GroupAttribute()
     {
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
-                services.AddAuthentication(options =>
-                {
-                    options.DefaultForbidScheme = "forbidScheme";
-                    options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
-                });
+                        services.AddControllers();
+                        services.AddRouting();
+                        services.AddAuthentication(options =>
+                        {
+                            options.DefaultForbidScheme = "forbidScheme";
+                            options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+                        });
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         // Test that the attributes stack in an expected way
         await CheckGetResponseCode(server, "/groupFilterTest/nonWorkingUser", null, -1, HttpStatusCode.Unauthorized);

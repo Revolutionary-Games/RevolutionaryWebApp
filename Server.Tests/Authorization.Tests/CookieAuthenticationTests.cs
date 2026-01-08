@@ -73,25 +73,34 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(ArgExtension.IsNotNull<string>(), null, false).Returns(false);
 
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton(csrfMock);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
-                services.AddScoped<CSRFCheckerMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton(csrfMock);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                        services.AddScoped<CSRFCheckerMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
+                        services.AddControllers();
+                        services.AddRouting();
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseMiddleware<CSRFCheckerMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseMiddleware<CSRFCheckerMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
         requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:1");
@@ -115,25 +124,34 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(csrfValue, user, true).Returns(true);
 
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton(csrfMock);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
-                services.AddScoped<CSRFCheckerMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton(csrfMock);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                        services.AddScoped<CSRFCheckerMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
+                        services.AddControllers();
+                        services.AddRouting();
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseMiddleware<CSRFCheckerMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseMiddleware<CSRFCheckerMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
         requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:{user.Id}");
@@ -156,25 +174,34 @@ public class CookieAuthenticationTests : IClassFixture<SimpleFewUsersDatabase>
         var csrfMock = Substitute.For<ITokenVerifier>();
         csrfMock.IsValidCSRFToken(csrfValue, user, true).Returns(true);
 
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
             {
-                services.AddSingleton(database);
-                services.AddSingleton(csrfMock);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
-                services.AddScoped<CSRFCheckerMiddleware>();
+                webBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(database);
+                        services.AddSingleton(csrfMock);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                        services.AddScoped<CSRFCheckerMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
+                        services.AddControllers();
+                        services.AddRouting();
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseMiddleware<CSRFCheckerMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseMiddleware<CSRFCheckerMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+        var server = host.GetTestServer();
 
         var requestBuilder = server.CreateRequest(new Uri(server.BaseAddress, "/dummy").ToString());
         requestBuilder.AddHeader(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={users.SessionId1}:{user.Id}");
