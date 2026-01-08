@@ -1,6 +1,6 @@
 # This is fedora-based image as that makes using playwright much simpler
-FROM fedora:41
-ENV DOTNET_VERSION "9.0"
+FROM fedora:43
+ENV DOTNET_VERSION "10.0"
 
 RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc
 
