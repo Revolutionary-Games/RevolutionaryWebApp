@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Server.Authorization;
@@ -50,31 +51,41 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         var jobsMock = Substitute.For<IBackgroundJobClient>();
         var notificationsMock = Substitute.For<IHubContext<NotificationsHub, INotifications>>();
 
-        using var server = new TestServer(new WebHostBuilder()
-            .ConfigureServices(services =>
+        using var host = new HostBuilder()
+            .ConfigureWebHost(webHostBuilder =>
             {
-                services.AddSingleton(fixture.NotificationsEnabledDatabase);
-                services.AddSingleton(fixture.Database);
-                services.AddSingleton(notificationsMock);
-                services.AddSingleton(jobsMock);
-                services.AddSingleton<ILogger<PagesController>>(logger);
-                services.AddSingleton<CustomMemoryCache>();
-                services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
+                webHostBuilder
+                    .UseTestServer()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSingleton(fixture.NotificationsEnabledDatabase);
+                        services.AddSingleton(fixture.Database);
+                        services.AddSingleton(notificationsMock);
+                        services.AddSingleton(jobsMock);
+                        services.AddSingleton<ILogger<PagesController>>(logger);
+                        services.AddSingleton<CustomMemoryCache>();
+                        services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
-                services.AddControllers();
-                services.AddRouting();
-                services.AddAuthentication(options =>
-                {
-                    options.DefaultForbidScheme = "forbidScheme";
-                    options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
-                });
+                        services.AddControllers();
+                        services.AddRouting();
+                        services.AddAuthentication(options =>
+                        {
+                            options.DefaultForbidScheme = "forbidScheme";
+                            options.AddScheme<MyForbidHandler>("forbidScheme", "Handle Forbidden");
+                        });
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
+                        app.UseRouting();
+                        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+                    });
             })
-            .Configure(app =>
-            {
-                app.UseMiddleware<TokenOrCookieAuthenticationMiddleware>();
-                app.UseRouting();
-                app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            }));
+            .Build();
+
+        await host.StartAsync();
+
+        var server = host.GetTestServer();
 
         var url = new Uri(server.BaseAddress,
             "/api/v1/Pages?sortColumn=Title&sortDirection=Descending&page=1&pageSize=25").ToString();
