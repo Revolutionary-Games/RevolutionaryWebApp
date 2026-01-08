@@ -11,9 +11,9 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.4.0" />
-    <PackageReference Include="AsyncKeyedLock" Version="7.1.8" />
-    <PackageReference Include="AWSSDK.EC2" Version="4.0.62.1" />
-    <PackageReference Include="AWSSDK.S3" Version="4.0.14.2" />
+    <PackageReference Include="AsyncKeyedLock" Version="8.0.0" />
+    <PackageReference Include="AWSSDK.EC2" Version="4.0.65.2" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.16.4" />
     <PackageReference Include="Discord.Net" Version="3.18.0" />
     <PackageReference Include="EFCore.NamingConventions" Version="9.0.0" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.22" />
@@ -55,7 +55,7 @@
     <PackageReference Include="SmartFormat.NET" Version="3.6.1" />
     <PackageReference Include="SSH.NET" Version="2025.1.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
-    <PackageReference Include="Svg.Skia" Version="3.2.1" />
+    <PackageReference Include="Svg.Skia" Version="3.4.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
     <PackageReference Include="System.Interactive.Async" Version="7.0.0" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="9.0.10" />
