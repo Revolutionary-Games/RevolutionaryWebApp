@@ -11,7 +11,7 @@ using RichardSzalay.MockHttp;
 using Utilities;
 using Xunit;
 
-public class LoginTests : TestContext
+public class LoginTests : BunitContext
 {
     [Fact]
     public void LoginLocal_IsNotRenderedWhenDisabled()
@@ -42,7 +42,7 @@ public class LoginTests : TestContext
         });
 
         Services.AddSingleton(mockCSRF);
-        var cut = RenderComponent<Login>();
+        var cut = Render<Login>();
 
         cut.WaitForAssertion(() => cut.FindIsNull(".spinner-border"));
 
@@ -78,7 +78,7 @@ public class LoginTests : TestContext
         });
 
         Services.AddSingleton(mockCSRF);
-        var cut = RenderComponent<Login>();
+        var cut = Render<Login>();
 
         cut.WaitForAssertion(() => cut.FindIsNull(".spinner-border"));
 
