@@ -1,14 +1,11 @@
-﻿<CascadingBlazoredModal UseCustomLayout="@true">
-    <Router AppAssembly="@typeof(Program).Assembly">
+﻿@using RevolutionaryWebApp.Client.Pages
+
+<CascadingBlazoredModal UseCustomLayout="@true">
+    <Router AppAssembly="@typeof(Program).Assembly"
+            NotFoundPage="@typeof(NotFound)">
         <Found Context="routeData">
             <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)"/>
             <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
         </Found>
-        <NotFound>
-            <LayoutView Layout="@typeof(MainLayout)">
-                <p role="alert">There is no page at this address.</p>
-            </LayoutView>
-            <PageTitle>Not Found</PageTitle>
-        </NotFound>
     </Router>
 </CascadingBlazoredModal>
