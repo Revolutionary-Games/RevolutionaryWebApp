@@ -13,11 +13,11 @@ using ScriptsBase.Utilities;
 using SharedBase.Utilities;
 
 /// <summary>
-///   Handles preparing files for deploy and creates database migrations for running
+///   Handles preparing files for deployment and creates database migrations for running
 /// </summary>
 public class Deployer
 {
-    private const string NET_VERSION = "net9.0";
+    private const string NET_VERSION = "net10.0";
 
     private const string BUILD_DATA_FOLDER_CONTAINER = "build";
     private const string BUILD_DATA_FOLDER_PLAIN = ".";
