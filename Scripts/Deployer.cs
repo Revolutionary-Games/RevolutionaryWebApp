@@ -114,17 +114,20 @@ public class Deployer
         // migration now)
         await using var migrationFileMutex = new AsyncMutex("Global\\RevolutionaryWebAppDeployMigrationMutex");
 
-        var mutexAcquireTime = new CancellationTokenSource();
-        mutexAcquireTime.CancelAfter(TimeSpan.FromMinutes(15));
+        // New scope so that this token is not visible afterwards
+        {
+            var mutexAcquireTime = new CancellationTokenSource();
+            mutexAcquireTime.CancelAfter(TimeSpan.FromMinutes(15));
 
-        try
-        {
-            await migrationFileMutex.AcquireAsync(mutexAcquireTime.Token);
-        }
-        catch (Exception e)
-        {
-            ColourConsole.WriteWarningLine("Cannot get global mutex lock: " + e);
-            return false;
+            try
+            {
+                await migrationFileMutex.AcquireAsync(mutexAcquireTime.Token);
+            }
+            catch (Exception e)
+            {
+                ColourConsole.WriteWarningLine("Cannot get global mutex lock: " + e);
+                return false;
+            }
         }
 
         try
