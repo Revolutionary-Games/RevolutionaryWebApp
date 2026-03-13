@@ -133,7 +133,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         sentientPlantRegex = new Regex(@"(sentient(\s|_|\.|\*)*plant|plant(\s|_|\.|\*)*c(\*|i)v)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        spaceWhalesRegex = new Regex(@"(bioship|space.*whale|cosmic.*whale|orbit(al)?.*life.*form|life.*on.*jupiter)",
+        spaceWhalesRegex = new Regex("(bioship|space.*whale|cosmic.*whale|orbit(al)?.*life.*form|life.*on.*jupiter)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         if (string.IsNullOrEmpty(botToken))

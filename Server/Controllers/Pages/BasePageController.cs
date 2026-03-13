@@ -4,7 +4,6 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -680,12 +679,8 @@ public abstract class BasePageController : Controller
         // TODO: if this ends up being a performance concern, add either memory or redis caching for like 15 minutes of
         // historical contents of pages (long cache time is fine as historical versions cannot change)
 
-        var stringBuilder = new StringBuilder(pageContent.Length);
-
         foreach (var oldVersion in otherOldVersions)
         {
-            // TODO: maybe this could be a bit more efficient if the diff applying could take the old text in as a
-            // StringBuilder
             pageContent = DiffGenerator.Default.ApplyDiff(pageContent, oldVersion.DecodeDiffData());
         }
 
