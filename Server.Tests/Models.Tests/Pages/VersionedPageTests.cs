@@ -26,8 +26,7 @@ public class VersionedPageTests
     {
         var diffReverse = DiffGenerator.Default.Generate(NewText1, OldText1);
 
-        Assert.NotNull(diffReverse.Blocks);
-        Assert.NotEmpty(diffReverse.Blocks);
+        Assert.NotNull(diffReverse.DiffDeltaRaw);
 
         var serialized = JsonSerializer.Serialize(diffReverse, new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
@@ -35,20 +34,20 @@ public class VersionedPageTests
         Assert.NotEqual("{}", serialized);
 
         // This forces the JSON format to not change at all, this should be a fine test as we'll store these in the
-        // database for a really long time so any difference is likely very terrible
+        // database for a really long time, so any difference is likely very terrible
+        // ReSharper disable StringLiteralTypo
         Assert.Equal(
-            "{\"blocks\":[{\"offset\":1,\"refSkip\":0,\"ref1\":\"(start)\",\"ref2\":\"This is just some text\"," +
-            "\"delete\":[\"with multitude of lines\"],\"add\":[\"with multiple lines\"]}," +
-            "{\"offset\":1,\"refSkip\":0,\"ref1\":\"with multitude of lines\",\"ref2\":" +
-            "\"that may be changed in the future\",\"delete\":[\"and lines inserted\",\"as well as deleted\",\"\"]," +
-            "\"add\":[\"to be something else\"]}],\"winStyle\":false}", serialized);
+            "{\"diff\":\"=33\\t-3\\t\\u002Bpl\\t=2\\t-3\\t=40\\t-3\\t\\u002Bto\\t=1\\t-3\\t\\u002Bb\\t=1\\t-1\\t=1" +
+            "\\t-2\\t=1\\t\\u002Bom\\t=1\\t-1\\t=1\\t-5\\t\\u002Bhing\\t=1\\t-1\\t=2\\t-3\\t=1\\t-6\\t=1\\t-1\"}",
+            serialized);
+
+        // ReSharper restore StringLiteralTypo
 
         // And verify deserialize gives back the same result
         var deserialized = JsonSerializer.Deserialize<DiffData>(serialized);
         Assert.NotNull(deserialized);
-        Assert.NotNull(deserialized.Blocks);
-        Assert.NotEmpty(deserialized.Blocks);
+        Assert.Equal(diffReverse.DiffDeltaRaw, deserialized.DiffDeltaRaw);
 
-        Assert.Equal(diffReverse.Blocks[0], deserialized.Blocks[0]);
+        Assert.Equal(diffReverse.ToString(), deserialized.ToString());
     }
 }

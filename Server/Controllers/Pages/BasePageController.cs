@@ -684,19 +684,15 @@ public abstract class BasePageController : Controller
 
         foreach (var oldVersion in otherOldVersions)
         {
-            stringBuilder = DiffGenerator.Default.ApplyDiff(pageContent, oldVersion.DecodeDiffData(),
-                DiffGenerator.DiffMatchMode.NormalSlightDeviance, stringBuilder);
-
             // TODO: maybe this could be a bit more efficient if the diff applying could take the old text in as a
             // StringBuilder
-            pageContent = stringBuilder.ToString();
+            pageContent = DiffGenerator.Default.ApplyDiff(pageContent, oldVersion.DecodeDiffData());
         }
 
         // After processing newer versions than versionDTO, process that last
 
-        stringBuilder = DiffGenerator.Default.ApplyDiff(pageContent, versionDTO.DecodeDiffData(),
-            DiffGenerator.DiffMatchMode.NormalSlightDeviance, stringBuilder);
+        pageContent = DiffGenerator.Default.ApplyDiff(pageContent, versionDTO.DecodeDiffData());
 
-        versionDTO.PageContentAtVersion = stringBuilder.ToString();
+        versionDTO.PageContentAtVersion = pageContent;
     }
 }
