@@ -41,13 +41,15 @@ using Image = SixLabors.ImageSharp.Image;
 /// </summary>
 public sealed class RevolutionaryDiscordBotService : IDisposable
 {
-    private const int SecondsBetweenSameCommand = 10;
+    private const int SecondsBetweenSameCommand = 8;
 
-    private const int ReportDaysSinceStreakBreakAfter = 2;
+    private const float ReportDaysSinceStreakBreakAfter = 1.25f;
+    private const int CooldownSecondsBetweenMentionsOfTopic = 500;
 
     private const string DaysSinceCommand = "dayssince";
     private const string UnderwaterCivIdentifier = "underWaterCiv";
     private const string SentientPlantsIdentifier = "sentientPlant";
+    private const string SpaceWhalesIdentifier = "spaceWhales";
 
     private static readonly TimeSpan
         CommandIntervalBeforeRunningAgain = TimeSpan.FromSeconds(SecondsBetweenSameCommand);
@@ -79,6 +81,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private readonly Uri releaseStatsApiUrl;
     private readonly Regex underWaterCivRegex;
     private readonly Regex sentientPlantRegex;
+    private readonly Regex spaceWhalesRegex;
 
     private readonly bool preferDayProgressForRelease;
 
@@ -127,8 +130,10 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             @"un.*(\*|w)(\s|_|\.|\*)*(\*|a)(\s|_|\.|\*)*(\*|t)(\s|_|\.|\*)*(\*|e)(\s|_|\.|\*)*r(\s|_|\.|\*)*c(\*|i)v",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        sentientPlantRegex = new Regex(
-            @"(sentient(\s|_|\.|\*)*plant|plant(\s|_|\.|\*)*c(\*|i)v)",
+        sentientPlantRegex = new Regex(@"(sentient(\s|_|\.|\*)*plant|plant(\s|_|\.|\*)*c(\*|i)v)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        spaceWhalesRegex = new Regex(@"(bioship|space.*whale|cosmic.*whale|orbit(al)?.*life.*form|life.*on.*jupiter)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         if (string.IsNullOrEmpty(botToken))
@@ -347,6 +352,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 if (await RegisterKeywordIfRequired(UnderwaterCivIdentifier, "Underwater Civs"))
                     changes = true;
                 if (await RegisterKeywordIfRequired(SentientPlantsIdentifier, "Sentient Plants"))
+                    changes = true;
+                if (await RegisterKeywordIfRequired(SpaceWhalesIdentifier, "Space Whales"))
                     changes = true;
 
                 if (changes)
@@ -744,8 +751,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 });
 
                 languagesImage.Mutate(x =>
-                    x.DrawImage(
-                        overallStatusImage,
+                    x.DrawImage(overallStatusImage,
                         new Point(languagesImage.Width / 2 - overallStatusImage.Width / 2, 5),
                         1));
 
@@ -755,8 +761,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             catch (Exception e)
             {
                 logger.LogError(e, "Language image drawing problem");
-                await command.ModifyOriginalResponseAsync(
-                    properties => properties.Content = "Failed to draw language progress image");
+                await command.ModifyOriginalResponseAsync(properties =>
+                    properties.Content = "Failed to draw language progress image");
                 return;
             }
         }
@@ -769,8 +775,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     {
         return new SlashCommandBuilder()
             .WithName("language")
-            .WithDescription(
-                "Displays current language translation statistics for Thrive.");
+            .WithDescription("Displays current language translation statistics for Thrive.");
     }
 
     private async Task HandleDaysSinceCommand(SocketSlashCommand command)
@@ -911,8 +916,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     {
         return new SlashCommandBuilder()
             .WithName(DaysSinceCommand)
-            .WithDescription(
-                "Displays how many days have passed since a keyword was last brought up")
+            .WithDescription("Displays how many days have passed since a keyword was last brought up")
             .AddOption(new SlashCommandOptionBuilder()
                 .WithName("keyword")
                 .WithRequired(true)
@@ -921,6 +925,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                 // ReSharper disable once StringLiteralTypo
                 .AddChoice("UnderwaterCivs", UnderwaterCivIdentifier)
                 .AddChoice("SentientPlants", SentientPlantsIdentifier)
+                .AddChoice("SpaceWhales", SpaceWhalesIdentifier)
                 .WithType(ApplicationCommandOptionType.String));
     }
 
@@ -1033,8 +1038,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     {
         return new SlashCommandBuilder()
             .WithName("wiki")
-            .WithDescription(
-                "Get a summary of a Thrive wiki page.")
+            .WithDescription("Get a summary of a Thrive wiki page.")
             .AddOption("page-title", ApplicationCommandOptionType.String, "The version to display progress for", true);
     }
 
@@ -1073,7 +1077,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         foreach (var repoStats in stats)
         {
-            // Max of 10 for now. The Discord API probably allows 20 but I couldn't find a constant for that
+            // Max of 10 for now. The Discord API probably allows 20, but I couldn't find a constant for that
             if (embeds.Count >= 10)
                 break;
 
@@ -1187,6 +1191,9 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
         if (sentientPlantRegex.IsMatch(message.CleanContent))
             await HandleKeywordMessage(message, SentientPlantsIdentifier);
+
+        if (spaceWhalesRegex.IsMatch(message.CleanContent))
+            await HandleKeywordMessage(message, SpaceWhalesIdentifier);
     }
 
     private async Task HandleKeywordMessage(SocketMessage message, string key)
@@ -1205,10 +1212,11 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
                 var now = DateTime.UtcNow.Date;
 
-                var streak = (now - keyword.LastSeen.Date).TotalDays;
+                var streak = now - keyword.LastSeen.Date;
+                var streakDays = streak.TotalDays;
 
-                // Using discord message time here could mean that the streak broken message shows 1 days instead of 0
-                // At least that problem was triggered at least once and this is the only likely thing to have caused it
+                // Using discord message time here could mean that the streak broken message shows 1 day instead of 0.
+                // At least that problem was triggered at least once. This is the only likely thing to have caused it,
                 // and it makes anyway more sense to rely on our time keeping everywhere instead of grabbing the discord
                 // message time here in this one place -hhyyrylainen
                 keyword.LastSeen = now;
@@ -1216,11 +1224,16 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
                 await database.SaveChangesAsync();
 
-                if (streak > ReportDaysSinceStreakBreakAfter)
+                if (streakDays > ReportDaysSinceStreakBreakAfter)
                 {
                     await message.Channel.SendMessageAsync(
-                        $"The {(int)streak} day streak without bringing up {keyword.Title} has been broken");
+                        $"The {(int)streakDays} day streak without bringing up {keyword.Title} has been broken");
                     await OnSlowDaysSinceStreakBroken(message, keyword);
+                }
+                else if (streak.TotalSeconds > CooldownSecondsBetweenMentionsOfTopic)
+                {
+                    await message.Channel.SendMessageAsync(
+                        "You guys just can't stop mentioning that, huh? There's not even a streak to break yet.");
                 }
             }
             catch (Exception e)
