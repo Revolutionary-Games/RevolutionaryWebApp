@@ -15,7 +15,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.5" />
-    <PackageReference Include="Microsoft.DotNet.HotReload.WebAssembly.Browser" Version="10.0.201" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="TextCopy" Version="6.2.1" />
   </ItemGroup>
