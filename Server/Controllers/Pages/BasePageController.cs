@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Controllers.Pages;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
@@ -18,6 +19,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
@@ -42,13 +44,15 @@ public abstract class BasePageController : Controller
     protected readonly NotificationsEnabledDb Database;
     protected readonly IBackgroundJobClient JobClient;
     protected readonly IHubContext<NotificationsHub, INotifications> Notifications;
+    protected readonly IDistributedCache Cache;
 
     public BasePageController(NotificationsEnabledDb database, IBackgroundJobClient jobClient,
-        IHubContext<NotificationsHub, INotifications> notifications)
+        IHubContext<NotificationsHub, INotifications> notifications, IDistributedCache cache)
     {
         Database = database;
         JobClient = jobClient;
         Notifications = notifications;
+        Cache = cache;
     }
 
     /// <summary>
@@ -673,20 +677,73 @@ public abstract class BasePageController : Controller
 
         // Apply reverse diffs to go from the latest content up to the specified old version
         var otherOldVersions = await Database.PageVersions.AsNoTracking()
-            .Where(v => v.PageId == page.Id && v.Version > versionDTO.Version).OrderByDescending(v => v.Version)
+            .Where(v => v.PageId == page.Id && v.Version > versionDTO.Version).OrderBy(v => v.Version)
             .ToListAsync();
 
-        // TODO: if this ends up being a performance concern, add either memory or redis caching for like 15 minutes of
-        // historical contents of pages (long cache time is fine as historical versions cannot change)
-
-        foreach (var oldVersion in otherOldVersions)
+        // Historical versions cannot change, so we can cache them for a long time.
+        // We save every 10th version to redis to speed up long history resolves.
+        var cacheOptions = new DistributedCacheEntryOptions
         {
-            pageContent = DiffGenerator.Default.ApplyDiff(pageContent, oldVersion.DecodeDiffData());
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1),
+        };
+
+        List<PageVersionDTO> relevantVersions = [versionDTO];
+        relevantVersions.AddRange(otherOldVersions.Select(v => v.GetDTO()));
+
+        PageVersionDTO? newestToApplyFrom = null;
+
+        PageVersionDTO? lastSeen = null;
+
+        // First look through the cache
+        foreach (var relevantVersion in relevantVersions)
+        {
+            if (relevantVersion.Version % 10 == 0)
+            {
+                var cacheKey = $"PageContent:{page.Id}:{relevantVersion.Version}";
+
+                var cached = await Cache.GetStringAsync(cacheKey);
+
+                if (cached != null)
+                {
+                    pageContent = cached;
+                    newestToApplyFrom = lastSeen;
+                    break;
+                }
+            }
+
+            lastSeen = relevantVersion;
         }
 
-        // After processing newer versions than versionDTO, process that last
+        if (lastSeen == null)
+        {
+            // If we got a cached copy of the page we wanted, we are done
+            versionDTO.PageContentAtVersion = pageContent;
+            return;
+        }
 
-        pageContent = DiffGenerator.Default.ApplyDiff(pageContent, versionDTO.DecodeDiffData());
+        int i = relevantVersions.Count - 1;
+
+        // If we didn't get a cached copy, apply diffs starting from the newest version
+        if (newestToApplyFrom != null)
+        {
+            // We already took the offset into account, so we can just take the index of the next item to process
+            i = relevantVersions.IndexOf(newestToApplyFrom);
+        }
+
+        for (; i >= 0; --i)
+        {
+            var oldVersion = relevantVersions[i];
+            pageContent = DiffGenerator.Default.ApplyDiff(pageContent, oldVersion.DecodeDiffData());
+
+            // If we just processed a 10th version, cache it for next time
+            if (oldVersion.Version % 10 == 0)
+            {
+                var cacheKey = $"PageContent:{page.Id}:{oldVersion.Version}";
+                await Cache.SetStringAsync(cacheKey, pageContent, cacheOptions);
+            }
+        }
+
+        // We should have processed everything now
 
         versionDTO.PageContentAtVersion = pageContent;
     }

@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -64,6 +65,7 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
                         services.AddSingleton(jobsMock);
                         services.AddSingleton<ILogger<PagesController>>(logger);
                         services.AddSingleton<CustomMemoryCache>();
+                        services.AddSingleton(Substitute.For<IDistributedCache>());
                         services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
 
                         services.AddControllers();
@@ -128,12 +130,13 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         var jobsMock = Substitute.For<IBackgroundJobClient>();
         var senderMock = Substitute.For<IModelUpdateNotificationSender>();
         var notificationsMock = Substitute.For<IHubContext<NotificationsHub, INotifications>>();
+        var cacheMock = Substitute.For<IDistributedCache>();
 
         var database =
             new EditableInMemoryDatabaseFixtureWithNotifications(senderMock, "VersionedPageCreatesOldVersion");
 
         var controller =
-            new PagesController(logger, database.NotificationsEnabledDatabase, jobsMock, notificationsMock)
+            new PagesController(logger, database.NotificationsEnabledDatabase, jobsMock, notificationsMock, cacheMock)
             {
                 UsePageUpdateTransaction = false,
             };
@@ -279,12 +282,13 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         var jobsMock = Substitute.For<IBackgroundJobClient>();
         var senderMock = Substitute.For<IModelUpdateNotificationSender>();
         var notificationsMock = Substitute.For<IHubContext<NotificationsHub, INotifications>>();
+        var cacheMock = Substitute.For<IDistributedCache>();
 
         var database =
             new EditableInMemoryDatabaseFixtureWithNotifications(senderMock, "VersionedPageRevertWorks");
 
         var controller =
-            new PagesController(logger, database.NotificationsEnabledDatabase, jobsMock, notificationsMock)
+            new PagesController(logger, database.NotificationsEnabledDatabase, jobsMock, notificationsMock, cacheMock)
             {
                 UsePageUpdateTransaction = false,
             };

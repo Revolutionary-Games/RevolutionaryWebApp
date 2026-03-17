@@ -8,6 +8,7 @@ using Hangfire;
 using Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
@@ -26,8 +27,8 @@ public class PagesController : BasePageController
     private readonly ILogger<PagesController> logger;
 
     public PagesController(ILogger<PagesController> logger, NotificationsEnabledDb database,
-        IBackgroundJobClient jobClient, IHubContext<NotificationsHub, INotifications> notifications) : base(database,
-        jobClient, notifications)
+        IBackgroundJobClient jobClient, IHubContext<NotificationsHub, INotifications> notifications,
+        IDistributedCache cache) : base(database, jobClient, notifications, cache)
     {
         this.logger = logger;
     }
