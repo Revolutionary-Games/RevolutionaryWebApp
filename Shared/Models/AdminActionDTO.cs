@@ -12,4 +12,5 @@ public class AdminActionDTO : ClientSideModel
     public DateTime CreatedAt { get; set; }
     public long? TargetUserId { get; set; }
     public long? PerformedById { get; set; }
+    public long? PerformedByAccessKeyId { get; set; }
 }
