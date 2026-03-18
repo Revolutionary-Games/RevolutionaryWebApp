@@ -284,7 +284,7 @@ public class MediaFileController : Controller
 
         await database.MediaFiles.AddAsync(file);
 
-        user.UploadQuotaUsed += request.Size;
+        await user.UpdateQuotaUsage(request.Size, database, false);
 
         await database.SaveChangesAsync();
 

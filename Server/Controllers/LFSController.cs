@@ -15,11 +15,13 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
+using Pages;
 using Services;
 using Shared;
 using Shared.Models;
@@ -83,7 +85,12 @@ public class LFSController : Controller
         return project.GetInfo();
     }
 
+    /// <summary>
+    ///   Handles both upload and download operations. As batches can be big, the rate limit shouldn't ever really
+    ///   hit (which is good as the downloads separately would blow up the upload rate limit)
+    /// </summary>
     [HttpPost("{slug}/objects/batch")]
+    [EnableRateLimiting(RateLimitCategories.UploadLimit)]
     public async Task<ActionResult<LFSResponse>> BatchOperation([Required] string slug,
         [Required] LFSRequest request)
     {
@@ -217,6 +224,9 @@ public class LFSController : Controller
             if (actualSize != verifiedToken.Size)
             {
                 logger.LogWarning("Detected partial upload to remote storage");
+
+                // TODO: delete from remote?
+
                 return new ObjectResult(new GitLFSErrorResponse
                     {
                         Message =
@@ -243,7 +253,25 @@ public class LFSController : Controller
 
         try
         {
-            // Move the uploaded file to a path the user can't anymore access to overwrite it
+            await RevolutionaryWebApp.Server.Models.User.UpdateQuotaUsage(verifiedToken.UserId, verifiedToken.Size,
+                database, false);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e,
+                "Failed to find user / update quota for upload verify to LFS. Will delete the uploaded file");
+            await remoteStorage.DeleteObject(uploadStoragePath);
+            return new ObjectResult(new GitLFSErrorResponse
+                    { Message = "Verification failed: failed to retrieve the user / resolve quota" }
+                .ToString())
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+            };
+        }
+
+        try
+        {
+            // Move the uploaded file to a path the user can't any more access to overwrite it
             await remoteStorage.MoveObject(uploadStoragePath, finalStoragePath);
 
             // Check the stored file hash
@@ -290,6 +318,7 @@ public class LFSController : Controller
             LfsProjectId = project.Id,
             StoragePath = finalStoragePath,
         });
+
         await database.SaveChangesAsync();
 
         // TODO: queue one more hash check to happen in 30 minutes to ensure the file is right to avoid any possible
@@ -416,12 +445,13 @@ public class LFSController : Controller
     }
 
     [NonAction]
-    private string GenerateUploadVerifyToken(LFSRequest.LFSObject obj)
+    private string GenerateUploadVerifyToken(LFSRequest.LFSObject obj, User user)
     {
         var token = new UploadVerifyToken
         {
             Oid = obj.Oid,
             Size = obj.Size,
+            UserId = user.Id,
         };
 
         var value = JsonSerializer.Serialize(token);
@@ -460,6 +490,21 @@ public class LFSController : Controller
         if (!RequireWriteAccess(out var result))
             throw new InvalidAccessException(result!);
 
+        // Disallow uploads if the user is above quota
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        var quota = MediaFileController.GetUploadQuotaForUser(user);
+
+        if (user.UploadQuotaUsed >= quota)
+        {
+            return new LFSResponse.LFSObject(obj.Oid, obj.Size,
+                new LFSResponse.LFSObject.ErrorInfo(StatusCodes.Status403Forbidden,
+                    "You have exceeded your upload quota for today"));
+        }
+
+        // We increase the quota here, but this isn't saved, so we can see the total usage of all new uploads
+        // immediately, but it is only committed to the database once upload verify is called
+        user.UploadQuotaUsed += obj.Size;
+
         // We don't yet create the LfsObject here to guard against upload failures
         // instead the verify callback does that
 
@@ -493,7 +538,7 @@ public class LFSController : Controller
 
         var verifyUrl = QueryHelpers.AddQueryString(
             new Uri(configuration.GetBaseUrl(), $"api/v1/lfs/{project.Slug}/verify").ToString(),
-            "token", GenerateUploadVerifyToken(obj));
+            "token", GenerateUploadVerifyToken(obj, user));
 
         return new LFSResponse.LFSObject(obj.Oid, obj.Size)
         {
@@ -541,6 +586,12 @@ public class LFSController : Controller
 
         [Required]
         public long Size { get; set; }
+
+        /// <summary>
+        ///   User to use the quota of
+        /// </summary>
+        [Required]
+        public long UserId { get; set; }
     }
 
     private class InvalidAccessException : Exception

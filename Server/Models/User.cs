@@ -241,6 +241,25 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
             TimeSpan.FromSeconds(30));
     }
 
+    public static async Task UpdateQuotaUsage(long userId, long usedQuota, ApplicationDbContext database, bool save)
+    {
+        if (usedQuota < 0)
+            throw new ArgumentException("Used quota cannot be negative", nameof(usedQuota));
+
+        if (usedQuota == 0)
+            return;
+
+        // In many contexts the loaded user cannot be updated and then saved, so we need to load it again
+        var user = await database.Users.FindAsync(userId);
+        if (user == null)
+            throw new InvalidOperationException("User not found in the database");
+
+        user.UploadQuotaUsed += usedQuota;
+
+        if (save)
+            await database.SaveChangesAsync();
+    }
+
     /// <summary>
     ///   Must be called when the user's groups have changed (and at most 30 seconds before saving the data to the DB).
     ///   If not called, the group change will not work!
@@ -363,6 +382,11 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     public void ComputeNormalizedEmail()
     {
         NormalizedEmail = Normalization.NormalizeEmail(Email);
+    }
+
+    public Task UpdateQuotaUsage(long usedQuota, ApplicationDbContext database, bool save)
+    {
+        return UpdateQuotaUsage(Id, usedQuota, database, save);
     }
 
     public UserDTO GetDTO(RecordAccessLevel infoLevel)

@@ -19,9 +19,11 @@ using Jobs;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
+using Pages;
 using Services;
 using Shared;
 using Shared.Forms;
@@ -1019,6 +1021,7 @@ public class StorageFilesController : Controller
 
     [HttpPost("startUpload")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    [EnableRateLimiting(RateLimitCategories.UploadLimit)]
     public async Task<ActionResult<UploadFileResponse>> StartFileUpload(
         [Required] [FromBody] UploadFileRequestForm request)
     {
@@ -1041,8 +1044,22 @@ public class StorageFilesController : Controller
         if (PathParser.IsExtensionUppercase(request.Name))
             return BadRequest("File extension can't contain uppercase characters");
 
+        if (request.Size <= 0)
+            return BadRequest("Size must be greater than 0");
+
+        if (request.Size > AppInfo.MaxMediaFileSize)
+            return BadRequest("File is too large");
+
         // TODO: maybe in the future we'll want to allow anonymous uploads to certain folders
         var user = HttpContext.AuthenticatedUserOrThrow();
+
+        var quota = MediaFileController.GetUploadQuotaForUser(user);
+
+        if (user.UploadQuotaUsed >= quota)
+            return BadRequest("Daily upload quota exceeded");
+
+        if (user.UploadQuotaUsed + request.Size > quota * 1.5)
+            return BadRequest("This upload would exceed daily quota by more than 50%");
 
         // Check write access
         StorageItem? parentFolder = null;
@@ -1063,7 +1080,7 @@ public class StorageFilesController : Controller
 
         if (existingItem != null)
         {
-            // New version of an existing item. User needs at least read access to the folder and
+            // New version of an existing item. User needs at least read access to the folder, and
             // Root folder is publicly readable so that doesn't need to be checked here
             if (parentFolder?.IsReadableBy(user) == false)
                 return this.WorkingForbid("You don't have read access to the folder");
@@ -1111,6 +1128,8 @@ public class StorageFilesController : Controller
         MultipartFileUpload? multipart = null;
         long? multipartId = null;
         string? uploadId = null;
+
+        await user.UpdateQuotaUsage(request.Size, database, false);
 
         if (request.Size >= AppInfo.FileSizeBeforeMultipartUpload)
         {
