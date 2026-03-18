@@ -38,6 +38,7 @@
                                 <UsernameDisplayer UserId="@item.EditedById" />
                             </td>
                             <td>@item.EditComment</td>
+                            @* TODO: split the diff by tab character and colour based on different operation types *@
                             <td class="small text-muted text-wrap" style="max-width: 300px; word-break: break-all;">
                                 @item.TruncatedDiff
                             </td>
