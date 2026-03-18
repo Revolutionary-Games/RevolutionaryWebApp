@@ -209,6 +209,7 @@ public class Startup
             CustomRateLimiter.CreateEmailVerificationLimiter(limiterOptions, limitOptions);
             CustomRateLimiter.CreateCrashReportLimiter(limiterOptions, limitOptions);
             CustomRateLimiter.CreateStackwalkLimiter(limiterOptions, limitOptions);
+            CustomRateLimiter.CreateUploadLimiter(limiterOptions, limitOptions);
         });
 
         services.AddDbContextPool<ApplicationDbContext>(opts =>
@@ -597,6 +598,7 @@ public class Startup
         AddJobHelper<CleanOldPrecompiledObjectVersionsJob>(configurationSection["CleanOldPrecompiledObjectVersions"]);
         AddJobHelper<ClearPassedSuspensionTimes>(configurationSection["ClearPassedSuspensionTimes"]);
         AddJobHelper<CheckAllUserAutomaticGroups>(configurationSection["CheckAllUserAutomaticGroups"]);
+        AddJobHelper<ResetDailyUploadQuotasJob>(configurationSection["ResetDailyUploadQuotas"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 

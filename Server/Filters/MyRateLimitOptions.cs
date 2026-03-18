@@ -44,7 +44,10 @@ public class MyRateLimitOptions
     public int UserGlobalPostLimit { get; set; } = 800;
 
     /// <summary>
-    ///   When true any requests coming from localhost get to bypass the global limit
+    ///   When true, any requests coming from localhost get to bypass the global limit
     /// </summary>
     public bool AllowUnlimitedFromLocalhost { get; set; } = false;
+
+    public int UploadLimit { get; set; } = 30;
+    public int UploadWindowSeconds { get; set; } = 60;
 }

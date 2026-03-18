@@ -8,4 +8,5 @@ public static class RateLimitCategories
     public const string EmailVerification = "email";
     public const string CrashReport = "crash";
     public const string Stackwalk = "stackwalk";
+    public const string UploadLimit = "upload";
 }

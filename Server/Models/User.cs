@@ -93,6 +93,11 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
 
     public int TotalLauncherLinks { get; set; }
 
+    /// <summary>
+    ///   How much the user has uploaded today
+    /// </summary>
+    public long UploadQuotaUsed { get; set; }
+
     [NotMapped]
     public string AuthenticationType
     {

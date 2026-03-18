@@ -9,10 +9,12 @@ using System.Threading.Tasks;
 using AngleSharp.Text;
 using Authorization;
 using DevCenterCommunication.Models;
+using Filters;
 using Hangfire;
 using Jobs.Pages;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -59,6 +61,26 @@ public class MediaFileController : Controller
 
         dataProtector = dataProtectionProvider.CreateProtector(MediaUploadProtectionPurposeString)
             .ToTimeLimitedDataProtector();
+    }
+
+    [NonAction]
+    public static long GetUploadQuotaForUser(User user)
+    {
+        var groups = user.AccessCachedGroupsOrThrow();
+
+        if (groups.HasAccessLevel(GroupType.Admin))
+            return AppInfo.QuotaAdmin;
+
+        if (groups.HasAccessLevel(GroupType.Developer))
+            return AppInfo.QuotaDeveloper;
+
+        if (groups.HasGroup(GroupType.PatreonSupporter))
+            return AppInfo.QuotaPatron;
+
+        if (groups.HasAccessLevel(GroupType.User))
+            return AppInfo.QuotaNormalUser;
+
+        return AppInfo.QuotaRestrictedUser;
     }
 
     [HttpGet("{id:long}")]
@@ -118,6 +140,7 @@ public class MediaFileController : Controller
         if (string.IsNullOrEmpty(path))
             return NotFound();
 
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
         return Redirect(new Uri(new Uri(viewBaseUrl), path).ToString());
     }
 
@@ -174,11 +197,18 @@ public class MediaFileController : Controller
 
     [HttpPost("startUpload")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.User)]
+    [EnableRateLimiting(RateLimitCategories.UploadLimit)]
     public async Task<ActionResult<UploadRequestResponse>> StartUpload(
         [Required] [FromBody] UploadMediaFileRequestForm request)
     {
         if (request.ModifyAccess == GroupType.NotLoggedIn || request.MetadataVisibility == GroupType.NotLoggedIn)
             return BadRequest("Access to not logged in is not allowed (currently)");
+
+        if (request.Size <= 0)
+            return BadRequest("Size must be greater than 0");
+
+        if (request.Size > AppInfo.MaxMediaFileSize)
+            return BadRequest("File is too large");
 
         // Make sure the name doesn't have weird whitespace
         request.Name = request.Name.Trim();
@@ -206,6 +236,17 @@ public class MediaFileController : Controller
         if (nameWithoutExtension is "large" or "page-fit" or "thumb")
             return BadRequest("File name is a reserved special name. Please rename the file and try again.");
 
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        var groups = user.AccessCachedGroupsOrThrow();
+
+        var quota = GetUploadQuotaForUser(user);
+
+        if (user.UploadQuotaUsed >= quota)
+            return BadRequest("Daily upload quota exceeded");
+
+        if (user.UploadQuotaUsed + request.Size > quota * 1.5)
+            return BadRequest("This upload would exceed daily quota by more than 50%");
+
         if (await database.MediaFiles.AnyAsync(m => m.GlobalId == request.MediaFileId))
             return BadRequest("Conflicting UUID, please retry");
 
@@ -213,9 +254,6 @@ public class MediaFileController : Controller
 
         if (folder == null)
             return BadRequest("Specified parent folder doesn't exist (or you don't have access to it)");
-
-        var user = HttpContext.AuthenticatedUserOrThrow();
-        var groups = user.AccessCachedGroupsOrThrow();
 
         // Check for no write access
         if (user.Id != folder.LastModifiedById && user.Id != folder.OwnedById &&
@@ -245,6 +283,9 @@ public class MediaFileController : Controller
         var uploadURL = fileStorage.CreatePresignedUploadURL(storagePath, AppInfo.RemoteStorageUploadExpireTime);
 
         await database.MediaFiles.AddAsync(file);
+
+        user.UploadQuotaUsed += request.Size;
+
         await database.SaveChangesAsync();
 
         var token = new UploadVerifyToken
@@ -467,7 +508,6 @@ public class MediaFileController : Controller
         return Ok();
     }
 
-    [NonAction]
     private bool CanModify(MediaFile mediaFile, User user)
     {
         var groups = user.AccessCachedGroupsOrThrow();

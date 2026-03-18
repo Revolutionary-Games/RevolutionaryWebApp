@@ -155,6 +155,16 @@ public class CustomRateLimiter
             limitOptions.StackwalkRefreshAmount);
     }
 
+    public static void CreateUploadLimiter(RateLimiterOptions limiterOptions, MyRateLimitOptions limitOptions)
+    {
+        CreateAreaRelatedFixedLimiter(
+            limiterOptions,
+            RateLimitCategories.UploadLimit,
+            limitOptions.UploadLimit,
+            limitOptions.UploadWindowSeconds,
+            limitOptions.ShortWindowQueueLimit);
+    }
+
     private static void CreateAreaRelatedFixedLimiter(
         RateLimiterOptions limiterOptions,
         string category,

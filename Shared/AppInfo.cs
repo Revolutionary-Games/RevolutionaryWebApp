@@ -98,6 +98,12 @@ public static class AppInfo
     public const long MaxCrashDumpUploadSize = GlobalConstants.MEBIBYTE * 9;
     public const long MaxCrashLogsLength = GlobalConstants.MEBIBYTE * 5;
 
+    public const long QuotaRestrictedUser = 0;
+    public const long QuotaNormalUser = 500 * (long)GlobalConstants.MEBIBYTE;
+    public const long QuotaPatron = 2 * (long)GlobalConstants.GIBIBYTE;
+    public const long QuotaDeveloper = 10 * (long)GlobalConstants.GIBIBYTE;
+    public const long QuotaAdmin = 500 * (long)GlobalConstants.GIBIBYTE;
+
     public const int MaxBuildOutputLineLength = 4000;
 
     public const int MaxBulkEmailsPerInterval = 4;
@@ -132,8 +138,9 @@ public static class AppInfo
     public const int LongestTableRefreshIntervalCutoff = 11;
 
     /// <summary>
-    ///   Interval after which a data retrieve is cleared from history of data refresh due to an update notification.
-    ///   This ensures that pages that rarely get updates but are kept open for a long time refresh in reasonable time.
+    ///   Interval after which a data retrieve is cleared from the history of data refresh due to an update
+    ///   notification. This ensures that pages that rarely get updates but are kept open for a long time refresh
+    ///   in a reasonable time.
     /// </summary>
     public const int ForgetDataRefreshFetchInterval = 10000;
 
