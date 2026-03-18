@@ -459,6 +459,7 @@ public abstract class BasePageController : Controller
             Deleted = p.Deleted,
             EditedById = p.EditedById,
             CreatedAt = p.CreatedAt,
+            TruncatedDiff = p.ReverseDiff.Length > 100 ? p.ReverseDiff.Substring(0, 100) : p.ReverseDiff,
         });
 
         var objects = await infoQuery.ToPagedResultAsync(page, pageSize);

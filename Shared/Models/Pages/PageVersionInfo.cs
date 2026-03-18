@@ -17,6 +17,8 @@ public class PageVersionInfo : IIdentifiable
 
     public long? EditedById { get; set; }
 
+    public string? TruncatedDiff { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     /// <summary>

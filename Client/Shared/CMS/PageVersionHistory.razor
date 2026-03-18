@@ -1,0 +1,114 @@
+@inject HttpClient Http
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models.Pages
+@inherits PaginatedPage<PageVersionInfo>
+
+<div class="mt-3">
+    <Button OnPressed="@ToggleShow" ButtonStyle="secondary" class="mb-2">
+        @(shown ? "Hide Version History" : "Show Version History")
+    </Button>
+
+    @if (shown)
+    {
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <div class="alert alert-danger" role="alert">
+                @Error
+            </div>
+        }
+        else
+        {
+            <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                            OnPageChanged="async e => await ChangePage(e)"
+                            OnSortChanged="async column => await ChangeSort(column)"
+                            GetSortClass="@SortClass"
+                            ShowContentSpinner="@VisibleFetchInProgress"
+                            Columns="@columns"
+                            ShowNoContent="@NoItemsFound">
+                @if (Data != null)
+                {
+                    @foreach (var item in Data.Results)
+                    {
+                        <tr @key="item.Id">
+                            <th scope="row">@item.Version</th>
+                            <td>
+                                <RecentTimeShortener Time="@item.CreatedAt" />
+                            </td>
+                            <td>
+                                <UsernameDisplayer UserId="@item.EditedById" />
+                            </td>
+                            <td>@item.EditComment</td>
+                            <td class="small text-muted text-wrap" style="max-width: 300px; word-break: break-all;">
+                                @item.TruncatedDiff
+                            </td>
+                        </tr>
+                    }
+                }
+            </PaginatedTable>
+        }
+    }
+</div>
+
+@code {
+    private bool shown;
+
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Version", true, "Version"),
+        new TableColumn("Created At", true, "CreatedAt"),
+        new TableColumn("Edited By", true, "EditedById"),
+        new TableColumn("Comment", false),
+        new TableColumn("Diff (truncated)", false),
+    };
+
+    [Parameter]
+    [EditorRequired]
+    public VersionedPageDTO PageDTO { get; set; } = null!;
+
+    [Parameter]
+    public string BaseEndpoint { get; set; } = null!;
+
+    private long lastPageId;
+
+    public PageVersionHistory() : base(new SortHelper("Version", SortDirection.Descending))
+    {
+        DefaultPageSize = 20;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (PageDTO.Id != lastPageId)
+        {
+            lastPageId = PageDTO.Id;
+
+            if (shown)
+            {
+                await FetchData();
+            }
+        }
+    }
+
+    private async Task ToggleShow()
+    {
+        shown = !shown;
+
+        if (shown)
+        {
+            await FetchData();
+        }
+    }
+
+    protected override Task<PagedResult<PageVersionInfo>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<PageVersionInfo>>(
+            QueryHelpers.AddQueryString($"{BaseEndpoint}/{PageDTO.Id}/versions", requestParams));
+    }
+
+    protected override Task SingleItemUpdateReceived(PageVersionInfo updatedItem)
+    {
+        // We could in theory update a row here, but versions shouldn't really be changing...
+        return Task.CompletedTask;
+    }
+}
