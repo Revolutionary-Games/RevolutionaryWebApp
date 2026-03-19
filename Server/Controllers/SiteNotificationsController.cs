@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared.Forms;
+using Shared.Models;
 using Shared.Models.Enums;
 using SharedBase.Utilities;
 
@@ -46,6 +47,23 @@ public class SiteNotificationsController : Controller
 
         await database.AdminActions.AddAsync(log);
         await database.SaveChangesAsync();
+
+        await notifications.Clients.All.ReceiveSiteNotice(data.Type, data.Message);
+
+        return Ok();
+    }
+
+    [AuthorizeAccessKeyFilter(RequiredAccess = AccessKeyType.MaintenanceNotices)]
+    [HttpPost("automatedNotice")]
+    public async Task<IActionResult> SendAutomatedNotice([Required] SiteNoticeFormData data)
+    {
+        var key = HttpContext.AuthenticatedAccessKey();
+
+        if (key == null)
+            return Unauthorized();
+
+        logger.LogInformation("New automated site notice sent by access key {Id}, text: {Message}, type: {Type}",
+            key.Id, data.Message, data.Type);
 
         await notifications.Clients.All.ReceiveSiteNotice(data.Type, data.Message);
 
