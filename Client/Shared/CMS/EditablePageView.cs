@@ -227,10 +227,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
     protected async void OnDeleted()
     {
-        if (Data != null)
-        {
-            Data.Deleted = true;
-        }
+        Data?.Deleted = true;
 
         if (!processingSave)
         {
@@ -243,10 +240,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
     protected async void OnRestored()
     {
-        if (Data != null)
-        {
-            Data.Deleted = false;
-        }
+        Data?.Deleted = false;
 
         await InvokeAsync(StateHasChanged);
     }
