@@ -99,7 +99,7 @@ public class PageCachingTests
             });
 
         var (controller, page) = await SetupDataForTest(senderMock, jobsMock, notificationsMock, cacheMock,
-            "PageCaching_CachesEvery10th");
+            "PageCaching_CacheReuseWorksAndResumes");
 
         var versionToResolve = 10;
         var resolvedDTO = await GetPageVersion(controller, page, versionToResolve);
