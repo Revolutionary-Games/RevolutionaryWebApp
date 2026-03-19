@@ -32,6 +32,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         "Failed to send notice to other users through the server that this page is being edited";
 
     private string? userEditedContent;
+    private string? editComment;
     private bool editedProperties;
     private bool editedText;
 
@@ -49,9 +50,29 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
     protected bool CanSaveChanges => HasEditedSomething && !processingSave;
 
     /// <summary>
-    ///   True once something is edited, enables the save button.
+    ///   True once something is edited, enables the save button. Except just updating the edit comment is not a valid
+    ///   edit.
     /// </summary>
     protected bool HasEditedSomething => editedProperties || editedText;
+
+    protected string? EditComment
+    {
+        get => editComment;
+        set
+        {
+            if (value == string.Empty)
+                value = null;
+
+            if (value != null && value.Length > AppInfo.MaxPageEditCommentLength)
+                value = value.Substring(0, AppInfo.MaxPageEditCommentLength);
+
+            if (value == editComment)
+                return;
+
+            editComment = value;
+            StateHasChanged();
+        }
+    }
 
     protected string? EditableContent
     {
@@ -247,9 +268,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         var dataToSend = Data.Clone();
         dataToSend.LatestContent = EditableContent ?? string.Empty;
         dataToSend.VersionNumber = editedVersion ?? dataToSend.VersionNumber;
-
-        // TODO: edit comment setting
-        dataToSend.LastEditComment = null;
+        dataToSend.LastEditComment = EditComment;
 
         // When content has been edited, we expect the version number to increase; this allows multiple edits in a
         // row
@@ -296,6 +315,7 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
             editedProperties = false;
             editedText = false;
             userEditedContent = null;
+            editComment = null;
 
             if (editedVersion != null)
                 editedVersion = nextVersionNumber;

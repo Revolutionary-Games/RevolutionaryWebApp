@@ -239,7 +239,7 @@ public abstract class BasePageController : Controller
         if (pageDTO.Permalink != null && !ValidatePermalink(pageDTO.Permalink, out var fail))
             return fail;
 
-        // Enforce content limits so that someone doesn't create a page with hundred thousand images
+        // Enforce content limits so that someone doesn't create a page with a hundred thousand images
         if (!CheckPageContentRespectsLimits(pageDTO.LatestContent, out var failure))
         {
             if (failure != null)
@@ -320,10 +320,21 @@ public abstract class BasePageController : Controller
         else
         {
             // Updating just page properties
+            // Don't allow editing just the edit comment
+            bool newEditComment = pageDTO.LastEditComment != page.LastEditComment;
+
+            page.LastEditComment = pageDTO.LastEditComment;
             var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(page, pageDTO);
 
             if (!changes)
+            {
+                if (newEditComment)
+                {
+                    return BadRequest("Cannot update only the edit comment. Edit something else as well");
+                }
+
                 return Ok("No changes");
+            }
 
             page.BumpUpdatedAt();
 

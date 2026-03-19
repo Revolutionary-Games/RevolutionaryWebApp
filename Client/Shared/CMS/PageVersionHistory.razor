@@ -1,6 +1,7 @@
 @inject HttpClient Http
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models.Pages
+@using SharedBase.Utilities
 @inherits PaginatedPage<PageVersionInfo>
 
 <div class="mt-3">
@@ -38,7 +39,12 @@
                             <td>
                                 <UsernameDisplayer UserId="@item.EditedById" />
                             </td>
-                            <td>@item.EditComment</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.EditComment))
+                                {
+                                    <span title="@item.EditComment">@item.EditComment.Truncate(100)</span>
+                                }
+                            </td>
                             @* TODO: split the diff by tab character and colour based on different operation types *@
                             <td class="small text-muted text-wrap" style="max-width: 300px; word-break: break-all;">
                                 @item.TruncatedDiff

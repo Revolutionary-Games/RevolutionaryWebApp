@@ -1,4 +1,5 @@
 @page "/posts/{Id:long}"
+@using RevolutionaryWebApp.Shared
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
 @inject CurrentUserInfo CurrentUserInfo
@@ -39,7 +40,11 @@
 
             <PagePublishingControls Data="@Data" OnPropertiesChanged="@OnPropertiesChanged"/>
 
-            <p>TODO: edit comment field</p>
+            <div class="my-2">
+                <label for="editComment">Edit Comment (optional):</label>
+                <input type="text" class="form-control" id="editComment" @bind="EditComment"
+                       placeholder="Short description of your changes" maxlength="@AppInfo.MaxPageEditCommentLength" />
+            </div>
 
             <StatusMessageShower Message="@saveMessage" Type="@saveMessageType" OnClosed="@ClearSaveMessage"/>
 
