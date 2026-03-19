@@ -47,6 +47,8 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
 
     protected abstract PageType EditedPageType { get; }
 
+    protected string? UserEditedContent => userEditedContent;
+
     protected bool CanSaveChanges => HasEditedSomething && !processingSave;
 
     /// <summary>
@@ -196,6 +198,18 @@ public abstract class EditablePageView : SingleResourcePage<VersionedPageDTO, Ve
         EditableContent = text;
 
         SendNoticeAboutEditingPage();
+    }
+
+    protected void ApplyHistoricalVersion(string text, int versionNumber)
+    {
+        OnEdited(text);
+
+        if (string.IsNullOrWhiteSpace(EditComment))
+        {
+            EditComment = $"Text revert to version {versionNumber}";
+        }
+
+        StateHasChanged();
     }
 
     protected abstract HttpClient AccessHttp();

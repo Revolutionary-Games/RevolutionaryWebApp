@@ -61,7 +61,7 @@
 
             <PageEditFooter Data="@Data" />
 
-            <PageVersionHistory PageDTO="@Data" BaseEndpoint="api/v1/Posts" />
+            <PageVersionHistory PageDTO="@Data" BaseEndpoint="api/v1/Posts" OnApplyVersion="@ApplyHistoricalVersion" />
 
             <DevCenterTitle>Edit Post @Id</DevCenterTitle>
         }
