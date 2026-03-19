@@ -414,7 +414,7 @@ public class Startup
         app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
             appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
 
-        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/v1/devbuild"),
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"),
             appBuilder => { appBuilder.UseMiddleware<AccessCodeAuthenticationMiddleware>(); });
 
         app.UseWhen(context => context.Request.Path.StartsWithSegments("/hangfire"),
