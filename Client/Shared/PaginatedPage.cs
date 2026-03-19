@@ -67,8 +67,7 @@ public abstract class PaginatedPage<T> : DataPage<T, PagedResult<T>>
                 // if the data is part of this page or not, before refreshing
                 WantsToFetchDataAgain = true;
 
-                Console.WriteLine(
-                    "Refreshing current paginated page due to item add or remove. Delay to avoid too " +
+                Console.WriteLine("Refreshing current paginated page due to item add or remove. Delay to avoid too " +
                     $"many requests: {FetchTimerInterval}");
                 break;
             }
@@ -95,10 +94,19 @@ public abstract class PaginatedPage<T> : DataPage<T, PagedResult<T>>
             queryParams.Remove("pageSize");
     }
 
-    protected override Task OnSortChanged()
+    /// <summary>
+    ///   Triggered when the sort order is changed or the column is changed.
+    /// </summary>
+    /// <param name="columnChanged">True if the column changed. If false, then only the sort direction changed.</param>
+    /// <returns>Task</returns>
+    protected override Task OnSortChanged(bool columnChanged)
     {
-        // Move to first page when sort column is changed
-        Page = 1;
+        if (columnChanged)
+        {
+            // Move to the first page when the sort column is changed
+            Page = 1;
+        }
+
         return Task.CompletedTask;
     }
 

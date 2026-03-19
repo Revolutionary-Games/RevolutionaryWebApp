@@ -1,12 +1,16 @@
 <div>
     <div style="position: relative">
-        <table class="table sortable table-striped table-hover @ResponsiveType @ExtraCSS">
+        <table class="table @GetTableMainCSS() @ResponsiveType @ExtraCSS">
             <thead class="table-light">
             <tr>
                 @foreach (var column in Columns)
                 {
                     <th scope="col" class="@(column.IsSortable ? "sort" : "")"
-                        @onclick="@(async () => {if (column.IsSortable) await OnSortChanged.InvokeAsync(column.SortName);})">
+                        @onclick="@(async () =>
+                                  {
+                                      if (column.IsSortable)
+                                          await OnSortChanged.InvokeAsync(column.SortName);
+                                  })">
                         @column.Name
 
                         @if (column.IsSortable)
@@ -77,6 +81,9 @@
     public bool ShowNoContent { get; set; }
 
     [Parameter]
+    public bool ShowHoverHighlight { get; set; } = true;
+
+    [Parameter]
     [EditorRequired]
     public List<TableColumn> Columns { get; set; } = null!;
 
@@ -88,4 +95,13 @@
     public CalculateSortClass GetSortClass { get; set; } = null!;
 
     private string ExtraCSS => UseNonFixedColumns ? "non-fixed" : string.Empty;
+
+    private string GetTableMainCSS()
+    {
+        if (!ShowHoverHighlight)
+            return "sortable table-striped";
+
+        return "sortable table-striped table-hover";
+    }
+
 }

@@ -1,5 +1,6 @@
 namespace RevolutionaryWebApp.Client.Utilities;
 
+using System;
 using System.Collections.Generic;
 using Models;
 
@@ -45,6 +46,14 @@ public class ClientSideResourceStatus<T>
         foreach (var status in statuses.Values)
         {
             status.Deleted = false;
+        }
+    }
+
+    public void ForEach(Action<T> operation)
+    {
+        foreach (var status in statuses.Values)
+        {
+            operation(status);
         }
     }
 }

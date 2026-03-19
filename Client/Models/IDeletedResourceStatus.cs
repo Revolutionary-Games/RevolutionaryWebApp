@@ -13,7 +13,7 @@ public class DeletedResourceStatus : IDeletedResourceStatus
     public bool Deleted { get; set; }
 
     /// <summary>
-    ///   Set to true when the delete is being processed
+    ///   Set to true when the an operation on this item is being processed
     /// </summary>
     public bool Processing { get; set; }
 }

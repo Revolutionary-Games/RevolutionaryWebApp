@@ -1,7 +1,13 @@
 @inject HttpClient Http
+@inject IClipboard Clipboard
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models.Pages
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Client.Models
 @using SharedBase.Utilities
+@using DiffPlex.DiffBuilder
+@using DiffPlex.DiffBuilder.Model
+@using TextCopy
 @inherits PaginatedPage<PageVersionInfo>
 
 <div class="mt-3">
@@ -19,25 +25,32 @@
         }
         else
         {
-            <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+            <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage"
+                            PageCount="@Data?.PageCount"
                             OnPageChanged="async e => await ChangePage(e)"
                             OnSortChanged="async column => await ChangeSort(column)"
                             GetSortClass="@SortClass"
                             ShowContentSpinner="@VisibleFetchInProgress"
                             Columns="@columns"
                             ShowNoContent="@NoItemsFound"
-                            UseNonFixedColumns="@true">
+                            UseNonFixedColumns="@true"
+                            ShowHoverHighlight="@false">
                 @if (Data != null)
                 {
                     @foreach (var item in Data.Results)
                     {
+                        var status = clientSideResourceStatus.GetStatus(item.Id);
+
                         <tr @key="item.Id">
-                            <th scope="row">@item.Version</th>
-                            <td>
-                                <RecentTimeShortener Time="@item.CreatedAt" />
+                            <td @onclick="() => ToggleDetails(item)" class="clickable">
+                                <ItemExpander Expanded="@status.Expanded"/>
+                                <span class="ms-1 btn-link">@item.Version</span>
                             </td>
                             <td>
-                                <UsernameDisplayer UserId="@item.EditedById" />
+                                <RecentTimeShortener Time="@item.CreatedAt"/>
+                            </td>
+                            <td>
+                                <UsernameDisplayer UserId="@item.EditedById"/>
                             </td>
                             <td>
                                 @if (!string.IsNullOrEmpty(item.EditComment))
@@ -50,6 +63,94 @@
                                 @item.TruncatedDiff
                             </td>
                         </tr>
+
+                        @if (!status.Expanded)
+                            continue;
+
+                        <tr @key="@($"{item.Id}-details")">
+                            <td colspan="@columns.Count" class="expanded-box position-relative">
+                                @if (fetchedVersions.TryGetValue(item.Version, out var versionDTO))
+                                {
+                                    var diff = SideBySideDiffBuilder.Instance.BuildDiffModel(PageDTO.LatestContent,
+                                        versionDTO.PageContentAtVersion);
+
+                                    <div>
+                                        <h5>Version @item.Version Details</h5>
+                                        <p>
+                                            <strong>Edit Comment:</strong> @versionDTO.EditComment<br/>
+                                            <strong>Created At:</strong>
+                                            @versionDTO.CreatedAt.ToLocalTime().ToString("G")<br/>
+                                            <strong>By:</strong>
+                                            <UsernameDisplayer UserId="@versionDTO.EditedById"/>
+                                        </p>
+
+                                        <div class="diff-viewer mt-3 mb-3">
+                                            <h6>Side-by-Side Diff (Current vs Version @item.Version)</h6>
+                                            <div class="row g-0 border rounded overflow-hidden">
+                                                <div class="col-6 border-end">
+                                                    <div class="bg-light p-1 border-bottom text-center small">
+                                                        Current
+                                                    </div>
+                                                    <div class="diff-content p-2 small font-monospace">
+                                                        @foreach (var line in diff.OldText.Lines)
+                                                        {
+                                                            <div class="diff-line @GetLineClass(line.Type)">
+                                                                <span class="diff-line-number text-muted me-2">
+                                                                    @(line.Position?.ToString() ?? " ")
+                                                                </span>
+                                                                <span>@line.Text</span>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="bg-light p-1 border-bottom text-center small">
+                                                        Version @item.Version</div>
+                                                    <div class="diff-content p-2 small font-monospace">
+                                                        @foreach (var line in diff.NewText.Lines)
+                                                        {
+                                                            <div class="diff-line @GetLineClass(line.Type)">
+                                                                <span class="diff-line-number text-muted me-2">
+                                                                    @(line.Position?.ToString() ?? " ")
+                                                                </span>
+                                                                <span>@line.Text</span>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-2">
+                                            <Button
+                                                OnPressed="@(() => CopyToClipboard(versionDTO.PageContentAtVersion))"
+                                                ButtonStyle="secondary" class="btn-sm me-2">
+                                                Copy to Clipboard
+                                            </Button>
+                                            <Button
+                                                OnPressed="@(() => ApplyVersion(versionDTO.PageContentAtVersion, item.Version))"
+                                                ButtonStyle="warning" class="btn-sm">
+                                                Apply to Current Page
+                                            </Button>
+                                        </div>
+                                    </div>
+                                }
+                                else if (status.Processing)
+                                {
+                                    <div class="d-flex justify-content-center p-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading version content...</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger">
+                                        @itemFetchError
+                                    </div>
+                                }
+                            </td>
+                        </tr>
                     }
                 }
             </PaginatedTable>
@@ -59,6 +160,11 @@
 
 @code {
     private bool shown;
+
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
+    private readonly Dictionary<int, PageVersionDTO> fetchedVersions = new();
+
+    private string itemFetchError = "Failed to load version content.";
 
     private readonly List<TableColumn> columns = new()
     {
@@ -75,6 +181,9 @@
 
     [Parameter]
     public string BaseEndpoint { get; set; } = null!;
+
+    [Parameter]
+    public Action<string, int>? OnApplyVersion { get; set; }
 
     private long lastPageId;
 
@@ -98,6 +207,14 @@
         }
     }
 
+    protected override Task OnSortChanged(bool columnChanged)
+    {
+        // Collapse all sections so that expensive diffs don't re-render
+        clientSideResourceStatus.ForEach(s => s.Expanded = false);
+
+        return base.OnSortChanged(columnChanged);
+    }
+
     private async Task ToggleShow()
     {
         shown = !shown;
@@ -108,10 +225,64 @@
         }
     }
 
+    private async Task ToggleDetails(PageVersionInfo item)
+    {
+        var status = clientSideResourceStatus.GetStatus(item.Id);
+        status.Expanded = !status.Expanded;
+
+        if (status.Expanded && !fetchedVersions.ContainsKey(item.Version))
+        {
+            status.Processing = true;
+
+            try
+            {
+                var result = await Http.PostAsync($"{BaseEndpoint}/{PageDTO.Id}/versions/{item.Version}", null);
+
+                if (result.IsSuccessStatusCode)
+                {
+                    var versionData = await result.Content.ReadFromJsonAsync<PageVersionDTO>();
+                    if (versionData != null)
+                        fetchedVersions[item.Version] = versionData;
+                }
+            }
+            catch (Exception e)
+            {
+                itemFetchError = "Failed to load version content. " + e.Message;
+            }
+            finally
+            {
+                status.Processing = false;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private string GetLineClass(ChangeType type)
+    {
+        return type switch
+        {
+            ChangeType.Deleted => "diff-deleted",
+            ChangeType.Inserted => "diff-inserted",
+            ChangeType.Modified => "diff-modified",
+            _ => string.Empty,
+        };
+    }
+
+    private async Task CopyToClipboard(string text)
+    {
+        await Clipboard.SetTextAsync(text);
+    }
+
+    private void ApplyVersion(string text, int version)
+    {
+        OnApplyVersion?.Invoke(text, version);
+    }
+
     protected override Task<PagedResult<PageVersionInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<PageVersionInfo>>(
-            QueryHelpers.AddQueryString($"{BaseEndpoint}/{PageDTO.Id}/versions", requestParams));
+        var uri = QueryHelpers.AddQueryString($"{BaseEndpoint}/{PageDTO.Id}/versions", requestParams);
+        return Http.GetFromJsonAsync<PagedResult<PageVersionInfo>>(uri);
     }
 
     protected override Task SingleItemUpdateReceived(PageVersionInfo updatedItem)
@@ -119,4 +290,26 @@
         // We could in theory update a row here, but versions shouldn't really be changing...
         return Task.CompletedTask;
     }
+
 }
+
+<style>
+    .diff-deleted {
+        background-color: #ffdce0;
+        text-decoration: line-through;
+    }
+
+    .diff-inserted {
+        background-color: #cdffd8;
+    }
+
+    .diff-modified {
+        background-color: #fffbdd;
+    }
+
+    .diff-line {
+        /* This breaks line number alignment so is not used */
+        /*white-space: pre-wrap;*/
+        word-break: break-all;
+    }
+</style>

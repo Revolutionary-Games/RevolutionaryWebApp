@@ -127,7 +127,14 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     public async Task ChangeSort(string column)
     {
         if (Sort.ColumnClick(column))
-            await OnSortChanged();
+        {
+            await OnSortChanged(true);
+        }
+        else
+        {
+            // Only direction changed
+            await OnSortChanged(false);
+        }
 
         await FetchData();
     }
@@ -340,7 +347,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
         return Task.CompletedTask;
     }
 
-    protected virtual Task OnSortChanged()
+    protected virtual Task OnSortChanged(bool columnChanged)
     {
         return Task.CompletedTask;
     }

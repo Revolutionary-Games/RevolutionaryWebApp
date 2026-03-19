@@ -1,7 +1,7 @@
 <div>
     <SortableTable ResponsiveType="@ResponsiveType" UseNonFixedColumns="@UseNonFixedColumns"
                    ShowContentSpinner="@ContentSpinner" ShowNoContent="@ShowNoContent" Columns="@Columns"
-                   OnSortChanged="@OnSortChanged" GetSortClass="@GetSortClass">
+                   OnSortChanged="@OnSortChanged" GetSortClass="@GetSortClass" ShowHoverHighlight="@ShowHoverHighlight">
         @ChildContent
     </SortableTable>
 
@@ -17,7 +17,7 @@
                          FirstText="&laquo;"
                          LastText="&raquo;"
                          NextText="&rsaquo;"
-                         PreviousText="&lsaquo;" />
+                         PreviousText="&lsaquo;"/>
         </div>
     }
     else
@@ -30,8 +30,8 @@
     }
 </div>
 
-<MediaQuery Media="@Breakpoints.SmallDown" @bind-Matches="isSmall" />
-<MediaQuery Media="@Breakpoints.LargeUp" @bind-Matches="isLarge" />
+<MediaQuery Media="@Breakpoints.SmallDown" @bind-Matches="isSmall"/>
+<MediaQuery Media="@Breakpoints.LargeUp" @bind-Matches="isLarge"/>
 
 @code {
 
@@ -67,6 +67,9 @@
 
     [Parameter]
     public int? PageCount { get; set; }
+
+    [Parameter]
+    public bool ShowHoverHighlight { get; set; } = true;
 
     [Parameter]
     [EditorRequired]

@@ -36,7 +36,8 @@
             <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
             <SimultaneousEditWarningShower UserId="@someoneElseEditId" AtTime="@someoneElseEditTime"/>
 
-            <PageEditorWithPreview Id="@Id" OriginalText="@Data.LatestContent" OnEdited="@OnEdited"/>
+            <PageEditorWithPreview Id="@Id" OriginalText="@Data.LatestContent" OnEdited="@OnEdited"
+                                   ForceText="@UserEditedContent"/>
 
             <PagePublishingControls Data="@Data" OnPropertiesChanged="@OnPropertiesChanged"/>
 
