@@ -27,7 +27,8 @@ public class RealTimeBuildMessageSocket
 
     public WebSocketCloseStatus? CloseStatus => socket.CloseStatus;
 
-    public async Task<(RealTimeBuildMessage? Message, bool Closed)> Read(CancellationToken cancellationToken)
+    public async Task<(RealTimeBuildMessage? Message, bool Closed)> Read(CancellationToken cancellationToken,
+        CancellationToken bulkReadCancellation = default)
     {
         WebSocketReceiveResult sizeReadResult;
         try
@@ -55,19 +56,23 @@ public class RealTimeBuildMessageSocket
         }
 
         // Read the realTimeBuildMessage
-        // First allocate big enough buffer
+        // First allocate a big enough buffer
         if (messageBuffer == null || messageBuffer.Length < messageSize)
         {
             messageBuffer =
                 new byte[Math.Min((int)(messageSize * 1.5f), AppInfo.MaxSingleBuildOutputMessageLength)];
         }
 
+        // Set up bulk read cancel if not already set to anything
+        if (bulkReadCancellation == CancellationToken.None)
+            bulkReadCancellation = cancellationToken;
+
         // TODO: can be actually receive a partial amount of the data here? so should we loop until
         // messageSize has been received? (doesn't seem to be the case, at least with reasonable size messages)
         WebSocketReceiveResult readResult;
         try
         {
-            readResult = await socket.ReceiveAsync(new ArraySegment<byte>(messageBuffer), cancellationToken);
+            readResult = await socket.ReceiveAsync(new ArraySegment<byte>(messageBuffer), bulkReadCancellation);
         }
         catch (WebSocketException e)
         {
@@ -87,8 +92,8 @@ public class RealTimeBuildMessageSocket
         try
         {
             var message =
-                JsonSerializer.Deserialize<RealTimeBuildMessage>(
-                    Encoding.UTF8.GetString(messageBuffer, 0, readResult.Count));
+                JsonSerializer.Deserialize<RealTimeBuildMessage>(Encoding.UTF8.GetString(messageBuffer, 0,
+                    readResult.Count));
 
             if (message == null)
                 throw new NullReferenceException("parsed realTimeBuildMessage is null");
@@ -112,6 +117,15 @@ public class RealTimeBuildMessageSocket
 
         await socket.SendAsync(lengthBuffer, WebSocketMessageType.Binary, false, cancellationToken);
         await socket.SendAsync(buffer, WebSocketMessageType.Text, true, cancellationToken);
+    }
+
+    public async Task<bool> Close(CancellationToken cancellationToken)
+    {
+        if (socket.State is WebSocketState.Aborted or WebSocketState.Closed or WebSocketState.None)
+            return true;
+
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken);
+        return true;
     }
 }
 

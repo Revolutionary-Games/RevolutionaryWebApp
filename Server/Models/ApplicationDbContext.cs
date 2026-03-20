@@ -48,8 +48,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<CiJob> CiJobs { get; set; } = null!;
     public DbSet<CiJobArtifact> CiJobArtifacts { get; set; } = null!;
     public DbSet<CiJobOutputSection> CiJobOutputSections { get; set; } = null!;
+
+    // TODO: delete these two as they will be replaced
     public DbSet<ControlledServer> ControlledServers { get; set; } = null!;
     public DbSet<ExternalServer> ExternalServers { get; set; } = null!;
+
+    public DbSet<RemoteRunner> RemoteRunners { get; set; } = null!;
+
     public DbSet<Cla> Clas { get; set; } = null!;
     public DbSet<ClaSignature> ClaSignatures { get; set; } = null!;
     public DbSet<Meeting> Meetings { get; set; } = null!;

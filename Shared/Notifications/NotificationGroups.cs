@@ -147,4 +147,9 @@ public static class NotificationGroups
     ///   like logout requests.
     /// </summary>
     public const string SessionImportantMessage = "USM_";
+
+    /// <summary>
+    ///   Note this notification only exists on redis bus directly
+    /// </summary>
+    public const string RealtimeNewJobCreatedNotification = "RNewJobCreated";
 }

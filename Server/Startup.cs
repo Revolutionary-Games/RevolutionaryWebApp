@@ -104,7 +104,7 @@ public class Startup
                 throw new CryptographicException("Invalid certificate for key protection.");
             }
 
-            // Setup data protection storage. Database is vastly preferred in production use.
+            // Set up data protection storage. Database is vastly preferred in production use.
             if (hasKeysDb)
             {
                 services.AddDataProtection()
@@ -169,10 +169,7 @@ public class Startup
         });
 
         // This caching allows automatically setting the response header, so we also use this to save on some code
-        services.AddResponseCaching(options =>
-        {
-            options.MaximumBodySize = GlobalConstants.MEBIBYTE * 4;
-        });
+        services.AddResponseCaching(options => { options.MaximumBodySize = GlobalConstants.MEBIBYTE * 4; });
 
         services.AddControllersWithViews(options => { options.OutputFormatters.Add(new HtmlTextFormatter()); })
             .AddJsonOptions(_ =>
@@ -478,9 +475,15 @@ public class Startup
         {
             if (context.Request.Path == "/ciBuildConnection")
             {
-                // New scope is probably needed here to not share the global ApplicationServices scope
+                // A new scope is probably needed here to not share the global ApplicationServices scope
                 await BuildWebSocketHandler.HandleHttpConnection(context,
                     app.ApplicationServices.CreateScope().ServiceProvider);
+            }
+            else if (context.Request.Path == "/runnerConnection")
+            {
+                await RunnerConnectionHandler.HandleHttpConnection(context,
+                    app.ApplicationServices.GetRequiredService<IServiceScopeFactory>(),
+                    app.ApplicationServices.GetRequiredService<IConnectionMultiplexer>());
             }
             else
             {
