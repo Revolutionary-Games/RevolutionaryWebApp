@@ -448,6 +448,27 @@ public class RunnerConnectionHandler : IDisposable
                     {
                         emptyMessages = 0;
 
+                        // Sanity check a few max limits, and if violated, tell the client to fix itself
+                        if (message.SectionName is { Length: > 100 } ||
+                            message.Output is { Length: > 20000 } || message.ErrorMessage is { Length: > 10000 })
+                        {
+                            logger?.LogWarning("Client sent a message that is too long");
+
+                            await ReplyToClient(new RealTimeBuildMessage
+                            {
+                                Type = BuildSectionMessageType.Error,
+                                ErrorMessage = "Too long message",
+                            }, messageTimeout.Token);
+
+                            await UpdateRunnerModelData(runner =>
+                            {
+                                runner.LastTriggeredError = "Client sent a message that is too long";
+                                runner.BumpUpdatedAt();
+                            });
+
+                            break;
+                        }
+
                         await HandleClientMessage(message);
                     }
 
@@ -511,6 +532,10 @@ public class RunnerConnectionHandler : IDisposable
                 Console.WriteLine($"Failed to unsubscribe from redis notifications: {e}");
             }
         }
+
+        // TODO: should we close the last section under certain circumstances? We wouldn't always want to do that as
+        // if the client just lost a connection temporarily, the build might still be continuing and once reconnected
+        // the client might want to resume.
     }
 
     private async Task HandleClientMessage(RealTimeBuildMessage message)
@@ -536,6 +561,9 @@ public class RunnerConnectionHandler : IDisposable
         {
             case BuildSectionMessageType.SectionStart:
             {
+                if (!await CheckAndErrorIfNoActiveJob(processingMaxTime.Token))
+                    return;
+
                 // Close the previous section if it was left open
                 BufferTextOutputIfSectionOpen("Section not closed by runner!");
                 await TryFinishCurrentSection(new RealTimeBuildMessage
@@ -552,6 +580,9 @@ public class RunnerConnectionHandler : IDisposable
 
             case BuildSectionMessageType.BuildOutput:
             {
+                if (!await CheckAndErrorIfNoActiveJob(processingMaxTime.Token))
+                    return;
+
                 // Bigger output is buffered into reasonable segments
                 if (activeOutputSection == null)
                 {
@@ -602,6 +633,9 @@ public class RunnerConnectionHandler : IDisposable
 
             case BuildSectionMessageType.SectionEnd:
             {
+                if (!await CheckAndErrorIfNoActiveJob(processingMaxTime.Token))
+                    return;
+
                 if (!await TryFinishCurrentSection(message, processingMaxTime.Token))
                 {
                     logger?.LogWarning("Failed to finish current section");
@@ -617,6 +651,9 @@ public class RunnerConnectionHandler : IDisposable
 
             case BuildSectionMessageType.FinalStatus:
             {
+                if (!await CheckAndErrorIfNoActiveJob(processingMaxTime.Token))
+                    return;
+
                 if (!await TryFinishJob(message, processingMaxTime.Token))
                 {
                     await ReplyToClient(new RealTimeBuildMessage
@@ -662,6 +699,24 @@ public class RunnerConnectionHandler : IDisposable
         }
     }
 
+    private async Task<bool> CheckAndErrorIfNoActiveJob(CancellationToken cancellationToken)
+    {
+        if (activeJob == null)
+        {
+            logger?.LogWarning("Tried to do something with a job when there was no active job");
+
+            await ReplyToClient(new RealTimeBuildMessage
+            {
+                Type = BuildSectionMessageType.Error,
+                ErrorMessage = "No active job (required for this message)",
+            }, cancellationToken);
+
+            return false;
+        }
+
+        return true;
+    }
+
     private async Task<bool> TryToStartWorkingOnJob(long ciProject, long ciBuild, long ciJob,
         CancellationToken cancellationToken)
     {
@@ -696,7 +751,7 @@ public class RunnerConnectionHandler : IDisposable
             }
             catch (DbUpdateConcurrencyException e)
             {
-                // Clear old job state which should allow us to keep using the DB instance
+                // Clear the old job state which should allow us to keep using the DB instance
                 DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(e.Entries, job);
 
                 // Somebody else got the job first

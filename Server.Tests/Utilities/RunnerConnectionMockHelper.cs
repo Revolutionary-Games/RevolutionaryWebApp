@@ -268,4 +268,11 @@ public class RunnerConnectionMockHelper
 
         await connection.WaitUntilClosed(timeout);
     }
+
+    public void DequeueAuthRequest()
+    {
+        Assert.True(TryDequeueServerMessage(out var serverMessage, out _));
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.AuthDemand, serverMessage.Type);
+    }
 }

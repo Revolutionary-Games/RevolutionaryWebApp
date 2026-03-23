@@ -87,15 +87,46 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         Assert.Equal(1, listenerMockSetup.GetQueuedMessageCount());
 
         Assert.True(listenerMockSetup.TryDequeueServerMessage(out var serverMessage, out _));
-
         Assert.NotNull(serverMessage);
         Assert.Equal(BuildSectionMessageType.AuthDemand, serverMessage.Type);
 
+        // Server sent an error about the incorrect key
         Assert.True(listenerMockSetup.TryDequeueServerMessage(out serverMessage, out _));
         Assert.NotNull(serverMessage);
         Assert.Equal(BuildSectionMessageType.Error, serverMessage.Type);
 
         Assert.False(listenerMockSetup.TryDequeueServerMessage(out serverMessage, out _));
+    }
+
+    [Fact]
+    public async Task Runner_CannotSendOutputWithoutJob()
+    {
+        var listenerMockSetup = await RunnerConnectionMockHelper.Create(nameof(Runner_CanConnectWithWebsocket), logger);
+
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.HeartBeat });
+
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+            { Type = BuildSectionMessageType.SectionStart, SectionId = 1, SectionName = "Example section" });
+
+        // And then close the connection
+        listenerMockSetup.QueueCloseMessage();
+
+        Assert.True(await listenerMockSetup.Start());
+
+        await listenerMockSetup.CheckAuthHappened();
+
+        await listenerMockSetup.WaitUntilClosed();
+
+        Assert.Equal(0, listenerMockSetup.GetQueuedMessageCount());
+
+        listenerMockSetup.DequeueAuthRequest();
+
+        Assert.True(listenerMockSetup.TryDequeueServerMessage(out var serverMessage, out _));
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.Error, serverMessage.Type);
+
+        Assert.Contains("No active job", serverMessage.ErrorMessage);
+        Assert.Contains("required for this message", serverMessage.ErrorMessage);
     }
 
     public void Dispose()
