@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server;
 
 using System;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -450,7 +451,7 @@ public class Startup
             // app.UseHsts();
         }
 
-        // Files are only served in development, in production reverse proxy needs to serve them
+        // Files are only served in development, in production a reverse proxy needs to serve them
         if (env.IsDevelopment())
         {
             Console.WriteLine("Serving static files in development configuration");
@@ -481,9 +482,16 @@ public class Startup
             }
             else if (context.Request.Path == "/runnerConnection")
             {
+                if (!context.WebSockets.IsWebSocketRequest)
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    return;
+                }
+
                 await RunnerConnectionHandler.HandleHttpConnection(context,
                     app.ApplicationServices.GetRequiredService<IServiceScopeFactory>(),
-                    app.ApplicationServices.GetRequiredService<IConnectionMultiplexer>());
+                    app.ApplicationServices.GetRequiredService<IConnectionMultiplexer>(),
+                    new HttpContextMessageSocketFactory(context));
             }
             else
             {

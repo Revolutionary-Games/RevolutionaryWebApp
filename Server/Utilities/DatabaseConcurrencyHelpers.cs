@@ -42,7 +42,7 @@ public static class DatabaseConcurrencyHelpers
     /// </summary>
     /// <remarks>
     ///   <para>
-    ///     After running this method any needed modifications to the <see cref="entry"/> need to be redone
+    ///     After running this method any necessary modifications to the <see cref="entry"/> need to be redone
     ///   </para>
     /// </remarks>
     /// <param name="conflicts">

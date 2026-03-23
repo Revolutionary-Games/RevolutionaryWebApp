@@ -12,8 +12,10 @@ public class RealTimeBuildMessage : SerializedNotification
     [JsonConverter(typeof(ActualEnumStringConverter))]
     public BuildSectionMessageType Type { get; set; }
 
+    [MaxLength(5000)]
     public string? ErrorMessage { get; set; }
 
+    [MaxLength(20000)]
     public string? Output { get; set; }
 
     [MaxLength(100)]

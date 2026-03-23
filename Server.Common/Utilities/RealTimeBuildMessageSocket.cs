@@ -12,7 +12,7 @@ using Shared.Models;
 /// <summary>
 ///   Wrapper around WebSocket to provide support for the realtime build messaging protocol
 /// </summary>
-public class RealTimeBuildMessageSocket
+public class RealTimeBuildMessageSocket : IRealTimeBuildMessageSocket
 {
     private readonly WebSocket socket;
 
