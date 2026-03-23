@@ -4,7 +4,6 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net;
-using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,6 +42,8 @@ public class RunnerConnectionHandler : IDisposable
     private readonly ISubscriber subscriber;
     private int prioritySeconds;
 
+    private Task? mainRunTask;
+
     // This dynamically creates database instances when needed as these socket connections can run for a really long
     // time
     private IServiceScope? currentScope;
@@ -75,8 +76,8 @@ public class RunnerConnectionHandler : IDisposable
     private CiJobOutputSection? activeClientOutputSection;
     private DateTime lastSendToClient = DateTime.MinValue;
 
-    private RunnerConnectionHandler(IRealTimeBuildMessageSocket socket, IServiceScopeFactory scopeFactory, long runnerId,
-        int connectionId, ISubscriber subscriber, int prioritySeconds)
+    private RunnerConnectionHandler(IRealTimeBuildMessageSocket socket, IServiceScopeFactory scopeFactory,
+        long runnerId, int connectionId, ISubscriber subscriber, int prioritySeconds)
     {
         this.scopeFactory = scopeFactory;
         this.socket = socket;
@@ -92,14 +93,15 @@ public class RunnerConnectionHandler : IDisposable
             job.CiBuildId + "_" + job.CiJobId;
     }
 
-    public static async Task HandleHttpConnection(HttpContext context, IServiceScopeFactory scopeFactory,
-        IConnectionMultiplexer realtimeCommunications, IBuildMessageSocketFactory socketFactory)
+    public static async Task<RunnerConnectionHandler?> HandleHttpConnection(HttpContext context,
+        IServiceScopeFactory scopeFactory, IConnectionMultiplexer realtimeCommunications,
+        IBuildMessageSocketFactory socketFactory)
     {
         if (!context.Request.Query.TryGetValue("runnerId", out StringValues keyRaw) || keyRaw.Count != 1 ||
             !Guid.TryParse(keyRaw[0], out Guid key))
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return;
+            return null;
         }
 
         using var setupScope = scopeFactory.CreateScope();
@@ -115,7 +117,7 @@ public class RunnerConnectionHandler : IDisposable
             context.Response.ContentType = "plain/text";
             context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
             await context.Response.Body.WriteAsync("Invalid key id or secret for runner"u8.ToArray());
-            return;
+            return null;
         }
 
         var neededSecret = runner.SecretKey.ToString();
@@ -128,33 +130,17 @@ public class RunnerConnectionHandler : IDisposable
         // This should be safe as we should be behind an HTTPS proxy in production
         var wrappedSocket = await socketFactory.AcceptAsync();
 
-        // We first request the key from the client
-        await wrappedSocket.Write(new RealTimeBuildMessage
-        {
-            Type = BuildSectionMessageType.AuthDemand,
-        }, cancellation.Token);
-
         try
         {
-            var (reply, closed) = await wrappedSocket.Read(cancellation.Token);
-
-            if (closed)
+            // We first request the key from the client
+            await wrappedSocket.Write(new RealTimeBuildMessage
             {
-                logger.LogWarning("Client closed connection before auth was complete");
-                return;
-            }
-
-            if (reply == null || reply.Type != BuildSectionMessageType.AuthResponse ||
-                string.IsNullOrWhiteSpace(reply.Output) || reply.Output.Length > 500)
-            {
-                throw new Exception("Invalid auth response, wrong message type");
-            }
-
-            providedSecret = reply.Output;
+                Type = BuildSectionMessageType.AuthDemand,
+            }, cancellation.Token);
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to read auth demand from client: {@E}", e);
+            logger.LogWarning(e, "Failed to send auth demand to client");
             try
             {
                 cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -165,7 +151,41 @@ public class RunnerConnectionHandler : IDisposable
                 logger.LogWarning(e2, "Failed to close socket after auth failure");
             }
 
-            return;
+            return null;
+        }
+
+        try
+        {
+            var (reply, closed) = await wrappedSocket.Read(cancellation.Token);
+
+            if (closed)
+            {
+                logger.LogWarning("Client closed connection before auth was complete");
+                return null;
+            }
+
+            if (reply == null || reply.Type != BuildSectionMessageType.AuthResponse ||
+                string.IsNullOrWhiteSpace(reply.Output) || reply.Output.Length > 500)
+            {
+                throw new Exception($"Invalid auth response, wrong message type: {reply?.Type}");
+            }
+
+            providedSecret = reply.Output;
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning("Failed to read auth response from client: {@E}", e);
+            try
+            {
+                cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                await wrappedSocket.Close(cancellation.Token);
+            }
+            catch (Exception e2)
+            {
+                logger.LogWarning(e2, "Failed to close socket after auth failure");
+            }
+
+            return null;
         }
 
         // Check the client has the right key
@@ -201,6 +221,9 @@ public class RunnerConnectionHandler : IDisposable
             {
                 logger.LogWarning(e, "Failed to close socket after auth failure");
             }
+
+            // Very important to not allow proceeding
+            return null;
         }
 
         // Client is authenticated; they are the runner they say they are
@@ -218,12 +241,16 @@ public class RunnerConnectionHandler : IDisposable
             runner.Priority);
 
         handler.StartRun();
+        return handler;
     }
 
     public void StartRun()
     {
+        if (mainRunTask != null)
+            throw new InvalidOperationException("Runner connection handler already started");
+
         // Run in the background as these are potentially very long-lived connections
-        Task.Run(async () =>
+        mainRunTask = Task.Run(async () =>
         {
             try
             {
@@ -233,6 +260,8 @@ public class RunnerConnectionHandler : IDisposable
             {
                 Console.WriteLine("Leaked exception in runner connection handler: " + e);
             }
+
+            logger?.LogInformation("Runner connection handler finished");
 
             try
             {
@@ -244,6 +273,20 @@ public class RunnerConnectionHandler : IDisposable
                 Console.WriteLine("Failed to dispose runner connection handler: " + e);
             }
         });
+    }
+
+    public async Task WaitUntilClosed(TimeSpan timeout)
+    {
+        if (timeout == TimeSpan.Zero)
+        {
+            timeout = TimeSpan.FromSeconds(15);
+        }
+
+        if (mainRunTask == null)
+            return;
+
+        await mainRunTask.WaitAsync(timeout);
+        mainRunTask = null;
     }
 
     public void Dispose()
@@ -260,6 +303,9 @@ public class RunnerConnectionHandler : IDisposable
             cancelSetup.Dispose();
             messageTimeout.Dispose();
             newJobsNotice.Dispose();
+
+            // This might be called by the task so probably not safe to dispose it?
+            mainRunTask = null;
         }
     }
 

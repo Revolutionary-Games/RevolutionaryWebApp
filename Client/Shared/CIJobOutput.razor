@@ -102,7 +102,7 @@ else
             shownSections[receivingRealtimeOutputForSection.Value] = true;
 
             // A new section object is not created here as we should very shortly (if not already) have received
-            // a creation notification about it and our Data list should be updated shortly
+            // a creation notification about it, and our Data list should be updated shortly
 
             StateHasChanged();
 
@@ -115,7 +115,7 @@ else
             {
                 if(first)
                 {
-                    // First line might not be just after a line-break so append that to an existing line in
+                    // The first line might not be just after a line-break, so append that to an existing line in
                     // receivedRealtimeOutput
                     if (receivedRealtimeOutput.Count < 1)
                     {
