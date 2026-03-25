@@ -32,4 +32,29 @@ public enum BuildSectionMessageType
     ///   Server notifies the client that there are new jobs (potentially) available
     /// </summary>
     NewJobsAvailable,
+
+    /// <summary>
+    ///   Client requests the server to send a list of available jobs. Reply is either <see cref="JobsList"/> or
+    ///   <see cref="ActiveJobDetails"/> if the client is supposed to be running a job.
+    /// </summary>
+    GetAvailableJobs,
+
+    /// <summary>
+    ///   Server sends a list of available jobs that the client can take. The output is JSON-encoded AvailableJobsList.
+    /// </summary>
+    JobsList,
+
+    /// <summary>
+    ///   Client requests the server to start a job. The server either accepts or sends an <see cref="Error"/>.
+    ///   The output field needs to be ":"-separated 3 longs which identify the job to start.
+    /// </summary>
+    RequestStartJob,
+
+    /// <summary>
+    ///   Server sends the details of the job that was started. Note that if a client loses connection to the server
+    ///   and has an active job, the server will send this message when reconnecting and trying to get available jobs.
+    ///   If the client cannot continue the job, it needs to send a <see cref="FinalStatus"/> with the failure.
+    ///   The output is JSON-encoded RunningJobDetails.
+    /// </summary>
+    ActiveJobDetails,
 }

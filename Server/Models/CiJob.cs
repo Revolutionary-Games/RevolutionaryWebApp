@@ -13,6 +13,7 @@ using Shared.Notifications;
 using Utilities;
 
 [Index(nameof(HashedBuildOutputConnectKey), IsUnique = true)]
+[Index(nameof(CreatedAt))]
 public class CiJob : IUpdateNotifications, IContainsHashedLookUps
 {
     public long CiProjectId { get; set; }
@@ -31,18 +32,29 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     /// </summary>
     public bool OutputPurged { get; set; }
 
+    [AllowSortingBy]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     public DateTime? FinishedAt { get; set; }
 
     [Required]
     [AllowSortingBy]
+    [MaxLength(256)]
     public string JobName { get; set; } = string.Empty;
 
     /// <summary>
-    ///   The podman image to use to run this job, should be in the form of "thing/image:v1"
+    ///   The podman image to use to run this job should be in the form of "thing/image:v1"
     /// </summary>
+    [MaxLength(256)]
     public string? Image { get; set; }
 
+    /// <summary>
+    ///   Limits which runners are allowed to take this job. Separated by ';'
+    /// </summary>
+    [MaxLength(256)]
+    public string? RequiredRunnerTags { get; set; }
+
+    // TODO: remove the next few properties and replace with RemoteRunner
     /// <summary>
     ///   Used to allow the build server to connect back to us to communicate build logs and status
     /// </summary>
@@ -62,14 +74,23 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     public bool? RunningOnServerIsExternal { get; set; }
 
     /// <summary>
-    ///   This contains json serialized for of the cache settings for this build. This is sent to the CI executor
+    ///   Job can be taken at most by a single runner
+    /// </summary>
+    public long? ReservedByRunnerId { get; set; }
+
+    public RemoteRunner? ReservedByRunner { get; set; }
+
+    /// <summary>
+    ///   This contains JSON serialized for of the cache settings for this build. This is sent to the CI executor
     ///   so that it can handle cache setup before cloning the repo.
     /// </summary>
+    [MaxLength(8096)]
     public string? CacheSettingsJson { get; set; }
 
     /// <summary>
-    ///   Stores permanently which server this job was ran on
+    ///   Stores permanently which server this job was run on
     /// </summary>
+    [MaxLength(256)]
     public string? RanOnServer { get; set; }
 
     /// <summary>
@@ -83,6 +104,17 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     public ICollection<CiJobArtifact> CiJobArtifacts { get; set; } = new HashSet<CiJobArtifact>();
 
     public ICollection<CiJobOutputSection> CiJobOutputSections { get; set; } = new HashSet<CiJobOutputSection>();
+
+    /// <summary>
+    ///   xmin-based concurrent edit protection
+    /// </summary>
+    [Timestamp]
+    public uint Version { get; set; }
+
+    /// <summary>
+    ///   Used to detect if the output connection is still valid.
+    /// </summary>
+    public int OutputConnection { get; set; } = -1;
 
     /// <summary>
     ///   Correctly deletes a set of CI jobs
@@ -138,7 +170,7 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
 
     public CIJobDTO GetDTO()
     {
-        return new()
+        return new CIJobDTO
         {
             CiProjectId = CiProjectId,
             CiBuildId = CiBuildId,
@@ -152,6 +184,8 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
             RanOnServer = RanOnServer,
             TimeWaitingForServer = TimeWaitingForServer,
             ProjectName = Build?.CiProject?.Name ?? CiProjectId.ToString(),
+            RequiredRunnerTags = RequiredRunnerTags,
+            Image = Image,
         };
     }
 

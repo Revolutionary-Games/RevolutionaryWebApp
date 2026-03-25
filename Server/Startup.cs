@@ -491,7 +491,7 @@ public class Startup
                 await RunnerConnectionHandler.HandleHttpConnection(context,
                     app.ApplicationServices.GetRequiredService<IServiceScopeFactory>(),
                     app.ApplicationServices.GetRequiredService<IConnectionMultiplexer>(),
-                    new HttpContextMessageSocketFactory(context));
+                    new HttpContextMessageSocketFactory(context), true);
             }
             else
             {

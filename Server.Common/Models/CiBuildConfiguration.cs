@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 /// <summary>
-///   Build configuration read from a yaml file before starting build jobs
+///   Build configuration read from a YAML file before starting build jobs
 /// </summary>
 public class CiBuildConfiguration
 {
@@ -13,11 +13,10 @@ public class CiBuildConfiguration
     [Range(1, 1)]
     public int Version { get; set; }
 
+    // ReSharper disable once CollectionNeverUpdated.Global
     [MaxLength(20)]
     [MinLength(1)]
     [Required]
-
-    // ReSharper disable once CollectionNeverUpdated.Global
     public Dictionary<string, CiJobConfiguration> Jobs { get; set; } = new();
 }
 

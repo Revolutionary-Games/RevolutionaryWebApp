@@ -428,6 +428,8 @@ public class ApplicationDbContext : DbContext
             entity.HasMany(p => p.CiJobOutputSections).WithOne(d => d.Job)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(d => d.ReservedByRunner).WithOne(p => p.ReservedJob).OnDelete(DeleteBehavior.SetNull);
+
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
         });
 

@@ -8,7 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Utilities;
 using Fixtures;
+using Hangfire;
+using Hubs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -42,6 +45,7 @@ public class RunnerConnectionMockHelper
 
     private readonly IBuildMessageSocketFactory socketFactory;
     private readonly IRealTimeBuildMessageSocket socket;
+    private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
     private IServiceScopeFactory? scopeFactory;
 
@@ -63,6 +67,7 @@ public class RunnerConnectionMockHelper
 
         socketFactory = Substitute.For<IBuildMessageSocketFactory>();
         socket = Substitute.For<IRealTimeBuildMessageSocket>();
+        notifications = Substitute.For<IHubContext<NotificationsHub, INotifications>>();
 
         socket.Read(Arg.Any<CancellationToken>(), Arg.Any<CancellationToken>()).Returns(async _ =>
         {
@@ -124,6 +129,11 @@ public class RunnerConnectionMockHelper
         socket.CloseStatus.Returns(_ => serverClosed ? WebSocketCloseStatus.NormalClosure : null);
     }
 
+    /// <summary>
+    ///   Set to true to test SQL optimizations (only works with a real SQL database, not the default memory one)
+    /// </summary>
+    public bool UsesRealDatabase { get; set; }
+
     public static int GetNextId()
     {
         return Interlocked.Increment(ref nextRunnerId);
@@ -151,11 +161,17 @@ public class RunnerConnectionMockHelper
         var scope = Substitute.For<IServiceScope>();
         var serviceProvider = Substitute.For<IServiceProvider>();
 
+        var jobMock = Substitute.For<IBackgroundJobClient>();
+
         mockHelper.scopeFactory.CreateScope().Returns(scope);
         scope.ServiceProvider.Returns(serviceProvider);
 
         serviceProvider.GetService(typeof(NotificationsEnabledDb)).Returns(existingDatabase);
         serviceProvider.GetService(typeof(ILogger<RunnerConnectionHandler>)).Returns(logger);
+        serviceProvider.GetService(typeof(IModelUpdateNotificationSender)).Returns(existingNotifications);
+        serviceProvider.GetService(typeof(IHubContext<NotificationsHub, INotifications>))
+            .Returns(mockHelper.notifications);
+        serviceProvider.GetService(typeof(IBackgroundJobClient)).Returns(jobMock);
 
         return mockHelper;
     }
@@ -198,7 +214,8 @@ public class RunnerConnectionMockHelper
         }
 
         connection =
-            await RunnerConnectionHandler.HandleHttpConnection(customContext, scopeFactory, redis, socketFactory);
+            await RunnerConnectionHandler.HandleHttpConnection(customContext, scopeFactory, redis, socketFactory,
+                UsesRealDatabase);
 
         return connection != null;
     }
@@ -211,6 +228,11 @@ public class RunnerConnectionMockHelper
             Arg.Any<CancellationToken>());
 
         Assert.True(connection != null);
+    }
+
+    public async Task CheckServerClosedSocket()
+    {
+        await socket.Received().Close(Arg.Any<CancellationToken>());
     }
 
     public async Task CheckSocketWasNotAccepted()
@@ -261,6 +283,24 @@ public class RunnerConnectionMockHelper
         return false;
     }
 
+    public async Task<RealTimeBuildMessage?> WaitForServerMessage(TimeSpan timeout = default)
+    {
+        if (timeout == TimeSpan.Zero)
+            timeout = TimeSpan.FromSeconds(15);
+
+        var start = DateTime.UtcNow;
+
+        while (DateTime.UtcNow - start < timeout)
+        {
+            if (TryDequeueServerMessage(out var message, out _))
+                return message;
+
+            await Task.Delay(1);
+        }
+
+        throw new Exception("Timed out waiting for a message from the server");
+    }
+
     public async Task WaitUntilClosed(TimeSpan timeout = default)
     {
         if (connection == null)
@@ -272,6 +312,16 @@ public class RunnerConnectionMockHelper
     public void DequeueAuthRequest()
     {
         Assert.True(TryDequeueServerMessage(out var serverMessage, out _));
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.AuthDemand, serverMessage.Type);
+    }
+
+    /// <summary>
+    ///   Waits for the server to send an auth request
+    /// </summary>
+    public async Task WaitDequeueAuthRequest()
+    {
+        var serverMessage = await WaitForServerMessage();
         Assert.NotNull(serverMessage);
         Assert.Equal(BuildSectionMessageType.AuthDemand, serverMessage.Type);
     }

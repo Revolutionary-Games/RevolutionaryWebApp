@@ -27,6 +27,13 @@ public class CIJobDTO : IIdentifiable
     public string? RanOnServer { get; set; }
     public TimeSpan? TimeWaitingForServer { get; set; }
 
+    public string? RequiredRunnerTags { get; set; }
+
+    /// <summary>
+    ///   Container image used to run this job
+    /// </summary>
+    public string? Image { get; set; }
+
     /// <summary>
     ///   Used for notifications to detect which model was updated, that's why this shouldn't be super bad that
     ///   we generate a fake ID like this

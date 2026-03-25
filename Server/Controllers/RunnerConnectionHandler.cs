@@ -5,12 +5,16 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using Common.Models;
 using Common.Utilities;
 using DevCenterCommunication.Models;
+using Hangfire;
 using Hubs;
+using Jobs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +33,8 @@ using Utilities;
 /// </summary>
 public class RunnerConnectionHandler : IDisposable
 {
+    private const int ClientOptimalTextSize = 1000;
+
     private readonly SemaphoreSlim cancelSetup = new(1, 1);
 
     // Things are flushed when these intervals are reached *or* a new section is started
@@ -40,6 +46,7 @@ public class RunnerConnectionHandler : IDisposable
     private readonly long runnerId;
     private readonly int connectionId;
     private readonly ISubscriber subscriber;
+    private readonly bool useEfficientOutputAppend;
     private int prioritySeconds;
 
     private Task? mainRunTask;
@@ -65,6 +72,8 @@ public class RunnerConnectionHandler : IDisposable
     /// </summary>
     private CiJob? activeJob;
 
+    private CiJobCacheConfiguration? activeJobCacheData;
+
     // Buffering info for the current output section, used to make things more efficient
     private StringBuilder pendingDatabaseTextForSection = new();
     private CiJobOutputSection? activeOutputSection;
@@ -77,13 +86,14 @@ public class RunnerConnectionHandler : IDisposable
     private DateTime lastSendToClient = DateTime.MinValue;
 
     private RunnerConnectionHandler(IRealTimeBuildMessageSocket socket, IServiceScopeFactory scopeFactory,
-        long runnerId, int connectionId, ISubscriber subscriber, int prioritySeconds)
+        long runnerId, int connectionId, ISubscriber subscriber, int prioritySeconds, bool useSql)
     {
         this.scopeFactory = scopeFactory;
         this.socket = socket;
         this.runnerId = runnerId;
         this.connectionId = connectionId;
         this.subscriber = subscriber;
+        useEfficientOutputAppend = useSql;
         UpdatePriority(prioritySeconds);
     }
 
@@ -95,7 +105,7 @@ public class RunnerConnectionHandler : IDisposable
 
     public static async Task<RunnerConnectionHandler?> HandleHttpConnection(HttpContext context,
         IServiceScopeFactory scopeFactory, IConnectionMultiplexer realtimeCommunications,
-        IBuildMessageSocketFactory socketFactory)
+        IBuildMessageSocketFactory socketFactory, bool databaseIsPostgres)
     {
         if (!context.Request.Query.TryGetValue("runnerId", out StringValues keyRaw) || keyRaw.Count != 1 ||
             !Guid.TryParse(keyRaw[0], out Guid key))
@@ -238,7 +248,7 @@ public class RunnerConnectionHandler : IDisposable
             context.Connection.RemoteIpAddress, connectionId, runner.Id, runner.Name);
 
         var handler = new RunnerConnectionHandler(wrappedSocket, scopeFactory, runner.Id, connectionId, subscriber,
-            runner.Priority);
+            runner.Priority, databaseIsPostgres);
 
         handler.StartRun();
         return handler;
@@ -350,6 +360,9 @@ public class RunnerConnectionHandler : IDisposable
                     cancelSetup.Release();
                 }
             });
+
+        // TODO: should we have server notifications when an old connection is probably outdated and the listener for
+        // that should flush so that resuming sections doesn't cause out of order text?
 
         try
         {
@@ -472,7 +485,7 @@ public class RunnerConnectionHandler : IDisposable
                         await HandleClientMessage(message);
                     }
 
-                    // Flush client and database output if time
+                    // Flush client and database output if time, or they are long already
                     if (activeOutputSection != null)
                     {
                         await FlushSectionDataIfTooLongOrTime(new CancellationTokenSource(TimeSpan.FromSeconds(60))
@@ -501,7 +514,7 @@ public class RunnerConnectionHandler : IDisposable
             if (!await socket.Close(new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token))
                 logger?.LogWarning("Failed to close socket");
 
-            logger?.LogInformation("Runner connection {Id} closed", connectionId);
+            logger?.LogInformation("Runner connection id {Id} closed", connectionId);
         }
         catch (Exception e)
         {
@@ -571,7 +584,7 @@ public class RunnerConnectionHandler : IDisposable
                     // TODO: should this be false?
                     WasSuccessful = true,
                     Type = BuildSectionMessageType.SectionEnd,
-                }, processingMaxTime.Token);
+                }, processingMaxTime.Token, true);
 
                 // And then open a new one
                 await StartNewSection(message, processingMaxTime.Token);
@@ -589,6 +602,9 @@ public class RunnerConnectionHandler : IDisposable
                     // We need to start a section
                     await StartNewSection(message, processingMaxTime.Token);
                     BufferTextOutputIfSectionOpen("Received output before section started!");
+
+                    if (message.Output is { Length: > 0 })
+                        BufferTextOutputIfSectionOpen(message.Output, false);
                 }
                 else if (activeOutputSection != null && (activeOutputSection.Name != message.SectionName ||
                              activeOutputSection.CiJobOutputSectionId != message.SectionId))
@@ -602,7 +618,7 @@ public class RunnerConnectionHandler : IDisposable
                     {
                         WasSuccessful = true,
                         Type = BuildSectionMessageType.SectionEnd,
-                    }, processingMaxTime.Token);
+                    }, processingMaxTime.Token, false);
 
                     try
                     {
@@ -621,10 +637,20 @@ public class RunnerConnectionHandler : IDisposable
                 else
                 {
                     // Can normally just append text
-                    if (!string.IsNullOrWhiteSpace(message.Output))
+                    if (message.Output is { Length: > 0 })
                     {
-                        BufferTextOutputIfSectionOpen(message.Output);
-                        await FlushSectionDataIfTooLongOrTime(processingMaxTime.Token);
+                        if (!BufferTextOutputIfSectionOpen(message.Output, false))
+                        {
+                            logger?.LogWarning("We mishandled an output message and didn't add it to a section");
+                            await ReplyToClient(new RealTimeBuildMessage
+                            {
+                                Type = BuildSectionMessageType.Error,
+                                ErrorMessage = "Internal server error for adding to section",
+                            }, processingMaxTime.Token);
+                        }
+
+                        // We don't need to check for a flush here as that is automatically checked after processing
+                        // each message
                     }
                 }
 
@@ -636,7 +662,7 @@ public class RunnerConnectionHandler : IDisposable
                 if (!await CheckAndErrorIfNoActiveJob(processingMaxTime.Token))
                     return;
 
-                if (!await TryFinishCurrentSection(message, processingMaxTime.Token))
+                if (!await TryFinishCurrentSection(message, processingMaxTime.Token, false))
                 {
                     logger?.LogWarning("Failed to finish current section");
                     await ReplyToClient(new RealTimeBuildMessage
@@ -674,8 +700,106 @@ public class RunnerConnectionHandler : IDisposable
                 logger?.LogWarning("Client sent an error message: {Message}", message.ErrorMessage);
                 break;
 
-            // TODO: CI job asking
-            // TODO: taking a job and setting isScopeRefreshBlocked (should have a ready method for this)
+            case BuildSectionMessageType.GetAvailableJobs:
+            {
+                if (activeJob != null)
+                {
+                    // Client cannot ask for more jobs to run if it has one already
+                    await ReplyWithCurrentJobDetails(processingMaxTime.Token);
+                    return;
+                }
+
+                int skip = 0;
+
+                if (!string.IsNullOrEmpty(message.Output) && int.TryParse(message.Output, out var clientSkip))
+                {
+                    skip = Math.Clamp(clientSkip, 0, 100);
+                }
+
+                var db = AccessDatabase();
+
+                // We don't load these as tracking because we don't really care about this data, just to give it to the
+                // client
+                var validJobs = await db.CiJobs.AsNoTracking()
+                    .Where(j => (j.State == CIJobState.Starting || j.State == CIJobState.WaitingForServer) &&
+                        j.ReservedByRunnerId == null).OrderBy(j => j.CreatedAt).Skip(skip).Take(10)
+                    .ToListAsync(processingMaxTime.Token);
+
+                var runner = await GetRunnerModelData(false, processingMaxTime.Token);
+                int removed = validJobs.RemoveAll(j => FilterOutJobTags(j, runner));
+
+                var dtoList = validJobs.ConvertAll(j => j.GetDTO());
+
+                // We need to get project names for everything, so quickly fetch those as well
+                {
+                    var neededProjects = dtoList.Select(j => j.CiProjectId).Distinct().ToList();
+
+                    var projects = await db.CiProjects.AsNoTracking().Where(p => neededProjects.Contains(p.Id))
+                        .ToListAsync(processingMaxTime.Token);
+
+                    foreach (var ciJobDTO in dtoList)
+                    {
+                        ciJobDTO.ProjectName = projects.First(p => p.Id == ciJobDTO.CiProjectId).Name;
+                    }
+                }
+
+                await ReplyToClient(new RealTimeBuildMessage
+                {
+                    Type = BuildSectionMessageType.JobsList,
+                    Output = JsonSerializer.Serialize(new AvailableJobsList
+                    {
+                        Jobs = dtoList,
+                        FilteredCount = removed,
+                    }),
+                }, processingMaxTime.Token);
+
+                break;
+            }
+
+            case BuildSectionMessageType.RequestStartJob:
+            {
+                long projectId = -1;
+                long buildId = -1;
+                long jobId = -1;
+
+                bool validData = false;
+
+                var data = message.Output?.Split(':', 3);
+
+                if (data != null)
+                {
+                    if (long.TryParse(data[0], out projectId) && long.TryParse(data[1], out buildId) &&
+                        long.TryParse(data[2], out jobId))
+                    {
+                        validData = true;
+                    }
+                    else
+                    {
+                        logger?.LogWarning("Invalid job id format in request start job message");
+                    }
+                }
+
+                if (!validData)
+                {
+                    await ReplyToClient(new RealTimeBuildMessage
+                    {
+                        Type = BuildSectionMessageType.Error,
+                        ErrorMessage = "Invalid message format",
+                    }, processingMaxTime.Token);
+                    break;
+                }
+
+                if (!await TryToStartWorkingOnJob(projectId, buildId, jobId, processingMaxTime.Token))
+                {
+                    await ReplyToClient(new RealTimeBuildMessage
+                    {
+                        Type = BuildSectionMessageType.Error,
+                        ErrorMessage = "Could not start working on the job (some other runner probably took it)",
+                    }, processingMaxTime.Token);
+                }
+
+                break;
+            }
 
             case BuildSectionMessageType.HeartBeat:
                 // We got a heartbeat, so update the data
@@ -697,6 +821,47 @@ public class RunnerConnectionHandler : IDisposable
                 }, processingMaxTime.Token);
                 break;
         }
+    }
+
+    private async Task ReplyWithCurrentJobDetails(CancellationToken cancellationToken)
+    {
+        if (activeJob == null)
+            throw new Exception("No active job");
+
+        if (activeJobCacheData == null)
+            throw new InvalidOperationException("Active job cache data not set up yet");
+
+        await ReplyToClient(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.ActiveJobDetails,
+            Output = JsonSerializer.Serialize(new RunningJobDetails(activeJob.GetDTO())
+            {
+                CacheConfiguration = activeJobCacheData,
+            }),
+        }, cancellationToken);
+    }
+
+    private bool FilterOutJobTags(CiJob obj, RemoteRunner runner)
+    {
+        if (obj.RequiredRunnerTags != null)
+        {
+            var tags = obj.RequiredRunnerTags.Split(';');
+
+            foreach (var tag in tags)
+            {
+                // Note this requires tags to not be substrings of each other!
+                if (!runner.Tags.Contains(tag))
+                {
+                    // Filter out as missing a tag
+                    return true;
+                }
+            }
+        }
+
+        // TODO: exclude tags in runner
+
+        // Passed the filter
+        return false;
     }
 
     private async Task<bool> CheckAndErrorIfNoActiveJob(CancellationToken cancellationToken)
@@ -730,19 +895,42 @@ public class RunnerConnectionHandler : IDisposable
         {
             var db = AccessDatabase();
 
-            // TODO: add check that reserved for runner is null (or our runner ID)
-            var job = await db.CiJobs.FirstOrDefaultAsync(
-                j => j.CiProjectId == ciProject && j.CiBuildId == ciBuild && j.CiJobId == ciJob,
-                cancellationToken: cancellationToken);
+            // Disable working on a job if already some job is reserved
+            var reservedJob = await db.CiJobs.AnyAsync(j => j.ReservedByRunnerId == connectionId, cancellationToken);
+
+            if (reservedJob)
+            {
+                logger?.LogWarning("Runner tried to start working on a job when it already has a job reserved");
+                await ReplyToClient(new RealTimeBuildMessage
+                {
+                    Type = BuildSectionMessageType.Error,
+                    ErrorMessage = "You already have a job reserved, please work on it or abandon it",
+                }, cancellationToken);
+                return false;
+            }
+
+            var job = await db.CiJobs.FirstOrDefaultAsync(j => j.CiProjectId == ciProject && j.CiBuildId == ciBuild &&
+                j.CiJobId == ciJob && j.ReservedByRunnerId == null &&
+                (j.State == CIJobState.Starting || j.State == CIJobState.WaitingForServer), cancellationToken);
+
+            // The connection logic handles the case that the job is reserved by the current runner to resume the
+            // job, so we don't need to handle it here.
 
             if (job == null)
                 return false;
 
-            // TODO: implement these
-            /*job.ReservedForRunnerId = runnerId;
+            // Parse cache config before accepting the job, in case there is a problem with it
+            if (job.CacheSettingsJson == null)
+            {
+                logger?.LogWarning("Tried to start working on a job that does not have cache settings");
+                throw new InvalidOperationException("Job is in invalid state (has no cache settings)");
+            }
+
+            var cacheConfig = JsonSerializer.Deserialize<CiJobCacheConfiguration>(job.CacheSettingsJson) ??
+                throw new Exception("Parsed cache config is null");
+
+            job.ReservedByRunnerId = runnerId;
             job.OutputConnection = connectionId;
-            job.ReservedAt = DateTime.UtcNow;*/
-            job.State = CIJobState.Running;
 
             // We got the job, but if someone writes to the DB first, we will fail
             try
@@ -760,12 +948,27 @@ public class RunnerConnectionHandler : IDisposable
             }
 
             logger?.LogInformation("We were able to reserve a new job for our runner: {Id}", runnerId);
+
+            var ourData = await GetRunnerModelData(false, cancellationToken);
+
+            job.TimeWaitingForServer = DateTime.UtcNow - job.CreatedAt;
+
+            // job.ReservedAt = DateTime.UtcNow;
+
+            job.State = CIJobState.Running;
+            job.RanOnServer = ourData.Name;
+
             activeJob = job;
+            activeJobCacheData = cacheConfig;
             isScopeRefreshBlocked = true;
 
             OnClearPreviousSectionData();
 
-            // TODO: load an open section if the client disconnected before closing a section
+            // As this method is meant to be used when the runner did not have a job before, there should not be able
+            // to be any previous section data
+
+            // Let the client know what it got
+            await ReplyWithCurrentJobDetails(cancellationToken);
 
             return true;
         }
@@ -785,49 +988,235 @@ public class RunnerConnectionHandler : IDisposable
             // TODO: should this be false?
             WasSuccessful = true,
             Type = BuildSectionMessageType.SectionEnd,
-        }, cancellationToken);
+        }, cancellationToken, true);
+
+        if (activeJob == null)
+        {
+            logger?.LogError("Tried to finish a job when there was no active job (processing got too far)");
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(finalData.Output))
+        {
+            // Output is incorrect to send here as the client should have closed the section
+            logger?.LogWarning("Final job completion message should not have output anymore");
+        }
 
         var db = AccessDatabase();
 
-        throw new NotImplementedException();
+        // We must have the scope already here as we accessed the DB
+        var jobClient = currentScope!.ServiceProvider.GetRequiredService<IBackgroundJobClient>();
 
-        await db.SaveChangesAsync(cancellationToken);
-        isScopeRefreshBlocked = false;
+        void ApplyJobState()
+        {
+            // Disallow us from overwriting any finished job status.
+            // But we use conflict resolution to make sure that a finish is conserved in case another connection
+            // still did some writing or something like that.
+            if (activeJob.State == CIJobState.Finished)
+                throw new Exception("Job already finished while we were doing conflict resolution");
+
+            activeJob.State = CIJobState.Finished;
+            activeJob.CacheSettingsJson = null;
+            activeJob.FinishedAt = DateTime.UtcNow;
+            activeJob.Succeeded = finalData.WasSuccessful;
+            activeJob.ReservedByRunner = null;
+            activeJob.ReservedByRunnerId = null;
+        }
+
+        ApplyJobState();
+
+        // Set the final job status and save
+        await db.SaveChangesWithConflictResolvingAsync(conflicts =>
+        {
+            DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(conflicts, activeJob);
+            ApplyJobState();
+        }, cancellationToken);
+
+        logger?.LogInformation("Job {Project}-{Build}-{Job} finished by runner {Name}", activeJob.CiProjectId,
+            activeJob.CiBuildId, activeJob.CiJobId, runnerId);
 
         // Clean up the message a bit in case it is dirty and then send it to all listening clients
+        // And we must send this before unsetting the job as then we can no longer send jobs
         finalData.Output = null;
         finalData.ErrorMessage = null;
         await SendMessageToWebsiteClients(finalData);
+
+        var job = activeJob;
+        activeJob = null;
+
+        isScopeRefreshBlocked = false;
+
+        // Queue a background job to update the overall build status and trigger further actions
+        jobClient.Enqueue<SetFinishedCIJobStatusJob>(x => x.Execute(job.CiProjectId, job.CiBuildId,
+            job.CiJobId, job.Succeeded, CancellationToken.None));
+
+        return true;
     }
 
-    private void BufferTextOutputIfSectionOpen(string text)
+    private bool BufferTextOutputIfSectionOpen(string text, bool autoAddLineChange = true)
     {
+        var added = false;
+
         if (activeOutputSection != null)
         {
-            if (pendingDatabaseTextForSection.Length > 0)
-                pendingClientTextForSection.Append('\n');
+            if (autoAddLineChange && pendingDatabaseTextForSection.Length > 0 &&
+                pendingDatabaseTextForSection[^1] != '\n')
+            {
+                pendingDatabaseTextForSection.Append('\n');
+            }
 
-            pendingClientTextForSection.Append(text);
+            pendingDatabaseTextForSection.Append(text);
+            added = true;
         }
 
         if (activeClientOutputSection != null)
         {
-            if (pendingClientTextForSection.Length > 0)
+            if (autoAddLineChange && pendingClientTextForSection.Length > 0 &&
+                pendingClientTextForSection[^1] != '\n')
+            {
                 pendingClientTextForSection.Append('\n');
+            }
 
             pendingClientTextForSection.Append(text);
+            added = true;
         }
+
+        return added;
     }
 
     private async Task FlushSectionDataIfTooLongOrTime(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        bool send = false;
+
+        // Check cached length and time to determine if we should send info
+        if (pendingClientTextForSection.Length > ClientOptimalTextSize * 2)
+        {
+            send = true;
+        }
+
+        if (pendingDatabaseTextForSection.Length > 100000)
+        {
+            send = true;
+        }
+
+        if (activeOutputSection != null)
+        {
+            var now = DateTime.UtcNow;
+
+            var elapsedClient = now - lastSendToClient;
+            var elapsedDatabase = now - lastSaveToDatabase;
+
+            if (elapsedClient > clientSendInterval || elapsedDatabase > databaseSaveInternal)
+            {
+                send = true;
+            }
+        }
+
+        if (send)
+        {
+            await FlushPendingText(cancellationToken);
+        }
+    }
+
+    private async Task FlushPendingText(CancellationToken cancellationToken)
+    {
+        // Send client text
+        if (pendingClientTextForSection.Length > 0)
+        {
+            if (activeClientOutputSection != null)
+            {
+                // Send text to clients in certain bunches
+                for (int i = 0; i < pendingClientTextForSection.Length; i += ClientOptimalTextSize)
+                {
+                    var text = pendingClientTextForSection.ToString(i,
+                        Math.Min(ClientOptimalTextSize, pendingClientTextForSection.Length - i));
+
+                    await SendMessageToWebsiteClients(new RealTimeBuildMessage
+                    {
+                        Output = text,
+                        Type = BuildSectionMessageType.BuildOutput,
+                        SectionName = activeClientOutputSection.Name,
+                        SectionId = activeClientOutputSection.CiJobOutputSectionId,
+                    });
+
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+                }
+            }
+            else
+            {
+                logger?.LogError("There is pending client text but no active output section for it");
+            }
+
+            pendingClientTextForSection.Clear();
+            lastSendToClient = DateTime.UtcNow;
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+            return;
+
+        if (pendingDatabaseTextForSection.Length < 1)
+            return;
+
+        if (activeOutputSection == null)
+        {
+            logger?.LogError("There is pending database text but no active output section for it");
+            return;
+        }
+
+        lastSaveToDatabase = DateTime.UtcNow;
+
+        var db = AccessDatabase();
+
+        if (useEfficientOutputAppend)
+        {
+            // We can use SQL to directly append to the database
+            var text = pendingDatabaseTextForSection.ToString();
+            var length = text.Length;
+
+            // Apparently concat is slightly slower than just appending
+            // SET output = concat(output, {text}), output_length = output_length + {length}
+            FormattableString formattable =
+                $"""
+                     UPDATE ci_job_output_sections 
+                     SET output = output || {text}, output_length = output_length + {length} 
+                     WHERE ci_project_id = {activeOutputSection.CiProjectId} 
+                       AND ci_build_id = {activeOutputSection.CiBuildId} AND ci_job_id = {activeOutputSection.CiJobId}
+                 """;
+
+            await db.Database.ExecuteSqlInterpolatedAsync(formattable, cancellationToken);
+        }
+        else
+        {
+            // TODO: should we have conflict resolution here?
+            activeOutputSection.Output += pendingDatabaseTextForSection;
+            activeOutputSection.OutputLength = activeOutputSection.Output.Length;
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        pendingDatabaseTextForSection.Clear();
     }
 
     private async Task StartNewSection(RealTimeBuildMessage message, CancellationToken cancellationToken)
     {
         if (activeOutputSection != null)
             throw new InvalidOperationException("Trying to start a new section with one open");
+
+        if (activeJob == null)
+            throw new InvalidOperationException("Trying to start a new section without a job");
+
+        if (string.IsNullOrWhiteSpace(message.SectionName))
+        {
+            logger?.LogWarning("Tried to start a new section with an empty name");
+
+            await ReplyToClient(new RealTimeBuildMessage
+            {
+                Type = BuildSectionMessageType.Error,
+                ErrorMessage = "Section name cannot be empty",
+            }, cancellationToken);
+            return;
+        }
 
         // Small messages that shouldn't happen too often are directly forwarded to the clients on the website
         var websiteOpen = new RealTimeBuildMessage
@@ -837,38 +1226,87 @@ public class RunnerConnectionHandler : IDisposable
             SectionName = message.SectionName,
         };
 
-        var websiteSend = SendMessageToWebsiteClients(websiteOpen);
-
         var db = AccessDatabase();
 
-        throw new NotImplementedException();
+        var existingSection = await db.CiJobOutputSections.FirstOrDefaultAsync(s =>
+            s.CiJobOutputSectionId == message.SectionId && s.CiProjectId == activeJob.CiProjectId &&
+            s.CiBuildId == activeJob.CiBuildId && s.CiJobId == activeJob.CiJobId, cancellationToken);
 
-        await websiteSend;
+        if (existingSection == null)
+        {
+            // Beginning a new section
+            existingSection = new CiJobOutputSection
+            {
+                CiProjectId = activeJob.CiProjectId,
+                CiBuildId = activeJob.CiBuildId,
+                CiJobId = activeJob.CiJobId,
+                CiJobOutputSectionId = message.SectionId,
+                Name = message.SectionName,
+                StartedAt = DateTime.UtcNow,
+                Output = message.Output ?? string.Empty,
+                OutputLength = message.Output?.Length ?? 0,
+            };
+
+            await db.CiJobOutputSections.AddAsync(existingSection, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+
+            // Only notify clients if this is actually a new section
+            await SendMessageToWebsiteClients(websiteOpen);
+        }
+
+        // Only buffer text for the client as we saved it in the database already
+        activeClientOutputSection = existingSection;
+        activeOutputSection = null;
 
         if (!string.IsNullOrWhiteSpace(message.Output))
         {
-            BufferTextOutputIfSectionOpen(message.Output);
+            BufferTextOutputIfSectionOpen(message.Output, false);
         }
+
+        activeOutputSection = existingSection;
 
         if (!string.IsNullOrEmpty(message.ErrorMessage))
         {
             logger?.LogWarning("Start section message had an error: {Message}", message.ErrorMessage);
             BufferTextOutputIfSectionOpen("Section start error: " + message.ErrorMessage);
         }
+
+        lastSaveToDatabase = DateTime.UtcNow;
+
+        // Send new data to the client ASAP, but for the database we can wait a bit until saving anything
+        lastSendToClient = DateTime.MinValue;
     }
 
     private async Task<bool> TryFinishCurrentSection(RealTimeBuildMessage finalData,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool isSoftClose)
     {
         if (activeOutputSection == null)
         {
-            logger?.LogWarning("Tried to finish a section when there was no active section");
+            if (!isSoftClose)
+            {
+                // We want to warn only when the client performed an action that we must close a section for.
+                // In many cases for safety we will close a section if one exists but don't want to do anything if
+                // nothing to do.
+                logger?.LogWarning("Tried to finish a section when there was no active section");
+            }
+
             return false;
+        }
+
+        if (finalData.SectionName != null && finalData.SectionName != activeOutputSection.Name)
+        {
+            logger?.LogWarning("Tried to finish a section with a different name than the one we started with");
         }
 
         // TODO: check if these mismatch in some cases?
         finalData.SectionId = activeOutputSection.CiJobOutputSectionId;
         finalData.SectionName = activeOutputSection.Name;
+
+        if (!string.IsNullOrEmpty(finalData.Output))
+            BufferTextOutputIfSectionOpen(finalData.Output, false);
+
+        // Flush all pending text for the section before closing it
+        await FlushPendingText(cancellationToken);
 
         var websiteClose = new RealTimeBuildMessage
         {
@@ -879,9 +1317,25 @@ public class RunnerConnectionHandler : IDisposable
         };
         var websiteSend = SendMessageToWebsiteClients(websiteClose);
 
-        activeOutputSection = null;
+        try
+        {
+            var db = AccessDatabase();
 
-        throw new NotImplementedException();
+            // Update last section status. Output is already flushed and updated, so we don't need to worry about it
+            activeOutputSection.FinishedAt = DateTime.UtcNow;
+            activeOutputSection.Status =
+                finalData.WasSuccessful ? CIJobSectionStatus.Succeeded : CIJobSectionStatus.Failed;
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception e)
+        {
+            // TODO: do we need to log these better?
+            logger?.LogError(e, "Failed to save section status");
+        }
+
+        activeOutputSection = null;
+        activeClientOutputSection = null;
 
         await websiteSend;
         return true;

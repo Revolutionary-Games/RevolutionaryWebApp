@@ -57,6 +57,13 @@ public class RemoteRunner : UpdateableModel
 
     // TODO: reserved Job field for when actually running things
 
+    /// <summary>
+    ///   The one job this runner is working on. This is not a list as a runner can only have one job at a time, which
+    ///   it needs to complete before it can take another.
+    /// </summary>
+    // [ForeignKey("ReservedJobProjectId,ReservedJobBuildId,ReservedJobId")]
+    public CiJob? ReservedJob { get; set; }
+
     // Some general stats
     public int TotalJobsTaken { get; set; }
 
