@@ -27,8 +27,7 @@ public class SetFinishedCIJobStatusJob : BaseCIJobManagingJob
         CancellationToken cancellationToken)
     {
         var job = await database.CiJobs.Include(j => j.Build!).ThenInclude(b => b.CiProject)
-            .FirstOrDefaultAsync(
-                j => j.CiProjectId == ciProjectId && j.CiBuildId == ciBuildId && j.CiJobId == ciJobId,
+            .FirstOrDefaultAsync(j => j.CiProjectId == ciProjectId && j.CiBuildId == ciBuildId && j.CiJobId == ciJobId,
                 cancellationToken);
 
         if (job == null)
@@ -71,13 +70,12 @@ public class SetFinishedCIJobStatusJob : BaseCIJobManagingJob
         if (job.RunningOnServerIsExternal.Value)
         {
             server =
-                await Database.ExternalServers.FindAsync(new object[] { job.RunningOnServerId }, cancellationToken);
+                await Database.ExternalServers.FindAsync([job.RunningOnServerId], cancellationToken);
         }
         else
         {
             server =
-                await Database.ControlledServers.FindAsync(new object[] { job.RunningOnServerId },
-                    cancellationToken);
+                await Database.ControlledServers.FindAsync([job.RunningOnServerId], cancellationToken);
         }
 
         if (server == null)
