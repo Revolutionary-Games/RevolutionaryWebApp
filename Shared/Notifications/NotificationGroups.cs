@@ -152,4 +152,9 @@ public static class NotificationGroups
     ///   Note this notification only exists on redis bus directly
     /// </summary>
     public const string RealtimeNewJobCreatedNotification = "RNewJobCreated";
+
+    /// <summary>
+    ///   Sent when a new connection opens. This is done to allow flushing the previous connection's state.
+    /// </summary>
+    public const string RealtimeNewConnectionOpened = "RNewConnection";
 }

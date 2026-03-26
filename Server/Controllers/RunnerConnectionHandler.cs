@@ -33,6 +33,9 @@ using Utilities;
 /// </summary>
 public class RunnerConnectionHandler : IDisposable
 {
+    public const string ResumedSectionWarningText = "\nResumed output connection after losing connection to runner. " +
+        "Buffered output from before this may be missing or out of order!\n";
+
     private const int ClientOptimalTextSize = 1000;
 
     private readonly SemaphoreSlim cancelSetup = new(1, 1);
@@ -49,6 +52,8 @@ public class RunnerConnectionHandler : IDisposable
     private readonly bool useEfficientOutputAppend;
     private int prioritySeconds;
 
+    private bool connectionOutdated;
+
     private Task? mainRunTask;
 
     // This dynamically creates database instances when needed as these socket connections can run for a really long
@@ -60,7 +65,7 @@ public class RunnerConnectionHandler : IDisposable
     private IHubContext<NotificationsHub, INotifications>? notifications;
 
     private CancellationTokenSource messageTimeout = new();
-    private CancellationTokenSource newJobsNotice = new();
+    private CancellationTokenSource redisNotice = new();
 
     /// <summary>
     ///   When working on a job, we do not want the DB connection to end.
@@ -247,6 +252,18 @@ public class RunnerConnectionHandler : IDisposable
             "Accepted runner connection from {RemoteIpAddress} ({Connection})) for runner {Id} ({Name})",
             context.Connection.RemoteIpAddress, connectionId, runner.Id, runner.Name);
 
+        // Let other connections know about the new one and that they should exit if they hold relevant buffers
+        try
+        {
+            await subscriber.PublishAsync(
+                new RedisChannel(NotificationGroups.RealtimeNewConnectionOpened, RedisChannel.PatternMode.Literal),
+                new RedisValue(JsonSerializer.Serialize(new NewConnectionOpenedNotice(connectionId, runner.Id))));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to publish runner connection to redis");
+        }
+
         var handler = new RunnerConnectionHandler(wrappedSocket, scopeFactory, runner.Id, connectionId, subscriber,
             runner.Priority, databaseIsPostgres);
 
@@ -312,9 +329,9 @@ public class RunnerConnectionHandler : IDisposable
             ReleaseCurrentScope();
             cancelSetup.Dispose();
             messageTimeout.Dispose();
-            newJobsNotice.Dispose();
+            redisNotice.Dispose();
 
-            // This might be called by the task so probably not safe to dispose it?
+            // This might be called by the task, so probably not safe to dispose of it?
             mainRunTask = null;
         }
     }
@@ -328,10 +345,10 @@ public class RunnerConnectionHandler : IDisposable
             var timed = new CancellationTokenSource(TimeSpan.FromMinutes(3));
 
             // Reset this if we got info on this
-            if (newJobsNotice.IsCancellationRequested)
-                newJobsNotice = new CancellationTokenSource();
+            if (redisNotice.IsCancellationRequested)
+                redisNotice = new CancellationTokenSource();
 
-            messageTimeout = CancellationTokenSource.CreateLinkedTokenSource(timed.Token, newJobsNotice.Token);
+            messageTimeout = CancellationTokenSource.CreateLinkedTokenSource(timed.Token, redisNotice.Token);
         }
         finally
         {
@@ -344,30 +361,25 @@ public class RunnerConnectionHandler : IDisposable
         int emptyMessages = 0;
         var lastCheckConnection = DateTime.UtcNow;
 
-        // Start listening to realtime redis notifications
-        await subscriber.SubscribeAsync(new RedisChannel(NotificationGroups.RealtimeNewJobCreatedNotification,
-                RedisChannel.PatternMode.Literal),
-            (channel, value) =>
-            {
-                cancelSetup.Wait();
-                try
-                {
-                    if (!newJobsNotice.IsCancellationRequested)
-                        newJobsNotice.Cancel();
-                }
-                finally
-                {
-                    cancelSetup.Release();
-                }
-            });
+        // Start listening to realtime redis notifications to know when there are new jobs or when we become outdated
+        // and should stop doing anything
+        await SetupRedisListeners();
 
-        // TODO: should we have server notifications when an old connection is probably outdated and the listener for
-        // that should flush so that resuming sections doesn't cause out of order text?
+        // If a previous connection handler lost a connection while a job was running, we need to resume the job and
+        // open the last section if there is one for our runner
+        await ResumeJobAndSectionIfExists(new CancellationTokenSource(TimeSpan.FromSeconds(60)).Token);
 
         try
         {
             while (true)
             {
+                // If we have already been outdated, don't even start running
+                if (connectionOutdated)
+                {
+                    logger?.LogInformation("Cannot start runner listening loop as we are already outdated");
+                    break;
+                }
+
                 // This sets up a deadline for the next message, but also for sending a new job notice
                 await SetupNextReadTimeout();
 
@@ -386,6 +398,7 @@ public class RunnerConnectionHandler : IDisposable
                         logger?.LogWarning(
                             "Runner connection {Id} has been closed by the server due to another connection for the runner starting",
                             connectionId);
+                        connectionOutdated = true;
                         break;
                     }
 
@@ -419,7 +432,7 @@ public class RunnerConnectionHandler : IDisposable
                         try
                         {
                             // If we need to notify the client about new builds, then that was not a serious error
-                            if (newJobsNotice.IsCancellationRequested)
+                            if (redisNotice.IsCancellationRequested)
                             {
                                 notifyNewJobsAfterProcessing = true;
                                 rethrow = false;
@@ -430,11 +443,29 @@ public class RunnerConnectionHandler : IDisposable
                             cancelSetup.Release();
                         }
 
+                        if (connectionOutdated)
+                        {
+                            try
+                            {
+                                logger?.LogInformation(
+                                    "We got notice that we are an outdated connection, so we will flush and close");
+
+                                await FlushPendingText(new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token);
+
+                                activeOutputSection = null;
+                                activeClientOutputSection = null;
+                            }
+                            catch (Exception e)
+                            {
+                                logger?.LogError(e, "Failed to flush pending text");
+                            }
+
+                            break;
+                        }
+
                         if (rethrow)
                             throw;
                     }
-
-                    // TODO: message variant where we *offer* jobs to the client?
 
                     if (message == null)
                     {
@@ -549,6 +580,78 @@ public class RunnerConnectionHandler : IDisposable
         // TODO: should we close the last section under certain circumstances? We wouldn't always want to do that as
         // if the client just lost a connection temporarily, the build might still be continuing and once reconnected
         // the client might want to resume.
+    }
+
+    private async Task SetupRedisListeners()
+    {
+        await subscriber.SubscribeAsync(new RedisChannel(NotificationGroups.RealtimeNewJobCreatedNotification,
+                RedisChannel.PatternMode.Literal),
+            (_, _) =>
+            {
+                cancelSetup.Wait();
+                try
+                {
+                    if (!redisNotice.IsCancellationRequested)
+                        redisNotice.Cancel();
+                }
+                finally
+                {
+                    cancelSetup.Release();
+                }
+            });
+
+        // Listener for detecting other connection opening for the same runner, and we should need to flush
+        await subscriber.SubscribeAsync(
+            new RedisChannel(NotificationGroups.RealtimeNewConnectionOpened, RedisChannel.PatternMode.Literal),
+            (_, value) =>
+            {
+                var data = value.ToString();
+
+                if (!value.HasValue || string.IsNullOrWhiteSpace(data))
+                {
+                    return;
+                }
+
+                // If another runner connection opens with the same ID, we need to flush
+                NewConnectionOpenedNotice parsed;
+                try
+                {
+                    parsed = JsonSerializer.Deserialize<NewConnectionOpenedNotice>(data) ??
+                        throw new Exception("Deserialized is null");
+                }
+                catch (Exception e)
+                {
+                    logger?.LogError(e, "We got invalid redis data for new connection opening: {Data}", data);
+                    return;
+                }
+
+                if (parsed.RunnerId != runnerId)
+                {
+                    // Message for someone else
+                    return;
+                }
+
+                if (parsed.ConnectionId == connectionId)
+                    logger?.LogWarning("We somehow got a connection notice about ourself?");
+
+                // This connection is now outdated as there's a newer one made, so we will want to flush and exit soon
+                connectionOutdated = true;
+
+                logger?.LogInformation(
+                    "We got notice that {Id1} is the new connection for runner {Runner} so connection {Id2} will close soon",
+                    parsed.ConnectionId, parsed.RunnerId, connectionId);
+
+                cancelSetup.Wait();
+                try
+                {
+                    if (!redisNotice.IsCancellationRequested)
+                        redisNotice.Cancel();
+                }
+                finally
+                {
+                    cancelSetup.Release();
+                }
+            });
     }
 
     private async Task HandleClientMessage(RealTimeBuildMessage message)
@@ -929,6 +1032,11 @@ public class RunnerConnectionHandler : IDisposable
             var cacheConfig = JsonSerializer.Deserialize<CiJobCacheConfiguration>(job.CacheSettingsJson) ??
                 throw new Exception("Parsed cache config is null");
 
+            var ourData = await GetRunnerModelData(false, cancellationToken);
+            if (ourData.Id != runnerId)
+                throw new Exception("Runner id mismatch after fetch");
+
+            job.ReservedByRunner = ourData;
             job.ReservedByRunnerId = runnerId;
             job.OutputConnection = connectionId;
 
@@ -948,8 +1056,6 @@ public class RunnerConnectionHandler : IDisposable
             }
 
             logger?.LogInformation("We were able to reserve a new job for our runner: {Id}", runnerId);
-
-            var ourData = await GetRunnerModelData(false, cancellationToken);
 
             job.TimeWaitingForServer = DateTime.UtcNow - job.CreatedAt;
 
@@ -1196,6 +1302,106 @@ public class RunnerConnectionHandler : IDisposable
         }
 
         pendingDatabaseTextForSection.Clear();
+    }
+
+    private async Task ResumeJobAndSectionIfExists(CancellationToken cancellationToken)
+    {
+        if (activeJob != null)
+            throw new InvalidOperationException("This may not be called once there is a job");
+
+        var db = AccessDatabase();
+
+        // See if there is an active job first as usually there shouldn't be because active jobs are only left if
+        // the connection is lost unexpectedly
+        var jobToResume = await db.CiJobs.AsNoTracking().Where(j => j.ReservedByRunnerId == runnerId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (jobToResume == null)
+            return;
+
+        logger?.LogInformation("We found a job for our runner it should resume working on");
+
+        // Wait one second to hopefully let anything else trying to work on the job to just stop safely
+        await Task.Delay(1000, cancellationToken);
+
+        // We now get the job as tracking to hopefully get the latest data
+        // In theory we don't need to include the project, but it is done here as it doesn't really hurt and tests
+        // work better (due to the exact same data verification)
+        var job = await db.CiJobs.Include(j => j.Build).ThenInclude(b => b!.CiProject)
+            .Where(j => j.ReservedByRunnerId == runnerId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (job == null)
+            throw new Exception("Job was not found after waiting to resume it");
+
+        // Parse cache config before accepting the job, in case there is a problem with it
+        if (job.CacheSettingsJson == null)
+        {
+            logger?.LogWarning("Tried to start working on a job that does not have cache settings");
+            throw new InvalidOperationException("Job is in invalid state (has no cache settings)");
+        }
+
+        var cacheConfig = JsonSerializer.Deserialize<CiJobCacheConfiguration>(job.CacheSettingsJson) ??
+            throw new Exception("Parsed cache config is null");
+
+        // Update the connection ID that is now responsible for this job
+        job.OutputConnection = connectionId;
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException e)
+        {
+            throw new Exception("We couldn't correctly resume a job that a connection should be working on", e);
+        }
+
+        logger?.LogInformation("We were able to update the connection ID used by the job to: {Id}",
+            job.OutputConnection);
+
+        activeJob = job;
+        activeJobCacheData = cacheConfig;
+        isScopeRefreshBlocked = true;
+
+        // We will let the client know what it is working on the next time it tries to ask for a new job
+
+        // Now that we have resumed the job, we need to also resume a section (if there is one)
+        await ResumeSectionIfExists(cancellationToken);
+    }
+
+    private async Task ResumeSectionIfExists(CancellationToken cancellationToken)
+    {
+        if (activeJob == null)
+            throw new InvalidOperationException("No active job");
+
+        if (activeOutputSection != null)
+            throw new InvalidOperationException("Cannot call this if there's an open section");
+
+        var db = AccessDatabase();
+
+        var notClosedSection = await db.CiJobOutputSections.Where(s =>
+                s.CiProjectId == activeJob.CiProjectId && s.CiBuildId == activeJob.CiBuildId &&
+                s.CiJobId == activeJob.CiJobId && (s.Status == CIJobSectionStatus.Running || s.FinishedAt == null))
+            .ToListAsync(cancellationToken);
+
+        if (notClosedSection.Count < 1)
+            return;
+
+        if (notClosedSection.Count > 1)
+        {
+            logger?.LogWarning(
+                "There are multiple sections open for the same job, this is a problem, we'll resume the highest ID");
+        }
+
+        var toResume = notClosedSection.OrderByDescending(s => s.CiJobOutputSectionId).First();
+
+        activeOutputSection = toResume;
+        activeClientOutputSection = toResume;
+
+        BufferTextOutputIfSectionOpen(ResumedSectionWarningText);
+
+        // When resuming, we'll want to wait a bit before any data sending or saving again to the database
+        lastSaveToDatabase = DateTime.UtcNow;
+        lastSendToClient = DateTime.UtcNow;
     }
 
     private async Task StartNewSection(RealTimeBuildMessage message, CancellationToken cancellationToken)
@@ -1465,4 +1671,10 @@ public class RunnerConnectionHandler : IDisposable
     ///   it is now a duplicate and has to close
     /// </summary>
     private class ConnectionOutdatedException() : Exception("Connection is outdated");
+
+    private class NewConnectionOpenedNotice(int connectionId, long runnerId)
+    {
+        public int ConnectionId { get; } = connectionId;
+        public long RunnerId { get; } = runnerId;
+    }
 }

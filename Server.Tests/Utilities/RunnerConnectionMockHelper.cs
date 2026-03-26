@@ -14,6 +14,7 @@ using Hangfire;
 using Hubs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -59,16 +60,25 @@ public class RunnerConnectionMockHelper
     private bool closed;
     private bool serverClosed;
 
-    protected RunnerConnectionMockHelper(NotificationsEnabledDb database)
+    protected RunnerConnectionMockHelper(NotificationsEnabledDb database, RemoteRunner? existingRunner = null)
     {
         this.database = database;
 
-        remoteRunner = new RemoteRunner($"Test Runner {GetNextId()}")
+        if (existingRunner != null)
         {
-            AccessId = runnerId,
-            SecretKey = secretKey,
-            HashedAccessId = SelectByHashedProperty.HashForDatabaseValue(runnerId.ToString()),
-        };
+            remoteRunner = existingRunner;
+            runnerId = existingRunner.AccessId;
+            secretKey = existingRunner.SecretKey;
+        }
+        else
+        {
+            remoteRunner = new RemoteRunner($"Test Runner {GetNextId()}")
+            {
+                AccessId = runnerId,
+                SecretKey = secretKey,
+                HashedAccessId = SelectByHashedProperty.HashForDatabaseValue(runnerId.ToString()),
+            };
+        }
 
         socketFactory = Substitute.For<IBuildMessageSocketFactory>();
         socket = Substitute.For<IRealTimeBuildMessageSocket>();
@@ -196,6 +206,41 @@ public class RunnerConnectionMockHelper
 
         existingDatabase.RemoteRunners.Add(mockHelper.remoteRunner);
         await existingDatabase.SaveChangesAsync();
+
+        mockHelper.scopeFactory = Substitute.For<IServiceScopeFactory>();
+        var scope = Substitute.For<IServiceScope>();
+        var serviceProvider = Substitute.For<IServiceProvider>();
+
+        var jobMock = Substitute.For<IBackgroundJobClient>();
+
+        mockHelper.scopeFactory.CreateScope().Returns(scope);
+        scope.ServiceProvider.Returns(serviceProvider);
+
+        serviceProvider.GetService(typeof(NotificationsEnabledDb)).Returns(existingDatabase);
+        serviceProvider.GetService(typeof(ILogger<RunnerConnectionHandler>)).Returns(logger);
+        serviceProvider.GetService(typeof(IModelUpdateNotificationSender)).Returns(existingNotifications);
+        serviceProvider.GetService(typeof(IHubContext<NotificationsHub, INotifications>))
+            .Returns(mockHelper.notifications);
+        serviceProvider.GetService(typeof(IBackgroundJobClient)).Returns(jobMock);
+
+        return mockHelper;
+    }
+
+    public static async Task<RunnerConnectionMockHelper> CreateResume(string testName,
+        ILogger<RunnerConnectionHandler> logger, IModelUpdateNotificationSender? existingNotifications = null,
+        NotificationsEnabledDb? existingDatabase = null)
+    {
+        existingNotifications ??= Substitute.For<IModelUpdateNotificationSender>();
+
+        if (existingDatabase == null)
+        {
+            var database = new EditableInMemoryDatabaseFixtureWithNotifications(existingNotifications, testName);
+
+            existingDatabase = database.NotificationsEnabledDatabase;
+        }
+
+        var mockHelper = new RunnerConnectionMockHelper(existingDatabase,
+            await existingDatabase.RemoteRunners.FirstOrDefaultAsync() ?? throw new Exception("No existing runner"));
 
         mockHelper.scopeFactory = Substitute.For<IServiceScopeFactory>();
         var scope = Substitute.For<IServiceScope>();
@@ -379,5 +424,24 @@ public class RunnerConnectionMockHelper
         message = data.Message;
         groupName = data.Group;
         return true;
+    }
+
+    /// <summary>
+    ///   Waits until the server has at least read each message, but note that the processing might still be occurring
+    /// </summary>
+    public async Task WaitUntilQueueEmpty()
+    {
+        var timeout = TimeSpan.FromSeconds(15);
+        var start = DateTime.UtcNow;
+
+        while (DateTime.UtcNow - start < timeout)
+        {
+            if (messageQueue.IsEmpty)
+                return;
+
+            await Task.Delay(5);
+        }
+
+        throw new TimeoutException("Message queue did not become empty within timeout");
     }
 }

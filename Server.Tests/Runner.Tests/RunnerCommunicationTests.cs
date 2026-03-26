@@ -735,7 +735,7 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         string testCacheSettings = JsonSerializer.Serialize(new CiJobCacheConfiguration());
 
         var listenerMockSetup =
-            await RunnerConnectionMockHelper.Create(nameof(Runner_MultipleOutputSectionsWork), logger);
+            await RunnerConnectionMockHelper.Create(nameof(Runner_WebClientOutputIsGrouped), logger);
 
         var db = listenerMockSetup.AccessDatabase();
 
@@ -859,6 +859,283 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         Assert.True(webMessage.Message.WasSuccessful);
 
         Assert.False(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.Null(webMessage);
+        Assert.Null(group);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Runner_ReconnectingResumesJobAndSection(bool disconnectFirst)
+    {
+        string testCacheSettings = JsonSerializer.Serialize(new CiJobCacheConfiguration());
+
+        var listenerMockSetup =
+            await RunnerConnectionMockHelper.Create(
+                nameof(Runner_ReconnectingResumesJobAndSection) + $"{disconnectFirst}", logger);
+
+        var db = listenerMockSetup.AccessDatabase();
+
+        var sampleProject1 = new CiProject
+        {
+            Name = "Sample project",
+            Enabled = true,
+        };
+        await db.CiProjects.AddAsync(sampleProject1);
+
+        var sampleBuild1 = new CiBuild
+        {
+            CiProject = sampleProject1,
+        };
+
+        await db.CiBuilds.AddAsync(sampleBuild1);
+        await db.SaveChangesAsync();
+
+        var sampleJob1 = new CiJob
+        {
+            CiProjectId = sampleProject1.Id,
+            CiBuildId = sampleBuild1.CiBuildId,
+            CiJobId = 12,
+            CacheSettingsJson = testCacheSettings,
+        };
+        await db.CiJobs.AddAsync(sampleJob1);
+        await db.SaveChangesAsync();
+
+        Assert.True(await listenerMockSetup.Start());
+
+        await listenerMockSetup.WaitDequeueAuthRequest();
+
+        Assert.Null(sampleJob1.ReservedByRunnerId);
+
+        // Request the job
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.RequestStartJob,
+            Output = $"{sampleProject1.Id}:{sampleBuild1.CiBuildId}:{sampleJob1.CiJobId}",
+        });
+
+        var serverMessage = await listenerMockSetup.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+
+        Assert.Equal(BuildSectionMessageType.ActiveJobDetails, serverMessage.Type);
+        Assert.NotNull(serverMessage.Output);
+
+        // We got the job so now do some test output
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+            { Type = BuildSectionMessageType.SectionStart, SectionId = 1, SectionName = "Example section" });
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.BuildOutput, SectionId = 1, SectionName = "Example section",
+            Output = "This is a test message that should go into a section",
+        });
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.SectionEnd, SectionId = 1, SectionName = "Example section",
+            WasSuccessful = true,
+        });
+
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+            { Type = BuildSectionMessageType.SectionStart, SectionId = 2, SectionName = "Section 2" });
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.BuildOutput, SectionId = 2, SectionName = "Section 2",
+            Output = "A second section message\n",
+        });
+
+        // Send a heartbeat last to ensure the server has processed all of our earlier output
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.HeartBeat,
+        });
+        await listenerMockSetup.WaitUntilQueueEmpty();
+
+        // But the client sadly loses connection here in this test!
+        var newConnection =
+            await RunnerConnectionMockHelper.CreateResume(
+                nameof(Runner_ReconnectingResumesJobAndSection) + $"{disconnectFirst}", logger);
+
+        // Make sure the database is shared
+        var db2 = newConnection.AccessDatabase();
+
+        // Verify some data items directly
+        {
+            var job1 = await db.CiJobs.Include(ciJob => ciJob.ReservedByRunner).FirstOrDefaultAsync();
+            var job2 = await db2.CiJobs.Include(ciJob => ciJob.ReservedByRunner).FirstOrDefaultAsync();
+
+            Assert.NotNull(job1);
+            Assert.NotNull(job2);
+            Assert.Equal(job1.CiJobId, job2.CiJobId);
+            Assert.Equal(job1.CiProjectId, job2.CiProjectId);
+            Assert.Equal(job1.ReservedByRunnerId, job2.ReservedByRunnerId);
+            Assert.Equal(job1.ReservedByRunner?.Id, job2.ReservedByRunner?.Id);
+            Assert.Equal(job1.State, job2.State);
+        }
+
+        if (disconnectFirst)
+        {
+            listenerMockSetup.QueueCloseMessage();
+            await listenerMockSetup.WaitUntilClosed();
+        }
+
+        // Ensure the job is still reserved
+        Assert.NotNull(sampleJob1.ReservedByRunnerId);
+        var runnerId = sampleJob1.ReservedByRunnerId;
+        Assert.Equal(CIJobState.Running, sampleJob1.State);
+
+        // We should be told that we have an active job
+        newConnection.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.GetAvailableJobs });
+
+        Assert.True(await newConnection.Start());
+        await newConnection.WaitDequeueAuthRequest();
+
+        var jobVerification = await db2.CiJobs.FirstOrDefaultAsync(j => j.ReservedByRunnerId == runnerId);
+        Assert.NotNull(jobVerification);
+
+        serverMessage = await newConnection.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.ActiveJobDetails, serverMessage.Type);
+        Assert.NotNull(serverMessage.Output);
+        var parsedServer = JsonSerializer.Deserialize<RunningJobDetails>(serverMessage.Output);
+        Assert.NotNull(parsedServer);
+        Assert.Equal(JsonSerializer.Serialize(sampleJob1.GetDTO()),
+            JsonSerializer.Serialize(parsedServer.GeneralDetails));
+
+        newConnection.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.BuildOutput, SectionId = 2, SectionName = "Section 2",
+            Output = "And a further line\n",
+        });
+        newConnection.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.SectionEnd, SectionId = 2, SectionName = "Section 2",
+            WasSuccessful = true,
+        });
+
+        newConnection.QueueMessage(new RealTimeBuildMessage
+            { Type = BuildSectionMessageType.FinalStatus, WasSuccessful = true });
+
+        // We use asking for a job list here to wait for the server to process our messages
+        newConnection.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.GetAvailableJobs });
+        serverMessage = await newConnection.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.JobsList, serverMessage.Type);
+
+        Assert.False(newConnection.TryDequeueServerMessage(out _, out _));
+
+        // We fetch last database data before closing the listener as it will dispose the DB instance we gave it
+        // Check that the output actually reached the database
+        var sections = await db2.CiJobOutputSections.Where(s =>
+            s.CiProjectId == sampleJob1.CiProjectId && s.CiBuildId == sampleJob1.CiBuildId &&
+            s.CiJobId == sampleJob1.CiJobId).ToListAsync();
+
+        // sampleJob1 is a different object from db2, so it doesn't directly reflect there
+        var refetched1 = await db2.CiJobs.Include(ciJob => ciJob.ReservedByRunner).FirstOrDefaultAsync();
+        Assert.NotNull(refetched1);
+
+        // Close finally
+        newConnection.QueueCloseMessage();
+        await newConnection.WaitUntilClosed();
+
+        // And close the original if not already
+        if (!disconnectFirst)
+        {
+            listenerMockSetup.QueueCloseMessage();
+            await listenerMockSetup.WaitUntilClosed();
+        }
+
+        Assert.Equal(2, sections.Count);
+        Assert.Equal("Example section", sections[0].Name);
+        Assert.Equal("This is a test message that should go into a section", sections[0].Output);
+        Assert.NotNull(sections[0].FinishedAt);
+        Assert.Equal(CIJobSectionStatus.Succeeded, sections[0].Status);
+
+        Assert.Equal("Section 2", sections[1].Name);
+
+        // We get a warning about the resume in the text
+        Assert.Equal(
+            $"A second section message\n{RunnerConnectionHandler.ResumedSectionWarningText}And a further line\n",
+            sections[1].Output);
+        Assert.NotNull(sections[1].FinishedAt);
+        Assert.Equal(CIJobSectionStatus.Succeeded, sections[1].Status);
+
+        // And that the job status was updated on finish
+
+        Assert.Null(refetched1.ReservedByRunnerId);
+        Assert.NotNull(refetched1.FinishedAt);
+        Assert.True(refetched1.Succeeded);
+        Assert.Equal(CIJobState.Finished, refetched1.State);
+
+        var expectedGroupName = $"{NotificationGroups.CIProjectsBuildsJobRealtimeOutputPrefix}{sampleJob1.CiProjectId}_"
+            + $"{sampleJob1.CiBuildId}_{sampleJob1.CiJobId}";
+
+        // Check that website notices are correct
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out var webMessage, out var group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.SectionStart, webMessage.Message.Type);
+        Assert.Equal(1, webMessage.Message.SectionId);
+        Assert.Equal("Example section", webMessage.Message.SectionName);
+
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.BuildOutput, webMessage.Message.Type);
+        Assert.Equal(1, webMessage.Message.SectionId);
+        Assert.Equal("Example section", webMessage.Message.SectionName);
+        Assert.Equal("This is a test message that should go into a section", webMessage.Message.Output);
+
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.SectionEnd, webMessage.Message.Type);
+        Assert.Equal(1, webMessage.Message.SectionId);
+        Assert.Equal("Example section", webMessage.Message.SectionName);
+        Assert.True(webMessage.Message.WasSuccessful);
+
+        // Second section
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.SectionStart, webMessage.Message.Type);
+        Assert.Equal(2, webMessage.Message.SectionId);
+        Assert.Equal("Section 2", webMessage.Message.SectionName);
+
+        // Due to the way the first message for a section is sent, this message is in two parts
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.BuildOutput, webMessage.Message.Type);
+        Assert.Equal(2, webMessage.Message.SectionId);
+        Assert.Equal("Section 2", webMessage.Message.SectionName);
+        Assert.Equal("A second section message\n", webMessage.Message.Output);
+
+        // Here end the first connection messages
+        Assert.False(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+
+        Assert.True(newConnection.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(BuildSectionMessageType.BuildOutput, webMessage.Message.Type);
+        Assert.Equal($"{RunnerConnectionHandler.ResumedSectionWarningText}And a further line\n",
+            webMessage.Message.Output);
+
+        Assert.True(newConnection.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.SectionEnd, webMessage.Message.Type);
+        Assert.Equal(2, webMessage.Message.SectionId);
+        Assert.Equal("Section 2", webMessage.Message.SectionName);
+        Assert.True(webMessage.Message.WasSuccessful);
+
+        // Final message
+        Assert.True(newConnection.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.FinalStatus, webMessage.Message.Type);
+        Assert.Equal(0, webMessage.Message.SectionId);
+        Assert.Null(webMessage.Message.SectionName);
+        Assert.True(webMessage.Message.WasSuccessful);
+
+        Assert.False(newConnection.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
         Assert.Null(webMessage);
         Assert.Null(group);
     }
