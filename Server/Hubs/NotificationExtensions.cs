@@ -6,7 +6,7 @@ using Shared.Notifications;
 
 public static class NotificationExtensions
 {
-    private static readonly NotificationJsonConverter Converter = new();
+    public static readonly NotificationJsonConverter Converter = new();
 
     /// <summary>
     ///   Send all SerializedNotification derived classes through this extension method

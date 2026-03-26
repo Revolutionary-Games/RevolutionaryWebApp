@@ -12,7 +12,7 @@ public interface INotifications
     public Task ReceiveVersionMismatch();
     public Task ReceiveOwnUserInfo(UserDTO? user);
 
-    // Directly sending SerializedNotification doesn't work so we hack around that by manually serializing it
+    // Directly sending SerializedNotification doesn't work, so we hack around that by manually serializing it
     // to a string before sending
     public Task ReceiveNotificationJSON(string json);
 }

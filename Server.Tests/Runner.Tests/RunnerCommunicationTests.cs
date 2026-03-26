@@ -13,6 +13,7 @@ using Server.Controllers;
 using Server.Models;
 using Shared.Models;
 using Shared.Models.Enums;
+using Shared.Notifications;
 using TestUtilities.Utilities;
 using Utilities;
 using Xunit;
@@ -369,6 +370,45 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         // And job 2 wasn't touched
         Assert.Null(sampleJob2.ReservedByRunnerId);
         Assert.Equal(CIJobState.Starting, sampleJob2.State);
+
+        var expectedGroupName = $"{NotificationGroups.CIProjectsBuildsJobRealtimeOutputPrefix}{sampleJob1.CiProjectId}_"
+            + $"{sampleJob1.CiBuildId}_{sampleJob1.CiJobId}";
+
+        // Check that website notices are correct
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out var webMessage, out var group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.SectionStart, webMessage.Message.Type);
+        Assert.Equal(1, webMessage.Message.SectionId);
+        Assert.Equal("Example section", webMessage.Message.SectionName);
+
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.BuildOutput, webMessage.Message.Type);
+        Assert.Equal(1, webMessage.Message.SectionId);
+        Assert.Equal("Example section", webMessage.Message.SectionName);
+        Assert.Equal("This is a test message that should go into a section", webMessage.Message.Output);
+
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.SectionEnd, webMessage.Message.Type);
+        Assert.Equal(1, webMessage.Message.SectionId);
+        Assert.Equal("Example section", webMessage.Message.SectionName);
+        Assert.True(webMessage.Message.WasSuccessful);
+
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.NotNull(webMessage);
+        Assert.Equal(expectedGroupName, group);
+        Assert.Equal(BuildSectionMessageType.FinalStatus, webMessage.Message.Type);
+        Assert.Equal(0, webMessage.Message.SectionId);
+        Assert.Null(webMessage.Message.SectionName);
+        Assert.True(webMessage.Message.WasSuccessful);
+
+        Assert.False(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.Null(webMessage);
+        Assert.Null(group);
     }
 
     [Fact]

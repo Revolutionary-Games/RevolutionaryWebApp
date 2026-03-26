@@ -3,7 +3,9 @@ namespace RevolutionaryWebApp.Server.Tests.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Utilities;
@@ -22,6 +24,7 @@ using Server.Services;
 using Server.Utilities;
 using Shared.Models;
 using Shared.Models.Enums;
+using Shared.Notifications;
 using StackExchange.Redis;
 using Xunit;
 
@@ -39,6 +42,8 @@ public class RunnerConnectionMockHelper
     private readonly ConcurrentQueue<(RealTimeBuildMessage? Message, bool Closed)> messageQueue = new();
 
     private readonly ConcurrentQueue<(RealTimeBuildMessage? Message, bool Closed)> serverOutgoingQueue = new();
+
+    private readonly ConcurrentQueue<(string Group, BuildMessageNotification Message)> websiteNoticeMessages = new();
 
     private readonly Guid runnerId = Guid.NewGuid();
     private readonly Guid secretKey = Guid.NewGuid();
@@ -127,6 +132,41 @@ public class RunnerConnectionMockHelper
         });
 
         socket.CloseStatus.Returns(_ => serverClosed ? WebSocketCloseStatus.NormalClosure : null);
+
+        var hubClient = Substitute.For<IHubClients<INotifications>>();
+
+        notifications.Clients.Returns(hubClient);
+
+        hubClient.Group(Arg.Any<string>()).Returns(data =>
+        {
+            var groupName = data.Arg<string>();
+            var group = Substitute.For<INotifications>();
+
+            group.ReceiveNotificationJSON(Arg.Any<string>()).Returns(messageData =>
+            {
+                // But if a waste to JSON decode it here, but otherwise all tests would have to do that
+                var jsonData = messageData.Arg<string>();
+                var notification = JsonSerializer.Deserialize<SerializedNotification>(jsonData,
+                    new JsonSerializerOptions { Converters = { NotificationExtensions.Converter } });
+
+                if (notification?.NotificationType != nameof(BuildMessageNotification))
+                    throw new Exception("Sent a notice that wasn't a build message");
+
+                var converted = (BuildMessageNotification)notification;
+
+                if (converted.Message == null!)
+                    throw new Exception("Sent a notice that couldn't be decoded correctly");
+
+                websiteNoticeMessages.Enqueue((groupName, converted));
+
+                if (websiteNoticeMessages.Count > 1000)
+                    throw new InvalidOperationException("Too many web client notice messages are unread");
+
+                return Task.CompletedTask;
+            });
+
+            return group;
+        });
     }
 
     /// <summary>
@@ -324,5 +364,20 @@ public class RunnerConnectionMockHelper
         var serverMessage = await WaitForServerMessage();
         Assert.NotNull(serverMessage);
         Assert.Equal(BuildSectionMessageType.AuthDemand, serverMessage.Type);
+    }
+
+    public bool TryDequeueWebsiteNoticeMessage([NotNullWhen(true)] out BuildMessageNotification? message,
+        [NotNullWhen(true)] out string? groupName)
+    {
+        if (!websiteNoticeMessages.TryDequeue(out var data))
+        {
+            groupName = null;
+            message = null;
+            return false;
+        }
+
+        message = data.Message;
+        groupName = data.Group;
+        return true;
     }
 }
