@@ -39,6 +39,7 @@ public class RunnerConnectionMockHelper
 
     private readonly NotificationsEnabledDb database;
     private readonly RemoteRunner remoteRunner;
+    private readonly string? databaseName;
 
     private readonly ConcurrentQueue<(RealTimeBuildMessage? Message, bool Closed)> messageQueue = new();
 
@@ -53,6 +54,11 @@ public class RunnerConnectionMockHelper
     private readonly IRealTimeBuildMessageSocket socket;
     private readonly IHubContext<NotificationsHub, INotifications> notifications;
 
+    // Redis mock components to simulate pub/sub
+    private readonly IConnectionMultiplexer redis;
+    private readonly ISubscriber subscriber;
+    private readonly Dictionary<string, Action<RedisChannel, RedisValue>> redisHandlers = new();
+
     private IServiceScopeFactory? scopeFactory;
 
     private RunnerConnectionHandler? connection;
@@ -60,9 +66,13 @@ public class RunnerConnectionMockHelper
     private bool closed;
     private bool serverClosed;
 
-    protected RunnerConnectionMockHelper(NotificationsEnabledDb database, RemoteRunner? existingRunner = null)
+    protected RunnerConnectionMockHelper(NotificationsEnabledDb database, string? databaseName,
+        RemoteRunner? existingRunner = null)
     {
         this.database = database;
+
+        // Capture the in-memory database name so another context can be created after this one is disposed
+        this.databaseName = databaseName;
 
         if (existingRunner != null)
         {
@@ -84,8 +94,33 @@ public class RunnerConnectionMockHelper
         socket = Substitute.For<IRealTimeBuildMessageSocket>();
         notifications = Substitute.For<IHubContext<NotificationsHub, INotifications>>();
 
-        socket.Read(Arg.Any<CancellationToken>(), Arg.Any<CancellationToken>()).Returns(async _ =>
+        // Prepare redis and capture subscriptions so tests can trigger them
+        redis = Substitute.For<IConnectionMultiplexer>();
+        subscriber = Substitute.For<ISubscriber>();
+
+        redis.GetSubscriber().Returns(subscriber);
+
+        subscriber.SubscribeAsync(Arg.Any<RedisChannel>(), Arg.Any<Action<RedisChannel, RedisValue>>())
+            .Returns(ci =>
+            {
+                var channel = ci.Arg<RedisChannel>().ToString();
+                var handler = ci.Arg<Action<RedisChannel, RedisValue>>();
+
+                // Store/replace the handler for the channel
+                redisHandlers[channel] = handler;
+                return Task.CompletedTask;
+            });
+
+        subscriber.UnsubscribeAllAsync().Returns(_ =>
         {
+            redisHandlers.Clear();
+            return Task.CompletedTask;
+        });
+
+        socket.Read(Arg.Any<CancellationToken>(), Arg.Any<CancellationToken>()).Returns(async call =>
+        {
+            // We need to emulate socket cancellation for all tests to be able to pass
+            var cancellation = call.ArgAt<CancellationToken>(0);
             if (closed)
             {
                 // This happens if the test puts messages in the queue in the wrong order, so this is a test bug
@@ -108,7 +143,7 @@ public class RunnerConnectionMockHelper
                     return message;
                 }
 
-                await Task.Delay(5);
+                await Task.Delay(5, cancellation);
             }
 
             throw new Exception("Timed out waiting for a message for RunnerConnection");
@@ -202,7 +237,7 @@ public class RunnerConnectionMockHelper
             existingDatabase = database.NotificationsEnabledDatabase;
         }
 
-        var mockHelper = new RunnerConnectionMockHelper(existingDatabase);
+        var mockHelper = new RunnerConnectionMockHelper(existingDatabase, testName);
 
         existingDatabase.RemoteRunners.Add(mockHelper.remoteRunner);
         await existingDatabase.SaveChangesAsync();
@@ -239,7 +274,7 @@ public class RunnerConnectionMockHelper
             existingDatabase = database.NotificationsEnabledDatabase;
         }
 
-        var mockHelper = new RunnerConnectionMockHelper(existingDatabase,
+        var mockHelper = new RunnerConnectionMockHelper(existingDatabase, testName,
             await existingDatabase.RemoteRunners.FirstOrDefaultAsync() ?? throw new Exception("No existing runner"));
 
         mockHelper.scopeFactory = Substitute.For<IServiceScopeFactory>();
@@ -276,8 +311,6 @@ public class RunnerConnectionMockHelper
                 }),
             },
         };
-
-        var redis = Substitute.For<IConnectionMultiplexer>();
 
         socketFactory.AcceptAsync().Returns(socket);
 
@@ -392,6 +425,44 @@ public class RunnerConnectionMockHelper
             return;
 
         await connection.WaitUntilClosed(timeout);
+    }
+
+    /// <summary>
+    ///   Simulates the Redis realtime notice that a new connection for the same runner has opened.
+    /// </summary>
+    public void TriggerRedisNewConnectionOpened(long newRunnerId, int newConnectionId)
+    {
+        // This payload must match RunnerConnectionHandler.NewConnectionOpenedNotice structure
+        var payload = JsonSerializer.Serialize(new
+        {
+            ConnectionId = newConnectionId,
+            RunnerId = newRunnerId,
+        });
+
+        if (redisHandlers.TryGetValue(NotificationGroups.RealtimeNewConnectionOpened, out var handler))
+        {
+            handler(new RedisChannel(NotificationGroups.RealtimeNewConnectionOpened, RedisChannel.PatternMode.Literal),
+                new RedisValue(payload));
+            return;
+        }
+
+        throw new InvalidOperationException(
+            "No subscriber captured for RealtimeNewConnectionOpened; did you Start() the helper?");
+    }
+
+    /// <summary>
+    ///   Creates a fresh NotificationsEnabledDb pointing to the same in-memory database store by name.
+    ///   Useful for reading data after the handler has disposed of the scoped context.
+    /// </summary>
+    public NotificationsEnabledDb CreateNewDbContextForReading()
+    {
+        if (string.IsNullOrWhiteSpace(databaseName))
+            throw new InvalidOperationException("Original database name is unknown; cannot re-open context");
+
+        // Use a new notifications sender; EF InMemory identifies the store solely by its name
+        var sender = Substitute.For<IModelUpdateNotificationSender>();
+        var fixture = new EditableInMemoryDatabaseFixtureWithNotifications(sender, databaseName);
+        return fixture.NotificationsEnabledDatabase;
     }
 
     public void DequeueAuthRequest()

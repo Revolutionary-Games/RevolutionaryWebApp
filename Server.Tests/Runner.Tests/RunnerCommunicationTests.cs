@@ -1144,4 +1144,137 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
     {
         logger.Dispose();
     }
+
+    [Fact]
+    public async Task Runner_FlushesAndExitsOnNewConnectionOpened()
+    {
+        const string pendingText1 = "Some buffered output that must be flushed\n";
+        const string pendingText2 = "And a second line that definitely isn't immediate\n";
+
+        var listenerMockSetup = await RunnerConnectionMockHelper.Create(
+            nameof(Runner_FlushesAndExitsOnNewConnectionOpened), logger);
+
+        var db = listenerMockSetup.AccessDatabase();
+
+        var project = new CiProject
+        {
+            Name = "Project",
+            Enabled = true,
+        };
+        await db.CiProjects.AddAsync(project);
+
+        var build = new CiBuild { CiProject = project };
+        await db.CiBuilds.AddAsync(build);
+        await db.SaveChangesAsync();
+
+        var job = new CiJob
+        {
+            CiProjectId = project.Id,
+            CiBuildId = build.CiBuildId,
+            CiJobId = 101,
+            CacheSettingsJson = JsonSerializer.Serialize(new CiJobCacheConfiguration()),
+        };
+        await db.CiJobs.AddAsync(job);
+        await db.SaveChangesAsync();
+
+        Assert.True(await listenerMockSetup.Start());
+        await listenerMockSetup.WaitDequeueAuthRequest();
+
+        // Ask to start the job
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.RequestStartJob,
+            Output = $"{project.Id}:{build.CiBuildId}:{job.CiJobId}",
+        });
+
+        var serverMessage = await listenerMockSetup.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.ActiveJobDetails, serverMessage.Type);
+
+        // Start a section and send some output, but DO NOT end the section
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.SectionStart,
+            SectionId = 1,
+            SectionName = "ImmediateFlush",
+        });
+
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.BuildOutput,
+            SectionId = 1,
+            SectionName = "ImmediateFlush",
+            Output = pendingText1,
+        });
+
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.BuildOutput,
+            SectionId = 1,
+            SectionName = "ImmediateFlush",
+            Output = pendingText2,
+        });
+
+        // Ensure the server consumes what we just queued
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.HeartBeat });
+        await listenerMockSetup.WaitUntilQueueEmpty();
+
+        // Main difference in this test: simulate that another connection for the SAME runner opened
+        var runnerDbId = await db.RemoteRunners.AsNoTracking().Select(r => r.Id).FirstAsync();
+
+        // Any ID that isn't current will trigger the flush. Theoretically, this fixed value might conflict,
+        // but we don't care about that here (1 in 2 billion chance).
+        listenerMockSetup.TriggerRedisNewConnectionOpened(runnerDbId, 123456);
+
+        // Wait for the handler to notice, flush and exit
+        await listenerMockSetup.WaitUntilClosed(TimeSpan.FromSeconds(15));
+
+        // Create a fresh context for reading because the handler disposed of the scoped one
+        var readDb = listenerMockSetup.CreateNewDbContextForReading();
+
+        // Test that the connection flushed its output before closing
+        var sections = await readDb.CiJobOutputSections
+            .Where(s => s.CiProjectId == project.Id && s.CiBuildId == build.CiBuildId && s.CiJobId == job.CiJobId)
+            .OrderBy(s => s.CiJobOutputSectionId)
+            .ToListAsync();
+
+        Assert.Single(sections);
+        Assert.Equal("ImmediateFlush", sections[0].Name);
+        Assert.Equal(pendingText1 + pendingText2, sections[0].Output);
+        Assert.Equal(sections[0].Output.Length, sections[0].OutputLength);
+
+        // Check that the state is still not ended by us and still running
+        Assert.Null(sections[0].FinishedAt);
+        Assert.Equal(CIJobSectionStatus.Running, sections[0].Status);
+
+        // Also check that website clients received the flushed output
+        var expectedGroup = RunnerConnectionHandler.GetNotificationGroup(job);
+
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out var web, out var group));
+        Assert.NotNull(web);
+        Assert.Equal(expectedGroup, group);
+        Assert.Equal(BuildSectionMessageType.SectionStart, web.Message.Type);
+
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out web, out group));
+        Assert.NotNull(web);
+        Assert.Equal(expectedGroup, group);
+        Assert.Equal(BuildSectionMessageType.BuildOutput, web.Message.Type);
+        Assert.Equal("ImmediateFlush", web.Message.SectionName);
+        Assert.Equal(1, web.Message.SectionId);
+
+        // Web gets an immediate message
+        Assert.Equal(pendingText1, web.Message.Output);
+
+        // And then a second one
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out web, out group));
+        Assert.NotNull(web);
+        Assert.Equal(expectedGroup, group);
+        Assert.Equal(BuildSectionMessageType.BuildOutput, web.Message.Type);
+        Assert.Equal("ImmediateFlush", web.Message.SectionName);
+        Assert.Equal(1, web.Message.SectionId);
+        Assert.Equal(pendingText2, web.Message.Output);
+
+        Assert.False(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out web, out _));
+        Assert.Null(web);
+    }
 }

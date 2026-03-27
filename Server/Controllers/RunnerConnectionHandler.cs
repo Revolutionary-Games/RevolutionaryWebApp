@@ -412,6 +412,10 @@ public class RunnerConnectionHandler : IDisposable
                 {
                     bool notifyNewJobsAfterProcessing = false;
 
+                    // Don't stop to wait for any more messages after connection outdated signal
+                    if (connectionOutdated)
+                        break;
+
                     RealTimeBuildMessage? message;
                     try
                     {
@@ -443,25 +447,9 @@ public class RunnerConnectionHandler : IDisposable
                             cancelSetup.Release();
                         }
 
+                        // Flushing is outside the loop
                         if (connectionOutdated)
-                        {
-                            try
-                            {
-                                logger?.LogInformation(
-                                    "We got notice that we are an outdated connection, so we will flush and close");
-
-                                await FlushPendingText(new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token);
-
-                                activeOutputSection = null;
-                                activeClientOutputSection = null;
-                            }
-                            catch (Exception e)
-                            {
-                                logger?.LogError(e, "Failed to flush pending text");
-                            }
-
                             break;
-                        }
 
                         if (rethrow)
                             throw;
@@ -539,6 +527,24 @@ public class RunnerConnectionHandler : IDisposable
                 {
                     // Timed out
                     break;
+                }
+            }
+
+            if (connectionOutdated)
+            {
+                try
+                {
+                    logger?.LogInformation(
+                        "We got notice that we are an outdated connection, so we will flush and close");
+
+                    await FlushPendingText(new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token);
+
+                    activeOutputSection = null;
+                    activeClientOutputSection = null;
+                }
+                catch (Exception e)
+                {
+                    logger?.LogError(e, "Failed to flush pending text");
                 }
             }
 
