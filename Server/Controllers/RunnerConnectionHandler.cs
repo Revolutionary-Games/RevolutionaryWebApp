@@ -316,6 +316,11 @@ public class RunnerConnectionHandler : IDisposable
         mainRunTask = null;
     }
 
+    public int GetConnectionId()
+    {
+        return connectionId;
+    }
+
     public void Dispose()
     {
         Dispose(true);

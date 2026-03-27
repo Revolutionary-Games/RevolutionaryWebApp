@@ -348,6 +348,19 @@ public class RunnerConnectionMockHelper
         Assert.True(connection != null);
     }
 
+    public async Task CheckOpenNoticeWasSent()
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            ConnectionId = connection?.GetConnectionId() ?? -1234,
+            RunnerId = remoteRunner.Id,
+        });
+
+        await subscriber.Received().PublishAsync(
+            Arg.Is<RedisChannel>(c => c.ToString() == NotificationGroups.RealtimeNewConnectionOpened),
+            Arg.Is<RedisValue>(v => v.ToString() == payload));
+    }
+
     public async Task CheckServerClosedSocket()
     {
         await socket.Received().Close(Arg.Any<CancellationToken>());

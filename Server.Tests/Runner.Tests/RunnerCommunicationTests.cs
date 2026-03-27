@@ -342,6 +342,8 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
 
         Assert.False(listenerMockSetup.TryDequeueServerMessage(out _, out _));
 
+        await listenerMockSetup.CheckOpenNoticeWasSent();
+
         // We fetch last database data before closing the listener as it will dispose the DB instance we gave it
         // Check that the output actually reached the database
         var sections = await db.CiJobOutputSections.Where(s =>
@@ -1228,6 +1230,8 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
 
         // Wait for the handler to notice, flush and exit
         await listenerMockSetup.WaitUntilClosed(TimeSpan.FromSeconds(15));
+
+        await listenerMockSetup.CheckOpenNoticeWasSent();
 
         // Create a fresh context for reading because the handler disposed of the scoped one
         var readDb = listenerMockSetup.CreateNewDbContextForReading();
