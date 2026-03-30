@@ -269,6 +269,12 @@ public class RunnerConnectionHandler : IDisposable
             return null;
         }
 
+        // Send a success message
+        var successMessageSend = wrappedSocket.Write(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.AuthSuccess,
+        }, new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token);
+
         var subscriber = realtimeCommunications.GetSubscriber();
 
         // Let other connections know about the new one and that they should exit if they hold relevant buffers
@@ -286,6 +292,15 @@ public class RunnerConnectionHandler : IDisposable
         logger.LogInformation(
             "Accepted runner connection from {RemoteIpAddress} ({Connection})) for runner {Id} ({Name})",
             context.Connection.RemoteIpAddress, connectionId, runner.Id, runner.Name);
+
+        try
+        {
+            await successMessageSend;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to send auth success message to client, opening connection still");
+        }
 
         var handler = new RunnerConnectionHandler(wrappedSocket, scopeFactory, runner.Id, connectionId, subscriber,
             runner.Priority, databaseIsPostgres);

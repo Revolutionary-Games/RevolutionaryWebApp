@@ -478,21 +478,35 @@ public class RunnerConnectionMockHelper
         return fixture.NotificationsEnabledDatabase;
     }
 
-    public void DequeueAuthRequest()
+    public void DequeueAuthRequest(bool alsoSuccessResponse = true)
     {
         Assert.True(TryDequeueServerMessage(out var serverMessage, out _));
         Assert.NotNull(serverMessage);
         Assert.Equal(BuildSectionMessageType.AuthDemand, serverMessage.Type);
+
+        if (alsoSuccessResponse)
+        {
+            Assert.True(TryDequeueServerMessage(out serverMessage, out _));
+            Assert.NotNull(serverMessage);
+            Assert.Equal(BuildSectionMessageType.AuthSuccess, serverMessage.Type);
+        }
     }
 
     /// <summary>
     ///   Waits for the server to send an auth request
     /// </summary>
-    public async Task WaitDequeueAuthRequest()
+    public async Task WaitDequeueAuthRequest(bool alsoSuccessResponse = true)
     {
         var serverMessage = await WaitForServerMessage();
         Assert.NotNull(serverMessage);
         Assert.Equal(BuildSectionMessageType.AuthDemand, serverMessage.Type);
+
+        if (alsoSuccessResponse)
+        {
+            serverMessage = await WaitForServerMessage();
+            Assert.NotNull(serverMessage);
+            Assert.Equal(BuildSectionMessageType.AuthSuccess, serverMessage.Type);
+        }
     }
 
     public bool TryDequeueWebsiteNoticeMessage([NotNullWhen(true)] out BuildMessageNotification? message,
