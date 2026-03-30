@@ -984,15 +984,35 @@ public class RunnerConnectionHandler : IDisposable
         {
             var tags = obj.RequiredRunnerTags.Split(';');
 
-            foreach (var tag in tags)
+            bool matched = false;
+
+            if (runner.Tags.Contains(';'))
             {
-                // Note this requires tags to not be substrings of each other!
-                if (!runner.Tags.Contains(tag))
+                var runnerTags = runner.Tags.Split(';');
+
+                foreach (var tag in tags)
                 {
-                    // Filter out as missing a tag
-                    return true;
+                    if (runnerTags.Contains(tag))
+                    {
+                        matched = true;
+                        break;
+                    }
                 }
             }
+            else
+            {
+                foreach (var tag in tags)
+                {
+                    if (tag == runner.Tags)
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!matched)
+                return true;
         }
 
         // TODO: exclude tags in runner
@@ -1056,6 +1076,20 @@ public class RunnerConnectionHandler : IDisposable
             if (job == null)
                 return false;
 
+            var ourData = await GetRunnerModelData(false, cancellationToken);
+
+            // If the job cannot be accepted due to tags, do not allow it!
+            if (FilterOutJobTags(job, ourData))
+            {
+                logger?.LogWarning("Runner tried to start working on a job that is not allowed by the runner");
+                await ReplyToClient(new RealTimeBuildMessage
+                {
+                    Type = BuildSectionMessageType.Error,
+                    ErrorMessage = "Job not allowed for you due to runner tags",
+                }, cancellationToken);
+                return false;
+            }
+
             // Parse cache config before accepting the job, in case there is a problem with it
             if (job.CacheSettingsJson == null)
             {
@@ -1066,7 +1100,6 @@ public class RunnerConnectionHandler : IDisposable
             var cacheConfig = JsonSerializer.Deserialize<CiJobCacheConfiguration>(job.CacheSettingsJson) ??
                 throw new Exception("Parsed cache config is null");
 
-            var ourData = await GetRunnerModelData(false, cancellationToken);
             if (ourData.Id != runnerId)
                 throw new Exception("Runner id mismatch after fetch");
 

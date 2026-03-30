@@ -243,6 +243,7 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiProjectId = sampleProject1.Id,
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 13,
+            CacheSettingsJson = testCacheSettings,
         };
 
         await db.CiJobs.AddAsync(sampleJob2);
@@ -1275,6 +1276,135 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
 
         Assert.False(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out web, out _));
         Assert.Null(web);
+    }
+
+    [Fact]
+    public async Task Runner_CannotSeeOrStartTagFilteredJob()
+    {
+        string testCacheSettings = JsonSerializer.Serialize(new CiJobCacheConfiguration());
+
+        var listenerMockSetup =
+            await RunnerConnectionMockHelper.Create(nameof(Runner_CannotSeeOrStartTagFilteredJob), logger);
+
+        var db = listenerMockSetup.AccessDatabase();
+
+        var runnerData = await db.RemoteRunners.FirstOrDefaultAsync();
+        Assert.NotNull(runnerData);
+        runnerData.Tags = "tag1;example";
+
+        var sampleProject1 = new CiProject
+        {
+            Name = "Sample project",
+            Enabled = true,
+        };
+        await db.CiProjects.AddAsync(sampleProject1);
+
+        var sampleBuild1 = new CiBuild
+        {
+            CiProject = sampleProject1,
+        };
+
+        await db.CiBuilds.AddAsync(sampleBuild1);
+        await db.SaveChangesAsync();
+
+        var sampleJob1 = new CiJob
+        {
+            CiProjectId = sampleProject1.Id,
+            CiBuildId = sampleBuild1.CiBuildId,
+            CiJobId = 12,
+            CacheSettingsJson = testCacheSettings,
+            RequiredRunnerTags = "exampleTag",
+        };
+        await db.CiJobs.AddAsync(sampleJob1);
+
+        var sampleJob2 = new CiJob
+        {
+            CiProjectId = sampleProject1.Id,
+            CiBuildId = sampleBuild1.CiBuildId,
+            CiJobId = 13,
+            CacheSettingsJson = testCacheSettings,
+            RequiredRunnerTags = "example",
+        };
+
+        await db.CiJobs.AddAsync(sampleJob2);
+        await db.SaveChangesAsync();
+
+        Assert.NotEqual(sampleJob1.CiJobId, sampleJob2.CiJobId);
+
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.GetAvailableJobs });
+
+        Assert.True(await listenerMockSetup.Start());
+
+        await listenerMockSetup.WaitDequeueAuthRequest();
+
+        var serverMessage = await listenerMockSetup.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.JobsList, serverMessage.Type);
+
+        Assert.NotNull(serverMessage.Output);
+        var data = JsonSerializer.Deserialize<AvailableJobsList>(serverMessage.Output);
+        Assert.NotNull(data);
+        Assert.Single(data.Jobs);
+
+        // Make sure the server told us about the job
+        bool hadJob = false;
+
+        foreach (var item in data.Jobs)
+        {
+            if (item.CiProjectId == sampleProject1.Id && item.CiBuildId == sampleBuild1.CiBuildId &&
+                item.CiJobId == sampleJob1.CiJobId)
+            {
+                Assert.Fail("Should not see job1");
+            }
+
+            if (item.CiProjectId == sampleProject1.Id && item.CiBuildId == sampleBuild1.CiBuildId &&
+                item.CiJobId == sampleJob2.CiJobId)
+            {
+                hadJob = true;
+            }
+        }
+
+        if (!hadJob)
+            Assert.Fail("Server didn't tell us about job 1");
+
+        // Then we can request the job, but we can't get job 1
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.RequestStartJob,
+            Output = $"{sampleProject1.Id}:{sampleBuild1.CiBuildId}:{sampleJob1.CiJobId}",
+        });
+
+        serverMessage = await listenerMockSetup.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.Error, serverMessage.Type);
+
+        // We get two error messages to explain the problem
+        serverMessage = await listenerMockSetup.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.Error, serverMessage.Type);
+
+        // But we can get the second job
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.RequestStartJob,
+            Output = $"{sampleProject1.Id}:{sampleBuild1.CiBuildId}:{sampleJob2.CiJobId}",
+        });
+
+        serverMessage = await listenerMockSetup.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.ActiveJobDetails, serverMessage.Type);
+        Assert.NotNull(serverMessage.Output);
+        var jobData = JsonSerializer.Deserialize<RunningJobDetails>(serverMessage.Output);
+        Assert.NotNull(jobData);
+
+        Assert.NotEqual(JsonSerializer.Serialize(sampleJob1.GetDTO()),
+            JsonSerializer.Serialize(jobData.GeneralDetails));
+        Assert.Equal(JsonSerializer.Serialize(sampleJob2.GetDTO()), JsonSerializer.Serialize(jobData.GeneralDetails));
+
+        // We got the job so now do some test output
+
+        listenerMockSetup.QueueCloseMessage();
+        await listenerMockSetup.WaitUntilClosed();
     }
 
     public void Dispose()

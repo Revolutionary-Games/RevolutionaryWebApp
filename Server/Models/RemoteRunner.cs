@@ -24,7 +24,7 @@ public class RemoteRunner : UpdateableModel
     public int Priority { get; set; }
 
     /// <summary>
-    ///   Comma-separated list of tags for this runner. Can be used to filter jobs that it is allowed to take.
+    ///   Semicolon-separated list of tags for this runner. Can be used to filter jobs that it is allowed to take.
     /// </summary>
     [MaxLength(256)]
     public string Tags { get; set; } = string.Empty;
