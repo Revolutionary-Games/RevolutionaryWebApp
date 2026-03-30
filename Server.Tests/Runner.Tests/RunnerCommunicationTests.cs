@@ -1142,11 +1142,6 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         Assert.Null(group);
     }
 
-    public void Dispose()
-    {
-        logger.Dispose();
-    }
-
     [Fact]
     public async Task Runner_FlushesAndExitsOnNewConnectionOpened()
     {
@@ -1280,5 +1275,10 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
 
         Assert.False(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out web, out _));
         Assert.Null(web);
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
     }
 }
