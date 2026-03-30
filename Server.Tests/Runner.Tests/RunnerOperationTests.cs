@@ -23,7 +23,7 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
     {
         var communicationMock = new RunnerToClientMockHelper();
 
-        using var service = new RunnerService(logger, communicationMock);
+        using var service = new RunnerService(logger, communicationMock, communicationMock.GetDataForClient());
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
@@ -36,13 +36,13 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
         // Wait for the first message from the client asking for a list of jobs
         var message = await communicationMock.WaitForClientMessage();
         Assert.NotNull(message);
-        Assert.Equal(BuildSectionMessageType.JobsList, message.Type);
+        Assert.Equal(BuildSectionMessageType.GetAvailableJobs, message.Type);
 
         // And reply with an empty list
         communicationMock.SendJobsToClient();
 
         // Interrupt the service so we can test the shutdown
-        await serviceShutdown.CancelAsync();
+        service.StopAfterNextJob();
 
         await runTask;
 

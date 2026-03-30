@@ -79,12 +79,36 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
     /// </summary>
     public async Task PerformConnectionAuth()
     {
-        throw new NotImplementedException();
+        // Request auth like the main connection handler
+        SendToClient(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.AuthDemand,
+        });
 
+        // And then wait for the response
         var authResponse = await WaitForClientMessage();
 
         Assert.Equal(BuildSectionMessageType.AuthResponse, authResponse.Type);
         Assert.NotNull(authResponse.Output);
+
+        if (RunnerData.SecretKey.ToString() != authResponse.Output)
+        {
+            SendToClient(new RealTimeBuildMessage
+            {
+                Type = BuildSectionMessageType.Error,
+                ErrorMessage = "Invalid secret",
+            });
+
+            await Task.Delay(5);
+
+            serverBrokeConnection = true;
+            return;
+        }
+
+        SendToClient(new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.AuthSuccess,
+        });
 
         IsAuthenticated = true;
     }
@@ -122,6 +146,9 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
 
     public Task Send(RealTimeBuildMessage message, CancellationToken cancellationToken)
     {
+        if (!IsConnected)
+            throw new InvalidOperationException("Socket is not connected");
+
         messagesToServer.Enqueue(message);
 
         if (messagesToServer.Count > 1000)
@@ -149,5 +176,15 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
             // the entire test instead of a single read
             await Task.Delay(1, cancellationToken);
         }
+    }
+
+    public IRunnerClientDataService GetDataForClient()
+    {
+        return new RunnerClientDataServiceObjet
+        {
+            ConnectionKey = RunnerData.AccessId.ToString(),
+            SecretKey = RunnerData.SecretKey.ToString(),
+            ServerUrl = "dummy.unittest.example.com",
+        };
     }
 }

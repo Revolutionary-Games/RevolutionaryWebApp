@@ -947,8 +947,16 @@ public class RunnerConnectionHandler : IDisposable
                 }, processingMaxTime.Token);
                 break;
 
-            case BuildSectionMessageType.AuthDemand:
             case BuildSectionMessageType.AuthResponse:
+                logger?.LogWarning("Runner sent an auth response but we weren't expecting one");
+                await ReplyToClient(new RealTimeBuildMessage
+                {
+                    Type = BuildSectionMessageType.Error,
+                    ErrorMessage = "Server was not expecting auth response at this point",
+                }, processingMaxTime.Token);
+                break;
+
+            case BuildSectionMessageType.AuthDemand:
             case BuildSectionMessageType.AuthSuccess:
             default:
                 await ReplyToClient(new RealTimeBuildMessage
