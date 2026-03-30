@@ -246,11 +246,30 @@ public class RunnerConnectionHandler : IDisposable
 
         runner.CurrentConnectionId = connectionId;
 
-        var subscriber = realtimeCommunications.GetSubscriber();
+        // Need to save the data here to make sure the runner state is saved properly
+        try
+        {
+            await database.SaveChangesAsync(cancellation.Token);
+        }
+        catch (Exception e)
+        {
+            // Not getting to save this, fails the connection starting
+            logger.LogError(e, "Failed to save runner connection id, was there a DB conflict just now?");
 
-        logger.LogInformation(
-            "Accepted runner connection from {RemoteIpAddress} ({Connection})) for runner {Id} ({Name})",
-            context.Connection.RemoteIpAddress, connectionId, runner.Id, runner.Name);
+            try
+            {
+                cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                await wrappedSocket.Close(cancellation.Token);
+            }
+            catch (Exception e2)
+            {
+                logger.LogWarning(e2, "Failed to close socket after database write failure");
+            }
+
+            return null;
+        }
+
+        var subscriber = realtimeCommunications.GetSubscriber();
 
         // Let other connections know about the new one and that they should exit if they hold relevant buffers
         try
@@ -263,6 +282,10 @@ public class RunnerConnectionHandler : IDisposable
         {
             logger.LogError(e, "Failed to publish runner connection to redis");
         }
+
+        logger.LogInformation(
+            "Accepted runner connection from {RemoteIpAddress} ({Connection})) for runner {Id} ({Name})",
+            context.Connection.RemoteIpAddress, connectionId, runner.Id, runner.Name);
 
         var handler = new RunnerConnectionHandler(wrappedSocket, scopeFactory, runner.Id, connectionId, subscriber,
             runner.Priority, databaseIsPostgres);
