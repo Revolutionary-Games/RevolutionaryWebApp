@@ -941,6 +941,13 @@ public class RunnerConnectionHandler : IDisposable
                     break;
                 }
 
+                // If the runner already has a job, tell it to work on that instead!
+                if (activeJob != null)
+                {
+                    await ReplyWithCurrentJobDetails(processingMaxTime.Token);
+                    break;
+                }
+
                 if (!await TryToStartWorkingOnJob(projectId, buildId, jobId, processingMaxTime.Token))
                 {
                     await ReplyToClient(new RealTimeBuildMessage

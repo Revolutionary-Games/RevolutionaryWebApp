@@ -1,9 +1,14 @@
 namespace RevolutionaryWebApp.Server.Tests.Runner.Tests;
 
 using System;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Models;
 using Common.Services;
+using Server.Models;
+using Shared.Models;
 using Shared.Models.Enums;
 using TestUtilities.Utilities;
 using Utilities;
@@ -23,7 +28,8 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
     {
         var communicationMock = new RunnerToClientMockHelper();
 
-        using var service = new RunnerService(logger, communicationMock, communicationMock.GetDataForClient());
+        using var service = new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(),
+            new DummyJobExecutor(false, [], []));
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
@@ -41,12 +47,80 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
         // And reply with an empty list
         communicationMock.SendJobsToClient();
 
-        // Interrupt the service so we can test the shutdown
+        // Stop the service so we can test the shutdown
         service.StopAfterNextJob();
 
-        await runTask;
+        // Make sure the runner didn't crash
+        Assert.Equal(0, await runTask);
 
         Assert.False(communicationMock.IsConnected);
+    }
+
+    [Fact]
+    public async Task Runner_StartsAndCanFinishAJob()
+    {
+        var communicationMock = new RunnerToClientMockHelper();
+        var cacheSettings = JsonSerializer.Serialize(new CiJobCacheConfiguration());
+
+        // Setup jobs to show
+        var project1 = new CiProject
+        {
+            Id = 1,
+            Name = "Test Project",
+        };
+        var build1 = new CiBuild
+        {
+            CiProject = project1,
+            CiProjectId = 1,
+            CiBuildId = 2,
+        };
+
+        var job1 = new CiJob
+        {
+            CiProjectId = project1.Id,
+            Build = build1,
+            CiBuildId = build1.CiBuildId,
+            CiJobId = 15,
+            State = CIJobState.Starting,
+            CacheSettingsJson = cacheSettings,
+        };
+
+        communicationMock.AddJob(job1);
+
+        // Set up and start the service
+        var executor = new DummyJobExecutor(true,
+            [new DummyJobExecutor.ExampleSection("Example output", "This is the output\n", true)], [job1.GetDTO()]);
+
+        using var service =
+            new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(), executor);
+
+        var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+
+        var runTask = service.Run(serviceShutdown.Token);
+
+        await communicationMock.PerformConnectionAuth();
+        Assert.True(communicationMock.IsAuthenticated);
+
+        var message = await communicationMock.WaitForClientMessage();
+        Assert.NotNull(message);
+        Assert.Equal(BuildSectionMessageType.GetAvailableJobs, message.Type);
+
+        communicationMock.SendJobsToClient();
+
+        await communicationMock.WaitForClientToStartJob(job1);
+        Assert.Equal(CIJobState.Running, job1.State);
+
+        // Stop the service so we can test the shutdown (it should shut down after the job is finished)
+        service.StopAfterNextJob();
+
+        Assert.Equal(0, await runTask);
+        Assert.False(communicationMock.IsConnected);
+
+        Assert.Equal(CIJobState.Finished, job1.State);
+        var done = executor.GetRunJobs().ToList();
+        Assert.Single(done);
+
+        // TODO: check that the job output was sent from the client to confirm it ran something
     }
 
     public void Dispose()

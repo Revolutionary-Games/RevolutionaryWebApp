@@ -13,6 +13,7 @@ using Server.Models;
 using Server.Utilities;
 using Shared.Models;
 using Shared.Models.Enums;
+using SharedBase.Utilities;
 using Xunit;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -23,7 +24,11 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
     private readonly ConcurrentQueue<RealTimeBuildMessage> messagesToClient = new();
     private readonly ConcurrentQueue<RealTimeBuildMessage> messagesToServer = new();
 
-    private bool serverBrokeConnection = false;
+    private bool serverBrokeConnection;
+
+    private int connectionId = -1;
+
+    private CiJob? activeJob;
 
     public RunnerToClientMockHelper()
     {
@@ -110,11 +115,30 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
             Type = BuildSectionMessageType.AuthSuccess,
         });
 
+        connectionId = new Random().Next();
         IsAuthenticated = true;
     }
 
     public void SendJobsToClient()
     {
+        // Emulate real server in not allowing to start a job (by getting a list of them first)
+        // if there is already one running
+        if (activeJob != null)
+        {
+            SendToClient(new RealTimeBuildMessage
+            {
+                Type = BuildSectionMessageType.ActiveJobDetails,
+                Output = JsonSerializer.Serialize(new RunningJobDetails(activeJob.GetDTO())
+                {
+                    CacheConfiguration =
+                        JsonSerializer.Deserialize<CiJobCacheConfiguration>(activeJob.CacheSettingsJson ??
+                            throw new Exception("Job has no cache settings")) ?? throw new NullDecodedJsonException(),
+                }),
+            });
+
+            return;
+        }
+
         SendToClient(new RealTimeBuildMessage
         {
             Type = BuildSectionMessageType.JobsList,
@@ -124,6 +148,103 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
                 Jobs = jobs.Select(j => j.GetDTO()).ToList(),
             }),
         });
+    }
+
+    public IRunnerClientDataService GetDataForClient()
+    {
+        return new RunnerClientDataServiceObjet
+        {
+            ConnectionKey = RunnerData.AccessId.ToString(),
+            SecretKey = RunnerData.SecretKey.ToString(),
+            ServerUrl = "dummy.unittest.example.com",
+        };
+    }
+
+    public void AddJob(CiJob jobToAdd)
+    {
+        // This ID check is a bit more strict than necessary but is written this way for simplicity
+        if (jobs.Contains(jobToAdd) || jobs.Any(j => j.CiJobId == jobToAdd.CiJobId))
+            throw new InvalidOperationException("Job already exists");
+
+        jobs.Add(jobToAdd);
+    }
+
+    public async Task WaitForClientToStartJob(CiJob jobToAllow)
+    {
+        if (activeJob != null)
+            throw new InvalidOperationException("Already has an active job");
+
+        CiJobCacheConfiguration cacheForClient =
+            JsonSerializer.Deserialize<CiJobCacheConfiguration>(jobToAllow.CacheSettingsJson ??
+                throw new Exception("Job has no cache settings")) ?? throw new NullDecodedJsonException();
+
+        // If the job was not advertised to the runner, it cannot request to start it
+        if (!jobs.Contains(jobToAllow))
+            throw new InvalidOperationException("Job not registered");
+
+        if (jobToAllow.State is CIJobState.Finished or CIJobState.Running)
+            throw new InvalidOperationException("Job is already finished or running");
+
+        if (jobs.IndexOf(jobToAllow) != 0)
+            throw new Exception("Job is not at the start of the list, client may not try to start it");
+
+        var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+
+        // Wait for the client to request to start the job
+        while (true)
+        {
+            if (TryGetFromClient(out var message))
+            {
+                switch (message.Type)
+                {
+                    case BuildSectionMessageType.HeartBeat:
+                        break;
+                    case BuildSectionMessageType.GetAvailableJobs:
+                        SendJobsToClient();
+                        break;
+                    case BuildSectionMessageType.RequestStartJob:
+                    {
+                        // Process the start request
+                        Assert.NotNull(message.Output);
+
+                        var data = message.Output.Split(':', 3);
+
+                        var projectId = long.Parse(data[0]);
+                        var buildId = long.Parse(data[1]);
+                        var jobId = long.Parse(data[2]);
+
+                        // It must match the allowed job
+                        Assert.Equal(jobToAllow.CiProjectId, projectId);
+                        Assert.Equal(jobToAllow.CiBuildId, buildId);
+                        Assert.Equal(jobToAllow.CiJobId, jobId);
+
+                        SendToClient(new RealTimeBuildMessage
+                        {
+                            Type = BuildSectionMessageType.ActiveJobDetails,
+                            Output = JsonSerializer.Serialize(new RunningJobDetails(jobToAllow.GetDTO())
+                            {
+                                CacheConfiguration = cacheForClient,
+                            }),
+                        });
+
+                        // Mark the job as being in progress
+                        jobToAllow.State = CIJobState.Running;
+                        jobToAllow.ReservedByRunnerId = RunnerData.Id;
+                        jobToAllow.ReservedByRunner = RunnerData;
+                        jobToAllow.OutputConnection = connectionId;
+
+                        activeJob = jobToAllow;
+                        break;
+                    }
+
+                    default:
+                        Assert.Fail("Unexpected message type: " + message.Type);
+                        break;
+                }
+            }
+
+            await Task.Delay(10, timeout.Token);
+        }
     }
 
     // -
@@ -176,15 +297,5 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
             // the entire test instead of a single read
             await Task.Delay(1, cancellationToken);
         }
-    }
-
-    public IRunnerClientDataService GetDataForClient()
-    {
-        return new RunnerClientDataServiceObjet
-        {
-            ConnectionKey = RunnerData.AccessId.ToString(),
-            SecretKey = RunnerData.SecretKey.ToString(),
-            ServerUrl = "dummy.unittest.example.com",
-        };
     }
 }

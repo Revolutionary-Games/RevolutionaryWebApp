@@ -20,6 +20,9 @@ public class RunnerService : IDisposable
     private readonly ILogger logger;
     private readonly IRunnerClientCommunication communication;
     private readonly IRunnerClientDataService dataService;
+    private readonly IJobExecutor executor;
+
+    private readonly SimpleJobOutputForwarder jobOutputForwarder;
 
     /// <summary>
     ///   Must be held when accessing the connection
@@ -27,6 +30,11 @@ public class RunnerService : IDisposable
     private readonly SemaphoreSlim connectionLock = new(1, 1);
 
     private readonly SemaphoreSlim queueLock = new(1, 1);
+
+    /// <summary>
+    ///   Used to make sure job messages don't get mixed up with each other when the send message queue is full.
+    /// </summary>
+    private readonly SemaphoreSlim jobOutputLock = new(1, 1);
 
     /// <summary>
     ///   Message queue for messages going out to the server
@@ -60,15 +68,20 @@ public class RunnerService : IDisposable
 
     private CIJobDTO? activeJob;
     private CiJobCacheConfiguration? jobCacheConfiguration;
+    private bool runActiveJobOutput;
 
     // TODO: listen for USR1 signal and if received then stop the new jobs allowed flag
     // TODO: sigint should do the same, but also stop the run loop once there's no job anymore
 
-    public RunnerService(ILogger logger, IRunnerClientCommunication communication, IRunnerClientDataService dataService)
+    public RunnerService(ILogger logger, IRunnerClientCommunication communication, IRunnerClientDataService dataService,
+        IJobExecutor executor)
     {
         this.logger = logger;
         this.communication = communication;
         this.dataService = dataService;
+        this.executor = executor;
+
+        jobOutputForwarder = new SimpleJobOutputForwarder(OnJobSectionClosed, OnJobSectionOpened, OnJobOutput);
     }
 
     public void StopAfterNextJob()
@@ -117,12 +130,15 @@ public class RunnerService : IDisposable
                 if (activeJob != null)
                 {
                     // When we have a job, we need to be in the job-run state
+                    // As this is very important state, we want to actually crash if this throws
                     await HandleJobRun(cancellationToken);
                     logger.LogInformation("Finished performing job in job run state");
 
                     // As we processed a job, we will want a new one right away
                     serverNotifiedAboutNewJobs = true;
                 }
+
+                // TODO: clean cache data when we are using too much disk
 
                 // Wait to save a bit of CPU when nothing is going on.
                 // We don't want to have to wrap with a try-catch, so we just ignore cancellation.
@@ -212,8 +228,11 @@ public class RunnerService : IDisposable
 
             connectionLock.Dispose();
 
+            jobOutputForwarder.Dispose();
+
             queueLock.Dispose();
             stopConnectionHandlingToken.Dispose();
+            jobOutputLock.Dispose();
         }
     }
 
@@ -356,6 +375,11 @@ public class RunnerService : IDisposable
             var message = await communication.Receive(maxWaitTime, cancellationToken);
 
             return message;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogDebug("Timed out waiting for server message");
+            return null;
         }
         catch (Exception e)
         {
@@ -593,7 +617,7 @@ public class RunnerService : IDisposable
 
             if (reply.Type == BuildSectionMessageType.JobsList)
             {
-                // Parse the jobs list and see if there's anything we like
+                // Parse the job list and see if there's anything we like
 
                 AvailableJobsList jobs;
                 try
@@ -626,9 +650,17 @@ public class RunnerService : IDisposable
                     potentialJobs.Add(jobs.Jobs[new Random().Next(jobs.Jobs.Count)]);
                 }
 
-                if (!await TryToStartJob(potentialJobs, cancellationToken))
+                try
                 {
-                    logger.LogError("Failed to start a job after getting {Count} jobs from the server",
+                    if (!await TryToStartJob(potentialJobs, cancellationToken))
+                    {
+                        logger.LogError("Failed to start a job after getting {Count} jobs from the server",
+                            rawCount);
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Failed to start a job after getting {Count} jobs from the server",
                         rawCount);
                 }
 
@@ -673,7 +705,77 @@ public class RunnerService : IDisposable
 
     private async Task<bool> TryToStartJob(List<CIJobDTO> potentialJobs, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token, cancellationToken);
+
+        // Request task start one by one and listen for messages from the server whether we got the job or there's
+        // an error.
+        foreach (var potentialJob in potentialJobs)
+        {
+            if (activeJob != null)
+                throw new InvalidOperationException("We already have an active job");
+
+            await SendMessage(new RealTimeBuildMessage
+            {
+                Type = BuildSectionMessageType.RequestStartJob,
+                Output = $"{potentialJob.CiProjectId}:{potentialJob.CiBuildId}:{potentialJob.CiJobId}",
+            }, TimeSpan.FromSeconds(60));
+
+            while (true)
+            {
+                if (cancellation.IsCancellationRequested)
+                    break;
+
+                var message = await Receive(cancellation.Token, TimeSpan.FromSeconds(30));
+
+                if (message == null)
+                    continue;
+
+                if (message.Type == BuildSectionMessageType.Error)
+                {
+                    logger.LogInformation("We got error from server (likely we couldn't get the job): {Message}",
+                        message.ErrorMessage);
+
+                    // Still try other jobs
+                    continue;
+                }
+
+                message = await HandleCommonMessages(message);
+
+                if (message == null)
+                    continue;
+
+                if (message.Type == BuildSectionMessageType.ActiveJobDetails)
+                {
+                    logger.LogInformation("Server told us a job, we will start running it now");
+
+                    try
+                    {
+                        var data = JsonSerializer.Deserialize<RunningJobDetails>(message.Output ??
+                                throw new Exception("Missing output in message")) ??
+                            throw new NullDecodedJsonException();
+
+                        activeJob = data.GeneralDetails;
+                        jobCacheConfiguration = data.CacheConfiguration;
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError(e, "Failed to start job due to data parsing");
+                        throw new Exception("Invalid job data to start", e);
+                    }
+
+                    logger.LogInformation("Our new Job is: {Project}:{Build}:{Job}", activeJob.CiProjectId,
+                        activeJob.CiBuildId, activeJob.CiJobId);
+                    return true;
+                }
+
+                logger.LogWarning("We got a message of type {Type} in waiting for job start response",
+                    message.Type);
+            }
+        }
+
+        return false;
     }
 
     private async Task GenericHandleOneServerMessage(CancellationToken cancellationToken, TimeSpan maxWait = default)
@@ -701,13 +803,182 @@ public class RunnerService : IDisposable
 
     private async Task HandleJobRun(CancellationToken cancellationToken)
     {
+        if (jobCacheConfiguration == null || activeJob == null)
+            throw new InvalidOperationException("We don't have a job to run");
+
         // Start a reader task that just ignores most messages
+        var readCancellation = new CancellationTokenSource(TimeSpan.FromMinutes(240));
 
-        throw new NotImplementedException();
+        var runCancellationTime = new CancellationTokenSource(TimeSpan.FromMinutes(120));
+        var runCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(runCancellationTime.Token, cancellationToken);
 
-        // We need a second level lock around SendMessage as otherwise build messages might get intermixed if the queue is full
+        var totalCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, readCancellation.Token);
+
+        runActiveJobOutput = true;
+        var readTask = ReadMessagesInRun(totalCancellation.Token);
+
+        var result = await executor.ExecuteJobAsync(jobCacheConfiguration, activeJob, dataService, jobOutputForwarder,
+            runCancellation.Token);
 
         // TODO: when the job is complete should wait until the outgoing message queue is empty before putting
         // the final job status message to the queue to give time for final messages to get out of the process
+
+        runActiveJobOutput = false;
+        await readCancellation.CancelAsync();
+        await readTask;
+
+        var finalWait = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+
+        // When the job is done, we wait for a little bit to report the final state to make sure the queue is empty
+        try
+        {
+            await WaitForMessageQueueToEmpty(finalWait.Token);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to wait for message queue to empty after a job");
+        }
+
+        // And as the last thing we report the job status
+        try
+        {
+            if (!await SendMessage(new RealTimeBuildMessage
+                {
+                    Type = BuildSectionMessageType.FinalStatus,
+                    WasSuccessful = result,
+                }, TimeSpan.FromMinutes(15)))
+            {
+                throw new Exception("Failed to send final status message after waiting 15 minutes");
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to report final job result");
+        }
+
+        // And then we clear the active job
+        activeJob = null;
+        jobCacheConfiguration = null;
+        logger.LogInformation("Finalized running a task, returning to normal state");
+    }
+
+    private async Task OnJobOutput(string section, int sectionId, string output)
+    {
+        var message = new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.BuildOutput,
+            Output = output,
+            SectionId = sectionId,
+            SectionName = section,
+        };
+
+        // We need a second level lock around SendMessage as otherwise build messages might get intermixed
+        // if the queue is full
+        if (!await jobOutputLock.WaitAsync(TimeSpan.FromMinutes(10)))
+        {
+            logger.LogWarning("Timed out waiting to output: {Output}", output);
+            return;
+        }
+
+        try
+        {
+            if (!await SendMessage(message, TimeSpan.FromMinutes(9)))
+            {
+                logger.LogError("Failed to send output message: {Output}", output);
+            }
+        }
+        finally
+        {
+            jobOutputLock.Release();
+        }
+    }
+
+    private async Task OnJobSectionOpened(string section, int sectionId)
+    {
+        var message = new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.SectionStart,
+            SectionId = sectionId,
+            SectionName = section,
+        };
+
+        if (!await jobOutputLock.WaitAsync(TimeSpan.FromMinutes(14)))
+        {
+            logger.LogWarning("Timed out waiting to start section: {Section}", section);
+            return;
+        }
+
+        try
+        {
+            if (!await SendMessage(message, TimeSpan.FromMinutes(13)))
+            {
+                logger.LogError("Failed to send section start message: {Section}", section);
+            }
+        }
+        finally
+        {
+            jobOutputLock.Release();
+        }
+    }
+
+    private async Task OnJobSectionClosed(string section, int sectionId, bool success)
+    {
+        var message = new RealTimeBuildMessage
+        {
+            Type = BuildSectionMessageType.SectionEnd,
+            SectionId = sectionId,
+            SectionName = section,
+            WasSuccessful = success,
+        };
+
+        if (!await jobOutputLock.WaitAsync(TimeSpan.FromMinutes(12)))
+        {
+            logger.LogWarning("Timed out waiting to end section: {Section} ({Success})", section, success);
+            return;
+        }
+
+        try
+        {
+            if (!await SendMessage(message, TimeSpan.FromMinutes(11)))
+            {
+                logger.LogError("Failed to send section end section: {Section} ({Success})", section, success);
+            }
+        }
+        finally
+        {
+            jobOutputLock.Release();
+        }
+    }
+
+    private async Task ReadMessagesInRun(CancellationToken cancellationToken)
+    {
+        while (runActiveJobOutput)
+        {
+            try
+            {
+                // There aren't any important messages we will listen to during jobs, so we just want to keep the
+                // socket buffer empty
+                var message = await Receive(cancellationToken, TimeSpan.FromSeconds(60));
+
+                message = await HandleCommonMessages(message);
+
+                if (message != null)
+                {
+                    logger.LogWarning("We got a message of type {Type} in job run state that we are ignoring",
+                        message.Type);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                logger.LogInformation("Exiting read messages task for active job");
+                return;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to receive message");
+            }
+        }
     }
 }
