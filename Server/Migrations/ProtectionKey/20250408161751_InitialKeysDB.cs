@@ -18,7 +18,7 @@ namespace RevolutionaryWebApp.Server.Migrations.ProtectionKey
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     friendly_name = table.Column<string>(type: "text", nullable: true),
-                    xml = table.Column<string>(type: "text", nullable: true)
+                    xml = table.Column<string>(type: "text", nullable: true),
                 },
                 constraints: table =>
                 {
