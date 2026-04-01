@@ -89,7 +89,10 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
 
         // Set up and start the service
         var executor = new DummyJobExecutor(true,
-            [new DummyJobExecutor.ExampleSection("Example output", "This is the output\n", true)], [job1.GetDTO()]);
+        [
+            new DummyJobExecutor.ExampleSection("Example output", "This is the output\n", true),
+            new DummyJobExecutor.ExampleSection("Example2", "And second", false),
+        ], [job1.GetDTO()]);
 
         using var service =
             new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(), executor);
@@ -113,14 +116,34 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
         // Stop the service so we can test the shutdown (it should shut down after the job is finished)
         service.StopAfterNextJob();
 
+        await communicationMock.HandleMessagesUntilJobFinished();
+        Assert.Equal(CIJobState.Finished, job1.State);
+
         Assert.Equal(0, await runTask);
         Assert.False(communicationMock.IsConnected);
 
-        Assert.Equal(CIJobState.Finished, job1.State);
         var done = executor.GetRunJobs().ToList();
         Assert.Single(done);
 
-        // TODO: check that the job output was sent from the client to confirm it ran something
+        Assert.True(communicationMock.GetJobFinishedStatus(job1));
+
+        // Check that the output was sent correctly
+        var output = communicationMock.GetJobOutputSections(job1);
+        Assert.NotNull(output);
+
+        Assert.Equal(2, output.Count);
+        var output1 = output[0];
+        var output2 = output[1];
+
+        Assert.Equal(1, output1.Id);
+        Assert.True(output1.Success);
+        Assert.Equal("This is the output\n", output1.Text.ToString());
+        Assert.Equal("Example output", output1.Name);
+
+        Assert.Equal(2, output2.Id);
+        Assert.False(output2.Success);
+        Assert.Equal("And second", output2.Text.ToString());
+        Assert.Equal("Example2", output2.Name);
     }
 
     public void Dispose()

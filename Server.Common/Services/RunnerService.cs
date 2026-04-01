@@ -378,7 +378,7 @@ public class RunnerService : IDisposable
         }
         catch (OperationCanceledException)
         {
-            logger.LogDebug("Timed out waiting for server message");
+            logger.LogDebug("Timed out waiting for server message / we were interrupted (non serious)");
             return null;
         }
         catch (Exception e)
