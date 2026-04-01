@@ -125,7 +125,7 @@ else
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
-    private void SetStatusMessage(string message, SiteNoticeType noticeType)
+    private void SetStatusMessage(string? message, SiteNoticeType noticeType)
     {
         statusMessage = message;
         statusMessageType = noticeType;

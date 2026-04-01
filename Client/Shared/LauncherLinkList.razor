@@ -114,7 +114,7 @@ else
             QueryHelpers.AddQueryString($"api/v1/LauncherLinks/{UserId}", requestParams));
     }
 
-    private void SetStatusMessage(string message, SiteNoticeType noticeType)
+    private void SetStatusMessage(string? message, SiteNoticeType noticeType)
     {
         statusMessage = message;
         statusMessageType = noticeType;

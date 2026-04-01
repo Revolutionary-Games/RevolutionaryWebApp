@@ -526,7 +526,7 @@
         return InvokeAsync(StateHasChanged);
     }
 
-    private Tuple<string, object> GetDescriptionSaveRequest(string newDescription)
+    private Tuple<string, object> GetDescriptionSaveRequest(string? newDescription)
     {
         var result = (CrashReportDTO)Data!.Clone();
         result.Description = newDescription;
