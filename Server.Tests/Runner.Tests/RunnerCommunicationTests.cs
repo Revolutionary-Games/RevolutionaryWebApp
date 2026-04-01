@@ -1401,8 +1401,6 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             JsonSerializer.Serialize(jobData.GeneralDetails));
         Assert.Equal(JsonSerializer.Serialize(sampleJob2.GetDTO()), JsonSerializer.Serialize(jobData.GeneralDetails));
 
-        // We got the job so now do some test output
-
         listenerMockSetup.QueueCloseMessage();
         await listenerMockSetup.WaitUntilClosed();
     }

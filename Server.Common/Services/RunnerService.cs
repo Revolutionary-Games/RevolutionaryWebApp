@@ -72,6 +72,8 @@ public class RunnerService : IDisposable
     private bool cacheNearLimit;
     private int jobsSinceCacheSizeCheck;
 
+    private bool hasCompletedAJobSinceLastCheck;
+
     private CIJobDTO? activeJob;
     private CiJobCacheConfiguration? jobCacheConfiguration;
     private bool runActiveJobOutput;
@@ -125,6 +127,12 @@ public class RunnerService : IDisposable
                     logger.LogError("Runner service failed to connect to the server at all");
                     return 4;
                 }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    logger.LogWarning("Cancelled when waiting for initial server connection");
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
             }
 
             while (run)
@@ -143,10 +151,11 @@ public class RunnerService : IDisposable
                     // Clean cache data when we are using too much disk
                     await MaintainCache(cancellationToken);
 
-                    logger.LogInformation("Finished performing job in job run state");
+                    logger.LogInformation("Finished performing job in the job run state");
 
                     // As we processed a job, we will want a new one right away
                     serverNotifiedAboutNewJobs = true;
+                    hasCompletedAJobSinceLastCheck = true;
                 }
 
                 // Wait to save a bit of CPU when nothing is going on.
@@ -592,12 +601,16 @@ public class RunnerService : IDisposable
 
         var now = DateTime.UtcNow;
 
+        // We have a bunch of conditions here to ensure we don't ask the server too often for jobs, but that we do
+        // ask the server for new jobs if we have completed a job since the last check to run them quickly
         var lastAsked = now - lastAskedForJobs;
         if (lastAsked > TimeSpan.FromSeconds(500) ||
-            (serverNotifiedAboutNewJobs && lastAsked > TimeSpan.FromSeconds(10)))
+            (serverNotifiedAboutNewJobs && lastAsked > TimeSpan.FromSeconds(10)) || hasCompletedAJobSinceLastCheck)
         {
             // Ask for jobs from the server
             lastAskedForJobs = now;
+            hasCompletedAJobSinceLastCheck = false;
+            serverNotifiedAboutNewJobs = false;
             if (!await SendMessage(new RealTimeBuildMessage
                 {
                     Type = BuildSectionMessageType.GetAvailableJobs,
@@ -614,6 +627,10 @@ public class RunnerService : IDisposable
         while (true)
         {
             var reply = await Receive(cancellationToken, TimeSpan.FromSeconds(30));
+
+            // Don't get to an infinite loop on cancellation
+            if (reply == null && cancellationToken.IsCancellationRequested)
+                return;
 
             reply = await HandleCommonMessages(reply);
 
@@ -978,6 +995,8 @@ public class RunnerService : IDisposable
                     logger.LogWarning("We got a message of type {Type} in job run state that we are ignoring",
                         message.Type);
                 }
+
+                cancellationToken.ThrowIfCancellationRequested();
             }
             catch (OperationCanceledException)
             {
@@ -1000,6 +1019,11 @@ public class RunnerService : IDisposable
         {
             lastKnownCacheSize = await cache.CalculateCacheSizeAsync(cancellationToken);
             logger.LogInformation("Current cache size: {Size} MiB", lastKnownCacheSize / GlobalConstants.MEBIBYTE);
+            jobsSinceCacheSizeCheck = 0;
+        }
+        else
+        {
+            ++jobsSinceCacheSizeCheck;
         }
 
         if (lastKnownCacheSize >= dataService.MaxCacheSize * dataService.PruneCacheAfterSizeFraction)

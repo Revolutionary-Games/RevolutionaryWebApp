@@ -78,6 +78,9 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
             if (messagesToServer.TryDequeue(out var message))
                 return message;
 
+            if (!IsConnected)
+                throw new OperationCanceledException("Client disconnected");
+
             await Task.Delay(1);
         }
 
@@ -153,6 +156,11 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
                 Jobs = jobs.Select(j => j.GetDTO()).ToList(),
             }),
         });
+    }
+
+    public void CloseServer()
+    {
+        serverBrokeConnection = true;
     }
 
     public IRunnerClientDataService GetDataForClient()

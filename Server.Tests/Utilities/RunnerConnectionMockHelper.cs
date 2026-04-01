@@ -426,6 +426,9 @@ public class RunnerConnectionMockHelper
             if (TryDequeueServerMessage(out var message, out _))
                 return message;
 
+            if (serverClosed)
+                return null;
+
             await Task.Delay(1);
         }
 
@@ -541,5 +544,15 @@ public class RunnerConnectionMockHelper
         }
 
         throw new TimeoutException("Message queue did not become empty within timeout");
+    }
+
+    public bool IsConnectionOpen()
+    {
+        return !closed;
+    }
+
+    public RemoteRunner GetRunnerData()
+    {
+        return remoteRunner;
     }
 }

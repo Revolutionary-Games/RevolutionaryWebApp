@@ -290,7 +290,7 @@ public class RunnerConnectionHandler : IDisposable
         }
 
         logger.LogInformation(
-            "Accepted runner connection from {RemoteIpAddress} ({Connection})) for runner {Id} ({Name})",
+            "Accepted runner connection from {RemoteIpAddress} ({Connection}) for runner {Id} ({Name})",
             context.Connection.RemoteIpAddress, connectionId, runner.Id, runner.Name);
 
         try
