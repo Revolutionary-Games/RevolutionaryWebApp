@@ -22,7 +22,7 @@ public class DummyJobExecutor : IJobExecutor
 
     public async Task<bool> ExecuteJobAsync(CiJobCacheConfiguration cacheConfiguration, CIJobDTO jobDTO,
         IRunnerClientDataService dataService,
-        IJobOutputForwarder jobOutput, CancellationToken cancellationToken)
+        IJobOutputForwarder jobOutput, IExecutorCache cache, CancellationToken cancellationToken)
     {
         bool canRun = false;
 

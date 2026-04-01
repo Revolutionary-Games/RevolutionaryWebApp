@@ -18,8 +18,10 @@ public interface IJobExecutor
     /// <param name="jobDTO">Job data to execute</param>
     /// <param name="dataService">Service for accessing runner client data</param>
     /// <param name="jobOutput">Where to send job output</param>
+    /// <param name="cache">Cache to ask where to put temporary folders</param>
     /// <param name="cancellationToken">Early run cancellation, there's an absolute 2-hour-limit on top of this</param>
     /// <returns>True if job execution was successful, false otherwise</returns>
     public Task<bool> ExecuteJobAsync(CiJobCacheConfiguration cacheConfiguration, CIJobDTO jobDTO,
-        IRunnerClientDataService dataService, IJobOutputForwarder jobOutput, CancellationToken cancellationToken);
+        IRunnerClientDataService dataService, IJobOutputForwarder jobOutput, IExecutorCache cache,
+        CancellationToken cancellationToken);
 }

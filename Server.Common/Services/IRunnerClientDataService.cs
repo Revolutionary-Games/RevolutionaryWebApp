@@ -13,6 +13,15 @@ public interface IRunnerClientDataService
     public string SecretKey { get; }
 
     public string ServerUrl { get; }
+
+    public long MaxCacheSize { get; }
+
+    /// <summary>
+    ///   How much cache to keep on clean. 0 means to prune all.
+    /// </summary>
+    public long KeepCacheSize { get; }
+
+    public float PruneCacheAfterSizeFraction { get; }
 }
 
 /// <summary>
@@ -24,4 +33,10 @@ public class RunnerClientDataServiceObjet : IRunnerClientDataService
     public string SecretKey { get; set; } = string.Empty;
 
     public string ServerUrl { get; set; } = "https://dev.revolutionarygamesstudio.com/runnerConnection";
+
+    public long MaxCacheSize { get; set; }
+
+    public long KeepCacheSize { get; set; }
+
+    public float PruneCacheAfterSizeFraction { get; set; } = 0.5f;
 }

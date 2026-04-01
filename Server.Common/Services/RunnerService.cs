@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server.Common.Services;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -21,6 +22,7 @@ public class RunnerService : IDisposable
     private readonly IRunnerClientCommunication communication;
     private readonly IRunnerClientDataService dataService;
     private readonly IJobExecutor executor;
+    private readonly IExecutorCache cache;
 
     private readonly SimpleJobOutputForwarder jobOutputForwarder;
 
@@ -66,6 +68,10 @@ public class RunnerService : IDisposable
 
     private bool serverNotifiedAboutNewJobs;
 
+    private long lastKnownCacheSize = -1;
+    private bool cacheNearLimit;
+    private int jobsSinceCacheSizeCheck;
+
     private CIJobDTO? activeJob;
     private CiJobCacheConfiguration? jobCacheConfiguration;
     private bool runActiveJobOutput;
@@ -74,12 +80,13 @@ public class RunnerService : IDisposable
     // TODO: sigint should do the same, but also stop the run loop once there's no job anymore
 
     public RunnerService(ILogger logger, IRunnerClientCommunication communication, IRunnerClientDataService dataService,
-        IJobExecutor executor)
+        IJobExecutor executor, IExecutorCache cache)
     {
         this.logger = logger;
         this.communication = communication;
         this.dataService = dataService;
         this.executor = executor;
+        this.cache = cache;
 
         jobOutputForwarder = new SimpleJobOutputForwarder(OnJobSectionClosed, OnJobSectionOpened, OnJobOutput);
     }
@@ -132,13 +139,15 @@ public class RunnerService : IDisposable
                     // When we have a job, we need to be in the job-run state
                     // As this is very important state, we want to actually crash if this throws
                     await HandleJobRun(cancellationToken);
+
+                    // Clean cache data when we are using too much disk
+                    await MaintainCache(cancellationToken);
+
                     logger.LogInformation("Finished performing job in job run state");
 
                     // As we processed a job, we will want a new one right away
                     serverNotifiedAboutNewJobs = true;
                 }
-
-                // TODO: clean cache data when we are using too much disk
 
                 // Wait to save a bit of CPU when nothing is going on.
                 // We don't want to have to wrap with a try-catch, so we just ignore cancellation.
@@ -820,7 +829,7 @@ public class RunnerService : IDisposable
         var readTask = ReadMessagesInRun(totalCancellation.Token);
 
         var result = await executor.ExecuteJobAsync(jobCacheConfiguration, activeJob, dataService, jobOutputForwarder,
-            runCancellation.Token);
+            cache, runCancellation.Token);
 
         // TODO: when the job is complete should wait until the outgoing message queue is empty before putting
         // the final job status message to the queue to give time for final messages to get out of the process
@@ -979,6 +988,34 @@ public class RunnerService : IDisposable
             {
                 logger.LogError(e, "Failed to receive message");
             }
+        }
+    }
+
+    private async Task MaintainCache(CancellationToken cancellationToken)
+    {
+        var timer = Stopwatch.StartNew();
+
+        // Calculate the cache size if it needs to be known
+        if (jobsSinceCacheSizeCheck >= 3 || lastKnownCacheSize == -1 || cacheNearLimit)
+        {
+            lastKnownCacheSize = await cache.CalculateCacheSizeAsync(cancellationToken);
+            logger.LogInformation("Current cache size: {Size} MiB", lastKnownCacheSize / GlobalConstants.MEBIBYTE);
+        }
+
+        if (lastKnownCacheSize >= dataService.MaxCacheSize * dataService.PruneCacheAfterSizeFraction)
+        {
+            logger.LogInformation("Cache is near limit, pruning...");
+            lastKnownCacheSize = await cache.PruneCacheAsync(dataService.KeepCacheSize, cancellationToken);
+        }
+
+        // Remember to check cache often if we are near the limit
+        cacheNearLimit = lastKnownCacheSize >
+            dataService.MaxCacheSize * (dataService.PruneCacheAfterSizeFraction - 0.1f);
+
+        var elapsed = timer.Elapsed;
+        if (elapsed.TotalSeconds > 10)
+        {
+            logger.LogInformation("Cache maintenance took {Elapsed} seconds", elapsed.TotalSeconds);
         }
     }
 }

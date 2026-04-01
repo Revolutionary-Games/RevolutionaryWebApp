@@ -10,6 +10,7 @@ using Common.Services;
 using Server.Models;
 using Shared.Models;
 using Shared.Models.Enums;
+using SharedBase.Utilities;
 using TestUtilities.Utilities;
 using Utilities;
 using Xunit;
@@ -27,9 +28,10 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
     public async Task Runner_OnStartupAsksForJobs()
     {
         var communicationMock = new RunnerToClientMockHelper();
+        var mockCache = new MockExecutorCache();
 
         using var service = new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(),
-            new DummyJobExecutor(false, [], []));
+            new DummyJobExecutor(false, [], []), mockCache);
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
@@ -60,6 +62,7 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
     public async Task Runner_StartsAndCanFinishAJob()
     {
         var communicationMock = new RunnerToClientMockHelper();
+        var mockCache = new MockExecutorCache();
         var cacheSettings = JsonSerializer.Serialize(new CiJobCacheConfiguration());
 
         // Setup jobs to show
@@ -95,7 +98,7 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
         ], [job1.GetDTO()]);
 
         using var service =
-            new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(), executor);
+            new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(), executor, mockCache);
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
@@ -144,6 +147,72 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
         Assert.False(output2.Success);
         Assert.Equal("And second", output2.Text.ToString());
         Assert.Equal("Example2", output2.Name);
+
+        Assert.Equal(0, mockCache.CleanedTimes);
+    }
+
+    [Fact]
+    public async Task Runner_PrunesAfterJobIsFinished()
+    {
+        var communicationMock = new RunnerToClientMockHelper();
+        var mockCache = new MockExecutorCache
+        {
+            ReportedSize = GlobalConstants.GIBIBYTE,
+        };
+
+        var cacheSettings = JsonSerializer.Serialize(new CiJobCacheConfiguration());
+
+        // Setup jobs to show
+        var project1 = new CiProject
+        {
+            Id = 1,
+            Name = "Test Project",
+        };
+        var build1 = new CiBuild
+        {
+            CiProject = project1,
+            CiProjectId = 1,
+            CiBuildId = 2,
+        };
+
+        var job1 = new CiJob
+        {
+            CiProjectId = project1.Id,
+            Build = build1,
+            CiBuildId = build1.CiBuildId,
+            CiJobId = 15,
+            State = CIJobState.Starting,
+            CacheSettingsJson = cacheSettings,
+        };
+
+        communicationMock.AddJob(job1);
+
+        // Set up and start the service
+        var executor = new DummyJobExecutor(true,
+            [new DummyJobExecutor.ExampleSection("Example output", "This is the output\n", true)], [job1.GetDTO()]);
+
+        using var service =
+            new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(), executor, mockCache);
+
+        var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+
+        var runTask = service.Run(serviceShutdown.Token);
+
+        await communicationMock.PerformConnectionAuth();
+        await communicationMock.WaitForClientToStartJob(job1);
+
+        // Stop the service
+        service.StopAfterNextJob();
+
+        await communicationMock.HandleMessagesUntilJobFinished();
+        Assert.Equal(CIJobState.Finished, job1.State);
+
+        // Wait to see that the client prunes caches after the job is finished
+        Assert.Equal(0, await runTask);
+
+        Assert.True(communicationMock.GetJobFinishedStatus(job1));
+
+        Assert.Equal(1, mockCache.CleanedTimes);
     }
 
     public void Dispose()

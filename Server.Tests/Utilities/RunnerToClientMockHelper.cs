@@ -162,6 +162,7 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
             ConnectionKey = RunnerData.AccessId.ToString(),
             SecretKey = RunnerData.SecretKey.ToString(),
             ServerUrl = "dummy.unittest.example.com",
+            MaxCacheSize = 1000,
         };
     }
 
