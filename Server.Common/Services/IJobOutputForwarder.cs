@@ -17,6 +17,11 @@ public interface IJobOutputForwarder
     /// </summary>
     public const int MaxSectionLength = 100;
 
+    /// <summary>
+    ///   Called when a new job is started so that ID sequences can be reset
+    /// </summary>
+    public Task OnNewJobStarted();
+
     public Task OpenNewSection(string sectionName);
     public Task CloseSection(bool success);
     public Task ForwardOutputToActiveSection(string output);
@@ -82,6 +87,34 @@ public sealed class SimpleJobOutputForwarder : IJobOutputForwarder, IDisposable
         flushTask = null;
         semaphore.Release();
         semaphore.Dispose();
+    }
+
+    public async Task OnNewJobStarted()
+    {
+        if (!await semaphore.WaitAsync(TimeSpan.FromSeconds(15)))
+        {
+            // Cannot flush!
+            flushDone = true;
+            return;
+        }
+
+        try
+        {
+            await FlushBuffer();
+        }
+        finally
+        {
+            semaphore.Release();
+            flushDone = true;
+        }
+
+        openSectionName = null;
+        openSectionNumber = 0;
+
+        flushTask?.Wait();
+        flushTask = null;
+        hashFlushTask = false;
+        lastFlushTime = DateTime.MinValue;
     }
 
     public async Task OpenNewSection(string sectionName)

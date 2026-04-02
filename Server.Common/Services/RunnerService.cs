@@ -59,6 +59,10 @@ public class RunnerService : IDisposable
     private bool canStartNewJobs = true;
 
     private bool quitAfterJob;
+    private bool quitWhenIdle;
+    private bool useLongWaitInIdleLoop = true;
+
+    private int idleLoops;
 
     private bool runConnectionHandling = true;
 
@@ -97,6 +101,19 @@ public class RunnerService : IDisposable
     {
         canStartNewJobs = false;
         quitAfterJob = true;
+    }
+
+    public void StopWhenIdle()
+    {
+        quitWhenIdle = true;
+    }
+
+    /// <summary>
+    ///   Mostly used when doing unit tests to run as fast as possible and to quit
+    /// </summary>
+    public void SetNoClientIdleMessageWait()
+    {
+        useLongWaitInIdleLoop = false;
     }
 
     /// <summary>
@@ -156,6 +173,11 @@ public class RunnerService : IDisposable
                     // As we processed a job, we will want a new one right away
                     serverNotifiedAboutNewJobs = true;
                     hasCompletedAJobSinceLastCheck = true;
+                    idleLoops = 0;
+                }
+                else
+                {
+                    ++idleLoops;
                 }
 
                 // Wait to save a bit of CPU when nothing is going on.
@@ -169,7 +191,7 @@ public class RunnerService : IDisposable
                     run = false;
                 }
 
-                if (quitAfterJob)
+                if (quitAfterJob || (quitWhenIdle && idleLoops > 30))
                 {
                     await WaitForMessageQueueToEmpty(cancellationToken);
                     run = false;
@@ -620,6 +642,31 @@ public class RunnerService : IDisposable
                 return;
             }
         }
+        else
+        {
+            // If it isn't time yet to ask the server for more jobs, just wait but try to read one message each time
+            // to keep the message buffer empty
+            try
+            {
+                var message = await Receive(cancellationToken,
+                    TimeSpan.FromMilliseconds(useLongWaitInIdleLoop ? 1000 : 3));
+
+                message = await HandleCommonMessages(message);
+
+                if (message != null)
+                {
+                    logger.LogWarning("We got a message of type {Type} in idle state", message.Type);
+                }
+            }
+            catch (Exception e)
+            {
+                // Receive should eat the non-serious cancelled exceptions, so these should be actual problems
+                logger.LogError(e, "Failed to read server message while idle");
+                await Task.Delay(1000, cancellationToken);
+            }
+
+            return;
+        }
 
         if (cancellationToken.IsCancellationRequested)
             return;
@@ -1018,7 +1065,8 @@ public class RunnerService : IDisposable
         if (jobsSinceCacheSizeCheck >= 3 || lastKnownCacheSize == -1 || cacheNearLimit)
         {
             lastKnownCacheSize = await cache.CalculateCacheSizeAsync(cancellationToken);
-            logger.LogInformation("Current cache size: {Size} MiB", lastKnownCacheSize / GlobalConstants.MEBIBYTE);
+            logger.LogInformation("Current cache size: {Size:F1} MiB",
+                (float)lastKnownCacheSize / GlobalConstants.MEBIBYTE);
             jobsSinceCacheSizeCheck = 0;
         }
         else

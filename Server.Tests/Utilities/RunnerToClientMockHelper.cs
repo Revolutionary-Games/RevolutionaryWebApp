@@ -451,12 +451,17 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
             return null;
         }
 
+        var endBy = DateTime.UtcNow + timeout;
+
         while (true)
         {
             if (messagesToClient.TryDequeue(out var message))
             {
                 return message;
             }
+
+            if (DateTime.UtcNow > endBy)
+                return null;
 
             // We use just this immediate cancellation and not the client-provided one as in the tests we will time out
             // the entire test instead of a single read

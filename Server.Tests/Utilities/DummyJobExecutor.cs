@@ -26,6 +26,8 @@ public class DummyJobExecutor : IJobExecutor
     {
         bool canRun = false;
 
+        await jobOutput.OnNewJobStarted();
+
         // Check that the runner "knows" about this job before pretending to run it
         foreach (var potential in jobsThisCanRun)
         {
@@ -52,7 +54,7 @@ public class DummyJobExecutor : IJobExecutor
         foreach (var section in sections)
         {
             await jobOutput.OpenNewSection(section.Name);
-            await jobOutput.ForwardOutputToActiveSection(section.Text);
+            await jobOutput.ForwardOutputToActiveSection(section.Text.Replace("JOB_ID", jobDTO.CiJobId.ToString()));
             await jobOutput.CloseSection(section.Success);
         }
 

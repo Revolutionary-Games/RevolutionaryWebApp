@@ -33,7 +33,8 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
         var communicationMock = new RunnerToClientMockHelper();
         var mockCache = new MockExecutorCache
         {
-            AutoIncrementEachTime = GlobalConstants.MEBIBYTE,
+            ReportedSize = (long)(GlobalConstants.MEBIBYTE * 1.12f),
+            AutoIncrementEachTime = (long)(GlobalConstants.MEBIBYTE * 0.3f),
         };
 
         var testCacheSettings = JsonSerializer.Serialize(new CiJobCacheConfiguration());
@@ -91,7 +92,7 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
         var executor = new DummyJobExecutor(true,
         [
             new DummyJobExecutor.ExampleSection("Example output", "This is the output\n", true),
-            new DummyJobExecutor.ExampleSection("Example2", "And second", true),
+            new DummyJobExecutor.ExampleSection("Example2", "And second JOB_ID", true),
         ], [sampleJob1.GetDTO(), sampleJob2.GetDTO(), sampleJob3.GetDTO()]);
 
         var runnerData = new RunnerClientDataServiceObjet
@@ -100,6 +101,8 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
             SecretKey = listenerMockSetup.GetRunnerData().SecretKey.ToString(),
             ServerUrl = "dummy.unittest.example.com",
             MaxCacheSize = (long)(GlobalConstants.MEBIBYTE * 1.2f),
+            PruneCacheAfterSizeFraction = 1,
+            KeepCacheSize = 0,
         };
 
         using var service =
@@ -109,7 +112,9 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
 
         var bridge = new RunnerClientAndServerMockBridge(listenerMockSetup, communicationMock);
 
-        // TODO: a call to quit the runner service when idle?
+        // To safely shut down the test, ask the runner to stop once it no longer gets jobs
+        service.SetNoClientIdleMessageWait();
+        service.StopWhenIdle();
 
         // Start the runner
         var runTask = service.Run(serviceShutdown.Token);
@@ -125,41 +130,20 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
 
         // Check for web /redis notices
         await listenerMockSetup.CheckOpenNoticeWasSent();
-        var expectedGroupName = $"{NotificationGroups.CIProjectsBuildsJobRealtimeOutputPrefix}{sampleJob1.CiProjectId}_"
-            + $"{sampleJob1.CiBuildId}_{sampleJob1.CiJobId}";
 
-        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out var webMessage, out var group));
-        Assert.NotNull(webMessage);
-        Assert.Equal(expectedGroupName, group);
-        Assert.Equal(BuildSectionMessageType.SectionStart, webMessage.Message.Type);
-        Assert.Equal(1, webMessage.Message.SectionId);
-        Assert.Equal("Example section", webMessage.Message.SectionName);
+        CheckWebMessagesForJob(listenerMockSetup, sampleJob1, true,
+            (1, "Example output", ["This is the output\n"], true),
+            (2, "Example2", ["And second 12"], true));
 
-        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
-        Assert.NotNull(webMessage);
-        Assert.Equal(expectedGroupName, group);
-        Assert.Equal(BuildSectionMessageType.BuildOutput, webMessage.Message.Type);
-        Assert.Equal(1, webMessage.Message.SectionId);
-        Assert.Equal("Example section", webMessage.Message.SectionName);
-        Assert.Equal("This is a test message that should go into a section", webMessage.Message.Output);
+        CheckWebMessagesForJob(listenerMockSetup, sampleJob2, true,
+            (1, "Example output", ["This is the output\n"], true),
+            (2, "Example2", ["And second 13"], true));
 
-        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
-        Assert.NotNull(webMessage);
-        Assert.Equal(expectedGroupName, group);
-        Assert.Equal(BuildSectionMessageType.SectionEnd, webMessage.Message.Type);
-        Assert.Equal(1, webMessage.Message.SectionId);
-        Assert.Equal("Example section", webMessage.Message.SectionName);
-        Assert.True(webMessage.Message.WasSuccessful);
+        CheckWebMessagesForJob(listenerMockSetup, sampleJob3, true,
+            (1, "Example output", ["This is the output\n"], true),
+            (2, "Example2", ["And second 14"], true));
 
-        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
-        Assert.NotNull(webMessage);
-        Assert.Equal(expectedGroupName, group);
-        Assert.Equal(BuildSectionMessageType.FinalStatus, webMessage.Message.Type);
-        Assert.Equal(0, webMessage.Message.SectionId);
-        Assert.Null(webMessage.Message.SectionName);
-        Assert.True(webMessage.Message.WasSuccessful);
-
-        Assert.False(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+        Assert.False(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out var webMessage, out var group));
         Assert.Null(webMessage);
         Assert.Null(group);
 
@@ -172,32 +156,98 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
 
         // We fetch last database data before closing the listener as it will dispose the DB instance we gave it
         // Check that the output actually reached the database
-        var sections = await db2.CiJobOutputSections.Where(s =>
-            s.CiProjectId == sampleJob1.CiProjectId && s.CiBuildId == sampleJob1.CiBuildId &&
-            s.CiJobId == sampleJob1.CiJobId).ToListAsync(CancellationToken.None);
+        await CheckDatabaseContents(db2, sampleJob1, true,
+            (1, "Example output", ["This is the output\n"], true),
+            (2, "Example2", ["And second 12"], true));
 
-        Assert.Single(sections);
-        Assert.Equal("Example section", sections[0].Name);
-        Assert.Equal("This is a test message that should go into a section", sections[0].Output);
-        Assert.NotNull(sections[0].FinishedAt);
-        Assert.Equal(CIJobSectionStatus.Succeeded, sections[0].Status);
+        await CheckDatabaseContents(db2, sampleJob2, true,
+            (1, "Example output", ["This is the output\n"], true),
+            (2, "Example2", ["And second 13"], true));
 
-        // And that the job status was updated on finish
-        Assert.Null(sampleJob1.ReservedByRunnerId);
-        Assert.NotNull(sampleJob1.FinishedAt);
-        Assert.NotNull(sampleJob1.RanOnServer);
-        Assert.NotNull(sampleJob1.TimeWaitingForServer);
-        Assert.False(sampleJob1.OutputPurged);
-        Assert.True(sampleJob1.Succeeded);
-        Assert.Equal(CIJobState.Finished, sampleJob1.State);
-
-        // And job 2 wasn't touched
-        Assert.Null(sampleJob2.ReservedByRunnerId);
-        Assert.Equal(CIJobState.Starting, sampleJob2.State);
+        await CheckDatabaseContents(db2, sampleJob3, true,
+            (1, "Example output", ["This is the output\n"], true),
+            (2, "Example2", ["And second 14"], true));
     }
 
     public void Dispose()
     {
         logger.Dispose();
+    }
+
+    private void CheckWebMessagesForJob(RunnerConnectionMockHelper listenerMockSetup, CiJob job,
+        bool buildStatus, params (long Id, string SectionName, string[] Parts, bool Success)[] sections)
+    {
+        var expectedGroupName = $"{NotificationGroups.CIProjectsBuildsJobRealtimeOutputPrefix}{job.CiProjectId}_"
+            + $"{job.CiBuildId}_{job.CiJobId}";
+
+        foreach (var (id, name, parts, success) in sections)
+        {
+            Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out var webMessage, out var group));
+            Assert.NotNull(webMessage);
+            Assert.Equal(expectedGroupName, group);
+            Assert.Equal(BuildSectionMessageType.SectionStart, webMessage.Message.Type);
+            Assert.Equal(id, webMessage.Message.SectionId);
+            Assert.Equal(name, webMessage.Message.SectionName);
+
+            foreach (var part in parts)
+            {
+                Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+                Assert.NotNull(webMessage);
+                Assert.Equal(expectedGroupName, group);
+                Assert.Equal(BuildSectionMessageType.BuildOutput, webMessage.Message.Type);
+                Assert.Equal(id, webMessage.Message.SectionId);
+                Assert.Equal(name, webMessage.Message.SectionName);
+                Assert.Equal(part, webMessage.Message.Output);
+            }
+
+            Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out webMessage, out group));
+            Assert.NotNull(webMessage);
+            Assert.Equal(expectedGroupName, group);
+            Assert.Equal(BuildSectionMessageType.SectionEnd, webMessage.Message.Type);
+            Assert.Equal(id, webMessage.Message.SectionId);
+            Assert.Equal(name, webMessage.Message.SectionName);
+            Assert.Equal(success, webMessage.Message.WasSuccessful);
+        }
+
+        Assert.True(listenerMockSetup.TryDequeueWebsiteNoticeMessage(out var webMessage2, out var group2));
+        Assert.NotNull(webMessage2);
+        Assert.Equal(expectedGroupName, group2);
+        Assert.Equal(BuildSectionMessageType.FinalStatus, webMessage2.Message.Type);
+        Assert.Equal(0, webMessage2.Message.SectionId);
+        Assert.Null(webMessage2.Message.SectionName);
+        Assert.Equal(buildStatus, webMessage2.Message.WasSuccessful);
+    }
+
+    private async Task CheckDatabaseContents(NotificationsEnabledDb db2, CiJob job,
+        bool buildStatus, params (long Id, string SectionName, string[] Parts, bool Success)[] wantedSections)
+    {
+        // Check job state
+        var data = await db2.CiJobs.FindAsync(job.CiProjectId, job.CiBuildId, job.CiJobId);
+        Assert.NotNull(data);
+        Assert.Equal(job.CiProjectId, data.CiProjectId);
+        Assert.Equal(buildStatus, data.Succeeded);
+        Assert.Equal(CIJobState.Finished, data.State);
+        Assert.Null(data.ReservedByRunnerId);
+        Assert.NotNull(data.FinishedAt);
+        Assert.NotNull(data.RanOnServer);
+        Assert.NotNull(data.TimeWaitingForServer);
+        Assert.False(data.OutputPurged);
+
+        // Then check sections
+        var sections = await db2.CiJobOutputSections.Where(s =>
+            s.CiProjectId == job.CiProjectId && s.CiBuildId == job.CiBuildId &&
+            s.CiJobId == job.CiJobId).OrderBy(s => s.CiJobOutputSectionId).ToListAsync();
+
+        Assert.Equal(wantedSections.Length, sections.Count);
+
+        for (int i = 0; i < wantedSections.Length; ++i)
+        {
+            Assert.Equal(wantedSections[i].Id, sections[i].CiJobOutputSectionId);
+            Assert.Equal(wantedSections[i].SectionName, sections[i].Name);
+            Assert.Equal(string.Join(string.Empty, wantedSections[i].Parts), sections[i].Output);
+            Assert.Equal(wantedSections[i].Success, sections[i].Status == CIJobSectionStatus.Succeeded);
+            Assert.True(sections[i].Status != CIJobSectionStatus.Running);
+            Assert.NotNull(sections[i].FinishedAt);
+        }
     }
 }

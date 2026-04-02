@@ -32,7 +32,7 @@ public class MockExecutorCache : IExecutorCache
 
         ++CleanedTimes;
 
-        ReportedSize = Math.Max(cachePreserveSize, ReportedSize);
+        ReportedSize = Math.Min(cachePreserveSize, ReportedSize);
 
         return Task.FromResult(ReportedSize);
     }
