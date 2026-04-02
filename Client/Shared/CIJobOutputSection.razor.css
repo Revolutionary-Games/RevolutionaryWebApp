@@ -9,6 +9,10 @@
     font-family: monospace;
     line-height: 1.08;
     white-space: pre-wrap;
+
+    /* Making sure too long lines split */
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .line-number {
