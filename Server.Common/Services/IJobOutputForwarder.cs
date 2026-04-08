@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Common.Services;
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,8 @@ public interface IJobOutputForwarder
     ///   If this is increased, the RealtimeBuildMessage class needs to be updated.
     /// </summary>
     public const int MaxSectionLength = 100;
+
+    public bool HasOpenSection { get; }
 
     /// <summary>
     ///   Called when a new job is started so that ID sequences can be reset
@@ -72,6 +75,8 @@ public sealed class SimpleJobOutputForwarder : IJobOutputForwarder, IDisposable
 
         usesImmediateOutput = outputFlushDelay <= TimeSpan.FromMilliseconds(1);
     }
+
+    public bool HasOpenSection => openSectionName != null;
 
     public void Dispose()
     {
@@ -304,5 +309,102 @@ public sealed class SimpleJobOutputForwarder : IJobOutputForwarder, IDisposable
 
         buffer.Clear();
         lastFlushTime = DateTime.UtcNow;
+    }
+}
+
+/// <summary>
+///   Gathers output into a section structure from an output forwarder
+/// </summary>
+public sealed class OutputGatherer : IJobOutputForwarder, IDisposable
+{
+    private readonly SimpleJobOutputForwarder forwarder;
+
+    public OutputGatherer(int targetOutputBatchSize = 762, float flushDelay = -1)
+    {
+        forwarder = new SimpleJobOutputForwarder(OnClosed, OnOpened, OnText, targetOutputBatchSize, flushDelay);
+    }
+
+    public List<SectionData> Sections { get; } = new();
+
+    public SectionData? OpenSection { get; private set; }
+
+    // Interface implementation
+    public bool HasOpenSection => forwarder.HasOpenSection;
+
+    public async Task OnNewJobStarted()
+    {
+        await forwarder.OnNewJobStarted();
+
+        // Clear after the underlying call to make sure buffers are cleared already
+        Sections.Clear();
+        OpenSection = null;
+    }
+
+    public Task OpenNewSection(string sectionName)
+    {
+        return forwarder.OpenNewSection(sectionName);
+    }
+
+    public Task CloseSection(bool success)
+    {
+        return forwarder.CloseSection(success);
+    }
+
+    public Task ForwardOutputToActiveSection(string output)
+    {
+        return forwarder.ForwardOutputToActiveSection(output);
+    }
+
+    public void Dispose()
+    {
+        forwarder.Dispose();
+    }
+
+    private Task OnText(string name, int sectionId, string text)
+    {
+        if (OpenSection == null || OpenSection.Id != sectionId)
+            throw new InvalidOperationException("No active section to close / wrong section id");
+
+        OpenSection.Text.Append(text);
+        return Task.CompletedTask;
+    }
+
+    private Task OnOpened(string name, int sectionId)
+    {
+        if (OpenSection != null)
+            throw new InvalidOperationException("Already have an open section");
+
+        OpenSection = new SectionData(name, sectionId);
+        Sections.Add(OpenSection);
+        return Task.CompletedTask;
+    }
+
+    private Task OnClosed(string name, int sectionId, bool success)
+    {
+        if (OpenSection == null || OpenSection.Id != sectionId)
+            throw new InvalidOperationException("No active section to close / wrong section id");
+
+        OpenSection.SetFinished(success);
+        OpenSection = null;
+        return Task.CompletedTask;
+    }
+
+    public class SectionData(string name, int id)
+    {
+        public readonly string Name = name;
+        public readonly int Id = id;
+        public readonly StringBuilder Text = new();
+
+        public bool Success;
+        public bool Closed;
+
+        public void SetFinished(bool success)
+        {
+            if (Closed)
+                throw new InvalidOperationException("Already closed");
+
+            Closed = true;
+            Success = success;
+        }
     }
 }
