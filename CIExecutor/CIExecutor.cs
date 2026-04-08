@@ -999,7 +999,7 @@ public sealed class CIExecutor : IDisposable
 
             command.Add($"echo \"{OutputSpecialCommandMarker} SectionStart {BashEscape.EscapeForBash(name)}\"");
 
-            // Step is ran in subshell
+            // Step is run in subshell
             command.Add("(");
             command.Add("set -e");
 
