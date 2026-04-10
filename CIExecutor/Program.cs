@@ -2,9 +2,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using CommandLine;
+using Microsoft.Extensions.Logging;
 using RevolutionaryWebApp.Server.Common.Services;
 using SharedBase.Utilities;
 
@@ -12,35 +14,31 @@ public class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        // TODO: command line parsing
-        /*return Parser.Default.ParseArguments<Options>(args)
+        return await Parser.Default.ParseArguments<Options>(args)
             .MapResult(RunOptions,
-                ReportParseErrors);*/
-
-        // This fails with an exception because we can't anyway report our failure if we don't have
-        // the webhook connection url
-        if (args.Length != 1)
-            throw new Exception("Expected to be ran with a single argument specifying websocket connect url");
-
-        using var executor = new CIExecutor(args[0]);
-
-        await executor.Run();
-        return 0;
+                ReportParseErrors);
     }
 
-    private static int ReportParseErrors(IEnumerable<Error> errors)
+    private static Task<int> ReportParseErrors(IEnumerable<Error> errors)
     {
-        Console.WriteLine("Failed to parse command line arguments:");
-        foreach (var error in errors)
+        try
         {
-            Console.WriteLine(error.Tag);
-            Console.WriteLine(error.ToString());
-        }
+            Console.WriteLine("Failed to parse command line arguments:");
+            foreach (var error in errors)
+            {
+                Console.WriteLine(error.Tag);
+                Console.WriteLine(error.ToString());
+            }
 
-        return 3;
+            return Task.FromResult(3);
+        }
+        catch (Exception exception)
+        {
+            return Task.FromException<int>(exception);
+        }
     }
 
-    private static int RunOptions(Options options)
+    private static async Task<int> RunOptions(Options options)
     {
         if (options.Version)
         {
@@ -50,8 +48,62 @@ public class Program
             return 0;
         }
 
-        // TODO: new main here
-        throw new NotImplementedException();
+        var baseLogger = new ConsoleCategoryLogger<Program>();
+
+        baseLogger.LogInformation("Starting service construction...");
+
+        var executor = new JobExecutor(new ConsoleCategoryLogger<JobExecutor>());
+
+        if (options.Verbose)
+        {
+            executor.Verbose = true;
+            ConsolePrefixLogger.MinimumLevel = LogLevel.Trace;
+        }
+
+        var cacheFolder = options.CacheLocation;
+
+        if (string.IsNullOrWhiteSpace(cacheFolder))
+        {
+            // TODO: detect the actual username as a fallback here
+            var home = Environment.GetEnvironmentVariable("HOME") ?? "/home/runner";
+
+            cacheFolder = Path.Join(home, "runnerCache");
+        }
+
+        using var cache =
+            new FilesystemAndPodmanCache(new ConsoleCategoryLogger<FilesystemAndPodmanCache>(), cacheFolder);
+
+        using var communication =
+            new RunnerClientWebsocket(new ConsoleCategoryLogger<RunnerClientWebsocket>(), options.ServerUrl);
+
+        var runnerService = new RunnerService(new ConsoleCategoryLogger<RunnerService>(), communication, options,
+            executor, cache);
+
+        // Apply some runner options
+        if (options.QuitOnIdle)
+            runnerService.StopWhenIdle();
+
+        if (options.OnlySafe)
+            runnerService.OnlyRunSafeJobs();
+
+        using var cancellationListener = new ProgramTerminationController(runnerService.StopAfterNextJob);
+
+        baseLogger.LogInformation("Starting executor main loop");
+
+        var result = await runnerService.Run(cancellationListener.Token);
+
+        baseLogger.LogInformation("Executor has finished, saving final things and exiting");
+
+        try
+        {
+            await communication.Close().WaitAsync(TimeSpan.FromSeconds(60));
+        }
+        catch (Exception e)
+        {
+            baseLogger.LogError(e, "Failed to close runner connection when exiting");
+        }
+
+        return result;
     }
 
     public class Options : IRunnerClientDataService
@@ -81,13 +133,14 @@ public class Program
         [Option('p', "prune-cache-fraction", HelpText = "How big fraction of the cache size in use causes pruning.")]
         public float PruneCacheAfterSizeFraction { get; set; } = 0.8f;
 
+        [Option('c', "cache", HelpText = "Specifies where to put caches. Defaults to current user home")]
+        public string? CacheLocation { get; set; }
+
         [Option("verbose", HelpText = "Turn on verbose logging and job output.")]
         public bool Verbose { get; set; }
 
-        /*
-        // TODO: implement this mode
         [Option("safe-only", Default = false, HelpText = "Can be set to only run 'safe' jobs")]
-        public bool OnlySafe { get; set; }*/
+        public bool OnlySafe { get; set; }
 
         public string ServerUrl => new Uri(new Uri(DevCenterUrl), "runnerConnection").ToString();
     }
