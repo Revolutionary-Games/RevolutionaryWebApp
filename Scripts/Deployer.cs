@@ -26,7 +26,7 @@ public class Deployer
     private const string BUILDER_CONTAINER_NAME = "thrive/devcenter-builder:latest";
 
     /// <summary>
-    ///   Seems that for some reason subsequent container builds fail if this is not deleted
+    ///   It seems that for some reason later container builds fail if this is not deleted
     /// </summary>
     private const string BUILD_FOLDER_TO_ALWAYS_DELETE = "build/Client";
 

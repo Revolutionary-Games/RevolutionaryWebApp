@@ -65,6 +65,46 @@ public class CiJobCacheConfiguration
     public Dictionary<string, string>? System { get; set; }
 }
 
+public class CiJobCacheConfigurationEnriched : CiJobCacheConfiguration
+{
+    // Augmented properties which are given to the executor when running
+    [JsonPropertyName("image_filename")]
+    public string? CIImageFileName { get; set; }
+
+    [JsonPropertyName("image_name")]
+    public string? CIImageName { get; set; }
+
+    [JsonPropertyName("branch_name")]
+    public string? CIBranch { get; set; }
+
+    [JsonPropertyName("default_branch")]
+    public string? CIDefaultBranch { get; set; }
+
+    [JsonPropertyName("job_name")]
+    public string? CIJobName { get; set; }
+
+    [JsonPropertyName("ref")]
+    public string? CIRef { get; set; }
+
+    [JsonPropertyName("ci_is_safe")]
+    public bool? IsSafe { get; set; }
+
+    [JsonPropertyName("ci_earlier_commit")]
+    public string? CIEarlierCommit { get; set; }
+
+    [JsonPropertyName("ci_commit_hash")]
+    public string? CICommitHash { get; set; }
+
+    [JsonPropertyName("ci_origin")]
+    public string? CIOrigin { get; set; }
+
+    [JsonPropertyName("ci_secrets")]
+    public List<CiSecretExecutorData>? CISecrets { get; set; }
+
+    [JsonPropertyName("ci_image_download_url")]
+    public string? CIImageDownloadUrl { get; set; }
+}
+
 public class CiJobBuildStep
 {
     public CiJobBuildStepRun? Run { get; set; }

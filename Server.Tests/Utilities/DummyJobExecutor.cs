@@ -20,9 +20,9 @@ public class DummyJobExecutor : IJobExecutor
         this.jobsThisCanRun = jobsThisCanRun;
     }
 
-    public async Task<bool> ExecuteJobAsync(CiJobCacheConfiguration cacheConfiguration, CIJobDTO jobDTO,
-        IRunnerClientDataService dataService,
-        IJobOutputForwarder jobOutput, IExecutorCache cache, CancellationToken cancellationToken)
+    public async Task<bool> ExecuteJobAsync(CiJobCacheConfigurationEnriched cacheConfiguration, CIJobDTO jobDTO,
+        IRunnerClientDataService dataService, IJobOutputForwarder jobOutput, IExecutorCache cache,
+        CancellationToken cancellationToken)
     {
         bool canRun = false;
 

@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Controllers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -23,11 +24,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Models;
+using Services;
+using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Notifications;
 using StackExchange.Redis;
 using Utilities;
+using FileAccess = DevCenterCommunication.Models.Enums.FileAccess;
 
 /// <summary>
 ///   Handles realtime websocket connections from runner instances (they run CI jobs)
@@ -78,7 +82,7 @@ public class RunnerConnectionHandler : IDisposable
     /// </summary>
     private CiJob? activeJob;
 
-    private CiJobCacheConfiguration? activeJobCacheData;
+    private CiJobCacheConfigurationEnriched? activeJobCacheData;
 
     // Buffering info for the current output section, used to make things more efficient
     private StringBuilder pendingDatabaseTextForSection = new();
@@ -1193,8 +1197,8 @@ public class RunnerConnectionHandler : IDisposable
             job.State = CIJobState.Running;
             job.RanOnServer = ourData.Name;
 
+            activeJobCacheData = await EnrichConfig(cacheConfig, job);
             activeJob = job;
-            activeJobCacheData = await EnrichConfig(cacheConfig);
             isScopeRefreshBlocked = true;
 
             ourData.TotalJobsTaken += 1;
@@ -1214,6 +1218,7 @@ public class RunnerConnectionHandler : IDisposable
         catch (Exception e)
         {
             logger?.LogInformation(e, "Couldn't reserve job for runner");
+            activeJobCacheData = null;
             return false;
         }
     }
@@ -1242,9 +1247,6 @@ public class RunnerConnectionHandler : IDisposable
         }
 
         var db = AccessDatabase();
-
-        // We must have the scope already here as we accessed the DB
-        var jobClient = currentScope!.ServiceProvider.GetRequiredService<IBackgroundJobClient>();
 
         void ApplyJobState()
         {
@@ -1285,11 +1287,25 @@ public class RunnerConnectionHandler : IDisposable
 
         isScopeRefreshBlocked = false;
 
+        OnJobFinished(job);
+
+        return true;
+    }
+
+    private void OnJobFinished(CiJob job)
+    {
+        // We must have the scope already here as we accessed the DB
+        if (currentScope == null)
+        {
+            logger?.LogError("No current scope when job finished, cannot create task to check overall build status");
+            return;
+        }
+
+        var jobClient = currentScope.ServiceProvider.GetRequiredService<IBackgroundJobClient>();
+
         // Queue a background job to update the overall build status and trigger further actions
         jobClient.Enqueue<SetFinishedCIJobStatusJob>(x => x.Execute(job.CiProjectId, job.CiBuildId,
             job.CiJobId, job.Succeeded, CancellationToken.None));
-
-        return true;
     }
 
     private bool BufferTextOutputIfSectionOpen(string text, bool autoAddLineChange = true)
@@ -1491,8 +1507,8 @@ public class RunnerConnectionHandler : IDisposable
         logger?.LogInformation("We were able to update the connection ID used by the job to: {Id}",
             job.OutputConnection);
 
+        activeJobCacheData = await EnrichConfig(cacheConfig, job);
         activeJob = job;
-        activeJobCacheData = await EnrichConfig(cacheConfig);
         isScopeRefreshBlocked = true;
 
         // We will let the client know what it is working on the next time it tries to ask for a new job
@@ -1505,9 +1521,130 @@ public class RunnerConnectionHandler : IDisposable
     ///   This loads extra data needed by the runner to actually run the job
     /// </summary>
     /// <returns>The input object (it's been modified in-place to be enriched)</returns>
-    private async Task<CiJobCacheConfiguration?> EnrichConfig(CiJobCacheConfiguration cacheConfig)
+    private async Task<CiJobCacheConfigurationEnriched?> EnrichConfig(CiJobCacheConfiguration cacheConfig, CiJob job)
     {
-        throw new NotImplementedException();
+        if (currentScope == null)
+            throw new InvalidOperationException("There must be a scope before trying to enrich a config");
+
+        var source = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var cancellationToken = source.Token;
+
+        var db = AccessDatabase();
+        var fullJob = await db.CiJobs.Include(j => j.Build).ThenInclude(b => b!.CiProject).FirstOrDefaultAsync(j =>
+                j.CiJobId == job.CiJobId && j.CiBuildId == job.CiBuildId && j.CiProjectId == job.CiProjectId,
+            cancellationToken);
+
+        if (fullJob == null)
+            throw new Exception("We couldn't find the job with all navigations loaded from the database");
+
+        if (fullJob.Build?.CiProject == null)
+            throw new Exception("Job has no build or build has no project");
+
+        var imageFileName = job.GetImageFileName();
+        var serverSideImagePath = Path.Join("CI/Images", imageFileName);
+
+        StorageItem? imageItem;
+        try
+        {
+            imageItem = await StorageItem.FindByPath(db, serverSideImagePath);
+        }
+        catch (Exception e)
+        {
+            // ReSharper disable once ExceptionPassedAsTemplateArgumentProblem
+            logger?.LogError("Invalid image specified for CI job: {Image}, path parse exception: {@E}", job.Image,
+                e);
+            job.SetFinishSuccess(false);
+            await job.CreateFailureSection(db, "Invalid image specified for job (invalid path)");
+            job.ReservedByRunner = null;
+            job.ReservedByRunnerId = null;
+            OnJobFinished(job);
+            await db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+
+        if (string.IsNullOrEmpty(job.Image) || imageItem == null)
+        {
+            logger?.LogError("Invalid image specified for CI job: {Image}", job.Image);
+            job.SetFinishSuccess(false);
+            await job.CreateFailureSection(db, "Invalid image specified for job (not found)");
+            job.ReservedByRunner = null;
+            job.ReservedByRunnerId = null;
+            OnJobFinished(job);
+            await db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+
+        // The CI system uses the first valid image version. For future updates a different file name is needed.
+        // For example, bumping the ":v1" to a ":v2" suffix
+        var version = await imageItem.GetLowestUploadedVersion(db);
+
+        if (version?.StorageFile == null)
+        {
+            logger?.LogError("Image with no uploaded version specified for CI job: {Image}", job.Image);
+            job.SetFinishSuccess(false);
+            await job.CreateFailureSection(db, "Invalid image specified for job (not uploaded version)");
+            job.ReservedByRunner = null;
+            job.ReservedByRunnerId = null;
+            OnJobFinished(job);
+            await db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+
+        // Queue a job to lock writing to the CI image if it isn't write-protected yet
+        if (imageItem.WriteAccess != FileAccess.Nobody)
+        {
+            logger?.LogInformation("Storage item {Id} used as CI image is not write locked, queuing a job to lock it",
+                imageItem.Id);
+
+            var jobClient = currentScope.ServiceProvider.GetRequiredService<IBackgroundJobClient>();
+
+            // To ensure the upload time is expired, this is upload time + 5 minutes
+            jobClient.Schedule<LockCIImageItemJob>(x => x.Execute(imageItem.Id, CancellationToken.None),
+                AppInfo.RemoteStorageUploadExpireTime + TimeSpan.FromMinutes(5));
+        }
+
+        var remoteDownloadUrls = currentScope.ServiceProvider.GetRequiredService<IGeneralRemoteDownloadUrls>();
+
+        var imageDownloadUrl =
+            remoteDownloadUrls.CreateDownloadFor(version.StorageFile, AppInfo.RemoteStorageDownloadExpireTime);
+
+        var augmented = new CiJobCacheConfigurationEnriched
+        {
+            // Copy base properties
+            LoadFrom = cacheConfig.LoadFrom,
+            WriteTo = cacheConfig.WriteTo,
+            Shared = cacheConfig.Shared,
+            System = cacheConfig.System,
+
+            // And then the special extra data
+            CIImageFileName = imageFileName,
+            CIImageName = job.Image,
+            CIBranch = fullJob.Build.Branch ?? "unknown_branch",
+            CIDefaultBranch = fullJob.Build.CiProject.DefaultBranch,
+            CIJobName = job.JobName,
+            CIRef = fullJob.Build.RemoteRef,
+            IsSafe = fullJob.Build.IsSafe,
+            CIEarlierCommit = fullJob.Build.PreviousCommit ?? AppInfo.NoCommitHash,
+            CICommitHash = fullJob.Build.CommitHash,
+            CIOrigin = fullJob.Build.CiProject.RepositoryCloneUrl,
+            CIImageDownloadUrl = imageDownloadUrl,
+        };
+
+        CISecretType jobSpecificSecretType = fullJob.Build.IsSafe ? CISecretType.SafeOnly : CISecretType.UnsafeOnly;
+
+        var secrets = await db.CiSecrets.Where(s => s.CiProjectId == job.CiProjectId &&
+                (s.UsedForBuildTypes == jobSpecificSecretType || s.UsedForBuildTypes == CISecretType.All))
+            .ToListAsync(cancellationToken);
+
+        // Remove all type secrets if there is one with the same name that is build-specific
+        var cleanedSecrets = secrets
+            .Where(s => s.UsedForBuildTypes != CISecretType.All || !secrets.Any(s2 =>
+                s2.SecretName == s.SecretName && s2.UsedForBuildTypes != s.UsedForBuildTypes))
+            .Select(s => s.ToExecutorData());
+
+        augmented.CISecrets = cleanedSecrets.ToList();
+
+        return augmented;
     }
 
     private async Task ResumeSectionIfExists(CancellationToken cancellationToken)

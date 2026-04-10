@@ -33,6 +33,8 @@ public sealed class FilesystemAndPodmanCache : IExecutorCache, IDisposable
         LoadUsedPodmanImages().Wait(TimeSpan.FromSeconds(90));
     }
 
+    public string BaseFolder => baseCacheFolder;
+
     public async Task<long> CalculateCacheSizeAsync(CancellationToken cancellationToken)
     {
         var podmanSize = CalculateBytesUsedByPodmanImages(cancellationToken);

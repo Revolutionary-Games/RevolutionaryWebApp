@@ -10,5 +10,5 @@ public class RunningJobDetails(CIJobDTO generalDetails)
     public CIJobDTO GeneralDetails { get; set; } = generalDetails;
 
     // Special info properties only given to the active runner on what needs to be done to know
-    public CiJobCacheConfiguration CacheConfiguration { get; set; } = new();
+    public CiJobCacheConfigurationEnriched CacheConfiguration { get; set; } = new();
 }

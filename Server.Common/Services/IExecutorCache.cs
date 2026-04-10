@@ -9,6 +9,11 @@ using System.Threading.Tasks;
 public interface IExecutorCache
 {
     /// <summary>
+    ///   The base folder under which cache users are allowed to put files and mostly folders
+    /// </summary>
+    public string BaseFolder { get; }
+
+    /// <summary>
     ///   Calculates the size of the total cache on disk and in podman
     /// </summary>
     /// <param name="cancellationToken">Cancellation</param>
@@ -24,4 +29,11 @@ public interface IExecutorCache
     /// <param name="cancellationToken">Cancellation of the operation</param>
     /// <returns>Task that gives the retained cache size</returns>
     public Task<long> PruneCacheAsync(long cachePreserveSize, CancellationToken cancellationToken);
+
+    /// <summary>
+    ///   Lets the cache know about a used image, is needed for the cache to manage images
+    /// </summary>
+    /// <param name="name">Name of the image</param>
+    /// <returns>Task</returns>
+    public Task NotifyUsedPodmanImage(string name);
 }

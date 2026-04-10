@@ -21,7 +21,7 @@ public interface IJobExecutor
     /// <param name="cache">Cache to ask where to put temporary folders</param>
     /// <param name="cancellationToken">Early run cancellation, there's an absolute 2-hour-limit on top of this</param>
     /// <returns>True if job execution was successful, false otherwise</returns>
-    public Task<bool> ExecuteJobAsync(CiJobCacheConfiguration cacheConfiguration, CIJobDTO jobDTO,
+    public Task<bool> ExecuteJobAsync(CiJobCacheConfigurationEnriched cacheConfiguration, CIJobDTO jobDTO,
         IRunnerClientDataService dataService, IJobOutputForwarder jobOutput, IExecutorCache cache,
         CancellationToken cancellationToken);
 }

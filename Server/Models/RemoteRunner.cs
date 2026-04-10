@@ -78,16 +78,13 @@ public class RemoteRunner : UpdateableModel, IDTOCreator<RemoteRunnerDTO>, IUpda
     ///   The one job this runner is working on. This is not a list as a runner can only have one job at a time, which
     ///   it needs to complete before it can take another.
     /// </summary>
-
-    // [ForeignKey("ReservedJobProjectId,ReservedJobBuildId,ReservedJobId")]
+    /// <remarks>
+    ///   <para>
+    ///     Due to the complex key, for now we rely on a one-sided relationship where each job can have exactly one
+    ///     runner.
+    ///   </para>
+    /// </remarks>
     public CiJob? ReservedJob { get; set; }
-
-    /*// As the other side uses a 3-part key, we need to store the parts separately
-    public long? ReservedJobProjectId { get; set; }
-    public long? ReservedJobBuildId { get; set; }
-    public long? ReservedJobId { get; set; }*/
-
-    // Let's try for now just relying on one side key
 
     public bool QueuedCleanUp { get; set; }
 

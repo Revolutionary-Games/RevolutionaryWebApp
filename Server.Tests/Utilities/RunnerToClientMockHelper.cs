@@ -139,7 +139,7 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
                 Output = JsonSerializer.Serialize(new RunningJobDetails(activeJob.GetDTO())
                 {
                     CacheConfiguration =
-                        JsonSerializer.Deserialize<CiJobCacheConfiguration>(activeJob.CacheSettingsJson ??
+                        JsonSerializer.Deserialize<CiJobCacheConfigurationEnriched>(activeJob.CacheSettingsJson ??
                             throw new Exception("Job has no cache settings")) ?? throw new NullDecodedJsonException(),
                 }),
             });
@@ -269,8 +269,8 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
         if (activeJob != null)
             throw new InvalidOperationException("Already has an active job");
 
-        CiJobCacheConfiguration cacheForClient =
-            JsonSerializer.Deserialize<CiJobCacheConfiguration>(jobToAllow.CacheSettingsJson ??
+        var cacheForClient =
+            JsonSerializer.Deserialize<CiJobCacheConfigurationEnriched>(jobToAllow.CacheSettingsJson ??
                 throw new Exception("Job has no cache settings")) ?? throw new NullDecodedJsonException();
 
         // If the job was not advertised to the runner, it cannot request to start it

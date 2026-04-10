@@ -94,6 +94,8 @@ public class Program
 
         baseLogger.LogInformation("Executor has finished, saving final things and exiting");
 
+        await cache.SaveUsedPodmanImages();
+
         try
         {
             await communication.Close().WaitAsync(TimeSpan.FromSeconds(60));
@@ -127,8 +129,10 @@ public class Program
         [Option('d', "disk", HelpText = "Max disk usage for local caches.")]
         public long MaxCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 150;
 
+        // TODO: implement cache retaining
+        // public long KeepCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 5;
         [Option('r', "retained-cache", HelpText = "How much cache to keep on cleaning.")]
-        public long KeepCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 5;
+        public long KeepCacheSize { get; set; } = 0;
 
         [Option('p', "prune-cache-fraction", HelpText = "How big fraction of the cache size in use causes pruning.")]
         public float PruneCacheAfterSizeFraction { get; set; } = 0.8f;

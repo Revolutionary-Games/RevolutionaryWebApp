@@ -16,6 +16,8 @@ public class MockExecutorCache : IExecutorCache
 
     public int CleanedTimes { get; set; }
 
+    public string BaseFolder => "/dummy-base-folder";
+
     public Task<long> CalculateCacheSizeAsync(CancellationToken cancellationToken)
     {
         var value = ReportedSize;
@@ -35,5 +37,10 @@ public class MockExecutorCache : IExecutorCache
         ReportedSize = Math.Min(cachePreserveSize, ReportedSize);
 
         return Task.FromResult(ReportedSize);
+    }
+
+    public Task NotifyUsedPodmanImage(string name)
+    {
+        return Task.CompletedTask;
     }
 }
