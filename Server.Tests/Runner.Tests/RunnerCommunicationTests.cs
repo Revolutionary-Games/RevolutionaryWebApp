@@ -1314,6 +1314,7 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiJobId = 12,
             CacheSettingsJson = testCacheSettings,
             RequiredRunnerTags = "exampleTag",
+            Image = "test-image:v1",
         };
         await db.CiJobs.AddAsync(sampleJob1);
 
@@ -1324,9 +1325,14 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiJobId = 13,
             CacheSettingsJson = testCacheSettings,
             RequiredRunnerTags = "example",
+            Image = "test-image:v1",
         };
 
         await db.CiJobs.AddAsync(sampleJob2);
+
+        // Ensure the CI image exists so that job getting works
+        await RunnerConnectionMockHelper.CreateBasicCIImageAsync(db, "test-image:v1");
+
         await db.SaveChangesAsync();
 
         Assert.NotEqual(sampleJob1.CiJobId, sampleJob2.CiJobId);

@@ -28,6 +28,8 @@ using Shared.Models.Enums;
 using Shared.Notifications;
 using StackExchange.Redis;
 using Xunit;
+using FileAccess = DevCenterCommunication.Models.Enums.FileAccess;
+using FileType = DevCenterCommunication.Models.Enums.FileType;
 
 /// <summary>
 ///   Handles the common setup for mocking the dependencies needed by <see cref="RunnerConnectionHandler"/> and opening
@@ -219,6 +221,11 @@ public class RunnerConnectionMockHelper
     /// </summary>
     public bool UsesRealDatabase { get; set; }
 
+    /// <summary>
+    ///   Mock for remote downloads used by RunnerConnectionHandler to generate signed URLs for CI image download
+    /// </summary>
+    public IGeneralRemoteDownloadUrls? RemoteDownloadUrlsMock { get; private set; }
+
     public static int GetNextId()
     {
         return Interlocked.Increment(ref nextRunnerId);
@@ -248,6 +255,11 @@ public class RunnerConnectionMockHelper
 
         var jobMock = Substitute.For<IBackgroundJobClient>();
 
+        // Provide a simple remote download URL generator mock returning a constant string
+        var remoteDownloadsMock = Substitute.For<IGeneralRemoteDownloadUrls>();
+        remoteDownloadsMock.CreateDownloadFor(Arg.Any<StorageFile>(), Arg.Any<TimeSpan>())
+            .Returns(_ => "https://example.invalid/dummy-ci-image-url");
+
         mockHelper.scopeFactory.CreateScope().Returns(scope);
         scope.ServiceProvider.Returns(serviceProvider);
 
@@ -257,6 +269,9 @@ public class RunnerConnectionMockHelper
         serviceProvider.GetService(typeof(IHubContext<NotificationsHub, INotifications>))
             .Returns(mockHelper.notifications);
         serviceProvider.GetService(typeof(IBackgroundJobClient)).Returns(jobMock);
+        serviceProvider.GetService(typeof(IGeneralRemoteDownloadUrls)).Returns(remoteDownloadsMock);
+
+        mockHelper.RemoteDownloadUrlsMock = remoteDownloadsMock;
 
         return mockHelper;
     }
@@ -283,6 +298,11 @@ public class RunnerConnectionMockHelper
 
         var jobMock = Substitute.For<IBackgroundJobClient>();
 
+        // Provide a simple remote download URL generator mock returning a constant string
+        var remoteDownloadsMock = Substitute.For<IGeneralRemoteDownloadUrls>();
+        remoteDownloadsMock.CreateDownloadFor(Arg.Any<StorageFile>(), Arg.Any<TimeSpan>())
+            .Returns(_ => "https://example.invalid/dummy-ci-image-url");
+
         mockHelper.scopeFactory.CreateScope().Returns(scope);
         scope.ServiceProvider.Returns(serviceProvider);
 
@@ -292,8 +312,92 @@ public class RunnerConnectionMockHelper
         serviceProvider.GetService(typeof(IHubContext<NotificationsHub, INotifications>))
             .Returns(mockHelper.notifications);
         serviceProvider.GetService(typeof(IBackgroundJobClient)).Returns(jobMock);
+        serviceProvider.GetService(typeof(IGeneralRemoteDownloadUrls)).Returns(remoteDownloadsMock);
+
+        mockHelper.RemoteDownloadUrlsMock = remoteDownloadsMock;
 
         return mockHelper;
+    }
+
+    /// <summary>
+    ///   Creates a minimal CI image file hierarchy and uploaded version so that CI image lookup succeeds in tests.
+    ///   The created file is marked as Special and write-locked (WriteAccess = Nobody) to simulate a previously used
+    ///   CI image.
+    /// </summary>
+    /// <param name="database">The database to insert items into.</param>
+    /// <param name="imageName">The CI image string like "thing/image:v1".</param>
+    /// <returns>The created image item</returns>
+    public static async Task<StorageItem> CreateBasicCIImageAsync(ApplicationDbContext database, string imageName)
+    {
+        // Build target path: CI/Images/<imageFileName>
+        var fileName = new CiJob { Image = imageName }.GetImageFileName();
+
+        // Ensure CI and Images folders exist
+        var ciFolder = await database.StorageItems.FirstOrDefaultAsync(i => i.ParentId == null && i.Name == "CI");
+
+        if (ciFolder == null)
+        {
+            ciFolder = new StorageItem
+            {
+                Name = "CI",
+                Ftype = FileType.Folder,
+                AllowParentless = true,
+                ReadAccess = FileAccess.Developer,
+                WriteAccess = FileAccess.Developer,
+            };
+            await database.StorageItems.AddAsync(ciFolder);
+        }
+
+        var imagesFolder =
+            await database.StorageItems.FirstOrDefaultAsync(i => i.ParentId == ciFolder.Id && i.Name == "Images");
+
+        if (imagesFolder == null)
+        {
+            imagesFolder = new StorageItem
+            {
+                Name = "Images",
+                Ftype = FileType.Folder,
+                Parent = ciFolder,
+                ReadAccess = FileAccess.Developer,
+                WriteAccess = FileAccess.Developer,
+            };
+            await database.StorageItems.AddAsync(imagesFolder);
+        }
+
+        // Create the file item marked as special and write-locked
+        var imageItem =
+            await database.StorageItems.FirstOrDefaultAsync(i => i.ParentId == imagesFolder.Id && i.Name == fileName);
+
+        if (imageItem == null)
+        {
+            imageItem = new StorageItem
+            {
+                Name = fileName,
+                Ftype = FileType.File,
+                Parent = imagesFolder,
+                Special = true,
+                WriteAccess = FileAccess.Nobody,
+                ReadAccess = FileAccess.Developer,
+            };
+            await database.StorageItems.AddAsync(imageItem);
+        }
+
+        // Ensure there's an uploaded version with a storage file
+        var lowestVersion = await imageItem.GetLowestUploadedVersion(database);
+        if (lowestVersion == null)
+        {
+            var version = await imageItem.CreateNextVersion(database, null);
+
+            // Create a storage file for the version and mark uploading finished
+            var storageFile = await version.CreateStorageFile(database, DateTime.UtcNow.AddMinutes(-10), 123);
+            storageFile.OnVersionUploadFinished(version);
+
+            imageItem.Size = 123;
+            await database.StorageItemVersions.AddAsync(version);
+        }
+
+        await database.SaveChangesAsync();
+        return imageItem;
     }
 
     public async Task<bool> Start(bool autoAuth = true, HttpContext? customContext = null)
