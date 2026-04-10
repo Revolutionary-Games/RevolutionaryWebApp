@@ -446,8 +446,8 @@ public class RunnerConnectionHandler : IDisposable
                     if (model.CurrentConnectionId != connectionId)
                     {
                         logger?.LogWarning(
-                            "Runner connection {Id} has been closed by the server due to another connection for the runner starting",
-                            connectionId);
+                            "Runner connection {Id} has been closed by the server due to another connection " +
+                            "for the runner starting", connectionId);
                         connectionOutdated = true;
                         break;
                     }
@@ -694,8 +694,8 @@ public class RunnerConnectionHandler : IDisposable
                 connectionOutdated = true;
 
                 logger?.LogInformation(
-                    "We got notice that {Id1} is the new connection for runner {Runner} so connection {Id2} will close soon",
-                    parsed.ConnectionId, parsed.RunnerId, connectionId);
+                    "We got notice that {Id1} is the new connection for runner {Runner} so connection {Id2} " +
+                    "will close soon", parsed.ConnectionId, parsed.RunnerId, connectionId);
 
                 cancelSetup.Wait();
                 try
