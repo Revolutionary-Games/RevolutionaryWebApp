@@ -77,7 +77,7 @@ public class Program
             new RunnerClientWebsocket(new ConsoleCategoryLogger<RunnerClientWebsocket>(), options.ServerUrl);
 
         var runnerService = new RunnerService(new ConsoleCategoryLogger<RunnerService>(), communication, options,
-            executor, cache);
+            executor, cache, !options.InteractiveMode);
 
         // Apply some runner options
         if (options.QuitOnIdle)
@@ -140,7 +140,11 @@ public class Program
         [Option('c', "cache", HelpText = "Specifies where to put caches. Defaults to current user home")]
         public string? CacheLocation { get; set; }
 
-        [Option("verbose", HelpText = "Turn on verbose logging and job output.")]
+        [Option('i', "interactive", Default = false,
+            HelpText = "Assume interactive terminal controls this and don't react to terminal size changes")]
+        public bool InteractiveMode { get; set; }
+
+        [Option("verbose", Default = false, HelpText = "Turn on verbose logging and job output.")]
         public bool Verbose { get; set; }
 
         [Option("safe-only", Default = false, HelpText = "Can be set to only run 'safe' jobs")]

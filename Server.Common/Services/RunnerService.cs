@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,6 +47,8 @@ public class RunnerService : IDisposable
     private readonly CancellationTokenSource stopConnectionHandlingToken = new();
     private readonly TimeSpan heartbeatInterval = TimeSpan.FromSeconds(60);
 
+    private readonly PosixSignalRegistration? signalRegistration;
+
     private bool run = true;
 
     /// <summary>
@@ -84,10 +87,8 @@ public class RunnerService : IDisposable
 
     private bool safeOnly;
 
-    // TODO: listen for USR1 signal and if received then stop the new jobs allowed flag (but still keep running)
-
     public RunnerService(ILogger logger, IRunnerClientCommunication communication, IRunnerClientDataService dataService,
-        IJobExecutor executor, IExecutorCache cache)
+        IJobExecutor executor, IExecutorCache cache, bool allowStopNewJobsSignal)
     {
         this.logger = logger;
         this.communication = communication;
@@ -96,6 +97,19 @@ public class RunnerService : IDisposable
         this.cache = cache;
 
         jobOutputForwarder = new SimpleJobOutputForwarder(OnJobSectionClosed, OnJobSectionOpened, OnJobOutput);
+
+        if (allowStopNewJobsSignal)
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                // Due to the limited set of signals supported here, we needed to pick something a bit silly
+                signalRegistration = PosixSignalRegistration.Create(PosixSignal.SIGWINCH, OnStopNewJobsSignal);
+            }
+            else
+            {
+                logger.LogInformation("Cannot register 'no new jobs' signal handler on Windows");
+            }
+        }
     }
 
     public void StopAfterNextJob()
@@ -107,6 +121,15 @@ public class RunnerService : IDisposable
     public void StopWhenIdle()
     {
         quitWhenIdle = true;
+    }
+
+    public void StopStartingNewJobs()
+    {
+        if (!canStartNewJobs)
+            return;
+
+        canStartNewJobs = false;
+        logger.LogInformation("Received command to stop accepting new jobs, will no longer start new jobs");
     }
 
     public void OnlyRunSafeJobs()
@@ -275,6 +298,8 @@ public class RunnerService : IDisposable
                 if (unlock)
                     connectionLock.Release();
             }
+
+            signalRegistration?.Dispose();
 
             connectionLock.Dispose();
 
@@ -625,19 +650,13 @@ public class RunnerService : IDisposable
 
     private async Task HandleJobRequest(CancellationToken cancellationToken)
     {
-        // If we don't want new jobs, don't do this
-        if (!canStartNewJobs)
-        {
-            return;
-        }
-
         var now = DateTime.UtcNow;
 
         // We have a bunch of conditions here to ensure we don't ask the server too often for jobs, but that we do
         // ask the server for new jobs if we have completed a job since the last check to run them quickly
         var lastAsked = now - lastAskedForJobs;
-        if (lastAsked > TimeSpan.FromSeconds(500) ||
-            (serverNotifiedAboutNewJobs && lastAsked > TimeSpan.FromSeconds(10)) || hasCompletedAJobSinceLastCheck)
+        if (canStartNewJobs && (lastAsked > TimeSpan.FromSeconds(500) ||
+                (serverNotifiedAboutNewJobs && lastAsked > TimeSpan.FromSeconds(10)) || hasCompletedAJobSinceLastCheck))
         {
             // Ask for jobs from the server
             lastAskedForJobs = now;
@@ -655,7 +674,8 @@ public class RunnerService : IDisposable
         else
         {
             // If it isn't time yet to ask the server for more jobs, just wait but try to read one message each time
-            // to keep the message buffer empty
+            // to keep the message buffer empty.
+            // Also if we are no longer accepting jobs, we do want to keep the message buffer empty.
             try
             {
                 var message = await Receive(cancellationToken,
@@ -680,6 +700,9 @@ public class RunnerService : IDisposable
 
         if (cancellationToken.IsCancellationRequested)
             return;
+
+        if (!canStartNewJobs)
+            throw new Exception("Shouldn't get here with start new jobs flag disabled!");
 
         while (true)
         {
@@ -1112,5 +1135,14 @@ public class RunnerService : IDisposable
         {
             logger.LogInformation("Cache maintenance took {Elapsed} seconds", elapsed.TotalSeconds);
         }
+    }
+
+    private void OnStopNewJobsSignal(PosixSignalContext context)
+    {
+        logger.LogInformation("Caught SIGWINCH, will stop accepting jobs. Sorry about this signal abuse but .NET " +
+            "doesn't expose SIGUSR1");
+        logger.LogInformation("To disable this behaviour, run with '--interactive' flag");
+        StopStartingNewJobs();
+        context.Cancel = true;
     }
 }

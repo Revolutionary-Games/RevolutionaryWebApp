@@ -106,7 +106,7 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
         };
 
         using var service =
-            new RunnerService(logger, communicationMock, runnerData, executor, mockCache);
+            new RunnerService(logger, communicationMock, runnerData, executor, mockCache, false);
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
