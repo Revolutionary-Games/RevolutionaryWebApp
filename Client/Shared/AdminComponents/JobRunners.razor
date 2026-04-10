@@ -21,7 +21,7 @@
     }
     else
     {
-        <StatusMessageShower Message="@message" Type="@messageType" />
+        <StatusMessageShower Message="@message" Type="@messageType" OnClosed="CloseMessage"/>
 
         <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
                         OnPageChanged="async e => await ChangePage(e)"
@@ -43,7 +43,7 @@
 
                     <tr @key="item.Id">
                         <td @onclick="() => ToggleDetails(item)" class="clickable">
-                            <ItemExpander Expanded="@status.Expanded" />
+                            <ItemExpander Expanded="@status.Expanded"/>
                             <span class="ms-1">@item.Id</span>
                         </td>
                         <td>@item.Priority</td>
@@ -55,6 +55,14 @@
                             @if (item.DisallowJobs)
                             {
                                 <span class="badge bg-danger">Disabled</span>
+                            }
+                            else if (item.LastHeartbeat == null || item.LastHeartbeat.Value.AddMinutes(5) < DateTime.UtcNow)
+                            {
+                                <span class="badge bg-warning">Offline</span>
+                            }
+                            else if (item.LastHeartbeat != null && item.LastHeartbeat.Value.AddMinutes(5) > DateTime.UtcNow)
+                            {
+                                <span class="badge bg-success">Ready</span>
                             }
                         </td>
                         <td>@item.TotalJobsTaken</td>
@@ -72,7 +80,7 @@
                         <td>
                             <Button Enabled="@(!IsProcessing(item.Id) && false)"
                                     OnPressed="@(async () => await QueueCleanUp(item.Id))"
-                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm mb-1 me-1">
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm me-1">
                                 Queue Clean
                             </Button>
                             @if (!item.DisallowJobs)
@@ -101,22 +109,57 @@
                         <tr @key="key" style="position: relative;">
                             <td colspan="@columns.Count" class="mb-2 expanded-box">
                                 @* TODO: remove the flex-wrap if it causes problems *@
-                                <form class="d-flex flex-row align-items-center flex-wrap me-2 mb-2">
-                                    Update details:
-                                    <select class="form-select ms-1" value="@item.Priority">
-                                        @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
-                                                      AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
-                                        {
-                                            <option value="@value">@value</option>
-                                        }
-                                    </select>
+                                <form class="me-2 mb-2">
+                                    <div class="row">
+                                        <div class="mb-3 col-md-6">
+                                            <label class="form-label" for="@($"{item.Id}-name")">Name</label>
+                                            <input type="text" class="form-control" id="@($"{item.Id}-name")"
+                                                   @bind="item.Name">
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label class="form-label" for="@($"{item.Id}-priority")">Priority</label>
+                                            <select class="form-select ms-1" @bind="@item.Priority"
+                                                    id="@($"{item.Id}-priority")">
+                                                @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
+                                                                  AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
+                                                {
+                                                    <option value="@value">@value</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+
+                                        <div class="mb-3 col-md-6">
+                                            <label class="form-label" for="@($"{item.Id}-description")">Description
+                                                (optional)</label>
+                                            <input type="text" class="form-control" id="@($"{item.Id}-description")"
+                                                   @bind="item.Description">
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label class="form-label" for="@($"{item.Id}-tags")">Tags (optional)</label>
+                                            <input type="text" class="form-control" id="@($"{item.Id}-tags")"
+                                                   @bind="item.Tags">
+                                        </div>
+                                    </div>
                                 </form>
 
-                                <span>
-                                    Updated at: <RecentTimeShortener Time="@item.UpdatedAt" IncludeSeconds="@true"/>
+                                <p>
+                                    @item.LastTriggeredError
+                                </p>
 
-                                    Created at: @item.CreatedAt.ToLocalTime().ToString("G")
-                                </span>
+                                <p>
+                                    <strong>Updated at:</strong>
+                                    <RecentTimeShortener Time="@item.UpdatedAt" IncludeSeconds="@true"/>
+                                    <strong>Created at:</strong> @item.CreatedAt.ToLocalTime().ToString("G")
+                                    <br/>
+                                    <strong>Jobs prevented:</strong> @item.DisallowJobs
+                                    <strong>Active connection:</strong> @item.CurrentConnectionId
+                                    <br/>
+                                    Note: changes won't persist without pressing the save button after editing.
+                                </p>
+
+                                <StatusMessageShower Message="@message" Type="@messageType" OnClosed="CloseMessage"/>
 
                                 <span class="float-end">
                                     <Button Enabled="@(!IsProcessing(item.Id))"
@@ -149,11 +192,11 @@
         </PaginatedTable>
     }
 
-    <br />
+    <br/>
 
     @if (!showNewForm)
     {
-        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
     }
 
     <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
@@ -171,21 +214,27 @@
                 </div>
                 <div class="mb-3 col-md-6">
                     <label class="form-label" for="newExternalPriority">Priority</label>
-                    <select class="form-select ms-1" value="@newPriority" id="newExternalPriority">
+                    <select class="form-select ms-1" @bind="newPriority" id="newExternalPriority">
                         @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
-                                      AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
+                                          AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
                         {
                             <option value="@value">@value</option>
                         }
                     </select>
                 </div>
+            </div>
+            <div class="row">
                 <div class="mb-3 col-md-6">
                     <label class="form-label" for="newRemoteRunnerDescription">Description (optional)</label>
                     <input type="text" class="form-control" id="newRemoteRunnerDescription" @bind="newDescription">
                 </div>
+                <div class="mb-3 col-md-6">
+                    <label class="form-label" for="newRemoteRunnerTags">Tags (optional)</label>
+                    <input type="text" class="form-control" id="newRemoteRunnerTags" @bind="newTags">
+                </div>
             </div>
 
-            <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType"/>
             <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
                 Create
             </Button>
@@ -195,6 +244,7 @@
 </AccessLimited>
 
 @code {
+
     private readonly List<TableColumn> columns =
     [
         new("Id", true),
@@ -202,9 +252,10 @@
         new("Name", true),
         new("Last IP Address", false),
         new("Last Error", false),
-        new("Job", false),
+        new("Running Job", false),
         new("Status", true, "DisallowJobs"),
         new("Total Runs", true, "TotalJobsTaken"),
+        new("Heartbeat", false),
         new("Queued Clean", false),
         new("Actions", false),
     ];
@@ -221,6 +272,7 @@
     private bool processingNewForm;
     private string? newName;
     private string? newDescription;
+    private string? newTags;
     private int newPriority;
 
     private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newName);
@@ -256,8 +308,7 @@
 
     protected override Task<PagedResult<RemoteRunnerDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<RemoteRunnerDTO>>(
-            QueryHelpers.AddQueryString("api/v1/RemoteRunners", requestParams));
+        return Http.GetFromJsonAsync<PagedResult<RemoteRunnerDTO>>(QueryHelpers.AddQueryString("api/v1/RemoteRunners", requestParams));
     }
 
     private bool IsProcessing(long serverId)
@@ -427,6 +478,7 @@
             // Reset form status
             newName = null;
             newDescription = null;
+            newTags = null;
             newPriority = 0;
         }
 
@@ -448,6 +500,7 @@
             {
                 Priority = newPriority,
                 Description = newDescription,
+                Tags = newTags?.Trim() ?? string.Empty,
             });
         }
         catch (HttpRequestException e)
@@ -485,6 +538,9 @@
 
     private async Task UpdateData(RemoteRunnerDTO server)
     {
+        server.Tags = server.Tags.Trim();
+        server.Name = server.Name.Trim();
+
         var status = clientSideResourceStatus.GetStatus(server.Id);
         status.Processing = true;
         message = null;
@@ -519,6 +575,11 @@
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void CloseMessage()
+    {
+        message = null;
     }
 
 }
