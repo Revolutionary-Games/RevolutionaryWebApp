@@ -76,6 +76,8 @@ public class RemoteRunnersController : Controller
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest("Missing name");
 
+        request.Name = request.Name.Trim();
+
         // Don't allow duplicate names
         if (await database.RemoteRunners.FirstOrDefaultAsync(r => r.Name.ToLower() == request.Name.ToLower()) != null)
         {
@@ -88,7 +90,7 @@ public class RemoteRunnersController : Controller
         {
             Priority = request.Priority,
             Description = request.Description,
-            Tags = request.Tags,
+            Tags = request.Tags.Trim(),
             AccessId = Guid.NewGuid(),
             SecretKey = Guid.NewGuid(),
         };
@@ -191,6 +193,17 @@ public class RemoteRunnersController : Controller
 
         if (runner == null)
             return NotFound();
+
+        request.Name = request.Name.Trim();
+        request.Tags = request.Tags.Trim();
+        if (runner.Name != request.Name)
+        {
+            if (await database.RemoteRunners.FirstOrDefaultAsync(r => r.Name.ToLower() == request.Name.ToLower()) !=
+                null)
+            {
+                return BadRequest("There is already a runner with the new name");
+            }
+        }
 
         var (changed, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(runner, request);
 
