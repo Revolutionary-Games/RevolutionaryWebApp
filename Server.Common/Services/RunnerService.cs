@@ -79,11 +79,12 @@ public class RunnerService : IDisposable
     private bool hasCompletedAJobSinceLastCheck;
 
     private CIJobDTO? activeJob;
-    private CiJobCacheConfiguration? jobCacheConfiguration;
+    private CiJobCacheConfigurationEnriched? jobCacheConfiguration;
     private bool runActiveJobOutput;
 
-    // TODO: listen for USR1 signal and if received then stop the new jobs allowed flag
-    // TODO: sigint should do the same, but also stop the run loop once there's no job anymore
+    private bool safeOnly;
+
+    // TODO: listen for USR1 signal and if received then stop the new jobs allowed flag (but still keep running)
 
     public RunnerService(ILogger logger, IRunnerClientCommunication communication, IRunnerClientDataService dataService,
         IJobExecutor executor, IExecutorCache cache)
@@ -106,6 +107,15 @@ public class RunnerService : IDisposable
     public void StopWhenIdle()
     {
         quitWhenIdle = true;
+    }
+
+    public void OnlyRunSafeJobs()
+    {
+        if (safeOnly)
+            return;
+
+        safeOnly = true;
+        logger.LogInformation("Only running safe jobs");
     }
 
     /// <summary>
@@ -698,6 +708,17 @@ public class RunnerService : IDisposable
                     jobs = JsonSerializer.Deserialize<AvailableJobsList>(reply.Output ??
                             throw new Exception("Missing output in message")) ??
                         throw new NullDecodedJsonException();
+
+                    if (safeOnly)
+                    {
+                        var oldCount = jobs.Jobs.Count;
+                        jobs.Jobs = jobs.Jobs.Where(j =>
+                            j.RequiredRunnerTags != null && j.RequiredRunnerTags.Split(';').Contains("safe")).ToList();
+
+                        var newCount = jobs.Jobs.Count;
+                        logger.LogInformation($"Filtered {oldCount - newCount} jobs to safe only mode");
+                        jobs.FilteredCount += oldCount - newCount;
+                    }
                 }
                 catch (Exception e)
                 {
