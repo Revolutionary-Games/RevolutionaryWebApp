@@ -145,8 +145,8 @@ public static class AppInfo
     public const int ForgetDataRefreshFetchInterval = 10000;
 
     public const long SingleResourceTableRowId = 1;
-    public const int MinExternalServerPriority = -10;
-    public const int MaxExternalServerPriority = 10;
+    public const int MinExternalServerPriority = -5;
+    public const int MaxExternalServerPriority = 15;
 
     public const int SshServerCommandAttempts = 3;
     public const int SshConnectionTimeoutSeconds = 45;
@@ -158,7 +158,7 @@ public static class AppInfo
 
     /// <summary>
     ///   Needs to be high enough to remove as many dehydrated objects as needed. The dehydrated delete is only
-    ///   triggered when a devbuild is deleted so in a worst case scenario this should on average be high enough to
+    ///   triggered when a devbuild is deleted, so in a worst case scenario this should on average be high enough to
     ///   allow deleting enough objects for <see cref="MaxDevBuildsToCleanAtOnce"/> (or at least over a few deletion
     ///   cycles on average)
     /// </summary>
@@ -182,7 +182,7 @@ public static class AppInfo
 
     // When changed would be nice to also update the value in RevolutionaryWebApp.Server.csproj
     public const int Major = 3;
-    public const int Minor = 2;
+    public const int Minor = 3;
 
     public const int DefaultMaxLauncherLinks = 5;
 

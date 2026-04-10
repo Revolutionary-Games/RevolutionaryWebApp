@@ -157,4 +157,6 @@ public static class NotificationGroups
     ///   Sent when a new connection opens. This is done to allow flushing the previous connection's state.
     /// </summary>
     public const string RealtimeNewConnectionOpened = "RNewConnection";
+
+    public const string RemoteRunnersUpdated = "RRunners";
 }

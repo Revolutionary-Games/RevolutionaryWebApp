@@ -1,0 +1,524 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Notifications
+@using System.Threading
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using SharedBase.Utilities
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<RemoteRunnersUpdated>
+@inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.RemoteRunnerDTO>
+
+<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Error
+        </div>
+    }
+    else
+    {
+        <StatusMessageShower Message="@message" Type="@messageType" />
+
+        <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                        OnPageChanged="async e => await ChangePage(e)"
+                        OnSortChanged="async column => await ChangeSort(column)"
+                        GetSortClass="@SortClass"
+                        ShowContentSpinner="@VisibleFetchInProgress"
+                        Columns="@columns"
+                        ShowNoContent="@NoItemsFound"
+                        UseNonFixedColumns="@true"
+                        ShowHoverHighlight="@false">
+            @if (Data != null)
+            {
+                @foreach (var item in Data.Results)
+                {
+                    if (clientSideResourceStatus.IsDeleted(item.Id))
+                        continue;
+
+                    var status = clientSideResourceStatus.GetStatus(item.Id);
+
+                    <tr @key="item.Id">
+                        <td @onclick="() => ToggleDetails(item)" class="clickable">
+                            <ItemExpander Expanded="@status.Expanded" />
+                            <span class="ms-1">@item.Id</span>
+                        </td>
+                        <td>@item.Priority</td>
+                        <td>@item.Name.Truncate()</td>
+                        <td>@item.LastIpAddress</td>
+                        <td>@item.LastTriggeredError.Truncate()</td>
+                        <td>@item.ReservedJobId</td>
+                        <td>
+                            @if (item.DisallowJobs)
+                            {
+                                <span class="badge bg-danger">Disabled</span>
+                            }
+                        </td>
+                        <td>@item.TotalJobsTaken</td>
+                        <td>
+                            @if (item.LastHeartbeat.HasValue)
+                            {
+                                <RecentTimeShortener Time="@item.LastHeartbeat.Value" IncludeSeconds="@true"/>
+                            }
+                            else
+                            {
+                                <span>Never</span>
+                            }
+                        </td>
+                        <td>@item.QueuedCleanUp</td>
+                        <td>
+                            <Button Enabled="@(!IsProcessing(item.Id) && false)"
+                                    OnPressed="@(async () => await QueueCleanUp(item.Id))"
+                                    Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary" class="btn-sm mb-1 me-1">
+                                Queue Clean
+                            </Button>
+                            @if (!item.DisallowJobs)
+                            {
+                                <Button Enabled="@(!IsProcessing(item.Id))"
+                                        OnPressed="@(async () => await SetManualStatus(item.Id, true))"
+                                        Spinner="@IsProcessing(item.Id)" ButtonStyle="warning" class="btn-sm">
+                                    Set Offline
+                                </Button>
+                            }
+                            else
+                            {
+                                <Button Enabled="@(!IsProcessing(item.Id))"
+                                        OnPressed="@(async () => await SetManualStatus(item.Id, false))"
+                                        Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm">
+                                    Set Online
+                                </Button>
+                            }
+                        </td>
+                    </tr>
+
+                    @if (status.Expanded)
+                    {
+                        var key = $"{item.Id}-details";
+                        @* TODO: firefox once again complains here about that relative now has an effect here *@
+                        <tr @key="key" style="position: relative;">
+                            <td colspan="@columns.Count" class="mb-2 expanded-box">
+                                @* TODO: remove the flex-wrap if it causes problems *@
+                                <form class="d-flex flex-row align-items-center flex-wrap me-2 mb-2">
+                                    Update details:
+                                    <select class="form-select ms-1" value="@item.Priority">
+                                        @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
+                                                      AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
+                                        {
+                                            <option value="@value">@value</option>
+                                        }
+                                    </select>
+                                </form>
+
+                                <span>
+                                    Updated at: <RecentTimeShortener Time="@item.UpdatedAt" IncludeSeconds="@true"/>
+
+                                    Created at: @item.CreatedAt.ToLocalTime().ToString("G")
+                                </span>
+
+                                <span class="float-end">
+                                    <Button Enabled="@(!IsProcessing(item.Id))"
+                                            OnPressed="@(async () => await UpdateData(item))"
+                                            Spinner="@IsProcessing(item.Id)" ButtonStyle="primary" class="btn-sm me-2">
+                                        Save Changes
+                                    </Button>
+                                    <Button Enabled="@CanDelete(item)"
+                                            OnPressed="@(async () => await VerifyDeleteServer(item))"
+                                            Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm ms-1">
+                                        Delete
+                                    </Button>
+                                </span>
+                                @if (status.Processing)
+                                {
+                                    <div class="overlay">
+                                        <div class="d-flex justify-content-center align-items-center"
+                                             style="height: 100%;">
+                                            <div class="spinner-border text-light" role="status">
+                                                <span class="visually-hidden">Processing...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            }
+        </PaginatedTable>
+    }
+
+    <br />
+
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+    }
+
+    <Button class="mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@(!processingNewForm)">
+        New
+    </Button>
+
+    @if (showNewForm)
+    {
+        <form>
+            <div class="row">
+                <div class="mb-3 col-md-6">
+                    <label class="form-label" for="newRemoteRunnerName">Name</label>
+                    <input type="text" class="form-control" id="newRemoteRunnerName" @bind="newName"
+                           @bind:event="oninput">
+                </div>
+                <div class="mb-3 col-md-6">
+                    <label class="form-label" for="newExternalPriority">Priority</label>
+                    <select class="form-select ms-1" value="@newPriority" id="newExternalPriority">
+                        @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
+                                      AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3 col-md-6">
+                    <label class="form-label" for="newRemoteRunnerDescription">Description (optional)</label>
+                    <input type="text" class="form-control" id="newRemoteRunnerDescription" @bind="newDescription">
+                </div>
+            </div>
+
+            <StatusMessageShower Message="@createMessage" Type="@createMessageType" />
+            <Button class="my-1" Enabled="@CanCreateNew" OnPressed="@CreateNew" Spinner="@processingNewForm">
+                Create
+            </Button>
+        </form>
+    }
+
+</AccessLimited>
+
+@code {
+    private readonly List<TableColumn> columns =
+    [
+        new("Id", true),
+        new("Priority", true),
+        new("Name", true),
+        new("Last IP Address", false),
+        new("Last Error", false),
+        new("Job", false),
+        new("Status", true, "DisallowJobs"),
+        new("Total Runs", true, "TotalJobsTaken"),
+        new("Queued Clean", false),
+        new("Actions", false),
+    ];
+
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
+
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string? newName;
+    private string? newDescription;
+    private int newPriority;
+
+    private bool CanCreateNew => !processingNewForm && !string.IsNullOrEmpty(newName);
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    public JobRunners() : base(new SortHelper("Id", SortDirection.Ascending))
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    public Task Handle(RemoteRunnersUpdated notification, CancellationToken cancellationToken)
+    {
+        return HandleItemNotification(notification);
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.RemoteRunnersUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<PagedResult<RemoteRunnerDTO>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<RemoteRunnerDTO>>(
+            QueryHelpers.AddQueryString("api/v1/RemoteRunners", requestParams));
+    }
+
+    private bool IsProcessing(long serverId)
+    {
+        if (!clientSideResourceStatus.HasStatus(serverId))
+            return false;
+
+        return clientSideResourceStatus.GetStatus(serverId).Processing;
+    }
+
+    private void SetProcessingStatus(long serverId, bool processing)
+    {
+        clientSideResourceStatus.GetStatus(serverId).Processing = processing;
+    }
+
+    private bool CanDelete(RemoteRunnerDTO server)
+    {
+        if (IsProcessing(server.Id))
+            return false;
+
+        return server.DisallowJobs && string.IsNullOrEmpty(server.ReservedJobId);
+    }
+
+    private async Task VerifyDeleteServer(RemoteRunnerDTO server)
+    {
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmDelete.Name), $"Job Runner {server.Name.Truncate()} ({server.Id})" },
+        };
+
+        var modal = Modal.Show<ConfirmDelete>("Delete runner?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await DeleteServer(server.Id);
+    }
+
+    private async Task QueueCleanUp(long serverId)
+    {
+        // TODO: this is not implemented on the server-side again yet!
+        SetProcessingStatus(serverId, true);
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/RemoteRunners/{serverId}/queueCleanUp",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(serverId, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(serverId, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Clean queued on server successfully. It will be cleaned next time it doesn't have a job";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SetManualStatus(long serverId, bool offline)
+    {
+        SetProcessingStatus(serverId, true);
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/RemoteRunners/{serverId}/offline?offline={offline}",
+                new StringContent(string.Empty));
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(serverId, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(serverId, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Set new jobs allowed status";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteServer(long serverId)
+    {
+        SetProcessingStatus(serverId, true);
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.DeleteAsync($"api/v1/RemoteRunners/{serverId}");
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            SetProcessingStatus(serverId, false);
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        SetProcessingStatus(serverId, false);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Runner deleted";
+            messageType = SiteNoticeType.Warning;
+            clientSideResourceStatus.SetDeletedStatus(serverId);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleCreateNew()
+    {
+        if (showNewForm)
+        {
+            showNewForm = false;
+        }
+        else
+        {
+            showNewForm = true;
+            createMessage = null;
+
+            // Reset form status
+            newName = null;
+            newDescription = null;
+            newPriority = 0;
+        }
+
+        StateHasChanged();
+    }
+
+    private async void CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/RemoteRunners", new RemoteRunnerDTO(newName ?? string.Empty)
+            {
+                Priority = newPriority,
+                Description = newDescription,
+            });
+        }
+        catch (HttpRequestException e)
+        {
+            createMessage = $"Network request failed: {e.Message}";
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processingNewForm = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            createMessage = $"New runner added. {content}";
+            createMessageType = SiteNoticeType.Info;
+
+            // Stop showing the form
+            showNewForm = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleDetails(RemoteRunnerDTO server)
+    {
+        var status = clientSideResourceStatus.GetStatus(server.Id);
+        status.Expanded = !status.Expanded;
+    }
+
+    private async Task UpdateData(RemoteRunnerDTO server)
+    {
+        var status = clientSideResourceStatus.GetStatus(server.Id);
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PutAsJsonAsync($"api/v1/RemoteRunners/{server.Id}", server);
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            message = "Updated runner details";
+            messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

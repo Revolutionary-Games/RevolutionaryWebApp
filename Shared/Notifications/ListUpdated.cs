@@ -210,3 +210,7 @@ public class MediaFolderContentsUpdated : SerializedNotification
 
     public long FolderId { get; init; }
 }
+
+public class RemoteRunnersUpdated : ListUpdated<RemoteRunnerDTO>
+{
+}
