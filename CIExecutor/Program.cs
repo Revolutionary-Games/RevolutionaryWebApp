@@ -72,15 +72,17 @@ public class Program
             HelpText = "If specified, will run available jobs and then quit.")]
         public bool QuitOnIdle { get; set; }
 
-        [Option('d', "disk", Required = true, HelpText = "Max disk usage for local caches.")]
+        [Option('d', "disk", HelpText = "Max disk usage for local caches.")]
         public long MaxCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 150;
 
-        [Option('r', "retained-cache", Required = true, HelpText = "How much cache to keep on cleaning.")]
+        [Option('r', "retained-cache", HelpText = "How much cache to keep on cleaning.")]
         public long KeepCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 5;
 
-        [Option('p', "prune-cache-fraction", Required = true,
-            HelpText = "How big fraction of the cache size in use causes pruning.")]
+        [Option('p', "prune-cache-fraction", HelpText = "How big fraction of the cache size in use causes pruning.")]
         public float PruneCacheAfterSizeFraction { get; set; } = 0.8f;
+
+        [Option("verbose", HelpText = "Turn on verbose logging and job output.")]
+        public bool Verbose { get; set; }
 
         /*
         // TODO: implement this mode

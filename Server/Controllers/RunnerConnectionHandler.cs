@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net;
@@ -106,6 +107,16 @@ public class RunnerConnectionHandler : IDisposable
     {
         return NotificationGroups.CIProjectsBuildsJobRealtimeOutputPrefix + job.CiProjectId + "_" +
             job.CiBuildId + "_" + job.CiJobId;
+    }
+
+    public static async Task NotifyOpenedConnection(long runnerId, int connectionId,
+        IConnectionMultiplexer realtimeCommunications)
+    {
+        var subscriber = realtimeCommunications.GetSubscriber();
+
+        await subscriber.PublishAsync(
+            new RedisChannel(NotificationGroups.RealtimeNewConnectionOpened, RedisChannel.PatternMode.Literal),
+            new RedisValue(JsonSerializer.Serialize(new NewConnectionOpenedNotice(connectionId, runnerId))));
     }
 
     public static async Task<RunnerConnectionHandler?> HandleHttpConnection(HttpContext context,
@@ -275,14 +286,10 @@ public class RunnerConnectionHandler : IDisposable
             Type = BuildSectionMessageType.AuthSuccess,
         }, new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token);
 
-        var subscriber = realtimeCommunications.GetSubscriber();
-
         // Let other connections know about the new one and that they should exit if they hold relevant buffers
         try
         {
-            await subscriber.PublishAsync(
-                new RedisChannel(NotificationGroups.RealtimeNewConnectionOpened, RedisChannel.PatternMode.Literal),
-                new RedisValue(JsonSerializer.Serialize(new NewConnectionOpenedNotice(connectionId, runner.Id))));
+            await NotifyOpenedConnection(runner.Id, connectionId, realtimeCommunications);
         }
         catch (Exception e)
         {
@@ -302,8 +309,8 @@ public class RunnerConnectionHandler : IDisposable
             logger.LogError(e, "Failed to send auth success message to client, opening connection still");
         }
 
-        var handler = new RunnerConnectionHandler(wrappedSocket, scopeFactory, runner.Id, connectionId, subscriber,
-            runner.Priority, databaseIsPostgres);
+        var handler = new RunnerConnectionHandler(wrappedSocket, scopeFactory, runner.Id, connectionId,
+            realtimeCommunications.GetSubscriber(), runner.Priority, databaseIsPostgres);
 
         handler.StartRun();
         return handler;
@@ -870,6 +877,23 @@ public class RunnerConnectionHandler : IDisposable
 
                 var db = AccessDatabase();
 
+                var runner = await GetRunnerModelData(false, processingMaxTime.Token);
+
+                if (runner.DisallowJobs)
+                {
+                    // Not allowed jobs, so don't give any
+                    await ReplyToClient(new RealTimeBuildMessage
+                    {
+                        Type = BuildSectionMessageType.JobsList,
+                        Output = JsonSerializer.Serialize(new AvailableJobsList
+                        {
+                            Jobs = new List<CIJobDTO>(),
+                            FilteredCount = -2,
+                        }),
+                    }, processingMaxTime.Token);
+                    break;
+                }
+
                 // We don't load these as tracking because we don't really care about this data, just to give it to the
                 // client
                 var validJobs = await db.CiJobs.AsNoTracking()
@@ -877,7 +901,6 @@ public class RunnerConnectionHandler : IDisposable
                         j.ReservedByRunnerId == null).OrderBy(j => j.CreatedAt).Skip(skip).Take(10)
                     .ToListAsync(processingMaxTime.Token);
 
-                var runner = await GetRunnerModelData(false, processingMaxTime.Token);
                 int removed = validJobs.RemoveAll(j => FilterOutJobTags(j, runner));
 
                 var dtoList = validJobs.ConvertAll(j => j.GetDTO());
@@ -1108,6 +1131,17 @@ public class RunnerConnectionHandler : IDisposable
 
             var ourData = await GetRunnerModelData(false, cancellationToken);
 
+            if (ourData.DisallowJobs)
+            {
+                logger?.LogWarning("Runner that is disallowed to start new jobs tried to start one");
+                await ReplyToClient(new RealTimeBuildMessage
+                {
+                    Type = BuildSectionMessageType.Error,
+                    ErrorMessage = "You are not allowed to start new jobs",
+                }, cancellationToken);
+                return false;
+            }
+
             // If the job cannot be accepted due to tags, do not allow it!
             if (FilterOutJobTags(job, ourData))
             {
@@ -1156,14 +1190,16 @@ public class RunnerConnectionHandler : IDisposable
 
             job.TimeWaitingForServer = DateTime.UtcNow - job.CreatedAt;
 
-            // job.ReservedAt = DateTime.UtcNow;
-
             job.State = CIJobState.Running;
             job.RanOnServer = ourData.Name;
 
             activeJob = job;
-            activeJobCacheData = cacheConfig;
+            activeJobCacheData = await EnrichConfig(cacheConfig);
             isScopeRefreshBlocked = true;
+
+            ourData.TotalJobsTaken += 1;
+
+            await db.SaveChangesAsync(cancellationToken);
 
             OnClearPreviousSectionData();
 
@@ -1456,13 +1492,22 @@ public class RunnerConnectionHandler : IDisposable
             job.OutputConnection);
 
         activeJob = job;
-        activeJobCacheData = cacheConfig;
+        activeJobCacheData = await EnrichConfig(cacheConfig);
         isScopeRefreshBlocked = true;
 
         // We will let the client know what it is working on the next time it tries to ask for a new job
 
         // Now that we have resumed the job, we need to also resume a section (if there is one)
         await ResumeSectionIfExists(cancellationToken);
+    }
+
+    /// <summary>
+    ///   This loads extra data needed by the runner to actually run the job
+    /// </summary>
+    /// <returns>The input object (it's been modified in-place to be enriched)</returns>
+    private async Task<CiJobCacheConfiguration?> EnrichConfig(CiJobCacheConfiguration cacheConfig)
+    {
+        throw new NotImplementedException();
     }
 
     private async Task ResumeSectionIfExists(CancellationToken cancellationToken)

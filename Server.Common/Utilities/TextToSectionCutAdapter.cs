@@ -39,6 +39,30 @@ public class TextToSectionCutAdapter : IDisposable
         await nextStep.OnNewJobStarted();
     }
 
+    public async Task Flush(CancellationToken cancellationToken)
+    {
+        if (!await errorLock.WaitAsync(TimeSpan.FromSeconds(500), cancellationToken))
+            return;
+
+        try
+        {
+            while (errorLineQueue.TryDequeue(out var error))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!hasOpenSection)
+                {
+                    await nextStep.OpenNewSection("Flushed errors without a section");
+                }
+
+                await nextStep.ForwardOutputToActiveSection(error);
+            }
+        }
+        finally
+        {
+            errorLock.Release();
+        }
+    }
+
     public async Task OnProcessOutputLine(string output)
     {
         // -1 is passed here to give line terminator some space

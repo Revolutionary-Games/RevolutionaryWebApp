@@ -889,6 +889,8 @@ public class RunnerService : IDisposable
         var totalCancellation =
             CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, readCancellation.Token);
 
+        await jobOutputForwarder.OnNewJobStarted();
+
         runActiveJobOutput = true;
         var readTask = ReadMessagesInRun(totalCancellation.Token);
 
