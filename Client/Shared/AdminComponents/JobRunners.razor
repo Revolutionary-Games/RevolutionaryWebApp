@@ -105,6 +105,8 @@
                     @if (status.Expanded)
                     {
                         var key = $"{item.Id}-details";
+                        var hasExtra = extraInfoRelatedToConnections.TryGetValue(item.Id, out var extraDataString);
+
                         @* TODO: firefox once again complains here about that relative now has an effect here *@
                         <tr @key="key" style="position: relative;">
                             <td colspan="@columns.Count" class="mb-2 expanded-box">
@@ -121,7 +123,8 @@
                                             <select class="form-select ms-1" @bind="@item.Priority"
                                                     id="@($"{item.Id}-priority")">
                                                 @foreach (int value in Enumerable.Range(AppInfo.MinExternalServerPriority,
-                                                                  AppInfo.MaxExternalServerPriority - AppInfo.MinExternalServerPriority + 1))
+                                                                  AppInfo.MaxExternalServerPriority -
+                                                                  AppInfo.MinExternalServerPriority + 1))
                                                 {
                                                     <option value="@value">@value</option>
                                                 }
@@ -158,6 +161,30 @@
                                     <br/>
                                     Note: changes won't persist without pressing the save button after editing.
                                 </p>
+
+                                <p>
+                                    To connect this runner, you need the access key and a secret token. The token
+                                    cannot be viewed again (it was shown on creation, but it can be recreated).
+                                    <br/>
+                                    <Button Enabled="@(!IsProcessing(item.Id))"
+                                            OnPressed="@(async () => await DisplayAccessKey(item.Id))"
+                                            Spinner="@IsProcessing(item.Id)" ButtonStyle="secondary"
+                                            class="btn-sm me-1">
+                                        View Connection Key
+                                    </Button>
+                                    <Button Enabled="@(!IsProcessing(item.Id))"
+                                            OnPressed="@(async () => await VerifyRegenerateKey(item))"
+                                            Spinner="@IsProcessing(item.Id)" ButtonStyle="danger" class="btn-sm me-1">
+                                        Regenerate Secret
+                                    </Button>
+                                </p>
+
+                                @if (hasExtra)
+                                {
+                                    <p>
+                                        @extraDataString
+                                    </p>
+                                }
 
                                 <StatusMessageShower Message="@message" Type="@messageType" OnClosed="CloseMessage"/>
 
@@ -261,6 +288,8 @@
     ];
 
     private readonly ClientSideResourceStatus<ExpandableResourceStatus> clientSideResourceStatus = new();
+
+    private readonly Dictionary<long, string> extraInfoRelatedToConnections = new();
 
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
@@ -572,6 +601,109 @@
         {
             message = "Updated runner details";
             messageType = SiteNoticeType.Primary;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task VerifyRegenerateKey(RemoteRunnerDTO server)
+    {
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmAction.Name), $"Runner {server.Name.Truncate()}" },
+            { nameof(ConfirmAction.ActionVerb), "regenerate" },
+            {
+                nameof(ConfirmAction.ExtraInfo), "Any existing runner connections using the secret will stay but will " +
+                "be unable to reconnect. So potentially revoking the old key is a pretty major headache to " +
+                "update it everywhere!"
+            },
+        };
+
+        var modal = Modal.Show<ConfirmAction>("Regenerate secret?", parameters);
+
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await RegenerateSecret(server.Id);
+    }
+
+    private async Task RegenerateSecret(long runnerId)
+    {
+        var status = clientSideResourceStatus.GetStatus(runnerId);
+        extraInfoRelatedToConnections[runnerId] = "Loading...";
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/RemoteRunners/{runnerId}/regenerateSecret", null);
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+            extraInfoRelatedToConnections[runnerId] = "Error";
+        }
+        else
+        {
+            message = "Secret was regenerated. Switch the runner to use the new secret.";
+            messageType = SiteNoticeType.Warning;
+            extraInfoRelatedToConnections[runnerId] = content;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DisplayAccessKey(long runnerId)
+    {
+        var status = clientSideResourceStatus.GetStatus(runnerId);
+        extraInfoRelatedToConnections[runnerId] = "Loading...";
+        status.Processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsync($"api/v1/RemoteRunners/{runnerId}/readAccessKey", null);
+        }
+        catch (HttpRequestException e)
+        {
+            message = $"Network request failed: {e.Message}";
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        status.Processing = false;
+        var content = await result.Content.ReadAsStringAsync();
+
+        if (!result.IsSuccessStatusCode)
+        {
+            message = $"Error, server responded with: {content}, {result.StatusCode}";
+            extraInfoRelatedToConnections[runnerId] = "Error";
+        }
+        else
+        {
+            extraInfoRelatedToConnections[runnerId] = content;
         }
 
         await InvokeAsync(StateHasChanged);

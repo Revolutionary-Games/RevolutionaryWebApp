@@ -1,0 +1,47 @@
+<BootstrapModal OnCancel="@Cancel">
+    <div class="modal-body">
+        <p>Are you sure you want to @ActionVerb "@Name"?</p>
+
+        @if (ExtraInfo != null)
+        {
+            <p>
+                @ExtraInfo
+            </p>
+        }
+    </div>
+    <div class="modal-footer">
+        <Button class="me-1" ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+        <Button class="me-1" ButtonStyle="danger" OnPressed="@Confirm">@AcceptButton</Button>
+    </div>
+</BootstrapModal>
+
+@code {
+
+    [CascadingParameter]
+    BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public string Name { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public string ActionVerb { get; set; } = null!;
+
+    [Parameter]
+    public string? ExtraInfo { get; set; }
+
+    [Parameter]
+    public string AcceptButton { get; set; } = "Confirm";
+
+    private void Confirm()
+    {
+        ModalInstance.CloseAsync(ModalResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        ModalInstance.CloseAsync(ModalResult.Cancel());
+    }
+
+}

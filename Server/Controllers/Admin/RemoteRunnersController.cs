@@ -224,6 +224,55 @@ public class RemoteRunnersController : Controller
         return Ok();
     }
 
+    [HttpPost("{id:long}/readAccessKey")]
+    public async Task<IActionResult> GetAccessKey(long id)
+    {
+        var runner = await database.RemoteRunners.FindAsync(id);
+
+        if (runner == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction($"Runner {id} access key read")
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Runner {Id} access key read by {Email}", id, user.Email);
+
+        return Ok($"Access key to connect this runner: {runner.AccessId}");
+    }
+
+    [HttpPost("{id:long}/regenerateSecret")]
+    public async Task<IActionResult> RegenerateKeys(long id)
+    {
+        var runner = await database.RemoteRunners.FindAsync(id);
+
+        if (runner == null)
+            return NotFound();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction($"Runner {id} access secret regenerated and read")
+        {
+            PerformedById = user.Id,
+        });
+
+        runner.SecretKey = Guid.NewGuid();
+
+        // Technically the name of this operation doesn't match this, but I'm too lazy to add an extra endpoint just
+        // for this, so this rotates the access key as well
+        runner.AccessId = Guid.NewGuid();
+
+        runner.BumpUpdatedAt();
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Runner {Id} access regenerated and read by {Email}", id, user.Email);
+
+        return Ok($"Access key to connect this runner: {runner.AccessId} and secret key " +
+            $"(you can't see this again): {runner.SecretKey}");
+    }
+
     /*
     // TODO: reimplement this (we need a new message to tell the client to clean all of its cache and a reply to know
     // when it has done so)
