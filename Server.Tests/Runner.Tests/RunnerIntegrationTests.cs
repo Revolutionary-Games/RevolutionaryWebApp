@@ -65,6 +65,7 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 12,
             CacheSettingsJson = testCacheSettings,
+            Image = "test-image:v1",
         };
         await db.CiJobs.AddAsync(sampleJob1);
 
@@ -74,6 +75,7 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 13,
             CacheSettingsJson = testCacheSettings,
+            Image = "test-image:v1",
         };
 
         await db.CiJobs.AddAsync(sampleJob2);
@@ -84,9 +86,13 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 14,
             CacheSettingsJson = testCacheSettings,
+            Image = "test-image:v1",
         };
 
         await db.CiJobs.AddAsync(sampleJob3);
+
+        // Ensure the CI image exists so that job starting can prepare details without errors
+        await RunnerConnectionMockHelper.CreateBasicCIImageAsync(db, "test-image:v1");
         await db.SaveChangesAsync();
 
         var executor = new DummyJobExecutor(true,

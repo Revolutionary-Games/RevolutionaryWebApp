@@ -235,6 +235,7 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 12,
             CacheSettingsJson = testCacheSettings,
+            Image = "test-image:v1",
         };
         await db.CiJobs.AddAsync(sampleJob1);
 
@@ -244,9 +245,13 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 13,
             CacheSettingsJson = testCacheSettings,
+            Image = "test-image:v1",
         };
 
         await db.CiJobs.AddAsync(sampleJob2);
+
+        // Ensure the CI image exists so that job starting can prepare details without errors
+        await RunnerConnectionMockHelper.CreateBasicCIImageAsync(db, "test-image:v1");
         await db.SaveChangesAsync();
 
         listenerMockSetup.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.GetAvailableJobs });
@@ -300,7 +305,21 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         Assert.NotNull(jobData);
 
         Assert.Equal(JsonSerializer.Serialize(sampleJob1.GetDTO()), JsonSerializer.Serialize(jobData.GeneralDetails));
-        Assert.Equal(testCacheSettings, JsonSerializer.Serialize(jobData.CacheConfiguration));
+
+        // Cache configuration is now enriched; validate base fields and key CI additions
+        var enriched = jobData.CacheConfiguration;
+        Assert.NotNull(enriched);
+        var deserialized = JsonSerializer.Deserialize<CiJobCacheConfigurationEnriched>(testCacheSettings);
+        Assert.NotNull(deserialized);
+        Assert.Equal(deserialized.LoadFrom, enriched.LoadFrom);
+        Assert.Equal(deserialized.WriteTo, enriched.WriteTo);
+        Assert.Equal(deserialized.Shared, enriched.Shared);
+        Assert.Equal(deserialized.System, enriched.System);
+
+        // And check a few enriched fields
+        Assert.Equal(new CiJob { Image = "test-image:v1" }.GetImageFileName(), enriched.CIImageFileName);
+        Assert.Equal("test-image:v1", enriched.CIImageName);
+        Assert.Equal("https://example.invalid/dummy-ci-image-url", enriched.CIImageDownloadUrl);
 
         // We got the job so now do some test output
         listenerMockSetup.QueueMessage(new RealTimeBuildMessage
@@ -564,8 +583,12 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 12,
             CacheSettingsJson = testCacheSettings,
+            Image = "test-image:v1",
         };
         await db.CiJobs.AddAsync(sampleJob1);
+
+        // Ensure the CI image exists so that job starting can prepare details without errors
+        await RunnerConnectionMockHelper.CreateBasicCIImageAsync(db, "test-image:v1");
         await db.SaveChangesAsync();
 
         Assert.True(await listenerMockSetup.Start());
@@ -763,8 +786,12 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 12,
             CacheSettingsJson = testCacheSettings,
+            Image = "test-image:v1",
         };
         await db.CiJobs.AddAsync(sampleJob1);
+
+        // Ensure the CI image exists so that job starting can prepare details without errors
+        await RunnerConnectionMockHelper.CreateBasicCIImageAsync(db, "test-image:v1");
         await db.SaveChangesAsync();
 
         Assert.True(await listenerMockSetup.Start());
@@ -900,8 +927,12 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiBuildId = sampleBuild1.CiBuildId,
             CiJobId = 12,
             CacheSettingsJson = testCacheSettings,
+            Image = "test-image:v1",
         };
         await db.CiJobs.AddAsync(sampleJob1);
+
+        // Ensure the CI image exists so that job starting can prepare details without errors
+        await RunnerConnectionMockHelper.CreateBasicCIImageAsync(db, "test-image:v1");
         await db.SaveChangesAsync();
 
         Assert.True(await listenerMockSetup.Start());
@@ -1171,8 +1202,12 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             CiBuildId = build.CiBuildId,
             CiJobId = 101,
             CacheSettingsJson = JsonSerializer.Serialize(new CiJobCacheConfiguration()),
+            Image = "test-image:v1",
         };
         await db.CiJobs.AddAsync(job);
+
+        // Ensure the CI image exists so that job starting can prepare details without errors
+        await RunnerConnectionMockHelper.CreateBasicCIImageAsync(db, "test-image:v1");
         await db.SaveChangesAsync();
 
         Assert.True(await listenerMockSetup.Start());
@@ -1410,6 +1445,9 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         listenerMockSetup.QueueCloseMessage();
         await listenerMockSetup.WaitUntilClosed();
     }
+
+    // TODO: at least one test with a real database that check what happens when two different runners try to reserve
+    // the same job (so that it doesn't just blow up) but then both manage to complete their own jobs
 
     public void Dispose()
     {
