@@ -183,6 +183,17 @@ public class RunnerService : IDisposable
                     logger.LogWarning("Cancelled when waiting for initial server connection");
                     cancellationToken.ThrowIfCancellationRequested();
                 }
+
+                if (serverPermanentlyLost || !canStartNewJobs || quitAfterJob)
+                {
+                    logger.LogError(
+                        "Server connection permanently failed while waiting for initial connection, exiting");
+                    return 6;
+                }
+
+                // Add a bit of extra delay if the server is not ready to accept us yet, we'd otherwise spam a ton of
+                // error messages to our log
+                await Task.Delay(200, cancellationToken);
             }
 
             while (run)

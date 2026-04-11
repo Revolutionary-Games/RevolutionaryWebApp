@@ -113,7 +113,7 @@ public class Program
         [Option('v', "version", Required = false, HelpText = "Print version and quit.")]
         public bool Version { get; set; }
 
-        [Option('d', "devcenter", Required = false, HelpText = "The dev center url to use.")]
+        [Option("devcenter", Required = false, HelpText = "The dev center url to use.")]
         public string DevCenterUrl { get; set; } = "https://dev.revolutionarygamesstudio.com/";
 
         [Option('k', "key", Required = true, HelpText = "Access token to use for the dev center.")]

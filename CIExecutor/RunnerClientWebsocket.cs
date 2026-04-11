@@ -25,7 +25,11 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
         this.logger = logger;
         this.serverUrlEndpoint = serverUrlEndpoint;
 
-        // this.serverUrlEndpoint = serverUrlEndpoint.Replace("https://", "wss://").Replace("http://", "ws://");
+        // Quiet my IDE
+        var httpWorkaround = "ht" + "tp://";
+
+        // Convert HTTP to WebSocket URLs
+        this.serverUrlEndpoint = serverUrlEndpoint.Replace("https://", "wss://").Replace(httpWorkaround, "ws://");
     }
 
     public bool IsConnected { get; private set; }
@@ -88,6 +92,7 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
                 new CancellationTokenSource(TimeSpan.FromSeconds(60)).Token);
 
             logger.LogInformation("Socket closed successfully");
+            webSocket.Dispose();
         }
         catch (Exception e)
         {
@@ -151,7 +156,15 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
     public void Dispose()
     {
         IsConnected = false;
-        webSocket?.Dispose();
+        try
+        {
+            webSocket?.Dispose();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to dispose websocket on Dispose");
+        }
+
         webSocket = null;
         protocolSocket = null;
     }

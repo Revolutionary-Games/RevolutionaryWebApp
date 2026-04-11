@@ -56,12 +56,14 @@ public sealed class ProgramTerminationController : IDisposable
             if (ctrlCCount == 1)
             {
                 // First CTRL+C: run custom shutdown callback, but do not cancel yet.
+                Console.WriteLine("CTRL+C pressed, shutting down after next job...");
                 e.Cancel = true;
                 firstCtrlCCallback();
             }
             else if (ctrlCCount < 3)
             {
                 // Second CTRL+C: cancel immediately.
+                Console.WriteLine("CTRL+C pressed, shutting down ASAP");
                 cts.Cancel();
                 e.Cancel = true;
             }

@@ -34,15 +34,15 @@ public class ConsolePrefixLogger(string categoryName) : ILogger
         string message = formatter(state, exception);
         string prefix = logLevel switch
         {
-            LogLevel.Error or LogLevel.Critical => "ERROR: ",
-            LogLevel.Warning => "WARNING: ",
-            _ => string.Empty,
+            LogLevel.Error or LogLevel.Critical => " ERROR: ",
+            LogLevel.Warning => " WARNING: ",
+            _ => " ",
         };
 
         ConsoleOutputLock.Wait();
         try
         {
-            Console.WriteLine($"[{categoryName}]{prefix} {message}");
+            Console.WriteLine($"[{categoryName}]{prefix}{message}");
 
             if (exception != null)
             {
