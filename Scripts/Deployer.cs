@@ -351,31 +351,36 @@ public class Deployer
 
     private async Task<bool> CopyFiles(string targetFolder, CancellationToken cancellationToken)
     {
+        var clientTarget = Path.Join(targetFolder, "www");
+        var serverTarget = Path.Join(targetFolder, "server");
+        var executorFolder = Path.Join(targetFolder, "runner");
+
+        try
+        {
+            Directory.CreateDirectory(clientTarget);
+            Directory.CreateDirectory(serverTarget);
+            Directory.CreateDirectory(executorFolder);
+        }
+        catch (Exception e)
+        {
+            ColourConsole.WriteErrorLine($"Failed to create install target folders: {e}");
+            return false;
+        }
+
         // CI executor is now not served through the web, so copy it just to the normal root path
         ColourConsole.WriteNormalLine("Copying CI executor");
-        var ciExecutorDestination = Path.Join(BuildDataFolder, Path.GetFileName(CIExecutorBuiltFile));
+
+        var ciExecutorDestination = Path.Join(executorFolder, Path.GetFileName(CIExecutorBuiltFile));
+
+        ColourConsole.WriteDebugLine($"Copying {CIExecutorBuiltFile} -> {ciExecutorDestination}");
         File.Copy(CIExecutorBuiltFile, ciExecutorDestination, true);
 
         // And it also needs extra files...
         foreach (var extraResource in CIExecutorExtraResources)
         {
             var resource = Path.Join(BuildDataFolder, string.Format(extraResource, options.BuildMode, NET_VERSION));
-            var destination = Path.Join(BuildDataFolder, Path.GetFileName(resource));
+            var destination = Path.Join(executorFolder, Path.GetFileName(resource));
             File.Copy(resource, destination, true);
-        }
-
-        var clientTarget = Path.Join(targetFolder, "www");
-        var serverTarget = Path.Join(targetFolder, "server");
-
-        try
-        {
-            Directory.CreateDirectory(clientTarget);
-            Directory.CreateDirectory(serverTarget);
-        }
-        catch (Exception e)
-        {
-            ColourConsole.WriteErrorLine($"Failed to create install target folders: {e}");
-            return false;
         }
 
         // Copy the migration file to the deployment target
