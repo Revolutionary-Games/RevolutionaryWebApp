@@ -175,11 +175,15 @@
                             }
                             else
                             {
-                                @* TODO: item preview images? *@
                                 <td class="@itemClass">
 
-                                    <img src="@GetMediaItemPreviewUrl(item)" alt="image thumbnail "
-                                         class="image-preview"/>
+                                    @* Preview images are not available if unprocessed, so don't try to show one
+                                       too early *@
+                                    @if (item.Processed)
+                                    {
+                                        <img src="@GetMediaItemPreviewUrl(item)" alt="image thumbnail "
+                                             class="image-preview"/>
+                                    }
 
                                     <a href="/api/v1/MediaFile/view/@item.Id" target="_blank">
                                         @item.Name.Truncate(40)
