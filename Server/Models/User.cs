@@ -254,6 +254,9 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
         if (user == null)
             throw new InvalidOperationException("User not found in the database");
 
+        // We have to load user groups as otherwise saving the model will fail
+        await user.ComputeUserGroups(database);
+
         user.UploadQuotaUsed += usedQuota;
 
         if (save)
