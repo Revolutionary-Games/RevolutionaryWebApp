@@ -351,19 +351,17 @@ public class Deployer
 
     private async Task<bool> CopyFiles(string targetFolder, CancellationToken cancellationToken)
     {
-        // Copy the CI executor to the webroot to be able to serve it
-        ColourConsole.WriteNormalLine("Copying and compressing CI executor");
-        var ciExecutorDestination = Path.Join(ClientBuiltWebroot, Path.GetFileName(CIExecutorBuiltFile));
+        // CI executor is now not served through the web, so copy it just to the normal root path
+        ColourConsole.WriteNormalLine("Copying CI executor");
+        var ciExecutorDestination = Path.Join(BuildDataFolder, Path.GetFileName(CIExecutorBuiltFile));
         File.Copy(CIExecutorBuiltFile, ciExecutorDestination, true);
-        await BlazorBootFileHandler.RegenerateCompressedFiles(ciExecutorDestination, cancellationToken);
 
         // And it also needs extra files...
         foreach (var extraResource in CIExecutorExtraResources)
         {
             var resource = Path.Join(BuildDataFolder, string.Format(extraResource, options.BuildMode, NET_VERSION));
-            var destination = Path.Join(ClientBuiltWebroot, Path.GetFileName(resource));
+            var destination = Path.Join(BuildDataFolder, Path.GetFileName(resource));
             File.Copy(resource, destination, true);
-            await BlazorBootFileHandler.RegenerateCompressedFiles(destination, cancellationToken);
         }
 
         var clientTarget = Path.Join(targetFolder, "www");
@@ -409,7 +407,7 @@ public class Deployer
         startInfo.ArgumentList.Add("--exclude");
         startInfo.ArgumentList.Add("wwwroot");
 
-        // App settings is excluded as it has development environment secrets (in case it would get copied)
+        // App settings are excluded as it has development environment secrets (in case it would get copied)
         startInfo.ArgumentList.Add("--exclude");
         startInfo.ArgumentList.Add("appsettings.Development.json");
 
