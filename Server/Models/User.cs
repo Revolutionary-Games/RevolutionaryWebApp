@@ -424,6 +424,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
                 info.AssociationMember = AssociationMember != null;
                 info.BoardMember = AssociationMember?.BoardMember ?? false;
                 info.HasBeenBoardMember = AssociationMember?.HasBeenBoardMember ?? false;
+                info.UploadQuotaUsed = UploadQuotaUsed;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);

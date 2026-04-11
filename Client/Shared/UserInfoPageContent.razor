@@ -8,6 +8,7 @@
 @using RevolutionaryWebApp.Client.Services
 @using RevolutionaryWebApp.Shared.Forms
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using SharedBase.Utilities
 @inherits UserInfoReactingComponent
 
 <h4>User Info For @User.Name (ID: @User.Id)</h4>
@@ -24,6 +25,7 @@
     <li><strong>SSO</strong>: @User.SsoSource</li>
     <li><strong>Local</strong>: @User.Local</li>
     <li><strong>Total launcher links</strong>: @User.TotalLauncherLinks</li>
+    <li><strong>Upload Quota Used Today</strong>: @User.UploadQuotaUsed.BytesToMiB()</li>
 
     <li><strong>API token</strong>: @User.HasApiToken</li>
 

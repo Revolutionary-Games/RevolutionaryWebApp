@@ -28,4 +28,6 @@ public class UserDTO : ClientSideTimedModel
     public bool AssociationMember { get; set; }
     public bool BoardMember { get; set; }
     public bool HasBeenBoardMember { get; set; }
+
+    public long UploadQuotaUsed { get; set; } = -1;
 }
