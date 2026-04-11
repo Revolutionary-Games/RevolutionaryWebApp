@@ -329,7 +329,7 @@ public class RunnerService : IDisposable
 
         while (true)
         {
-            await queueLock.WaitAsync(cancellationToken);
+            await queueLock.WaitAsync(linked.Token);
             try
             {
                 if (outgoingMessages.Count == 0)
