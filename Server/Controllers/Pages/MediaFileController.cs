@@ -284,7 +284,7 @@ public class MediaFileController : Controller
 
         await database.MediaFiles.AddAsync(file);
 
-        await user.UpdateQuotaUsage(request.Size, database, false);
+        await RevolutionaryWebApp.Server.Models.User.UpdateQuotaUsage(user.Id, request.Size, database, false);
 
         await database.SaveChangesAsync();
 

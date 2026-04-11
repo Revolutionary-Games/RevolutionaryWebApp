@@ -1129,7 +1129,7 @@ public class StorageFilesController : Controller
         long? multipartId = null;
         string? uploadId = null;
 
-        await user.UpdateQuotaUsage(request.Size, database, false);
+        await RevolutionaryWebApp.Server.Models.User.UpdateQuotaUsage(user.Id, request.Size, database, false);
 
         if (request.Size >= AppInfo.FileSizeBeforeMultipartUpload)
         {
