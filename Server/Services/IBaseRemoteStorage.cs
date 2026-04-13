@@ -105,6 +105,29 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
     public bool Configured { get; }
 
+    public static async Task DoPerformFileUploadSuccessActionsBase(StorageFile file, ApplicationDbContext database)
+    {
+        file.BumpUpdatedAt();
+        file.Uploading = false;
+
+        foreach (var version in file.StorageItemVersions)
+        {
+            version.Uploading = false;
+            version.BumpUpdatedAt();
+
+            // Update StorageItem if the version is the latest
+            if (version.Version >= await database.StorageItemVersions
+                    .Where(s => s.StorageItemId == version.StorageItemId).MaxAsync(s => s.Version))
+            {
+                if (version.StorageItem == null)
+                    throw new NotLoadedModelNavigationException();
+
+                version.StorageItem.Size = file.Size;
+                version.StorageItem.BumpUpdatedAt();
+            }
+        }
+    }
+
     public Task<bool> BucketExists()
     {
         ThrowIfNotConfigured();
@@ -525,25 +548,7 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
 
     public async Task PerformFileUploadSuccessActions(StorageFile file, ApplicationDbContext database)
     {
-        file.BumpUpdatedAt();
-        file.Uploading = false;
-
-        foreach (var version in file.StorageItemVersions)
-        {
-            version.Uploading = false;
-            version.BumpUpdatedAt();
-
-            // Update StorageItem if the version is the latest
-            if (version.Version >= await database.StorageItemVersions
-                    .Where(s => s.StorageItemId == version.StorageItemId).MaxAsync(s => s.Version))
-            {
-                if (version.StorageItem == null)
-                    throw new NotLoadedModelNavigationException();
-
-                version.StorageItem.Size = file.Size;
-                version.StorageItem.BumpUpdatedAt();
-            }
-        }
+        await DoPerformFileUploadSuccessActionsBase(file, database);
     }
 
     public bool TokenMatchesFile(StorageUploadVerifyToken token, StorageFile file)

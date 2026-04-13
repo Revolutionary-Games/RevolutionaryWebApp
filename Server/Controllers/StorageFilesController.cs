@@ -2061,6 +2061,17 @@ public class StorageFilesController : Controller
         return AppInfo.MultipartUploadChunkSizeLarge;
     }
 
+    public class UploadVerifyToken
+    {
+        [Required]
+        public long TargetStorageItem { get; set; }
+
+        [Required]
+        public long TargetStorageItemVersion { get; set; }
+
+        public long? MultipartId { get; set; }
+    }
+
     private class InternalPathParseResult
     {
         public StorageItem? FullyParsed;
@@ -2082,17 +2093,6 @@ public class StorageFilesController : Controller
             PartiallyParsedPath = string.Join('/', fullyParsed);
             ParsedUntil = lastSuccessfullyParsed;
         }
-    }
-
-    private class UploadVerifyToken
-    {
-        [Required]
-        public long TargetStorageItem { get; set; }
-
-        [Required]
-        public long TargetStorageItemVersion { get; set; }
-
-        public long? MultipartId { get; set; }
     }
 
     private class ChunkRetrieveToken
