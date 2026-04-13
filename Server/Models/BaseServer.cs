@@ -1,7 +1,6 @@
 namespace RevolutionaryWebApp.Server.Models;
 
 using System;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Net;
 using System.Text.Json.Serialization;
 using DevCenterCommunication.Models;
@@ -10,7 +9,7 @@ using Shared.Models;
 using SharedBase.Converters;
 
 /// <summary>
-///   Common data for controlled and external servers
+///   Common data for controlled servers (external servers is a removed feature, replaced with runners)
 /// </summary>
 public abstract class BaseServer : UpdateableModel
 {
@@ -19,11 +18,6 @@ public abstract class BaseServer : UpdateableModel
 
     [AllowSortingBy]
     public DateTime StatusLastChecked { get; set; } = DateTime.UtcNow;
-
-    [AllowSortingBy]
-    public ServerReservationType ReservationType { get; set; } = ServerReservationType.None;
-
-    public long? ReservedFor { get; set; }
 
     /// <summary>
     ///   When running has the address to connect to the server
@@ -37,7 +31,7 @@ public abstract class BaseServer : UpdateableModel
     public bool ProvisionedFully { get; set; }
 
     /// <summary>
-    ///   This is percentage of the used disk space
+    ///   This is the percentage of the used disk space
     /// </summary>
     [AllowSortingBy]
     public int UsedDiskSpace { get; set; } = -1;
@@ -45,16 +39,13 @@ public abstract class BaseServer : UpdateableModel
     public bool CleanUpQueued { get; set; }
 
     /// <summary>
-    ///   If true no new jobs are allowed to start
+    ///   If true, no new jobs are allowed to start
     /// </summary>
     [AllowSortingBy]
     public bool WantsMaintenance { get; set; }
 
     [AllowSortingBy]
     public DateTime LastMaintenance { get; set; } = DateTime.UtcNow;
-
-    [NotMapped]
-    public abstract bool IsExternal { get; }
 
     public void MarkAsProvisioningStarted()
     {

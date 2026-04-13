@@ -7,21 +7,26 @@ using System.Threading;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Hangfire;
-using Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared.Models;
 
+/// <summary>
+///   This used to handle remote controller servers and external servers. With external servers gone, this has been
+///   gutted basically, but still kept in case we would want to start controller servers if job runners aren't
+///   available soon enough.
+/// </summary>
 public class RemoteServerHandler
 {
     private readonly ILogger<RemoteServerHandler> logger;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NotificationsEnabledDb database;
     private readonly IEC2Controller ec2Controller;
     private readonly IBackgroundJobClient jobClient;
     private readonly Lazy<Task<List<ControlledServer>>> servers;
-    private readonly Lazy<Task<List<ExternalServer>>> externalServers;
 
     private readonly int shutdownIdleDelay;
     private readonly int maximumRunningServers;
@@ -40,30 +45,15 @@ public class RemoteServerHandler
 
         servers =
             new Lazy<Task<List<ControlledServer>>>(() =>
-                database.ControlledServers.OrderBy(s => s.Id).ToListAsync());
-        externalServers =
-            new Lazy<Task<List<ExternalServer>>>(() =>
-                database.ExternalServers.OrderByDescending(s => s.Priority).ThenBy(s => s.Id).ToListAsync());
+                this.database.ControlledServers.OrderBy(s => s.Id).ToListAsync());
     }
 
+    // ReSharper disable once UnusedAutoPropertyAccessor.Local
     public bool NewServersAdded { get; private set; }
 
     public Task<List<ControlledServer>> GetControlledServers()
     {
         return servers.Value;
-    }
-
-    public Task<List<ExternalServer>> GetExternalServers()
-    {
-        return externalServers.Value;
-    }
-
-    public async Task<List<BaseServer>> GetAllServers()
-    {
-        var controlledTask = GetControlledServers();
-        var external = await GetExternalServers();
-
-        return external.Select(s => (BaseServer)s).Concat(await controlledTask).ToList();
     }
 
     public async Task CheckServerStatuses(CancellationToken cancellationToken)
@@ -104,7 +94,8 @@ public class RemoteServerHandler
                 {
                     logger.LogInformation("Server {Id} is now in status: {ActualStatus}", match.Id, actualStatus);
                     match.Status = actualStatus;
-                    match.ReservationType = ServerReservationType.None;
+
+                    // match.ReservationType = ServerReservationType.None;
                     match.BumpUpdatedAt();
 
                     if (actualStatus == ServerStatus.Running)
@@ -124,9 +115,15 @@ public class RemoteServerHandler
 
     public async Task<bool> HandleCIJobs(List<CiJob> ciJobsNeedingActions)
     {
+        // TODO: add this back if needed in the future
+        _ = ciJobsNeedingActions;
+        _ = maximumRunningServers;
+        _ = jobClient;
+
+        /*
         int missingServer = 0;
 
-        var potentialServers = await GetAllServers();
+        var potentialServers = await GetControlledServers();
 
         foreach (var job in ciJobsNeedingActions)
         {
@@ -163,8 +160,10 @@ public class RemoteServerHandler
 
         // Exit if all jobs have a server to run on
         if (missingServer < 1)
-            return true;
+            return true;*/
 
+        return false;
+        /*
         // Exit if we can't manage the EC2 servers. And return false so that re-check happens when we might have
         // servers available
         if (!ec2Controller.Configured)
@@ -211,8 +210,8 @@ public class RemoteServerHandler
                 if (server.Status == ServerStatus.Stopped)
                 {
                     --missingServer;
-                    logger.LogInformation(
-                        "Starting a stopped server to meet demand, still missing: {MissingServer}", missingServer);
+                    logger.LogInformation("Starting a stopped server to meet demand, still missing: {MissingServer}",
+                        missingServer);
 
                     await ec2Controller.ResumeInstance(server.InstanceId ??
                         throw new Exception("Attempted to resume instance without an ID"));
@@ -307,7 +306,7 @@ public class RemoteServerHandler
             }
         }
 
-        return false;
+        return false;*/
     }
 
     public async Task ShutdownIdleServers()
@@ -320,9 +319,10 @@ public class RemoteServerHandler
 
         foreach (var server in await GetControlledServers())
         {
-            if (server.ProvisionedFully && server.Status == ServerStatus.Running &&
-                server.ReservationType == ServerReservationType.None)
+            if (server.ProvisionedFully && server.Status == ServerStatus.Running)
             {
+                // TODO: need to check if it has an active runner (if this feature is re-enabled in the future)
+
                 // Can potentially time out if last modified a while ago
                 var idleTime = now - server.UpdatedAt;
                 if (idleTime > TimeSpan.FromSeconds(shutdownIdleDelay))

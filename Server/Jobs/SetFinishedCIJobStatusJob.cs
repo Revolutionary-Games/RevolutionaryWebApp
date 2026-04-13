@@ -1,6 +1,5 @@
 namespace RevolutionaryWebApp.Server.Jobs;
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
@@ -8,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
-using Shared.Models;
 
 public class SetFinishedCIJobStatusJob : BaseCIJobManagingJob
 {
@@ -36,51 +34,12 @@ public class SetFinishedCIJobStatusJob : BaseCIJobManagingJob
             return;
         }
 
-        if (job.RunningOnServerId == -1)
-        {
-            logger.LogError("CI job doesn't have RunningOnServerId set for SetFinishedCIJobStatus");
-
-            if (job.State != CIJobState.Finished)
-            {
-                logger.LogError("Forcing job state to be a failure");
-                job.SetFinishSuccess(false);
-                await Database.SaveChangesAsync(cancellationToken);
-            }
-
-            // Just for safety make sure that the job doesn't get stuck in going to fail status
-            JobClient.Enqueue<CheckOverallBuildStatusJob>(x =>
-                x.Execute(job.CiProjectId, job.CiBuildId, CancellationToken.None));
-            return;
-        }
-
         logger.LogInformation("CI job {CIProjectId}-{CIBuildId}-{CIJobId} is now finished with status: {Success}",
             ciProjectId, ciBuildId, ciJobId, success);
 
         job.SetFinishSuccess(success);
 
-        if (!job.RunningOnServerIsExternal.HasValue)
-        {
-            logger.LogError("CI job {CIProjectId}-{CIBuildId}-{CIJobId} didn't have server external flag set",
-                ciProjectId, ciBuildId, ciJobId);
-            job.RunningOnServerIsExternal = false;
-        }
-
-        // Release the server reservation and send notifications about the job
-        BaseServer? server;
-        if (job.RunningOnServerIsExternal.Value)
-        {
-            server =
-                await Database.ExternalServers.FindAsync([job.RunningOnServerId], cancellationToken);
-        }
-        else
-        {
-            server =
-                await Database.ControlledServers.FindAsync([job.RunningOnServerId], cancellationToken);
-        }
-
-        if (server == null)
-            throw new ArgumentException("Could not find server to release now that a build is complete");
-
-        await OnJobEnded(server, job);
+        // Send notifications about the job
+        await OnJobEnded(job);
     }
 }

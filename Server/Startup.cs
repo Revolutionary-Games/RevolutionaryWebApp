@@ -474,13 +474,7 @@ public class Startup
 
         app.Use(async (context, next) =>
         {
-            if (context.Request.Path == "/ciBuildConnection")
-            {
-                // A new scope is probably needed here to not share the global ApplicationServices scope
-                await BuildWebSocketHandler.HandleHttpConnection(context,
-                    app.ApplicationServices.CreateScope().ServiceProvider);
-            }
-            else if (context.Request.Path == "/runnerConnection")
+            if (context.Request.Path == "/runnerConnection")
             {
                 if (!context.WebSockets.IsWebSocketRequest)
                 {
@@ -488,6 +482,7 @@ public class Startup
                     return;
                 }
 
+                // TODO: should the connection multiplexer be only gotten from the service scope here?
                 await RunnerConnectionHandler.HandleHttpConnection(context,
                     app.ApplicationServices.GetRequiredService<IServiceScopeFactory>(),
                     app.ApplicationServices.GetRequiredService<IConnectionMultiplexer>(),

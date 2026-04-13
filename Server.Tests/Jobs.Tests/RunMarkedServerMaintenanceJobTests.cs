@@ -1,7 +1,6 @@
 namespace RevolutionaryWebApp.Server.Tests.Jobs.Tests;
 
 using System;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Fixtures;
@@ -44,8 +43,6 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
             Id = 1,
             InstanceId = "1234",
             Status = ServerStatus.Running,
-            ReservationType = ServerReservationType.CIJob,
-            ReservedFor = 1,
             WantsMaintenance = true,
         };
 
@@ -62,12 +59,13 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
         await database.Database.SaveChangesAsync();
 
         var job = new RunMarkedServerMaintenanceJob(logger, database.NotificationsEnabledDatabase, jobClientMock,
-            ec2Mock, sshMock);
+            ec2Mock);
 
         await job.Execute(CancellationToken.None);
 
         Assert.Equal(ServerStatus.Running, server1.Status);
-        Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+
+        // Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         Assert.Equal(ServerStatus.Terminated, server2.Status);
 
         await ec2Mock.Received().TerminateInstance(secondServerInstance);
@@ -120,40 +118,18 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
             WantsMaintenance = true,
         };
 
-        var server3 = new ExternalServer
-        {
-            Id = 3,
-            PublicAddress = IPAddress.Parse(firstExternalAddress),
-            Status = ServerStatus.Running,
-            WantsMaintenance = true,
-            SSHKeyFileName = keyName,
-        };
-
-        var server4 = new ExternalServer
-        {
-            Id = 4,
-            PublicAddress = IPAddress.Parse(secondExternalAddress),
-            Status = ServerStatus.Running,
-            WantsMaintenance = true,
-            SSHKeyFileName = keyName2,
-        };
-
         await database.Database.ControlledServers.AddAsync(server1);
         await database.Database.ControlledServers.AddAsync(server2);
-        await database.Database.ExternalServers.AddAsync(server3);
-        await database.Database.ExternalServers.AddAsync(server4);
         await database.Database.SaveChangesAsync();
 
         // Only first server of each type should get processed initially
         var job = new RunMarkedServerMaintenanceJob(logger, database.NotificationsEnabledDatabase, jobClientMock,
-            ec2Mock, sshMock);
+            ec2Mock);
 
         await job.Execute(CancellationToken.None);
 
         Assert.Equal(ServerStatus.Terminated, server1.Status);
         Assert.Equal(ServerStatus.Stopped, server2.Status);
-        Assert.Equal(ServerStatus.Stopping, server3.Status);
-        Assert.Equal(ServerStatus.Running, server4.Status);
 
         await ec2Mock.Received().TerminateInstance(firstServerInstance);
         await ec2Mock.DidNotReceive().TerminateInstance(secondServerInstance);
@@ -163,15 +139,13 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
 
         sshMock.DidNotReceive().ConnectTo(secondExternalAddress, keyName2);
 
-        // When running the job the second time it processes the second set of servers
+        // When running the job, the second time it processes the second set of servers
         ec2Mock.TerminateInstance(secondServerInstance).Returns(Task.CompletedTask);
 
         await job.Execute(CancellationToken.None);
 
         Assert.Equal(ServerStatus.Terminated, server1.Status);
         Assert.Equal(ServerStatus.Terminated, server2.Status);
-        Assert.Equal(ServerStatus.Stopping, server3.Status);
-        Assert.Equal(ServerStatus.Stopping, server4.Status);
 
         await ec2Mock.Received().TerminateInstance(secondServerInstance);
 

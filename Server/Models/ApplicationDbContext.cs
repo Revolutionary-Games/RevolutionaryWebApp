@@ -3,7 +3,6 @@ namespace RevolutionaryWebApp.Server.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Enums;
@@ -49,11 +48,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<CiJobArtifact> CiJobArtifacts { get; set; } = null!;
     public DbSet<CiJobOutputSection> CiJobOutputSections { get; set; } = null!;
 
-    // TODO: delete these two as they will be replaced
-    public DbSet<ControlledServer> ControlledServers { get; set; } = null!;
-    public DbSet<ExternalServer> ExternalServers { get; set; } = null!;
-
     public DbSet<RemoteRunner> RemoteRunners { get; set; } = null!;
+    public DbSet<ControlledServer> ControlledServers { get; set; } = null!;
 
     public DbSet<Cla> Clas { get; set; } = null!;
     public DbSet<ClaSignature> ClaSignatures { get; set; } = null!;
@@ -450,17 +446,6 @@ public class ApplicationDbContext : DbContext
         });
 
         modelBuilder.Entity<ControlledServer>(entity => { entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1); });
-
-        modelBuilder.Entity<ExternalServer>(entity =>
-        {
-            entity.Property(e => e.UsedDiskSpace).HasDefaultValue(-1);
-            entity.Property(e => e.Priority).HasDefaultValue(0);
-
-            // Mapping IP to string is required for use with unique index
-            // https://github.com/dotnet/efcore/issues/23775
-            entity.Property(e => e.PublicAddress).IsRequired()
-                .HasConversion(a => a != null ? a.ToString() : null, s => s != null ? IPAddress.Parse(s) : null);
-        });
 
         modelBuilder.Entity<Cla>(entity =>
         {

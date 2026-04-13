@@ -1270,6 +1270,8 @@ public class RunnerConnectionHandler : IDisposable
             activeJob.CacheSettingsJson = null;
             activeJob.FinishedAt = DateTime.UtcNow;
             activeJob.Succeeded = finalData.WasSuccessful;
+
+            // We want the job to no longer be marked for us
             activeJob.ReservedByRunner = null;
             activeJob.ReservedByRunnerId = null;
         }

@@ -3,7 +3,6 @@ namespace RevolutionaryWebApp.Server.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;
@@ -25,9 +24,6 @@ public class ControlledServer : BaseServer, IUpdateNotifications
     [Timestamp]
     public uint Version { get; set; }
 
-    [NotMapped]
-    public override bool IsExternal => false;
-
     public void SetProvisioningStatus(string instanceId)
     {
         MarkAsProvisioningStarted();
@@ -37,13 +33,11 @@ public class ControlledServer : BaseServer, IUpdateNotifications
 
     public ControlledServerDTO GetDTO()
     {
-        return new()
+        return new ControlledServerDTO
         {
             Id = Id,
             Status = Status,
             StatusLastChecked = StatusLastChecked,
-            ReservationType = ReservationType,
-            ReservedFor = ReservedFor?.ToString() ?? "unset",
             PublicAddress = PublicAddress,
             RunningSince = RunningSince,
             TotalRuntime = TotalRuntime,

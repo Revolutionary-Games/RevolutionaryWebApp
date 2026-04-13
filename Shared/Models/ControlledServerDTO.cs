@@ -1,7 +1,6 @@
 namespace RevolutionaryWebApp.Shared.Models;
 
 using System;
-using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json.Serialization;
 using DevCenterCommunication.Models;
@@ -11,10 +10,6 @@ public class ControlledServerDTO : ClientSideTimedModel
 {
     public ServerStatus Status { get; set; }
     public DateTime StatusLastChecked { get; set; }
-    public ServerReservationType ReservationType { get; set; }
-
-    [Required]
-    public string ReservedFor { get; set; } = string.Empty;
 
     [JsonConverter(typeof(IPAddressConverter))]
     public IPAddress? PublicAddress { get; set; }

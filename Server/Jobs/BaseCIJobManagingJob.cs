@@ -2,18 +2,14 @@ namespace RevolutionaryWebApp.Server.Jobs;
 
 using System.Threading;
 using System.Threading.Tasks;
-using DevCenterCommunication.Models;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
-using Shared.Models;
 using Utilities;
 
 public abstract class BaseCIJobManagingJob
 {
-    public const string DiskUsageCheckCommand = "df";
-
     protected readonly ILogger<BaseCIJobManagingJob> Logger;
     protected readonly NotificationsEnabledDb Database;
     protected readonly IGithubCommitStatusReporter StatusReporter;
@@ -28,16 +24,12 @@ public abstract class BaseCIJobManagingJob
         StatusReporter = statusReporter;
     }
 
-    protected async Task OnJobEnded(BaseServer server, CiJob job)
+    protected async Task OnJobEnded(CiJob job)
     {
-        ReleaseServerReservation(server);
-        job.RunningOnServerId = -1;
-        job.RunningOnServerIsExternal = null;
-
         // After running the job, the changes saving should not be skipped
         await Database.SaveChangesAsync();
 
-        // Send status to github
+        // Send status to GitHub
         var status = GithubAPI.CommitStatus.Success;
         string statusDescription = "Checks succeeded";
 
@@ -59,13 +51,5 @@ public abstract class BaseCIJobManagingJob
 
         JobClient.Enqueue<CheckOverallBuildStatusJob>(x =>
             x.Execute(job.CiProjectId, job.CiBuildId, CancellationToken.None));
-    }
-
-    protected void ReleaseServerReservation(BaseServer server)
-    {
-        Logger.LogInformation("Releasing reservation on server {Id}", server.Id);
-        server.ReservationType = ServerReservationType.None;
-        server.ReservedFor = null;
-        server.BumpUpdatedAt();
     }
 }

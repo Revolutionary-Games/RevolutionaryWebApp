@@ -3,7 +3,6 @@ namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.EC2;
@@ -175,12 +174,8 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.False(handler.NewServersAdded);
 
         Assert.Equal(ServerStatus.Stopped, server1.Status);
-        Assert.Equal(ServerReservationType.None, server1.ReservationType);
-        Assert.Null(server1.ReservedFor);
 
         Assert.Equal(ServerStatus.Running, server2.Status);
-        Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
-        Assert.Equal(job.CiJobId, server2.ReservedFor);
 
         await ec2Mock.DidNotReceiveWithAnyArgs().ResumeInstance(Arg.Any<string>());
     }
@@ -226,19 +221,12 @@ public sealed class RemoteServerHandlerTests : IDisposable
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
-        Assert.NotNull(server1.ReservedFor);
-        Assert.Null(server2.ReservedFor);
-
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
-        Assert.NotNull(server1.ReservedFor);
-        Assert.Null(server2.ReservedFor);
         Assert.Equal(CIJobState.WaitingForServer, job.State);
 
         Assert.Equal(ServerStatus.Running, server1.Status);
         Assert.Equal(ServerStatus.Running, server2.Status);
-        Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
-        Assert.Equal(ServerReservationType.None, server2.ReservationType);
 
         await ec2Mock.DidNotReceiveWithAnyArgs().ResumeInstance(Arg.Any<string>());
     }
@@ -310,12 +298,8 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.False(handler.NewServersAdded);
 
         Assert.Equal(ServerStatus.Running, server1.Status);
-        Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
-        Assert.Equal(job.CiJobId, server1.ReservedFor);
 
         Assert.Equal(ServerStatus.Stopped, server2.Status);
-        Assert.Equal(ServerReservationType.None, server2.ReservationType);
-        Assert.Null(server2.ReservedFor);
 
         await ec2Mock.Received()
             .GetInstanceStatuses(Arg.Is<List<string>>(l => l.SequenceEqual(new List<string> { instanceId1 })),
@@ -424,8 +408,6 @@ public sealed class RemoteServerHandlerTests : IDisposable
             Status = ServerStatus.Running,
             ProvisionedFully = true,
             InstanceId = "id-1111",
-            ReservationType = ServerReservationType.CIJob,
-            ReservedFor = 123,
         };
 
         await database.ControlledServers.AddAsync(server1);
@@ -435,8 +417,6 @@ public sealed class RemoteServerHandlerTests : IDisposable
             Status = ServerStatus.Running,
             ProvisionedFully = true,
             InstanceId = "id-2222",
-            ReservationType = ServerReservationType.CIJob,
-            ReservedFor = 123,
         };
 
         await database.ControlledServers.AddAsync(server2);
@@ -446,8 +426,6 @@ public sealed class RemoteServerHandlerTests : IDisposable
             Status = ServerStatus.Running,
             ProvisionedFully = true,
             InstanceId = "id-3333",
-            ReservationType = ServerReservationType.CIJob,
-            ReservedFor = 123,
         };
 
         await database.ControlledServers.AddAsync(server3);
@@ -461,9 +439,6 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.False(handler.NewServersAdded);
 
         Assert.Equal(3, await database.ControlledServers.CountAsync());
-        Assert.Equal(123, server1.ReservedFor);
-        Assert.Equal(123, server2.ReservedFor);
-        Assert.Equal(123, server3.ReservedFor);
 
         await ec2Mock.DidNotReceive().LaunchNewInstance();
     }
@@ -490,8 +465,6 @@ public sealed class RemoteServerHandlerTests : IDisposable
             Status = ServerStatus.Running,
             ProvisionedFully = true,
             InstanceId = "id-1111",
-            ReservationType = ServerReservationType.CIJob,
-            ReservedFor = 123,
         };
 
         await database.ControlledServers.AddAsync(server1);
@@ -514,8 +487,6 @@ public sealed class RemoteServerHandlerTests : IDisposable
         Assert.False(handler.NewServersAdded);
 
         Assert.Equal(2, await database.ControlledServers.CountAsync());
-        Assert.Equal(123, server1.ReservedFor);
-        Assert.Null(server2.ReservedFor);
         Assert.Equal(ServerStatus.Provisioning, server2.Status);
 
         await ec2Mock.DidNotReceive().LaunchNewInstance();
@@ -550,15 +521,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
 
         await database.CiJobs.AddAsync(job2);
 
-        var server1 = new ExternalServer
-        {
-            Status = ServerStatus.Running,
-            ProvisionedFully = true,
-            PublicAddress = new IPAddress(1234),
-            SSHKeyFileName = "key.pem",
-        };
-
-        await database.ExternalServers.AddAsync(server1);
+        // TODO: if put back, this should use runner recent heartbeats to know how many runners there are
 
         var server2 = new ControlledServer
         {
@@ -575,19 +538,13 @@ public sealed class RemoteServerHandlerTests : IDisposable
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
-        Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
-        Assert.Equal(job.CiJobId, server1.ReservedFor);
-
-        Assert.Equal(ServerReservationType.None, server2.ReservationType);
-        Assert.Null(server2.ReservedFor);
+        // Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+        // Assert.Equal(job.CiJobId, server1.ReservedFor);
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job2 }));
 
-        Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
-        Assert.Equal(job.CiJobId, server1.ReservedFor);
-
-        Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
-        Assert.Equal(job2.CiJobId, server2.ReservedFor);
+        // Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+        // Assert.Equal(job.CiJobId, server1.ReservedFor);
 
         await ec2Mock.DidNotReceiveWithAnyArgs().LaunchNewInstance();
     }
@@ -621,7 +578,8 @@ public sealed class RemoteServerHandlerTests : IDisposable
 
         await database.CiJobs.AddAsync(job2);
 
-        var server1 = new ExternalServer
+        // TODO: if put back, this should use runner recent heartbeats to know how many runners there are
+        /*var server1 = new ExternalServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -629,7 +587,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
             SSHKeyFileName = "key.pem",
         };
 
-        await database.ExternalServers.AddAsync(server1);
+        await database.ExternalServers.AddAsync(server1);*/
         await database.SaveChangesAsync();
 
         var handler =
@@ -637,88 +595,15 @@ public sealed class RemoteServerHandlerTests : IDisposable
 
         Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
-        Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
-        Assert.Equal(job.CiJobId, server1.ReservedFor);
+        // Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+        // Assert.Equal(job.CiJobId, server1.ReservedFor);
 
         Assert.False(await handler.HandleCIJobs(new List<CiJob> { job2 }));
 
-        Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
-        Assert.Equal(job.CiJobId, server1.ReservedFor);
+        // Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
+        // Assert.Equal(job.CiJobId, server1.ReservedFor);
 
         _ = ec2Mock.Received().Configured;
-    }
-
-    [Fact]
-    public async Task ServerControl_ExternalServersPriorityWorks()
-    {
-        var ec2Mock = Substitute.For<IEC2Controller>();
-        ec2Mock.Configured.Returns(false);
-
-        var jobClientMock = Substitute.For<IBackgroundJobClient>();
-
-        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
-
-        await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase("ExternalServerPriority")
-            .Options, notificationsMock);
-
-        CIProjectTestDatabaseData.Seed(database);
-        var job = await AddTestJob(database);
-
-        var job2 = new CiJob
-        {
-            CiProjectId = CIProjectTestDatabaseData.CIProjectId,
-            CiBuildId = CIProjectTestDatabaseData.CIBuildId,
-            CiJobId = 2,
-            JobName = "job2",
-            Image = "test/test:v1",
-            CacheSettingsJson = "{}",
-        };
-
-        await database.CiJobs.AddAsync(job2);
-
-        var server1 = new ExternalServer
-        {
-            Status = ServerStatus.Running,
-            ProvisionedFully = true,
-            PublicAddress = new IPAddress(1234),
-            SSHKeyFileName = "key.pem",
-        };
-
-        await database.ExternalServers.AddAsync(server1);
-
-        var server2 = new ExternalServer
-        {
-            Status = ServerStatus.Running,
-            ProvisionedFully = true,
-            Priority = 1,
-            PublicAddress = new IPAddress(5678),
-            SSHKeyFileName = "key.pem",
-        };
-
-        await database.ExternalServers.AddAsync(server2);
-        await database.SaveChangesAsync();
-
-        var handler =
-            new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
-
-        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
-
-        Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
-        Assert.Equal(job.CiJobId, server2.ReservedFor);
-
-        Assert.Equal(ServerReservationType.None, server1.ReservationType);
-        Assert.Null(server1.ReservedFor);
-
-        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job2 }));
-
-        Assert.Equal(ServerReservationType.CIJob, server2.ReservationType);
-        Assert.Equal(job.CiJobId, server2.ReservedFor);
-
-        Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
-        Assert.Equal(job2.CiJobId, server1.ReservedFor);
-
-        await ec2Mock.DidNotReceiveWithAnyArgs().LaunchNewInstance();
     }
 
     public void Dispose()

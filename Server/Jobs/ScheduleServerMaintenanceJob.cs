@@ -27,10 +27,6 @@ public class ScheduleServerMaintenanceJob : IJob
         var cutoff = DateTime.UtcNow - serverMaintenanceInterval;
 
         await CheckControlledServers(cutoff, cancellationToken);
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        await CheckExternalServers(cutoff, cancellationToken);
     }
 
     private async Task CheckControlledServers(DateTime cutoff, CancellationToken cancellationToken)
@@ -48,23 +44,6 @@ public class ScheduleServerMaintenanceJob : IJob
         await database.LogEntries.AddAsync(
             new LogEntry($"Scheduled controlled server {serverToMaintain.Id} for termination due to maintenance"),
             cancellationToken);
-
-        await database.SaveChangesAsync(cancellationToken);
-    }
-
-    private async Task CheckExternalServers(DateTime cutoff, CancellationToken cancellationToken)
-    {
-        var serverToMaintain = await database.ExternalServers.Where(s =>
-                !s.WantsMaintenance && s.Status == ServerStatus.Running && s.LastMaintenance < cutoff)
-            .OrderBy(s => s.LastMaintenance).FirstOrDefaultAsync(cancellationToken);
-
-        if (serverToMaintain == null)
-            return;
-
-        serverToMaintain.WantsMaintenance = true;
-
-        await database.LogEntries.AddAsync(
-            new LogEntry($"Scheduled external server {serverToMaintain.Id} for maintenance"), cancellationToken);
 
         await database.SaveChangesAsync(cancellationToken);
     }

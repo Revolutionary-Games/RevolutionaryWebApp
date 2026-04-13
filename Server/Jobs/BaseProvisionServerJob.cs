@@ -84,7 +84,9 @@ public abstract class BaseProvisionServerJob
         server.LastMaintenance = DateTime.UtcNow;
         server.WantsMaintenance = false;
         server.StatusLastChecked = DateTime.UtcNow;
-        server.ReservationType = ServerReservationType.None;
+
+        // server.ReservationType = ServerReservationType.None;
+
         server.BumpUpdatedAt();
         await Database.SaveChangesAsync();
 

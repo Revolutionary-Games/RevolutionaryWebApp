@@ -12,8 +12,19 @@ using Shared.Models;
 using Shared.Notifications;
 using Utilities;
 
-[Index(nameof(HashedBuildOutputConnectKey), IsUnique = true)]
+/// <summary>
+///   A single CI job.
+/// </summary>
+/// <remarks>
+///   <para>
+///     This has a unique runner index to ensure each runner can have at most a single job at once
+///   </para>
+///   <para>
+///     Indexed by CreatedAt for efficient job querying and for runners to get oldest jobs first to work on them.
+///   </para>
+/// </remarks>
 [Index(nameof(CreatedAt))]
+[Index(nameof(ReservedByRunnerId), IsUnique = true)]
 public class CiJob : IUpdateNotifications, IContainsHashedLookUps
 {
     public long CiProjectId { get; set; }
@@ -53,25 +64,6 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     /// </summary>
     [MaxLength(256)]
     public string? RequiredRunnerTags { get; set; }
-
-    // TODO: remove the next few properties and replace with RemoteRunner
-    /// <summary>
-    ///   Used to allow the build server to connect back to us to communicate build logs and status
-    /// </summary>
-    [HashedLookUp]
-    public Guid? BuildOutputConnectKey { get; set; } = Guid.NewGuid();
-
-    public string? HashedBuildOutputConnectKey { get; set; }
-
-    /// <summary>
-    ///   Used to detect which server to release after this job is complete
-    /// </summary>
-    public long RunningOnServerId { get; set; } = -1;
-
-    /// <summary>
-    ///   Defines if the RunningOnServerId is external or internal server ID
-    /// </summary>
-    public bool? RunningOnServerIsExternal { get; set; }
 
     /// <summary>
     ///   Job can be taken at most by a single runner
@@ -133,8 +125,11 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     {
         Succeeded = success;
         State = CIJobState.Finished;
-        FinishedAt = DateTime.UtcNow;
-        BuildOutputConnectKey = null;
+
+        // In case the runner connection already managed to set this
+        FinishedAt ??= DateTime.UtcNow;
+
+        ReservedByRunnerId = null;
     }
 
     public async Task CreateFailureSection(ApplicationDbContext database, string content,

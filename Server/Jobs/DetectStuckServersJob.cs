@@ -55,19 +55,13 @@ public class DetectStuckServersJob : IJob
 
             server.Status = ServerStatus.Terminated;
 
-            if (server.ReservationType != ServerReservationType.None)
-            {
-                logger.LogWarning("Stuck server was reserved for type: {ReservationType}", server.ReservationType);
-                server.ReservationType = ServerReservationType.None;
-            }
-
             if (server.RunningSince != null)
                 server.TotalRuntime += (DateTime.UtcNow - server.RunningSince.Value).TotalSeconds;
             server.RunningSince = null;
 
             logger.LogInformation("Successfully terminated: {InstanceId}", server.InstanceId);
 
-            // Not cancellable done as the state to terminated is very important to save
+            // Not cancellable done as the state to terminate is very important to save
             // ReSharper disable once MethodSupportsCancellation
             await database.SaveChangesAsync();
         }

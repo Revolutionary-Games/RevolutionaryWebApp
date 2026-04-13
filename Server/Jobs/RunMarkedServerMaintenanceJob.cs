@@ -19,28 +19,26 @@ using Shared.Models;
 [DisableConcurrentExecution(1200)]
 public class RunMarkedServerMaintenanceJob : IJob
 {
-    private const string ExternalServerMaintenanceCommand = "sudo dnf update -y --refresh";
-
     private readonly ILogger<RunMarkedServerMaintenanceJob> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
     private readonly IEC2Controller ec2Controller;
-    private readonly IExternalServerSSHAccess serverSSHAccess;
 
     public RunMarkedServerMaintenanceJob(ILogger<RunMarkedServerMaintenanceJob> logger, NotificationsEnabledDb database,
-        IBackgroundJobClient jobClient, IEC2Controller ec2Controller, IExternalServerSSHAccess serverSSHAccess)
+        IBackgroundJobClient jobClient, IEC2Controller ec2Controller)
     {
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
         this.ec2Controller = ec2Controller;
-        this.serverSSHAccess = serverSSHAccess;
     }
 
     public async Task Execute(CancellationToken cancellationToken)
     {
+        // TODO: if this code is kept, we need to notify the runner on the server to not accept new jobs before we
+        // can safely shut it down
         var controlled = await database.ControlledServers.Where(s =>
-            s.WantsMaintenance && s.ReservationType == ServerReservationType.None &&
+            s.WantsMaintenance &&
             (s.Status == ServerStatus.Running || s.Status == ServerStatus.Stopped)).ToListAsync(cancellationToken);
 
         foreach (var server in controlled)
@@ -67,59 +65,8 @@ public class RunMarkedServerMaintenanceJob : IJob
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var external = await database.ExternalServers.Where(s =>
-                s.WantsMaintenance && s.ReservationType == ServerReservationType.None &&
-                s.Status == ServerStatus.Running)
-            .ToListAsync(cancellationToken);
-
-        foreach (var server in external)
-        {
-            if (server.PublicAddress == null)
-                throw new InvalidOperationException("Server that wants maintenance has no public address set");
-
-            logger.LogInformation("Running maintenance commands on external server {Id}", server.Id);
-
-            try
-            {
-                serverSSHAccess.ConnectTo(server.PublicAddress.ToString(), server.SSHKeyFileName);
-                var command = serverSSHAccess.RunCommand(ExternalServerMaintenanceCommand);
-
-                if (!command.Success)
-                {
-                    throw new Exception($"Running commands through SSH failed: {command.Error}, {command.Result}");
-                }
-
-                // TODO: store this either as a log entry or as a new field on the server that can then be viewed
-                // in the admin UI
-                logger.LogInformation("Output for external server maintenance ({Id}): {Result}", server.Id,
-                    command.Result);
-
-                serverSSHAccess.Reboot();
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Failed to perform maintenance on external server {server.Id} due to exception",
-                    e);
-            }
-
-            server.Status = ServerStatus.Stopping;
-            server.StatusLastChecked = DateTime.UtcNow;
-            server.LastMaintenance = DateTime.UtcNow;
-            server.WantsMaintenance = false;
-            server.BumpUpdatedAt();
-
-            // No cancellation token as we have already restarted the server so the state must be stored
-            // ReSharper disable once MethodSupportsCancellation
-            await database.SaveChangesAsync();
-
-            jobClient.Schedule<WaitForExternalServerStartUpJob>(x => x.Execute(server.Id, CancellationToken.None),
-                TimeSpan.FromSeconds(20));
-
-            break;
-        }
-
         // If there are servers that need maintenance *now* run this job again
-        if (controlled.Count > 1 || external.Count > 1)
+        if (controlled.Count > 1)
         {
             logger.LogInformation("There are more servers that want maintenance right now, re-scheduling this job");
             jobClient.Schedule<RunMarkedServerMaintenanceJob>(x => x.Execute(CancellationToken.None),
