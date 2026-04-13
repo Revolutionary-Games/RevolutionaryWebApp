@@ -1,11 +1,12 @@
 namespace RevolutionaryWebApp.Server.Tests.Fixtures;
 
 using System;
+using System.Threading;
 using Microsoft.Extensions.Configuration;
 
 public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
 {
-    private static readonly object Lock = new();
+    private static readonly Lock Lock = new();
     private static bool databaseInitialized;
 
     public RealUnitTestDatabaseFixture() : base(GetConnectionString())
@@ -18,6 +19,15 @@ public sealed class RealUnitTestDatabaseFixture : RealTestDatabaseFixture
                 databaseInitialized = true;
             }
         }
+    }
+
+    /// <summary>
+    ///   Allows getting database connection string for additional connections, which are needed by some tests.
+    /// </summary>
+    /// <returns>Connection string to connect to the same database as this</returns>
+    public string GetConnectionStringForAdditionalDatabase()
+    {
+        return GetConnectionString();
     }
 
     protected override void Seed()

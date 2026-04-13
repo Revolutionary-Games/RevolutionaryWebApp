@@ -1446,9 +1446,6 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         await listenerMockSetup.WaitUntilClosed();
     }
 
-    // TODO: at least one test with a real database that check what happens when two different runners try to reserve
-    // the same job (so that it doesn't just blow up) but then both manage to complete their own jobs
-
     public void Dispose()
     {
         logger.Dispose();

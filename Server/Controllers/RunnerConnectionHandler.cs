@@ -1183,7 +1183,17 @@ public class RunnerConnectionHandler : IDisposable
             catch (DbUpdateConcurrencyException e)
             {
                 // Clear the old job state which should allow us to keep using the DB instance
-                DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(e.Entries, job);
+                // This can also happen for jobs that aren't the one we just modified
+                // We pass true here to force the old job state to be unmodified, as we do not want to update it in any
+                // way
+                DatabaseConcurrencyHelpers.ResolveSingleEntityConcurrencyConflict(e.Entries, job, true);
+
+                if (job.ReservedByRunnerId == null)
+                {
+                    logger?.LogWarning(
+                        "We made a whoopsie by resetting a reserved job to not have a runner ID so we might see it " +
+                        "incorrectly again...");
+                }
 
                 // Somebody else got the job first
                 logger?.LogDebug("Somebody got the job first that our runner would have wanted");
