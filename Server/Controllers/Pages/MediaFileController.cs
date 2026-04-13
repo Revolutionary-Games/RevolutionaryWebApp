@@ -525,7 +525,7 @@ public class MediaFileController : Controller
         return false;
     }
 
-    private class UploadVerifyToken
+    public class UploadVerifyToken
     {
         public long TargetItem { get; set; }
     }
