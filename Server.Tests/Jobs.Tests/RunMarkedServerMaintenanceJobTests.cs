@@ -81,9 +81,6 @@ public sealed class RunMarkedServerMaintenanceJobTests : IDisposable
     [Fact]
     public async Task MaintenanceJobTests_OnlyFirstOfEachType()
     {
-        const string keyName = "server-ssh-key";
-        const string keyName2 = "server-ssh-key2";
-
         const string firstServerInstance = "5678";
         const string secondServerInstance = "9007";
 

@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Shared.Models;
 using Shared.Models.Enums;
+using StackExchange.Redis;
 using Utilities;
 
 /// <summary>
@@ -26,13 +27,15 @@ public class CIBuildManagementController : Controller
     private readonly ILogger<CIBuildManagementController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
+    private readonly IConnectionMultiplexer connectionMultiplexer;
 
     public CIBuildManagementController(ILogger<CIBuildManagementController> logger, NotificationsEnabledDb database,
-        IBackgroundJobClient jobClient)
+        IBackgroundJobClient jobClient, IConnectionMultiplexer connectionMultiplexer)
     {
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
+        this.connectionMultiplexer = connectionMultiplexer;
     }
 
     [HttpPost("{projectId:long}/{buildId:long}/jobs/{jobId:long}/cancel")]
@@ -156,7 +159,10 @@ public class CIBuildManagementController : Controller
 
         await database.SaveChangesAsync();
 
+        // Notify about the new jobs
+        await CiJob.NotifyNewJobs(connectionMultiplexer);
         jobClient.Enqueue<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None));
+
         return Ok();
     }
 }

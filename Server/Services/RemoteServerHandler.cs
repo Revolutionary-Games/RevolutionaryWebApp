@@ -162,7 +162,9 @@ public class RemoteServerHandler
         if (missingServer < 1)
             return true;*/
 
-        return false;
+        // Pretend all is fine
+        return true;
+
         /*
         // Exit if we can't manage the EC2 servers. And return false so that re-check happens when we might have
         // servers available

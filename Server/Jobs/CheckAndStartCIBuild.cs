@@ -19,6 +19,7 @@ using Services;
 using Shared;
 using Shared.Models;
 using SharedBase.Utilities;
+using StackExchange.Redis;
 using Utilities;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -30,16 +31,18 @@ public class CheckAndStartCIBuild
     private readonly IBackgroundJobClient jobClient;
     private readonly ILocalTempFileLocks localTempFileLocks;
     private readonly IGithubCommitStatusReporter statusReporter;
+    private readonly IConnectionMultiplexer connectionMultiplexer;
 
     public CheckAndStartCIBuild(ILogger<CheckAndStartCIBuild> logger, NotificationsEnabledDb database,
         IBackgroundJobClient jobClient, ILocalTempFileLocks localTempFileLocks,
-        IGithubCommitStatusReporter statusReporter)
+        IGithubCommitStatusReporter statusReporter, IConnectionMultiplexer connectionMultiplexer)
     {
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
         this.localTempFileLocks = localTempFileLocks;
         this.statusReporter = statusReporter;
+        this.connectionMultiplexer = connectionMultiplexer;
     }
 
     public async Task Execute(long ciProjectId, long ciBuildId, CancellationToken cancellationToken)
@@ -74,7 +77,7 @@ public class CheckAndStartCIBuild
                 // Fetch the ref
                 await GitRunHelpers.FetchRef(tempPath, build.RemoteRef, cancellationToken);
 
-                // Then checkout the commit this build is actually for
+                // Then check out the commit this build is actually for
                 await GitRunHelpers.Checkout(tempPath, build.CommitHash, true, cancellationToken, true);
 
                 // Clean out non-ignored files
@@ -99,11 +102,12 @@ public class CheckAndStartCIBuild
             return;
         }
 
-        // Check that configuration is valid
+        // Check that the configuration is valid
         var validator = new RecursiveDataAnnotationValidator();
 
         var errors = new List<ValidationResult>();
-        if (!validator.TryValidateObjectRecursive(configuration, new ValidationContext(configuration), errors))
+        if (!await validator.TryValidateObjectRecursiveAsync(configuration, new ValidationContext(configuration),
+                errors))
         {
             logger.LogError("Build configuration object didn't pass validations, see following errors:");
 
@@ -157,8 +161,6 @@ public class CheckAndStartCIBuild
             return;
         }
 
-        // TODO: do something with the version number here...
-
         // Then queue the jobs we found in the configuration
         var jobs = new List<CiJob>();
         long jobId = 0;
@@ -171,6 +173,14 @@ public class CheckAndStartCIBuild
                 return;
             }
 
+            var tags = new List<string>
+            {
+                // Add main tag
+                build.IsSafe ? "safe" : "unsafe",
+            };
+
+            // TODO: support for tags specified in the job config
+
             var job = new CiJob
             {
                 CiProjectId = ciProjectId,
@@ -178,6 +188,7 @@ public class CheckAndStartCIBuild
                 CiJobId = ++jobId,
                 JobName = jobEntry.Key,
                 Image = jobEntry.Value.Image,
+                RequiredRunnerTags = string.Join(";", tags),
                 CacheSettingsJson = JsonSerializer.Serialize(jobEntry.Value.Cache),
             };
 
@@ -187,19 +198,37 @@ public class CheckAndStartCIBuild
 
         await database.SaveChangesAsync(cancellationToken);
 
-        // Send statuses to github
+        // Send statuses to GitHub
         foreach (var job in jobs)
         {
-            if (!await statusReporter.SetCommitStatus(build.CiProject.RepositoryFullName, build.CommitHash,
-                    GithubAPI.CommitStatus.Pending, statusReporter.CreateStatusUrlForJob(job), "CI checks starting",
-                    job.JobName))
+            try
             {
-                logger.LogError("Failed to set commit status for a build's job: {JobName}", job.JobName);
+                if (!await statusReporter.SetCommitStatus(build.CiProject.RepositoryFullName, build.CommitHash,
+                        GithubAPI.CommitStatus.Pending, statusReporter.CreateStatusUrlForJob(job), "CI checks starting",
+                        job.JobName))
+                {
+                    logger.LogError("Failed to set commit status for a build's job: {JobName}", job.JobName);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to set commit status for a build's job: {JobName}", job.JobName);
             }
         }
 
-        // Queue remote executor check task which will allocate a server to run the job(s) on
-        jobClient.Enqueue<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None));
+        try
+        {
+            // Let all runners know about the newly created jobs
+            await CiJob.NotifyNewJobs(connectionMultiplexer);
+
+            // This doesn't really do anything any more, but for future feature re-add is kept here
+            jobClient.Enqueue<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None));
+        }
+        catch (Exception e)
+        {
+            // Very bad if we get this error, but we shouldn't fail this task so to not re-create the jobs many times
+            logger.LogError(e, "Failed to notify runners about new jobs, they will not start immediately!");
+        }
     }
 
     private async Task CreateFailedJob(CiBuild build, string failure, CancellationToken cancellationToken)

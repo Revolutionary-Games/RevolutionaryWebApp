@@ -616,6 +616,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         logger.Dispose();
     }
 
+    // ReSharper disable once UnusedMethodReturnValue.Local
     private static async Task<CiJob> AddTestJob(NotificationsEnabledDb database)
     {
         var job = new CiJob

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;
 using Shared.Notifications;
+using StackExchange.Redis;
 using Utilities;
 
 /// <summary>
@@ -107,6 +108,14 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     ///   Used to detect if the output connection is still valid.
     /// </summary>
     public int OutputConnection { get; set; } = -1;
+
+    public static Task NotifyNewJobs(IConnectionMultiplexer connectionMultiplexer)
+    {
+        var subscriber = connectionMultiplexer.GetSubscriber();
+
+        return subscriber.PublishAsync(new RedisChannel(NotificationGroups.RealtimeNewJobCreatedNotification,
+            RedisChannel.PatternMode.Literal), "1");
+    }
 
     /// <summary>
     ///   Correctly deletes a set of CI jobs
