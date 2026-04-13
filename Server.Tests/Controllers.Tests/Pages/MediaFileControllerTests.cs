@@ -153,7 +153,7 @@ public sealed class MediaFileControllerTests : IDisposable
 
         var controller = new MediaFileController(logger, cfg, db, storage, dataProtection, jobs);
 
-        var user = CreateUser(id: 55, GroupType.User, GroupType.Developer);
+        var user = CreateUser(55, GroupType.User, GroupType.Developer);
         await db.Users.AddAsync(user);
         var folder = new MediaFolder("FinishFolder")
         {
@@ -208,6 +208,169 @@ public sealed class MediaFileControllerTests : IDisposable
 
         // Verify something was scheduled
         Assert.NotEmpty(jobs.ReceivedCalls());
+    }
+
+    [Fact]
+    public async Task MediaFile_FinishUploadErrorsOnSizeMismatch()
+    {
+        // Arrange
+        var db = CreateDatabase(nameof(MediaFile_FinishUploadErrorsOnSizeMismatch));
+        var storage = Substitute.For<IUploadFileStorage>();
+        var jobs = Substitute.For<IBackgroundJobClient>();
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["MediaStorage:Download:URL"] = "https://cdn.example/",
+            })
+            .Build();
+
+        var dataProtection = new EphemeralDataProtectionProvider();
+
+        var controller = new MediaFileController(logger, cfg, db, storage, dataProtection, jobs);
+
+        var user = CreateUser(77, GroupType.User, GroupType.Developer);
+        await db.Users.AddAsync(user);
+        var folder = new MediaFolder("MismatchFolder")
+        {
+            Id = 300,
+            ContentWriteAccess = GroupType.User,
+            ContentReadAccess = GroupType.User,
+            OwnedById = user.Id,
+            LastModifiedById = user.Id,
+        };
+        await db.MediaFolders.AddAsync(folder);
+
+        var file = new MediaFile("mismatch.png", Guid.NewGuid(), folder.Id, user.Id)
+        {
+            OriginalFileSize = TinyPngBytes().Length,
+            MetadataVisibility = GroupType.User,
+            ModifyAccess = GroupType.User,
+        };
+        await db.MediaFiles.AddAsync(file);
+        await db.SaveChangesAsync();
+
+        // Build a verification token as controller would return earlier
+        var protector = dataProtection.CreateProtector("MediaFileController.Upload.v1").ToTimeLimitedDataProtector();
+        var tokenJson =
+            System.Text.Json.JsonSerializer.Serialize(
+                new MediaFileController.UploadVerifyToken { TargetItem = file.Id });
+        var token = protector.Protect(tokenJson, AppInfo.RemoteStorageUploadExpireTime);
+
+        // Mock storage interactions: first size check mismatches
+        var uploadPath = file.GetUploadPath();
+        storage.GetObjectSize(uploadPath).Returns(file.OriginalFileSize - 1);
+
+        // Deleting partial upload should be attempted
+        storage.DeleteObject(uploadPath).Returns(Task.CompletedTask);
+
+        // Act
+        var result = await controller.ReportFinishedUpload(new TokenForm { Token = token });
+
+        // Assert: should be BadRequest and not proceed to move
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var message = Assert.IsType<string>(bad.Value);
+        Assert.Contains("partially successful", message, StringComparison.OrdinalIgnoreCase);
+
+        await storage.Received(1).GetObjectSize(uploadPath);
+        await storage.Received(1).DeleteObject(uploadPath);
+
+        await storage.DidNotReceiveWithAnyArgs().MoveObject(string.Empty, string.Empty);
+        await storage.DidNotReceiveWithAnyArgs().GetObjectContent(string.Empty);
+
+        // No processing job should be scheduled
+        Assert.Empty(jobs.ReceivedCalls());
+    }
+
+    [Fact]
+    public async Task MediaFile_UploadEndToEndSucceeds()
+    {
+        // Arrange common services
+        var db = CreateDatabase(nameof(MediaFile_UploadEndToEndSucceeds));
+        var storage = Substitute.For<IUploadFileStorage>();
+        var jobs = Substitute.For<IBackgroundJobClient>();
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["MediaStorage:Download:URL"] = "https://cdn.example/",
+            })
+            .Build();
+
+        var dataProtection = new EphemeralDataProtectionProvider();
+
+        var controller = new MediaFileController(logger, cfg, db, storage, dataProtection, jobs);
+
+        var user = CreateUser(89, GroupType.User, GroupType.Developer);
+        await db.Users.AddAsync(user);
+        var folder = new MediaFolder("E2EFolder")
+        {
+            Id = 400,
+            ContentWriteAccess = GroupType.Developer,
+            ContentReadAccess = GroupType.User,
+            OwnedById = user.Id,
+            LastModifiedById = user.Id,
+        };
+        await db.MediaFolders.AddAsync(folder);
+        await db.SaveChangesAsync();
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = HttpContextMockHelpers.CreateContextWithUser(user),
+        };
+
+        var size = TinyPngBytes().Length;
+        var request = new UploadMediaFileRequestForm
+        {
+            MediaFileId = Guid.NewGuid(),
+            Name = "end-to-end.png",
+            Folder = folder.Id,
+            Size = size,
+            MetadataVisibility = GroupType.User,
+            ModifyAccess = GroupType.Developer,
+        };
+
+        storage.CreatePresignedUploadURL(Arg.Any<string>(), Arg.Any<TimeSpan>())
+            .Returns(ci =>
+            {
+                var path = ci.ArgAt<string>(0);
+                return $"https://example/upload/{path}";
+            });
+
+        // Act 1: start upload
+        var start = await controller.StartUpload(request);
+        var startPayload =
+            Assert.IsType<UploadRequestResponse>(Assert.IsType<ActionResult<UploadRequestResponse>>(start).Value);
+        Assert.False(string.IsNullOrWhiteSpace(startPayload.VerifyToken));
+
+        // Determine paths for finish stage
+        var created = await db.MediaFiles.SingleAsync(m => m.GlobalId == request.MediaFileId);
+        var uploadPath = created.GetUploadPath();
+        var processingPath = created.GetIntermediateProcessingPath();
+
+        // Set up storage to pass verify stage
+        storage.GetObjectSize(uploadPath).Returns(size);
+        storage.MoveObject(uploadPath, processingPath).Returns(Task.CompletedTask);
+        storage.GetObjectSize(processingPath).Returns(size);
+        storage.GetObjectContent(processingPath).Returns(_ => new MemoryStream(TinyPngBytes(), writable: false));
+
+        // Act 2: finish upload
+        var finish = await controller.ReportFinishedUpload(new TokenForm { Token = startPayload.VerifyToken });
+
+        // Assert: success and calls made
+        Assert.IsType<OkResult>(finish);
+        await storage.Received(1).GetObjectSize(uploadPath);
+        await storage.Received(1).MoveObject(uploadPath, processingPath);
+        await storage.Received(1).GetObjectSize(processingPath);
+        await storage.Received(1).GetObjectContent(processingPath);
+
+        // Ensure a processing job was scheduled
+        Assert.NotEmpty(jobs.ReceivedCalls());
+
+        // Get the file from the DB to check
+        var file = await db.MediaFiles.SingleAsync(m => m.GlobalId == request.MediaFileId);
+        Assert.Equal(request.Name, file.Name);
+        Assert.Equal(request.Size, file.OriginalFileSize);
+        Assert.Equal(request.MetadataVisibility, file.MetadataVisibility);
+        Assert.Equal(request.ModifyAccess, file.ModifyAccess);
     }
 
     public void Dispose()
