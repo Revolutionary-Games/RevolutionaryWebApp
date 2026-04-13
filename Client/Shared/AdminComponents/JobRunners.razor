@@ -142,7 +142,7 @@
                                         <div class="mb-3 col-md-6">
                                             <label class="form-label" for="@($"{item.Id}-tags")">Tags (optional)</label>
                                             <input type="text" class="form-control" id="@($"{item.Id}-tags")"
-                                                   @bind="item.Tags">
+                                                   @bind="item.Tags" placeholder="';' separated tags">">
                                         </div>
                                     </div>
                                 </form>
@@ -257,7 +257,8 @@
                 </div>
                 <div class="mb-3 col-md-6">
                     <label class="form-label" for="newRemoteRunnerTags">Tags (optional)</label>
-                    <input type="text" class="form-control" id="newRemoteRunnerTags" @bind="newTags">
+                    <input type="text" class="form-control" id="newRemoteRunnerTags" @bind="newTags"
+                           placeholder="';' separated tags">
                 </div>
             </div>
 
