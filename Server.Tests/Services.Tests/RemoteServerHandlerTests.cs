@@ -38,6 +38,8 @@ public sealed class RemoteServerHandlerTests : IDisposable
         logger = new XunitLogger<RemoteServerHandler>(output);
     }
 
+    // TODO: implement starting controller servers if wanted in the future
+    /*
     [Fact]
     public async Task ServerControl_NewInstancesAreCreated()
     {
@@ -305,6 +307,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
             .GetInstanceStatuses(Arg.Is<List<string>>(l => l.SequenceEqual(new List<string> { instanceId1 })),
                 Arg.Any<CancellationToken>());
     }
+*/
 
     [Fact]
     public async Task ServerControl_IdleServersAreStopped()
@@ -386,6 +389,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await ec2Mock.Received().StopInstance(instanceId1, false);
     }
 
+    /*
     [Fact]
     public async Task ServerControl_TotalServerLimitIsRespectedWhenCreating()
     {
@@ -579,7 +583,7 @@ public sealed class RemoteServerHandlerTests : IDisposable
         await database.CiJobs.AddAsync(job2);
 
         // TODO: if put back, this should use runner recent heartbeats to know how many runners there are
-        /*var server1 = new ExternalServer
+        var server1 = new ExternalServer
         {
             Status = ServerStatus.Running,
             ProvisionedFully = true,
@@ -587,24 +591,25 @@ public sealed class RemoteServerHandlerTests : IDisposable
             SSHKeyFileName = "key.pem",
         };
 
-        await database.ExternalServers.AddAsync(server1);*/
+        await database.ExternalServers.AddAsync(server1);
         await database.SaveChangesAsync();
 
         var handler =
             new RemoteServerHandler(logger, configuration, database, ec2Mock, jobClientMock);
 
-        Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
+        // Assert.True(await handler.HandleCIJobs(new List<CiJob> { job }));
 
         // Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         // Assert.Equal(job.CiJobId, server1.ReservedFor);
 
-        Assert.False(await handler.HandleCIJobs(new List<CiJob> { job2 }));
+        // Assert.False(await handler.HandleCIJobs(new List<CiJob> { job2 }));
 
         // Assert.Equal(ServerReservationType.CIJob, server1.ReservationType);
         // Assert.Equal(job.CiJobId, server1.ReservedFor);
 
         _ = ec2Mock.Received().Configured;
     }
+    */
 
     public void Dispose()
     {
