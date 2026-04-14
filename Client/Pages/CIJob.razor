@@ -34,13 +34,17 @@
                 <strong>Succeeded</strong>:
                 @(Data.State == CIJobState.Finished ? Data.Succeeded.ToString() : "pending")
             </li>
-            <li><strong>Started At</strong>: <RecentTimeShortener Time="@Data.CreatedAt" /></li>
+            <li><strong>Started At</strong>:
+                <RecentTimeShortener Time="@Data.CreatedAt"/>
+            </li>
             <li>
                 <strong>Time Waiting For Server</strong>: @(Data.TimeWaitingForServer?.ToShortForm() ?? "still waiting")
             </li>
+            <li><strong>Tags</strong>: @(Data.RequiredRunnerTags)</li>
             <li><strong>Ran On Server</strong>: @(Data.RanOnServer ?? "not started yet")</li>
             <li>
-                <strong>Total Duration</strong>: <DurationDisplayer Start="@Data.CreatedAt" End="@Data.FinishedAt" />
+                <strong>Total Duration</strong>:
+                <DurationDisplayer Start="@Data.CreatedAt" End="@Data.FinishedAt"/>
             </li>
         </ul>
 
@@ -53,17 +57,17 @@
         </NavLink>
 
         <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
-            <br />
-            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+            <br/>
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"/>
 
             <Button Enabled="@(Data.State != CIJobState.Finished)" ButtonStyle="secondary" Spinner="@processing"
                     OnPressed="@CancelJob">
                 Cancel
             </Button>
-            <br />
+            <br/>
         </AccessLimited>
 
-        <br />
+        <br/>
 
         <h4>Output</h4>
 
@@ -76,12 +80,11 @@
             <CIJobOutput ProjectId="@Data.CiProjectId" BuildId="@Data.CiBuildId" JobId="@Data.CiJobId"/>
         }
 
-        <br />
+        <br/>
 
         <h4>Artifacts</h4>
 
         <p>Artifact support has not been implemented. It might get done in the future if there is a need.</p>
-
 
         @* TODO: would be pretty cool to change the favicon based on the job status *@
         @if (Data.State == CIJobState.Finished)
@@ -113,7 +116,8 @@
     [Parameter]
     public long BuildId { get; set; }
 
-    private string NameSuffix => Data != null ? $"Job {Data.CiBuildId}-{Data.CiJobId} for {Data.ProjectName}" :
+    private string NameSuffix => Data != null ?
+        $"Job {Data.CiBuildId}-{Data.CiJobId} for {Data.ProjectName}" :
         "Loading Job Info";
 
     protected override Task<CIJobDTO?> StartQuery()
@@ -176,4 +180,5 @@
 
         await InvokeAsync(StateHasChanged);
     }
+
 }
