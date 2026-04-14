@@ -48,6 +48,30 @@ public class Program
             return 0;
         }
 
+        // Load from environment variables if secrets are specified like that
+        if (options.SecretKey == "-")
+        {
+            options.SecretKey = Environment.GetEnvironmentVariable("RUNNER_SECRET_KEY") ?? string.Empty;
+        }
+
+        if (options.ConnectionKey == "-")
+        {
+            options.ConnectionKey = Environment.GetEnvironmentVariable("RUNNER_ACCESS_KEY") ?? string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.SecretKey))
+        {
+            Console.WriteLine("Secret key is not specified (and missing environment variable 'RUNNER_SECRET_KEY')");
+            return 1;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.ConnectionKey))
+        {
+            Console.WriteLine("Connection key is not specified (and missing environment variable " +
+                "'RUNNER_ACCESS_KEY')");
+            return 1;
+        }
+
         var baseLogger = new ConsoleCategoryLogger<Program>();
 
         baseLogger.LogInformation("Starting service construction...");
