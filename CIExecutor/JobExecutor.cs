@@ -213,6 +213,13 @@ public class JobExecutor : IJobExecutor, IDisposable
                 await directOutput.CloseSection(true);
 
             await RunBuild(directOutput, rawOutputReceiver, cacheConfiguration, cancellationToken);
+
+            // Section fails don't go into the overall failure automatically, so we copy it
+            if (rawOutputReceiver.HadFailure)
+            {
+                logger.LogInformation("One mor more sections failed, marking as failed");
+                Failure = true;
+            }
         }
 
         if (!Failure)
