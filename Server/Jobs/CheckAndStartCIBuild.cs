@@ -255,7 +255,6 @@ public class CheckAndStartCIBuild
             FinishedAt = DateTime.UtcNow,
             Succeeded = false,
             State = CIJobState.Finished,
-            CacheSettingsJson = "{}",
 
             CiJobOutputSections = new List<CiJobOutputSection>
             {
