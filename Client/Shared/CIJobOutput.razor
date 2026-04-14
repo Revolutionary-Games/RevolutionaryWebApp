@@ -31,7 +31,7 @@ else
         {
             <div @key="item.CiJobOutputSectionId" class="output @ClassForStatus(item.Status)"
                  @onclick="() => ToggleSection(item)">
-                <ItemExpander Expanded="@ShouldShowSection(item)" />
+                <ItemExpander Expanded="@ShouldShowSection(item)"/>
                 <span class="ms-2">@item.Name</span>
                 <span class="float-end"><DurationDisplayer Start="@item.StartedAt" End="@item.FinishedAt"/></span>
             </div>
@@ -42,7 +42,7 @@ else
                 {
                     <CIJobOutputSection ProjectId="@ProjectId" BuildId="@BuildId" JobId="@JobId"
                                         Id="@item.CiJobOutputSectionId"
-                                        RealtimeOutput="@GetOutput(item.CiJobOutputSectionId)" />
+                                        RealtimeOutput="@GetOutput(item.CiJobOutputSectionId)"/>
                 }
             </div>
         }
@@ -58,7 +58,7 @@ else
 @code {
     private readonly Dictionary<long, bool> shownSections = new();
 
-    private readonly List<string> receivedRealtimeOutput = new ();
+    private readonly List<string> receivedRealtimeOutput = new();
     private long? receivingRealtimeOutputForSection;
 
     [Parameter]
@@ -105,15 +105,15 @@ else
             // a creation notification about it, and our Data list should be updated shortly
 
             StateHasChanged();
-
-        } else if (notification.Type == BuildSectionMessageType.BuildOutput &&
-            !string.IsNullOrEmpty(notification.Output))
+        }
+        else if (notification.Type == BuildSectionMessageType.BuildOutput &&
+                 !string.IsNullOrEmpty(notification.Output))
         {
             // TODO: limit how much data can be in memory here on the client
             bool first = true;
             foreach (var line in notification.Output.Split('\n'))
             {
-                if(first)
+                if (first)
                 {
                     // The first line might not be just after a line-break, so append that to an existing line in
                     // receivedRealtimeOutput
@@ -133,6 +133,10 @@ else
                     receivedRealtimeOutput.Add(line);
                 }
             }
+
+            // Make the section opened if we have it so that users arriving "late" to the page don't need to click
+            // active sections open to see what's going on
+            shownSections[notification.SectionId] = true;
 
             StateHasChanged();
         }
@@ -156,9 +160,8 @@ else
 
     protected override Task<List<CIJobOutputSectionInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
-        return Http.GetFromJsonAsync<List<CIJobOutputSectionInfo>>(
-            QueryHelpers.AddQueryString($"api/v1/CIProject/{ProjectId}/builds/{BuildId}/jobs/{JobId}/output",
-                requestParams));
+        return Http.GetFromJsonAsync<List<CIJobOutputSectionInfo>>(QueryHelpers.AddQueryString("api/v1/CIProject" +
+            $"/{ProjectId}/builds/{BuildId}/jobs/{JobId}/output", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
