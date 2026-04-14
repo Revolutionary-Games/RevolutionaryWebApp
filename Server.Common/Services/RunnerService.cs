@@ -199,6 +199,8 @@ public class RunnerService : IDisposable
                 await Task.Delay(200, cancellationToken);
             }
 
+            logger.LogInformation("Successfully connected to the server. Starting main loop");
+
             while (run)
             {
                 // Main state handling
