@@ -97,13 +97,14 @@ public class Program
         using var cache =
             new FilesystemAndPodmanCache(new ConsoleCategoryLogger<FilesystemAndPodmanCache>(), cacheFolder);
 
-        // Add the access key to the URL so that we can connect
         using var communication =
             new RunnerClientWebsocket(new ConsoleCategoryLogger<RunnerClientWebsocket>(),
-                options.ServerUrl + "?runnerId=" + options.ConnectionKey);
+                options.ServerUrl, options);
+
+        var signalR = new RunnerSignalR(new ConsoleCategoryLogger<RunnerSignalR>(), options);
 
         var runnerService = new RunnerService(new ConsoleCategoryLogger<RunnerService>(), communication, options,
-            executor, cache, !options.InteractiveMode);
+            executor, cache, signalR, !options.InteractiveMode);
 
         // Apply some runner options
         if (options.QuitOnIdle)
@@ -114,13 +115,26 @@ public class Program
 
         using var cancellationListener = new ProgramTerminationController(runnerService.StopAfterNextJob);
 
+        await signalR.Start(cancellationListener.Token);
+
         baseLogger.LogInformation("Starting executor main loop");
 
         var result = await runnerService.Run(cancellationListener.Token);
 
+        signalR.OnNewJobsReported = null;
+
         baseLogger.LogInformation("Executor has finished, saving final things and exiting");
 
         await cache.SaveUsedPodmanImages();
+
+        try
+        {
+            await signalR.Stop(cancellationListener.Token);
+        }
+        catch (Exception e)
+        {
+            baseLogger.LogError(e, "Failed to close signalR connection");
+        }
 
         try
         {
@@ -177,5 +191,6 @@ public class Program
         public bool OnlySafe { get; set; }
 
         public string ServerUrl => new Uri(new Uri(DevCenterUrl), "runnerConnection").ToString();
+        public string ServerSignalUrl => new Uri(new Uri(DevCenterUrl), "runnerNotifications").ToString();
     }
 }

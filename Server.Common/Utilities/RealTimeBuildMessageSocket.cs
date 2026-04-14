@@ -27,8 +27,7 @@ public class RealTimeBuildMessageSocket : IRealTimeBuildMessageSocket
 
     public WebSocketCloseStatus? CloseStatus => socket.CloseStatus;
 
-    public async Task<(RealTimeBuildMessage? Message, bool Closed)> Read(CancellationToken cancellationToken,
-        CancellationToken bulkReadCancellation = default)
+    public async Task<(RealTimeBuildMessage? Message, bool Closed)> Read(CancellationToken cancellationToken)
     {
         WebSocketReceiveResult sizeReadResult;
         try
@@ -63,16 +62,12 @@ public class RealTimeBuildMessageSocket : IRealTimeBuildMessageSocket
                 new byte[Math.Min((int)(messageSize * 1.5f), AppInfo.MaxSingleBuildOutputMessageLength)];
         }
 
-        // Set up bulk read cancel if not already set to anything
-        if (bulkReadCancellation == CancellationToken.None)
-            bulkReadCancellation = cancellationToken;
-
         // TODO: can be actually receive a partial amount of the data here? so should we loop until
         // messageSize has been received? (doesn't seem to be the case, at least with reasonable size messages)
         WebSocketReceiveResult readResult;
         try
         {
-            readResult = await socket.ReceiveAsync(new ArraySegment<byte>(messageBuffer), bulkReadCancellation);
+            readResult = await socket.ReceiveAsync(new ArraySegment<byte>(messageBuffer), cancellationToken);
         }
         catch (WebSocketException e)
         {

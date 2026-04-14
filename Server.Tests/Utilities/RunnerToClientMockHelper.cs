@@ -121,6 +121,7 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
         SendToClient(new RealTimeBuildMessage
         {
             Type = BuildSectionMessageType.AuthSuccess,
+            Output = $"{RunnerData.Id}:{RunnerData.Priority}",
         });
 
         connectionId = new Random().Next();
@@ -443,7 +444,7 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
         return Task.CompletedTask;
     }
 
-    public async Task<RealTimeBuildMessage?> Receive(TimeSpan timeout, CancellationToken cancellationToken)
+    public async Task<RealTimeBuildMessage?> Receive(CancellationToken cancellationToken)
     {
         if (serverBrokeConnection)
         {
@@ -451,7 +452,8 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
             return null;
         }
 
-        var endBy = DateTime.UtcNow + timeout;
+        // The real variant no longer has an end by, but this test does
+        var endBy = DateTime.UtcNow + TimeSpan.FromSeconds(20);
 
         while (true)
         {
@@ -461,7 +463,7 @@ public class RunnerToClientMockHelper : IRunnerClientCommunication
             }
 
             if (DateTime.UtcNow > endBy)
-                return null;
+                throw new Exception("Failed to receive a message from the client (timeout");
 
             // We use just this immediate cancellation and not the client-provided one as in the tests we will time out
             // the entire test instead of a single read

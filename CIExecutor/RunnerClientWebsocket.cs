@@ -20,7 +20,7 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
     private ClientWebSocket? webSocket;
     private RealTimeBuildMessageSocket? protocolSocket;
 
-    public RunnerClientWebsocket(ILogger logger, string serverUrlEndpoint)
+    public RunnerClientWebsocket(ILogger logger, string serverUrlEndpoint, IRunnerClientDataService dataService)
     {
         this.logger = logger;
         this.serverUrlEndpoint = serverUrlEndpoint;
@@ -30,6 +30,9 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
 
         // Convert HTTP to WebSocket URLs
         this.serverUrlEndpoint = serverUrlEndpoint.Replace("https://", "wss://").Replace(httpWorkaround, "ws://");
+
+        // Add the access key to the URL so that we can connect
+        this.serverUrlEndpoint += "?runnerId=" + dataService.ConnectionKey;
     }
 
     public bool IsConnected { get; private set; }
@@ -124,22 +127,14 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
         }
     }
 
-    public async Task<RealTimeBuildMessage?> Receive(TimeSpan timeout, CancellationToken cancellationToken)
+    public async Task<RealTimeBuildMessage?> Receive(CancellationToken cancellationToken)
     {
         if (protocolSocket == null || !IsConnected)
             throw new InvalidOperationException("Socket is not connected");
 
-        CancellationToken effectiveCancellation = cancellationToken;
-
-        if (timeout != TimeSpan.Zero)
-        {
-            effectiveCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken,
-                new CancellationTokenSource(timeout).Token).Token;
-        }
-
         try
         {
-            var (message, closed) = await protocolSocket.Read(effectiveCancellation);
+            var (message, closed) = await protocolSocket.Read(cancellationToken);
 
             if (closed)
             {

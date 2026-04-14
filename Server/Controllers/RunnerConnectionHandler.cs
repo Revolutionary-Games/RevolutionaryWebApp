@@ -55,7 +55,6 @@ public class RunnerConnectionHandler : IDisposable
     private readonly int connectionId;
     private readonly ISubscriber subscriber;
     private readonly bool useEfficientOutputAppend;
-    private int prioritySeconds;
 
     private bool connectionOutdated;
 
@@ -293,6 +292,9 @@ public class RunnerConnectionHandler : IDisposable
         var successMessageSend = wrappedSocket.Write(new RealTimeBuildMessage
         {
             Type = BuildSectionMessageType.AuthSuccess,
+
+            // Provide some base info to the runner
+            Output = $"{runner.Id}:{runner.Priority}",
         }, new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token);
 
         // Let other connections know about the new one and that they should exit if they hold relevant buffers
@@ -412,10 +414,7 @@ public class RunnerConnectionHandler : IDisposable
             // Client must send a heartbeat every minute, so we give a little bit of leeway before failing
             var timed = new CancellationTokenSource(TimeSpan.FromMinutes(3));
 
-            // Reset this if we got info on this
-            if (redisNotice.IsCancellationRequested)
-                redisNotice = new CancellationTokenSource();
-
+            // This no longer resets the redis notice as it is a permanent error now only
             messageTimeout = CancellationTokenSource.CreateLinkedTokenSource(timed.Token, redisNotice.Token);
         }
         finally
@@ -478,8 +477,6 @@ public class RunnerConnectionHandler : IDisposable
 
                 try
                 {
-                    bool notifyNewJobsAfterProcessing = false;
-
                     // Don't stop to wait for any more messages after connection outdated signal
                     if (connectionOutdated)
                         break;
@@ -489,8 +486,7 @@ public class RunnerConnectionHandler : IDisposable
                     {
                         // The second cancellation token is used here so that we don't stop partway through reading a
                         // message if we get a notice about a new job
-                        (message, var closed) = await socket.Read(messageTimeout.Token,
-                            new CancellationTokenSource(TimeSpan.FromSeconds(120)).Token);
+                        (message, var closed) = await socket.Read(messageTimeout.Token);
 
                         if (closed)
                             break;
@@ -499,21 +495,6 @@ public class RunnerConnectionHandler : IDisposable
                     {
                         bool rethrow = true;
                         message = null;
-
-                        await cancelSetup.WaitAsync();
-                        try
-                        {
-                            // If we need to notify the client about new builds, then that was not a serious error
-                            if (redisNotice.IsCancellationRequested)
-                            {
-                                notifyNewJobsAfterProcessing = true;
-                                rethrow = false;
-                            }
-                        }
-                        finally
-                        {
-                            cancelSetup.Release();
-                        }
 
                         // Flushing is outside the loop
                         if (connectionOutdated)
@@ -577,18 +558,6 @@ public class RunnerConnectionHandler : IDisposable
                     {
                         await FlushSectionDataIfTooLongOrTime(new CancellationTokenSource(TimeSpan.FromSeconds(60))
                             .Token);
-                    }
-
-                    if (notifyNewJobsAfterProcessing)
-                    {
-                        // Wait a bit based on our priority before we send the message (and hopefully, in the meantime
-                        // the client does not send us anything)
-                        await Task.Delay(TimeSpan.FromSeconds(prioritySeconds), CancellationToken.None);
-
-                        await ReplyToClient(new RealTimeBuildMessage
-                        {
-                            Type = BuildSectionMessageType.NewJobsAvailable,
-                        });
                     }
                 }
                 catch (TaskCanceledException)
@@ -658,23 +627,6 @@ public class RunnerConnectionHandler : IDisposable
 
     private async Task SetupRedisListeners()
     {
-        /*await subscriber.SubscribeAsync(new RedisChannel(NotificationGroups.RealtimeNewJobCreatedNotification,
-                RedisChannel.PatternMode.Literal),
-            (_, _) =>
-            {
-                // TODO: cancelling a socket read will just fail it entirely, so this current cannot work correctly!!
-                cancelSetup.Wait();
-                try
-                {
-                    if (!redisNotice.IsCancellationRequested)
-                        redisNotice.Cancel();
-                }
-                finally
-                {
-                    cancelSetup.Release();
-                }
-            });*/
-
         // Listener for detecting other connection opening for the same runner, and we should need to flush
         await subscriber.SubscribeAsync(
             new RedisChannel(NotificationGroups.RealtimeNewConnectionOpened, RedisChannel.PatternMode.Literal),
@@ -869,13 +821,6 @@ public class RunnerConnectionHandler : IDisposable
                     logger?.LogWarning("Failed to finish job");
                     isScopeRefreshBlocked = false;
                 }
-
-                // Reply with something so that the client read can end quickly, and as for success we don't have a
-                // special message, we just send a heartbeat here
-                await ReplyToClient(new RealTimeBuildMessage
-                {
-                    Type = BuildSectionMessageType.HeartBeat,
-                }, processingMaxTime.Token);
 
                 break;
             }
@@ -1994,7 +1939,7 @@ public class RunnerConnectionHandler : IDisposable
 
     private void UpdatePriority(int priority)
     {
-        prioritySeconds = Math.Clamp(priority, 0, 15);
+        Math.Clamp(priority, 0, 15);
     }
 
     /// <summary>

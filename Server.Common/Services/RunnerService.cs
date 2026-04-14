@@ -24,6 +24,7 @@ public class RunnerService : IDisposable
     private readonly IRunnerClientDataService dataService;
     private readonly IJobExecutor executor;
     private readonly IExecutorCache cache;
+    private readonly IRunnerSignalService jobNotifications;
 
     private readonly SimpleJobOutputForwarder jobOutputForwarder;
 
@@ -44,6 +45,9 @@ public class RunnerService : IDisposable
     /// </summary>
     private readonly Queue<RealTimeBuildMessage> outgoingMessages = new();
 
+    private readonly SemaphoreSlim incomingMessageLock = new(1, 1);
+    private readonly Queue<RealTimeBuildMessage> incomingMessages = new();
+
     private readonly CancellationTokenSource stopConnectionHandlingToken = new();
     private readonly TimeSpan heartbeatInterval = TimeSpan.FromSeconds(60);
 
@@ -63,7 +67,6 @@ public class RunnerService : IDisposable
 
     private bool quitAfterJob;
     private bool quitWhenIdle;
-    private bool useLongWaitInIdleLoop = true;
 
     private int idleLoops;
 
@@ -88,13 +91,14 @@ public class RunnerService : IDisposable
     private bool safeOnly;
 
     public RunnerService(ILogger logger, IRunnerClientCommunication communication, IRunnerClientDataService dataService,
-        IJobExecutor executor, IExecutorCache cache, bool allowStopNewJobsSignal)
+        IJobExecutor executor, IExecutorCache cache, IRunnerSignalService jobNotifications, bool allowStopNewJobsSignal)
     {
         this.logger = logger;
         this.communication = communication;
         this.dataService = dataService;
         this.executor = executor;
         this.cache = cache;
+        this.jobNotifications = jobNotifications;
 
         jobOutputForwarder = new SimpleJobOutputForwarder(OnJobSectionClosed, OnJobSectionOpened, OnJobOutput);
 
@@ -110,6 +114,8 @@ public class RunnerService : IDisposable
                 logger.LogInformation("Cannot register 'no new jobs' signal handler on Windows");
             }
         }
+
+        jobNotifications.OnNewJobsReported = OnNewJobsReported;
     }
 
     public void StopAfterNextJob()
@@ -142,14 +148,6 @@ public class RunnerService : IDisposable
     }
 
     /// <summary>
-    ///   Mostly used when doing unit tests to run as fast as possible and to quit
-    /// </summary>
-    public void SetNoClientIdleMessageWait()
-    {
-        useLongWaitInIdleLoop = false;
-    }
-
-    /// <summary>
     ///   Run this service until it should stop. The cancellation can be hooked up to receive a stop signal.
     /// </summary>
     /// <param name="cancellationToken">Cancellation to stop</param>
@@ -159,12 +157,18 @@ public class RunnerService : IDisposable
         try
         {
             // Set up a task that handles our connection state
+            // And also outgoing messages to the server
             var connectionTask = HandleConnection(cancellationToken);
 
             var endConnectionAttempt = DateTime.UtcNow + TimeSpan.FromMinutes(10);
 
             logger.LogInformation("Beginning connection attempts, initial reads may fail for a little bit until the " +
                 "socket is established");
+
+            // We have to start reading things into the queue here as otherwise we won't reply to auth messages
+            var readCancellation = new CancellationTokenSource();
+            var readLinked = CancellationTokenSource.CreateLinkedTokenSource(readCancellation.Token, cancellationToken);
+            var messageReadTask = ReadConnectionMessages(readLinked.Token);
 
             // Wait for initial connection
             while (true)
@@ -227,6 +231,30 @@ public class RunnerService : IDisposable
                 else
                 {
                     ++idleLoops;
+
+                    try
+                    {
+                        // Read messages to be empty
+                        while (true)
+                        {
+                            var message = await ReceiveFromQueue(cancellationToken);
+
+                            if (message == null)
+                                break;
+
+                            message = await HandleCommonMessages(message);
+
+                            if (message != null)
+                            {
+                                logger.LogWarning("We got a message of type {Type} in idle state", message.Type);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError(e, "Failed to read server message while idle");
+                        await Task.Delay(100, cancellationToken);
+                    }
                 }
 
                 // Wait to save a bit of CPU when nothing is going on.
@@ -248,8 +276,30 @@ public class RunnerService : IDisposable
             }
 
             runConnectionHandling = false;
+
+            // Close connection first, so that we do the handshake with the server
+            bool locked = await connectionLock.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
+            try
+            {
+                if (communication.IsConnected)
+                    await communication.Close();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to do initial connection service disconnect " +
+                    "(before readers were stopped)");
+            }
+            finally
+            {
+                if (locked)
+                    connectionLock.Release();
+            }
+
             if (!stopConnectionHandlingToken.IsCancellationRequested)
                 await stopConnectionHandlingToken.CancelAsync();
+
+            if (!readCancellation.IsCancellationRequested)
+                await readCancellation.CancelAsync();
 
             try
             {
@@ -258,6 +308,15 @@ public class RunnerService : IDisposable
             catch (TaskCanceledException)
             {
                 logger.LogInformation("Connection task cancelled");
+            }
+
+            try
+            {
+                await messageReadTask;
+            }
+            catch (TaskCanceledException)
+            {
+                logger.LogInformation("Read task cancelled");
             }
 
             try
@@ -324,6 +383,7 @@ public class RunnerService : IDisposable
             queueLock.Dispose();
             stopConnectionHandlingToken.Dispose();
             jobOutputLock.Dispose();
+            incomingMessageLock.Dispose();
         }
     }
 
@@ -437,33 +497,73 @@ public class RunnerService : IDisposable
                 logger.LogInformation("Server authenticated us successfully");
                 connectionIsSafeForNormalMessages = true;
 
+                var data = message.Output;
+
+                if (data != null)
+                {
+                    var fields = data.Split(':');
+
+                    if (fields.Length >= 2)
+                    {
+                        logger.LogInformation("Received our own info from the server: {Data}", data);
+                        logger.LogInformation("Our runner ID is: {Id}", fields[0]);
+
+                        if (int.TryParse(fields[1], out var priority))
+                        {
+                            logger.LogInformation("Our priority is: {Priority}", priority);
+                            jobNotifications.OurPriority = priority;
+                        }
+                        else
+                        {
+                            logger.LogError("We couldn't parse our priority from: {Data}", fields[1]);
+                        }
+                    }
+                    else
+                    {
+                        logger.LogError("Server sent us an invalid auth response (not enough fields)");
+                    }
+                }
+                else
+                {
+                    logger.LogWarning("We didn't get our own info from the server");
+                }
+
                 return null;
             }
 
             case BuildSectionMessageType.HeartBeat:
-                return null;
-
-            case BuildSectionMessageType.NewJobsAvailable:
-                serverNotifiedAboutNewJobs = true;
                 return null;
         }
 
         return message;
     }
 
-    /// <summary>
-    ///   Wait for the next server message for a specified time or until cancellation.
-    /// </summary>
-    /// <returns>Server message or null</returns>
-    private async Task<RealTimeBuildMessage?> Receive(CancellationToken cancellationToken,
-        TimeSpan maxWaitTime = default)
+    private async Task<RealTimeBuildMessage?> ReceiveFromQueue(CancellationToken cancellationToken)
     {
-        if (maxWaitTime == TimeSpan.Zero)
-            maxWaitTime = TimeSpan.FromSeconds(500);
-
+        await incomingMessageLock.WaitAsync(cancellationToken);
         try
         {
-            var message = await communication.Receive(maxWaitTime, cancellationToken);
+            if (incomingMessages.TryDequeue(out var message))
+                return message;
+        }
+        finally
+        {
+            incomingMessageLock.Release();
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///   Wait for the next server message until cancelled (or the socket breaks). Don't use this directly as there's
+    ///   a special task to do this!
+    /// </summary>
+    /// <returns>Server message or null</returns>
+    private async Task<RealTimeBuildMessage?> Receive(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var message = await communication.Receive(cancellationToken);
 
             return message;
         }
@@ -485,6 +585,9 @@ public class RunnerService : IDisposable
         }
     }
 
+    /// <summary>
+    ///   Handles sending messages and re-establishing the connection if it is lost.
+    /// </summary>
     private async Task HandleConnection(CancellationToken overallCancellation)
     {
         var cancellationToken = stopConnectionHandlingToken.Token;
@@ -637,6 +740,117 @@ public class RunnerService : IDisposable
         }
     }
 
+    /// <summary>
+    ///   Reads connection messages while the runner service is running. And makes them available in a queue.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation of the operation (will close the socket!)</param>
+    private async Task ReadConnectionMessages(CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Beginning to read server messages");
+
+        bool? connectionState = null;
+        bool firstMessage = false;
+
+        while (runConnectionHandling && !serverPermanentlyLost)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            // Get our own connection state variable before reading
+            if (connectionState == null)
+            {
+                await connectionLock.WaitAsync(cancellationToken);
+                try
+                {
+                    connectionState = communication.IsConnected;
+                }
+                catch (Exception e)
+                {
+                    logger.LogWarning(e, "Failed to read connection state");
+                    await Task.Delay(100, cancellationToken);
+                    continue;
+                }
+                finally
+                {
+                    connectionLock.Release();
+                }
+            }
+
+            if (connectionState == false)
+            {
+                // Wait for a connection to be established before reading anything
+                await Task.Delay(100, cancellationToken);
+                connectionState = null;
+                continue;
+            }
+
+            RealTimeBuildMessage? message = null;
+            try
+            {
+                message = await Receive(cancellationToken);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to read server message");
+                connectionState = null;
+
+                // Wait a bit before trying again to not print errors too fast
+                await Task.Delay(500, cancellationToken);
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                if (message != null)
+                    logger.LogWarning("We got a message of type {Type} while read is cancelled", message.Type);
+                break;
+            }
+
+            if (message == null)
+                continue;
+
+            if (firstMessage)
+            {
+                firstMessage = false;
+                logger.LogInformation("Received first message from the server and put in queue");
+            }
+
+            await incomingMessageLock.WaitAsync(cancellationToken);
+            try
+            {
+                incomingMessages.Enqueue(message);
+
+                if (incomingMessages.Count > 1000)
+                {
+                    logger.LogWarning("Incoming message queue is full, dropping some messages");
+
+                    int dropped = 0;
+
+                    while (incomingMessages.Count > 1000)
+                    {
+                        var tooLongMessage = incomingMessages.Dequeue();
+
+                        tooLongMessage = await HandleCommonMessages(tooLongMessage);
+
+                        if (tooLongMessage != null)
+                        {
+                            logger.LogWarning("Dropped a message of type {Type} from incoming message queue",
+                                tooLongMessage);
+                        }
+
+                        if (++dropped > 100)
+                            break;
+                    }
+                }
+            }
+            finally
+            {
+                incomingMessageLock.Release();
+            }
+        }
+
+        logger.LogInformation("Exiting server message reader loop");
+    }
+
     private async Task<bool> ReplyToAuthDemand()
     {
         var authResponse = new RealTimeBuildMessage
@@ -684,7 +898,17 @@ public class RunnerService : IDisposable
             // Ask for jobs from the server
             lastAskedForJobs = now;
             hasCompletedAJobSinceLastCheck = false;
-            serverNotifiedAboutNewJobs = false;
+
+            if (serverNotifiedAboutNewJobs)
+            {
+                logger.LogInformation("We reacted to notice about new jobs by asking for them");
+                serverNotifiedAboutNewJobs = false;
+            }
+            else
+            {
+                logger.LogInformation("Asking for new jobs from the server (last asked {TimeAgo})", lastAsked);
+            }
+
             if (!await SendMessage(new RealTimeBuildMessage
                 {
                     Type = BuildSectionMessageType.GetAvailableJobs,
@@ -696,29 +920,6 @@ public class RunnerService : IDisposable
         }
         else
         {
-            // If it isn't time yet to ask the server for more jobs, just wait but try to read one message each time
-            // to keep the message buffer empty.
-            // Also, if we are no longer accepting jobs, we do want to keep the message buffer empty.
-            try
-            {
-                // Our socket will break if we cancel a read, so we have to use a longer time than heartbeat duration
-                var message = await Receive(cancellationToken,
-                    TimeSpan.FromMilliseconds(useLongWaitInIdleLoop ? 180 * 1000 : 3));
-
-                message = await HandleCommonMessages(message);
-
-                if (message != null)
-                {
-                    logger.LogWarning("We got a message of type {Type} in idle state", message.Type);
-                }
-            }
-            catch (Exception e)
-            {
-                // Receive should eat the non-serious cancelled exceptions, so these should be actual problems
-                logger.LogError(e, "Failed to read server message while idle");
-                await Task.Delay(1000, cancellationToken);
-            }
-
             return;
         }
 
@@ -728,21 +929,37 @@ public class RunnerService : IDisposable
         if (!canStartNewJobs)
             throw new Exception("Shouldn't get here with start new jobs flag disabled!");
 
+        var endBy = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+
         while (true)
         {
-            var reply = await Receive(cancellationToken, TimeSpan.FromSeconds(90));
+            var reply = await ReceiveFromQueue(cancellationToken);
 
             // Don't get to an infinite loop on cancellation
             if (reply == null && cancellationToken.IsCancellationRequested)
                 return;
 
+            if (reply?.Type == BuildSectionMessageType.Error)
+            {
+                logger.LogError("We received an error when asking for jobs. Are we not authenticated? {@E}", reply);
+                await Task.Delay(200, cancellationToken);
+                continue;
+            }
+
             reply = await HandleCommonMessages(reply);
 
             // We got no info
-            if (reply == null)
+            if (reply == null && DateTime.UtcNow > endBy)
             {
                 logger.LogError("We expected to get some job info from the server, but didn't");
                 return;
+            }
+
+            if (reply == null)
+            {
+                // No reply yet, but not time to quit either, sleep a bit and then check again in the queue
+                await Task.Delay(10, cancellationToken);
+                continue;
             }
 
             if (reply.Type == BuildSectionMessageType.JobsList)
@@ -842,14 +1059,7 @@ public class RunnerService : IDisposable
                 return;
             }
 
-            if (reply.Type == BuildSectionMessageType.Error)
-            {
-                logger.LogError("We received an error when asking for jobs. Are we not authenticated? {@E}", reply);
-            }
-            else
-            {
-                logger.LogWarning("We got an unexpected message of type in idle state: {Type}", reply.Type);
-            }
+            logger.LogWarning("We got an unexpected message of type in idle state: {Type}", reply.Type);
 
             if (cancellationToken.IsCancellationRequested)
                 return;
@@ -877,13 +1087,20 @@ public class RunnerService : IDisposable
 
             while (true)
             {
-                if (cancellation.IsCancellationRequested || !canStartNewJobs)
+                // DO NOT check the can start jobs here as some tests rely on giving the list first and then
+                // disallowing further jobs, so if we get this far, we want to start a job even if someone "just" has
+                // wanted us to stop.
+                if (cancellation.IsCancellationRequested)
                     break;
 
-                var message = await Receive(cancellation.Token, TimeSpan.FromSeconds(90));
+                var message = await ReceiveFromQueue(cancellation.Token);
 
                 if (message == null)
+                {
+                    // Wait a bit before checking the queue again to save on CPU power
+                    await Task.Delay(10, cancellation.Token);
                     continue;
+                }
 
                 if (message.Type == BuildSectionMessageType.Error)
                 {
@@ -931,14 +1148,11 @@ public class RunnerService : IDisposable
         return false;
     }
 
-    private async Task GenericHandleOneServerMessage(CancellationToken cancellationToken, TimeSpan maxWait = default)
+    private async Task GenericHandleOneServerMessage(CancellationToken cancellationToken)
     {
-        if (maxWait == TimeSpan.Zero)
-            maxWait = TimeSpan.FromSeconds(90);
-
         try
         {
-            var message = await Receive(cancellationToken, maxWait);
+            var message = await ReceiveFromQueue(cancellationToken);
 
             message = await HandleCommonMessages(message);
 
@@ -1119,8 +1333,8 @@ public class RunnerService : IDisposable
             try
             {
                 // There aren't any important messages we will listen to during jobs, so we just want to keep the
-                // socket buffer empty
-                var message = await Receive(cancellationToken, TimeSpan.FromSeconds(90));
+                // buffer empty
+                var message = await ReceiveFromQueue(cancellationToken);
 
                 message = await HandleCommonMessages(message);
 
@@ -1131,6 +1345,8 @@ public class RunnerService : IDisposable
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
+
+                await Task.Delay(50, cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -1185,5 +1401,14 @@ public class RunnerService : IDisposable
         logger.LogInformation("To disable this behaviour, run with '--interactive' flag");
         StopStartingNewJobs();
         context.Cancel = true;
+    }
+
+    private void OnNewJobsReported()
+    {
+        if (!canStartNewJobs)
+            return;
+
+        serverNotifiedAboutNewJobs = true;
+        logger.LogInformation("Server notified us that there are new jobs, so we notified the main loop");
     }
 }

@@ -1,6 +1,5 @@
 namespace RevolutionaryWebApp.Server.Common.Services;
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shared.Models;
@@ -33,5 +32,5 @@ public interface IRunnerClientCommunication
     /// <returns>Task</returns>
     public Task Send(RealTimeBuildMessage message, CancellationToken cancellationToken);
 
-    public Task<RealTimeBuildMessage?> Receive(TimeSpan timeout, CancellationToken cancellationToken);
+    public Task<RealTimeBuildMessage?> Receive(CancellationToken cancellationToken);
 }

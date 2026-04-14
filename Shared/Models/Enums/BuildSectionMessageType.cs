@@ -29,11 +29,6 @@ public enum BuildSectionMessageType
     HeartBeat,
 
     /// <summary>
-    ///   Server notifies the client that there are new jobs (potentially) available
-    /// </summary>
-    NewJobsAvailable,
-
-    /// <summary>
     ///   Client requests the server to send a list of available jobs. Reply is either <see cref="JobsList"/> or
     ///   <see cref="ActiveJobDetails"/> if the client is supposed to be running a job.
     /// </summary>

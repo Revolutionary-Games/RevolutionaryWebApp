@@ -5,12 +5,14 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Threading.Tasks;
+using Common.Services;
 using Enums;
+using Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Models;
 using Shared.Notifications;
-using StackExchange.Redis;
 using Utilities;
 
 /// <summary>
@@ -109,12 +111,9 @@ public class CiJob : IUpdateNotifications, IContainsHashedLookUps
     /// </summary>
     public int OutputConnection { get; set; } = -1;
 
-    public static Task NotifyNewJobs(IConnectionMultiplexer connectionMultiplexer)
+    public static Task NotifyNewJobs(IHubContext<RunnerNotificationsHub, IRunnerNotifications> notifications)
     {
-        var subscriber = connectionMultiplexer.GetSubscriber();
-
-        return subscriber.PublishAsync(new RedisChannel(NotificationGroups.RealtimeNewJobCreatedNotification,
-            RedisChannel.PatternMode.Literal), "1");
+        return notifications.Clients.All.ReceiveNewJobNotice();
     }
 
     /// <summary>

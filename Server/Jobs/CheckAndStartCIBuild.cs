@@ -10,7 +10,10 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Models;
+using Common.Services;
 using Hangfire;
+using Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -19,7 +22,6 @@ using Services;
 using Shared;
 using Shared.Models;
 using SharedBase.Utilities;
-using StackExchange.Redis;
 using Utilities;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -31,18 +33,19 @@ public class CheckAndStartCIBuild
     private readonly IBackgroundJobClient jobClient;
     private readonly ILocalTempFileLocks localTempFileLocks;
     private readonly IGithubCommitStatusReporter statusReporter;
-    private readonly IConnectionMultiplexer connectionMultiplexer;
+    private readonly IHubContext<RunnerNotificationsHub, IRunnerNotifications> notifications;
 
     public CheckAndStartCIBuild(ILogger<CheckAndStartCIBuild> logger, NotificationsEnabledDb database,
         IBackgroundJobClient jobClient, ILocalTempFileLocks localTempFileLocks,
-        IGithubCommitStatusReporter statusReporter, IConnectionMultiplexer connectionMultiplexer)
+        IGithubCommitStatusReporter statusReporter,
+        IHubContext<RunnerNotificationsHub, IRunnerNotifications> notifications)
     {
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
         this.localTempFileLocks = localTempFileLocks;
         this.statusReporter = statusReporter;
-        this.connectionMultiplexer = connectionMultiplexer;
+        this.notifications = notifications;
     }
 
     public async Task Execute(long ciProjectId, long ciBuildId, CancellationToken cancellationToken)
@@ -219,7 +222,7 @@ public class CheckAndStartCIBuild
         try
         {
             // Let all runners know about the newly created jobs
-            await CiJob.NotifyNewJobs(connectionMultiplexer);
+            await CiJob.NotifyNewJobs(notifications);
 
             // This doesn't really do anything any more, but for future feature re-add is kept here
             jobClient.Enqueue<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None));

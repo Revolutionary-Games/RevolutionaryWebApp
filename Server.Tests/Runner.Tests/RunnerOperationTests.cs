@@ -31,7 +31,7 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
         var mockCache = new MockExecutorCache();
 
         using var service = new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(),
-            new DummyJobExecutor(false, [], []), mockCache, false);
+            new DummyJobExecutor(false, [], []), mockCache, new DummyRunnerSignalService(), false);
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
@@ -99,7 +99,7 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
 
         using var service =
             new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(), executor, mockCache,
-                false);
+                new DummyRunnerSignalService(), false);
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
@@ -194,7 +194,7 @@ public sealed class RunnerOperationTests(ITestOutputHelper output) : IDisposable
 
         using var service =
             new RunnerService(logger, communicationMock, communicationMock.GetDataForClient(), executor, mockCache,
-                false);
+                new DummyRunnerSignalService(), false);
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 

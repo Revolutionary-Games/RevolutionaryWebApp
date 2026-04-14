@@ -301,7 +301,7 @@ public class JobExecutor : IJobExecutor, IDisposable
             await output.ForwardOutputToActiveSection($"Checking out the needed ref: {ciRef} and commit: {ciCommit}\n");
 
             var folder = currentBuildRootFolder ?? throw new Exception("build root folder not set");
-            var parent = Path.GetDirectoryName(currentBuildRootFolder);
+            var parent = Path.GetDirectoryName(folder);
             if (parent != null)
                 Directory.CreateDirectory(parent);
 

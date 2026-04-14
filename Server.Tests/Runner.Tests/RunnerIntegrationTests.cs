@@ -112,14 +112,17 @@ public sealed class RunnerIntegrationTests(ITestOutputHelper output) : IDisposab
         };
 
         using var service =
-            new RunnerService(logger, communicationMock, runnerData, executor, mockCache, false);
+            new RunnerService(logger, communicationMock, runnerData, executor, mockCache,
+                new DummyRunnerSignalService(), false);
 
         var serviceShutdown = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
         var bridge = new RunnerClientAndServerMockBridge(listenerMockSetup, communicationMock);
 
-        // To safely shut down the test, ask the runner to stop once it no longer gets jobs
-        service.SetNoClientIdleMessageWait();
+        // With the refactored listening, this is probably fast enough without reimplementing this.
+        // service.SetNoClientIdleMessageWait();
+
+        // To safely shut down the test, ask the runner to stop once it no longer gets jobs.
         service.StopWhenIdle();
 
         // Start the runner

@@ -509,6 +509,7 @@ public class Startup
             endpoints.MapRazorPages();
             endpoints.MapControllers();
             endpoints.MapHub<NotificationsHub>("/notifications");
+            endpoints.MapHub<RunnerNotificationsHub>("/runnerNotifications");
 
             // Fallback to 404 for non-existent API routes
             endpoints.Map("/api/{*anything}", context =>

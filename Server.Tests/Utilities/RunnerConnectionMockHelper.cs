@@ -119,7 +119,7 @@ public class RunnerConnectionMockHelper
             return Task.CompletedTask;
         });
 
-        socket.Read(Arg.Any<CancellationToken>(), Arg.Any<CancellationToken>()).Returns(async call =>
+        socket.Read(Arg.Any<CancellationToken>()).Returns(async call =>
         {
             // We need to emulate socket cancellation for all tests to be able to pass
             var cancellation = call.ArgAt<CancellationToken>(0);

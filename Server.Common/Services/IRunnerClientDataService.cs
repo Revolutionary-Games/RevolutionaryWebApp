@@ -14,6 +14,8 @@ public interface IRunnerClientDataService
 
     public string ServerUrl { get; }
 
+    public string ServerSignalUrl { get; }
+
     public long MaxCacheSize { get; }
 
     /// <summary>
@@ -33,6 +35,7 @@ public class RunnerClientDataServiceObjet : IRunnerClientDataService
     public string SecretKey { get; set; } = string.Empty;
 
     public string ServerUrl { get; set; } = "https://dev.revolutionarygamesstudio.com/runnerConnection";
+    public string ServerSignalUrl { get; set; } = "https://dev.revolutionarygamesstudio.com/runnerNotifications";
 
     public long MaxCacheSize { get; set; }
 

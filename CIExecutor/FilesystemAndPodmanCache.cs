@@ -140,7 +140,7 @@ public sealed class FilesystemAndPodmanCache : IExecutorCache, IDisposable
         if (cacheInfo.UsedImages.Count == count)
             return Task.CompletedTask;
 
-        logger.LogInformation("Added podman image {Name} to used images, now {Count}", name,
+        logger.LogInformation("Added podman image {Name} to used images, now {Count} in total", name,
             cacheInfo.UsedImages.Count);
         savedInfo = false;
 

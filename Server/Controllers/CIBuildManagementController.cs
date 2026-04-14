@@ -5,15 +5,17 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using Common.Services;
 using Hangfire;
+using Hubs;
 using Jobs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared.Models;
 using Shared.Models.Enums;
-using StackExchange.Redis;
 using Utilities;
 
 /// <summary>
@@ -27,15 +29,15 @@ public class CIBuildManagementController : Controller
     private readonly ILogger<CIBuildManagementController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
-    private readonly IConnectionMultiplexer connectionMultiplexer;
+    private readonly IHubContext<RunnerNotificationsHub, IRunnerNotifications> notifications;
 
     public CIBuildManagementController(ILogger<CIBuildManagementController> logger, NotificationsEnabledDb database,
-        IBackgroundJobClient jobClient, IConnectionMultiplexer connectionMultiplexer)
+        IBackgroundJobClient jobClient, IHubContext<RunnerNotificationsHub, IRunnerNotifications> notifications)
     {
         this.logger = logger;
         this.database = database;
         this.jobClient = jobClient;
-        this.connectionMultiplexer = connectionMultiplexer;
+        this.notifications = notifications;
     }
 
     [HttpPost("{projectId:long}/{buildId:long}/jobs/{jobId:long}/cancel")]
@@ -179,7 +181,7 @@ public class CIBuildManagementController : Controller
         await database.SaveChangesAsync();
 
         // Notify about the new jobs
-        await CiJob.NotifyNewJobs(connectionMultiplexer);
+        await CiJob.NotifyNewJobs(notifications);
         jobClient.Enqueue<HandleControlledServerJobsJob>(x => x.Execute(CancellationToken.None));
 
         return Ok();
