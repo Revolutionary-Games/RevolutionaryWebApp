@@ -504,10 +504,17 @@ public class RunnerConnectionMockHelper
         return messageQueue.Count;
     }
 
-    public bool TryDequeueServerMessage(out RealTimeBuildMessage? message, out bool closedState)
+    public bool TryDequeueServerMessage(out RealTimeBuildMessage? message, out bool closedState,
+        bool ignoreHeartbeat = true)
     {
         if (serverOutgoingQueue.TryDequeue(out var dequeued))
         {
+            // Recursively call until we get a non-heartbeat message if we are ignoring those
+            if (ignoreHeartbeat && dequeued.Message?.Type == BuildSectionMessageType.HeartBeat)
+            {
+                return TryDequeueServerMessage(out message, out closedState, ignoreHeartbeat);
+            }
+
             closedState = dequeued.Closed;
             message = dequeued.Message;
             return true;
