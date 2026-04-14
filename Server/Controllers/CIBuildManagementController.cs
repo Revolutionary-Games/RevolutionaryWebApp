@@ -140,8 +140,17 @@ public class CIBuildManagementController : Controller
         if (toRerun.Count < 1)
             return BadRequest("Nothing needs to rerun");
 
+        int cannotRun = 0;
+        bool anySucceeded = false;
+
         foreach (var jobToRerun in toRerun)
         {
+            if (string.IsNullOrWhiteSpace(jobToRerun.CacheSettingsJson))
+            {
+                ++cannotRun;
+                continue;
+            }
+
             var newJob = new CiJob
             {
                 CiProjectId = jobToRerun.CiProjectId,
@@ -154,6 +163,15 @@ public class CIBuildManagementController : Controller
             };
 
             await database.CiJobs.AddAsync(newJob);
+            anySucceeded = true;
+        }
+
+        if (cannotRun > 0)
+            logger.LogInformation("Cannot rerun {Count} jobs because they don't have cache settings", cannotRun);
+
+        if (!anySucceeded)
+        {
+            return BadRequest("Cannot re-run jobs that no longer have cache settings");
         }
 
         CiJob.DeleteJobs(database, toRerun);
