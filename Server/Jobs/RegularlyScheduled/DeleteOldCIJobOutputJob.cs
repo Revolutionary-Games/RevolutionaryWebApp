@@ -61,6 +61,8 @@ public class DeleteOldCIJobOutputJob : IJob
                     job.CiProjectId, job.CiBuildId, job.CiJobId);
             }
 
+            // This should not be re-run any more, so safe to remove the cache settings data to save space
+            job.CacheSettingsJson = null;
             job.OutputPurged = true;
 
             if (cancellationToken.IsCancellationRequested)
