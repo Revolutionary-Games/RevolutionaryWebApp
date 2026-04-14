@@ -113,7 +113,8 @@ public class RemoteServerHandler
         }
     }
 
-    public async Task<bool> HandleCIJobs(List<CiJob> ciJobsNeedingActions)
+    // ReSharper disable once UnusedMethodReturnValue.Global
+    public Task<bool> HandleCIJobs(List<CiJob> ciJobsNeedingActions)
     {
         // TODO: add this back if needed in the future
         _ = ciJobsNeedingActions;
@@ -163,7 +164,7 @@ public class RemoteServerHandler
             return true;*/
 
         // Pretend all is fine
-        return true;
+        return Task.FromResult(true);
 
         /*
         // Exit if we can't manage the EC2 servers. And return false so that re-check happens when we might have
