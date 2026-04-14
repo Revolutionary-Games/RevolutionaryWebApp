@@ -490,8 +490,14 @@ public class Startup
 
                 if (handler != null)
                 {
+                    // Need to also shutdown on application shutdown to not leave these hanging
+                    var lifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
+
+                    using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                        context.RequestAborted, lifetime.ApplicationStopping);
+
                     // Need to keep the handler alive until the connection is done, otherwise it will abruptly close
-                    await handler.WaitUntilClosed(context.RequestAborted);
+                    await handler.WaitUntilClosed(linkedCancellation.Token);
                 }
             }
             else
