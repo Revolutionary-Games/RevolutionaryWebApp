@@ -230,6 +230,7 @@ public class RunnerService : IDisposable
                 else
                 {
                     ++idleLoops;
+                    bool anyMessages = false;
 
                     try
                     {
@@ -239,9 +240,14 @@ public class RunnerService : IDisposable
                             var message = await ReceiveFromQueue(cancellationToken);
 
                             if (message == null)
+                            {
+                                if (!anyMessages)
+                                    await Task.Delay(10, cancellationToken);
                                 break;
+                            }
 
                             message = await HandleCommonMessages(message);
+                            anyMessages = true;
 
                             if (message != null)
                             {
@@ -253,6 +259,13 @@ public class RunnerService : IDisposable
                     {
                         logger.LogError(e, "Failed to read server message while idle");
                         await Task.Delay(100, cancellationToken);
+                    }
+
+                    // Save extra CPU when the runner doesn't need to be doing anything
+                    if (idleLoops > 20)
+                    {
+                        var extraWait = Math.Clamp(idleLoops * 10, 100, 1000);
+                        await Task.Delay(extraWait, cancellationToken);
                     }
                 }
 
