@@ -224,7 +224,6 @@ public class RunnerService : IDisposable
                     logger.LogInformation("Finished performing job in the job run state");
 
                     // As we processed a job, we will want a new one right away
-                    serverNotifiedAboutNewJobs = true;
                     hasCompletedAJobSinceLastCheck = true;
                     idleLoops = 0;
                 }
@@ -892,7 +891,7 @@ public class RunnerService : IDisposable
         // We have a bunch of conditions here to ensure we don't ask the server too often for jobs, but that we do
         // ask the server for new jobs if we have completed a job since the last check to run them quickly
         var lastAsked = now - lastAskedForJobs;
-        if (canStartNewJobs && (lastAsked > TimeSpan.FromSeconds(500) ||
+        if (canStartNewJobs && (lastAsked > TimeSpan.FromSeconds(300) ||
                 (serverNotifiedAboutNewJobs && lastAsked > TimeSpan.FromSeconds(10)) || hasCompletedAJobSinceLastCheck))
         {
             // Ask for jobs from the server
