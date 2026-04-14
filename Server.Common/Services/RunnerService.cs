@@ -163,6 +163,9 @@ public class RunnerService : IDisposable
 
             var endConnectionAttempt = DateTime.UtcNow + TimeSpan.FromMinutes(10);
 
+            logger.LogInformation("Beginning connection attempts, initial reads may fail for a little bit until the " +
+                "socket is established");
+
             // Wait for initial connection
             while (true)
             {
@@ -454,7 +457,7 @@ public class RunnerService : IDisposable
         TimeSpan maxWaitTime = default)
     {
         if (maxWaitTime == TimeSpan.Zero)
-            maxWaitTime = TimeSpan.FromSeconds(60);
+            maxWaitTime = TimeSpan.FromSeconds(500);
 
         try
         {
@@ -686,11 +689,12 @@ public class RunnerService : IDisposable
         {
             // If it isn't time yet to ask the server for more jobs, just wait but try to read one message each time
             // to keep the message buffer empty.
-            // Also if we are no longer accepting jobs, we do want to keep the message buffer empty.
+            // Also, if we are no longer accepting jobs, we do want to keep the message buffer empty.
             try
             {
+                // Our socket will break if we cancel a read, so we have to use a longer time than heartbeat duration
                 var message = await Receive(cancellationToken,
-                    TimeSpan.FromMilliseconds(useLongWaitInIdleLoop ? 1000 : 3));
+                    TimeSpan.FromMilliseconds(useLongWaitInIdleLoop ? 180 * 1000 : 3));
 
                 message = await HandleCommonMessages(message);
 

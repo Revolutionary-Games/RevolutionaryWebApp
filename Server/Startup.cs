@@ -483,10 +483,16 @@ public class Startup
                 }
 
                 // TODO: should the connection multiplexer be only gotten from the service scope here?
-                await RunnerConnectionHandler.HandleHttpConnection(context,
+                var handler = await RunnerConnectionHandler.HandleHttpConnection(context,
                     app.ApplicationServices.GetRequiredService<IServiceScopeFactory>(),
                     app.ApplicationServices.GetRequiredService<IConnectionMultiplexer>(),
                     new HttpContextMessageSocketFactory(context), true);
+
+                if (handler != null)
+                {
+                    // Need to keep the handler alive until the connection is done, otherwise it will abruptly close
+                    await handler.WaitUntilClosed(context.RequestAborted);
+                }
             }
             else
             {
