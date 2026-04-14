@@ -159,7 +159,7 @@ public class RunnerService : IDisposable
         try
         {
             // Set up a task that handles our connection state
-            var connectionTask = HandleConnection();
+            var connectionTask = HandleConnection(cancellationToken);
 
             var endConnectionAttempt = DateTime.UtcNow + TimeSpan.FromMinutes(10);
 
@@ -485,7 +485,7 @@ public class RunnerService : IDisposable
         }
     }
 
-    private async Task HandleConnection()
+    private async Task HandleConnection(CancellationToken overallCancellation)
     {
         var cancellationToken = stopConnectionHandlingToken.Token;
 
@@ -505,7 +505,8 @@ public class RunnerService : IDisposable
                 {
                     connectionIsSafeForNormalMessages = false;
 
-                    if (serverPermanentlyLost)
+                    if (serverPermanentlyLost || cancellationToken.IsCancellationRequested ||
+                        overallCancellation.IsCancellationRequested)
                     {
                         logger.LogWarning("Server connection lost, stopping runner service");
                         run = false;
