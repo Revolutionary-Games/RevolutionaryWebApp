@@ -97,8 +97,10 @@ public class Program
         using var cache =
             new FilesystemAndPodmanCache(new ConsoleCategoryLogger<FilesystemAndPodmanCache>(), cacheFolder);
 
+        // Add the access key to the URL so that we can connect
         using var communication =
-            new RunnerClientWebsocket(new ConsoleCategoryLogger<RunnerClientWebsocket>(), options.ServerUrl);
+            new RunnerClientWebsocket(new ConsoleCategoryLogger<RunnerClientWebsocket>(),
+                options.ServerUrl + "?runnerId=" + options.ConnectionKey);
 
         var runnerService = new RunnerService(new ConsoleCategoryLogger<RunnerService>(), communication, options,
             executor, cache, !options.InteractiveMode);
