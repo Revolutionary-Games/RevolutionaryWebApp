@@ -490,14 +490,12 @@ public class Startup
 
                 if (handler != null)
                 {
-                    // Need to also shutdown on application shutdown to not leave these hanging
+                    // I think we need to only close on application close here; otherwise we will cancel an
+                    // existing socket
                     var lifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
 
-                    using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                        context.RequestAborted, lifetime.ApplicationStopping);
-
                     // Need to keep the handler alive until the connection is done, otherwise it will abruptly close
-                    await handler.WaitUntilClosed(linkedCancellation.Token);
+                    await handler.WaitUntilClosed(lifetime.ApplicationStopping);
                 }
             }
             else
