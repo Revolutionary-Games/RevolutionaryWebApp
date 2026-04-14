@@ -427,6 +427,9 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(d => d.ReservedByRunner).WithOne(p => p.ReservedJob).OnDelete(DeleteBehavior.SetNull);
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
+
+            // Try to force this to be allowed to be null
+            entity.Property(e => e.CacheSettingsJson).IsRequired(false).HasDefaultValue(null);
         });
 
         modelBuilder.Entity<CiJobArtifact>(entity =>
