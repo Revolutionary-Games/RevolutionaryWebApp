@@ -2,7 +2,6 @@ namespace RevolutionaryWebApp.Shared.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Net;
 using DevCenterCommunication.Models;
 
 public class RemoteRunnerDTO(string name) : ClientSideTimedModel
@@ -26,7 +25,7 @@ public class RemoteRunnerDTO(string name) : ClientSideTimedModel
 
     public DateTime? LastHeartbeat { get; set; }
 
-    public IPAddress? LastIpAddress { get; set; }
+    public string? LastIpAddress { get; set; }
 
     public int CurrentConnectionId { get; set; }
 

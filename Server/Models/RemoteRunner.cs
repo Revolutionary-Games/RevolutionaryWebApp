@@ -110,7 +110,7 @@ public class RemoteRunner : UpdateableModel, IDTOCreator<RemoteRunnerDTO>, IUpda
             Tags = Tags,
             Description = Description,
             LastHeartbeat = LastHeartbeat,
-            LastIpAddress = LastIpAddress,
+            LastIpAddress = LastIpAddress?.ToString(),
             CurrentConnectionId = CurrentConnectionId,
             LastTriggeredError = LastTriggeredError,
             ReservedJobId = ReservedJob != null ? $"{ReservedJob.CiBuildId}-{ReservedJob.CiJobId}" : null,

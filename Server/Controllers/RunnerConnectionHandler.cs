@@ -140,6 +140,8 @@ public class RunnerConnectionHandler : IDisposable
         var database = setupScope.ServiceProvider.GetRequiredService<NotificationsEnabledDb>();
         var logger = setupScope.ServiceProvider.GetRequiredService<ILogger<RunnerConnectionHandler>>();
 
+        var remoteAddress = context.Connection.RemoteIpAddress;
+
         var runner = await database.RemoteRunners.WhereHashed(nameof(RemoteRunner.AccessId), key.ToString())
             .AsAsyncEnumerable().FirstOrDefaultAsync(r => r.AccessId == key);
 
@@ -262,6 +264,7 @@ public class RunnerConnectionHandler : IDisposable
         int connectionId = new Random().Next();
 
         runner.CurrentConnectionId = connectionId;
+        runner.LastIpAddress = remoteAddress;
 
         // Need to save the data here to make sure the runner state is saved properly
         try
@@ -304,7 +307,7 @@ public class RunnerConnectionHandler : IDisposable
 
         logger.LogInformation(
             "Accepted runner connection from {RemoteIpAddress} ({Connection}) for runner {Id} ({Name})",
-            context.Connection.RemoteIpAddress, connectionId, runner.Id, runner.Name);
+            remoteAddress, connectionId, runner.Id, runner.Name);
 
         try
         {
