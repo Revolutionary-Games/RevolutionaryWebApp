@@ -658,10 +658,11 @@ public class RunnerConnectionHandler : IDisposable
 
     private async Task SetupRedisListeners()
     {
-        await subscriber.SubscribeAsync(new RedisChannel(NotificationGroups.RealtimeNewJobCreatedNotification,
+        /*await subscriber.SubscribeAsync(new RedisChannel(NotificationGroups.RealtimeNewJobCreatedNotification,
                 RedisChannel.PatternMode.Literal),
             (_, _) =>
             {
+                // TODO: cancelling a socket read will just fail it entirely, so this current cannot work correctly!!
                 cancelSetup.Wait();
                 try
                 {
@@ -672,7 +673,7 @@ public class RunnerConnectionHandler : IDisposable
                 {
                     cancelSetup.Release();
                 }
-            });
+            });*/
 
         // Listener for detecting other connection opening for the same runner, and we should need to flush
         await subscriber.SubscribeAsync(
