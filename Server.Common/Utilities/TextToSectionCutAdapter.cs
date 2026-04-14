@@ -87,7 +87,7 @@ public class TextToSectionCutAdapter : IDisposable
                         HadFailure = true;
 
                     await nextStep.CloseSection(success);
-                    hasOpenSection = true;
+                    hasOpenSection = false;
                     break;
                 }
 
@@ -96,7 +96,7 @@ public class TextToSectionCutAdapter : IDisposable
                     var sectionName = parts.Length > 2 ? parts[2] : "Unnamed Section";
 
                     await nextStep.OpenNewSection(sectionName);
-                    hasOpenSection = false;
+                    hasOpenSection = true;
                     break;
                 }
 
