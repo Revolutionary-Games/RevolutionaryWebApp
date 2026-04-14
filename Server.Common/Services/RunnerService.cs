@@ -503,6 +503,8 @@ public class RunnerService : IDisposable
             {
                 if (!communication.IsConnected)
                 {
+                    // Reset this flag once we see a disconnection
+                    expectingDisconnect = false;
                     connectionIsSafeForNormalMessages = false;
 
                     if (serverPermanentlyLost || cancellationToken.IsCancellationRequested ||
@@ -520,6 +522,7 @@ public class RunnerService : IDisposable
                     try
                     {
                         await communication.Connect(combined.Token);
+                        expectingDisconnect = false;
                     }
                     catch (Exception e)
                     {
@@ -760,7 +763,8 @@ public class RunnerService : IDisposable
                             j.RequiredRunnerTags != null && j.RequiredRunnerTags.Split(';').Contains("safe")).ToList();
 
                         var newCount = jobs.Jobs.Count;
-                        logger.LogInformation($"Filtered {oldCount - newCount} jobs to safe only mode");
+                        logger.LogInformation(
+                            $"Filtered {oldCount - newCount} jobs to safe only mode. {newCount} left to consider.");
                         jobs.FilteredCount += oldCount - newCount;
                     }
                 }
@@ -790,6 +794,7 @@ public class RunnerService : IDisposable
 
                 try
                 {
+                    logger.LogInformation("We will try to start a job...");
                     if (!await TryToStartJob(potentialJobs, cancellationToken))
                     {
                         logger.LogError("Failed to start a job after getting {Count} jobs from the server",
@@ -812,6 +817,16 @@ public class RunnerService : IDisposable
                     "however we are in a state where we no longer have the job data");
 
                 // We don't actually need to know anything about the job, so we just cancel here
+
+                // We can't send this as we don't know the active section...
+                /*if (!await SendMessage(new RealTimeBuildMessage
+                    {
+                        Output = "This runner had restarted and no longer knows about this job\n",
+                        Type = BuildSectionMessageType.BuildOutput,
+                    }, TimeSpan.FromSeconds(60)))
+                {
+                    logger.LogError("We failed to tell the server we cannot work on a job anymore");
+                }*/
 
                 // So we want to tell the server that we cannot perform the job
                 if (!await SendMessage(new RealTimeBuildMessage
@@ -862,7 +877,7 @@ public class RunnerService : IDisposable
 
             while (true)
             {
-                if (cancellation.IsCancellationRequested)
+                if (cancellation.IsCancellationRequested || !canStartNewJobs)
                     break;
 
                 var message = await Receive(cancellation.Token, TimeSpan.FromSeconds(90));
