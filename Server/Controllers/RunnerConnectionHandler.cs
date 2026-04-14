@@ -1434,9 +1434,16 @@ public class RunnerConnectionHandler : IDisposable
                      SET output = output || {text}, output_length = output_length + {length} 
                      WHERE ci_project_id = {activeOutputSection.CiProjectId} 
                        AND ci_build_id = {activeOutputSection.CiBuildId} AND ci_job_id = {activeOutputSection.CiJobId}
+                       AND ci_job_output_section_id = {activeOutputSection.CiJobOutputSectionId}
                  """;
 
-            await db.Database.ExecuteSqlInterpolatedAsync(formattable, cancellationToken);
+            var affected = await db.Database.ExecuteSqlInterpolatedAsync(formattable, cancellationToken);
+
+            if (affected != 1)
+            {
+                logger?.LogError("Expected one row to be updated but got {affected} when appending output text",
+                    affected);
+            }
         }
         else
         {
