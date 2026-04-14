@@ -477,7 +477,7 @@ public class RunnerService : IDisposable
             logger.LogError(e, "Failed to receive message");
 
             // Wait a bit so that the connection handler probably starts to do a reconnection
-            await Task.Delay(100, CancellationToken.None);
+            await Task.Delay(150, CancellationToken.None);
             return null;
         }
     }
