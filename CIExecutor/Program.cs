@@ -167,7 +167,7 @@ public class Program
         public bool QuitOnIdle { get; set; }
 
         [Option('d', "disk", HelpText = "Max disk usage for local caches.")]
-        public long MaxCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 130;
+        public long MaxCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 90;
 
         // TODO: implement cache retaining
         // public long KeepCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 5;
