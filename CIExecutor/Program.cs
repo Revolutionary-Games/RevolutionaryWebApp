@@ -151,7 +151,7 @@ public class Program
         public bool QuitOnIdle { get; set; }
 
         [Option('d', "disk", HelpText = "Max disk usage for local caches.")]
-        public long MaxCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 150;
+        public long MaxCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 130;
 
         // TODO: implement cache retaining
         // public long KeepCacheSize { get; set; } = (long)GlobalConstants.GIBIBYTE * 5;
@@ -159,7 +159,7 @@ public class Program
         public long KeepCacheSize { get; set; } = 0;
 
         [Option('p', "prune-cache-fraction", HelpText = "How big fraction of the cache size in use causes pruning.")]
-        public float PruneCacheAfterSizeFraction { get; set; } = 0.8f;
+        public float PruneCacheAfterSizeFraction { get; set; } = 0.75f;
 
         [Option('c', "cache", HelpText = "Specifies where to put caches. Defaults to current user home")]
         public string? CacheLocation { get; set; }
