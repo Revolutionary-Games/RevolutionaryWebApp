@@ -71,6 +71,8 @@ public class JobExecutor : IJobExecutor, IDisposable
 
     public bool Verbose { get; set; }
 
+    public bool CreateStatusSection { get; set; }
+
     public async Task<bool> ExecuteJobAsync(CiJobCacheConfigurationEnriched cacheConfiguration, CIJobDTO jobDTO,
         IRunnerClientDataService dataService, IJobOutputForwarder jobOutput, IExecutorCache cache,
         CancellationToken cancellationToken)
@@ -636,14 +638,21 @@ public class JobExecutor : IJobExecutor, IDisposable
                 await output.ForwardOutputToActiveSection("Error, failed to flush output\n");
             }
 
-            if (!output.HasOpenSection)
-                await output.OpenNewSection("Build Status Section");
+            if (CreateStatusSection)
+            {
+                if (!output.HasOpenSection)
+                    await output.OpenNewSection("Build Status Section");
 
-            await output.ForwardOutputToActiveSection(result ?
-                "Build commands succeeded\n" :
-                "Build commands failed\n");
+                await output.ForwardOutputToActiveSection(result ?
+                    "Build commands succeeded\n" :
+                    "Build commands failed\n");
 
-            await output.CloseSection(result);
+                await output.CloseSection(result);
+            }
+            else if (output.HasOpenSection)
+            {
+                await output.CloseSection(result);
+            }
         }
         catch (Exception e)
         {
