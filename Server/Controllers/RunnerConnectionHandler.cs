@@ -869,6 +869,13 @@ public class RunnerConnectionHandler : IDisposable
                     isScopeRefreshBlocked = false;
                 }
 
+                // Reply with something so that the client read can end quickly, and as for success we don't have a
+                // special message, we just send a heartbeat here
+                await ReplyToClient(new RealTimeBuildMessage
+                {
+                    Type = BuildSectionMessageType.HeartBeat,
+                }, processingMaxTime.Token);
+
                 break;
             }
 

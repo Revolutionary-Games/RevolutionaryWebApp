@@ -469,7 +469,10 @@ public class RunnerService : IDisposable
         }
         catch (OperationCanceledException)
         {
-            logger.LogDebug("Timed out waiting for server message / we were interrupted (non serious)");
+            // Due to server heartbeats this shouldn't happen
+            logger.LogWarning(
+                "Timed out waiting for server message / we were interrupted, this likely closed the socket!");
+            await Task.Delay(100, CancellationToken.None);
             return null;
         }
         catch (Exception e)
@@ -723,7 +726,7 @@ public class RunnerService : IDisposable
 
         while (true)
         {
-            var reply = await Receive(cancellationToken, TimeSpan.FromSeconds(30));
+            var reply = await Receive(cancellationToken, TimeSpan.FromSeconds(90));
 
             // Don't get to an infinite loop on cancellation
             if (reply == null && cancellationToken.IsCancellationRequested)
@@ -861,7 +864,7 @@ public class RunnerService : IDisposable
                 if (cancellation.IsCancellationRequested)
                     break;
 
-                var message = await Receive(cancellation.Token, TimeSpan.FromSeconds(30));
+                var message = await Receive(cancellation.Token, TimeSpan.FromSeconds(90));
 
                 if (message == null)
                     continue;
@@ -915,7 +918,7 @@ public class RunnerService : IDisposable
     private async Task GenericHandleOneServerMessage(CancellationToken cancellationToken, TimeSpan maxWait = default)
     {
         if (maxWait == TimeSpan.Zero)
-            maxWait = TimeSpan.FromSeconds(15);
+            maxWait = TimeSpan.FromSeconds(90);
 
         try
         {
@@ -963,7 +966,6 @@ public class RunnerService : IDisposable
 
         runActiveJobOutput = false;
         await readCancellation.CancelAsync();
-        await readTask;
 
         var finalWait = new CancellationTokenSource(TimeSpan.FromMinutes(3));
 
@@ -997,6 +999,12 @@ public class RunnerService : IDisposable
         // And then we clear the active job
         activeJob = null;
         jobCacheConfiguration = null;
+
+        // TODO: this is now a bit cumbersome design, so we probably could have just a persistent read task that puts
+        // important messages to a local queue that can be read when needed
+        logger.LogInformation("Waiting for read message loop to complete");
+        await readTask;
+
         logger.LogInformation("Finalized running a task, returning to normal state");
     }
 
@@ -1096,7 +1104,7 @@ public class RunnerService : IDisposable
             {
                 // There aren't any important messages we will listen to during jobs, so we just want to keep the
                 // socket buffer empty
-                var message = await Receive(cancellationToken, TimeSpan.FromSeconds(60));
+                var message = await Receive(cancellationToken, TimeSpan.FromSeconds(90));
 
                 message = await HandleCommonMessages(message);
 
