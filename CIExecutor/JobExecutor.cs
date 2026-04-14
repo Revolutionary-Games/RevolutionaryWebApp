@@ -511,6 +511,8 @@ public class JobExecutor : IJobExecutor, IDisposable
     {
         Directory.CreateDirectory(PathParser.GetParentPath(ciImageFile));
 
+        logger.LogInformation("Beginning download of build environment image");
+
         await output.OnProcessOutputLine("Build environment image doesn't exist locally, downloading...");
 
         if (string.IsNullOrWhiteSpace(imageDownloadUrl))
