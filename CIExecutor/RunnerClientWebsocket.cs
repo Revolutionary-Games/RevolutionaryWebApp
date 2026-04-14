@@ -129,9 +129,17 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
         if (protocolSocket == null || !IsConnected)
             throw new InvalidOperationException("Socket is not connected");
 
+        CancellationToken effectiveCancellation = cancellationToken;
+
+        if (timeout != TimeSpan.Zero)
+        {
+            effectiveCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken,
+                new CancellationTokenSource(timeout).Token).Token;
+        }
+
         try
         {
-            var (message, closed) = await protocolSocket.Read(cancellationToken);
+            var (message, closed) = await protocolSocket.Read(effectiveCancellation);
 
             if (closed)
             {
@@ -142,6 +150,12 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
 
             LatestErrorCount = 0;
             return message;
+        }
+        catch (OperationCanceledException)
+        {
+            // The websocket dies when cancelling the read...
+            IsConnected = false;
+            throw;
         }
         catch (WebSocketProtocolException e)
         {
