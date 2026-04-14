@@ -262,6 +262,12 @@ public class RunnerConnectionHandler : IDisposable
         // Client is authenticated; they are the runner they say they are
         int connectionId = new Random().Next();
 
+        // Make sure we generate a new ID
+        while (connectionId == runner.CurrentConnectionId)
+        {
+            connectionId = new Random().Next();
+        }
+
         runner.CurrentConnectionId = connectionId;
         runner.LastIpAddress = remoteAddress;
 
