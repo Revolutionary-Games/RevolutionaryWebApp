@@ -1272,8 +1272,7 @@ public class RunnerConnectionHandler : IDisposable
         BufferTextOutputIfSectionOpen("Section not closed by runner!");
         await TryFinishCurrentSection(new RealTimeBuildMessage
         {
-            // TODO: should this be false?
-            WasSuccessful = true,
+            WasSuccessful = finalData.WasSuccessful,
             Type = BuildSectionMessageType.SectionEnd,
         }, cancellationToken, true);
 
@@ -1300,7 +1299,14 @@ public class RunnerConnectionHandler : IDisposable
                 throw new Exception("Job already finished while we were doing conflict resolution");
 
             activeJob.State = CIJobState.Finished;
-            activeJob.CacheSettingsJson = null;
+
+            // Very important to not clear cache settings on failure to allow re-running
+            /*if (finalData.WasSuccessful)
+            {
+                logger?.LogInformation("Clearing job cache settings as it was successful");
+                activeJob.CacheSettingsJson = null;
+            }*/
+
             activeJob.FinishedAt = DateTime.UtcNow;
             activeJob.Succeeded = finalData.WasSuccessful;
 
