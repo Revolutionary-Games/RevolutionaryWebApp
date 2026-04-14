@@ -95,6 +95,8 @@ public class RunnerConnectionHandler : IDisposable
     private CiJobOutputSection? activeClientOutputSection;
     private DateTime lastSendToClient = DateTime.MinValue;
 
+    private DateTime lastHeartbeatToClient = DateTime.MinValue;
+
     private RunnerConnectionHandler(IRealTimeBuildMessageSocket socket, IServiceScopeFactory scopeFactory,
         long runnerId, int connectionId, ISubscriber subscriber, int prioritySeconds, bool useSql)
     {
@@ -362,6 +364,15 @@ public class RunnerConnectionHandler : IDisposable
             return;
 
         await mainRunTask.WaitAsync(timeout);
+        mainRunTask = null;
+    }
+
+    public async Task WaitUntilClosed(CancellationToken cancellation)
+    {
+        if (mainRunTask == null)
+            return;
+
+        await mainRunTask.WaitAsync(cancellation);
         mainRunTask = null;
     }
 
@@ -988,6 +999,17 @@ public class RunnerConnectionHandler : IDisposable
             }
 
             case BuildSectionMessageType.HeartBeat:
+            {
+                // Reply to the heartbeat if it's been more than 10 seconds since we did so
+                if (DateTime.UtcNow - lastHeartbeatToClient > TimeSpan.FromSeconds(10))
+                {
+                    await ReplyToClient(new RealTimeBuildMessage
+                    {
+                        Type = BuildSectionMessageType.HeartBeat,
+                    }, processingMaxTime.Token);
+                    lastHeartbeatToClient = DateTime.UtcNow;
+                }
+
                 // We got a heartbeat, so update the data
                 await UpdateRunnerModelData(runner =>
                 {
@@ -995,6 +1017,7 @@ public class RunnerConnectionHandler : IDisposable
                     runner.BumpUpdatedAt();
                 }, processingMaxTime.Token);
                 break;
+            }
 
             case BuildSectionMessageType.AuthResponse:
                 logger?.LogWarning("Runner sent an auth response but we weren't expecting one");
