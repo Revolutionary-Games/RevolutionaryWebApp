@@ -301,7 +301,9 @@ public class JobExecutor : IJobExecutor, IDisposable
             await output.ForwardOutputToActiveSection($"Checking out the needed ref: {ciRef} and commit: {ciCommit}\n");
 
             var folder = currentBuildRootFolder ?? throw new Exception("build root folder not set");
-            Directory.CreateDirectory(currentBuildRootFolder);
+            var parent = Path.GetDirectoryName(currentBuildRootFolder);
+            if (parent != null)
+                Directory.CreateDirectory(parent);
 
             // LFS is skipped here as this has caused a lot of extra bandwidth
             await GitRunHelpers.EnsureRepoIsCloned(ciOrigin, folder, true, cancellationToken);
