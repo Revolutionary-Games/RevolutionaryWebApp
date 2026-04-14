@@ -79,5 +79,7 @@ public sealed class ProgramTerminationController : IDisposable
             cts.Cancel();
             context.Cancel = true;
         }
+
+        Console.WriteLine("Received SIGTERM, will try to quit ASAP...");
     }
 }
