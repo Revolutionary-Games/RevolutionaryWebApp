@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using Enums;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -14,7 +15,7 @@ using Utilities;
 /// <summary>
 ///   Info about a remote runner that runs CI jobs.
 /// </summary>
-public class RemoteRunner : UpdateableModel, IDTOCreator<RemoteRunnerDTO>, IUpdateNotifications
+public class RemoteRunner : UpdateableModel, IDTOCreator<RemoteRunnerDTO>, IUpdateNotifications, IContainsHashedLookUps
 {
     public RemoteRunner(string name)
     {
