@@ -130,7 +130,7 @@ public class CIBuildManagementController : Controller
             return Ok("No jobs in this build, trying to re-run repo scan");
         }
 
-        // Delete the jobs we are going to rerun
+        // Delete the jobs we are going to rerun.
         // But first we need to grab the information from them needed to rerun the jobs (as we don't want to
         // re-check the repo here)
         long nextJobId = build.CiJobs.Max(j => j.CiJobId);
