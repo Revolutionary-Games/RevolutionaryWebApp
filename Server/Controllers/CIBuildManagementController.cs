@@ -150,6 +150,7 @@ public class CIBuildManagementController : Controller
                 JobName = jobToRerun.JobName,
                 Image = jobToRerun.Image,
                 CacheSettingsJson = jobToRerun.CacheSettingsJson,
+                RequiredRunnerTags = jobToRerun.RequiredRunnerTags,
             };
 
             await database.CiJobs.AddAsync(newJob);
