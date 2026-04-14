@@ -52,7 +52,7 @@ public class RunnerSignalR : IRunnerSignalService
             await TryStartWithReconnectLoopAsync(CancellationToken.None);
         };
 
-        connection.On<string>(nameof(IRunnerNotifications.ReceiveNewJobNotice), async _ =>
+        connection.On(nameof(IRunnerNotifications.ReceiveNewJobNotice), async () =>
         {
             try
             {
