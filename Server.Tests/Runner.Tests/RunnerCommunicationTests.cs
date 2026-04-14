@@ -983,6 +983,12 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         });
         await listenerMockSetup.WaitUntilQueueEmpty();
 
+        // Check that the runner has the job in the right state, and it should see it again
+        var jobToResume = await db.CiJobs.AsNoTracking()
+            .Where(j => j.ReservedByRunnerId == listenerMockSetup.GetRunnerData().Id)
+            .FirstOrDefaultAsync();
+        Assert.NotNull(jobToResume);
+
         // But the client sadly loses connection here in this test!
         var newConnection =
             await RunnerConnectionMockHelper.CreateResume(
