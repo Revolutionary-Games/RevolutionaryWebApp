@@ -85,7 +85,7 @@ public class MaintenanceController : Controller
 
         var hourCutoff = DateTime.UtcNow - TimeSpan.FromHours(1);
 
-        // Give a one hour grace period to retry a failing job
+        // Give a one-hour grace period to retry a failing job
         if (conflict != null && conflict.CreatedAt > hourCutoff)
         {
             return BadRequest("A maintenance operation of that type is already running (please make sure it can " +
@@ -155,6 +155,9 @@ public class MaintenanceController : Controller
         yield return ("cleanSessions", "Delete all sessions that are older than one hour", StartCleanSessions);
         yield return ("cleanStaticCDN", "Purge static assets from CDN", CleanStaticCDN);
 
+        yield return ("clearOldCIImages", "Mark all CI images for deletion, and schedule cleanup in 90 days",
+            StartClearOldCIImages);
+
         // Not required for now
         // yield return ("importWordPress", "Import WordPress posts (from temp/wordpress-import)",
         //     StartWordPressImportPosts);
@@ -182,5 +185,11 @@ public class MaintenanceController : Controller
     private static void CleanStaticCDN(IBackgroundJobClient jobClient, long operationId)
     {
         jobClient.Enqueue<CleanStaticCDNJob>(x => x.Execute(operationId, CancellationToken.None));
+    }
+
+    [NonAction]
+    private static void StartClearOldCIImages(IBackgroundJobClient jobClient, long operationId)
+    {
+        jobClient.Enqueue<ClearOldCIImagesPrepareJob>(x => x.Execute(operationId, CancellationToken.None));
     }
 }

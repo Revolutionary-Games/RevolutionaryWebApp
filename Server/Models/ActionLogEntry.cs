@@ -8,7 +8,7 @@ using Shared.Models;
 using SharedBase.Utilities;
 
 /// <summary>
-///   A logged user performed action
+///   A logged action that a user performed. In contrast to a non-user action which is a <see cref="LogEntry"/>.
 /// </summary>
 [Index(nameof(PerformedById))]
 public class ActionLogEntry : BaseModel
