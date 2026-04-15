@@ -92,6 +92,8 @@ else
         var notification = notificationWrapper.Message;
 
         // Only process one message at a time to hopefully fix some out-of-order processing problems
+        // TODO: there is still a bug here where the first "environment setup" section often ends up staying expanded
+        // even when future sections are started
         await semaphore.WaitAsync(cancellationToken);
         try
         {
