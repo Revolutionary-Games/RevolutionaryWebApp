@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Models;
+using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 using SharedBase.Utilities;
@@ -50,6 +51,8 @@ public class RunnerService : IDisposable
 
     private readonly CancellationTokenSource stopConnectionHandlingToken = new();
     private readonly TimeSpan heartbeatInterval = TimeSpan.FromSeconds(60);
+
+    private readonly TimeSpan jobAskInterval;
 
     private readonly PosixSignalRegistration? signalRegistration;
 
@@ -99,6 +102,9 @@ public class RunnerService : IDisposable
         this.executor = executor;
         this.cache = cache;
         this.jobNotifications = jobNotifications;
+
+        // Randomize ask delay a bit per runner to avoid a thundering herd problem
+        jobAskInterval = TimeSpan.FromSeconds(180 + 120 * (float)new Random().NextDouble());
 
         jobOutputForwarder = new SimpleJobOutputForwarder(OnJobSectionClosed, OnJobSectionOpened, OnJobOutput);
 
@@ -904,7 +910,7 @@ public class RunnerService : IDisposable
         // We have a bunch of conditions here to ensure we don't ask the server too often for jobs, but that we do
         // ask the server for new jobs if we have completed a job since the last check to run them quickly
         var lastAsked = now - lastAskedForJobs;
-        if (canStartNewJobs && (lastAsked > TimeSpan.FromSeconds(300) ||
+        if (canStartNewJobs && (lastAsked > jobAskInterval ||
                 (serverNotifiedAboutNewJobs && lastAsked > TimeSpan.FromSeconds(10)) || hasCompletedAJobSinceLastCheck))
         {
             // Ask for jobs from the server
