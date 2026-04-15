@@ -93,6 +93,7 @@ public class ClearOldCIImagesCleanupJob
             try
             {
                 DeleteStorageItemJob.PerformProperDelete(item, jobClient);
+                logger.LogInformation("Enqueued deletion for CI image StorageItem {Name} ({Id})", item.Name, item.Id);
                 ++deleted;
             }
             catch (Exception e)
