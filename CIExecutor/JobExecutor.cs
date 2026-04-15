@@ -357,11 +357,30 @@ public class JobExecutor : IJobExecutor, IDisposable
                 }
             }
 
+            var size = CountLfsObjectsSize(folder);
+
+            if (size < 0)
+            {
+                await output.ForwardOutputToActiveSection("Warning: LFS data folder doesn't exist");
+                size = 0;
+            }
+
             // And only now pull the LFS
             var timer = new Stopwatch();
             timer.Start();
             await GitRunHelpers.LfsPull(folder, cancellationToken);
             await output.ForwardOutputToActiveSection($"LFS file pull completed in {timer.Elapsed}\n");
+
+            var newSize = CountLfsObjectsSize(folder);
+            if (newSize < 0)
+            {
+                await output.ForwardOutputToActiveSection("LFS data folder doesn't exist after pull");
+            }
+            else
+            {
+                var added = newSize - size;
+                await output.ForwardOutputToActiveSection($"LFS data size increased by {added.BytesToMiB()}\n");
+            }
 
             // Clean out non-ignored files
             var deleted = await GitRunHelpers.Clean(folder, cancellationToken);
@@ -385,6 +404,19 @@ public class JobExecutor : IJobExecutor, IDisposable
         {
             await EndSectionWithFailure($"Error cloning / checking out: {e}", output);
         }
+    }
+
+    private long CountLfsObjectsSize(string folder)
+    {
+        var expectedPath = Path.Join(folder, ".git", "lfs", "objects");
+
+        if (!Path.Exists(expectedPath))
+        {
+            return -1;
+        }
+
+        return Directory.EnumerateFiles(expectedPath, "*", SearchOption.AllDirectories)
+            .Sum(file => new FileInfo(file).Length);
     }
 
     private async Task HandleSharedCache(string fullSource, string fullDestination, string destination,
