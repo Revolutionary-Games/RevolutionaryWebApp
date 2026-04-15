@@ -34,6 +34,10 @@ public class ResetDailyUploadQuotasJob : IJob
 
         foreach (var user in usersToReset)
         {
+            // We need groups for the user. This is kind of terrible database access, but we shouldn't have more than
+            // at most hundreds of users per day to reset
+            await user.ComputeUserGroups(database);
+
             var quota = MediaFileController.GetUploadQuotaForUser(user);
             if (quota > 0)
             {
