@@ -58,6 +58,8 @@ else
 @code {
     private readonly Dictionary<long, bool> shownSections = new();
 
+    private readonly SemaphoreSlim semaphore = new(1, 1);
+
     private readonly List<string> receivedRealtimeOutput = new();
     private long? receivingRealtimeOutputForSection;
 
@@ -85,85 +87,102 @@ else
         return HandleItemNotification(notification);
     }
 
-    public Task Handle(BuildMessageNotification notificationWrapper, CancellationToken cancellationToken)
+    public async Task Handle(BuildMessageNotification notificationWrapper, CancellationToken cancellationToken)
     {
         var notification = notificationWrapper.Message;
 
-        // Now we always swap sections if we get a notice about a different section
-        if ((notification.Type == BuildSectionMessageType.SectionStart &&
-                receivingRealtimeOutputForSection != notification.SectionId) ||
-            (notification.Type == BuildSectionMessageType.BuildOutput && receivingRealtimeOutputForSection != null &&
-                notification.SectionId != receivingRealtimeOutputForSection))
+        // Only process one message at a time to hopefully fix some out-of-order processing problems
+        await semaphore.WaitAsync(cancellationToken);
+        try
         {
-            // Hide the section output was previously received for
-            if (receivingRealtimeOutputForSection != null)
+            // Now we always swap sections if we get a notice about a different section
+            if ((notification.Type == BuildSectionMessageType.SectionStart &&
+                    receivingRealtimeOutputForSection != notification.SectionId) ||
+                (notification.Type == BuildSectionMessageType.BuildOutput && receivingRealtimeOutputForSection != null
+                    && notification.SectionId != receivingRealtimeOutputForSection))
             {
-                var oldSection = receivingRealtimeOutputForSection.Value;
-                shownSections[oldSection] = false;
-
-                // Run a task in a little bit to close as we might still get the section output or something,
-                // which would leave the item open
-                _ = Task.Delay(500, CancellationToken.None).ContinueWith(_ =>
+                // Hide the section output was previously received for
+                if (receivingRealtimeOutputForSection != null)
                 {
-                    try
+                    var oldSection = receivingRealtimeOutputForSection.Value;
+                    shownSections[oldSection] = false;
+
+                    // Run a task in a little bit to close as we might still get the section output or something,
+                    // which would leave the item open
+                    _ = Task.Delay(500, CancellationToken.None).ContinueWith(_ =>
                     {
-                        shownSections[oldSection] = false;
-                        StateHasChanged();
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"Couldn't re-apply section hide after a delay: {e}");
-                    }
-                }, CancellationToken.None);
+                        try
+                        {
+                            if (!semaphore.Wait(3000))
+                                return;
+
+                            try
+                            {
+                                shownSections[oldSection] = false;
+                                StateHasChanged();
+                            }
+                            finally
+                            {
+                                semaphore.Release();
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"Couldn't re-apply section hide after a delay: {e}");
+                        }
+                    }, CancellationToken.None);
+                }
+
+                // Setup receiving the new section
+                receivedRealtimeOutput.Clear();
+                receivingRealtimeOutputForSection = notification.SectionId;
+                shownSections[receivingRealtimeOutputForSection.Value] = true;
+
+                // A new section object is not created here as we should very shortly (if not already) have received
+                // a creation notification about it, and our Data list should be updated shortly
+
+                StateHasChanged();
             }
 
-            // Setup receiving the new section
-            receivedRealtimeOutput.Clear();
-            receivingRealtimeOutputForSection = notification.SectionId;
-            shownSections[receivingRealtimeOutputForSection.Value] = true;
-
-            // A new section object is not created here as we should very shortly (if not already) have received
-            // a creation notification about it, and our Data list should be updated shortly
-
-            StateHasChanged();
-        }
-
-        if (notification.Type == BuildSectionMessageType.BuildOutput &&
-            !string.IsNullOrEmpty(notification.Output))
-        {
-            // TODO: limit how much data can be in memory here on the client
-            bool first = true;
-            foreach (var line in notification.Output.Split('\n'))
+            if (notification.Type == BuildSectionMessageType.BuildOutput &&
+                !string.IsNullOrEmpty(notification.Output))
             {
-                if (first)
+                // TODO: limit how much data can be in memory here on the client
+                bool first = true;
+                foreach (var line in notification.Output.Split('\n'))
                 {
-                    // The first line might not be just after a line-break, so append that to an existing line in
-                    // receivedRealtimeOutput
-                    if (receivedRealtimeOutput.Count < 1)
+                    if (first)
                     {
-                        receivedRealtimeOutput.Add(line);
+                        // The first line might not be just after a line-break, so append that to an existing line in
+                        // receivedRealtimeOutput
+                        if (receivedRealtimeOutput.Count < 1)
+                        {
+                            receivedRealtimeOutput.Add(line);
+                        }
+                        else
+                        {
+                            receivedRealtimeOutput[^1] += line;
+                        }
+
+                        first = false;
                     }
                     else
                     {
-                        receivedRealtimeOutput[^1] += line;
+                        receivedRealtimeOutput.Add(line);
                     }
+                }
 
-                    first = false;
-                }
-                else
-                {
-                    receivedRealtimeOutput.Add(line);
-                }
+                // Make the section opened if we have it so that users arriving "late" to the page don't need to click
+                // active sections open to see what's going on
+                shownSections[notification.SectionId] = true;
+
+                StateHasChanged();
             }
-
-            // Make the section opened if we have it so that users arriving "late" to the page don't need to click
-            // active sections open to see what's going on
-            shownSections[notification.SectionId] = true;
-
-            StateHasChanged();
         }
-
-        return Task.CompletedTask;
+        finally
+        {
+            semaphore.Release();
+        }
     }
 
     public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
@@ -178,6 +197,7 @@ else
     {
         await base.DisposeAsync();
         await NotificationHandler.Unregister((INotificationHandler<CIProjectBuildJobOutputSectionsListUpdated>)this);
+        semaphore.Dispose();
     }
 
     protected override Task<List<CIJobOutputSectionInfo>?> StartQuery(Dictionary<string, string?> requestParams)
