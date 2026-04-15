@@ -238,9 +238,10 @@ public static class AppInfo
 
     public static readonly TimeSpan WaitBeforeNameRetrieveBatchStart = TimeSpan.FromMilliseconds(100);
 
-    public static readonly TimeSpan AssumeCIJobStuckAfter = TimeSpan.FromMinutes(121);
-
-    public static readonly TimeSpan CIJobMaxConnectionTime = TimeSpan.FromMinutes(5);
+    /// <summary>
+    ///   Max time a CI job is allowed to run before it is killed.
+    /// </summary>
+    public static readonly TimeSpan MaxCIJobExecutorTime = TimeSpan.FromMinutes(240);
 
     /// <summary>
     ///   This should be high enough to allow at least one reconnection attempt

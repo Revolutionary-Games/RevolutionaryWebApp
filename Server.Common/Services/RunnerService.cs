@@ -1186,9 +1186,9 @@ public class RunnerService : IDisposable
             throw new InvalidOperationException("We don't have a job to run");
 
         // Start a reader task that just ignores most messages
-        var readCancellation = new CancellationTokenSource(TimeSpan.FromMinutes(240));
+        var readCancellation = new CancellationTokenSource(AppInfo.MaxCIJobExecutorTime * 2);
 
-        var runCancellationTime = new CancellationTokenSource(TimeSpan.FromMinutes(120));
+        var runCancellationTime = new CancellationTokenSource(AppInfo.MaxCIJobExecutorTime);
         var runCancellation =
             CancellationTokenSource.CreateLinkedTokenSource(runCancellationTime.Token, cancellationToken);
 
