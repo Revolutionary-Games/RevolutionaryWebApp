@@ -914,7 +914,7 @@ public class RunnerService : IDisposable
         // ask the server for new jobs if we have completed a job since the last check to run them quickly
         var lastAsked = now - lastAskedForJobs;
         if (canStartNewJobs && (lastAsked > jobAskInterval ||
-                (serverNotifiedAboutNewJobs && lastAsked > TimeSpan.FromSeconds(10)) || hasCompletedAJobSinceLastCheck))
+                (serverNotifiedAboutNewJobs && lastAsked > TimeSpan.FromSeconds(4)) || hasCompletedAJobSinceLastCheck))
         {
             // Ask for jobs from the server
             lastAskedForJobs = now;
