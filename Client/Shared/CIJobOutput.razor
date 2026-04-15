@@ -89,12 +89,33 @@ else
     {
         var notification = notificationWrapper.Message;
 
-        if (notification.Type == BuildSectionMessageType.SectionStart &&
-            receivingRealtimeOutputForSection != notification.SectionId)
+        // Now we always swap sections if we get a notice about a different section
+        if ((notification.Type == BuildSectionMessageType.SectionStart &&
+                receivingRealtimeOutputForSection != notification.SectionId) ||
+            (notification.Type == BuildSectionMessageType.BuildOutput && receivingRealtimeOutputForSection != null &&
+                notification.SectionId != receivingRealtimeOutputForSection))
         {
             // Hide the section output was previously received for
             if (receivingRealtimeOutputForSection != null)
-                shownSections[receivingRealtimeOutputForSection.Value] = false;
+            {
+                var oldSection = receivingRealtimeOutputForSection.Value;
+                shownSections[oldSection] = false;
+
+                // Run a task in a little bit to close as we might still get the section output or something,
+                // which would leave the item open
+                _ = Task.Delay(500, CancellationToken.None).ContinueWith(_ =>
+                {
+                    try
+                    {
+                        shownSections[oldSection] = false;
+                        StateHasChanged();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Couldn't re-apply section hide after a delay: {e}");
+                    }
+                }, CancellationToken.None);
+            }
 
             // Setup receiving the new section
             receivedRealtimeOutput.Clear();
@@ -106,8 +127,9 @@ else
 
             StateHasChanged();
         }
-        else if (notification.Type == BuildSectionMessageType.BuildOutput &&
-                 !string.IsNullOrEmpty(notification.Output))
+
+        if (notification.Type == BuildSectionMessageType.BuildOutput &&
+            !string.IsNullOrEmpty(notification.Output))
         {
             // TODO: limit how much data can be in memory here on the client
             bool first = true;
