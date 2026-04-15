@@ -307,7 +307,7 @@ public class EFTool
         public DatabaseType Target { get; set; } = DatabaseType.Normal;
 
         [Option("sql", Default = false,
-            HelpText = "Create an identical SQL script to run against the database")]
+            HelpText = "Create an idempotent SQL script to run against the database")]
         public bool Sql { get; set; }
     }
 }
