@@ -158,6 +158,9 @@ public class RunnerService : IDisposable
     /// </summary>
     /// <param name="cancellationToken">Cancellation to stop</param>
     /// <returns>Task that resolves to the process exit code</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ReSharper", "PossiblyMistakenUseOfCancellationToken",
+        Justification =
+            "This method intentionally has a bunch of different cancellation tokens for different purposes")]
     public async Task<int> Run(CancellationToken cancellationToken)
     {
         try
