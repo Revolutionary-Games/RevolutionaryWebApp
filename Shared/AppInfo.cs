@@ -241,7 +241,7 @@ public static class AppInfo
     /// <summary>
     ///   Max time a CI job is allowed to run before it is killed.
     /// </summary>
-    public static readonly TimeSpan MaxCIJobExecutorTime = TimeSpan.FromMinutes(240);
+    public static readonly TimeSpan MaxCIJobExecutorTime = TimeSpan.FromMinutes(120);
 
     /// <summary>
     ///   This should be high enough to allow at least one reconnection attempt
