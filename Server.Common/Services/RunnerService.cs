@@ -462,7 +462,7 @@ public class RunnerService : IDisposable
             try
             {
                 // If queue size is too much, we need to wait
-                if (outgoingMessages.Count > 10)
+                if (outgoingMessages.Count > 15)
                 {
                     logger.LogDebug("Outgoing message queue full, waiting...");
                     continue;
