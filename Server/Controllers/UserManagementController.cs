@@ -45,6 +45,15 @@ public class UserManagementController : Controller
     {
         IQueryable<User> query;
 
+        bool suspendedSearch = false;
+
+        // Emulate suspended search as it is a calculated column
+        if (sortColumn == nameof(Models.User.Suspended))
+        {
+            sortColumn = nameof(Models.User.UserName);
+            suspendedSearch = true;
+        }
+
         try
         {
             query = database.Users.AsNoTracking().OrderBy(sortColumn, sortDirection, new[] { "UserName" });
@@ -53,6 +62,20 @@ public class UserManagementController : Controller
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
+        }
+
+        if (suspendedSearch)
+        {
+            var now = DateTime.UtcNow;
+
+            if (sortDirection == SortDirection.Ascending)
+            {
+                query = query.OrderBy(u => u.SuspendedUntil != null && u.SuspendedUntil > now);
+            }
+            else
+            {
+                query = query.OrderByDescending(u => u.SuspendedUntil != null && u.SuspendedUntil > now);
+            }
         }
 
         // Apply optional search filter
