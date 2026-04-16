@@ -2,10 +2,10 @@ namespace RevolutionaryWebApp.Server.Controllers;
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
 using Filters;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +23,7 @@ using Utilities;
 public class EmailVerificationController : Controller
 {
     private readonly ILogger<EmailVerificationController> logger;
+    private readonly IConfiguration configuration;
     private readonly NotificationsEnabledDb database;
     private readonly EmailTokens emailTokens;
 
@@ -33,15 +34,22 @@ public class EmailVerificationController : Controller
 
     private readonly Uri baseUrl;
 
+    private readonly ITimeLimitedDataProtector timeLimitedProtector;
+
     public EmailVerificationController(ILogger<EmailVerificationController> logger, IConfiguration configuration,
-        NotificationsEnabledDb database, EmailTokens emailTokens, IMailSender mailSender)
+        NotificationsEnabledDb database, EmailTokens emailTokens, IMailSender mailSender,
+        IDataProtectionProvider dataProtectionProvider)
     {
         this.logger = logger;
+        this.configuration = configuration;
         this.database = database;
         this.emailTokens = emailTokens;
         this.mailSender = mailSender;
 
         baseUrl = configuration.GetBaseUrl();
+
+        timeLimitedProtector = dataProtectionProvider.CreateProtector(EmailPreferenceToken.ProtectionPurpose)
+            .ToTimeLimitedDataProtector();
     }
 
     [HttpPost]
@@ -128,19 +136,30 @@ public class EmailVerificationController : Controller
 
         var returnUrl = new Uri(baseUrl, $"/verify/email?token={token}").ToString();
 
+        var category = Shared.Models.Enums.EmailReason.ConfirmEmail;
+
+        var plain = "Someone (hopefully you) has requested to use your email in signing a document.\n" +
+            "If this was you, please copy the below link into your browser to verify your email: \n" +
+            returnUrl + "\n" +
+            "If you did not request your email to be used, then please ignore this email and DO NOT give the " +
+            "link to anyone.";
+
+        var html = "<p>Someone (hopefully you) has requested to use your email in signing a document.</p>" +
+            "<p>If this was you, please click the below link to verify your email: <a href=\"" + returnUrl +
+            "\">" + returnUrl + "</a></p>" +
+            "<p>If you did not request your email to be used, then please ignore this email and " +
+            "<strong>DO NOT</strong> give the link to anyone.</p>";
+
+        // Append standardized footer
+        var withFooter = await EmailHelpers.GenerateFooterAsync(database, timeLimitedProtector,
+            configuration, request.Email, category, null, html, plain,
+            null, HttpContext.RequestAborted);
+
         await mailSender.SendEmail(new MailRequest(request.Email, "ThriveDevCenter Email Verification",
-            Shared.Models.Enums.EmailReason.ConfirmEmail)
+            category)
         {
-            PlainTextBody = "Someone (hopefully you) has requested to use your email in signing a document.\n" +
-                "If this was you, please copy the below link into your browser to verify your email: \n" +
-                returnUrl + "\n" +
-                "If you did not request your email to be used, then please ignore this email and DO NOT give the " +
-                "link to anyone.",
-            HtmlBody = "<p>Someone (hopefully you) has requested to use your email in signing a document.</p>" +
-                "<p>If this was you, please click the below link to verify your email: <a href=\"" + returnUrl +
-                "\">" + returnUrl + "</a></p>" +
-                "<p>If you did not request your email to be used, then please ignore this email and " +
-                "<strong>DO NOT</strong> give the link to anyone.</p>",
+            PlainTextBody = withFooter.Plain,
+            HtmlBody = withFooter.Html,
         }, HttpContext.RequestAborted);
 
         return Ok();
