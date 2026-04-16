@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,6 @@ using Services;
 using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
-using Microsoft.AspNetCore.DataProtection;
 
 public class CheckOverallBuildStatusJob
 {

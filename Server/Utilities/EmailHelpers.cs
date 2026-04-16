@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using DevCenterCommunication.Utilities;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Models;
 using Models.Emails;
 using RevolutionaryWebApp.Shared.Models.Enums;
 using Services;
-using Microsoft.Extensions.Configuration;
 
 public static class EmailHelpers
 {
