@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Emails;
 using Enums;
 using Microsoft.EntityFrameworkCore;
 using Pages;
@@ -94,6 +95,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<MediaFileUsage> MediaFileUsages { get; set; } = null!;
     public DbSet<SiteLayoutPart> SiteLayoutParts { get; set; } = null!;
     public DbSet<PageRedirect> PageRedirects { get; set; } = null!;
+    public DbSet<UserEmailPreferences> UserEmailPreferences { get; set; } = null!;
+    public DbSet<DirectEmailPreferences> DirectEmailPreferences { get; set; } = null!;
 
     /// <summary>
     ///   If non-null, this will be used to send model update notifications on save
@@ -225,6 +228,15 @@ public class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.BranchToBuildFileTreeFor).HasDefaultValue("master");
         });
+
+        modelBuilder.Entity<UserEmailPreferences>(entity =>
+        {
+            entity.HasOne(d => d.User)
+                .WithOne(p => p.EmailPreferences)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DirectEmailPreferences>(_ => { });
 
         // modelBuilder.Entity<PatreonSettings>(entity => { });
 

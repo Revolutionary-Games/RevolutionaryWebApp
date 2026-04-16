@@ -9,6 +9,7 @@ using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 using DevCenterCommunication.Utilities;
+using Emails;
 using Enums;
 using Hangfire;
 using Jobs;
@@ -226,6 +227,11 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     public ICollection<MediaFolder> LastModifierOfMediaFolders { get; set; } = new HashSet<MediaFolder>();
 
     public AssociationMember? AssociationMember { get; set; }
+
+    /// <summary>
+    ///   Optional email preferences for this user. Exists only if the user has modified defaults.
+    /// </summary>
+    public UserEmailPreferences? EmailPreferences { get; set; }
 
     /// <summary>
     ///   Set to this user's groups once <see cref="ComputeUserGroups"/> has been called
