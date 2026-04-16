@@ -190,7 +190,7 @@ public class Startup
             opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/octet-stream"]);
         });
 
-        // Built in aspnet rate limit configuration
+        // Built-in aspnet rate limit configuration
         var limitOptions = new MyRateLimitOptions();
         Configuration.GetSection("RateLimits").Bind(limitOptions);
 
@@ -405,7 +405,7 @@ public class Startup
             app.UseResponseCompression();
         }
 
-        // Routing has to be initialized before the rate limiter is invoked
+        // Routing has to be initialised before the rate limiter is invoked
         app.UseRouting();
 
         // Authentication to specific routes setup
@@ -522,7 +522,7 @@ public class Startup
             endpoints.MapFallbackToPage("/files/{*param}", "/_Host");
             endpoints.MapFallbackToPage("/lfs/{*param}", "/_Host");
 
-            // For other routes the client side app loads and then that displays the path not found
+            // For other routes the client side app loads, and then that displays the path not found
             endpoints.MapFallbackToPage("/_Host");
         });
 
