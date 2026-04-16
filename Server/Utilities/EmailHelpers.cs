@@ -141,17 +141,25 @@ public static class EmailHelpers
 
         if (user != null)
         {
-            // Known user: show plain links to manage; show Unsubscribe when category allows it
+            // Known user: for HTML, show unsubscribing (when allowed) and manage links on the same line
             if (category.CanUnSubscribe())
             {
-                htmlBuilder.Append("<p><a href=\"").Append(unsubscribeUrl)
-                    .Append("\">Unsubscribe</a> from these emails.")
+                htmlBuilder.Append("<p>")
+                    .Append("<a href=\"").Append(unsubscribeUrl)
+                    .Append("\">Unsubscribe</a> from these emails. ")
+                    .Append("<a href=\"").Append(manageUrl)
+                    .Append("\">Manage email preferences</a>.")
                     .Append("</p>");
-                textBuilder.AppendLine($"Unsubscribe: {unsubscribeUrl}");
-            }
 
-            htmlBuilder.Append("<p><a href=\"").Append(manageUrl).Append("\">Manage email preferences</a>.</p>");
-            textBuilder.AppendLine($"Manage email preferences: {manageUrl}");
+                // Plain text: keep on separate lines for readability
+                textBuilder.AppendLine($"Unsubscribe: {unsubscribeUrl}");
+                textBuilder.AppendLine($"Manage email preferences: {manageUrl}");
+            }
+            else
+            {
+                htmlBuilder.Append("<p><a href=\"").Append(manageUrl).Append("\">Manage email preferences</a>.</p>");
+                textBuilder.AppendLine($"Manage email preferences: {manageUrl}");
+            }
         }
         else
         {
