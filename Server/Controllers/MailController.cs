@@ -16,6 +16,10 @@ using Shared.Models.Enums;
 public class MailController : Controller
 {
     private readonly ILogger<MailController> logger;
+
+    /// <summary>
+    ///   This uses direct sender as we want test email requests to fail if email is not configured
+    /// </summary>
     private readonly IMailSender mailSender;
 
     public MailController(ILogger<MailController> logger, IMailSender mailSender)
@@ -45,7 +49,8 @@ public class MailController : Controller
 
         try
         {
-            await mailSender.SendEmail(new MailRequest(request.Recipient, "Test Email from ThriveDevCenter")
+            await mailSender.SendEmail(new MailRequest(request.Recipient, "Test Email from ThriveDevCenter",
+                EmailReason.Notifications)
             {
                 PlainTextBody =
                     "This is a test email from ThriveDevCenter.\n If you received this, then things are working.",

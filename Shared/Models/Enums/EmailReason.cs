@@ -11,4 +11,9 @@ public enum EmailReason
     ConfirmEmail,
     PushBuildStatus,
     CommitBuildStatus,
+
+    /// <summary>
+    ///   Important emails, used for very important things. Cannot be turned off without turning off *all* emails.
+    /// </summary>
+    ImportantEmails,
 }

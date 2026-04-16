@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Models.Emails;
 using Interfaces;
 using Models;
 using RevolutionaryWebApp.Shared.Models;
+using RevolutionaryWebApp.Shared.Models.Enums;
 using Utilities;
 
 /// <summary>
@@ -46,6 +47,23 @@ public abstract class EmailPreferences : UpdateableModel, IDTOCreator<EmailPrefe
             AllowNotifications = AllowNotifications,
             AllowPushBuildStatus = AllowPushBuildStatus,
             AllowCommitBuildStatus = AllowCommitBuildStatus,
+        };
+    }
+
+    public bool Allows(EmailReason reason)
+    {
+        if (DisableAllEmails)
+            return false;
+
+        return reason switch
+        {
+            EmailReason.SiteAnnouncement => AllowSiteAnnouncement,
+            EmailReason.PasswordReset => AllowPasswordReset,
+            EmailReason.ConfirmEmail => AllowConfirmEmail,
+            EmailReason.Notifications => AllowNotifications,
+            EmailReason.PushBuildStatus => AllowPushBuildStatus,
+            EmailReason.CommitBuildStatus => AllowCommitBuildStatus,
+            _ => true,
         };
     }
 }

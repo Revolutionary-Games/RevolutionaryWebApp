@@ -671,7 +671,8 @@ public class CLAController : Controller
 
         // Email the agreement to the person signing it
         var emailTask = mailQueue.SendEmail(
-            new MailRequest(finalSignature.Email, "Your signed document from ThriveDevCenter")
+            new MailRequest(finalSignature.Email, "Your signed document from ThriveDevCenter",
+                EmailReason.ImportantEmails)
             {
                 Bcc = emailSignaturesTo,
                 PlainTextBody = "Here is the document you just signed on ThriveDevCenter (as an attachment)",

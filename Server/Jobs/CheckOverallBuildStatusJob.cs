@@ -142,28 +142,27 @@ public class CheckOverallBuildStatusJob
                     // Properties are loaded from a JSON dump
                     // ReSharper disable EntityFramework.NPlusOne.IncompleteDataUsage
                     if ((sendEmails & GithubEmailReportReceivers.Author) != 0)
-                        await QueueEmailNotification(build, commit.Author?.Email, checkLink);
+                        await QueueEmailNotification(build, commit.Author?.Email, checkLink, false);
 
                     if ((sendEmails & GithubEmailReportReceivers.Committer) != 0)
-                        await QueueEmailNotification(build, commit.Committer?.Email, checkLink);
+                        await QueueEmailNotification(build, commit.Committer?.Email, checkLink, true);
 
                     // ReSharper restore EntityFramework.NPlusOne.IncompleteDataUsage
                 }
             }
             catch (ArgumentNullException e)
             {
-                logger.LogWarning(
-                    "Failed to send email notification because Commits is null: {@E}", e);
+                logger.LogWarning("Failed to send email notification because Commits is null: {@E}", e);
             }
             catch (JsonException e)
             {
-                logger.LogError(
-                    "Failed to send email notification because ParsedCommits failed to be accessed: {@E}", e);
+                logger.LogError("Failed to send email notification because ParsedCommits failed to be accessed: {@E}",
+                    e);
             }
         }
     }
 
-    private Task QueueEmailNotification(CiBuild build, string? email, string checkLink)
+    private Task QueueEmailNotification(CiBuild build, string? email, string checkLink, bool isCommitterRecipient)
     {
         // Return here if given no email, simplifies calling code
         if (string.IsNullOrEmpty(email))
@@ -280,8 +279,10 @@ public class CheckOverallBuildStatusJob
         plainBuilder.Append('\n');
         plainBuilder.Append(receiveReason);
 
+        var category = isCommitterRecipient ? EmailReason.CommitBuildStatus : EmailReason.PushBuildStatus;
+
         return mailQueue.SendEmail(
-            new MailRequest(email, $"{build.CiProject.Name} Build #{build.CiBuildId} Has {status}")
+            new MailRequest(email, $"{build.CiProject.Name} Build #{build.CiBuildId} Has {status}", category)
             {
                 HtmlBody = htmlBuilder.ToString(),
                 PlainTextBody = plainBuilder.ToString(),

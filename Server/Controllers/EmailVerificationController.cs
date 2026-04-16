@@ -25,7 +25,12 @@ public class EmailVerificationController : Controller
     private readonly ILogger<EmailVerificationController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly EmailTokens emailTokens;
+
+    /// <summary>
+    ///   We want to immediately fail the request to show visibly to the user if email fails
+    /// </summary>
     private readonly IMailSender mailSender;
+
     private readonly Uri baseUrl;
 
     public EmailVerificationController(ILogger<EmailVerificationController> logger, IConfiguration configuration,
@@ -47,8 +52,7 @@ public class EmailVerificationController : Controller
 
         if (verifiedToken == null)
         {
-            return this.WorkingForbid(
-                "Invalid email token given. Please check you used the right link and " +
+            return this.WorkingForbid("Invalid email token given. Please check you used the right link and " +
                 "that it didn't expire yet");
         }
 
@@ -124,7 +128,8 @@ public class EmailVerificationController : Controller
 
         var returnUrl = new Uri(baseUrl, $"/verify/email?token={token}").ToString();
 
-        await mailSender.SendEmail(new MailRequest(request.Email, "ThriveDevCenter Email Verification")
+        await mailSender.SendEmail(new MailRequest(request.Email, "ThriveDevCenter Email Verification",
+            Shared.Models.Enums.EmailReason.ConfirmEmail)
         {
             PlainTextBody = "Someone (hopefully you) has requested to use your email in signing a document.\n" +
                 "If this was you, please copy the below link into your browser to verify your email: \n" +
@@ -136,7 +141,7 @@ public class EmailVerificationController : Controller
                 "\">" + returnUrl + "</a></p>" +
                 "<p>If you did not request your email to be used, then please ignore this email and " +
                 "<strong>DO NOT</strong> give the link to anyone.</p>",
-        }, CancellationToken.None);
+        }, HttpContext.RequestAborted);
 
         return Ok();
     }
