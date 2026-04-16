@@ -46,10 +46,28 @@ public class FetchMailboxesJob : IJob
     [AutomaticRetry(Attempts = 0)]
     public async Task Execute(CancellationToken cancellationToken)
     {
+        // Load mailbox configuration (NotificationsReply seeded with id = 1)
+        var mailbox = await database.Mailboxes.FirstOrDefaultAsync(m => m.Id == 1, cancellationToken);
+
+        if (mailbox == null)
+        {
+            logger.LogWarning("No mailbox configuration found (Id=1). Skipping fetch.");
+            return;
+        }
+
+        if (mailbox.Disabled)
+        {
+            logger.LogInformation("Mailbox '{Name}' is disabled, skipping fetch.", mailbox.Name);
+            return;
+        }
+
         // Read IMAP configuration (fallback to SMTP host when IMAP host is not specified)
         var imapHost = configuration["Email:ImapHost"] ?? configuration["Email:Host"] ?? string.Empty;
         var imapPort = TryGetInt(configuration["Email:ImapPort"]) ?? 993;
         var imapUseSsl = TryGetBool(configuration["Email:ImapUseSsl"]) ?? true;
+
+        // Prefer credentials from the mailbox when provided; otherwise fall back to app configuration
+        // Primary mailbox never uses credentials from the database
         var username = configuration["Email:Username"] ?? configuration["Email:FromAddress"] ?? string.Empty;
         var password = configuration["Email:Password"] ?? string.Empty;
 
@@ -69,17 +87,38 @@ public class FetchMailboxesJob : IJob
             var inbox = client.Inbox;
             await inbox.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
 
-            // Delete very old messages (older than one year)
-            var cutoff = DateTime.UtcNow.AddYears(-1);
-            var oldUids = await inbox.SearchAsync(SearchQuery.DeliveredBefore(cutoff), cancellationToken);
-            if (oldUids?.Count > 0)
+            // Delete very old messages (older than one year) at most once per day per mailbox
+            var now = DateTime.UtcNow;
+            var shouldClean = !mailbox.LastCleanUtc.HasValue ||
+                (now - mailbox.LastCleanUtc.Value) >= TimeSpan.FromDays(1);
+            if (shouldClean)
             {
-                await inbox.AddFlagsAsync(oldUids, MessageFlags.Deleted, true, cancellationToken);
-                await inbox.ExpungeAsync(cancellationToken);
+                var cutoff = now.AddYears(-1);
+                var oldUids = await inbox.SearchAsync(SearchQuery.DeliveredBefore(cutoff), cancellationToken);
+                if (oldUids?.Count > 0)
+                {
+                    await inbox.AddFlagsAsync(oldUids, MessageFlags.Deleted, true, cancellationToken);
+                    await inbox.ExpungeAsync(cancellationToken);
+                    logger.LogInformation("Mailbox cleanup removed {Count} messages older than {Cutoff:u}",
+                        oldUids.Count, cutoff);
+                }
+
+                mailbox.LastCleanUtc = now;
+
+                // Persist the clean-up timestamp immediately
+                try
+                {
+                    await database.SaveChangesAsync(cancellationToken);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Failed to update LastCleanUtc for mailbox '{Name}'", mailbox.Name);
+                }
             }
 
             // Process unread messages
             var unread = await inbox.SearchAsync(SearchQuery.NotSeen, cancellationToken);
+            DateTime? newestReceived = null;
 
             foreach (var uid in unread)
             {
@@ -91,11 +130,34 @@ public class FetchMailboxesJob : IJob
                     await inbox.AddFlagsAsync(uid, MessageFlags.Seen, true, cancellationToken);
 
                     await ProcessMessageAsync(message, cancellationToken);
+
+                    // Track the newest received time we observe
+                    var candidate = message.Date.UtcDateTime;
+                    if (newestReceived == null || candidate > newestReceived.Value)
+                        newestReceived = candidate;
                 }
                 catch (Exception e)
                 {
                     logger.LogWarning(e, "Failed processing an incoming email UID {Uid}", uid);
                 }
+            }
+
+            // Update mailbox statistics
+            mailbox.LastReadEmailUtc = now;
+            if (newestReceived.HasValue)
+            {
+                // Only move forward in time
+                if (!mailbox.LastReceivedEmailUtc.HasValue || newestReceived.Value > mailbox.LastReceivedEmailUtc.Value)
+                    mailbox.LastReceivedEmailUtc = newestReceived.Value;
+            }
+
+            try
+            {
+                await database.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Failed to update mailbox statistics for '{Name}'", mailbox.Name);
             }
 
             await client.DisconnectAsync(true, cancellationToken);
