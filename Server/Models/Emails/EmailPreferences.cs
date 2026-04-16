@@ -9,7 +9,7 @@ using Utilities;
 /// <summary>
 ///   Abstract base class for email preference sets. Concrete implementations are stored in the DB.
 /// </summary>
-public abstract class EmailPreferences : UpdateableModel, IDTOCreator<EmailPreferencesDTO>
+public abstract class EmailPreferences : IDTOCreator<EmailPreferencesDTO>
 {
     /// <summary>
     ///   When true, no emails are sent regardless of individual category settings.

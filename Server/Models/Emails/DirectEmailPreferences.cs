@@ -1,8 +1,9 @@
 namespace RevolutionaryWebApp.Server.Models.Emails;
 
+using System;
 using System.ComponentModel.DataAnnotations;
+using DevCenterCommunication.Models;
 using Microsoft.EntityFrameworkCore;
-using Shared;
 using SharedBase.Utilities;
 
 /// <summary>
@@ -10,8 +11,11 @@ using SharedBase.Utilities;
 /// </summary>
 [Index(nameof(Email), IsUnique = true)]
 [Index(nameof(NormalizedEmail), IsUnique = true)]
-public class DirectEmailPreferences : EmailPreferences
+public class DirectEmailPreferences : EmailPreferences, ITimestampedModel
 {
+    [Key]
+    public long Id { get; set; }
+
     [Required]
     [MaxLength(GlobalConstants.MaxEmailLength)]
     public string Email { get; set; } = string.Empty;
@@ -21,4 +25,8 @@ public class DirectEmailPreferences : EmailPreferences
     /// </summary>
     [MaxLength(GlobalConstants.MaxEmailLength)]
     public string? NormalizedEmail { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
