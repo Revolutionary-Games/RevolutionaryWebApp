@@ -9,10 +9,16 @@
 <h3>Your Profile</h3>
 
 <AccessLimited RequiredAccess="GroupType.User" OrHasOverride="GroupType.RestrictedUser">
-    <UserInfoPageContent User="@(CurrentUserInfo.Info!)" />
+    <UserInfoPageContent User="@(CurrentUserInfo.Info!)"/>
 
-    <br />
-    <hr />
+    <br/>
+    <hr/>
+
+    <h4>Email Preferences</h4>
+
+    <p>You can edit your email preferences on
+        <NavLink href="/email-preferences">this page</NavLink>
+    </p>
 
     <h4>Redeem Code</h4>
 

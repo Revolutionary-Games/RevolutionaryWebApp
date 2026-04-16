@@ -1,0 +1,283 @@
+@page "/email-preferences"
+@page "/email-preferences/{Token?}"
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Client.Services
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject CurrentUserInfo CurrentUser
+
+<h3>Email Preferences</h3>
+
+<StatusMessageShower Message="@statusMessage" Type="@statusType"/>
+
+@if (initializing)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (prefs == null)
+{
+    <p>Failed to load preferences.</p>
+}
+else
+{
+    if (bothTokenAndUser)
+    {
+        <div class="alert alert-warning" role="alert">
+            A logged-in user was detected. The changes you make here will be applied to the current user account, not
+            the email address in the link.
+        </div>
+    }
+
+    <EditForm Model="prefs" OnValidSubmit="Save">
+        <DataAnnotationsValidator/>
+
+        <StatusMessageShower Message="@formStatusMessage" Type="@formStatusType"/>
+
+        <div class="row">
+            <div class="mb-3 col-md-12 form-check">
+                <InputCheckbox class="form-check-input" id="allowNotifications" @bind-Value="prefs.AllowNotifications"
+                               disabled="@prefs.DisableAllEmails"/>
+                <label class="form-check-label" for="allowNotifications">Allow Notification Emails</label>
+            </div>
+            <div class="mb-3 col-md-12 form-check">
+                <InputCheckbox class="form-check-input" id="allowPushBuildStatus"
+                               @bind-Value="prefs.AllowPushBuildStatus" disabled="@prefs.DisableAllEmails"/>
+                <label class="form-check-label" for="allowPushBuildStatus">Allow Push Build Status</label>
+            </div>
+            <div class="mb-3 col-md-12 form-check">
+                <InputCheckbox class="form-check-input" id="allowCommitBuildStatus"
+                               @bind-Value="prefs.AllowCommitBuildStatus" disabled="@prefs.DisableAllEmails"/>
+                <label class="form-check-label" for="allowCommitBuildStatus">Allow Commit Build Status</label>
+            </div>
+            <div class="mb-3 col-md-12 form-check">
+                <InputCheckbox class="form-check-input" id="allowSiteAnnouncement"
+                               @bind-Value="prefs.AllowSiteAnnouncement" disabled="@prefs.DisableAllEmails"/>
+                <label class="form-check-label" for="allowSiteAnnouncement">Allow Site Announcement Emails</label>
+            </div>
+            <div class="mb-3 col-md-12 form-check">
+                <InputCheckbox class="form-check-input" id="allowPasswordReset" @bind-Value="prefs.AllowPasswordReset"
+                               disabled="@prefs.DisableAllEmails"/>
+                <label class="form-check-label" for="allowPasswordReset">Allow Password Reset Emails</label>
+            </div>
+            <div class="mb-3 col-md-12 form-check">
+                <InputCheckbox class="form-check-input" id="allowConfirmEmail" @bind-Value="prefs.AllowConfirmEmail"
+                               disabled="@prefs.DisableAllEmails"/>
+                <label class="form-check-label" for="allowConfirmEmail">Allow Email Confirmation</label>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="mb-3 col-md-12 form-check">
+                <InputCheckbox class="form-check-input" id="disableAll" @bind-Value="prefs.DisableAllEmails"/>
+                <label class="form-check-label" for="disableAll">Disable ALL emails</label>
+            </div>
+        </div>
+
+        @if (prefs.DisableAllEmails)
+        {
+            <div class="alert alert-danger" role="alert">
+                This will disable ALL emails including critical ones like password recovery and email confirmation.
+                The only way to undo this is to send an email from your email address to the website notification
+                sending address with a title starting with "resume emails".
+            </div>
+        }
+
+        <StatusMessageShower Message="@formStatusMessage" Type="@formStatusType"/>
+
+        <Button class="my-1 me-1" Enabled="@(!saving)" type="submit" Spinner="@saving" ButtonStyle="primary">
+            Save Changes
+        </Button>
+    </EditForm>
+
+    <p>
+        Please note that if an email has already been generated and queued, it may still be delivered after preferences
+        have been updated.
+    </p>
+}
+
+<DevCenterTitle>Email Preferences</DevCenterTitle>
+
+@code {
+    private bool initializing = true;
+    private bool saving;
+    private bool bothTokenAndUser;
+
+    private string? statusMessage;
+    private SiteNoticeType statusType = SiteNoticeType.Info;
+
+    private string? formStatusMessage;
+    private SiteNoticeType formStatusType = SiteNoticeType.Info;
+
+    private EmailPreferencesDTO? prefs;
+
+    [Parameter]
+    public string? Token { get; set; }
+
+    // ReSharper disable once UnusedAutoPropertyAccessor.Local
+    [QueryStringParameter("token")]
+    private string? TokenFromQuery { get; set; }
+
+    // ReSharper disable once UnusedAutoPropertyAccessor.Local
+    [QueryStringParameter("autoUnsubscribe")]
+    private string? AutoUnsubscribeRaw { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        this.SetParametersFromQueryString(NavManager);
+
+        // Prefer route token over query token if both specified
+        if (string.IsNullOrWhiteSpace(Token) && !string.IsNullOrWhiteSpace(TokenFromQuery))
+            Token = TokenFromQuery;
+
+        // Show loading spinner while we wait a bit for user info to become available
+        initializing = true;
+        await InvokeAsync(StateHasChanged);
+
+        // Wait a few seconds to let initial user info load
+        await Task.Delay(TimeSpan.FromSeconds(3));
+
+        var loggedIn = CurrentUser.InfoReady && CurrentUser.LoggedIn;
+        bothTokenAndUser = loggedIn && !string.IsNullOrWhiteSpace(Token);
+
+        try
+        {
+            if (loggedIn)
+            {
+                prefs = await Http.GetFromJsonAsync<EmailPreferencesDTO>("api/v1/EmailPreferences");
+            }
+            else if (!string.IsNullOrWhiteSpace(Token))
+            {
+                var url = $"api/v1/EmailPreferences/byToken?token={Uri.EscapeDataString(Token)}";
+                prefs = await Http.GetFromJsonAsync<EmailPreferencesDTO>(url);
+            }
+            else
+            {
+                statusMessage = "Not logged in and no token provided. Cannot load email preferences.";
+                statusType = SiteNoticeType.Danger;
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network error while loading preferences: {e.Message}";
+            statusType = SiteNoticeType.Danger;
+        }
+
+        initializing = false;
+
+        // If autoUnsubscribe present, apply and auto-save
+        if (prefs != null && !string.IsNullOrWhiteSpace(AutoUnsubscribeRaw))
+        {
+            ApplyAutoUnsubscribe(AutoUnsubscribeRaw);
+            await Save(true);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ApplyAutoUnsubscribe(string listRaw)
+    {
+        var items = listRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var item in items)
+        {
+            if (!Enum.TryParse<EmailReason>(item, true, out var reason))
+                continue;
+
+            switch (reason)
+            {
+                case EmailReason.SiteAnnouncement:
+                    prefs!.AllowSiteAnnouncement = false;
+                    break;
+                case EmailReason.PasswordReset:
+                    prefs!.AllowPasswordReset = false;
+                    break;
+                case EmailReason.ConfirmEmail:
+                    prefs!.AllowConfirmEmail = false;
+                    break;
+                case EmailReason.Notifications:
+                    prefs!.AllowNotifications = false;
+                    break;
+                case EmailReason.PushBuildStatus:
+                    prefs!.AllowPushBuildStatus = false;
+                    break;
+                case EmailReason.CommitBuildStatus:
+                    prefs!.AllowCommitBuildStatus = false;
+                    break;
+            }
+        }
+    }
+
+    private Task Save()
+    {
+        return Save(false);
+    }
+
+    private async Task Save(bool invokeFromAuto)
+    {
+        if (prefs == null)
+            return;
+
+        saving = true;
+        formStatusMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            if (CurrentUser.InfoReady && CurrentUser.LoggedIn)
+            {
+                result = await Http.PutAsJsonAsync("api/v1/EmailPreferences", prefs);
+            }
+            else if (!string.IsNullOrWhiteSpace(Token))
+            {
+                var url = $"api/v1/EmailPreferences/byToken?token={Uri.EscapeDataString(Token)}";
+                result = await Http.PutAsJsonAsync(url, prefs);
+            }
+            else
+            {
+                formStatusMessage = "Cannot save: not logged in and no token provided.";
+                formStatusType = SiteNoticeType.Danger;
+                saving = false;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            formStatusMessage = $"Network request failed: {e.Message}";
+            formStatusType = SiteNoticeType.Danger;
+            saving = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        saving = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+            formStatusMessage = $"Failed to save preferences: {content}, {result.StatusCode}";
+            formStatusType = SiteNoticeType.Danger;
+        }
+        else
+        {
+            formStatusMessage = invokeFromAuto ?
+                "Your email preferences were updated automatically based on the link. " +
+                "You can still modify them below." :
+                "Preferences saved.";
+            formStatusType = SiteNoticeType.Success;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+}
