@@ -20,6 +20,13 @@
         </div>
     </div>
 }
+@if (!initializing && showLoginLink)
+{
+    <div class="alert alert-info" role="alert">
+        You are not logged in. To manage your email preferences for your account, please
+        <NavLink href="@LoginLink">log in here</NavLink>.
+    </div>
+}
 else if (prefs == null)
 {
     <p>Failed to load preferences.</p>
@@ -107,6 +114,9 @@ else
     private bool initializing = true;
     private bool saving;
     private bool bothTokenAndUser;
+    private bool showLoginLink;
+
+    private string LoginLink => NavManager.GetLinkToLogin("Login to manage email preferences");
 
     private string? statusMessage;
     private SiteNoticeType statusType = SiteNoticeType.Info;
@@ -146,6 +156,7 @@ else
 
         var loggedIn = CurrentUser.InfoReady && CurrentUser.LoggedIn;
         bothTokenAndUser = loggedIn && !string.IsNullOrWhiteSpace(Token);
+        showLoginLink = !loggedIn && string.IsNullOrWhiteSpace(Token);
 
         try
         {
