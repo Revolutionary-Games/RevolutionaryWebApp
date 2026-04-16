@@ -616,6 +616,7 @@ public class Startup
         AddJobHelper<ClearPassedSuspensionTimes>(configurationSection["ClearPassedSuspensionTimes"]);
         AddJobHelper<CheckAllUserAutomaticGroups>(configurationSection["CheckAllUserAutomaticGroups"]);
         AddJobHelper<ResetDailyUploadQuotasJob>(configurationSection["ResetDailyUploadQuotas"]);
+        AddJobHelper<FetchMailboxesJob>(configurationSection["FetchMailboxes"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
