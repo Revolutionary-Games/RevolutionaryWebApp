@@ -130,10 +130,10 @@ public static class EmailHelpers
         var textBuilder = new StringBuilder();
 
         htmlBuilder.AppendLine("<hr/>");
-        htmlBuilder.Append("<div style=\"font-size:12px;color:#666\">");
+        htmlBuilder.Append("<div style=\"color: #444; font-size: 0.9em;\">");
         if (!string.IsNullOrWhiteSpace(extraMessage))
         {
-            htmlBuilder.Append('<').Append("p").Append('>').Append(System.Net.WebUtility.HtmlEncode(extraMessage))
+            htmlBuilder.Append("<p>").Append(System.Net.WebUtility.HtmlEncode(extraMessage))
                 .Append("</p>");
             textBuilder.AppendLine(extraMessage);
             textBuilder.AppendLine();

@@ -14,6 +14,7 @@ using Services;
 using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
+using Microsoft.AspNetCore.DataProtection;
 
 public class CheckOverallBuildStatusJob
 {
@@ -24,15 +25,19 @@ public class CheckOverallBuildStatusJob
     private readonly BuildReportType discordNotice;
     private readonly Uri baseUrl;
     private readonly GithubEmailReportReceivers sendEmails;
+    private readonly IConfiguration configuration;
+    private readonly ITimeLimitedDataProtector tokenProtector;
     private readonly HashSet<string> alreadySentEmails = new();
 
     public CheckOverallBuildStatusJob(ILogger<CheckOverallBuildStatusJob> logger, IConfiguration configuration,
-        NotificationsEnabledDb database, DiscordNotifications discordNotifications, IMailQueue mailQueue)
+        NotificationsEnabledDb database, DiscordNotifications discordNotifications, IMailQueue mailQueue,
+        IDataProtectionProvider dataProtectionProvider)
     {
         this.logger = logger;
         this.database = database;
         this.discordNotifications = discordNotifications;
         this.mailQueue = mailQueue;
+        this.configuration = configuration;
 
         discordNotice =
             Enum.Parse<BuildReportType>(configuration["CI:StatusReporting:Discord"] ??
@@ -40,6 +45,10 @@ public class CheckOverallBuildStatusJob
         sendEmails = Enum.Parse<GithubEmailReportReceivers>(configuration["CI:StatusReporting:Email"] ??
             GithubEmailReportReceivers.None.ToString());
         baseUrl = configuration.GetBaseUrl();
+
+        // Time-limited protector for email preference tokens
+        tokenProtector = dataProtectionProvider.CreateProtector(EmailPreferenceToken.ProtectionPurpose)
+            .ToTimeLimitedDataProtector();
     }
 
     public async Task Execute(long ciProjectId, long ciBuildId, CancellationToken cancellationToken)
@@ -162,15 +171,15 @@ public class CheckOverallBuildStatusJob
         }
     }
 
-    private Task QueueEmailNotification(CiBuild build, string? email, string checkLink, bool isCommitterRecipient)
+    private async Task QueueEmailNotification(CiBuild build, string? email, string checkLink, bool isCommitterRecipient)
     {
         // Return here if given no email, simplifies calling code
         if (string.IsNullOrEmpty(email))
-            return Task.CompletedTask;
+            return;
 
         // Skip duplicate emails and likely no reply addresses
         if (!alreadySentEmails.Add(email) || EmailHelpers.IsNoReplyAddress(email))
-            return Task.CompletedTask;
+            return;
 
         logger.LogInformation("Sending build failure / status ({CiProjectId}-{CiBuildId}) email to: {Email}",
             build.CiProjectId, build.CiBuildId, email);
@@ -189,8 +198,7 @@ public class CheckOverallBuildStatusJob
 
         const string receiveReason =
             "You are receiving this email because your email was associated either with the committer or pusher " +
-            "of the commit(s) causing this build. Please email webmaster at the sender domain if you receive " +
-            "this email in error.";
+            "of the commit(s) causing this build.";
 
         if (build.CiProject == null)
             throw new NotLoadedModelNavigationException();
@@ -271,21 +279,19 @@ public class CheckOverallBuildStatusJob
         plainBuilder.Append(checkLink);
         plainBuilder.Append('\n');
 
-        // Footer
-        htmlBuilder.Append("<p style=\"color: #444; font-size: 0.9em;\">");
-        htmlBuilder.Append(receiveReason);
-        htmlBuilder.Append("</p>");
-
-        plainBuilder.Append('\n');
-        plainBuilder.Append(receiveReason);
-
         var category = isCommitterRecipient ? EmailReason.CommitBuildStatus : EmailReason.PushBuildStatus;
 
-        return mailQueue.SendEmail(
-            new MailRequest(email, $"{build.CiProject.Name} Build #{build.CiBuildId} Has {status}", category)
-            {
-                HtmlBody = htmlBuilder.ToString(),
-                PlainTextBody = plainBuilder.ToString(),
-            }, CancellationToken.None);
+        // Generate footer with links and include receiveReason as an extra message
+        var bodies = await EmailHelpers.GenerateFooterAsync(database, tokenProtector, configuration,
+            email, category, null, htmlBuilder.ToString(), plainBuilder.ToString(),
+            receiveReason, CancellationToken.None);
+
+        await mailQueue.SendEmail(new MailRequest(email,
+            $"{build.CiProject!.Name} Build #{build.CiBuildId} Has {status}",
+            category)
+        {
+            HtmlBody = bodies.Html,
+            PlainTextBody = bodies.Plain,
+        }, CancellationToken.None);
     }
 }
