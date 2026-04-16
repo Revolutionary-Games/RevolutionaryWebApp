@@ -1,10 +1,9 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using Authorization;
+using DevCenterCommunication.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Emails;
+using RevolutionaryWebApp.Shared.Models;
 using Utilities;
 
 [ApiController]
@@ -30,152 +30,145 @@ public class EmailPreferencesController : Controller
         tokenProtector = dataProtectionProvider.CreateProtector(EmailPreferenceToken.ProtectionPurpose);
     }
 
-    // DTO used for reading and updating preferences
-    public record EmailPreferencesDto(bool DisableAllEmails,
-        bool AllowSiteAnnouncement,
-        bool AllowPasswordReset,
-        bool AllowConfirmEmail,
-        bool AllowNotifications,
-        bool AllowPushBuildStatus,
-        bool AllowCommitBuildStatus);
-
-    private static EmailPreferencesDto ToDto(EmailPreferences model) => new(model.DisableAllEmails,
-        model.AllowSiteAnnouncement,
-        model.AllowPasswordReset,
-        model.AllowConfirmEmail,
-        model.AllowNotifications,
-        model.AllowPushBuildStatus,
-        model.AllowCommitBuildStatus);
-
-    private static void Apply(EmailPreferences model, EmailPreferencesDto dto)
-    {
-        model.DisableAllEmails = dto.DisableAllEmails;
-        model.AllowSiteAnnouncement = dto.AllowSiteAnnouncement;
-        model.AllowPasswordReset = dto.AllowPasswordReset;
-        model.AllowConfirmEmail = dto.AllowConfirmEmail;
-        model.AllowNotifications = dto.AllowNotifications;
-        model.AllowPushBuildStatus = dto.AllowPushBuildStatus;
-        model.AllowCommitBuildStatus = dto.AllowCommitBuildStatus;
-    }
-
     [HttpGet]
-    [Authorize]
-    public async Task<ActionResult<EmailPreferencesDto>> GetForCurrentUser(CancellationToken cancellationToken)
+    public async Task<ActionResult<EmailPreferencesDTO>> GetForCurrentUser()
     {
-        var userIdStr = User.Claims
-            .FirstOrDefault(c => c.Type.EndsWith("nameidentifier", StringComparison.OrdinalIgnoreCase))?.Value;
-        if (string.IsNullOrEmpty(userIdStr) || !long.TryParse(userIdStr, out var userId))
-            return Unauthorized();
-
-        var user = await database.Users.Include(u => u.EmailPreferences).FirstOrDefaultAsync(u => u.Id == userId,
-            cancellationToken);
+        var user = HttpContext.AuthenticatedUser();
 
         if (user == null)
             return Unauthorized();
 
-        var prefs = user.EmailPreferences ?? new UserEmailPreferences { UserId = user.Id };
-        return Ok(ToDto(prefs));
+        // Ensure preferences are loaded from DB
+        var dbUser = await database.Users.Include(u => u.EmailPreferences)
+            .FirstOrDefaultAsync(u => u.Id == user.Id, HttpContext.RequestAborted);
+
+        if (dbUser == null)
+            return Unauthorized();
+
+        var prefs = dbUser.EmailPreferences ?? new UserEmailPreferences { UserId = dbUser.Id };
+        return Ok(prefs.GetDTO());
     }
 
-    [HttpGet("by-token")]
+    [HttpGet("byToken")]
     [AllowAnonymous]
-    public async Task<ActionResult<EmailPreferencesDto>> GetByToken([FromQuery] [Required] string token,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<EmailPreferencesDTO>> GetByToken([FromQuery] [Required] string token)
     {
         var decoded = EmailPreferenceToken.TryToLoadFromString(tokenProtector, token);
         if (decoded == null)
             return BadRequest("Invalid token");
 
         var email = decoded.Email;
-        var normalized = email.ToUpperInvariant();
+        var normalized = Normalization.NormalizeEmail(email);
 
         // If there is a user with this email, prefer user preferences
         var user = await database.Users.Include(u => u.EmailPreferences)
-            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalized || u.Email == email, cancellationToken);
+            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalized || u.Email == email,
+                HttpContext.RequestAborted);
 
-        if (user?.EmailPreferences != null)
-            return Ok(ToDto(user.EmailPreferences));
+        if (user != null)
+        {
+            if (user.EmailPreferences != null)
+                return Ok(user.EmailPreferences.GetDTO());
+
+            return Ok(new UserEmailPreferences { UserId = user.Id }.GetDTO());
+        }
 
         // Else use DirectEmailPreferences if exists
+        // TODO: should we actually not match things by normalized email here?
+        // Just in case there is some false sharing?
         var direct = await database.DirectEmailPreferences
-            .FirstOrDefaultAsync(d => d.NormalizedEmail == normalized || d.Email == email, cancellationToken);
+            .FirstOrDefaultAsync(d => d.NormalizedEmail == normalized || d.Email == email,
+                HttpContext.RequestAborted);
 
         if (direct != null)
-            return Ok(ToDto(direct));
+            return Ok(direct.GetDTO());
 
         // Not existing yet -> return defaults
         var defaults = new DirectEmailPreferences { Email = email, NormalizedEmail = normalized };
-        return Ok(ToDto(defaults));
+        return Ok(defaults.GetDTO());
     }
 
     [HttpPut]
-    [Authorize]
-    public async Task<ActionResult<EmailPreferencesDto>> UpdateForCurrentUser([FromBody] EmailPreferencesDto update,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<EmailPreferencesDTO>> UpdateForCurrentUser([FromBody] EmailPreferencesDTO update)
     {
-        var userIdStr = User.Claims
-            .FirstOrDefault(c => c.Type.EndsWith("nameidentifier", StringComparison.OrdinalIgnoreCase))?.Value;
-        if (string.IsNullOrEmpty(userIdStr) || !long.TryParse(userIdStr, out var userId))
+        var currentUser = HttpContext.AuthenticatedUser();
+        if (currentUser == null)
             return Unauthorized();
 
-        var user = await database.Users.Include(u => u.EmailPreferences).FirstOrDefaultAsync(u => u.Id == userId,
-            cancellationToken);
-        if (user == null)
+        var dbUser = await database.Users.Include(u => u.EmailPreferences)
+            .FirstOrDefaultAsync(u => u.Id == currentUser.Id, HttpContext.RequestAborted);
+
+        if (dbUser == null)
             return Unauthorized();
 
-        if (user.EmailPreferences == null)
+        if (dbUser.EmailPreferences == null)
         {
-            user.EmailPreferences = new UserEmailPreferences { UserId = user.Id };
-            database.UserEmailPreferences.Add(user.EmailPreferences);
+            dbUser.EmailPreferences = new UserEmailPreferences { UserId = dbUser.Id };
+            await database.UserEmailPreferences.AddAsync(dbUser.EmailPreferences, HttpContext.RequestAborted);
         }
 
-        Apply(user.EmailPreferences, update);
-        await database.SaveChangesAsync(cancellationToken);
+        var (changes, _, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(dbUser.EmailPreferences, update);
 
-        return Ok(ToDto(user.EmailPreferences));
+        if (!changes)
+        {
+            logger.LogInformation("No changes to user email preferences");
+            return Ok(dbUser.EmailPreferences.GetDTO());
+        }
+
+        await database.SaveChangesAsync(HttpContext.RequestAborted);
+
+        logger.LogInformation("User {Email} updated their email preferences", dbUser.Email);
+
+        return Ok(dbUser.EmailPreferences.GetDTO());
     }
 
-    [HttpPut("by-token")]
+    [HttpPut("byToken")]
     [AllowAnonymous]
-    public async Task<ActionResult<EmailPreferencesDto>> UpdateByToken([FromQuery] [Required] string token,
-        [FromBody] EmailPreferencesDto update, CancellationToken cancellationToken)
+    public async Task<ActionResult<EmailPreferencesDTO>> UpdateByToken([FromQuery] [Required] string token,
+        [FromBody] EmailPreferencesDTO update)
     {
         var decoded = EmailPreferenceToken.TryToLoadFromString(tokenProtector, token);
         if (decoded == null)
             return BadRequest("Invalid token");
 
         var email = decoded.Email;
-        var normalized = email.ToUpperInvariant();
+        var normalized = Normalization.NormalizeEmail(email);
 
-        // If a user exists with this email, update user's preferences
+        // If a user exists with this email, user must log in to update details
         var user = await database.Users.Include(u => u.EmailPreferences)
-            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalized || u.Email == email, cancellationToken);
+            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalized || u.Email == email,
+                HttpContext.RequestAborted);
 
         if (user != null)
         {
-            if (user.EmailPreferences == null)
-            {
-                user.EmailPreferences = new UserEmailPreferences { UserId = user.Id };
-                database.UserEmailPreferences.Add(user.EmailPreferences);
-            }
-
-            Apply(user.EmailPreferences, update);
-            await database.SaveChangesAsync(cancellationToken);
-            return Ok(ToDto(user.EmailPreferences));
+            return this.WorkingForbid(
+                "You must log in to update your email preferences (this email is associated with an account)");
         }
 
-        // Otherwise, upsert direct preferences
+        // Otherwise, update direct preferences if no account
+        // TODO: should we actually not match things by normalized email here?
+        // Just in case there is some false sharing?
         var direct = await database.DirectEmailPreferences
-            .FirstOrDefaultAsync(d => d.NormalizedEmail == normalized || d.Email == email, cancellationToken);
+            .FirstOrDefaultAsync(d => d.NormalizedEmail == normalized || d.Email == email,
+                HttpContext.RequestAborted);
 
         if (direct == null)
         {
             direct = new DirectEmailPreferences { Email = email, NormalizedEmail = normalized };
-            database.DirectEmailPreferences.Add(direct);
+            await database.DirectEmailPreferences.AddAsync(direct, HttpContext.RequestAborted);
         }
 
-        Apply(direct, update);
-        await database.SaveChangesAsync(cancellationToken);
-        return Ok(ToDto(direct));
+        var (changes, _, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(direct, update);
+
+        if (!changes)
+        {
+            logger.LogInformation("No changes to direct email preferences");
+            return Ok(direct.GetDTO());
+        }
+
+        logger.LogInformation("Email with no account updated their direct email preferences: {Email}", email);
+
+        await database.SaveChangesAsync(HttpContext.RequestAborted);
+        return Ok(direct.GetDTO());
     }
 }
