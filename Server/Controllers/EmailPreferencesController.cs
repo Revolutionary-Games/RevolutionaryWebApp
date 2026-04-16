@@ -20,14 +20,15 @@ public class EmailPreferencesController : Controller
 {
     private readonly ILogger<EmailPreferencesController> logger;
     private readonly ApplicationDbContext database;
-    private readonly IDataProtector tokenProtector;
+    private readonly ITimeLimitedDataProtector tokenProtector;
 
     public EmailPreferencesController(ILogger<EmailPreferencesController> logger, ApplicationDbContext database,
         IDataProtectionProvider dataProtectionProvider)
     {
         this.database = database;
         this.logger = logger;
-        tokenProtector = dataProtectionProvider.CreateProtector(EmailPreferenceToken.ProtectionPurpose);
+        tokenProtector = dataProtectionProvider.CreateProtector(EmailPreferenceToken.ProtectionPurpose)
+            .ToTimeLimitedDataProtector();
     }
 
     [HttpGet]
@@ -55,7 +56,7 @@ public class EmailPreferencesController : Controller
     {
         var decoded = EmailPreferenceToken.TryToLoadFromString(tokenProtector, token);
         if (decoded == null)
-            return BadRequest("Invalid token");
+            return BadRequest("Invalid or expired token");
 
         var email = decoded.Email;
         var normalized = Normalization.NormalizeEmail(email);
@@ -129,7 +130,7 @@ public class EmailPreferencesController : Controller
     {
         var decoded = EmailPreferenceToken.TryToLoadFromString(tokenProtector, token);
         if (decoded == null)
-            return BadRequest("Invalid token");
+            return BadRequest("Invalid or expired token");
 
         var email = decoded.Email;
         var normalized = Normalization.NormalizeEmail(email);
