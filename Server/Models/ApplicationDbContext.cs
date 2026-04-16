@@ -97,6 +97,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PageRedirect> PageRedirects { get; set; } = null!;
     public DbSet<UserEmailPreferences> UserEmailPreferences { get; set; } = null!;
     public DbSet<DirectEmailPreferences> DirectEmailPreferences { get; set; } = null!;
+    public DbSet<Mailbox> Mailboxes { get; set; } = null!;
 
     /// <summary>
     ///   If non-null, this will be used to send model update notifications on save
@@ -237,6 +238,19 @@ public class ApplicationDbContext : DbContext
         });
 
         modelBuilder.Entity<DirectEmailPreferences>(_ => { });
+
+        modelBuilder.Entity<Mailbox>(entity =>
+        {
+            entity.Property(e => e.Name).IsRequired();
+
+            // Seed the default system mailbox used for notifications replies
+            entity.HasData(new Mailbox("NotificationsReply")
+            {
+                Id = 1,
+                Username = null,
+                Password = null,
+            });
+        });
 
         // modelBuilder.Entity<PatreonSettings>(entity => { });
 
