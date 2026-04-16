@@ -36,6 +36,10 @@ public class RefreshFeedsJob : IJob
         this.jobClient = jobClient;
     }
 
+    /// <summary>
+    ///   No retries as this is timed very often, so we will just try again fresh.
+    /// </summary>
+    [AutomaticRetry(Attempts = 0)]
     public async Task Execute(CancellationToken cancellationToken)
     {
         // Detect feeds needing refreshing
@@ -165,10 +169,8 @@ public class RefreshFeedsJob : IJob
 
             foreach (var combinedFeed in needingRefresh)
             {
-                logger.LogInformation(
-                    "Combined feed {Name} has no content or is much more outdated than the feeds " +
-                    "it consists of, updating",
-                    combinedFeed.Name);
+                logger.LogInformation("Combined feed {Name} has no content or is much more outdated than the feeds " +
+                    "it consists of, updating", combinedFeed.Name);
             }
 
             combinedToRefresh.AddRange(needingRefresh);
