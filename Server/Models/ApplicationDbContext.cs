@@ -98,6 +98,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserEmailPreferences> UserEmailPreferences { get; set; } = null!;
     public DbSet<DirectEmailPreferences> DirectEmailPreferences { get; set; } = null!;
     public DbSet<Mailbox> Mailboxes { get; set; } = null!;
+    public DbSet<EmailBounce> EmailBounces { get; set; } = null!;
 
     /// <summary>
     ///   If non-null, this will be used to send model update notifications on save
@@ -238,6 +239,13 @@ public class ApplicationDbContext : DbContext
         });
 
         modelBuilder.Entity<DirectEmailPreferences>(_ => { });
+
+        // Email bounces
+        modelBuilder.Entity<EmailBounce>(entity =>
+        {
+            entity.Property(e => e.BackoffWeeks).HasDefaultValue(0);
+            entity.Property(e => e.DisabledBySystem).HasDefaultValue(false);
+        });
 
         modelBuilder.Entity<Mailbox>(entity =>
         {

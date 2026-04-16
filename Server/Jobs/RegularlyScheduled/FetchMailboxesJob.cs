@@ -248,6 +248,60 @@ public class FetchMailboxesJob : IJob
             // Try to get the failed recipient if possible
             var failed = GetFailedRecipient(message) ?? fromAddress;
             logger.LogWarning("Detected bounced email notification for {Address}", failed);
+
+            // Record / update bounce info and if threshold met, schedule handling job
+            try
+            {
+                var normalized = Normalization.NormalizeEmail(failed);
+
+                var bounce = await database.EmailBounces
+                    .FirstOrDefaultAsync(b => b.Email == failed, ct);
+
+                bounce ??= await database.EmailBounces
+                    .FirstOrDefaultAsync(b => b.NormalizedEmail == normalized, ct);
+
+                var now = DateTime.UtcNow;
+
+                if (bounce == null)
+                {
+                    bounce = new EmailBounce
+                    {
+                        Email = failed,
+                        NormalizedEmail = normalized,
+                        OutstandingBounces = 1,
+                        FirstBounceUtc = now,
+                        LastBounceUtc = now,
+                        DisabledBySystem = false,
+                        BackoffWeeks = 0,
+                    };
+
+                    await database.EmailBounces.AddAsync(bounce, ct);
+                }
+                else
+                {
+                    // Keep the latest seen exact casing of the address
+                    bounce.Email = failed;
+                    bounce.NormalizedEmail = normalized;
+                    bounce.OutstandingBounces += 1;
+                    if (bounce.OutstandingBounces <= 1)
+                        bounce.FirstBounceUtc = now;
+                    bounce.LastBounceUtc = now;
+                }
+
+                await database.SaveChangesAsync(ct);
+
+                if (bounce.OutstandingBounces >= 3)
+                {
+                    BackgroundJob.Schedule<BounceHandlingJob>(
+                        j => j.HandleAsync(bounce.NormalizedEmail, CancellationToken.None),
+                        TimeSpan.FromMinutes(1));
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Failed to upsert email bounce information");
+            }
+
             return;
         }
 
