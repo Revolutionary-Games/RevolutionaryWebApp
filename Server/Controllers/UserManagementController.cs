@@ -41,7 +41,7 @@ public class UserManagementController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<PagedResult<UserInfo>> GetList([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
-        [Required] [Range(1, 100)] int pageSize)
+        [Required] [Range(1, 100)] int pageSize, [FromQuery] string? search)
     {
         IQueryable<User> query;
 
@@ -53,6 +53,18 @@ public class UserManagementController : Controller
         {
             logger.LogWarning("Invalid requested order: {@E}", e);
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
+        }
+
+        // Apply optional search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+
+            query = query.Where(u =>
+                u.UserName.ToLower().Contains(term) ||
+                (u.DisplayName != null && u.DisplayName.ToLower().Contains(term)) ||
+                u.Email.ToLower().Contains(term) ||
+                (u.NormalizedEmail != null && u.NormalizedEmail.Contains(term)));
         }
 
         var objects = await query.ToPagedResultAsync(page, pageSize);

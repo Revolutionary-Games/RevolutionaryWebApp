@@ -15,6 +15,20 @@
 
 <h3>Users</h3>
 
+<div class="row mb-3">
+    <div class="col-sm-6 col-md-4">
+        <input class="form-control" type="search" placeholder="Search users..."
+               @bind-value="Search" @bind-value:event="oninput"/>
+        <small class="form-text text-muted">Search by username, real name, or email</small>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Search))
+    {
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="ClearSearch">Clear</button>
+        </div>
+    }
+</div>
+
 <AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
     @if (!string.IsNullOrEmpty(Error))
     {
@@ -36,9 +50,11 @@
                 @foreach (var item in Data.Results)
                 {
                     <tr @key="item.Id">
-                        <th scope="row"><NavLink class="nav-link" href="@($"users/{item.Id}")">
-                            @item.Name
-                        </NavLink></th>
+                        <th scope="row">
+                            <NavLink class="nav-link" href="@($"users/{item.Id}")">
+                                @item.Name
+                            </NavLink>
+                        </th>
                         <td>@item.Suspended</td>
                         <td>@item.SsoSource</td>
                         @* TODO: add back some basic group showing? *@
@@ -55,19 +71,36 @@
 </AccessLimited>
 
 @code {
-    private readonly List<TableColumn> columns = new()
-    {
-        new TableColumn("Name", true, "UserName"),
-        new TableColumn("Suspended", true),
-        new TableColumn("SSO", true, "SsoSource"),
 
-        // new TableColumn("Developer", false),
-        // new TableColumn("Admin", false),
-        new TableColumn("Created At", true, "CreatedAt"),
-    };
+    private readonly List<TableColumn> columns =
+    [
+        new("Name", true, "UserName"),
+        new("Suspended", true),
+        new("SSO", true, "SsoSource"),
+
+        // new("Developer", false),
+        // new("Admin", false),
+        new("Created At", true, "CreatedAt"),
+    ];
+
+    private CancellationTokenSource? searchDebounceToken;
 
     public UserList() : base(new SortHelper("CreatedAt", SortDirection.Descending))
     {
+    }
+
+    [QueryStringParameter]
+    public string? Search
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+
+            field = value;
+            TriggerSearchDebounce();
+        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -104,13 +137,57 @@
 
     protected override Task<PagedResult<UserInfo>?> StartQuery(Dictionary<string, string?> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<UserInfo>>(
-            QueryHelpers.AddQueryString("api/v1/UserManagement", requestParams));
+        return Http.GetFromJsonAsync<PagedResult<UserInfo>>(QueryHelpers.AddQueryString("api/v1/UserManagement", requestParams));
     }
 
     protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    protected override Dictionary<string, string?> CreatePageRequestParams()
+    {
+        var result = base.CreatePageRequestParams();
+        if (!string.IsNullOrWhiteSpace(Search))
+            result["search"] = Search;
+        return result;
+    }
+
+    private void TriggerSearchDebounce()
+    {
+        // Debounce the search to 500ms
+        searchDebounceToken?.Cancel();
+        searchDebounceToken?.Dispose();
+        searchDebounceToken = new CancellationTokenSource();
+        var token = searchDebounceToken.Token;
+
+        _ = DebouncedSearchAsync(token);
+    }
+
+    private async Task DebouncedSearchAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(500, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (token.IsCancellationRequested)
+            return;
+
+        // Reset to first page on new search
+        Page = 1;
+        await FetchData();
+    }
+
+    private async Task ClearSearch()
+    {
+        Search = null;
+        Page = 1;
+        await FetchData();
     }
 
 }
