@@ -13,6 +13,9 @@ using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MimeKit;
+using Models;
+using RevolutionaryWebApp.Shared.Models.Enums;
+using Utilities;
 
 public interface IMailSender
 {
@@ -25,20 +28,20 @@ public interface IMailQueue : IMailSender
 {
 }
 
-public class MailSender : IMailSender
+/// <summary>
+///   Base holder for email configuration and basic helpers. Does not depend on a database.
+/// </summary>
+public abstract class BaseEmailConfig
 {
-    private readonly ILogger<MailSender> logger;
-    private readonly string fromAddress;
-    private readonly string senderName;
-    private readonly string emailPassword;
-    private readonly string host;
-    private readonly short port;
-    private readonly bool requireTls;
+    protected readonly string fromAddress;
+    protected readonly string senderName;
+    protected readonly string emailPassword;
+    protected readonly string host;
+    protected readonly short port;
+    protected readonly bool requireTls;
 
-    public MailSender(ILogger<MailSender> logger, IConfiguration configuration)
+    protected BaseEmailConfig(IConfiguration configuration)
     {
-        this.logger = logger;
-
         fromAddress = configuration["Email:FromAddress"] ?? string.Empty;
         senderName = configuration["Email:Name"] ?? string.Empty;
         emailPassword = configuration["Email:Password"] ?? string.Empty;
@@ -58,9 +61,47 @@ public class MailSender : IMailSender
 
     public bool Configured { get; }
 
+    protected void ThrowIfNotConfigured()
+    {
+        if (!Configured)
+            throw new InvalidOperationException("Email is not configured");
+    }
+}
+
+public class MailSender : BaseEmailConfig, IMailSender
+{
+    private readonly ILogger<MailSender> logger;
+    private readonly ApplicationDbContext database;
+
+    public MailSender(ILogger<MailSender> logger, IConfiguration configuration, ApplicationDbContext database)
+        : base(configuration)
+    {
+        this.logger = logger;
+        this.database = database;
+    }
+
     public virtual async Task SendEmail(MailRequest request, CancellationToken cancellationToken)
     {
         ThrowIfNotConfigured();
+
+        // Check recipient preferences before doing any network operations
+        try
+        {
+            var isAllowed = await EmailHelpers.IsAllowedAsync(database, request, cancellationToken);
+            if (!isAllowed)
+            {
+                logger.LogInformation(
+                    "Not sending email to {Recipient} because preferences disallow category {Category}",
+                    request.Recipient, request.Category);
+                return;
+            }
+        }
+        catch (Exception e)
+        {
+            // Fail-safe: if preference lookup errors, log and proceed to avoid blocking critical flows
+            logger.LogWarning(e, "Failed to check email preferences for {Recipient}, proceeding to send",
+                request.Recipient);
+        }
 
         var sender = MailboxAddress.Parse(fromAddress);
         sender.Name = senderName;
@@ -96,8 +137,6 @@ public class MailSender : IMailSender
 
         email.To.Add(MailboxAddress.Parse(request.Recipient));
 
-        // TODO: batching of email send requests (or perhaps queue sender jobs would be better for this)
-
         using var smtp = new SmtpClient();
 
         SecureSocketOptions connectMode = SecureSocketOptions.StartTls;
@@ -115,35 +154,29 @@ public class MailSender : IMailSender
         if (!string.IsNullOrEmpty(emailPassword))
             await smtp.AuthenticateAsync(fromAddress, emailPassword, cancellationToken);
 
-        logger.LogInformation("Sending email to {Recipient}", request.Recipient);
+        logger.LogInformation("Sending email to {Recipient} with category {Category}", request.Recipient,
+            request.Category);
         await smtp.SendAsync(email, cancellationToken);
 
         // If this is canceled here, then it might be possible that a single email is sent twice, but should be
         // very rare
         await smtp.DisconnectAsync(true, cancellationToken);
     }
-
-    protected void ThrowIfNotConfigured()
-    {
-        if (!Configured)
-            throw new InvalidOperationException("Email is not configured");
-    }
 }
 
 /// <summary>
 ///   Sends mails from a background operation
 /// </summary>
-public class MailToQueueSender : MailSender, IMailQueue
+public class MailToQueueSender : BaseEmailConfig, IMailQueue
 {
     private readonly IBackgroundJobClient jobClient;
 
-    public MailToQueueSender(ILogger<MailToQueueSender> logger, IConfiguration configuration,
-        IBackgroundJobClient jobClient) : base(logger, configuration)
+    public MailToQueueSender(IConfiguration configuration, IBackgroundJobClient jobClient) : base(configuration)
     {
         this.jobClient = jobClient;
     }
 
-    public override Task SendEmail(MailRequest request, CancellationToken cancellationToken)
+    public Task SendEmail(MailRequest request, CancellationToken cancellationToken)
     {
         ThrowIfNotConfigured();
 
@@ -154,10 +187,11 @@ public class MailToQueueSender : MailSender, IMailQueue
 
 public class MailRequest
 {
-    public MailRequest(string recipient, string subject)
+    public MailRequest(string recipient, string subject, EmailReason category)
     {
         Recipient = recipient;
         Subject = subject;
+        Category = category;
     }
 
     [Required]
@@ -174,6 +208,17 @@ public class MailRequest
     public string? PlainTextBody { get; set; }
 
     public List<MailAttachment>? Attachments { get; set; }
+
+    /// <summary>
+    ///   Email category for applying recipient preferences
+    /// </summary>
+    [Required]
+    public EmailReason Category { get; set; }
+
+    /// <summary>
+    ///   Optional target user id if available (for direct user preference lookup)
+    /// </summary>
+    public long? RecipientUserId { get; set; }
 }
 
 public class MailAttachment

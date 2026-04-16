@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Models;
+using RevolutionaryWebApp.Shared.Models.Enums;
 using Services;
 
 [DisableConcurrentExecution(300)]
@@ -26,7 +27,7 @@ public class SendBulkEmailChunkJob
     public async Task Execute(long bulkId, List<string> recipients, string? replyTo,
         CancellationToken cancellationToken)
     {
-        var bulkInfo = await database.SentBulkEmails.FindAsync(new object[] { bulkId }, cancellationToken);
+        var bulkInfo = await database.SentBulkEmails.FindAsync([bulkId], cancellationToken);
 
         if (bulkInfo == null)
         {
@@ -40,12 +41,16 @@ public class SendBulkEmailChunkJob
         // allow canceling after starting
         foreach (var recipient in recipients)
         {
-            await mailSender.SendEmail(new MailRequest(recipient, bulkInfo.Title)
+            // TODO: allow email configuration per SentBulkEmail object
+            var request = new MailRequest(recipient, bulkInfo.Title, EmailReason.SiteAnnouncement)
             {
                 ReplyTo = replyTo,
                 HtmlBody = bulkInfo.HtmlBody,
                 PlainTextBody = bulkInfo.PlainBody,
-            }, CancellationToken.None);
+            };
+
+            // Email send filtering is done by the main sender
+            await mailSender.SendEmail(request, CancellationToken.None);
         }
     }
 }

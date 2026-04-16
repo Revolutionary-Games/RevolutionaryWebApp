@@ -18,6 +18,7 @@ public class SendSingleQueuedEmailJob
 
     public async Task Execute(MailRequest mailRequest, CancellationToken cancellationToken)
     {
+        // Email sending preferences are checked by the mail sender to discard emails people don't want
         await mailSender.SendEmail(mailRequest, cancellationToken);
         logger.LogInformation("Sent queued email to {Recipient}", mailRequest.Recipient);
     }
