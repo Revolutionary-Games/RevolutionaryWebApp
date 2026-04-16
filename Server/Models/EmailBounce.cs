@@ -3,13 +3,15 @@ namespace RevolutionaryWebApp.Server.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using RevolutionaryWebApp.Server.Models.Interfaces;
+using RevolutionaryWebApp.Shared.Models;
 
 /// <summary>
 ///   Tracks email bounce information for a single email address. This is used to
 ///   decide when to temporarily disable emails and when to resume them later.
 /// </summary>
 [Index(nameof(NormalizedEmail))]
-public class EmailBounce : BaseModel
+public class EmailBounce : BaseModel, IDTOCreator<EmailBounceDTO>
 {
     [Key]
     [MaxLength(500)]
@@ -47,4 +49,19 @@ public class EmailBounce : BaseModel
     ///   Capped at 52 weeks (1 year).
     /// </summary>
     public int BackoffWeeks { get; set; }
+
+    public EmailBounceDTO GetDTO()
+    {
+        return new EmailBounceDTO
+        {
+            Id = Id,
+            Email = Email,
+            NormalizedEmail = NormalizedEmail,
+            OutstandingBounces = OutstandingBounces,
+            FirstBounceUtc = FirstBounceUtc,
+            LastBounceUtc = LastBounceUtc,
+            DisabledBySystem = DisabledBySystem,
+            BackoffWeeks = BackoffWeeks,
+        };
+    }
 }
