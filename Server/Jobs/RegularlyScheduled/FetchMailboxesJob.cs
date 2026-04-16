@@ -9,11 +9,16 @@ using Hangfire;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
+using RevolutionaryWebApp.Shared.Models.Enums;
+using Services;
 using SharedBase.Utilities;
+using StackExchange.Redis;
+using Utilities;
 
 /// <summary>
 ///   Periodically fetches incoming emails from the main notification mailbox to process special commands
@@ -25,13 +30,17 @@ public class FetchMailboxesJob : IJob
     private readonly ILogger<FetchMailboxesJob> logger;
     private readonly IConfiguration configuration;
     private readonly ApplicationDbContext database;
+    private readonly IMailQueue mailQueue;
+    private readonly IConnectionMultiplexer redis;
 
     public FetchMailboxesJob(ILogger<FetchMailboxesJob> logger, IConfiguration configuration,
-        ApplicationDbContext database)
+        ApplicationDbContext database, IMailQueue mailQueue, IConnectionMultiplexer redis)
     {
         this.logger = logger;
         this.configuration = configuration;
         this.database = database;
+        this.mailQueue = mailQueue;
+        this.redis = redis;
     }
 
     [AutomaticRetry(Attempts = 0)]
@@ -219,6 +228,7 @@ public class FetchMailboxesJob : IJob
                 TargetUserId = user.Id,
             }, cancellation);
             await database.SaveChangesAsync(cancellation);
+            await SendResumeConfirmationAsync(address, cancellation);
             return;
         }
 
@@ -245,5 +255,49 @@ public class FetchMailboxesJob : IJob
 
         await database.SaveChangesAsync(cancellation);
         logger.LogInformation("Resumed essential emails for external address {Email}", address);
+        await SendResumeConfirmationAsync(address, cancellation);
+    }
+
+    private async Task SendResumeConfirmationAsync(string address, CancellationToken cancellation)
+    {
+        try
+        {
+            var db = redis.GetDatabase();
+            var normalized = Normalization.NormalizeEmail(address);
+            var key = $"email:resume:sent:{normalized}";
+
+            // Rate limit: if a confirmation was sent within the last hour, skip sending another
+            var alreadySent = await db.StringGetAsync(key);
+            if (alreadySent.HasValue)
+            {
+                logger.LogDebug("Skipping resume confirmation email to {Email} due to rate limit", address);
+                return;
+            }
+
+            // Set the flag with 1-hour expiry
+            await db.StringSetAsync(key, "1", TimeSpan.FromHours(1));
+
+            var subject = "Emails resumed";
+            var explanation =
+                "You requested emails to be resumed. The most important messages from the website " +
+                "(like password resets and confirmation emails) are now allowed to be sent to this address.";
+
+            var htmlBody = "<p>" + System.Net.WebUtility.HtmlEncode(explanation) + "</p>";
+            var plainBody = explanation;
+
+            // We don't use footer here as the user shouldn't be expected to immediately re-cancel the messages
+            var request = new MailRequest(address, subject, EmailReason.SiteAnnouncement)
+            {
+                HtmlBody = htmlBody,
+                PlainTextBody = plainBody,
+            };
+
+            await mailQueue.SendEmail(request, cancellation);
+        }
+        catch (Exception e)
+        {
+            // Don't fail the mailbox processing because of confirmation email problems
+            logger.LogError(e, "Failed to send resume confirmation email to {Email}", address);
+        }
     }
 }
