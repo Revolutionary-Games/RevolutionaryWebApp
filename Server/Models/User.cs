@@ -245,6 +245,11 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
 
         jobClient.Schedule<CheckAssociationStatusForUserJob>(x => x.Execute(user.Email, CancellationToken.None),
             TimeSpan.FromSeconds(30));
+
+        // Schedule a clean-up of any existing direct email preferences for this email.
+        // User-bound preferences take precedence, so the generic preferences should be removed after a delay.
+        jobClient.Schedule<CleanupDirectEmailPreferencesForUserJob>(x => x.Execute(user.Email, CancellationToken.None),
+            TimeSpan.FromHours(1));
     }
 
     public static async Task UpdateQuotaUsage(long userId, long usedQuota, ApplicationDbContext database, bool save)
