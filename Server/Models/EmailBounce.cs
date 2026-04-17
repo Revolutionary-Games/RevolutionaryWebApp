@@ -2,8 +2,8 @@ namespace RevolutionaryWebApp.Server.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using Interfaces;
 using Microsoft.EntityFrameworkCore;
-using RevolutionaryWebApp.Server.Models.Interfaces;
 using RevolutionaryWebApp.Shared.Models;
 
 /// <summary>
