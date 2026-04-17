@@ -267,6 +267,6 @@ public class SignupsController : Controller
         logger.LogInformation("Completed signup and logged in new user {User}", user.Email);
 
         // Client handles redirect
-        return Ok(new { success = true });
+        return Ok();
     }
 }

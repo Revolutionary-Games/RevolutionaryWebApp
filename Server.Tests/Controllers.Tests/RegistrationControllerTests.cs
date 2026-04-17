@@ -192,7 +192,7 @@ public sealed class RegistrationControllerTests : IDisposable
             Password = "StrongPassword123",
         });
 
-        var ok = Assert.IsType<OkObjectResult>(response);
+        var ok = Assert.IsType<OkResult>(response);
         Assert.Equal(200, ok.StatusCode);
 
         // User created
@@ -253,6 +253,7 @@ public sealed class RegistrationControllerTests : IDisposable
         {
             ["BaseUrl"] = "https://example.test/",
             ["UseSecureCookies"] = "false",
+            ["Registration:Enabled"] = "true",
         };
 
         return new ConfigurationBuilder().AddInMemoryCollection(dict).Build();
