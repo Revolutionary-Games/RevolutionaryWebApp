@@ -70,6 +70,11 @@ public class SignupsController : Controller
         if (!request.Email.Contains('@'))
             return BadRequest("Email is invalid");
 
+        var cookieLookup = await Request.Cookies.GetUserFromSession(database, HttpContext.Connection.RemoteIpAddress);
+
+        if (cookieLookup.User != null)
+            return BadRequest("You are already logged in");
+
         // existing user check
         if (await database.Users.AsNoTracking().AnyAsync(u => u.Email == request.Email))
             return BadRequest("There is already an account associated with the given email");
