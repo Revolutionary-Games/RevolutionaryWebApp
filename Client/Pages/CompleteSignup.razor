@@ -1,0 +1,138 @@
+@page "/complete-signup/{Token}"
+
+@using RevolutionaryWebApp.Shared.Forms
+@using RevolutionaryWebApp.Shared
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h3>Complete signup</h3>
+
+<StatusMessageShower Message="@statusMessage" Type="@statusType"/>
+
+@if (loading)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (notFound)
+{
+    <div class="alert alert-danger">The link is invalid or expired.</div>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="OnSubmit">
+        <DataAnnotationsValidator/>
+
+        <div class="mb-3">
+            <label>Email</label>
+            <div><strong>@pendingEmail</strong></div>
+        </div>
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            <InputText id="username" class="form-control" @bind-Value="model.UserName"/>
+            <ValidationMessage For="() => model.UserName"/>
+        </div>
+
+        <div class="form-group">
+            <label for="display">Real name (optional)</label>
+            <InputText id="display" class="form-control" @bind-Value="model.DisplayName"/>
+            <ValidationMessage For="() => model.DisplayName"/>
+        </div>
+
+        <Button type="submit" ButtonStyle="btn-success" Spinner="@busy" Enabled="@(!busy)">Create account</Button>
+    </EditForm>
+}
+
+@code {
+    private string? pendingEmail;
+    private bool loading = true;
+    private bool notFound;
+    private bool busy;
+    private string? statusMessage;
+    private SiteNoticeType statusType = SiteNoticeType.Info;
+
+    private SignupCompleteRequest model = new() { CSRF = string.Empty };
+
+    [Parameter]
+    public string? Token { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(Token))
+        {
+            notFound = true;
+            loading = false;
+            return;
+        }
+
+        try
+        {
+            var info = await Http.GetFromJsonAsync<PendingSignupInfoDTO>($"api/v1/signups/pending/{Uri.EscapeDataString(Token)}");
+            if (info == null)
+            {
+                notFound = true;
+            }
+            else
+            {
+                pendingEmail = info.Email;
+            }
+        }
+        catch
+        {
+            notFound = true;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task OnSubmit()
+    {
+        if (string.IsNullOrEmpty(Token))
+            return;
+
+        busy = true;
+        statusMessage = "Creating your account...";
+        statusType = SiteNoticeType.Info;
+        StateHasChanged();
+
+        try
+        {
+            var content = new FormUrlEncodedContent(new Dictionary<string, string?>
+            {
+                [nameof(SignupCompleteRequest.Token)] = Token,
+                [nameof(SignupCompleteRequest.UserName)] = model.UserName,
+                [nameof(SignupCompleteRequest.DisplayName)] = model.DisplayName,
+                [nameof(SignupCompleteRequest.CSRF)] = model.CSRF,
+            }!);
+
+            var response = await Http.PostAsync("api/v1/signups/complete", content);
+            if (response.IsSuccessStatusCode)
+            {
+                // Cookies set by the server, so we have to force reload to get fully logged in status
+                // TODO: navigate to the return URL
+                Nav.NavigateTo("/", true);
+            }
+            else
+            {
+                var text = await response.Content.ReadAsStringAsync();
+                statusMessage = string.IsNullOrEmpty(text) ? "Failed to create account" : text;
+                statusType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            statusMessage = "Failed: " + e.Message;
+            statusType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            busy = false;
+            StateHasChanged();
+        }
+    }
+
+}
