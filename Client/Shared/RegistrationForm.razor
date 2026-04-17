@@ -41,7 +41,7 @@
 
     private string ButtonText => !emailSentOnce
         ? "Continue"
-        : (resendCooldownSeconds > 0 ? $"Resend Email ({resendCooldownSeconds})" : "Resend Email");
+        : resendCooldownSeconds > 0 ? $"Resend Email ({resendCooldownSeconds})" : "Resend Email";
 
     private bool CanSubmit => !busy && resendCooldownSeconds == 0;
 

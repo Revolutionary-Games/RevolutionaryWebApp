@@ -9,7 +9,6 @@ using Hangfire;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,6 @@ using RevolutionaryWebApp.Shared.Models.Enums;
 using Services;
 using SharedBase.Utilities;
 using StackExchange.Redis;
-using Utilities;
 
 /// <summary>
 ///   Periodically fetches incoming emails from the main notification mailbox to process special commands

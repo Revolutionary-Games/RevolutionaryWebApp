@@ -1,7 +1,6 @@
 namespace RevolutionaryWebApp.Server.Models.Emails;
 
 using Interfaces;
-using Models;
 using RevolutionaryWebApp.Shared.Models;
 using RevolutionaryWebApp.Shared.Models.Enums;
 using Utilities;

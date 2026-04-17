@@ -132,7 +132,7 @@ else
                 [nameof(SignupCompleteRequest.DisplayName)] = model.DisplayName,
                 [nameof(SignupCompleteRequest.Password)] = model.Password,
                 [nameof(SignupCompleteRequest.CSRF)] = model.CSRF,
-            }!);
+            });
 
             var response = await Http.PostAsync("api/v1/signups/complete", content);
             if (response.IsSuccessStatusCode)
