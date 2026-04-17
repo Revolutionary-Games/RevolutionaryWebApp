@@ -1,139 +1,75 @@
 @using RevolutionaryWebApp.Shared
-@using System.Net
-@using DevCenterCommunication
-@using SharedBase.Utilities
-@using RevolutionaryWebApp.Client.Services
 @using RevolutionaryWebApp.Shared.Forms
+@using RevolutionaryWebApp.Client.Services
 @inject HttpClient Http
 @inject ICSRFTokenReader CSRF
 
-@if (registrationEnabled)
-{
-    <hr />
-    <h3>Register</h3>
+<hr />
+<h3>Create an account</h3>
 
-    <form class="login-form">
-        <div class="mb-3">
-            <input type="email" class="form-control"
-                   aria-describedby="emailHelp" placeholder="email" @bind="email" @bind:event="oninput">
-        </div>
-        <div class="mb-3">
-            <input type="text" class="form-control" placeholder="username" @bind="name" @bind:event="oninput">
-        </div>
-        <div class="mb-3">
-            <input type="password" class="form-control" placeholder="password" @bind="password" @bind:event="oninput">
-            <input type="password" class="form-control" placeholder="password (again)" @bind="passwordVerification"
-                   @bind:event="oninput">
-        </div>
-        <div class="mb-3">
-            <input type="text" class="form-control" placeholder="registration code" @bind="code" @bind:event="oninput">
-        </div>
-        @if (ErrorMessage != null)
-        {
-            <p>@ErrorMessage</p>
-        }
-        @if (statusMessage != null)
-        {
-            <div class="alert alert-danger" role="alert">
-                @statusMessage
-            </div>
-        }
-        <Button class="my-1" Enabled="CanRegister" OnPressed="Submit" Spinner="@processing">
-            Register
-        </Button>
-    </form>
-}
-else
-{
-    if (statusMessage != null)
-    {
-        <div class="alert alert-info" role="alert">
-            @statusMessage
-        </div>
-    }
-}
+<StatusMessageShower Message="@statusMessage" Type="@statusType" />
+
+<EditForm Model="model" OnValidSubmit="StartSignupAsync">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <InputText type="email" class="form-control" placeholder="email" @bind-Value="model.Email" />
+        <ValidationMessage For="() => model.Email" />
+    </div>
+    <Button class="my-1" type="submit" Enabled="!busy" Spinner="@busy">
+        Continue
+    </Button>
+
+    <p class="form-text">
+        We will send you a link to complete creating your account. Sign up emails expire after 3 days.
+    </p>
+    <input type="hidden" @bind-value="model.CSRF" />
+</EditForm>
 
 @code {
-    private bool registrationEnabled;
-    private bool processing;
+    private SignupStartRequest model = new() { CSRF = string.Empty };
+    private bool busy;
     private string? statusMessage;
+    private SiteNoticeType statusType = SiteNoticeType.Info;
 
-    private string? email;
-    private string? name;
-    private string? password;
-    private string? passwordVerification;
-    private string? code;
-
-    // TODO: move this to use the form data approach to be able to show these validation errors to the user
-    private bool CanRegister => !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(name) &&
-        !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(code) && password == passwordVerification &&
-        password.Length is >= AppInfo.MinPasswordLength and <= AppInfo.MaxPasswordLength &&
-        email.Length is >= GlobalConstants.MinEmailLength and <= GlobalConstants.MaxEmailLength &&
-        name.Length is >= CommunicationConstants.MIN_USERNAME_LENGTH and <= CommunicationConstants.MAX_USERNAME_LENGTH;
-
-    private string? ErrorMessage
+    private async Task StartSignupAsync()
     {
-        get
-        {
-            if (CanRegister)
-                return null;
-
-            if (!string.IsNullOrEmpty(password) && password != passwordVerification)
-                return "Password verification doesn't match entered password";
-
-            return null;
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-
-        registrationEnabled = await Http.GetFromJsonAsync<bool>("api/v1/Registration");
-    }
-
-    private async void Submit()
-    {
-        processing = true;
-        await InvokeAsync(StateHasChanged);
-
-        HttpResponseMessage result;
+        busy = true;
+        statusMessage = "Sending email...";
+        statusType = SiteNoticeType.Info;
+        StateHasChanged();
 
         try
         {
-            result = await Http.PostAsJsonAsync("api/v1/Registration", new RegistrationFormData
+            var content = new Dictionary<string, string>
             {
-                Email = email!,
-                Name = name!,
-                Password = password!,
-                RegistrationCode = code,
-                CSRF = CSRF.Token,
-            });
+                [nameof(SignupStartRequest.Email)] = model.Email,
+                [nameof(SignupStartRequest.CSRF)] = CSRF.Token,
+            };
+
+            using var form = new FormUrlEncodedContent(content);
+            var response = await Http.PostAsync("api/v1/signups/start", form);
+
+            if (response.IsSuccessStatusCode)
+            {
+                statusMessage = "Check your inbox for a link to complete signup.";
+                statusType = SiteNoticeType.Success;
+            }
+            else
+            {
+                var text = await response.Content.ReadAsStringAsync();
+                statusMessage = string.IsNullOrWhiteSpace(text) ? "Failed to start signup" : text;
+                statusType = SiteNoticeType.Danger;
+            }
         }
-        catch (HttpRequestException e)
+        catch (Exception e)
         {
-            statusMessage = $"Network request failed: {e.Message}";
-            processing = false;
-            await InvokeAsync(StateHasChanged);
-            return;
+            statusMessage = "Network request failed: " + e.Message;
+            statusType = SiteNoticeType.Danger;
         }
-
-        processing = false;
-
-        if (result.StatusCode != HttpStatusCode.Created)
+        finally
         {
-            var content = await result.Content.ReadAsStringAsync();
-
-            statusMessage = $"Failed to create account. Server responded with: {content}, {result.StatusCode}";
+            busy = false;
+            StateHasChanged();
         }
-        else
-        {
-            // Success
-            statusMessage = "Account created. You can now login using the local login option.";
-            registrationEnabled = false;
-        }
-
-        await InvokeAsync(StateHasChanged);
     }
-
 }
