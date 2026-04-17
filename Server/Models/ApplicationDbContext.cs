@@ -99,6 +99,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<DirectEmailPreferences> DirectEmailPreferences { get; set; } = null!;
     public DbSet<Mailbox> Mailboxes { get; set; } = null!;
     public DbSet<EmailBounce> EmailBounces { get; set; } = null!;
+    public DbSet<PendingUserSignup> PendingUserSignups { get; set; } = null!;
 
     /// <summary>
     ///   If non-null, this will be used to send model update notifications on save

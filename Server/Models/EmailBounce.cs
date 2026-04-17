@@ -11,9 +11,9 @@ using RevolutionaryWebApp.Shared.Models;
 ///   decide when to temporarily disable emails and when to resume them later.
 /// </summary>
 [Index(nameof(NormalizedEmail))]
+[Index(nameof(Email))]
 public class EmailBounce : BaseModel, IDTOCreator<EmailBounceDTO>
 {
-    [Key]
     [MaxLength(500)]
     public string Email { get; set; } = string.Empty;
 
