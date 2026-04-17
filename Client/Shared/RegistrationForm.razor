@@ -1,6 +1,8 @@
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Forms
 @using RevolutionaryWebApp.Client.Services
+@using System.Timers
+@implements IDisposable
 @inject HttpClient Http
 @inject ICSRFTokenReader CSRF
 
@@ -15,12 +17,13 @@
         <InputText type="email" class="form-control" placeholder="email" @bind-Value="model.Email" />
         <ValidationMessage For="() => model.Email" />
     </div>
-    <Button class="my-1" type="submit" Enabled="!busy" Spinner="@busy">
-        Continue
+    <Button class="my-1" type="submit" Enabled="@CanSubmit" Spinner="@busy">
+        @ButtonText
     </Button>
 
     <p class="form-text">
-        We will send you a link to complete creating your account. Sign up emails expire after 3 days.
+        We will send you a link to complete creating your account. Sign up emails expire after 3 days or
+        when requesting a resend.
     </p>
     <input type="hidden" @bind-value="model.CSRF" />
 </EditForm>
@@ -28,8 +31,19 @@
 @code {
     private SignupStartRequest model = new() { CSRF = string.Empty };
     private bool busy;
+
+    private bool emailSentOnce;
+    private int resendCooldownSeconds;
+    private Timer? cooldownTimer;
+
     private string? statusMessage;
     private SiteNoticeType statusType = SiteNoticeType.Info;
+
+    private string ButtonText => !emailSentOnce
+        ? "Continue"
+        : (resendCooldownSeconds > 0 ? $"Resend Email ({resendCooldownSeconds})" : "Resend Email");
+
+    private bool CanSubmit => !busy && resendCooldownSeconds == 0;
 
     private async Task StartSignupAsync()
     {
@@ -53,6 +67,8 @@
             {
                 statusMessage = "Check your inbox for a link to complete signup.";
                 statusType = SiteNoticeType.Success;
+                emailSentOnce = true;
+                StartCooldown();
             }
             else
             {
@@ -71,5 +87,37 @@
             busy = false;
             StateHasChanged();
         }
+    }
+
+    private void StartCooldown(int seconds = 60)
+    {
+        resendCooldownSeconds = seconds;
+        cooldownTimer?.Dispose();
+        cooldownTimer = new Timer(1000)
+        {
+            AutoReset = true,
+            Enabled = false,
+        };
+
+        cooldownTimer.Elapsed += async (_, _) =>
+        {
+            if (resendCooldownSeconds > 0)
+            {
+                resendCooldownSeconds--;
+                await InvokeAsync(StateHasChanged);
+
+                if (resendCooldownSeconds == 0)
+                {
+                    cooldownTimer?.Stop();
+                }
+            }
+        };
+
+        cooldownTimer.Start();
+    }
+
+    public void Dispose()
+    {
+        cooldownTimer?.Dispose();
     }
 }
