@@ -2,12 +2,14 @@ namespace RevolutionaryWebApp.Server.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 using SharedBase.Utilities;
 
 /// <summary>
 ///   Represents a pending local account signup that is waiting for the user to
 ///   confirm their email address before the actual <see cref="User"/> is created.
 /// </summary>
+[Index(nameof(NormalizedEmail), IsUnique = true)]
 public class PendingUserSignup : BaseModel
 {
     [MaxLength(GlobalConstants.MaxEmailLength)]
