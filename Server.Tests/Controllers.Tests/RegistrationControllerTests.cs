@@ -2,6 +2,8 @@ namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using DevCenterCommunication.Utilities;
@@ -12,9 +14,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
+using RevolutionaryWebApp.Server.Authorization;
 using Server.Controllers;
 using Server.Models;
 using Server.Services;
+using Shared;
 using Shared.Forms;
 using Shared.Models.Enums;
 using TestUtilities.Utilities;
@@ -240,6 +244,86 @@ public sealed class RegistrationControllerTests : IDisposable
 
         var bad = Assert.IsType<BadRequestObjectResult>(response);
         Assert.Equal(400, bad.StatusCode);
+    }
+
+    [Fact]
+    public async Task EndToEnd_SignupSetsSessionCookieOnSuccess()
+    {
+        // Arrange
+        var csrfMock = Substitute.For<ITokenVerifier>();
+        csrfMock.IsValidCSRFToken("valid", null, false).Returns(true);
+
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        await using var database = CreateDb(notificationsMock);
+
+        var mailQueue = Substitute.For<IMailQueue>();
+        var configuration = BuildTestConfiguration();
+        var jobClient = Substitute.For<IBackgroundJobClient>();
+
+        var controller = CreateController(database, csrfMock, mailQueue, configuration, jobClient);
+
+        // Act 1: start signup
+        var startResult = await controller.Start(new SignupStartRequest { CSRF = "valid", Email = "e2e@example.com" });
+        Assert.IsType<OkResult>(startResult);
+
+        // Capture the token from the queued email body
+        await mailQueue.Received(1).SendEmail(Arg.Any<MailRequest>(), Arg.Any<CancellationToken>());
+        var firstCall = mailQueue.ReceivedCalls().FirstOrDefault();
+        Assert.NotNull(firstCall);
+        var args = firstCall.GetArguments();
+        var sent = args[0] as MailRequest;
+        Assert.NotNull(sent);
+        Assert.Equal(EmailReason.ConfirmEmail, sent.Category);
+        Assert.NotNull(sent.HtmlBody);
+
+        var match = Regex.Match(sent.HtmlBody, "complete-signup/([A-Za-z0-9]+)");
+        Assert.True(match.Success, "Signup completion token not found in email body");
+        var token = match.Groups[1].Value;
+        Assert.False(string.IsNullOrWhiteSpace(token));
+
+        // Act 2: complete signup
+        var completeResponse = await controller.Complete(new SignupCompleteRequest
+        {
+            CSRF = "valid",
+            Token = token,
+            UserName = "E2EUser",
+            DisplayName = "Just some guy",
+            Password = "StrongPassword123",
+        });
+
+        var ok = Assert.IsType<OkResult>(completeResponse);
+        Assert.Equal(200, ok.StatusCode);
+
+        // Assert user exists
+        var user = await database.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == "e2e@example.com");
+        Assert.NotNull(user);
+        Assert.Equal("Just some guy", user.DisplayName);
+
+        // Assert Set-Cookie header contains a session cookie
+        var setCookieHeader = controller.Response.Headers["Set-Cookie"].ToString();
+        Assert.Contains(AppInfo.SessionCookieName, setCookieHeader);
+        Assert.False(string.IsNullOrWhiteSpace(setCookieHeader));
+
+        // Extract cookie value (before first ';') and verify it authenticates in a new request context
+        var cookieNameEq = AppInfo.SessionCookieName + "=";
+        var startIndex = setCookieHeader.IndexOf(cookieNameEq, StringComparison.Ordinal);
+        Assert.True(startIndex >= 0);
+        startIndex += cookieNameEq.Length;
+        var endIndex = setCookieHeader.IndexOf(';', startIndex);
+        var cookieValue = endIndex >= 0 ?
+            setCookieHeader.Substring(startIndex, endIndex - startIndex) :
+            setCookieHeader.Substring(startIndex);
+        Assert.False(string.IsNullOrWhiteSpace(cookieValue));
+
+        var ctx = CreateHttpContext();
+        ctx.Request.Headers["Cookie"] = AppInfo.SessionCookieName + "=" + cookieValue;
+
+        var (resolvedUser, session) =
+            await ctx.Request.Cookies.GetUserFromSession(database, ctx.Connection.RemoteIpAddress);
+        Assert.NotNull(resolvedUser);
+        Assert.Equal(user.Id, resolvedUser.Id);
+        Assert.NotNull(session);
+        Assert.Equal(user.Id, session.UserId);
     }
 
     public void Dispose()
