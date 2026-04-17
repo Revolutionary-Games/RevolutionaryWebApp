@@ -22,6 +22,8 @@ public class PendingSignupInfoDTO
     [MaxLength(GlobalConstants.MaxEmailLength)]
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
+
+    // TODO: this would need a return Url to be able to redirect the user after creating an account
 }
 
 public class SignupCompleteRequest
@@ -47,7 +49,4 @@ public class SignupCompleteRequest
     [Required]
     [MaxLength(CommunicationConstants.MAXIMUM_TOKEN_LENGTH)]
     public string CSRF { get; set; } = string.Empty;
-
-    [MaxLength(500)]
-    public string? ReturnUrl { get; set; }
 }

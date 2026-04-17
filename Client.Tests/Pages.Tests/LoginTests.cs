@@ -46,7 +46,8 @@ public class LoginTests : BunitContext
 
         cut.WaitForAssertion(() => cut.FindIsNull(".spinner-border"));
 
-        cut.FindIsNull("form button");
+        // Ensure local login button isn't rendered (signup form may still exist)
+        cut.FindIsNull("#localLoginButton");
     }
 
     [Fact]
@@ -84,8 +85,8 @@ public class LoginTests : BunitContext
 
         // Need to use a non-wrapped access to the nodes for now
         // See: https://github.com/bUnit-dev/bUnit/issues/1262
-        Assert.NotNull(cut.Nodes.QuerySelector("form button"));
-        Assert.Contains(cut.Nodes.QuerySelector("form button")!.Attributes, i => i.Name == "disabled");
+        Assert.NotNull(cut.Nodes.QuerySelector("#localLoginButton"));
+        Assert.Contains(cut.Nodes.QuerySelector("#localLoginButton")!.Attributes, i => i.Name == "disabled");
 
         Assert.NotNull(cut.Nodes.QuerySelector("input[type=email]"));
         cut.Nodes.QuerySelector("input[type=email]")!.Input("test@example.com");
@@ -93,6 +94,6 @@ public class LoginTests : BunitContext
         Assert.NotNull(cut.Nodes.QuerySelector("input[type=password]"));
         cut.Nodes.QuerySelector("input[type=password]")!.Input("12345");
 
-        Assert.DoesNotContain(cut.Nodes.QuerySelector("form button")!.Attributes, i => i.Name == "disabled");
+        Assert.DoesNotContain(cut.Nodes.QuerySelector("#localLoginButton")!.Attributes, i => i.Name == "disabled");
     }
 }
