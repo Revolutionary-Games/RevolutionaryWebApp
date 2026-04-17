@@ -41,6 +41,22 @@ else
             <ValidationMessage For="() => model.DisplayName"/>
         </div>
 
+        <div class="form-group">
+            <label for="password">Password</label>
+            <InputText id="password" type="password" class="form-control" @bind-Value="model.Password"/>
+            <small class="form-text text-muted">Password must be between @AppInfo.MinPasswordLength and @AppInfo.MaxPasswordLength characters.</small>
+            <ValidationMessage For="() => model.Password"/>
+        </div>
+
+        <div class="form-group">
+            <label for="password2">Confirm password</label>
+            <InputText id="password2" type="password" class="form-control" @bind-Value="confirmPassword"/>
+            @if (!string.IsNullOrEmpty(confirmPassword) && confirmPassword != model.Password)
+            {
+                <div class="text-danger">Passwords do not match.</div>
+            }
+        </div>
+
         <Button type="submit" ButtonStyle="btn-success" Spinner="@busy" Enabled="@(!busy)">Create account</Button>
     </EditForm>
 }
@@ -54,6 +70,7 @@ else
     private SiteNoticeType statusType = SiteNoticeType.Info;
 
     private SignupCompleteRequest model = new() { CSRF = string.Empty };
+    private string confirmPassword = string.Empty;
 
     [Parameter]
     public string? Token { get; set; }
@@ -94,6 +111,13 @@ else
         if (string.IsNullOrEmpty(Token))
             return;
 
+        if (confirmPassword != model.Password)
+        {
+            statusMessage = "Passwords do not match.";
+            statusType = SiteNoticeType.Danger;
+            return;
+        }
+
         busy = true;
         statusMessage = "Creating your account...";
         statusType = SiteNoticeType.Info;
@@ -106,6 +130,7 @@ else
                 [nameof(SignupCompleteRequest.Token)] = Token,
                 [nameof(SignupCompleteRequest.UserName)] = model.UserName,
                 [nameof(SignupCompleteRequest.DisplayName)] = model.DisplayName,
+                [nameof(SignupCompleteRequest.Password)] = model.Password,
                 [nameof(SignupCompleteRequest.CSRF)] = model.CSRF,
             }!);
 
@@ -113,7 +138,7 @@ else
             if (response.IsSuccessStatusCode)
             {
                 // Cookies set by the server, so we have to force reload to get fully logged in status
-                // TODO: navigate to the return URL
+                // TODO: navigate to the return URL if set
                 Nav.NavigateTo("/", true);
             }
             else
