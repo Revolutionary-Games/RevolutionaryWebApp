@@ -41,6 +41,10 @@ public class SignupCompleteRequest
     public string? DisplayName { get; set; }
 
     [Required]
+    [StringLength(AppInfo.MaxPasswordLength, MinimumLength = AppInfo.MinPasswordLength)]
+    public string Password { get; set; } = string.Empty;
+
+    [Required]
     [MaxLength(CommunicationConstants.MAXIMUM_TOKEN_LENGTH)]
     public string CSRF { get; set; } = string.Empty;
 
