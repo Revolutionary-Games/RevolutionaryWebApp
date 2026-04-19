@@ -165,6 +165,16 @@ public class CustomRateLimiter
             limitOptions.ShortWindowQueueLimit);
     }
 
+    public static void CreatePasswordResetLimiter(RateLimiterOptions limiterOptions, MyRateLimitOptions limitOptions)
+    {
+        CreateAreaRelatedTokenLimiter(
+            limiterOptions,
+            RateLimitCategories.PasswordReset,
+            limitOptions.PasswordResetLimit,
+            limitOptions.PasswordResetWindowSeconds,
+            limitOptions.PasswordResetLimit);
+    }
+
     private static void CreateAreaRelatedFixedLimiter(
         RateLimiterOptions limiterOptions,
         string category,

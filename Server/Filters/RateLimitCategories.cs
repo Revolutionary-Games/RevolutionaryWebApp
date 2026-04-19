@@ -9,4 +9,5 @@ public static class RateLimitCategories
     public const string CrashReport = "crash";
     public const string Stackwalk = "stackwalk";
     public const string UploadLimit = "upload";
+    public const string PasswordReset = "passwordReset";
 }

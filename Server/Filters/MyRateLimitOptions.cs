@@ -38,6 +38,9 @@ public class MyRateLimitOptions
     public int StackwalkRefreshSeconds { get; set; } = 60;
     public int StackwalkRefreshAmount { get; set; } = 2;
 
+    public int PasswordResetLimit { get; set; } = 5;
+    public int PasswordResetWindowSeconds { get; set; } = 3600;
+
     // Logged in limits
 
     public int UserGlobalGetLimit { get; set; } = 1000;

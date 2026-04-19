@@ -208,6 +208,7 @@ public class Startup
             CustomRateLimiter.CreateCrashReportLimiter(limiterOptions, limitOptions);
             CustomRateLimiter.CreateStackwalkLimiter(limiterOptions, limitOptions);
             CustomRateLimiter.CreateUploadLimiter(limiterOptions, limitOptions);
+            CustomRateLimiter.CreatePasswordResetLimiter(limiterOptions, limitOptions);
         });
 
         services.AddDbContextPool<ApplicationDbContext>(opts =>
