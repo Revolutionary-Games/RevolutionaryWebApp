@@ -104,7 +104,7 @@ public class RunnerService : IDisposable
         this.jobNotifications = jobNotifications;
 
         // Randomize ask delay a bit per runner to avoid a thundering herd problem
-        jobAskInterval = TimeSpan.FromSeconds(180 + 120 * (float)new Random().NextDouble());
+        jobAskInterval = TimeSpan.FromSeconds(60 + 60 * (float)new Random().NextDouble());
 
         jobOutputForwarder = new SimpleJobOutputForwarder(OnJobSectionClosed, OnJobSectionOpened, OnJobOutput);
 
