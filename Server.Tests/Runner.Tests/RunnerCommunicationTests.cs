@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Common.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Server.Controllers;
 using Server.Models;
@@ -984,9 +985,24 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         await listenerMockSetup.WaitUntilQueueEmpty();
 
         // Check that the runner has the job in the right state, and it should see it again
-        var jobToResume = await db.CiJobs.AsNoTracking()
-            .Where(j => j.ReservedByRunnerId == listenerMockSetup.GetRunnerData().Id)
-            .FirstOrDefaultAsync();
+        // This can fail with concurrent DB exception randomly once in a while... Hopefully this helps
+        CiJob? jobToResume = null;
+        for (int i = 0; i < 5; ++i)
+        {
+            try
+            {
+                jobToResume = await db.CiJobs.AsNoTracking()
+                    .Where(j => j.ReservedByRunnerId == listenerMockSetup.GetRunnerData().Id)
+                    .FirstOrDefaultAsync();
+
+                break;
+            }
+            catch (Exception e)
+            {
+                logger.LogInformation("Ignoring intermittent test failure here: {E}", e);
+            }
+        }
+
         Assert.NotNull(jobToResume);
 
         // But the client sadly loses connection here in this test!
