@@ -57,7 +57,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     [StringLength(120)]
     public string? DisplayName { get; set; }
 
-    // TODO: remove
+    // TODO: remove (replace as property for when password hash is not null)
     public bool Local { get; set; }
 
     [AllowSortingBy]
