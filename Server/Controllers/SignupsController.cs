@@ -29,14 +29,12 @@ using Utilities;
 [Route("api/v1/[controller]")]
 public class SignupsController : Controller
 {
-    private const string SignupProtectionPurpose = "SignupsController.Signup.v1";
-
     private readonly ILogger<SignupsController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly ITokenVerifier csrfVerifier;
     private readonly IMailQueue mailQueue;
     private readonly IConfiguration configuration;
-    private readonly ITimeLimitedDataProtector emailPrefProtector;
+    private readonly ITimeLimitedDataProtector preferencesProtector;
     private readonly IBackgroundJobClient jobClient;
 
     public SignupsController(ILogger<SignupsController> logger, NotificationsEnabledDb database,
@@ -49,7 +47,7 @@ public class SignupsController : Controller
         this.mailQueue = mailQueue;
         this.configuration = configuration;
         this.jobClient = jobClient;
-        emailPrefProtector = dataProtectionProvider.CreateProtector(SignupProtectionPurpose)
+        preferencesProtector = dataProtectionProvider.CreateProtector(EmailPreferenceToken.ProtectionPurpose)
             .ToTimeLimitedDataProtector();
     }
 
@@ -116,7 +114,8 @@ public class SignupsController : Controller
                     // Too many requests in a short time window
                     var retryIn = TimeSpan.FromHours(1) - sinceLast;
                     var message =
-                        $"Too many confirmation emails requested. Please wait {Math.Max(1, (int)Math.Ceiling(retryIn.TotalMinutes))} more minutes and try again.";
+                        $"Too many confirmation emails requested. Please wait " +
+                        $"{Math.Max(1, (int)Math.Ceiling(retryIn.TotalMinutes))} more minutes and try again.";
                     return StatusCode(StatusCodes.Status429TooManyRequests, message);
                 }
             }
@@ -138,7 +137,7 @@ public class SignupsController : Controller
         var raw = $"Hello,\n\nTo complete creating your account, open this link: {completeUrl}\n";
 
         // add footer
-        (html, raw) = await EmailHelpers.GenerateFooterAsync(database, emailPrefProtector, configuration,
+        (html, raw) = await EmailHelpers.GenerateFooterAsync(database, preferencesProtector, configuration,
             request.Email, EmailReason.ConfirmEmail, null, html, raw,
             "You received this email because you requested to create an account.", HttpContext.RequestAborted);
 

@@ -1,9 +1,11 @@
 @page "/email-preferences"
 @page "/email-preferences/{Token?}"
+@using System.Text.Json
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Client.Services
+@using SharedBase.Utilities
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject CurrentUserInfo CurrentUser
@@ -26,7 +28,8 @@ else if (!initializing && showLoginLink)
 {
     <div class="alert alert-info" role="alert">
         You are not logged in. To manage your email preferences for your account, please
-        <NavLink href="@LoginLink">log in here</NavLink>.
+        <NavLink href="@LoginLink">log in here</NavLink>
+        .
     </div>
 }
 else if (prefs == null)
@@ -171,8 +174,16 @@ else
             }
             else if (!string.IsNullOrWhiteSpace(Token))
             {
-                var url = $"api/v1/EmailPreferences/byToken?token={Uri.EscapeDataString(Token)}";
-                prefs = await Http.GetFromJsonAsync<EmailPreferencesDTO>(url);
+                var response = await Http.GetAsync($"api/v1/EmailPreferences/byToken?token={Uri.EscapeDataString(Token)}");
+                var content = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    statusMessage = $"Failed to load email preferences: {content.Truncate(80)}, {response.ReasonPhrase}";
+                    statusType = SiteNoticeType.Danger;
+                    return;
+                }
+
+                prefs = JsonSerializer.Deserialize<EmailPreferencesDTO>(content, JsonSerializerOptions.Web);
             }
             else
             {

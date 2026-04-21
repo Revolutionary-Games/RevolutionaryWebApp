@@ -91,7 +91,10 @@ public static class EmailHelpers
     ///   the recipient is a known user or not. For anonymous recipients a time-limited token is generated.
     /// </summary>
     /// <param name="database">EF database to resolve user by id/email</param>
-    /// <param name="protector">Time-limited data protector for anonymous preference tokens</param>
+    /// <param name="protector">
+    ///   Time-limited data protector for anonymous preference tokens. Note that this *must be* created with the
+    ///   protection purpose of <c>EmailPreferenceToken.ProtectionPurpose</c> otherwise the tokens will be invalid!
+    /// </param>
     /// <param name="configuration">Configuration used to resolve the absolute base URL</param>
     /// <param name="recipientEmail">Target email address</param>
     /// <param name="category">Email category (used for unsubscribe when allowed)</param>

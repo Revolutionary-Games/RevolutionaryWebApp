@@ -41,9 +41,9 @@ public class CheckOverallBuildStatusJob
 
         discordNotice =
             Enum.Parse<BuildReportType>(configuration["CI:StatusReporting:Discord"] ??
-                BuildReportType.Never.ToString());
+                nameof(BuildReportType.Never));
         sendEmails = Enum.Parse<GithubEmailReportReceivers>(configuration["CI:StatusReporting:Email"] ??
-            GithubEmailReportReceivers.None.ToString());
+            nameof(GithubEmailReportReceivers.None));
         baseUrl = configuration.GetBaseUrl();
 
         // Time-limited protector for email preference tokens

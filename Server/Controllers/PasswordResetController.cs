@@ -29,6 +29,7 @@ public class PasswordResetController : Controller
     private readonly IMailQueue mailQueue;
     private readonly IConfiguration configuration;
     private readonly ITimeLimitedDataProtector protector;
+    private readonly ITimeLimitedDataProtector preferencesProtector;
 
     public PasswordResetController(ILogger<PasswordResetController> logger, ApplicationDbContext database,
         IMailQueue mailQueue, IConfiguration configuration, IDataProtectionProvider dataProtectionProvider)
@@ -38,6 +39,8 @@ public class PasswordResetController : Controller
         this.mailQueue = mailQueue;
         this.configuration = configuration;
         protector = dataProtectionProvider.CreateProtector(PasswordResetToken.ProtectionPurpose)
+            .ToTimeLimitedDataProtector();
+        preferencesProtector = dataProtectionProvider.CreateProtector(EmailPreferenceToken.ProtectionPurpose)
             .ToTimeLimitedDataProtector();
     }
 
@@ -151,7 +154,8 @@ public class PasswordResetController : Controller
         var baseHtml =
             $"<p>We received a request to reset your password for the account associated with " +
             $"<b>{System.Net.WebUtility.HtmlEncode(targetUser.Email)}</b>.</p>" +
-            $"<p>If you made this request, click the link below to reset your password. This link expires in 1 hour.</p>" +
+            $"<p>If you made this request, click the link below to reset your password. " +
+            $"This link expires in 1 hour.</p>" +
             $"<p><a href=\"{resetUrl}\">Reset your password</a></p>";
 
         var baseText =
@@ -160,7 +164,7 @@ public class PasswordResetController : Controller
             resetUrl + "\n\n";
 
         var (htmlWithFooter, textWithFooter) = await EmailHelpers.GenerateFooterAsync(database,
-            protector, configuration, targetUser.Email, EmailReason.PasswordReset, targetUser.Id,
+            preferencesProtector, configuration, targetUser.Email, EmailReason.PasswordReset, targetUser.Id,
             baseHtml, baseText,
             "You received this email because a password reset was requested for your account.",
             HttpContext.RequestAborted);
@@ -194,7 +198,7 @@ public class PasswordResetController : Controller
             $"Visit the website: {baseUrl}\n\n";
 
         var (htmlWithFooter, textWithFooter) = await EmailHelpers.GenerateFooterAsync(database,
-            protector, configuration, targetUser.Email, EmailReason.ImportantEmails, targetUser.Id,
+            preferencesProtector, configuration, targetUser.Email, EmailReason.ImportantEmails, targetUser.Id,
             baseHtml, baseText,
             "You received this email because your account's password has been reset.",
             CancellationToken.None);
