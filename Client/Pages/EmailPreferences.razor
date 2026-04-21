@@ -10,6 +10,8 @@
 
 <h3>Email Preferences</h3>
 
+<p>On this page you can manage your email preferences / the topics you want to be emailed about.</p>
+
 <StatusMessageShower Message="@statusMessage" Type="@statusType"/>
 
 @if (initializing)
@@ -20,7 +22,7 @@
         </div>
     </div>
 }
-@if (!initializing && showLoginLink)
+else if (!initializing && showLoginLink)
 {
     <div class="alert alert-info" role="alert">
         You are not logged in. To manage your email preferences for your account, please
@@ -82,7 +84,9 @@ else
         <div class="row">
             <div class="mb-3 col-md-12 form-check">
                 <InputCheckbox class="form-check-input" id="disableAll" @bind-Value="prefs.DisableAllEmails"/>
-                <label class="form-check-label" for="disableAll">Disable ALL emails</label>
+                <label class="form-check-label" for="disableAll">
+                    Disable ALL emails (including all account management emails)
+                </label>
             </div>
         </div>
 
@@ -102,7 +106,8 @@ else
         </Button>
     </EditForm>
 
-    <p>
+    <br/>
+    <p class="mt-4">
         Please note that if an email has already been generated and queued, it may still be delivered after preferences
         have been updated.
     </p>

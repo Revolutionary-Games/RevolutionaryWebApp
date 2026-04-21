@@ -40,7 +40,7 @@ public class EmailPreferencesController : Controller
             return Unauthorized();
 
         // Ensure preferences are loaded from DB
-        var dbUser = await database.Users.Include(u => u.EmailPreferences)
+        var dbUser = await database.Users.AsNoTracking().Include(u => u.EmailPreferences)
             .FirstOrDefaultAsync(u => u.Id == user.Id, HttpContext.RequestAborted);
 
         if (dbUser == null)
