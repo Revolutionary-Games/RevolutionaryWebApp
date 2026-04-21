@@ -82,7 +82,8 @@ public class FetchMailboxesJob : IJob
             await client.ConnectAsync(imapHost, imapPort, imapUseSsl, cancellationToken);
             await client.AuthenticateAsync(username, password, cancellationToken);
 
-            var inbox = client.Inbox;
+            // This should always be available if authentication succeeded
+            var inbox = client.Inbox ?? throw new InvalidOperationException("No inbox available");
             await inbox.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
 
             // Delete very old messages (older than one year) at most once per day per mailbox
