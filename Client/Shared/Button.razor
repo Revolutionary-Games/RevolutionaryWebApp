@@ -1,11 +1,24 @@
-<button id="@id" class="@OurClass()" aria-disabled="@Disabled" disabled="@Disabled"
-        type="@type" @onclick="PressDetected" @onclick:preventDefault="@HasCallback">
-    @if (Spinner)
-    {
-        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-    }
-    @ChildContent
-</button>
+@if (HasCallback)
+{
+    <button id="@id" class="@OurClass()" aria-disabled="@Disabled" disabled="@Disabled"
+            type="@type" @onclick="PressDetected" @onclick:preventDefault="true">
+        @if (Spinner)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        }
+        @ChildContent
+    </button>
+}
+else
+{
+    <button id="@id" class="@OurClass()" aria-disabled="@Disabled" disabled="@Disabled" type="@type">
+        @if (Spinner)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        }
+        @ChildContent
+    </button>
+}
 
 @code {
 
@@ -41,13 +54,41 @@
     [Parameter]
     public EventCallback OnPressed { get; set; }
 
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
+
     public bool Disabled => !Enabled;
 
     private bool HasCallback => OnPressed.HasDelegate;
 
-    private async void PressDetected()
+    private async Task PressDetected()
     {
-        if (Enabled)
+        if (!Enabled)
+            return;
+
+        // If this is a submit-button inside an EditForm, perform validation first
+        // and only proceed when the form is valid. This keeps the manual callback
+        // pattern while enforcing form validation.
+        if (type == "submit" && EditContext is not null)
+        {
+            var valid = EditContext.Validate();
+            if (!valid)
+            {
+                Console.WriteLine("Cannot submit a form with invalid fields, skipping");
+
+#if DEBUG
+                Console.WriteLine("Validation errors:");
+                foreach (var error in EditContext.GetValidationMessages())
+                {
+                    Console.WriteLine(error);
+                }
+
+#endif
+                return;
+            }
+        }
+
+        if (HasCallback)
             await OnPressed.InvokeAsync();
     }
 
@@ -62,4 +103,5 @@
             return $"btn btn-{ButtonStyle} {@class}";
         }
     }
+
 }
