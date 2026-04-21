@@ -115,7 +115,8 @@ public class SignupsController : Controller
                     var retryIn = TimeSpan.FromHours(1) - sinceLast;
                     var message =
                         $"Too many confirmation emails requested. Please wait " +
-                        $"{Math.Max(1, (int)Math.Ceiling(retryIn.TotalMinutes))} more minutes and try again.";
+                        $"{Math.Max(1, (int)Math.Ceiling(retryIn.TotalMinutes))} more minutes and try again. " +
+                        "Also please check your spam folder if you don't see the email.";
                     return StatusCode(StatusCodes.Status429TooManyRequests, message);
                 }
             }
@@ -133,8 +134,10 @@ public class SignupsController : Controller
 
         var html =
             $"<p>Hello,</p><p>To complete creating your account, please confirm your email address by " +
-            $"clicking the link below:</p><p><a href=\"{completeUrl}\">Complete your signup</a></p>";
-        var raw = $"Hello,\n\nTo complete creating your account, open this link: {completeUrl}\n";
+            $"clicking the link below:</p><p><a href=\"{completeUrl}\">Complete your signup</a></p>" +
+            $"<p>If you did not request this email, please ignore it and the account will not be created.</p>";
+        var raw = $"Hello,\n\nTo complete creating your account, open this link: {completeUrl}\n\n" +
+            "If you did not request this email, please ignore it and the account will not be created.";
 
         // add footer
         (html, raw) = await EmailHelpers.GenerateFooterAsync(database, preferencesProtector, configuration,
