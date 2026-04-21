@@ -1,9 +1,11 @@
 @page "/complete-signup/{Token}"
 
+@using RevolutionaryWebApp.Client.Services
 @using RevolutionaryWebApp.Shared.Forms
 @using RevolutionaryWebApp.Shared
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject ICSRFTokenReader CSRF
 
 <h3>Complete signup</h3>
 
@@ -57,7 +59,9 @@ else
             }
         </div>
 
-        <Button type="submit" ButtonStyle="btn-success" Spinner="@busy" Enabled="@(!busy)">Create account</Button>
+        <Button type="submit" class="mt-1" ButtonStyle="btn btn-success" Spinner="@busy" Enabled="@(!busy)" OnPressed="OnSubmit">
+            Create Account
+        </Button>
     </EditForm>
 }
 
@@ -69,7 +73,7 @@ else
     private string? statusMessage;
     private SiteNoticeType statusType = SiteNoticeType.Info;
 
-    private SignupCompleteRequest model = new() { CSRF = string.Empty };
+    private SignupCompleteRequest model = new() { CSRF = "1234" };
     private string confirmPassword = string.Empty;
 
     [Parameter]
@@ -83,6 +87,8 @@ else
             loading = false;
             return;
         }
+
+        model.Token = Token;
 
         try
         {
@@ -119,7 +125,7 @@ else
         }
 
         busy = true;
-        statusMessage = "Creating your account...";
+        statusMessage = null;
         statusType = SiteNoticeType.Info;
         StateHasChanged();
 
@@ -131,7 +137,7 @@ else
                 [nameof(SignupCompleteRequest.UserName)] = model.UserName,
                 [nameof(SignupCompleteRequest.DisplayName)] = model.DisplayName,
                 [nameof(SignupCompleteRequest.Password)] = model.Password,
-                [nameof(SignupCompleteRequest.CSRF)] = model.CSRF,
+                [nameof(SignupCompleteRequest.CSRF)] = CSRF.Token,
             });
 
             var response = await Http.PostAsync("api/v1/signups/complete", content);

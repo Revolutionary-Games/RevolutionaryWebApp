@@ -55,7 +55,7 @@ public class SignupsController : Controller
 
     [HttpPost("start")]
     [EnableRateLimiting(RateLimitCategories.RegistrationLimit)]
-    public async Task<IActionResult> Start([FromForm] SignupStartRequest request)
+    public async Task<IActionResult> Start([FromBody] SignupStartRequest request)
     {
         // Globally allow disabling signups from configuration
         if (!configuration.GetValue("Registration:Enabled", false))

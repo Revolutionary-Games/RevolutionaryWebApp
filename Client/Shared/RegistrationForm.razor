@@ -17,7 +17,7 @@
         <InputText type="email" class="form-control" placeholder="email" @bind-Value="model.Email" />
         <ValidationMessage For="() => model.Email" />
     </div>
-    <Button class="my-1" type="submit" Enabled="@CanSubmit" Spinner="@busy">
+    <Button class="my-1" type="submit" Enabled="@CanSubmit" Spinner="@busy" OnPressed="@StartSignupAsync">
         @ButtonText
     </Button>
 
@@ -29,7 +29,7 @@
 </EditForm>
 
 @code {
-    private SignupStartRequest model = new() { CSRF = string.Empty };
+    private SignupStartRequest model = new() { CSRF = "1234" };
     private bool busy;
 
     private bool emailSentOnce;
@@ -54,14 +54,8 @@
 
         try
         {
-            var content = new Dictionary<string, string>
-            {
-                [nameof(SignupStartRequest.Email)] = model.Email,
-                [nameof(SignupStartRequest.CSRF)] = CSRF.Token,
-            };
-
-            using var form = new FormUrlEncodedContent(content);
-            var response = await Http.PostAsync("api/v1/signups/start", form);
+            model.CSRF = CSRF.Token;
+            var response = await Http.PostAsJsonAsync("api/v1/signups/start", model);
 
             if (response.IsSuccessStatusCode)
             {
