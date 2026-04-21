@@ -46,7 +46,9 @@ else
         <div class="form-group">
             <label for="password">Password</label>
             <InputText id="password" type="password" class="form-control" @bind-Value="model.Password"/>
-            <small class="form-text text-muted">Password must be between @AppInfo.MinPasswordLength and @AppInfo.MaxPasswordLength characters.</small>
+            <small class="form-text text-muted">
+                Password must be between @AppInfo.MinPasswordLength and @AppInfo.MaxPasswordLength characters.
+            </small>
             <ValidationMessage For="() => model.Password"/>
         </div>
 
