@@ -374,7 +374,7 @@ public class JobExecutor : IJobExecutor, IDisposable
             var newSize = CountLfsObjectsSize(folder);
             if (newSize < 0)
             {
-                await output.ForwardOutputToActiveSection("LFS data folder doesn't exist after pull");
+                await output.ForwardOutputToActiveSection("LFS data folder doesn't exist after pull\n");
             }
             else
             {
