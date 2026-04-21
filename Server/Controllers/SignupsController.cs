@@ -187,6 +187,8 @@ public class SignupsController : Controller
         if (!csrfVerifier.IsValidCSRFToken(request.CSRF, null, false))
             return BadRequest("Invalid CSRF");
 
+        var remoteAddress = HttpContext.Connection.RemoteIpAddress;
+
         var pending = await database.PendingUserSignups.FirstOrDefaultAsync(p => p.Token == request.Token,
             HttpContext.RequestAborted);
 
@@ -258,6 +260,9 @@ public class SignupsController : Controller
         session.LastUsedFrom = HttpContext.Connection.RemoteIpAddress;
         session.LastUsed = DateTime.UtcNow;
 
+        // Very important to load groups to the session cache, otherwise the login will be quite broken
+        session.CachedUserGroups = await user.ComputeUserGroups(database);
+
         await database.SaveChangesAsync(CancellationToken.None);
 
         // Set cookie using shared helper
@@ -265,6 +270,10 @@ public class SignupsController : Controller
             configuration.GetValue("UseSecureCookies", true));
 
         logger.LogInformation("Completed signup and logged in new user {User}", user.Email);
+
+        logger.LogInformation("Successful login (user created) for user {Email} from {RemoteAddress}, session: {Id}",
+            user.Email,
+            remoteAddress, session.Id);
 
         // Client handles redirect
         return Ok();

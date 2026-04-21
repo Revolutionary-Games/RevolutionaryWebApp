@@ -290,12 +290,12 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
                 if (sessionObject == null)
                     throw new InvalidOperationException("User was found but no session exists");
 
-                // When inside a cookie CSRF needs to have passed (except for some download endpoints)
+                // When inside a cookie, CSRF needs to have passed (except for some download endpoints)
                 context.Items[AppInfo.CSRFNeededName] = true;
 
                 if (user.Suspended != true)
                 {
-                    // Ensure groups in session are up to date, if not up to date update them
+                    // Ensure groups in session are up to date, if not up to date, update them
                     if (sessionObject.CachedUserGroups == null)
                     {
                         // Database data problem, UpdateUserGroupCacheJob should always keep the groups in sessions up
@@ -305,7 +305,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
                         return AuthMethodResult.Nothing;
                     }
 
-                    // Can use session cached groups
+                    // Can use session-cached groups
                     user.SetGroupsFromSessionCache(sessionObject);
 
                     OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, sessionObject);
