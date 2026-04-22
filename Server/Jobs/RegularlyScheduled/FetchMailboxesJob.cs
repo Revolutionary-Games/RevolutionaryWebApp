@@ -94,7 +94,7 @@ public class FetchMailboxesJob : IJob
             {
                 var cutoff = now.AddYears(-1);
                 var oldUids = await inbox.SearchAsync(SearchQuery.DeliveredBefore(cutoff), cancellationToken);
-                if (oldUids?.Count > 0)
+                if (oldUids.Count > 0)
                 {
                     await inbox.AddFlagsAsync(oldUids, MessageFlags.Deleted, true, cancellationToken);
                     await inbox.ExpungeAsync(cancellationToken);
