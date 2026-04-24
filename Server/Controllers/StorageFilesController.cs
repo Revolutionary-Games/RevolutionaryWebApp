@@ -1047,7 +1047,7 @@ public class StorageFilesController : Controller
         if (request.Size <= 0)
             return BadRequest("Size must be greater than 0");
 
-        if (request.Size > AppInfo.MaxMediaFileSize)
+        if (request.Size > AppInfo.MaxGeneralFileStoreSize)
             return BadRequest("File is too large");
 
         // TODO: maybe in the future we'll want to allow anonymous uploads to certain folders
