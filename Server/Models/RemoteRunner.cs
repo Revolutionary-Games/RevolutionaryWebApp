@@ -113,7 +113,9 @@ public class RemoteRunner : UpdateableModel, IDTOCreator<RemoteRunnerDTO>, IUpda
             LastIpAddress = LastIpAddress?.ToString(),
             CurrentConnectionId = CurrentConnectionId,
             LastTriggeredError = LastTriggeredError,
-            ReservedJobId = ReservedJob != null ? $"{ReservedJob.CiBuildId}-{ReservedJob.CiJobId}" : null,
+            ReservedJobId = ReservedJob != null
+                ? $"{ReservedJob.CiProjectId}-{ReservedJob.CiBuildId}-{ReservedJob.CiJobId}"
+                : null,
             TotalJobsTaken = TotalJobsTaken,
             DisallowJobs = DisallowJobs,
             QueuedCleanUp = QueuedCleanUp,
