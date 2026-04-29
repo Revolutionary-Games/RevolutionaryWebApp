@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using RevolutionaryWebApp.Shared.Models;
+using Shared;
 
 /// <summary>
 ///   Tracks email bounce information for a single email address. This is used to
@@ -26,28 +27,33 @@ public class EmailBounce : BaseModel, IDTOCreator<EmailBounceDTO>
     /// <summary>
     ///   Count of bounces since last reset/handling.
     /// </summary>
+    [AllowSortingBy]
     public int OutstandingBounces { get; set; }
 
     /// <summary>
     ///   First time a bounce was recorded (for the current series).
     /// </summary>
+    [AllowSortingBy]
     public DateTime FirstBounceUtc { get; set; }
 
     /// <summary>
     ///   Last time a bounce was recorded (for the current series).
     /// </summary>
+    [AllowSortingBy]
     public DateTime LastBounceUtc { get; set; }
 
     /// <summary>
     ///   True when emails were disabled by the bounce handler so that a resume job can
     ///   later safely re-enable them. If the user disables emails manually, this must remain false.
     /// </summary>
+    [AllowSortingBy]
     public bool DisabledBySystem { get; set; }
 
     /// <summary>
     ///   Current backoff in weeks to use by resume scheduling. Increased when disable triggers again.
     ///   Capped at 52 weeks (1 year).
     /// </summary>
+    [AllowSortingBy]
     public int BackoffWeeks { get; set; }
 
     public EmailBounceDTO GetDTO()
