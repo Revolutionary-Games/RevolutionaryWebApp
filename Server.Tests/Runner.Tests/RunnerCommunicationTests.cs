@@ -895,15 +895,16 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Runner_ReconnectingResumesJobAndSection(bool disconnectFirst)
+    [InlineData(1)]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task Runner_ReconnectingResumesJobAndSection(int disconnectMode)
     {
         string testCacheSettings = JsonSerializer.Serialize(new CiJobCacheConfiguration());
 
         var listenerMockSetup =
             await RunnerConnectionMockHelper.Create(
-                nameof(Runner_ReconnectingResumesJobAndSection) + $"{disconnectFirst}", logger);
+                nameof(Runner_ReconnectingResumesJobAndSection) + $"{disconnectMode}", logger);
 
         var db = listenerMockSetup.AccessDatabase();
 
@@ -1008,7 +1009,7 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         // But the client sadly loses connection here in this test!
         var newConnection =
             await RunnerConnectionMockHelper.CreateResume(
-                nameof(Runner_ReconnectingResumesJobAndSection) + $"{disconnectFirst}", logger);
+                nameof(Runner_ReconnectingResumesJobAndSection) + $"{disconnectMode}", logger);
 
         // Make sure the database is shared
         var db2 = newConnection.AccessDatabase();
@@ -1027,10 +1028,28 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             Assert.Equal(job1.State, job2.State);
         }
 
-        if (disconnectFirst)
+        if (disconnectMode == 0)
         {
             listenerMockSetup.QueueCloseMessage();
             await listenerMockSetup.WaitUntilClosed();
+        }
+        else
+        {
+            // NOTE: this is done to make the tests pass consistently, but might be verifying a slightly less certain
+            // case than the test did previously.
+            // Test another connection opening triggering the close immediately.
+            listenerMockSetup.TriggerRedisNewConnectionOpened(listenerMockSetup.GetRunnerData().Id, 987654321);
+
+            if (disconnectMode == 1)
+            {
+                // Ensure the original connection has observed the notice and closed before continuing
+                await listenerMockSetup.WaitUntilClosed(TimeSpan.FromSeconds(15));
+            }
+            else
+            {
+                // Just wait a second to assume things get into the right state without closing
+                await Task.Delay(1000);
+            }
         }
 
         // Ensure the job is still reserved
@@ -1092,10 +1111,9 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         newConnection.QueueCloseMessage();
         await newConnection.WaitUntilClosed();
 
-        // And close the original if not already
-        if (!disconnectFirst)
+        // And ensure the original is closed (it should already be due to the Redis notice in the reconnection path)
+        if (disconnectMode == 2)
         {
-            listenerMockSetup.QueueCloseMessage();
             await listenerMockSetup.WaitUntilClosed();
         }
 

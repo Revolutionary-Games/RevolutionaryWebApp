@@ -528,7 +528,7 @@ public class RunnerConnectionMockHelper
     public async Task<RealTimeBuildMessage?> WaitForServerMessage(TimeSpan timeout = default)
     {
         if (timeout == TimeSpan.Zero)
-            timeout = TimeSpan.FromSeconds(30);
+            timeout = TimeSpan.FromSeconds(25);
 
         var start = DateTime.UtcNow;
 
