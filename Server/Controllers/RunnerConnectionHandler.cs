@@ -674,7 +674,19 @@ public class RunnerConnectionHandler : IDisposable
                     "We got notice that {Id1} is the new connection for runner {Runner} so connection {Id2} " +
                     "will close soon", parsed.ConnectionId, parsed.RunnerId, connectionId);
 
-                cancelSetup.Wait();
+                // It's possible under test teardown or rare race conditions that the semaphore is already disposed.
+                // In that case, suppress the exception but log a warning so we have visibility without failing tests.
+                try
+                {
+                    cancelSetup.Wait();
+                }
+                catch (ObjectDisposedException ode)
+                {
+                    logger?.LogWarning(ode,
+                        "cancelSetup semaphore was disposed while handling new-connection redis notice; ignoring");
+                    return;
+                }
+
                 try
                 {
                     if (!redisNotice.IsCancellationRequested)
@@ -682,7 +694,15 @@ public class RunnerConnectionHandler : IDisposable
                 }
                 finally
                 {
-                    cancelSetup.Release();
+                    try
+                    {
+                        cancelSetup.Release();
+                    }
+                    catch (ObjectDisposedException ode)
+                    {
+                        logger?.LogWarning(ode,
+                            "cancelSetup semaphore was disposed during release while handling redis notice; ignoring");
+                    }
                 }
             });
     }
