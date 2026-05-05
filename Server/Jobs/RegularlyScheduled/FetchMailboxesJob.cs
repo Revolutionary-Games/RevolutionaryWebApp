@@ -17,6 +17,7 @@ using RevolutionaryWebApp.Shared.Models.Enums;
 using Services;
 using SharedBase.Utilities;
 using StackExchange.Redis;
+using Utilities;
 
 /// <summary>
 ///   Periodically fetches incoming emails from the main notification mailbox to process special commands
@@ -245,7 +246,8 @@ public class FetchMailboxesJob : IJob
         if (IsBounce(message))
         {
             // Try to get the failed recipient if possible
-            var failed = GetFailedRecipient(message) ?? fromAddress;
+            var failedRaw = GetFailedRecipient(message) ?? fromAddress;
+            var failed = EmailParsingHelpers.ExtractEmailFromDsn(failedRaw);
             logger.LogWarning("Detected bounced email notification for {Address}", failed);
 
             // Record / update bounce info and if threshold met, schedule handling job
