@@ -108,11 +108,14 @@ public class OAuthReturnController : SSOLoginController
             return this.WorkingForbid("Failed to retrieve user info from Github");
         }
 
-        var email = emails.FirstOrDefault(e => e.Primary && e.Verified) ?? emails.FirstOrDefault(e => e.Verified);
+        // Prefer to not get a bad GitHub email
+        var email = emails.FirstOrDefault(e => e.Primary && e.Verified && !e.Email.Contains("users.noreply.github")) ??
+            emails.FirstOrDefault(e => e.Verified);
 
         if (email == null)
         {
-            return this.WorkingForbid("Failed to get any verified email from your Github account");
+            return this.WorkingForbid(
+                "Failed to get any verified email from your GitHub account (that is not a no-reply address)");
         }
 
         // Disallow attaching if this is an account that doesn't need a CLA signature
@@ -160,8 +163,7 @@ public class OAuthReturnController : SSOLoginController
 
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception(
-                    $"Non-success status code from Github: {response.StatusCode}, response: {content}");
+                throw new Exception($"Non-success status code from Github: {response.StatusCode}, response: {content}");
             }
 
             var data = JsonSerializer.Deserialize<GithubAccessTokenResponse>(content,
@@ -171,8 +173,7 @@ public class OAuthReturnController : SSOLoginController
 
             if (OAuthController.WantedGithubCLAScopes.Split(' ').Any(s => !data.Scope.Contains(s)))
             {
-                throw new Exception(
-                    $"We didn't get the scopes we asked for {data.Scope} != " +
+                throw new Exception($"We didn't get the scopes we asked for {data.Scope} != " +
                     $"{OAuthController.WantedGithubCLAScopes}");
             }
 

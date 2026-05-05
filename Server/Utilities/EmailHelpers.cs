@@ -26,6 +26,10 @@ public static class EmailHelpers
         if (email.Contains("noreply") || email.Contains("no-reply"))
             return true;
 
+        // Double make sure this address does not exist
+        if (email.Contains("users.noreply.github"))
+            return true;
+
         // ReSharper restore StringLiteralTypo
         return false;
     }
