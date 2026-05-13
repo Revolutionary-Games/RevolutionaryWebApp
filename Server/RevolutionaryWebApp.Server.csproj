@@ -71,6 +71,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="sixlabors.lic" />
+    <SixLaborsLicenseFile Include="sixlabors.lic" />
   </ItemGroup>
 </Project>
