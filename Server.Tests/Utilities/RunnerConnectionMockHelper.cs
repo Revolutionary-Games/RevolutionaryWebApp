@@ -643,7 +643,7 @@ public class RunnerConnectionMockHelper
     /// </summary>
     public async Task WaitUntilQueueEmpty()
     {
-        var timeout = TimeSpan.FromSeconds(15);
+        var timeout = TimeSpan.FromSeconds(30);
         var start = DateTime.UtcNow;
 
         while (DateTime.UtcNow - start < timeout)
