@@ -1066,9 +1066,6 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         Assert.True(await newConnection.Start());
         await newConnection.WaitDequeueAuthRequest();
 
-        var jobVerification = await db2.CiJobs.FirstOrDefaultAsync(j => j.ReservedByRunnerId == runnerId);
-        Assert.NotNull(jobVerification);
-
         serverMessage = await newConnection.WaitForServerMessage();
         Assert.NotNull(serverMessage);
         Assert.Equal(BuildSectionMessageType.ActiveJobDetails, serverMessage.Type);
@@ -1077,6 +1074,9 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         Assert.NotNull(parsedServer);
         Assert.Equal(JsonSerializer.Serialize(sampleJob1.GetDTO()),
             JsonSerializer.Serialize(parsedServer.GeneralDetails));
+
+        var jobVerification = await db2.CiJobs.FirstOrDefaultAsync(j => j.ReservedByRunnerId == runnerId);
+        Assert.NotNull(jobVerification);
 
         newConnection.QueueMessage(new RealTimeBuildMessage
         {
