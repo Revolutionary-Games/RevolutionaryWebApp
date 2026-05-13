@@ -26,7 +26,7 @@ using YamlDotNet.Serialization.NamingConventions;
 /// </summary>
 public class JobExecutor : IJobExecutor, IDisposable
 {
-    // TODO: also need to fix the root cause of the git LFS pull not using cached assets
+    // TODO: also need to fix the root cause of the git LFS pull not using cached assets (this was not done)
 
     private readonly ILogger logger;
 
