@@ -111,8 +111,10 @@ public static class ColourHelpers
         }
 
         // Apply the offset (m) to linearize RGB values into 0-255
-        return Color.FromRgb((byte)((r + m) * 255),
-            (byte)((g + m) * 255),
-            (byte)((b + m) * 255));
+        return Color.FromPixel(
+            new Rgb24(
+                (byte)((r + m) * 255),
+                (byte)((g + m) * 255),
+                (byte)((b + m) * 255)));
     }
 }

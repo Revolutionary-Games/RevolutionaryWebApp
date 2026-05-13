@@ -83,7 +83,8 @@ public sealed class ImageGenerator : IDisposable
 
         var backgroundImage = await GetProgressUpdateBackgroundImage(version);
 
-        using var image = new Image<Rgb24>(ProgressUpdateBannerWidth, ProgressUpdateBannerHeight, Color.Black);
+        using var image = new Image<Rgb24>(ProgressUpdateBannerWidth, ProgressUpdateBannerHeight);
+        image.Mutate(ctx => ctx.BackgroundColor(Color.Black));
 
         var font = juraFont!.Value.CreateFont(96, FontStyle.Regular);
 

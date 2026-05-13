@@ -142,7 +142,8 @@ public class ProcessUploadedImageJob
 
             if (imageType == ".webp")
             {
-                if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webpMetadata))
+                var webpMetadata = image.Metadata.GetWebpMetadata();
+                if (webpMetadata != null)
                 {
                     // Check if it was compressed with a lossless format
                     if (webpMetadata.FileFormat == WebpFileFormatType.Lossless)

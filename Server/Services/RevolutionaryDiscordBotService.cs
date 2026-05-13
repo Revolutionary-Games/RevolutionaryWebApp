@@ -882,20 +882,21 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         if (dayCount < 1)
             dayCount = 0;
 
-        var daysSinceImage = new Image<Rgb24>(width, height, Color.White);
+        var daysSinceImage = new Image<Rgb24>(width, height);
+        daysSinceImage.Mutate(ctx => ctx.BackgroundColor(Color.White));
 
         daysSinceImage.Mutate(x =>
         {
             var textBrush = Brushes.Solid(Color.Black);
             var titlePen = Pens.Solid(Color.Black, 3.0f);
-            var titleBrush = Brushes.Solid(Color.FromRgb(226, 7, 33));
+            var titleBrush = Brushes.Solid(Color.ParseHex("E20721"));
             var textPen = Pens.Solid(Color.Black, 2.0f);
             var subtextPen = Pens.Solid(Color.Black, 1.0f);
 
-            var titleLineOffset = TextMeasurer.MeasureSize(tagLine, titleLineOptions).Width / 2.0f;
-            var titleOffset = TextMeasurer.MeasureSize(keyword.Title, titleOptions).Width / 2.0f;
-            var dayOffset = TextMeasurer.MeasureSize(dayCount.ToString(), dayOptions).Width / 2.0f;
-            var subtextOffset = TextMeasurer.MeasureSize(subtext, subtextOptions).Width / 2.0f;
+            var titleLineOffset = TextMeasurer.MeasureBounds(tagLine, titleLineOptions).Width / 2.0f;
+            var titleOffset = TextMeasurer.MeasureBounds(keyword.Title, titleOptions).Width / 2.0f;
+            var dayOffset = TextMeasurer.MeasureBounds(dayCount.ToString(), dayOptions).Width / 2.0f;
+            var subtextOffset = TextMeasurer.MeasureBounds(subtext, subtextOptions).Width / 2.0f;
 
             x.Draw(textPen, new RectangularPolygon(0, 0, width, height));
             x.Fill(titleBrush, new RectangularPolygon(0, 0, width, 125));
