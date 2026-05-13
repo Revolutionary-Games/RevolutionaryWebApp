@@ -1053,7 +1053,7 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         }
 
         // This is basically a new crutch to try to get this test to consistently pass
-        await Task.Delay(1);
+        await Task.Delay(10);
 
         // Ensure the job is still reserved
         Assert.NotNull(sampleJob1.ReservedByRunnerId);
