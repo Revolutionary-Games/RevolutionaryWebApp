@@ -616,35 +616,47 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
                 // ReSharper restore AccessToDisposedClosure
 
-                progressImage.Mutate(x =>
+                progressImage.Mutate(x => x.Paint(canvas =>
                 {
                     var textBrush = Brushes.Solid(Color.White);
                     var titlePen = Pens.Solid(Color.Black, 3.0f);
                     var textPen = Pens.Solid(Color.Black, 2.0f);
 
-                    x.DrawText(milestone.Title, titleFont, textBrush, titlePen, new PointF(15, 5));
+                    canvas.DrawText(new RichTextOptions(titleFont)
+                    {
+                        Origin = new PointF(15, 5),
+                    }, milestone.Title, textBrush, titlePen);
 
                     // Issues
                     var issuesY = 90;
-                    x.DrawText(openText, issueCountFont, textBrush, textPen, new PointF(30, issuesY));
-                    x.DrawText(closedText, issueCountFont, textBrush, textPen, new PointF(350, issuesY));
+                    canvas.DrawText(new RichTextOptions(issueCountFont)
+                    {
+                        Origin = new PointF(30, issuesY),
+                    }, openText, textBrush, textPen);
+                    canvas.DrawText(new RichTextOptions(issueCountFont)
+                    {
+                        Origin = new PointF(350, issuesY),
+                    }, closedText, textBrush, textPen);
 
                     // Progress bar
                     // TODO: make rounded corners for the bar
                     var barPen = Pens.Solid(Color.Black, 7.0f);
-                    var barBrush = Brushes.Solid(new Color(new Rgb24(63, 169, 82)));
+                    var barBrush = Brushes.Solid(Color.FromPixel(new Rgb24(63, 169, 82)));
 
                     // TODO: gradient to:
                     // new SixLabors.ImageSharp.Color(new Rgb24(134, 207, 147)));
 
-                    x.Fill(barBrush, new RectangularPolygon(30, 150, (width - 60) * completionFraction, 50));
-                    x.Draw(barPen, new RectangularPolygon(30, 150, width - 60, 50));
+                    canvas.Fill(barBrush, new RectanglePolygon(30, 150, (width - 60) * completionFraction, 50));
+                    canvas.Draw(barPen, new RectanglePolygon(30, 150, width - 60, 50));
 
                     // TODO: maybe for the days mode this should also say (the days left here to not let people be
                     // confused about why the items don't match the percentage)?
                     // Percentage
-                    x.DrawText(percentageInfoText, percentageFont, textBrush, textPen, new PointF(50, 210));
-                });
+                    canvas.DrawText(new RichTextOptions(percentageFont)
+                    {
+                        Origin = new PointF(50, 210),
+                    }, percentageInfoText, textBrush, textPen);
+                }));
 
                 await progressImage.SaveAsync(tempFileData, PngFormat.Instance);
             }
@@ -885,7 +897,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         var daysSinceImage = new Image<Rgb24>(width, height);
         daysSinceImage.Mutate(ctx => ctx.BackgroundColor(Color.White));
 
-        daysSinceImage.Mutate(x =>
+        daysSinceImage.Mutate(x => x.Paint(canvas =>
         {
             var textBrush = Brushes.Solid(Color.Black);
             var titlePen = Pens.Solid(Color.Black, 3.0f);
@@ -898,17 +910,28 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             var dayOffset = TextMeasurer.MeasureBounds(dayCount.ToString(), dayOptions).Width / 2.0f;
             var subtextOffset = TextMeasurer.MeasureBounds(subtext, subtextOptions).Width / 2.0f;
 
-            x.Draw(textPen, new RectangularPolygon(0, 0, width, height));
-            x.Fill(titleBrush, new RectangularPolygon(0, 0, width, 125));
+            canvas.Draw(textPen, new RectanglePolygon(0, 0, width, height));
+            canvas.Fill(titleBrush, new RectanglePolygon(0, 0, width, 125));
 
-            x.DrawText(tagLine, titleLineFont, textBrush, titlePen, new PointF(width / 2.0f - titleLineOffset, 160));
-            x.DrawText(keyword.Title, titleFont, textBrush, titlePen, new PointF(width / 2.0f - titleOffset, 220));
+            canvas.DrawText(new RichTextOptions(titleLineFont)
+            {
+                Origin = new PointF(width / 2.0f - titleLineOffset, 160),
+            }, tagLine, textBrush, titlePen);
+            canvas.DrawText(new RichTextOptions(titleFont)
+            {
+                Origin = new PointF(width / 2.0f - titleOffset, 220),
+            }, keyword.Title, textBrush, titlePen);
 
-            x.DrawText(dayCount.ToString(), dayFont, textBrush, titlePen, new PointF(width / 2.0f - dayOffset, 300));
+            canvas.DrawText(new RichTextOptions(dayFont)
+            {
+                Origin = new PointF(width / 2.0f - dayOffset, 300),
+            }, dayCount.ToString(), textBrush, titlePen);
 
-            x.DrawText(subtext, subtextFont, textBrush, subtextPen, new PointF(width / 2.0f - subtextOffset,
-                height - 25));
-        });
+            canvas.DrawText(new RichTextOptions(subtextFont)
+            {
+                Origin = new PointF(width / 2.0f - subtextOffset, height - 25),
+            }, subtext, textBrush, subtextPen);
+        }));
 
         return daysSinceImage;
     }

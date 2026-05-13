@@ -98,35 +98,38 @@ public sealed class ImageGenerator : IDisposable
             // Draw the background
             ctx.DrawImage(backgroundImage, new Point(0, 0), 1.0f);
 
-            // The progress update text
-            ctx.DrawText(new RichTextOptions(font)
+            ctx.Paint(canvas =>
             {
-                TextAlignment = TextAlignment.Center,
-                Font = titleFont,
-                Origin = new PointF(ProgressUpdateBannerWidth / 2.0f,
-                    ProgressUpdateBannerHeight / 2.0f - ProgressUpdateBannerHeight / 6.0f),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            }, "PROGRESS\nUPDATE", fontColour);
+                // The progress update text
+                canvas.DrawText(new RichTextOptions(font)
+                {
+                    TextAlignment = TextAlignment.Center,
+                    Font = titleFont,
+                    Origin = new PointF(ProgressUpdateBannerWidth / 2.0f,
+                        ProgressUpdateBannerHeight / 2.0f - ProgressUpdateBannerHeight / 6.0f),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                }, "PROGRESS\nUPDATE", Brushes.Solid(fontColour), null);
 
-            // And the current date
-            var dateLocation = new PointF(ProgressUpdateBannerWidth / 2.0f,
-                ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 6.0f);
+                // And the current date
+                var dateLocation = new PointF(ProgressUpdateBannerWidth / 2.0f,
+                    ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 6.0f);
 
-            if (version > 1)
-            {
-                dateLocation = new PointF(ProgressUpdateBannerWidth / 2.0f,
-                    ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 4.0f);
-            }
+                if (version > 1)
+                {
+                    dateLocation = new PointF(ProgressUpdateBannerWidth / 2.0f,
+                        ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 4.0f);
+                }
 
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                TextAlignment = TextAlignment.Center,
-                Font = font,
-                Origin = dateLocation,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            }, date.ToString("MMMM dd yyyy", CultureInfo.InvariantCulture), fontColour);
+                canvas.DrawText(new RichTextOptions(font)
+                {
+                    TextAlignment = TextAlignment.Center,
+                    Font = font,
+                    Origin = dateLocation,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                }, date.ToString("MMMM dd yyyy", CultureInfo.InvariantCulture), Brushes.Solid(fontColour), null);
+            });
         });
 
         // Save the image after generating
@@ -143,7 +146,7 @@ public sealed class ImageGenerator : IDisposable
     public async Task<byte[]> GenerateLetterAvatar(string initials, Color backgroundColor)
     {
         // Use ImageSharp to generate the image
-        using var image = new Image<Rgb24>(LetterAvatarSize, LetterAvatarSize, backgroundColor);
+        using var image = new Image<Rgb24>(LetterAvatarSize, LetterAvatarSize, backgroundColor.ToPixel<Rgb24>());
 
         // Draw initials in the center
         // TODO: customize the font (this should be present on most Linuxes)
@@ -151,14 +154,14 @@ public sealed class ImageGenerator : IDisposable
 
         image.Mutate(ctx =>
         {
-            ctx.DrawText(new RichTextOptions(font)
+            ctx.Paint(canvas => canvas.DrawText(new RichTextOptions(font)
             {
                 TextAlignment = TextAlignment.Center,
                 Font = font,
                 Origin = new PointF(LetterAvatarSize / 2.0f, LetterAvatarSize / 2.0f),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-            }, initials, Color.White);
+            }, initials, Brushes.Solid(Color.White), null));
         });
 
         // Save the image after generating
