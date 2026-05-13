@@ -27,8 +27,8 @@ public class TextToSectionCutAdapter : IDisposable
 
     private bool hasOpenSection;
 
-    // TODO: should this reimplement sending ... if it has been more than 50 seconds since the last message passing through?
-    // Though this will also need to check with nextStep when it last sent something
+    // TODO: should this reimplement sending ... if it has been more than 50 seconds since the last message passing
+    // through? Though this will also need to check with nextStep when it last sent something
 
     public TextToSectionCutAdapter(IJobOutputForwarder nextStep)
     {
