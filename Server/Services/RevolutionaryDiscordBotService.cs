@@ -894,8 +894,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         if (dayCount < 1)
             dayCount = 0;
 
-        var daysSinceImage = new Image<Rgb24>(width, height);
-        daysSinceImage.Mutate(ctx => ctx.BackgroundColor(Color.White));
+        var daysSinceImage = new Image<Rgb24>(width, height, Color.White.ToPixel<Rgb24>());
 
         daysSinceImage.Mutate(x => x.Paint(canvas =>
         {
