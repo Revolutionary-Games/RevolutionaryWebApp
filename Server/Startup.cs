@@ -618,6 +618,7 @@ public class Startup
         AddJobHelper<CheckAllUserAutomaticGroups>(configurationSection["CheckAllUserAutomaticGroups"]);
         AddJobHelper<ResetDailyUploadQuotasJob>(configurationSection["ResetDailyUploadQuotas"]);
         AddJobHelper<FetchMailboxesJob>(configurationSection["FetchMailboxes"]);
+        AddJobHelper<MaintainGitHubIssueStatusJob>(configurationSection["MaintainGitHubIssueStatus"]);
         AddJobHelper<DeleteOldPendingSignupsJob>(configurationSection["DeleteOldPendingSignups"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));

@@ -33,6 +33,9 @@ public interface IGithubAPI : IDisposable
 
     public Task<bool> PostComment(string qualifiedRepoName, long issueOrPullRequestNumber,
         string commentContent);
+
+    public Task<List<GithubIssue>> GetIssues(string qualifiedRepoName, string state = "open",
+        string? labels = null);
 }
 
 public class GithubAPI : IGithubAPI
@@ -148,6 +151,44 @@ public class GithubAPI : IGithubAPI
         }
 
         return true;
+    }
+
+    public async Task<List<GithubIssue>> GetIssues(string qualifiedRepoName, string state = "open",
+        string? labels = null)
+    {
+        if (!CheckIsConfigured() || client == null)
+            return new List<GithubIssue>();
+
+        var allIssues = new List<GithubIssue>();
+        int page = 1;
+
+        while (true)
+        {
+            var url = $"https://api.github.com/repos/{qualifiedRepoName}/issues?state={state}&per_page=100&page={page}";
+
+            if (!string.IsNullOrEmpty(labels))
+                url += $"&labels={Uri.EscapeDataString(labels)}";
+
+            var result = await client.GetFromJsonAsync<List<GithubIssue>>(url);
+
+            if (result == null || result.Count == 0)
+                break;
+
+            allIssues.AddRange(result);
+
+            if (result.Count < 100)
+                break;
+
+            ++page;
+
+            if (page > 100)
+            {
+                logger.LogWarning("Reached 100 pages of issues for {Repo}, stopping", qualifiedRepoName);
+                break;
+            }
+        }
+
+        return allIssues;
     }
 
     public void Dispose()
@@ -371,4 +412,31 @@ public class GithubRelease
 
     [Required]
     public List<GithubAsset> Assets { get; set; } = new();
+}
+
+public class GithubLabel
+{
+    [Required]
+    public string Name { get; set; } = string.Empty;
+}
+
+public class GithubIssue
+{
+    [Required]
+    public long Number { get; set; }
+
+    [Required]
+    [JsonPropertyName("html_url")]
+    public string HtmlUrl { get; set; } = string.Empty;
+
+    [Required]
+    public string Title { get; set; } = string.Empty;
+
+    [Required]
+    public string State { get; set; } = "open";
+
+    public List<GithubLabel> Labels { get; set; } = new();
+
+    [JsonPropertyName("pull_request")]
+    public object? PullRequest { get; set; }
 }
