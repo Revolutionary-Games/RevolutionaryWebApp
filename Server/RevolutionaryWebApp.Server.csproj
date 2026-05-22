@@ -59,7 +59,7 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
     <PackageReference Include="System.Interactive.Async" Version="7.0.1" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.8" />
-    <PackageReference Include="YamlDotNet" Version="17.1.0" />
+    <PackageReference Include="YamlDotNet" Version="18.0.0" />
   </ItemGroup>
 
   <ItemGroup>
