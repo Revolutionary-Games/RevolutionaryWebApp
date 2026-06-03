@@ -267,7 +267,14 @@ else
 
     private void ToggleSection(CIJobOutputSectionInfo section)
     {
-        shownSections[section.CiJobOutputSectionId] = !ShouldShowSection(section);
+        var shown = !ShouldShowSection(section);
+        shownSections[section.CiJobOutputSectionId] = shown;
+
+        // If became visible, then reset active output if it matches to ensure the refresh can be done correctly
+        if(shown && receivingRealtimeOutputForSection == section.CiJobOutputSectionId)
+        {
+            receivingRealtimeOutputForSection = -1;
+        }
     }
 
     private bool ShouldShowSection(CIJobOutputSectionInfo section)
