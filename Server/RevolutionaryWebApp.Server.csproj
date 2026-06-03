@@ -12,8 +12,8 @@
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.4.0" />
     <PackageReference Include="AsyncKeyedLock" Version="8.0.2" />
-    <PackageReference Include="AWSSDK.EC2" Version="4.0.90" />
-    <PackageReference Include="AWSSDK.S3" Version="4.0.23.4" />
+    <PackageReference Include="AWSSDK.EC2" Version="4.0.91" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.24" />
     <PackageReference Include="Discord.Net" Version="3.19.1" />
     <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
