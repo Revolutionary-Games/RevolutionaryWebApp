@@ -62,8 +62,11 @@ else
 
     private readonly SemaphoreSlim semaphore = new(1, 1);
 
+    private readonly StringBuilder builder = new();
+
     private readonly List<string> receivedRealtimeOutput = new();
     private long? receivingRealtimeOutputForSection;
+    private bool lastLineTerminated = true;
 
     [Parameter]
     public long ProjectId { get; set; }
@@ -140,6 +143,7 @@ else
                 // Setup receiving the new section
                 receivedRealtimeOutput.Clear();
                 receivingRealtimeOutputForSection = notification.SectionId;
+                lastLineTerminated = true;
                 shownSections[receivingRealtimeOutputForSection.Value] = true;
 
                 // A new section object is not created here as we should very shortly (if not already) have received
@@ -151,50 +155,39 @@ else
             if (notification.Type == BuildSectionMessageType.BuildOutput &&
                 !string.IsNullOrEmpty(notification.Output))
             {
-                int lastLineIndexBefore = receivedRealtimeOutput.Count - 1;
-                bool first = true;
-                foreach (var line in notification.Output.Split('\n'))
-                {
-                    if (first)
-                    {
-                        // The first line might not be just after a line-break, so append that to an existing line in
-                        // receivedRealtimeOutput
-                        if (receivedRealtimeOutput.Count < 1)
-                        {
-                            receivedRealtimeOutput.Add(line);
-                        }
-                        else
-                        {
-                            receivedRealtimeOutput[^1] += line;
-                        }
-
-                        first = false;
-                    }
-                    else
-                    {
-                        receivedRealtimeOutput.Add(line);
-                    }
-                }
+                var newLines = notification.Output.Split('\n');
+                string? newLineText = null;
+                int indexToTakeFrom = 0;
 
                 if (receivingRealtimeOutputForSection == notification.SectionId)
                 {
-                    string? lastLineHtml = null;
-                    var newLinesHtml = new StringBuilder();
-
-                    if (lastLineIndexBefore >= 0)
+                    if (!lastLineTerminated)
                     {
-                        lastLineHtml = RenderLineToHtml(receivedRealtimeOutput[lastLineIndexBefore],
-                            lastLineIndexBefore + 1, lastLineIndexBefore == receivedRealtimeOutput.Count - 1);
+                        newLineText = newLines[0];
+                        indexToTakeFrom = 1;
                     }
 
-                    for (int i = Math.Max(0, lastLineIndexBefore + 1); i < receivedRealtimeOutput.Count; ++i)
+                    lastLineTerminated = true;
+                    var lastLine = newLines[^1];
+                    for (int i = 0; i >= 0; ++i)
                     {
-                        newLinesHtml.Append(RenderLineToHtml(receivedRealtimeOutput[i], i + 1,
-                            i == receivedRealtimeOutput.Count - 1));
+                        if (lastLine[i] == '\n')
+                            break;
+
+                        lastLineTerminated = false;
+                    }
+
+                    var existingLineCount = await JS.InvokeAsync<int>("getChildCount", cancellationToken, $"output-container-{notification.SectionId}");
+
+                    var newLinesHtml = new StringBuilder();
+
+                    for (int i = indexToTakeFrom; i < receivedRealtimeOutput.Count; ++i)
+                    {
+                        newLinesHtml.Append(RenderLineToHtml(receivedRealtimeOutput[i], existingLineCount + i + 1));
                     }
 
                     await JS.InvokeVoidAsync("appendLogLines", $"output-container-{notification.SectionId}",
-                        lastLineHtml, newLinesHtml.ToString());
+                        newLineText, newLinesHtml.ToString());
                 }
 
                 // Make the section opened if we have it so that users arriving "late" to the page don't need to click
@@ -275,26 +268,13 @@ else
         return receivedRealtimeOutput;
     }
 
-    private string RenderLineToHtml(string line, int lineNumber, bool isLast)
+    private string RenderLineToHtml(string line, int lineNumber)
     {
         // This should match the rendering logic in CIJobOutputSection.razor
-        string? id = null;
+        var sb = builder;
+        builder.Clear();
 
-        if (isLast)
-        {
-            // Note that if the very last line is empty, it is not actually rendered by CIJobOutputSection,
-            // but for simplicity we don't handle that edge case here as the next real line will fix the ID
-            id = $"output-section-{receivingRealtimeOutputForSection}-last";
-        }
-
-        var sb = new StringBuilder();
         sb.Append("<div class=\"output-line\"");
-        if (id != null)
-        {
-            sb.Append(" id=\"");
-            sb.Append(id);
-            sb.Append("\"");
-        }
 
         sb.Append(">");
 

@@ -215,7 +215,7 @@ function downloadFileFromBytes(filename, contentType, content) {
     URL.revokeObjectURL(exportUrl);
 }
 
-function appendLogLines(containerId, lastLineHtml, newLinesHtml) {
+function appendLogLines(containerId, lastLineNewText, newLinesHtml) {
     const container = document.getElementById(containerId);
     if (!container)
         return;
@@ -227,19 +227,33 @@ function appendLogLines(containerId, lastLineHtml, newLinesHtml) {
         wasAtBottom = Math.abs(scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight) < 40;
     }
 
-    if (lastLineHtml && container.lastElementChild) {
-        const temp = document.createElement('div');
-        temp.innerHTML = lastLineHtml;
-        container.replaceChild(temp.firstElementChild, container.lastElementChild);
+    if (lastLineNewText && container.lastElementChild) {
+        container.lastElementChild.textContent += lastLineNewText;
+        lastLineNewText = null;
     }
 
     if (newLinesHtml) {
         const template = document.createElement('template');
         template.innerHTML = newLinesHtml;
-        container.appendChild(template.content);
+
+        if (lastLineNewText) {
+            template.content.firstElementChild.textContent = lastLineNewText + template.content.firstElementChild.textContent;
+        }
+
+        for(const child of template.content.children) {
+            container.appendChild(child);
+        }
     }
 
     if (wasAtBottom && scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
+}
+
+function getChildCount(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container)
+        return 0;
+
+    return container.childElementCount;
 }
