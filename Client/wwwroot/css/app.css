@@ -860,3 +860,52 @@ a:hover.news-feed-item {
 .sr-only {
     display: none !important;
 }
+
+/* build output, needed to be here due to plain JavaScript append */
+.output {
+    border-radius: 3px;
+    border: 1px solid black;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 15px;
+    color: whitesmoke;
+    font-size: 1.2em;
+    padding: 2px 5px 2px 5px;
+    margin-top: 2px;
+}
+
+.output-content {
+    margin-bottom: 3px;
+    max-height: 457px;
+    overflow-y: auto;
+}
+
+.output-area {
+    color: whitesmoke;
+    font-size: 1.1em;
+}
+
+.output-line {
+    background-color: black;
+    padding: 0;
+    font-family: monospace;
+    line-height: 1.08;
+    white-space: pre-wrap;
+
+    /* Making sure too long lines split */
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.line-number {
+    user-select: none;
+    display: inline-block;
+    background-color: #6c757d;
+    height: 100%;
+    text-align: right;
+    min-width: 50px;
+    padding-left: 2px;
+    padding-right: 2px;
+    margin-right: 5px;
+}
