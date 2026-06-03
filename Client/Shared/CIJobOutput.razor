@@ -64,6 +64,15 @@ else
 
     private readonly StringBuilder builder = new();
 
+#pragma warning disable 649
+
+    // ReSharper disable once UnassignedReadonlyField.Compiler
+    /// <summary>
+    ///   This is false as it otherwise seems to cause duplicate renders
+    /// </summary>
+    private readonly bool addSectionDataToOutput = false;
+#pragma warning restore 649
+
     private readonly List<string> receivedRealtimeOutput = new();
     private long? receivingRealtimeOutputForSection;
     private bool lastLineTerminated = true;
@@ -116,17 +125,17 @@ else
 
                     // Run a task in a little bit to close as we might still get the section output or something,
                     // which would leave the item open
-                    _ = Task.Delay(500, CancellationToken.None).ContinueWith(_ =>
+                    _ = Task.Delay(500, CancellationToken.None).ContinueWith(async _ =>
                     {
                         try
                         {
-                            if (!semaphore.Wait(3000))
+                            if (!await semaphore.WaitAsync(3000, cancellationToken))
                                 return;
 
                             try
                             {
                                 shownSections[oldSection] = false;
-                                StateHasChanged();
+                                await InvokeAsync(StateHasChanged);
                             }
                             finally
                             {
@@ -149,52 +158,64 @@ else
                 // A new section object is not created here as we should very shortly (if not already) have received
                 // a creation notification about it, and our Data list should be updated shortly
 
-                StateHasChanged();
+                await InvokeAsync(StateHasChanged);
             }
 
             if (notification.Type == BuildSectionMessageType.BuildOutput &&
                 !string.IsNullOrEmpty(notification.Output))
             {
+                // Make the section opened if we have it so that users arriving "late" to the page don't need to click
+                // active sections open to see what's going on
+                if (shownSections.TryGetValue(notification.SectionId, out bool _) == false)
+                {
+                    shownSections[notification.SectionId] = true;
+                    await InvokeAsync(StateHasChanged);
+                }
+
                 var newLines = notification.Output.Split('\n');
+
+                // Ignore last line if it was just a line split
+                bool terminated = false;
+                var newLineCount = newLines.Length;
+                if (newLines[^1].Length == 0)
+                {
+                    --newLineCount;
+                    terminated = true;
+                }
+
                 string? newLineText = null;
                 int indexToTakeFrom = 0;
 
                 if (receivingRealtimeOutputForSection == notification.SectionId)
                 {
+                    // Only conditionally put the text here as a re-render would duplicate all lines
+                    if (addSectionDataToOutput)
+                        receivedRealtimeOutput.AddRange(newLines.Take(newLineCount));
+
                     if (!lastLineTerminated)
                     {
                         newLineText = newLines[0];
                         indexToTakeFrom = 1;
                     }
 
-                    lastLineTerminated = true;
-                    var lastLine = newLines[^1];
-                    for (int i = 0; i >= 0; ++i)
-                    {
-                        if (lastLine[i] == '\n')
-                            break;
+                    lastLineTerminated = terminated;
 
-                        lastLineTerminated = false;
-                    }
-
-                    var existingLineCount = await JS.InvokeAsync<int>("getChildCount", cancellationToken, $"output-container-{notification.SectionId}");
+                    var existingLineCount = await JS.InvokeAsync<int>("getChildCount", cancellationToken,
+                        $"output-container-{notification.SectionId}");
 
                     var newLinesHtml = new StringBuilder();
 
-                    for (int i = indexToTakeFrom; i < receivedRealtimeOutput.Count; ++i)
+                    var appendedLineIndex = 0;
+
+                    for (int i = indexToTakeFrom; i < newLineCount; ++i)
                     {
-                        newLinesHtml.Append(RenderLineToHtml(receivedRealtimeOutput[i], existingLineCount + i + 1));
+                        newLinesHtml.Append(RenderLineToHtml(newLines[i], existingLineCount + appendedLineIndex + 1));
+                        ++appendedLineIndex;
                     }
 
                     await JS.InvokeVoidAsync("appendLogLines", $"output-container-{notification.SectionId}",
-                        newLineText, newLinesHtml.ToString());
+                        newLineText, newLinesHtml.Length > 0 ? newLinesHtml.ToString() : null);
                 }
-
-                // Make the section opened if we have it so that users arriving "late" to the page don't need to click
-                // active sections open to see what's going on
-                shownSections[notification.SectionId] = true;
-
-                StateHasChanged();
             }
         }
         finally

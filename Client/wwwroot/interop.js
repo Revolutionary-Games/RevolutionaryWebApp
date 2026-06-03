@@ -228,7 +228,7 @@ function appendLogLines(containerId, lastLineNewText, newLinesHtml) {
     }
 
     if (lastLineNewText && container.lastElementChild) {
-        container.lastElementChild.textContent += lastLineNewText;
+        appendToLastTextNode(container.lastElementChild, lastLineNewText);
         lastLineNewText = null;
     }
 
@@ -237,10 +237,10 @@ function appendLogLines(containerId, lastLineNewText, newLinesHtml) {
         template.innerHTML = newLinesHtml;
 
         if (lastLineNewText) {
-            template.content.firstElementChild.textContent = lastLineNewText + template.content.firstElementChild.textContent;
+            prependToLastTextNode(template.content.firstElementChild, lastLineNewText);
         }
 
-        for(const child of template.content.children) {
+        for (const child of template.content.children) {
             container.appendChild(child);
         }
     }
@@ -256,4 +256,54 @@ function getChildCount(containerId) {
         return 0;
 
     return container.childElementCount;
+}
+
+function clearChildren(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container)
+        return;
+
+    while (container.lastChild) {
+        container.removeChild(container.lastChild);
+    }
+}
+
+function appendToLastTextNode(element, textToAppend) {
+    for (let i = element.childNodes.length - 1; i >= 0; i--) {
+        const node = element.childNodes[i];
+
+        if (node.nodeType === Node.TEXT_NODE) {
+            node.textContent += textToAppend;
+            return node;
+        }
+
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const found = appendToLastTextNode(node, textToAppend);
+            if (found) {
+                return found;
+            }
+        }
+    }
+
+    return null;
+}
+
+function prependToLastTextNode(element, textToAppend) {
+    for (let i = element.childNodes.length - 1; i >= 0; i--) {
+        const node = element.childNodes[i];
+
+        if (node.nodeType === Node.TEXT_NODE) {
+            node.textContent = textToAppend + node.textContent;
+            return node;
+        }
+
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const found = prependToLastTextNode(node, textToAppend);
+            if (found) {
+                return found;
+            }
+        }
+    }
+
+    return null;
 }
