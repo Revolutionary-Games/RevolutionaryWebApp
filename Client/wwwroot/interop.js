@@ -214,3 +214,32 @@ function downloadFileFromBytes(filename, contentType, content) {
     // On Safari it seems you need to comment this line... (please let me know if you know why)
     URL.revokeObjectURL(exportUrl);
 }
+
+function appendLogLines(containerId, lastLineHtml, newLinesHtml) {
+    const container = document.getElementById(containerId);
+    if (!container)
+        return;
+
+    const scrollContainer = container.closest('.output-content');
+    let wasAtBottom = false;
+    if (scrollContainer) {
+        // Check if we were scrolled to the bottom (with some tolerance)
+        wasAtBottom = Math.abs(scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight) < 40;
+    }
+
+    if (lastLineHtml && container.lastElementChild) {
+        const temp = document.createElement('div');
+        temp.innerHTML = lastLineHtml;
+        container.replaceChild(temp.firstElementChild, container.lastElementChild);
+    }
+
+    if (newLinesHtml) {
+        const template = document.createElement('template');
+        template.innerHTML = newLinesHtml;
+        container.appendChild(template.content);
+    }
+
+    if (wasAtBottom && scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    }
+}

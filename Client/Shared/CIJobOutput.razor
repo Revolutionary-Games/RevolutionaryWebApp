@@ -4,7 +4,9 @@
 @inject NotificationHandler NotificationHandler
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Shared.Converters
 @using System.Threading
+@using System.Text
 @using RevolutionaryWebApp.Client.Services
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
@@ -149,7 +151,7 @@ else
             if (notification.Type == BuildSectionMessageType.BuildOutput &&
                 !string.IsNullOrEmpty(notification.Output))
             {
-                // TODO: limit how much data can be in memory here on the client
+                int lastLineIndexBefore = receivedRealtimeOutput.Count - 1;
                 bool first = true;
                 foreach (var line in notification.Output.Split('\n'))
                 {
@@ -172,6 +174,27 @@ else
                     {
                         receivedRealtimeOutput.Add(line);
                     }
+                }
+
+                if (receivingRealtimeOutputForSection == notification.SectionId)
+                {
+                    string? lastLineHtml = null;
+                    var newLinesHtml = new StringBuilder();
+
+                    if (lastLineIndexBefore >= 0)
+                    {
+                        lastLineHtml = RenderLineToHtml(receivedRealtimeOutput[lastLineIndexBefore],
+                            lastLineIndexBefore + 1, lastLineIndexBefore == receivedRealtimeOutput.Count - 1);
+                    }
+
+                    for (int i = Math.Max(0, lastLineIndexBefore + 1); i < receivedRealtimeOutput.Count; ++i)
+                    {
+                        newLinesHtml.Append(RenderLineToHtml(receivedRealtimeOutput[i], i + 1,
+                            i == receivedRealtimeOutput.Count - 1));
+                    }
+
+                    await JS.InvokeVoidAsync("appendLogLines", $"output-container-{notification.SectionId}",
+                        lastLineHtml, newLinesHtml.ToString());
                 }
 
                 // Make the section opened if we have it so that users arriving "late" to the page don't need to click
@@ -250,6 +273,46 @@ else
             return null;
 
         return receivedRealtimeOutput;
+    }
+
+    private string RenderLineToHtml(string line, int lineNumber, bool isLast)
+    {
+        // This should match the rendering logic in CIJobOutputSection.razor
+        string? id = null;
+
+        if (isLast)
+        {
+            // Note that if the very last line is empty, it is not actually rendered by CIJobOutputSection,
+            // but for simplicity we don't handle that edge case here as the next real line will fix the ID
+            id = $"output-section-{receivingRealtimeOutputForSection}-last";
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("<div class=\"output-line\"");
+        if (id != null)
+        {
+            sb.Append(" id=\"");
+            sb.Append(id);
+            sb.Append("\"");
+        }
+
+        sb.Append(">");
+
+        sb.Append("<span class=\"line-number\">");
+        sb.Append(lineNumber);
+        sb.Append("</span>");
+
+        foreach (var part in TerminalEscapeHandling.HandleTerminalEscapes(line))
+        {
+            sb.Append("<span style=\"color: ");
+            sb.Append(part.Colour.ColourToCSSHexValue());
+            sb.Append("\">");
+            sb.Append(System.Net.WebUtility.HtmlEncode(part.Text));
+            sb.Append("</span>");
+        }
+
+        sb.Append("</div>");
+        return sb.ToString();
     }
 
 }

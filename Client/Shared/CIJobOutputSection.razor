@@ -8,7 +8,8 @@
 <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
     @if (Data != null)
     {
-        <div class="output-area">
+        @* NOTE: only a single job can exist on a page as these are not scoped by job ID*@
+        <div class="output-area" id="@($"output-container-{Id}")">
             @{
                 // TODO: should this be somehow changed so that realtime appends use JS to append stuff for efficiency?
                 var lineSource = RealtimeOutput ?? Data;
@@ -66,6 +67,25 @@
     public List<string>? RealtimeOutput { get; set; }
 
     private string LastElementId => $"output-section-{Id}-last";
+
+    private bool hadRealtimeOutput;
+
+    protected override bool ShouldRender()
+    {
+        // If we have realtime output, and we already rendered once with it, we handle updates via JS to avoid
+        // massive re-renders
+        if (RealtimeOutput != null)
+        {
+            if (hadRealtimeOutput)
+                return false;
+
+            hadRealtimeOutput = true;
+            return true;
+        }
+
+        hadRealtimeOutput = false;
+        return true;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
