@@ -56,7 +56,7 @@
     <PackageReference Include="SSH.NET" Version="2025.1.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.13.17" />
     <PackageReference Include="Svg.Skia" Version="5.0.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
     <PackageReference Include="System.Interactive.Async" Version="7.0.1" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.8" />
     <PackageReference Include="YamlDotNet" Version="18.0.0" />
