@@ -24,11 +24,22 @@ public static class PatreonGroupHandler
     public static async Task<bool> HandlePatreonPledgeObject(PatreonObjectData? pledge, PatreonObjectData? user,
         string? rewardId, NotificationsEnabledDb database, IBackgroundJobClient jobClient)
     {
-        if (pledge?.Attributes.AmountCents == null || user?.Attributes.Email == null)
+        if (pledge?.Attributes.AmountCents == null)
             throw new Exception("Invalid patron API object, missing key properties");
 
         if (rewardId == null)
             throw new Exception("Invalid patron API object, missing any reward id");
+
+        // For some reason some users do not have any email associated with them, but otherwise are fine
+        // TODO: we need to keep an eye out to ensure not a lot of users become like this, otherwise we might need to
+        // update to the V2 API.
+        if (user?.Attributes.Email == null)
+        {
+            if (user?.Attributes.FullName == null)
+                throw new Exception("Invalid patron API object, missing key properties");
+
+            user.Attributes.Email = $"noreply+patron-{Uri.EscapeDataString(user.Id)}@revolutionarygamesstudio.com";
+        }
 
         var pledgeCents = pledge.Attributes.AmountCents.Value;
 
