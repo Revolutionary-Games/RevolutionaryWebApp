@@ -41,6 +41,33 @@ public class PatreonConfigurationController : Controller
         return (await database.PatreonSettings.OrderBy(s => s.Id).ToListAsync()).Select(s => s.GetDTO()).ToList();
     }
 
+    [HttpPost]
+    public async Task<IActionResult> Create()
+    {
+        if (await database.PatreonSettings.AnyAsync())
+            return BadRequest("Patreon settings already exist");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        var settings = new PatreonSettings
+        {
+            Active = false,
+        };
+
+        await database.PatreonSettings.AddAsync(settings);
+
+        await database.AdminActions.AddAsync(new AdminAction("Patreon settings created")
+        {
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+
+        logger.LogInformation("Patreon settings created by {Email}", user.Email);
+
+        return Ok();
+    }
+
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Update([Required] long id, [Required] [FromBody] PatreonSettingsDTO request)
     {
