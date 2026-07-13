@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server.Services;
 
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,26 +10,21 @@ using RevolutionaryWebApp.Shared.Models;
 
 public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
 {
-    /// <summary>
-    ///   Gets all patrons of the active campaign
-    /// </summary>
-    /// <param name="client">HttpClient to use, should have an authorization header set</param>
-    /// <param name="campaignId">Where to get the campaign from</param>
-    /// <param name="cancellationToken">Supports canceling this while waiting</param>
-    /// <returns>API response with all the patron objects</returns>
-    public async Task<List<PatronMemberInfo>> GetPatrons(HttpClient client, string campaignId,
+    public async Task<List<PatronMemberInfo>> GetPatrons(HttpClient client, string campaignId, string token,
         CancellationToken cancellationToken)
     {
-        // ReSharper disable once StringLiteralTypo
+        // ReSharper disable StringLiteralTypo
         var url =
             $"https://www.patreon.com/api/oauth2/api/campaigns/{campaignId}/pledges?include=patron.null," +
             "reward&fields%5Bpledge%5D=status,currency,amount_cents,declined_since";
+
+        // ReSharper restore StringLiteralTypo
 
         var result = new List<PatronMemberInfo>();
 
         while (!string.IsNullOrEmpty(url))
         {
-            var response = await client.GetFromJsonAsync<PatreonAPIListResponse>(url, cancellationToken);
+            var response = await GetAuthenticated<PatreonAPIListResponse>(client, url, token, cancellationToken);
 
             if (response == null)
                 throw new PatreonAPIDataException("failed to deserialize response from patreon API");
@@ -91,10 +87,11 @@ public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
         return result;
     }
 
-    public async Task<PatreonAPIObjectResponse> GetOwnDetails(HttpClient client, CancellationToken cancellationToken)
+    public async Task<PatreonAPIObjectResponse> GetOwnDetails(HttpClient client, string token,
+        CancellationToken cancellationToken)
     {
-        var response = await client.GetFromJsonAsync<PatreonAPIObjectResponse>(
-            "https://www.patreon.com/api/oauth2/v2/identity", cancellationToken);
+        var response = await GetAuthenticated<PatreonAPIObjectResponse>(client,
+            "https://www.patreon.com/api/oauth2/v2/identity", token, cancellationToken);
 
         if (response == null)
             throw new PatreonAPIDataException("failed to deserialize response from patreon API");
@@ -102,10 +99,11 @@ public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
         return response;
     }
 
-    public async Task<List<PatreonObjectData>> GetCampaigns(HttpClient client, CancellationToken cancellationToken)
+    public async Task<List<PatreonObjectData>> GetCampaigns(HttpClient client, string token,
+        CancellationToken cancellationToken)
     {
-        var response = await client.GetFromJsonAsync<PatreonAPIListResponse>(
-            "https://www.patreon.com/api/oauth2/v2/campaigns", cancellationToken);
+        var response = await GetAuthenticated<PatreonAPIListResponse>(client,
+            "https://www.patreon.com/api/oauth2/v2/campaigns", token, cancellationToken);
 
         if (response == null)
             throw new PatreonAPIDataException("failed to deserialize response from patreon API");
@@ -113,16 +111,31 @@ public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
         return response.Data;
     }
 
-    public async Task<List<PatreonObjectData>> GetRewards(HttpClient client, string campaignId,
+    public async Task<List<PatreonObjectData>> GetRewards(HttpClient client, string campaignId, string token,
         CancellationToken cancellationToken)
     {
-        var response = await client.GetFromJsonAsync<PatreonAPIListResponse>(
+        // ReSharper disable StringLiteralTypo
+        var response = await GetAuthenticated<PatreonAPIListResponse>(client,
             $"https://www.patreon.com/api/oauth2/v2/campaigns/{campaignId}/rewards?fields%5Breward%5D=title",
-            cancellationToken);
+            token, cancellationToken);
+
+        // ReSharper restore StringLiteralTypo
 
         if (response == null)
             throw new PatreonAPIDataException("failed to deserialize response from patreon API");
 
         return response.Data;
+    }
+
+    private async Task<T?> GetAuthenticated<T>(HttpClient client, string url, string token,
+        CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
     }
 }

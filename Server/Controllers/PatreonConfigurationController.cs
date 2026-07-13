@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Authorization;
 using DevCenterCommunication.Models;
@@ -26,12 +27,17 @@ public class PatreonConfigurationController : Controller
 {
     private readonly ILogger<PatreonConfigurationController> logger;
     private readonly NotificationsEnabledDb database;
+    private readonly IPatreonCreatorAPI patreonCreatorAPI;
+    private readonly IHttpClientFactory httpClientFactory;
 
     public PatreonConfigurationController(ILogger<PatreonConfigurationController> logger,
-        NotificationsEnabledDb database)
+        NotificationsEnabledDb database, IPatreonCreatorAPI patreonCreatorAPI,
+        IHttpClientFactory httpClientFactory)
     {
         this.logger = logger;
         this.database = database;
+        this.patreonCreatorAPI = patreonCreatorAPI;
+        this.httpClientFactory = httpClientFactory;
     }
 
     [HttpGet]
@@ -124,8 +130,9 @@ public class PatreonConfigurationController : Controller
         try
         {
             var token = await GetToken(request);
-            using var api = new PatreonCreatorAPI(token);
-            var details = await api.GetOwnDetails(HttpContext.RequestAborted);
+            var client = httpClientFactory.CreateClient();
+
+            var details = await patreonCreatorAPI.GetOwnDetails(client, token, HttpContext.RequestAborted);
             return
                 $"Token is valid. Authenticated as: {details.Data.Attributes.FullName} ({details.Data.Attributes.Email})";
         }
@@ -137,13 +144,15 @@ public class PatreonConfigurationController : Controller
     }
 
     [HttpPost("campaigns")]
-    public async Task<ActionResult<List<PatreonObjectData>>> GetCampaigns([Required] [FromBody] RemotePatreonRequest request)
+    public async Task<ActionResult<List<PatreonObjectData>>> GetCampaigns(
+        [Required] [FromBody] RemotePatreonRequest request)
     {
         try
         {
             var token = await GetToken(request);
-            using var api = new PatreonCreatorAPI(token);
-            return await api.GetCampaigns(HttpContext.RequestAborted);
+            var client = httpClientFactory.CreateClient();
+
+            return await patreonCreatorAPI.GetCampaigns(client, token, HttpContext.RequestAborted);
         }
         catch (Exception e)
         {
@@ -153,13 +162,15 @@ public class PatreonConfigurationController : Controller
     }
 
     [HttpPost("rewards")]
-    public async Task<ActionResult<List<PatreonObjectData>>> GetRewards([Required] [FromBody] PatreonRewardsRequest request)
+    public async Task<ActionResult<List<PatreonObjectData>>> GetRewards(
+        [Required] [FromBody] PatreonRewardsRequest request)
     {
         try
         {
             var token = await GetToken(request);
-            using var api = new PatreonCreatorAPI(token);
-            return await api.GetRewards(request.CampaignId, HttpContext.RequestAborted);
+            var client = httpClientFactory.CreateClient();
+
+            return await patreonCreatorAPI.GetRewards(client, request.CampaignId, token, HttpContext.RequestAborted);
         }
         catch (Exception e)
         {

@@ -11,17 +11,20 @@ public interface IPatreonCreatorAPI
     /// <summary>
     ///   Gets all patrons of the active campaign
     /// </summary>
-    /// <param name="client">HttpClient to use, should have authorization header set</param>
+    /// <param name="client">HttpClient to use</param>
     /// <param name="campaignId">Where to get the campaign from</param>
-    /// <param name="cancellationToken">Supports canceling this while waiting</param>
+    /// /// <param name="token">Authorization token to use</param>
+    /// <param name="cancellationToken">Supports cancelling this while waiting</param>
     /// <returns>API response with all the patron objects</returns>
-    Task<List<PatronMemberInfo>> GetPatrons(HttpClient client, string campaignId,
+    Task<List<PatronMemberInfo>> GetPatrons(HttpClient client, string campaignId, string token,
         CancellationToken cancellationToken);
 
-    Task<PatreonAPIObjectResponse> GetOwnDetails(HttpClient client, CancellationToken cancellationToken);
+    Task<PatreonAPIObjectResponse> GetOwnDetails(HttpClient client, string token,
+        CancellationToken cancellationToken);
 
-    Task<List<PatreonObjectData>> GetCampaigns(HttpClient client, CancellationToken cancellationToken);
+    Task<List<PatreonObjectData>> GetCampaigns(HttpClient client, string token,
+        CancellationToken cancellationToken);
 
-    Task<List<PatreonObjectData>> GetRewards(HttpClient client, string campaignId,
+    Task<List<PatreonObjectData>> GetRewards(HttpClient client, string campaignId, string token,
         CancellationToken cancellationToken);
 }
