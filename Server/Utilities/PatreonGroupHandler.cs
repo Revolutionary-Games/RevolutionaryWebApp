@@ -7,7 +7,7 @@ using Hangfire;
 using Jobs;
 using Microsoft.EntityFrameworkCore;
 using Models;
-using Services;
+using Shared.Models;
 
 public static class PatreonGroupHandler
 {

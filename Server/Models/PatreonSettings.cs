@@ -2,11 +2,15 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Shared.Models;
+using Utilities;
 
 [Index(nameof(WebhookId), IsUnique = true)]
-public class PatreonSettings : UpdateableModel
+public class PatreonSettings : UpdateableModel, IDTOCreator<PatreonSettingsDTO>
 {
+    [UpdateFromClientRequest]
     public bool Active { get; set; } = false;
 
     [Required]
@@ -24,8 +28,13 @@ public class PatreonSettings : UpdateableModel
 
     public DateTime? LastRefreshed { get; set; }
 
+    [UpdateFromClientRequest]
     public string? CampaignId { get; set; }
+
+    [UpdateFromClientRequest]
     public string? DevbuildsRewardId { get; set; }
+
+    [UpdateFromClientRequest]
     public string? VipRewardId { get; set; }
 
     public bool IsEntitledToDevBuilds(Patron? patron)
@@ -42,5 +51,22 @@ public class PatreonSettings : UpdateableModel
             return false;
 
         return patron.RewardId == VipRewardId;
+    }
+
+    public PatreonSettingsDTO GetDTO()
+    {
+        return new PatreonSettingsDTO
+        {
+            Id = Id,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Active = Active,
+            WebhookId = WebhookId,
+            LastWebhook = LastWebhook,
+            LastRefreshed = LastRefreshed,
+            CampaignId = CampaignId,
+            DevbuildsRewardId = DevbuildsRewardId,
+            VipRewardId = VipRewardId,
+        };
     }
 }
