@@ -49,6 +49,7 @@ public interface IPatreonAPI
 public class PatreonAPI : IPatreonAPI
 {
     private readonly Lazy<HttpClient> client = new();
+    private string? accessToken;
     private string? clientId;
     private string? clientSecret;
 
@@ -62,8 +63,7 @@ public class PatreonAPI : IPatreonAPI
 
     public void LoginAsUser(PatreonAPIBearerToken? token)
     {
-        client.Value.DefaultRequestHeaders.Authorization =
-            token != null ? new AuthenticationHeaderValue("Bearer", token.AccessToken) : null;
+        accessToken = token?.AccessToken;
     }
 
     public async Task<PatreonAPIBearerToken> TurnCodeIntoTokens(string code,
@@ -101,12 +101,22 @@ public class PatreonAPI : IPatreonAPI
 
     public async Task<PatreonAPIObjectResponse> GetOwnDetails()
     {
-        var result = await Client.GetFromJsonAsync<PatreonAPIObjectResponse>(QueryHelpers.AddQueryString(
+        var url = QueryHelpers.AddQueryString(
             "https://www.patreon.com/api/oauth2/v2/identity",
             new Dictionary<string, string?>
             {
                 { "fields[user]", "email,full_name,vanity,url" },
-            }));
+            });
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+        if (accessToken != null)
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await Client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<PatreonAPIObjectResponse>();
 
         var validator = new RecursiveDataAnnotationValidator();
 
