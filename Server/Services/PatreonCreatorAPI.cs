@@ -8,6 +8,7 @@ using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Models;
+using Shared.Models;
 
 public sealed class PatreonCreatorAPI : IDisposable
 {
@@ -105,6 +106,40 @@ public sealed class PatreonCreatorAPI : IDisposable
         }
 
         return result;
+    }
+
+    public async Task<PatreonAPIObjectResponse> GetOwnDetails(CancellationToken cancellationToken)
+    {
+        var response = await client.GetFromJsonAsync<PatreonAPIObjectResponse>(
+            "https://www.patreon.com/api/oauth2/v2/identity", cancellationToken);
+
+        if (response == null)
+            throw new PatreonAPIDataException("failed to deserialize response from patreon API");
+
+        return response;
+    }
+
+    public async Task<List<PatreonObjectData>> GetCampaigns(CancellationToken cancellationToken)
+    {
+        var response = await client.GetFromJsonAsync<PatreonAPIListResponse>(
+            "https://www.patreon.com/api/oauth2/v2/campaigns", cancellationToken);
+
+        if (response == null)
+            throw new PatreonAPIDataException("failed to deserialize response from patreon API");
+
+        return response.Data;
+    }
+
+    public async Task<List<PatreonObjectData>> GetRewards(string campaignId, CancellationToken cancellationToken)
+    {
+        var response = await client.GetFromJsonAsync<PatreonAPIListResponse>(
+            $"https://www.patreon.com/api/oauth2/v2/campaigns/{campaignId}/rewards?fields%5Breward%5D=title",
+            cancellationToken);
+
+        if (response == null)
+            throw new PatreonAPIDataException("failed to deserialize response from patreon API");
+
+        return response.Data;
     }
 
     public void Dispose()

@@ -19,8 +19,7 @@ public class PatreonSettingsDTO : ClientSideTimedModel
     /// <summary>
     ///   Not fetchable after
     /// </summary>
-    [Required]
-    public string WebhookSecret { get; set; } = string.Empty;
+    public string? WebhookSecret { get; set; }
 
     public DateTime? LastWebhook { get; set; }
 

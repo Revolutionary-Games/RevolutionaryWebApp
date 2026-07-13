@@ -19,6 +19,7 @@ public class PatreonSettings : UpdateableModel, IDTOCreator<PatreonSettingsDTO>
     public string? CreatorRefreshToken { get; set; }
 
     [Required]
+    [UpdateFromClientRequest]
     public string WebhookId { get; set; } = string.Empty;
 
     [Required]
