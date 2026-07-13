@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server.Jobs;
 
 using System;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
@@ -16,7 +17,7 @@ using Utilities;
 /// </summary>
 [DisableConcurrentExecution(1200)]
 public class RefreshPatronsJob(ILogger<RefreshPatronsJob> logger, NotificationsEnabledDb database,
-    IBackgroundJobClient jobClient)
+    IBackgroundJobClient jobClient, IPatreonCreatorAPI patreonCreatorAPI, IHttpClientFactory httpClientFactory)
     : IJob
 {
     public async Task Execute(CancellationToken cancellationToken)
@@ -33,9 +34,10 @@ public class RefreshPatronsJob(ILogger<RefreshPatronsJob> logger, NotificationsE
             if (settings.Active == false)
                 continue;
 
-            using var api = new PatreonCreatorAPI(settings);
+            var client = httpClientFactory.CreateClient();
 
-            foreach (var actualPatron in await api.GetPatrons(settings, cancellationToken))
+            foreach (var actualPatron in await patreonCreatorAPI.GetPatrons(client, settings.CampaignId,
+                         settings.CreatorToken, cancellationToken))
             {
                 await PatreonGroupHandler.HandlePatreonPledgeObject(actualPatron.Pledge,
                     actualPatron.User, actualPatron.Reward?.Id, database, jobClient);
