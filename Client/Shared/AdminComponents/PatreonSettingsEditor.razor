@@ -1,0 +1,440 @@
+@inject HttpClient Http
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+
+@if (settings == null)
+{
+    if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+    else
+    {
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+}
+else if (settings.Count == 0)
+{
+    <StatusMessageShower Message="@message" Type="@messageType"/>
+    <div class="alert alert-info">
+        No Patreon settings found.
+    </div>
+    <Button ButtonStyle="primary" OnPressed="@CreateNewSettings" Enabled="!processing">
+        Create Patreon Settings
+    </Button>
+}
+else
+{
+    <StatusMessageShower Message="@message" Type="@messageType"/>
+
+    @foreach (var item in settings)
+    {
+        <div class="card mb-3" @key="item.Id">
+            <div class="card-body">
+                <form @onsubmit="() => Save(item)">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="@($"active-{item.Id}")"
+                                       @bind="item.Active">
+                                <label class="form-check-label" for="@($"active-{item.Id}")">Active</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="@($"creatorToken-{item.Id}")">Creator Token
+                                (Write-only)</label>
+                            <input type="password" class="form-control" id="@($"creatorToken-{item.Id}")"
+                                   @bind="item.CreatorToken" placeholder="Leave empty to keep existing">
+                        </div>
+                        <div class="col-md-6 mb-3 d-flex align-items-end">
+                            <Button ButtonStyle="secondary" OnPressed="() => VerifyToken(item)" Enabled="!processing">
+                                Verify Token
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="@($"webhookId-{item.Id}")">Webhook ID</label>
+                            <input type="text" class="form-control" id="@($"webhookId-{item.Id}")"
+                                   @bind="item.WebhookId">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="@($"webhookSecret-{item.Id}")">Webhook Secret
+                                (Write-only)</label>
+                            <input type="password" class="form-control" id="@($"webhookSecret-{item.Id}")"
+                                   @bind="item.WebhookSecret" placeholder="Leave empty to keep existing">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="@($"campaignId-{item.Id}")">Campaign ID</label>
+                            <input type="text" class="form-control" id="@($"campaignId-{item.Id}")"
+                                   @bind="item.CampaignId">
+                        </div>
+                        <div class="col-md-8 mb-3 d-flex align-items-end">
+                            <Button ButtonStyle="secondary" OnPressed="() => FetchCampaigns(item)"
+                                    Enabled="!processing">Fetch Campaigns
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="@($"devbuildsRewardId-{item.Id}")">Devbuilds Reward
+                                ID</label>
+                            <input type="text" class="form-control" id="@($"devbuildsRewardId-{item.Id}")"
+                                   @bind="item.DevbuildsRewardId">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="@($"vipRewardId-{item.Id}")">VIP Reward ID</label>
+                            <input type="text" class="form-control" id="@($"vipRewardId-{item.Id}")"
+                                   @bind="item.VipRewardId">
+                        </div>
+                        <div class="col-md-4 mb-3 d-flex align-items-end">
+                            <Button ButtonStyle="secondary" OnPressed="() => FetchRewards(item)" Enabled="!processing">
+                                Fetch Rewards
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Last Webhook:</strong> @(item.LastWebhook?.ToLocalTime().ToString("G") ?? "Never")
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Last
+                                Refreshed:</strong> @(item.LastRefreshed?.ToLocalTime().ToString("G") ?? "Never")
+                        </div>
+                    </div>
+
+                    <Button ButtonStyle="primary" type="submit" Spinner="processing">Save Settings</Button>
+                </form>
+
+                @if (fetchedItems != null)
+                {
+                    <div class="mt-3 border p-2">
+                        <h5>Fetched Information (@fetchedItemsType)</h5>
+                        <ul class="list-group">
+                            @foreach (var f in fetchedItems)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    @f.Name (@f.Id)
+                                    <div>
+                                        @if (f.Type == FetchedItemType.Campaign)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    @onclick="() => UseFetched(item, f)">Use as Campaign ID
+                                            </button>
+                                        }
+                                        else if (f.Type == FetchedItemType.Reward)
+                                        {
+                                            <button class="btn btn-sm btn-outline-info"
+                                                    @onclick="() => UseFetchedForDevbuilds(item, f)">Use for Devbuilds
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info ms-1"
+                                                    @onclick="() => UseFetchedForVip(item, f)">Use for VIP
+                                            </button>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                        <button class="btn btn-sm btn-secondary mt-2" @onclick="() => fetchedItems = null">Clear
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<PatreonSettingsDTO>? settings;
+    private string? error;
+    private string? message;
+    private SiteNoticeType messageType;
+    private bool processing;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    private List<FetchedItem>? fetchedItems;
+    private FetchedItemType fetchedItemsType;
+
+    private enum FetchedItemType
+    {
+        Campaign,
+        Reward,
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchSettings();
+    }
+
+    private async Task FetchSettings()
+    {
+        try
+        {
+            settings = await Http.GetFromJsonAsync<List<PatreonSettingsDTO>>("api/v1/PatreonConfiguration");
+        }
+        catch (Exception e)
+        {
+            error = $"Failed to fetch settings: {e.Message}";
+        }
+    }
+
+    private async Task Save(PatreonSettingsDTO item)
+    {
+        processing = true;
+        message = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/v1/PatreonConfiguration/{item.Id}", item);
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Settings saved successfully";
+                messageType = SiteNoticeType.Info;
+
+                // Clear this after save so it's not accidentally updated again
+                item.CreatorToken = null;
+            }
+            else
+            {
+                message = $"Failed to save: {await response.Content.ReadAsStringAsync()}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Error saving: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        processing = false;
+        StateHasChanged();
+    }
+
+    private async Task VerifyToken(PatreonSettingsDTO item)
+    {
+        if (string.IsNullOrEmpty(item.CreatorToken) && item.Id == 0)
+        {
+            message = "Please enter a token to verify";
+            messageType = SiteNoticeType.Warning;
+            return;
+        }
+
+        processing = true;
+        message = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/v1/PatreonConfiguration/verify",
+                new RemotePatreonRequest { Id = item.Id, Token = item.CreatorToken });
+            if (response.IsSuccessStatusCode)
+            {
+                message = await response.Content.ReadAsStringAsync();
+                messageType = SiteNoticeType.Info;
+            }
+            else
+            {
+                message = $"Verification failed: {await response.Content.ReadAsStringAsync()}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Error verifying: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        processing = false;
+        StateHasChanged();
+    }
+
+    private async Task FetchCampaigns(PatreonSettingsDTO item)
+    {
+        if (string.IsNullOrEmpty(item.CreatorToken) && item.Id == 0)
+        {
+            message = "Please enter a token to fetch campaigns";
+            messageType = SiteNoticeType.Warning;
+            return;
+        }
+
+        processing = true;
+        message = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/v1/PatreonConfiguration/campaigns",
+                new RemotePatreonRequest { Id = item.Id, Token = item.CreatorToken });
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<List<PatreonObjectData>>();
+                if (data != null)
+                {
+                    fetchedItems = data.Select(d => new FetchedItem
+                    {
+                        Id = d.Id,
+                        Name = d.Attributes.FullName ?? d.Attributes.Vanity ?? "Unnamed Campaign",
+                        Type = FetchedItemType.Campaign,
+                    }).ToList();
+                    fetchedItemsType = FetchedItemType.Campaign;
+                }
+            }
+            else
+            {
+                message = $"Failed to fetch campaigns: {await response.Content.ReadAsStringAsync()}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Error fetching campaigns: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        processing = false;
+        StateHasChanged();
+    }
+
+    private async Task FetchRewards(PatreonSettingsDTO item)
+    {
+        if (string.IsNullOrEmpty(item.CreatorToken) && item.Id == 0)
+        {
+            message = "Please enter a token to fetch rewards";
+            messageType = SiteNoticeType.Warning;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(item.CampaignId))
+        {
+            message = "Please enter a Campaign ID to fetch rewards";
+            messageType = SiteNoticeType.Warning;
+            return;
+        }
+
+        processing = true;
+        message = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/v1/PatreonConfiguration/rewards",
+                new PatreonRewardsRequest { Id = item.Id, Token = item.CreatorToken, CampaignId = item.CampaignId });
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<List<PatreonObjectData>>();
+                if (data != null)
+                {
+                    fetchedItems = data.Select(d => new FetchedItem
+                    {
+                        Id = d.Id,
+                        Name = d.Attributes.Title ?? "Unnamed Reward",
+                        Type = FetchedItemType.Reward,
+                    }).ToList();
+                    fetchedItemsType = FetchedItemType.Reward;
+                }
+            }
+            else
+            {
+                message = $"Failed to fetch rewards: {await response.Content.ReadAsStringAsync()}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Error fetching rewards: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        processing = false;
+        StateHasChanged();
+    }
+
+    private void UseFetched(PatreonSettingsDTO item, FetchedItem fetched)
+    {
+        if (fetched.Type == FetchedItemType.Campaign)
+        {
+            item.CampaignId = fetched.Id;
+        }
+        else
+        {
+            message = "Wrong type of item passed to UseFetched";
+            messageType = SiteNoticeType.Danger;
+            StateHasChanged();
+        }
+    }
+
+    private void UseFetchedForDevbuilds(PatreonSettingsDTO item, FetchedItem fetched)
+    {
+        item.DevbuildsRewardId = fetched.Id;
+    }
+
+    private void UseFetchedForVip(PatreonSettingsDTO item, FetchedItem fetched)
+    {
+        item.VipRewardId = fetched.Id;
+    }
+
+    private async Task CreateNewSettings()
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(ConfirmAction.Name), "Patreon settings");
+        parameters.Add(nameof(ConfirmAction.ActionVerb), "create new");
+        parameters.Add(nameof(ConfirmAction.ExtraInfo), "It cannot be easily deleted.");
+        parameters.Add(nameof(ConfirmAction.AcceptButton), "Create");
+
+        var modal = Modal.Show<ConfirmAction>("Confirm Patreon Settings Creation", parameters);
+        var result = await modal.Result;
+
+        if (result.Cancelled || result.Data is not bool confirmed || !confirmed)
+            return;
+
+        processing = true;
+        message = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsync("api/v1/PatreonConfiguration", null);
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Patreon settings created successfully";
+                messageType = SiteNoticeType.Info;
+                await FetchSettings();
+            }
+            else
+            {
+                message = $"Failed to create: {await response.Content.ReadAsStringAsync()}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Error creating: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        processing = false;
+        StateHasChanged();
+    }
+
+    private class FetchedItem
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public FetchedItemType Type { get; set; }
+    }
+
+}
