@@ -130,3 +130,10 @@ public class PatreonObjectDataList
     [Required]
     public List<PatreonObjectData> Data { get; set; } = new();
 }
+
+public class PatronMemberInfo
+{
+    public PatreonObjectData? Pledge { get; set; }
+    public PatreonObjectData? User { get; set; }
+    public PatreonObjectData? Reward { get; set; }
+}

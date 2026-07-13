@@ -1,43 +1,27 @@
 namespace RevolutionaryWebApp.Server.Services;
 
-using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Models;
-using Shared.Models;
+using RevolutionaryWebApp.Shared.Models;
 
-public sealed class PatreonCreatorAPI : IDisposable
+public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
 {
-    private readonly HttpClient client;
-
-    public PatreonCreatorAPI(string patreonToken)
-    {
-        client = new HttpClient
-        {
-            DefaultRequestHeaders = { Authorization = new AuthenticationHeaderValue("Bearer", patreonToken) },
-        };
-    }
-
-    public PatreonCreatorAPI(PatreonSettings settings) : this(settings.CreatorToken)
-    {
-    }
-
     /// <summary>
     ///   Gets all patrons of the active campaign
     /// </summary>
-    /// <param name="settings">Where to get the campaign from</param>
+    /// <param name="client">HttpClient to use, should have an authorization header set</param>
+    /// <param name="campaignId">Where to get the campaign from</param>
     /// <param name="cancellationToken">Supports canceling this while waiting</param>
     /// <returns>API response with all the patron objects</returns>
-    public async Task<List<PatronMemberInfo>> GetPatrons(PatreonSettings settings,
+    public async Task<List<PatronMemberInfo>> GetPatrons(HttpClient client, string campaignId,
         CancellationToken cancellationToken)
     {
         // ReSharper disable once StringLiteralTypo
         var url =
-            $"https://www.patreon.com/api/oauth2/api/campaigns/{settings.CampaignId}/pledges?include=patron.null," +
+            $"https://www.patreon.com/api/oauth2/api/campaigns/{campaignId}/pledges?include=patron.null," +
             "reward&fields%5Bpledge%5D=status,currency,amount_cents,declined_since";
 
         var result = new List<PatronMemberInfo>();
@@ -69,8 +53,7 @@ public sealed class PatreonCreatorAPI : IDisposable
 
                 if (rewardRelationship == null)
                 {
-                    throw new PatreonAPIDataException(
-                        "Pledge relationship to reward data is not included for user");
+                    throw new PatreonAPIDataException("Pledge relationship to reward data is not included for user");
                 }
 
                 // This happens if the user has not selected a reward
@@ -108,7 +91,7 @@ public sealed class PatreonCreatorAPI : IDisposable
         return result;
     }
 
-    public async Task<PatreonAPIObjectResponse> GetOwnDetails(CancellationToken cancellationToken)
+    public async Task<PatreonAPIObjectResponse> GetOwnDetails(HttpClient client, CancellationToken cancellationToken)
     {
         var response = await client.GetFromJsonAsync<PatreonAPIObjectResponse>(
             "https://www.patreon.com/api/oauth2/v2/identity", cancellationToken);
@@ -119,7 +102,7 @@ public sealed class PatreonCreatorAPI : IDisposable
         return response;
     }
 
-    public async Task<List<PatreonObjectData>> GetCampaigns(CancellationToken cancellationToken)
+    public async Task<List<PatreonObjectData>> GetCampaigns(HttpClient client, CancellationToken cancellationToken)
     {
         var response = await client.GetFromJsonAsync<PatreonAPIListResponse>(
             "https://www.patreon.com/api/oauth2/v2/campaigns", cancellationToken);
@@ -130,7 +113,8 @@ public sealed class PatreonCreatorAPI : IDisposable
         return response.Data;
     }
 
-    public async Task<List<PatreonObjectData>> GetRewards(string campaignId, CancellationToken cancellationToken)
+    public async Task<List<PatreonObjectData>> GetRewards(HttpClient client, string campaignId,
+        CancellationToken cancellationToken)
     {
         var response = await client.GetFromJsonAsync<PatreonAPIListResponse>(
             $"https://www.patreon.com/api/oauth2/v2/campaigns/{campaignId}/rewards?fields%5Breward%5D=title",
@@ -140,17 +124,5 @@ public sealed class PatreonCreatorAPI : IDisposable
             throw new PatreonAPIDataException("failed to deserialize response from patreon API");
 
         return response.Data;
-    }
-
-    public void Dispose()
-    {
-        client.Dispose();
-    }
-
-    public class PatronMemberInfo
-    {
-        public PatreonObjectData? Pledge { get; set; }
-        public PatreonObjectData? User { get; set; }
-        public PatreonObjectData? Reward { get; set; }
     }
 }
