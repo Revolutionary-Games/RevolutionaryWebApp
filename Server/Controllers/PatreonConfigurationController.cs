@@ -92,11 +92,12 @@ public class PatreonConfigurationController : Controller
     }
 
     [HttpPost("verify")]
-    public async Task<ActionResult<string>> VerifyToken([Required] [FromBody] TokenRequest request)
+    public async Task<ActionResult<string>> VerifyToken([Required] [FromBody] RemotePatreonRequest request)
     {
         try
         {
-            using var api = new PatreonCreatorAPI(request.Token);
+            var token = await GetToken(request);
+            using var api = new PatreonCreatorAPI(token);
             var details = await api.GetOwnDetails(HttpContext.RequestAborted);
             return
                 $"Token is valid. Authenticated as: {details.Data.Attributes.FullName} ({details.Data.Attributes.Email})";
@@ -109,11 +110,12 @@ public class PatreonConfigurationController : Controller
     }
 
     [HttpPost("campaigns")]
-    public async Task<ActionResult<List<PatreonObjectData>>> GetCampaigns([Required] [FromBody] TokenRequest request)
+    public async Task<ActionResult<List<PatreonObjectData>>> GetCampaigns([Required] [FromBody] RemotePatreonRequest request)
     {
         try
         {
-            using var api = new PatreonCreatorAPI(request.Token);
+            var token = await GetToken(request);
+            using var api = new PatreonCreatorAPI(token);
             return await api.GetCampaigns(HttpContext.RequestAborted);
         }
         catch (Exception e)
@@ -124,11 +126,12 @@ public class PatreonConfigurationController : Controller
     }
 
     [HttpPost("rewards")]
-    public async Task<ActionResult<List<PatreonObjectData>>> GetRewards([Required] [FromBody] RewardsRequest request)
+    public async Task<ActionResult<List<PatreonObjectData>>> GetRewards([Required] [FromBody] PatreonRewardsRequest request)
     {
         try
         {
-            using var api = new PatreonCreatorAPI(request.Token);
+            var token = await GetToken(request);
+            using var api = new PatreonCreatorAPI(token);
             return await api.GetRewards(request.CampaignId, HttpContext.RequestAborted);
         }
         catch (Exception e)
@@ -138,15 +141,20 @@ public class PatreonConfigurationController : Controller
         }
     }
 
-    public class TokenRequest
+    [NonAction]
+    private async Task<string> GetToken(RemotePatreonRequest request)
     {
-        [Required]
-        public string Token { get; set; } = string.Empty;
-    }
+        if (!string.IsNullOrEmpty(request.Token))
+            return request.Token;
 
-    public class RewardsRequest : TokenRequest
-    {
-        [Required]
-        public string CampaignId { get; set; } = string.Empty;
+        var settings = await database.PatreonSettings.FindAsync(request.Id);
+
+        if (settings == null)
+            throw new Exception("Patreon settings not found for token lookup");
+
+        if (string.IsNullOrEmpty(settings.CreatorToken))
+            throw new Exception("Patreon settings does not have a creator token saved");
+
+        return settings.CreatorToken;
     }
 }
