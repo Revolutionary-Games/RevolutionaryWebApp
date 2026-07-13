@@ -316,8 +316,8 @@ public sealed class RemoteServerHandlerTests : IDisposable
 
         var ec2Mock = Substitute.For<IEC2Controller>();
         ec2Mock.StopInstance(instanceId1, false).Returns(Task.CompletedTask);
-        ec2Mock.GetInstanceStatuses(Arg.Is<List<string>>(l => l.SequenceEqual(new List<string> { instanceId1 })),
-                Arg.Any<CancellationToken>())
+        ec2Mock.GetInstanceStatuses(Arg.Is<List<string>>(l => l != null &&
+                l.SequenceEqual(new List<string> { instanceId1 })), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new List<Instance>
             {
                 new()

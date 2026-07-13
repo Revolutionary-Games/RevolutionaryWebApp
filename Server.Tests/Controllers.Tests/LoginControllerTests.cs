@@ -109,15 +109,19 @@ public sealed class LoginControllerTests : IDisposable
                 cookies.Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>()))
             .Do(x =>
             {
-                if (!x.Arg<CookieOptions>().HttpOnly)
+                var options = x.Arg<CookieOptions>();
+                Assert.NotNull(options);
+                if (!options.HttpOnly)
                     Assert.Fail("Login cookie should be HTTP only");
 
-                if (!x.Arg<CookieOptions>().IsEssential)
+                if (!options.IsEssential)
                     Assert.Fail("Login cookie should be essential");
 
-                if (x.Arg<CookieOptions>().Expires == null ||
-                    x.Arg<CookieOptions>().Expires <= DateTime.UtcNow + TimeSpan.FromSeconds(5))
+                if (options.Expires == null ||
+                    options.Expires <= DateTime.UtcNow + TimeSpan.FromSeconds(5))
+                {
                     Assert.Fail("Already expired login cookie");
+                }
 
                 var raw = x.ArgAt<string>(1).Split(':');
                 seenSessionId = raw[0];

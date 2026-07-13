@@ -150,7 +150,7 @@ public sealed class CIImageTests : IDisposable
 
         notificationsMock.Received().OnChangesDetected(EntityState.Modified, imageItem1, false);
         await notificationsMock.Received()
-            .SendNotifications(Arg.Is<IEnumerable<Tuple<SerializedNotification, string>>>(l => l.Any()));
+            .SendNotifications(Arg.Is<IEnumerable<Tuple<SerializedNotification, string>>>(l => l != null && l.Any()));
     }
 
     public void Dispose()

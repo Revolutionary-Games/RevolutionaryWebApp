@@ -205,8 +205,8 @@ public sealed class StorageFilesControllerUploadTests : IDisposable
         storage.Configured.Returns(true);
 
         storage.PerformFileUploadSuccessActions(Arg.Any<StorageFile>(), Arg.Any<ApplicationDbContext>()).Returns(args =>
-            BaseRemoteStorage.DoPerformFileUploadSuccessActionsBase(args.Arg<StorageFile>(),
-                args.Arg<ApplicationDbContext>()));
+            BaseRemoteStorage.DoPerformFileUploadSuccessActionsBase(args.Arg<StorageFile>()!,
+                args.Arg<ApplicationDbContext>()!));
 
         var jobs = Substitute.For<IBackgroundJobClient>();
 

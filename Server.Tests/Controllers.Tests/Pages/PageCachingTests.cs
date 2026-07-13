@@ -74,7 +74,7 @@ public class PageCachingTests
         Assert.Equal("Version 1", resolvedDTO.PageContentAtVersion);
 
         // Verify that version 10 was cached.
-        await cacheMock.Received().SetAsync(Arg.Is<string>(s => s.Contains($":{page.Id}:10")),
+        await cacheMock.Received().SetAsync(Arg.Is<string>(s => s != null && s.Contains($":{page.Id}:10")),
             Arg.Any<byte[]>(),
             Arg.Any<DistributedCacheEntryOptions>(),
             Arg.Any<CancellationToken>());
@@ -90,7 +90,7 @@ public class PageCachingTests
         cacheMock.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(info =>
             {
-                if (info.Arg<string>().EndsWith(":10"))
+                if (info.Arg<string>()?.EndsWith(":10") == true)
                 {
                     return Task.FromResult<byte[]?>("Version 10"u8.ToArray());
                 }
@@ -107,7 +107,7 @@ public class PageCachingTests
         Assert.NotNull(resolvedDTO);
         Assert.Equal("Version 10", resolvedDTO.PageContentAtVersion);
 
-        await cacheMock.Received().GetAsync(Arg.Is<string>(s => s.Contains($":{page.Id}:10")),
+        await cacheMock.Received().GetAsync(Arg.Is<string>(s => s != null && s.Contains($":{page.Id}:10")),
             Arg.Any<CancellationToken>());
 
         versionToResolve = 9;
@@ -116,7 +116,7 @@ public class PageCachingTests
         Assert.NotNull(resolvedDTO);
         Assert.Equal("Version 9", resolvedDTO.PageContentAtVersion);
 
-        await cacheMock.Received().GetAsync(Arg.Is<string>(s => s.Contains($":{page.Id}:10")),
+        await cacheMock.Received().GetAsync(Arg.Is<string>(s => s != null && s.Contains($":{page.Id}:10")),
             Arg.Any<CancellationToken>());
     }
 

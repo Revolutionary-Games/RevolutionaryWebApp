@@ -86,7 +86,7 @@ public sealed class RegistrationControllerTests : IDisposable
 
         // Email queued
         await mailQueue.Received(1).SendEmail(Arg.Is<MailRequest>(m =>
-                m.Recipient == "user@example.com" && m.Category == EmailReason.ConfirmEmail &&
+                m != null && m.Recipient == "user@example.com" && m.Category == EmailReason.ConfirmEmail &&
                 m.HtmlBody != null && m.HtmlBody.Contains("complete-signup/", StringComparison.OrdinalIgnoreCase)),
             Arg.Any<CancellationToken>());
     }

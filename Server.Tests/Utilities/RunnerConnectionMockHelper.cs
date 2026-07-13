@@ -109,7 +109,8 @@ public class RunnerConnectionMockHelper
                 var handler = ci.Arg<Action<RedisChannel, RedisValue>>();
 
                 // Store/replace the handler for the channel
-                redisHandlers[channel] = handler;
+                if (handler != null)
+                    redisHandlers[channel] = handler;
                 return Task.CompletedTask;
             });
 
@@ -193,6 +194,9 @@ public class RunnerConnectionMockHelper
             {
                 // But if a waste to JSON decode it here, but otherwise all tests would have to do that
                 var jsonData = messageData.Arg<string>();
+                if (jsonData == null)
+                    throw new Exception("Received null JSON notification data");
+
                 var notification = JsonSerializer.Deserialize<SerializedNotification>(jsonData,
                     new JsonSerializerOptions { Converters = { NotificationExtensions.Converter } });
 
@@ -203,6 +207,9 @@ public class RunnerConnectionMockHelper
 
                 if (converted.Message == null!)
                     throw new Exception("Sent a notice that couldn't be decoded correctly");
+
+                if (groupName == null)
+                    throw new Exception("Group name was null in signalr notice");
 
                 websiteNoticeMessages.Enqueue((groupName, converted));
 

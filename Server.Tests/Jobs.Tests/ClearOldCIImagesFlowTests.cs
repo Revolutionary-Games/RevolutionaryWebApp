@@ -142,11 +142,11 @@ public sealed class ClearOldCIImagesFlowTests : IDisposable
         // Assert: only image2 (admin-writable and older than a week) gets scheduled for deletion
         // We can't observe immediate DB deletion here (deletion is queued), so verify job scheduling via
         // IBackgroundJobClient
-        jobClient.Received(1).Create(Arg.Is<Hangfire.Common.Job>(j => j.Type == typeof(DeleteStorageItemVersionJob)),
-            Arg.Any<Hangfire.States.IState>());
+        jobClient.Received(1).Create(Arg.Is<Hangfire.Common.Job>(j => j != null
+            && j.Type == typeof(DeleteStorageItemVersionJob)), Arg.Any<Hangfire.States.IState>());
 
-        jobClient.Received(1).Create(Arg.Is<Hangfire.Common.Job>(j => j.Type == typeof(DeleteStorageItemJob)),
-            Arg.Any<Hangfire.States.IState>());
+        jobClient.Received(1).Create(Arg.Is<Hangfire.Common.Job>(j => j != null
+            && j.Type == typeof(DeleteStorageItemJob)), Arg.Any<Hangfire.States.IState>());
 
         // TODO: maybe we should have some stronger way to check which image got deleted here?
 
