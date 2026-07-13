@@ -90,6 +90,20 @@ public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
     public async Task<PatreonAPIObjectResponse> GetOwnDetails(HttpClient client, string token,
         CancellationToken cancellationToken)
     {
+        // Note: our tokens only support the v1 API
+        var response = await GetAuthenticated<PatreonAPIObjectResponse>(client,
+            "https://www.patreon.com/api/oauth2/api/current_user", token, cancellationToken);
+
+        if (response == null)
+            throw new PatreonAPIDataException("failed to deserialize response from patreon API");
+
+        return response;
+    }
+
+    public async Task<PatreonAPIObjectResponse> GetOwnDetailsV2(HttpClient client, string token,
+        CancellationToken cancellationToken)
+    {
+        // We don't have tokens for the V2 API yet, but these methods are here for future usage!
         var response = await GetAuthenticated<PatreonAPIObjectResponse>(client,
             "https://www.patreon.com/api/oauth2/v2/identity", token, cancellationToken);
 
@@ -103,6 +117,18 @@ public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
         CancellationToken cancellationToken)
     {
         var response = await GetAuthenticated<PatreonAPIListResponse>(client,
+            "https://www.patreon.com/api/oauth2/api/current_user/campaigns", token, cancellationToken);
+
+        if (response == null)
+            throw new PatreonAPIDataException("failed to deserialize response from patreon API");
+
+        return response.Data;
+    }
+
+    public async Task<List<PatreonObjectData>> GetCampaignsV2(HttpClient client, string token,
+        CancellationToken cancellationToken)
+    {
+        var response = await GetAuthenticated<PatreonAPIListResponse>(client,
             "https://www.patreon.com/api/oauth2/v2/campaigns", token, cancellationToken);
 
         if (response == null)
@@ -112,6 +138,44 @@ public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
     }
 
     public async Task<List<PatreonObjectData>> GetRewards(HttpClient client, string campaignId, string token,
+        CancellationToken cancellationToken)
+    {
+        // We need to list all data as we can't search by ID in the old API
+        // ReSharper disable StringLiteralTypo
+        var response = await GetAuthenticated<PatreonAPIListResponse>(client,
+            "https://www.patreon.com/api/oauth2/api/current_user/campaigns", token, cancellationToken);
+
+        // ReSharper restore StringLiteralTypo
+
+        if (response == null)
+            throw new PatreonAPIDataException("failed to deserialize response from patreon API");
+
+        // This old API is terrible, we need to find the matching campaign and then extract the rewards from it
+        foreach (var objectData in response.Data)
+        {
+            if (objectData.Id == campaignId)
+            {
+                if (objectData.Relationships?.Rewards == null)
+                    throw new PatreonAPIDataException("Matching campaign didn't return rewards");
+
+                // Collect all the related rewards
+                var result = new List<PatreonObjectData>();
+
+                foreach (var relationship in objectData.Relationships.Rewards.Data)
+                {
+                    result.Add(response.FindIncludedObject(relationship.Id) ??
+                        throw new PatreonAPIDataException("Response didn't include related object"));
+                }
+
+                return result;
+            }
+        }
+
+        // Not found
+        throw new PatreonAPIDataException("failed to find matching campaign");
+    }
+
+    public async Task<List<PatreonObjectData>> GetRewardsV2(HttpClient client, string campaignId, string token,
         CancellationToken cancellationToken)
     {
         // ReSharper disable StringLiteralTypo
