@@ -34,6 +34,12 @@ public class RefreshPatronsJob(ILogger<RefreshPatronsJob> logger, NotificationsE
             if (settings.Active == false)
                 continue;
 
+            if (string.IsNullOrEmpty(settings.CampaignId))
+            {
+                logger.LogWarning("Patreon settings has no campaign ID, skipping");
+                continue;
+            }
+
             var client = httpClientFactory.CreateClient();
 
             foreach (var actualPatron in await patreonCreatorAPI.GetPatrons(client, settings.CampaignId,
