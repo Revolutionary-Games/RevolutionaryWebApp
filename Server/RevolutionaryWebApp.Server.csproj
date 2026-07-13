@@ -5,8 +5,6 @@
     <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
     <Version>3.2.1</Version>
-    <!-- TODO: re-enable once we are on .NET 9 (also see below the version pinning) -->
-    <NoWarn>NU1608</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
