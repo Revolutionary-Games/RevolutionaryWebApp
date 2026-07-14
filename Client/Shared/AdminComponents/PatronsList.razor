@@ -9,6 +9,7 @@
 @using RevolutionaryWebApp.Client.Services
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using SharedBase.Utilities
 @implements RevolutionaryWebApp.Client.Services.INotificationHandler<PatronListUpdated>
 @inherits PaginatedPage<RevolutionaryWebApp.Shared.Models.PatronDTO>
 <h3>Patrons</h3>
@@ -29,17 +30,18 @@ else
                         ShowContentSpinner="@VisibleFetchInProgress"
                         Columns="@columns"
                         ShowNoContent="@NoItemsFound"
+                        UseNonFixedColumns="@true"
                         ResponsiveType="table-responsive-lg">
             @if (Data != null)
             {
                 @foreach (var item in Data.Results)
                 {
                     <tr @key="item.Id">
-                        <th scope="row" class="text-nowrap">@item.Email</th>
+                        <th scope="row" class="text-nowrap">@item.Email.Truncate(80)</th>
                         <td>@item.Suspended</td>
                         <td>@item.Username</td>
                         <td>@item.PledgeAmountCents</td>
-                        <td>@item.EmailAlias</td>
+                        <td>@item.EmailAlias.Truncate()</td>
                         <td>@item.HasForumAccount</td>
                         <td>
                             @if (item.HasAccountOnDevCenter != null)
