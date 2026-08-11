@@ -127,6 +127,9 @@ public class PasswordResetController : Controller
 
         targetUser.PasswordHash = Passwords.CreateSaltedPasswordHash(request.Password);
 
+        // Mark as allowed for local login!
+        targetUser.Local = true;
+
         await database.ActionLogEntries.AddAsync(new ActionLogEntry("Password reset by email")
         {
             PerformedById = targetUser.Id,

@@ -36,6 +36,81 @@ public sealed class PasswordResetControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task PasswordReset_SsoAccount_WorksAndAllowsLocalLogin()
+    {
+        // Arrange: DB with a user
+        var notificationsMock = Substitute.For<IModelUpdateNotificationSender>();
+        await using var database = CreateDb(notificationsMock);
+        var user = new User("resetuser@example.com", "ResetUser")
+        {
+            NormalizedEmail = Normalization.NormalizeEmail("resetuser@example.com"),
+            DisplayName = "Reset User",
+            CreatedAt = DateTime.UtcNow,
+            Local = false,
+            SsoSource = LoginController.SsoTypePatreon,
+        };
+        await database.Users.AddAsync(user);
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
+        await database.SaveChangesAsync();
+
+        var mailQueue = Substitute.For<IMailQueue>();
+        var configuration = BuildTestConfiguration();
+
+        var controller = CreateController(database, mailQueue, configuration);
+
+        // Act 1: request forgot password
+        var forgotResult = await controller.ForgotPassword(new ForgotPasswordRequest
+        {
+            Email = "resetuser@example.com",
+            CSRF = string.Empty,
+        });
+        var forgotOk = Assert.IsType<OkObjectResult>(forgotResult);
+        Assert.Equal(200, forgotOk.StatusCode);
+
+        // Capture queued email and extract token from /reset-password/{token}
+        await mailQueue.Received(1).SendEmail(Arg.Any<MailRequest>(), Arg.Any<CancellationToken>());
+        var call = mailQueue.ReceivedCalls().First();
+        var args = call.GetArguments();
+        var mail = args[0] as MailRequest;
+        Assert.NotNull(mail);
+        Assert.Equal(EmailReason.PasswordReset, mail.Category);
+        Assert.NotNull(mail.HtmlBody);
+
+        var match = Regex.Match(mail.HtmlBody!, @"reset-password/([^""\s<]+)");
+        Assert.True(match.Success, "Password reset token not found in email body");
+        var token = match.Groups[1].Value;
+        Assert.False(string.IsNullOrWhiteSpace(token));
+
+        // Act 2: perform reset with new password
+        var resetResponse = await controller.ResetPassword(new ResetPasswordRequest
+        {
+            Token = token,
+            Password = "NewPassword456",
+        });
+        var resetOk = Assert.IsType<OkObjectResult>(resetResponse);
+        Assert.Equal(200, resetOk.StatusCode);
+        Assert.True(user.Local);
+
+        // Assert: login with new password works and sets session cookie
+        var login = CreateLoginController(database, configuration);
+        var loginResult = await login.PerformLocalLogin(new LoginFormData
+        {
+            CSRF = "csrf", // CSRF is not validated in tests for local login here
+            Email = "resetuser@example.com",
+            Password = "NewPassword456",
+        });
+
+        var redirect = Assert.IsType<RedirectResult>(loginResult);
+        Assert.False(redirect.Permanent);
+
+        // Assert a session was created and linked to the user
+        var session = await database.Sessions.Include(s => s.User).FirstOrDefaultAsync();
+        Assert.NotNull(session);
+        Assert.NotNull(session.User);
+        Assert.Equal(user.Id, session.UserId);
+    }
+
+    [Fact]
     public async Task PasswordReset_WorksAndAllowsLogin()
     {
         // Arrange: DB with a user
@@ -89,6 +164,7 @@ public sealed class PasswordResetControllerTests : IDisposable
         });
         var resetOk = Assert.IsType<OkObjectResult>(resetResponse);
         Assert.Equal(200, resetOk.StatusCode);
+        Assert.True(user.Local);
 
         // Assert: login with new password works and sets session cookie
         var login = CreateLoginController(database, configuration);
