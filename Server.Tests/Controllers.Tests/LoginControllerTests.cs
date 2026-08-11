@@ -452,6 +452,116 @@ public sealed class LoginControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task LoginController_LocalAccountCanAlsoUseSso()
+    {
+        string? seenSessionId = null;
+        var cookiesMock = Substitute.For<IResponseCookies>();
+        cookiesMock.When(cookies =>
+                cookies.Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>()))
+            .Do(x => { seenSessionId = x.ArgAt<string>(1).Split(':')[0]; });
+
+        SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
+            out var patreonMock, out var requestCookiesMock, out var httpContextMock);
+
+        var configuration = CreateConfiguration(false, true);
+
+        await using var database =
+            CreateMemoryDatabase(nameof(LoginController_LocalAccountCanAlsoUseSso), notificationsMock);
+
+        await SeedPatronData(database);
+
+        var user = new User(PatronEmail, "Mr. Patron")
+        {
+            Local = true,
+        };
+        user.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
+        await database.Users.AddAsync(user);
+
+        await database.SaveChangesAsync();
+
+        Assert.Empty(database.Sessions);
+
+        var controller = new LoginController(logger, database, configuration, csrfMock,
+            new RedirectVerifier(configuration), patreonMock, jobClientMock);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock,
+        };
+
+        // Perform start login request
+        var result = await controller.StartSsoLogin(new SsoStartFormData
+        {
+            SsoType = LoginController.SsoTypePatreon,
+            CSRF = CSRFValue,
+        });
+
+        Assert.DoesNotContain(user.Groups, g => g.Id == GroupType.PatreonSupporter);
+
+        var redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
+
+        Assert.False(redirectResult.Permanent);
+        Assert.StartsWith(DummyPatreonLogin, redirectResult.Url);
+        IReadOnlyDictionary<string, string> data = QueryHelpers.ParseQuery(redirectResult.Url).SelectFirstStringValue();
+
+        Assert.Contains("state", data);
+
+        Assert.NotNull(seenSessionId);
+        var session = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+
+        var firstSessionId = seenSessionId;
+
+        Assert.NotNull(session);
+        Assert.Null(session.User);
+
+        Assert.Equal(LoginController.SsoTypePatreon, session.StartedSsoLogin);
+        Assert.NotNull(session.SsoNonce);
+
+        // Perform return request
+        requestCookiesMock.TryGetValue(AppInfo.SessionCookieName, out Arg.Any<string>()!)
+            .Returns(x =>
+            {
+                x[1] = seenSessionId + ":-1";
+                return true;
+            });
+
+        result = await controller.SsoReturnPatreon(data["state"], PatreonReturnCode, null);
+
+        redirectResult = Assert.IsAssignableFrom<RedirectResult>(result);
+
+        Assert.False(redirectResult.Permanent);
+        Assert.Equal("/", redirectResult.Url);
+
+        // Session gets renamed on successful login
+        Assert.NotEqual(firstSessionId, seenSessionId);
+        var newSession = await database.Sessions.Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == Guid.Parse(seenSessionId));
+
+        Assert.NotNull(newSession);
+
+        Assert.NotEqual(session, newSession);
+
+        // The first session is deleted
+        Assert.Null(await database.Sessions.FirstOrDefaultAsync(s => s.Id == session.Id));
+
+        Assert.Null(newSession.StartedSsoLogin);
+        Assert.Null(newSession.SsoNonce);
+        Assert.False(user.Suspended);
+
+        var user2 = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Id == user.Id);
+        Assert.NotNull(user2);
+        Assert.Contains(user2.Groups, g => g.Id == GroupType.PatreonSupporter);
+
+        Assert.Equal(user, newSession.User);
+
+        VerifyPatreonCalls(patreonMock);
+
+        cookiesMock.Received().Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>());
+        requestCookiesMock.Received().TryGetValue(Arg.Any<string>(), out Arg.Any<string>()!);
+    }
+
+    [Fact]
     public async Task LoginController_AutoUnsuspendDoesNotOverrideManualSuspension()
     {
         // Note that log in no longer auto unsuspends, so this test shouldn't be able to detect anything any more...
@@ -552,8 +662,7 @@ public sealed class LoginControllerTests : IDisposable
         var configuration = CreateConfiguration(false, true);
 
         await using var database =
-            CreateMemoryDatabase(
-                nameof(LoginController_BadPatronStatusDisallowsLogin) +
+            CreateMemoryDatabase(nameof(LoginController_BadPatronStatusDisallowsLogin) +
                 $"{userSuspended}-{patronSuspended}-{rewardTier}", notificationsMock);
 
         await SeedPatronData(database, patronSuspended, rewardTier);

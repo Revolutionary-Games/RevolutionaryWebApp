@@ -763,17 +763,7 @@ public class LoginController : SSOLoginController
             Models.User.OnNewUserCreated(newUser, jobClient);
             user = newUser;
         }
-        else if (user.Local)
-        {
-            // TODO: implement better local flow to allow SSO logins to local accounts
-
-            // TODO: allow (non-developers) to login using different sso
-            // Maybe developers with 2fa should be allowed?
-            return (Redirect(QueryHelpers.AddQueryString("/login", "error",
-                "Can't login to local account using SSO. If you can't login with local login, please reset " +
-                "your password with your email and try it again.")), false);
-        }
-        else if (user.SsoSource != ssoType)
+        else if (user.SsoSource != ssoType && !string.IsNullOrWhiteSpace(ssoType))
         {
             Logger.LogInformation(
                 "User logged in with different SSO source than before, new: {SsoType}, old: {SsoSource}", ssoType,
@@ -812,6 +802,11 @@ public class LoginController : SSOLoginController
             else if (user.SsoSource == SsoTypeCommunityForum && ssoType == SsoTypePatreon)
             {
                 Logger.LogInformation("Community forum user logged in using patreon");
+                ChangeSsoSourceForNormalUser(user, ssoType);
+            }
+            else if (user.SsoSource == null)
+            {
+                Logger.LogInformation("Local user logging with SSO for the first time");
                 ChangeSsoSourceForNormalUser(user, ssoType);
             }
             else
