@@ -33,17 +33,17 @@ public class PatreonSettings : UpdateableModel, IDTOCreator<PatreonSettingsDTO>
     public string? CampaignId { get; set; }
 
     [UpdateFromClientRequest]
-    public string? DevbuildsRewardId { get; set; }
+    public string? DevbuildsTierId { get; set; }
 
     [UpdateFromClientRequest]
-    public string? VipRewardId { get; set; }
+    public string? VipTierId { get; set; }
 
     public bool IsEntitledToDevBuilds(Patron? patron)
     {
         if (patron == null)
             return false;
 
-        return patron.RewardId == DevbuildsRewardId || patron.RewardId == VipRewardId;
+        return IsEntitledToTier(patron, DevbuildsTierId) || IsEntitledToTier(patron, VipTierId);
     }
 
     public bool IsEntitledToVIP(Patron? patron)
@@ -51,7 +51,7 @@ public class PatreonSettings : UpdateableModel, IDTOCreator<PatreonSettingsDTO>
         if (patron == null)
             return false;
 
-        return patron.RewardId == VipRewardId;
+        return IsEntitledToTier(patron, VipTierId);
     }
 
     public PatreonSettingsDTO GetDTO()
@@ -66,8 +66,15 @@ public class PatreonSettings : UpdateableModel, IDTOCreator<PatreonSettingsDTO>
             LastWebhook = LastWebhook,
             LastRefreshed = LastRefreshed,
             CampaignId = CampaignId,
-            DevbuildsRewardId = DevbuildsRewardId,
-            VipRewardId = VipRewardId,
+            DevbuildsTierId = DevbuildsTierId,
+            VipTierId = VipTierId,
         };
+    }
+
+    private static bool IsEntitledToTier(Patron patron, string? tierId)
+    {
+        return !string.IsNullOrEmpty(tierId) &&
+            (patron.TierId == tierId || patron.EntitledTierIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Contains(tierId, StringComparer.Ordinal));
     }
 }

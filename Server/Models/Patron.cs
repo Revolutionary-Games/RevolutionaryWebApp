@@ -7,6 +7,8 @@ using Shared.Models;
 
 [Index(nameof(Email), IsUnique = true)]
 [Index(nameof(EmailAlias), IsUnique = true)]
+[Index(nameof(PatreonUserId), IsUnique = true)]
+[Index(nameof(PatreonMemberId), IsUnique = true)]
 public class Patron : UpdateableModel
 {
     [Required]
@@ -26,8 +28,19 @@ public class Patron : UpdateableModel
 
     // TODO: add pledge currency here
 
+    /// <summary>
+    ///   The main tier ID that the patron is entitled to.
+    /// </summary>
     [Required]
-    public string RewardId { get; set; } = string.Empty;
+    public string TierId { get; set; } = string.Empty;
+
+    /// <summary>
+    ///   A comma separated list of tier ids that the patron is entitled to.
+    /// </summary>
+    public string EntitledTierIds { get; set; } = string.Empty;
+
+    public string? PatreonUserId { get; set; }
+    public string? PatreonMemberId { get; set; }
 
     public bool? Marked { get; set; } = true;
 
@@ -51,7 +64,7 @@ public class Patron : UpdateableModel
             EmailAlias = EmailAlias,
             Username = Username,
             PledgeAmountCents = PledgeAmountCents,
-            RewardId = RewardId,
+            TierId = TierId,
             HasForumAccount = HasForumAccount ?? false,
             Suspended = Suspended ?? false,
         };

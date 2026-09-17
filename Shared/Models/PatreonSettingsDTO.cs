@@ -26,6 +26,6 @@ public class PatreonSettingsDTO : ClientSideTimedModel
     public DateTime? LastRefreshed { get; set; }
 
     public string? CampaignId { get; set; }
-    public string? DevbuildsRewardId { get; set; }
-    public string? VipRewardId { get; set; }
+    public string? DevbuildsTierId { get; set; }
+    public string? VipTierId { get; set; }
 }

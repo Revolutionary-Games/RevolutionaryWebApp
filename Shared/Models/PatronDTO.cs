@@ -16,7 +16,7 @@ public class PatronDTO : ClientSideTimedModel
     public int PledgeAmountCents { get; set; }
 
     [Required]
-    public string RewardId { get; set; } = string.Empty;
+    public string TierId { get; set; } = string.Empty;
 
     public bool HasForumAccount { get; set; }
     public bool Suspended { get; set; }

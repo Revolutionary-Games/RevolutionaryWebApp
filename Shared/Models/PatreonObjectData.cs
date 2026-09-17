@@ -64,6 +64,19 @@ public class PatreonAPIBaseResponse
 public class PatreonAPIMeta
 {
     public int Count { get; set; }
+
+    [JsonPropertyName("pagination")]
+    public PatreonAPIPagination? Pagination { get; set; }
+}
+
+public class PatreonAPIPagination
+{
+    public PatreonAPICursors Cursors { get; set; } = new();
+}
+
+public class PatreonAPICursors
+{
+    public string? Next { get; set; }
 }
 
 public class PatreonAPIObjectResponse : PatreonAPIBaseResponse
@@ -83,6 +96,8 @@ public class PatreonObjectAttributes
 {
     public string? Email { get; set; }
 
+    public string? Name { get; set; }
+
     [JsonPropertyName("full_name")]
     public string? FullName { get; set; }
 
@@ -93,6 +108,15 @@ public class PatreonObjectAttributes
 
     [JsonPropertyName("declined_since")]
     public string? DeclinedSince { get; set; }
+
+    [JsonPropertyName("patron_status")]
+    public string? PatronStatus { get; set; }
+
+    [JsonPropertyName("currently_entitled_amount_cents")]
+    public int? CurrentlyEntitledAmountCents { get; set; }
+
+    [JsonPropertyName("last_charge_status")]
+    public string? LastChargeStatus { get; set; }
 
     [JsonPropertyName("amount_cents")]
     public int? AmountCents { get; set; }
@@ -112,6 +136,16 @@ public class PatreonObjectRelationships
     public PatreonRelationshipInfo? Reward { get; set; }
 
     public PatreonRelationshipInfo? Creator { get; set; }
+
+    public PatreonRelationshipInfo? User { get; set; }
+
+    [JsonPropertyName("campaign")]
+    public PatreonRelationshipInfo? Campaign { get; set; }
+
+    [JsonPropertyName("currently_entitled_tiers")]
+    public PatreonObjectDataList? CurrentlyEntitledTiers { get; set; }
+
+    public PatreonObjectDataList? Tiers { get; set; }
 
     public PatreonObjectDataList? Rewards { get; set; }
     public PatreonObjectDataList? Goals { get; set; }
@@ -133,7 +167,7 @@ public class PatreonObjectDataList
 
 public class PatronMemberInfo
 {
-    public PatreonObjectData? Pledge { get; set; }
+    public PatreonObjectData? Member { get; set; }
     public PatreonObjectData? User { get; set; }
-    public PatreonObjectData? Reward { get; set; }
+    public List<PatreonObjectData> EntitledTiers { get; set; } = new();
 }

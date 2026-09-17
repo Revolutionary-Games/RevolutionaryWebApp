@@ -9,7 +9,7 @@ public class RemotePatreonRequest
     public string? Token { get; set; }
 }
 
-public class PatreonRewardsRequest : RemotePatreonRequest
+public class PatreonTiersRequest : RemotePatreonRequest
 {
     [Required]
     public string CampaignId { get; set; } = string.Empty;
