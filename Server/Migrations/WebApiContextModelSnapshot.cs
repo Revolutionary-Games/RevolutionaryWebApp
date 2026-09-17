@@ -3319,9 +3319,9 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("creator_token");
 
-                    b.Property<string>("DevbuildsRewardId")
+                    b.Property<string>("DevbuildsTierId")
                         .HasColumnType("text")
-                        .HasColumnName("devbuilds_reward_id");
+                        .HasColumnName("devbuilds_tier_id");
 
                     b.Property<DateTime?>("LastRefreshed")
                         .HasColumnType("timestamp with time zone")
@@ -3335,9 +3335,9 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<string>("VipRewardId")
+                    b.Property<string>("VipTierId")
                         .HasColumnType("text")
-                        .HasColumnName("vip_reward_id");
+                        .HasColumnName("vip_tier_id");
 
                     b.Property<string>("WebhookId")
                         .IsRequired()
@@ -3381,6 +3381,11 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("email_alias");
 
+                    b.Property<string>("EntitledTierIds")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("entitled_tier_ids");
+
                     b.Property<bool?>("HasForumAccount")
                         .HasColumnType("boolean")
                         .HasColumnName("has_forum_account");
@@ -3393,18 +3398,26 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("patreon_refresh_token");
 
+                    b.Property<string>("PatreonMemberId")
+                        .HasColumnType("text")
+                        .HasColumnName("patreon_member_id");
+
                     b.Property<string>("PatreonToken")
                         .HasColumnType("text")
                         .HasColumnName("patreon_token");
+
+                    b.Property<string>("PatreonUserId")
+                        .HasColumnType("text")
+                        .HasColumnName("patreon_user_id");
 
                     b.Property<int>("PledgeAmountCents")
                         .HasColumnType("integer")
                         .HasColumnName("pledge_amount_cents");
 
-                    b.Property<string>("RewardId")
+                    b.Property<string>("TierId")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("reward_id");
+                        .HasColumnName("tier_id");
 
                     b.Property<bool?>("Suspended")
                         .HasColumnType("boolean")
@@ -3433,6 +3446,14 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasIndex("EmailAlias")
                         .IsUnique()
                         .HasDatabaseName("ix_patrons_email_alias");
+
+                    b.HasIndex("PatreonMemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_patrons_patreon_member_id");
+
+                    b.HasIndex("PatreonUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_patrons_patreon_user_id");
 
                     b.ToTable("patrons", (string)null);
                 });
