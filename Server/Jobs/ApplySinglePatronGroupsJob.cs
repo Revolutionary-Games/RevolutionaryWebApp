@@ -56,13 +56,13 @@ public class ApplySinglePatronGroupsJob : PatreonForumGroupBaseJob
         // So we can use the existing code
         await LoadDiscourseGroupMembers(cancellationToken);
 
-        // Bit of a hack, but the rest of the code doesn't need changes this way
-        // When a patron is deleted, this job runs with just an email but no patron object so make one here
+        // A bit of a hack, but the rest of the code doesn't need changes this way.
+        // When a patron is deleted, this job runs with just an email but no patron objects so make one here.
         patron ??= new Patron
         {
             Username = forumUser.Username,
             Email = forumEmail,
-            RewardId = "none",
+            TierId = "none",
         };
 
         HandlePatron(patron, forumUser, logger);

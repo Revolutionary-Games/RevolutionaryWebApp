@@ -137,12 +137,10 @@ public class DownloadController : Controller
         logger.LogInformation("Patron list for credits has been accessed by {Email}",
             HttpContext.AuthenticatedUser()!.Email);
 
-        var groups = patrons.GroupBy(p => p.RewardId).ToList();
-
-        var vips = groups.FirstOrDefault(g => g.Key == patreonSettings.VipRewardId);
-        var devbuilds = groups.FirstOrDefault(g => g.Key == patreonSettings.DevbuildsRewardId);
-        var other = groups.FirstOrDefault(g =>
-            g.Key != patreonSettings.VipRewardId && g.Key != patreonSettings.DevbuildsRewardId);
+        var vips = patrons.Where(patreonSettings.IsEntitledToVIP).ToList();
+        var devbuilds = patrons.Where(p => !patreonSettings.IsEntitledToVIP(p) &&
+            patreonSettings.IsEntitledToDevBuilds(p)).ToList();
+        var other = patrons.Where(p => !patreonSettings.IsEntitledToDevBuilds(p)).ToList();
 
         var result = new PatreonCredits
         {
@@ -156,11 +154,8 @@ public class DownloadController : Controller
     }
 
     [NonAction]
-    private List<string> PreparePatronGroup(IGrouping<string, Patron>? group)
+    private List<string> PreparePatronGroup(IEnumerable<Patron> group)
     {
-        if (group == null)
-            return new List<string>();
-
         return group.OrderBy(p => p.Username).Select(p => p.Username).ToList();
     }
 }

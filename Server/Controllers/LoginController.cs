@@ -37,6 +37,10 @@ public class LoginController : SSOLoginController
     public const string SsoTypeCommunityForum = "communityforum";
     public const string SsoTypePatreon = "patreon";
 
+    public const string InvalidPatreonEmailMessage =
+        "Patreon login requires a valid email address. Patreon rewards cannot sync properly without one; " +
+        "please add a valid email address to your Patreon account and try again.";
+
     private const string DiscourseSsoEndpoint = "/session/sso_provider";
 
     private readonly IConfiguration configuration;
@@ -69,6 +73,12 @@ public class LoginController : SSOLoginController
 
     private bool PatreonConfigured => !string.IsNullOrEmpty(configuration["Login:Patreon:ClientId"]) &&
         !string.IsNullOrEmpty(configuration["Login:Patreon:ClientSecret"]);
+
+    [NonAction]
+    public static string? GetPatreonEmailError(string? email)
+    {
+        return PatreonGroupHandler.IsSyntheticEmail(email) ? InvalidPatreonEmailMessage : null;
+    }
 
     /// <summary>
     ///   Sets the session cookie for a session in a response
@@ -652,6 +662,12 @@ public class LoginController : SSOLoginController
 
             if (email == null)
                 throw new NullReferenceException();
+
+            var emailError = GetPatreonEmailError(email);
+            if (emailError != null)
+            {
+                return Redirect(QueryHelpers.AddQueryString("/login", "error", emailError));
+            }
 
             var patron = await Database.Patrons.Where(p => p.Email == email).FirstOrDefaultAsync();
 

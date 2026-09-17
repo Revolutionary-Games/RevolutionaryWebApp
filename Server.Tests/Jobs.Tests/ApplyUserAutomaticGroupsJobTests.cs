@@ -102,7 +102,7 @@ public sealed class ApplyUserAutomaticGroupsJobTests : IDisposable
         await database.Patrons.AddAsync(new Patron
         {
             Email = PatronEmail,
-            RewardId = rewardId,
+            TierId = rewardId,
             Username = "RandomUserName",
             Suspended = suspended,
         });
@@ -110,8 +110,8 @@ public sealed class ApplyUserAutomaticGroupsJobTests : IDisposable
         await database.PatreonSettings.AddAsync(new PatreonSettings
         {
             Active = true,
-            DevbuildsRewardId = DevBuildRewardTier,
-            VipRewardId = VIPRewardTier,
+            DevbuildsTierId = DevBuildRewardTier,
+            VipTierId = VIPRewardTier,
             CreatorToken = "Creator-0101",
         });
 

@@ -93,6 +93,16 @@ public sealed class LoginControllerTests : IDisposable
     }
 
     [Fact]
+    public void PatreonLoginRejectsSyntheticEmail()
+    {
+        var error = LoginController.GetPatreonEmailError(
+            "noreply+patron-user-1@revolutionarygamesstudio.com");
+
+        Assert.Equal(LoginController.InvalidPatreonEmailMessage, error);
+        Assert.Null(LoginController.GetPatreonEmailError("patron@example.com"));
+    }
+
+    [Fact]
     public async Task LoginController_LocalUserLoginWorks()
     {
         var csrfMock = Substitute.For<ITokenVerifier>();
@@ -767,7 +777,7 @@ public sealed class LoginControllerTests : IDisposable
         await database.Patrons.AddAsync(new Patron
         {
             Email = PatronEmail,
-            RewardId = rewardTier,
+            TierId = rewardTier,
             Username = "Mr. Patron",
             Suspended = suspended,
         });
@@ -775,8 +785,8 @@ public sealed class LoginControllerTests : IDisposable
         await database.PatreonSettings.AddAsync(new PatreonSettings
         {
             Active = true,
-            DevbuildsRewardId = DevBuildRewardTier,
-            VipRewardId = "4567",
+            DevbuildsTierId = DevBuildRewardTier,
+            VipTierId = "4567",
             CreatorToken = "Creator-0101",
         });
 
