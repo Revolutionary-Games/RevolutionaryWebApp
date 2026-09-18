@@ -14,7 +14,6 @@ using NSubstitute;
 using Server.Controllers;
 using Server.Models;
 using Server.Services;
-using Shared;
 using TestUtilities.Utilities;
 using Xunit;
 using Xunit.Abstractions;
