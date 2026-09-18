@@ -87,19 +87,19 @@ else
 
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label class="form-label" for="@($"devbuildsRewardId-{item.Id}")">Devbuilds Reward
+                            <label class="form-label" for="@($"devbuildsTierId-{item.Id}")">Devbuilds Tier
                                 ID</label>
-                            <input type="text" class="form-control" id="@($"devbuildsRewardId-{item.Id}")"
-                                   @bind="item.DevbuildsRewardId">
+                            <input type="text" class="form-control" id="@($"devbuildsTierId-{item.Id}")"
+                                   @bind="item.DevbuildsTierId">
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label" for="@($"vipRewardId-{item.Id}")">VIP Reward ID</label>
-                            <input type="text" class="form-control" id="@($"vipRewardId-{item.Id}")"
-                                   @bind="item.VipRewardId">
+                            <label class="form-label" for="@($"vipTierId-{item.Id}")">VIP Tier ID</label>
+                            <input type="text" class="form-control" id="@($"vipTierId-{item.Id}")"
+                                   @bind="item.VipTierId">
                         </div>
                         <div class="col-md-4 mb-3 d-flex align-items-end">
-                            <Button ButtonStyle="secondary" OnPressed="() => FetchRewards(item)" Enabled="!processing">
-                                Fetch Rewards
+                            <Button ButtonStyle="secondary" OnPressed="() => FetchTiers(item)" Enabled="!processing">
+                                Fetch Tiers
                             </Button>
                         </div>
                     </div>
@@ -133,7 +133,7 @@ else
                                                     @onclick="() => UseFetched(item, f)">Use as Campaign ID
                                             </button>
                                         }
-                                        else if (f.Type == FetchedItemType.Reward)
+                                        else if (f.Type == FetchedItemType.Tier)
                                         {
                                             <button class="btn btn-sm btn-outline-info"
                                                     @onclick="() => UseFetchedForDevbuilds(item, f)">Use for Devbuilds
@@ -171,7 +171,7 @@ else
     private enum FetchedItemType
     {
         Campaign,
-        Reward,
+        Tier,
     }
 
     protected override async Task OnInitializedAsync()
@@ -287,7 +287,7 @@ else
                     fetchedItems = data.Select(d => new FetchedItem
                     {
                         Id = d.Id,
-                        Name = d.Attributes.FullName ?? d.Attributes.Vanity ?? "Unnamed Campaign",
+                        Name = d.Attributes.Name ?? d.Attributes.Vanity ?? "Unnamed Campaign",
                         Type = FetchedItemType.Campaign,
                     }).ToList();
                     fetchedItemsType = FetchedItemType.Campaign;
@@ -309,18 +309,18 @@ else
         StateHasChanged();
     }
 
-    private async Task FetchRewards(PatreonSettingsDTO item)
+    private async Task FetchTiers(PatreonSettingsDTO item)
     {
         if (string.IsNullOrEmpty(item.CreatorToken) && item.Id == 0)
         {
-            message = "Please enter a token to fetch rewards";
+            message = "Please enter a token to fetch tiers";
             messageType = SiteNoticeType.Warning;
             return;
         }
 
         if (string.IsNullOrEmpty(item.CampaignId))
         {
-            message = "Please enter a Campaign ID to fetch rewards";
+            message = "Please enter a Campaign ID to fetch tiers";
             messageType = SiteNoticeType.Warning;
             return;
         }
@@ -331,8 +331,8 @@ else
 
         try
         {
-            var response = await Http.PostAsJsonAsync("api/v1/PatreonConfiguration/rewards",
-                new PatreonRewardsRequest { Id = item.Id, Token = item.CreatorToken, CampaignId = item.CampaignId });
+            var response = await Http.PostAsJsonAsync("api/v1/PatreonConfiguration/tiers",
+                new PatreonTiersRequest { Id = item.Id, Token = item.CreatorToken, CampaignId = item.CampaignId });
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<List<PatreonObjectData>>();
@@ -341,21 +341,21 @@ else
                     fetchedItems = data.Select(d => new FetchedItem
                     {
                         Id = d.Id,
-                        Name = d.Attributes.Title ?? "Unnamed Reward",
-                        Type = FetchedItemType.Reward,
+                        Name = d.Attributes.Title ?? "Unnamed Tier",
+                        Type = FetchedItemType.Tier,
                     }).ToList();
-                    fetchedItemsType = FetchedItemType.Reward;
+                    fetchedItemsType = FetchedItemType.Tier;
                 }
             }
             else
             {
-                message = $"Failed to fetch rewards: {await response.Content.ReadAsStringAsync()}";
+                message = $"Failed to fetch tiers: {await response.Content.ReadAsStringAsync()}";
                 messageType = SiteNoticeType.Danger;
             }
         }
         catch (Exception e)
         {
-            message = $"Error fetching rewards: {e.Message}";
+            message = $"Error fetching tiers: {e.Message}";
             messageType = SiteNoticeType.Danger;
         }
 
@@ -379,12 +379,12 @@ else
 
     private void UseFetchedForDevbuilds(PatreonSettingsDTO item, FetchedItem fetched)
     {
-        item.DevbuildsRewardId = fetched.Id;
+        item.DevbuildsTierId = fetched.Id;
     }
 
     private void UseFetchedForVip(PatreonSettingsDTO item, FetchedItem fetched)
     {
-        item.VipRewardId = fetched.Id;
+        item.VipTierId = fetched.Id;
     }
 
     private async Task CreateNewSettings()

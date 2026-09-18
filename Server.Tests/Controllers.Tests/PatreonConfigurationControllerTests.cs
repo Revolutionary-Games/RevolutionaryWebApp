@@ -105,7 +105,7 @@ public sealed class PatreonConfigurationControllerTests
         var httpClientFactoryMock = Substitute.For<IHttpClientFactory>();
         httpClientFactoryMock.CreateClient(Arg.Any<string>()).Returns(new HttpClient());
 
-        patreonCreatorMock.GetOwnDetails(Arg.Any<HttpClient>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        patreonCreatorMock.GetIdentity(Arg.Any<HttpClient>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new PatreonAPIObjectResponse
             {
                 Data = new PatreonObjectData
@@ -141,7 +141,7 @@ public sealed class PatreonConfigurationControllerTests
 
         // Verify that the client was configured and token was passed
         httpClientFactoryMock.Received().CreateClient(Arg.Any<string>());
-        await patreonCreatorMock.Received().GetOwnDetails(Arg.Any<HttpClient>(),
+        await patreonCreatorMock.Received().GetIdentity(Arg.Any<HttpClient>(),
             Arg.Is("stored_token"),
             Arg.Any<CancellationToken>());
     }

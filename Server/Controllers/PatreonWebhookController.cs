@@ -76,9 +76,9 @@ public class PatreonWebhookController : Controller
             };
         }
 
-        var pledge = data.Data;
+        var member = data.Data;
 
-        if (pledge.Type != "pledge")
+        if (member.Type != "member")
         {
             throw new HttpResponseException
             {
@@ -86,9 +86,9 @@ public class PatreonWebhookController : Controller
             };
         }
 
-        var patronHookData = pledge.Relationships?.Patron?.Data;
+        var userHookData = member.Relationships?.User?.Data;
 
-        if (patronHookData == null)
+        if (userHookData == null)
         {
             throw new HttpResponseException
             {
@@ -96,7 +96,7 @@ public class PatreonWebhookController : Controller
             };
         }
 
-        var userData = data.FindIncludedObject(patronHookData.Id);
+        var userData = data.FindIncludedObject(userHookData.Id, "user");
 
         if (userData == null)
         {
@@ -107,39 +107,27 @@ public class PatreonWebhookController : Controller
             };
         }
 
-        var email = userData.Attributes.Email;
-
+        var email = member.Attributes.Email ?? userData.Attributes.Email;
         if (string.IsNullOrEmpty(email))
-        {
-            throw new HttpResponseException
-            {
-                Value = new BasicJSONErrorResult("Bad data", "User object is missing email")
-                    .ToString(),
-            };
-        }
+            email = $"noreply+patron-{Uri.EscapeDataString(userData.Id)}@{PatreonGroupHandler.SyntheticEmailDomain}";
+
+        userData.Attributes.Email = email;
 
         switch (type)
         {
             case EventType.Create:
             case EventType.Update:
             {
-                string rewardId;
+                var entitledTiers = member.Relationships?.CurrentlyEntitledTiers?.Data
+                    .Select(tier => data.FindIncludedObject(tier.Id, "tier"))
+                    .Where(tier => tier != null)
+                    .Cast<PatreonObjectData>()
+                    .ToList() ?? new List<PatreonObjectData>();
 
-                try
-                {
-                    // This was what the old code did, no clue why it would be necessary to unnecessarily
-                    // look up the reward object...
-                    // rewardId = data.FindIncludedObject(pledge.Relationships["reward"].Data.Id).Id;
-                    rewardId = pledge.Relationships?.Reward?.Data?.Id ??
-                        throw new Exception("Required relationship/property not included");
-                }
-                catch (Exception e)
-                {
-                    logger.LogWarning("Couldn't find reward ID in patreon webhook: {@E}", e);
-                    rewardId = "Unknown";
-                }
+                if (entitledTiers.Count == 0)
+                    member.Attributes.PatronStatus = "former_patron";
 
-                await PatreonGroupHandler.HandlePatreonPledgeObject(pledge, userData, rewardId, database,
+                await PatreonGroupHandler.HandlePatreonMemberObject(member, userData, entitledTiers, database,
                     jobClient);
                 break;
             }
@@ -147,10 +135,12 @@ public class PatreonWebhookController : Controller
             case EventType.Delete:
             {
                 // Find relevant patron object and delete it
-                var patron = await database.Patrons.FirstOrDefaultAsync(p => p.Email == email);
+                var patron = await database.Patrons.FirstOrDefaultAsync(p =>
+                    p.PatreonMemberId == member.Id || p.PatreonUserId == userData.Id || p.Email == email);
 
                 if (patron != null)
                 {
+                    email = patron.Email;
                     database.Patrons.Remove(patron);
                     jobClient.Schedule<ApplyUserAutomaticGroupsJob>(x => x.Execute(email, CancellationToken.None),
                         TimeSpan.FromSeconds(30));
@@ -191,11 +181,14 @@ public class PatreonWebhookController : Controller
 
         switch (header[0])
         {
-            case "pledges:create":
+            case "members:create":
+            case "members:pledge:create":
                 return EventType.Create;
-            case "pledges:update":
+            case "members:update":
+            case "members:pledge:update":
                 return EventType.Update;
-            case "pledges:delete":
+            case "members:delete":
+            case "members:pledge:delete":
                 return EventType.Delete;
         }
 

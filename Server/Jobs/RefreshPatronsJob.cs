@@ -42,11 +42,14 @@ public class RefreshPatronsJob(ILogger<RefreshPatronsJob> logger, NotificationsE
 
             var client = httpClientFactory.CreateClient();
 
-            foreach (var actualPatron in await patreonCreatorAPI.GetPatrons(client, settings.CampaignId,
+            foreach (var actualPatron in await patreonCreatorAPI.GetMembers(client, settings.CampaignId,
                          settings.CreatorToken, cancellationToken))
             {
-                await PatreonGroupHandler.HandlePatreonPledgeObject(actualPatron.Pledge,
-                    actualPatron.User, actualPatron.Reward?.Id, database, jobClient);
+                if (actualPatron.Member != null && actualPatron.EntitledTiers.Count > 0 && actualPatron.User != null)
+                {
+                    await PatreonGroupHandler.HandlePatreonMemberObject(actualPatron.Member,
+                        actualPatron.User, actualPatron.EntitledTiers, database, jobClient);
+                }
 
                 if (cancellationToken.IsCancellationRequested)
                     throw new TaskCanceledException();

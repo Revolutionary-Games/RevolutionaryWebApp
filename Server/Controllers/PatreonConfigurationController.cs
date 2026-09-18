@@ -132,7 +132,7 @@ public class PatreonConfigurationController : Controller
             var token = await GetToken(request);
             var client = httpClientFactory.CreateClient();
 
-            var details = await patreonCreatorAPI.GetOwnDetails(client, token, HttpContext.RequestAborted);
+            var details = await patreonCreatorAPI.GetIdentity(client, token, HttpContext.RequestAborted);
             return
                 $"Token is valid. Authenticated as: {details.Data.Attributes.FullName} ({details.Data.Attributes.Email})";
         }
@@ -161,21 +161,21 @@ public class PatreonConfigurationController : Controller
         }
     }
 
-    [HttpPost("rewards")]
-    public async Task<ActionResult<List<PatreonObjectData>>> GetRewards(
-        [Required] [FromBody] PatreonRewardsRequest request)
+    [HttpPost("tiers")]
+    public async Task<ActionResult<List<PatreonObjectData>>> GetTiers(
+        [Required] [FromBody] PatreonTiersRequest request)
     {
         try
         {
             var token = await GetToken(request);
             var client = httpClientFactory.CreateClient();
 
-            return await patreonCreatorAPI.GetRewards(client, request.CampaignId, token, HttpContext.RequestAborted);
+            return await patreonCreatorAPI.GetTiers(client, request.CampaignId, token, HttpContext.RequestAborted);
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to fetch Patreon rewards: {@E}", e);
-            return BadRequest("Failed to fetch rewards: " + e.Message);
+            logger.LogWarning("Failed to fetch Patreon tiers: {@E}", e);
+            return BadRequest("Failed to fetch tiers: " + e.Message);
         }
     }
 
