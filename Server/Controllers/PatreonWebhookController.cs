@@ -48,16 +48,18 @@ public class PatreonWebhookController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> PostWebhook(
-        [Required] [MaxLength(200)] [Bind(Prefix = "webhook_id")] string webhookId)
+    public async Task<IActionResult> PostWebhook([MaxLength(200)] [Bind(Prefix = "webhook_id")] string? webhookId)
     {
         var type = GetEventType();
 
-        var settings =
-            await database.PatreonSettings.FirstOrDefaultAsync(s => s.WebhookId == webhookId && s.Active);
+        var settings = await database.PatreonSettings.FirstOrDefaultAsync(s =>
+            s.Active && (string.IsNullOrEmpty(webhookId) || s.WebhookId == webhookId));
 
         if (settings == null)
+        {
+            logger.LogWarning("Someone tried to set patreon webhook without a valid hook id");
             return this.WorkingForbid("Invalid hook id");
+        }
 
         var verifiedPayload = await CheckSignature(settings);
         logger.LogTrace("Got patreon payload: {VerifiedPayload}", verifiedPayload);
