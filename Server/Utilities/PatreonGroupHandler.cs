@@ -1,6 +1,8 @@
 namespace RevolutionaryWebApp.Server.Utilities;
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
@@ -11,6 +13,7 @@ using Shared.Models;
 
 public static class PatreonGroupHandler
 {
+    public const string SyntheticEmailDomain = "revolutionarygamesstudio.com";
     public const string CommunityDevBuildGroup = "Supporter";
     public const string CommunityVIPGroup = "VIP_supporter";
 
@@ -21,36 +24,50 @@ public static class PatreonGroupHandler
         VIP,
     }
 
-    public static async Task<bool> HandlePatreonPledgeObject(PatreonObjectData? pledge, PatreonObjectData? user,
-        string? rewardId, NotificationsEnabledDb database, IBackgroundJobClient jobClient)
+    public static bool IsSyntheticEmail(string? email)
     {
-        if (pledge?.Attributes.AmountCents == null)
+        return !string.IsNullOrEmpty(email) &&
+            email.StartsWith("noreply+patron-", StringComparison.OrdinalIgnoreCase) &&
+            email.EndsWith("@" + SyntheticEmailDomain, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static async Task<bool> HandlePatreonMemberObject(PatreonObjectData? member, PatreonObjectData? user,
+        IReadOnlyCollection<PatreonObjectData> entitledTiers, NotificationsEnabledDb database,
+        IBackgroundJobClient jobClient)
+    {
+        if (member == null)
             throw new Exception("Invalid patron API object, missing key properties");
 
-        if (rewardId == null)
-            throw new Exception("Invalid patron API object, missing any reward id");
+        if (user == null)
+            throw new Exception("Invalid patron API object, missing user");
 
         // For some reason some users do not have any email associated with them, but otherwise are fine
-        // TODO: we need to keep an eye out to ensure not a lot of users become like this, otherwise we might need to
-        // update to the V2 API.
-        if (user?.Attributes.Email == null)
+        var memberEmail = member.Attributes.Email;
+        if (!string.IsNullOrEmpty(memberEmail))
+            user.Attributes.Email = memberEmail;
+
+        if (user.Attributes.Email == null)
         {
-            if (user?.Attributes.FullName == null)
+            if (user.Attributes.FullName == null)
                 throw new Exception("Invalid patron API object, missing key properties");
 
-            user.Attributes.Email = $"noreply+patron-{Uri.EscapeDataString(user.Id)}@revolutionarygamesstudio.com";
+            user.Attributes.Email = $"noreply+patron-{Uri.EscapeDataString(user.Id)}@{SyntheticEmailDomain}";
         }
 
-        var pledgeCents = pledge.Attributes.AmountCents.Value;
+        var pledgeCents = member.Attributes.CurrentlyEntitledAmountCents ?? 0;
 
-        bool declined = !string.IsNullOrEmpty(pledge.Attributes.DeclinedSince);
+        bool declined = !string.Equals(member.Attributes.PatronStatus, "active_patron",
+            StringComparison.OrdinalIgnoreCase);
 
         var email = user.Attributes.Email?.Trim();
 
         if (string.IsNullOrEmpty(email))
             throw new Exception("Patron object has null email");
 
-        var patron = await database.Patrons.FirstOrDefaultAsync(p => p.Email == email);
+        var tierIds = entitledTiers.Select(tier => tier.Id).Distinct(StringComparer.Ordinal).ToArray();
+        var selectedTierId = tierIds.FirstOrDefault() ?? string.Empty;
+        var patron = await database.Patrons.FirstOrDefaultAsync(p =>
+            p.PatreonMemberId == member.Id || p.PatreonUserId == user.Id || p.Email == email);
 
         var username = user.Attributes.Vanity;
 
@@ -83,7 +100,10 @@ public static class PatreonGroupHandler
                     Username = username,
                     Email = email,
                     PledgeAmountCents = pledgeCents,
-                    RewardId = rewardId,
+                    TierId = selectedTierId,
+                    EntitledTierIds = string.Join(',', tierIds),
+                    PatreonMemberId = member.Id,
+                    PatreonUserId = user.Id,
                     Marked = true,
                 });
 
@@ -120,12 +140,17 @@ public static class PatreonGroupHandler
                 changes = true;
             }
         }
-        else if (patron.RewardId != rewardId || patron.Username != username)
+        else if (patron.TierId != selectedTierId || patron.EntitledTierIds != string.Join(',', tierIds) ||
+                 patron.Username != username || patron.PledgeAmountCents != pledgeCents ||
+                 patron.PatreonMemberId != member.Id || patron.PatreonUserId != user.Id)
         {
             await database.LogEntries.AddAsync(new LogEntry($"A patron ({patron.Id}) has changed their reward or name",
                 "Old name: " + patron.Username));
 
-            patron.RewardId = rewardId;
+            patron.TierId = selectedTierId;
+            patron.EntitledTierIds = string.Join(',', tierIds);
+            patron.PatreonMemberId = member.Id;
+            patron.PatreonUserId = user.Id;
             patron.PledgeAmountCents = pledgeCents;
             patron.Username = username;
             patron.Suspended = false;
@@ -163,10 +188,10 @@ public static class PatreonGroupHandler
         if (patron == null || patron.Suspended == true)
             return RewardGroup.None;
 
-        if (patron.RewardId == settings.VipRewardId)
+        if (settings.IsEntitledToVIP(patron))
             return RewardGroup.VIP;
 
-        if (patron.RewardId == settings.DevbuildsRewardId)
+        if (settings.IsEntitledToDevBuilds(patron))
             return RewardGroup.DevBuild;
 
         return RewardGroup.None;
