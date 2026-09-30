@@ -48,11 +48,14 @@ public static class MediaFileExtensions
                 sizeText = "page-fit";
                 break;
             case MediaFileSize.Thumbnail:
+            {
                 sizeText = "thumb";
 
                 // Thumbnails are always a certain file type
                 extension = AppInfo.MediaPreviewFileExtension;
                 break;
+            }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(size), size, null);
         }

@@ -392,6 +392,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
         switch (ReadAccess)
         {
             case FileAccess.Public:
+            {
                 yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
@@ -399,7 +400,10 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 }, NotificationGroups.FolderContentsUpdatedPublicPrefix + parent);
 
                 break;
+            }
+
             case FileAccess.RestrictedUser:
+            {
                 yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
@@ -407,7 +411,10 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 }, NotificationGroups.FolderContentsUpdatedRestrictedUserPrefix + parent);
 
                 break;
+            }
+
             case FileAccess.User:
+            {
                 yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
@@ -415,8 +422,10 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 }, NotificationGroups.FolderContentsUpdatedUserPrefix + parent);
 
                 break;
+            }
 
             case FileAccess.Patron:
+            {
                 yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
@@ -424,7 +433,10 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 }, NotificationGroups.FolderContentsUpdatedPatronPrefix + parent);
 
                 break;
+            }
+
             case FileAccess.Developer:
+            {
                 yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
@@ -432,7 +444,10 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 }, NotificationGroups.FolderContentsUpdatedDeveloperPrefix + parent);
 
                 break;
+            }
+
             case FileAccess.OwnerOrAdmin:
+            {
                 yield return new Tuple<SerializedNotification, string>(new FolderContentsUpdated
                 {
                     Type = type,
@@ -440,6 +455,7 @@ public class StorageItem : UpdateableModel, IOwneableModel, IUpdateNotifications
                 }, NotificationGroups.FolderContentsUpdatedOwnerPrefix + parent);
 
                 break;
+            }
         }
 
         yield return new Tuple<SerializedNotification, string>(new StorageItemUpdated

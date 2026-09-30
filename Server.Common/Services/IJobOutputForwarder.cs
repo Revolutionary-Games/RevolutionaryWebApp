@@ -1,4 +1,4 @@
-namespace RevolutionaryWebApp.Server.Common.Services;
+﻿namespace RevolutionaryWebApp.Server.Common.Services;
 
 using System;
 using System.Collections.Generic;
@@ -77,22 +77,6 @@ public sealed class SimpleJobOutputForwarder : IJobOutputForwarder, IDisposable
     }
 
     public bool HasOpenSection => openSectionName != null;
-
-    public void Dispose()
-    {
-        cancel = true;
-
-        if (!semaphore.Wait(TimeSpan.FromSeconds(5)))
-        {
-            Console.WriteLine("Output forwarder is still in use when trying to dispose!");
-            return;
-        }
-
-        flushTask?.Wait();
-        flushTask = null;
-        semaphore.Release();
-        semaphore.Dispose();
-    }
 
     public async Task OnNewJobStarted()
     {
@@ -255,6 +239,22 @@ public sealed class SimpleJobOutputForwarder : IJobOutputForwarder, IDisposable
         {
             semaphore.Release();
         }
+    }
+
+    public void Dispose()
+    {
+        cancel = true;
+
+        if (!semaphore.Wait(TimeSpan.FromSeconds(5)))
+        {
+            Console.WriteLine("Output forwarder is still in use when trying to dispose!");
+            return;
+        }
+
+        flushTask?.Wait();
+        flushTask = null;
+        semaphore.Release();
+        semaphore.Dispose();
     }
 
     private async Task WaitAndFlushAsync()

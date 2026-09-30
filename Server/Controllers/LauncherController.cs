@@ -290,11 +290,14 @@ public class LauncherController : Controller
                     b.Platform == request.Platform && b.BuildOfTheDay);
                 break;
             case DevBuildFindByTypeForm.BuildType.Latest:
+            {
                 build = await database.DevBuilds
                     .Where(b => b.Platform == request.Platform && (b.Verified || !b.Anonymous))
                     .OrderByDescending(b => b.Id)
                     .FirstOrDefaultAsync();
                 break;
+            }
+
             default:
                 throw new ArgumentOutOfRangeException();
         }

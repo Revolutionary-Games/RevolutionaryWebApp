@@ -352,7 +352,9 @@ public class ApplicationDbContext : DbContext
                 // Certain groups never have an associated model
                 if (enumValue is GroupType.NotLoggedIn or GroupType.SystemOnly or GroupType.User or GroupType.Max
                     or GroupType.Custom)
+                {
                     continue;
+                }
 
                 defaultGroups.Add(new UserGroup(enumValue, enumValue.ToString()));
             }
@@ -374,7 +376,9 @@ public class ApplicationDbContext : DbContext
                 // See above in the model setup which this needs to match
                 if (enumValue is GroupType.NotLoggedIn or GroupType.SystemOnly or GroupType.User or GroupType.Max
                     or GroupType.Custom)
+                {
                     continue;
+                }
 
                 var data = new UserGroupExtraData(enumValue, now, now)
                 {

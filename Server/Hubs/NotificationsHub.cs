@@ -427,13 +427,18 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.LauncherThriveVersionListUpdated:
             case NotificationGroups.ExecutedMaintenanceOperationListUpdated:
             case NotificationGroups.RemoteRunnersUpdated:
+            {
                 return RequireAccessLevel(GroupType.Admin, user);
+            }
+
             case NotificationGroups.PrivateLFSUpdated:
             case NotificationGroups.PrivateCIProjectUpdated:
             case NotificationGroups.CrashReportListUpdatedPrivate:
             case NotificationGroups.SymbolListUpdated:
             case NotificationGroups.PrivatePrecompiledObjectUpdated:
+            {
                 return RequireAccessLevel(GroupType.Developer, user);
+            }
 
             // TODO: switch this to patron group (Patreon)
             case NotificationGroups.DevBuildsListUpdated:

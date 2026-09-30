@@ -56,7 +56,9 @@ public static class ModelUpdateApplyHelper
 
                 if (oldValue is IEnumerable<object> oldEnumerable &&
                     newValue is IEnumerable<object> newEnumerable && oldEnumerable.SequenceEqual(newEnumerable))
+                {
                     continue;
+                }
             }
 
             changedFields.Add(property.Name);

@@ -1002,6 +1002,7 @@ public class RunnerConnectionHandler : IDisposable
             }
 
             case BuildSectionMessageType.AuthResponse:
+            {
                 logger?.LogWarning("Runner sent an auth response but we weren't expecting one");
                 await ReplyToClient(new RealTimeBuildMessage
                 {
@@ -1009,16 +1010,19 @@ public class RunnerConnectionHandler : IDisposable
                     ErrorMessage = "Server was not expecting auth response at this point",
                 }, processingMaxTime.Token);
                 break;
+            }
 
             case BuildSectionMessageType.AuthDemand:
             case BuildSectionMessageType.AuthSuccess:
             default:
+            {
                 await ReplyToClient(new RealTimeBuildMessage
                 {
                     Type = BuildSectionMessageType.Error,
                     ErrorMessage = "Invalid message type",
                 }, processingMaxTime.Token);
                 break;
+            }
         }
     }
 

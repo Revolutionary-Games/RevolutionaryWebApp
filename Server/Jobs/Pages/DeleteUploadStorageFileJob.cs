@@ -73,11 +73,14 @@ public class DeleteUploadStorageFileJob
                 // No DB changes to save
                 return;
             case RelatedRecordType.MediaFile:
+            {
                 if (mediaFile == null)
                     return;
 
                 database.MediaFiles.Remove(mediaFile);
                 break;
+            }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(otherThingToDelete), otherThingToDelete, null);
         }

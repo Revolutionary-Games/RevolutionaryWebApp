@@ -315,11 +315,14 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
             switch (customTagName)
             {
                 case "puImage":
+                {
                     // This doesn't take parameters
                     if (rawContent[j] != ']')
                         return false;
 
                     break;
+                }
+
                 default:
                     return false;
             }

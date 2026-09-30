@@ -83,8 +83,11 @@ public static class FileAccessHelpers
             case "restrictedusers":
             case "ruser":
             case "rusers":
+            {
                 // ReSharper restore StringLiteralTypo
                 return FileAccess.RestrictedUser;
+            }
+
             case "users":
             case "user":
                 return FileAccess.User;
@@ -101,7 +104,10 @@ public static class FileAccessHelpers
             case "owner + admins":
             case "admins":
             case "admin":
+            {
                 return FileAccess.OwnerOrAdmin;
+            }
+
             case "system":
             case "nobody":
                 return FileAccess.Nobody;

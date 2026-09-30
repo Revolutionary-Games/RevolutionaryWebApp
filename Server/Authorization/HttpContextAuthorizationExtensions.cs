@@ -118,7 +118,9 @@ public static class HttpContextAuthorizationExtensions
     {
         if (!context.Items.TryGetValue(AppInfo.AuthenticationScopeRestrictionMiddleWareKey,
                 out object? restrictionRaw) || restrictionRaw == null)
+        {
             throw new InvalidOperationException("authentication scope restriction was not set");
+        }
 
         return (AuthenticationScopeRestriction)restrictionRaw;
     }
@@ -139,8 +141,7 @@ public static class HttpContextAuthorizationExtensions
         if (context.User.Identity == null ||
             !context.Items.TryGetValue(AppInfo.CurrentUserMiddlewareKey, out object? rawUser) || rawUser == null)
         {
-            throw new InvalidOperationException(
-                "No authenticated user when requested. Should have been checked " +
+            throw new InvalidOperationException("No authenticated user when requested. Should have been checked " +
                 $"before or {nameof(AuthenticatedUser)} should be used");
         }
 

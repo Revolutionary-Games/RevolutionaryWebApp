@@ -134,7 +134,8 @@ public class PatreonConfigurationController : Controller
 
             var details = await patreonCreatorAPI.GetIdentity(client, token, HttpContext.RequestAborted);
             return
-                $"Token is valid. Authenticated as: {details.Data.Attributes.FullName} ({details.Data.Attributes.Email})";
+                $"Token is valid. Authenticated as: {details.Data.Attributes.FullName} " +
+                $"({details.Data.Attributes.Email})";
         }
         catch (Exception e)
         {
@@ -162,8 +163,7 @@ public class PatreonConfigurationController : Controller
     }
 
     [HttpPost("tiers")]
-    public async Task<ActionResult<List<PatreonObjectData>>> GetTiers(
-        [Required] [FromBody] PatreonTiersRequest request)
+    public async Task<ActionResult<List<PatreonObjectData>>> GetTiers([Required] [FromBody] PatreonTiersRequest request)
     {
         try
         {

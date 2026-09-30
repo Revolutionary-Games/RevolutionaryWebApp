@@ -158,12 +158,15 @@ public class BulkEmailController : Controller
         switch (request.RecipientsMode)
         {
             case BulkEmailRecipientsMode.ManualList:
+            {
                 if (request.ManualRecipients == null)
                     throw new Exception("Manual recipients list is missing");
 
                 recipients = request.ManualRecipients.Split('\n').Select(r => r.Trim().TrimEnd(','))
                     .Where(r => !string.IsNullOrWhiteSpace(r));
                 break;
+            }
+
             case BulkEmailRecipientsMode.DevCenterUsers:
                 recipients = await devCenterUsers.Value;
                 break;

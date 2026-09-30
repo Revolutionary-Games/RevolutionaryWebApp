@@ -80,7 +80,7 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
                 context.Result = new UnauthorizedResult();
                 break;
             case HttpContextAuthorizationExtensions.AuthenticationResult.NoAccess:
-
+            {
                 if (AllowAdmin &&
                     context.HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, requiredRestriction))
                 {
@@ -103,6 +103,8 @@ public class AuthorizeGroupMemberFilterAttribute : Attribute, IAsyncAuthorizatio
 
                 context.Result = new ForbidResult();
                 break;
+            }
+
             case HttpContextAuthorizationExtensions.AuthenticationResult.Success:
                 break;
             default:

@@ -631,8 +631,10 @@ public abstract class BasePageController : Controller
                 case '\\':
                 case '`':
                 case >= (char)127:
+                {
                     failure = BadRequest("Permalink cannot have special characters");
                     return false;
+                }
             }
         }
 

@@ -416,13 +416,17 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
             case RecordAccessLevel.Public:
                 break;
             case RecordAccessLevel.Admin:
+            {
                 info.SuspendedUntil = SuspendedUntil;
                 info.SuspendedReason = SuspendedReason;
                 info.SuspendedManually = SuspendedManually;
 
                 // And also add all the private stuff on top
                 goto case RecordAccessLevel.Private;
+            }
+
             case RecordAccessLevel.Private:
+            {
                 info.Email = Email;
                 info.TotalLauncherLinks = TotalLauncherLinks;
                 info.CreatedAt = CreatedAt;
@@ -437,6 +441,8 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
                 info.HasBeenBoardMember = AssociationMember?.HasBeenBoardMember ?? false;
                 info.UploadQuotaUsed = UploadQuotaUsed;
                 break;
+            }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);
         }
@@ -457,17 +463,23 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
             case RecordAccessLevel.Public:
                 break;
             case RecordAccessLevel.Admin:
+            {
                 info.Suspended = Suspended;
 
                 // And also add all the private stuff on top
                 goto case RecordAccessLevel.Private;
+            }
+
             case RecordAccessLevel.Private:
+            {
                 info.Email = Email;
                 info.CreatedAt = CreatedAt;
                 info.UpdatedAt = UpdatedAt;
                 info.Local = Local;
                 info.SsoSource = SsoSource;
                 break;
+            }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(infoLevel), infoLevel, null);
         }

@@ -294,6 +294,7 @@ public class CLAController : Controller
         switch (request.CheckType)
         {
             case CLACheckRequestType.Email:
+            {
                 foreach (var email in rawList)
                 {
                     if (await database.ClaSignatures.FirstOrDefaultAsync(s =>
@@ -304,7 +305,10 @@ public class CLAController : Controller
                 }
 
                 break;
+            }
+
             case CLACheckRequestType.GithubUsername:
+            {
                 foreach (var github in rawList)
                 {
                     if (await database.ClaSignatures.FirstOrDefaultAsync(s =>
@@ -315,6 +319,8 @@ public class CLAController : Controller
                 }
 
                 break;
+            }
+
             default:
                 throw new ArgumentOutOfRangeException();
         }

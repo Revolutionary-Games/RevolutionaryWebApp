@@ -60,7 +60,9 @@ public static class UserGroupDataExtensions
             case GroupType.Developer:
             case GroupType.Admin:
             case GroupType.SystemOnly:
+            {
                 return HasAccessLevel(currentGroups, requiredGroup);
+            }
         }
 
         foreach (var group in currentGroups.Groups)

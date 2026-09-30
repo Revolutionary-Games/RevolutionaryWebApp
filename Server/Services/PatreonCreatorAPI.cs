@@ -71,7 +71,8 @@ public sealed class PatreonCreatorAPI : IPatreonCreatorAPI
                 url = $"https://www.patreon.com/api/oauth2/v2/campaigns/{campaignId}/members" +
                     $"?page%5Bcursor%5D={Uri.EscapeDataString(response.Meta.Pagination.Cursors.Next)}" +
                     "&include=currently_entitled_tiers,user" +
-                    "&fields%5Bmember%5D=email,full_name,patron_status,currently_entitled_amount_cents,last_charge_status" +
+                    "&fields%5Bmember%5D=email,full_name,patron_status," +
+                    "currently_entitled_amount_cents,last_charge_status" +
                     "&fields%5Btier%5D=title,amount_cents" +
                     "&fields%5Buser%5D=email,first_name,full_name,vanity";
             }

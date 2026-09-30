@@ -553,7 +553,10 @@ public class CrashReportController : Controller
             case "freebsd":
             case "openbsd":
             case "sunos":
+            {
                 return ThrivePlatform.Linux;
+            }
+
             default:
                 throw new ArgumentException();
         }
