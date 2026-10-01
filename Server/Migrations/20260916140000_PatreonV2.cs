@@ -2,8 +2,13 @@
 
 #nullable disable
 
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using RevolutionaryWebApp.Server.Models;
+
 namespace RevolutionaryWebApp.Server.Migrations;
 
+[DbContext(typeof(ApplicationDbContext))]
+[Migration("20260916140000_PatreonV2")]
 public partial class PatreonV2 : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
