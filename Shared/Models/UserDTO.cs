@@ -11,6 +11,8 @@ public class UserDTO : ClientSideTimedModel
 
     public string? Email { get; set; }
 
+    public bool UseEmailInTranslationCredits { get; set; }
+
     public bool Local { get; set; }
     public string? SsoSource { get; set; }
 

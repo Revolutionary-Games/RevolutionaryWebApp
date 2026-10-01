@@ -57,6 +57,13 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     [StringLength(120)]
     public string? DisplayName { get; set; }
 
+    /// <summary>
+    ///   Whether Git commits crediting this user's translations may use their real email address.
+    /// </summary>
+    public bool UseEmailInTranslationCredits { get; set; }
+
+    public bool TranslationSubscriptionPromptShown { get; set; }
+
     // TODO: remove (replace as property for when password hash is not null)
     public bool Local { get; set; }
 
@@ -428,6 +435,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
             case RecordAccessLevel.Private:
             {
                 info.Email = Email;
+                info.UseEmailInTranslationCredits = UseEmailInTranslationCredits;
                 info.TotalLauncherLinks = TotalLauncherLinks;
                 info.CreatedAt = CreatedAt;
                 info.UpdatedAt = UpdatedAt;

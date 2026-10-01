@@ -42,6 +42,11 @@ public enum GroupType
     /// </summary>
     PatreonSupporter = 14,
 
+    // Translation groups
+    SourceTextTranslator = 15,
+    TranslationVerifier = 16,
+    DictionaryManager = 17,
+
     // TODO: add association status (though maybe association status is fine to stay with the old system?)
 
     // All custom groups need to have an ID number above this

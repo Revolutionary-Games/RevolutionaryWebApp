@@ -151,6 +151,15 @@ public class GithubWebhookController : Controller
                         x.Execute(build.CiProjectId, build.CiBuildId, CancellationToken.None));
                 }
 
+                foreach (var translationProject in await database.TranslationProjects.Where(p =>
+                             p.Enabled && p.RepositoryFullName == data.Repository.FullName &&
+                             data.Ref == "refs/heads/" + p.SourceBranch).ToListAsync())
+                {
+                    matched = true;
+                    jobClient.Enqueue<ImportTranslationProjectJob>(x =>
+                        x.Execute(translationProject.Id, CancellationToken.None));
+                }
+
                 if (!matched)
                     logger.LogWarning("Push event didn't match any repos: {Fullname}", data.Repository.FullName);
             }

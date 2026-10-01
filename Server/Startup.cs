@@ -621,6 +621,12 @@ public class Startup
         AddJobHelper<FetchMailboxesJob>(configurationSection["FetchMailboxes"]);
         AddJobHelper<MaintainGitHubIssueStatusJob>(configurationSection["MaintainGitHubIssueStatus"]);
         AddJobHelper<DeleteOldPendingSignupsJob>(configurationSection["DeleteOldPendingSignups"]);
+        AddJobHelper<DigestUnreadNotificationsJob>(configurationSection["DigestUnreadNotifications"]);
+        AddJobHelper<PurgeOldTranslationSuggestionsJob>(configurationSection["PurgeOldTranslationSuggestions"]);
+        AddJobHelper<ReportPendingDictionaryRequestsJob>(configurationSection["ReportPendingDictionaryRequests"]);
+        AddJobHelper<ScheduleTranslationPublishesJob>(configurationSection["ScheduleTranslationPublishes"]);
+        AddJobHelper<MonitorTranslationPullRequestsJob>(configurationSection["MonitorTranslationPullRequests"]);
+        AddJobHelper<ReconcileTranslationRepositoriesJob>(configurationSection["ReconcileTranslationRepositories"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
 
