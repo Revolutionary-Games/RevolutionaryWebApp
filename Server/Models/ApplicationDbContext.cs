@@ -13,6 +13,7 @@ using Services;
 using Shared;
 using Shared.Models.Enums;
 using Shared.Notifications;
+using Translations;
 using Utilities;
 
 public class ApplicationDbContext : DbContext
@@ -100,6 +101,23 @@ public class ApplicationDbContext : DbContext
     public DbSet<Mailbox> Mailboxes { get; set; } = null!;
     public DbSet<EmailBounce> EmailBounces { get; set; } = null!;
     public DbSet<PendingUserSignup> PendingUserSignups { get; set; } = null!;
+    public DbSet<TranslationProject> TranslationProjects { get; set; } = null!;
+    public DbSet<TranslationProjectLanguage> TranslationProjectLanguages { get; set; } = null!;
+    public DbSet<TranslationUnit> TranslationUnits { get; set; } = null!;
+    public DbSet<TranslationValue> TranslationValues { get; set; } = null!;
+    public DbSet<TranslationChange> TranslationChanges { get; set; } = null!;
+    public DbSet<TranslationComment> TranslationComments { get; set; } = null!;
+    public DbSet<TranslationSuggestion> TranslationSuggestions { get; set; } = null!;
+    public DbSet<TranslationSuggestionVote> TranslationSuggestionVotes { get; set; } = null!;
+    public DbSet<TranslationDictionary> TranslationDictionaries { get; set; } = null!;
+    public DbSet<DictionaryTerm> DictionaryTerms { get; set; } = null!;
+    public DbSet<DictionaryTermTranslation> DictionaryTermTranslations { get; set; } = null!;
+    public DbSet<DictionaryTermRequest> DictionaryTermRequests { get; set; } = null!;
+    public DbSet<TranslationSubscription> TranslationSubscriptions { get; set; } = null!;
+    public DbSet<UserNotification> UserNotifications { get; set; } = null!;
+    public DbSet<TranslationSyncRun> TranslationSyncRuns { get; set; } = null!;
+    public DbSet<TranslationPullRequest> TranslationPullRequests { get; set; } = null!;
+    public DbSet<TranslationImportConflict> TranslationImportConflicts { get; set; } = null!;
 
     /// <summary>
     ///   If non-null, this will be used to send model update notifications on save
@@ -182,6 +200,7 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        TranslationModelConfiguration.Configure(modelBuilder);
 
         modelBuilder.HasAnnotation("Relational:Collation", "en_GB.UTF-8");
         modelBuilder.UseIdentityColumns();
