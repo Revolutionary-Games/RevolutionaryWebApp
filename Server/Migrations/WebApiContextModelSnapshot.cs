@@ -4310,7 +4310,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("context");
 
                     b.Property<string>("Explanation")
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("explanation");
 
                     b.Property<long?>("LastEditedByUserId")
@@ -4366,7 +4367,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("dictionary_id");
 
                     b.Property<string>("Explanation")
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("explanation");
 
                     b.Property<long>("RequesterUserId")
@@ -4416,7 +4418,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("language_code");
 
                     b.Property<string>("Explanation")
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("explanation");
 
                     b.Property<long?>("LastEditedByUserId")
@@ -4429,7 +4432,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("Text")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("text");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -4497,7 +4501,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("NewText")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("new_text");
 
                     b.Property<int>("OldState")
@@ -4506,7 +4511,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("OldText")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("old_text");
 
                     b.Property<long>("ProjectId")
@@ -4579,7 +4585,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("RawMarkdown")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
                         .HasColumnName("raw_markdown");
 
                     b.HasKey("Id")
@@ -4634,7 +4641,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("IncomingText")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("incoming_text");
 
                     b.Property<string>("Key")
@@ -4651,7 +4659,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("LocalText")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("local_text");
 
                     b.Property<long>("ProjectId")
@@ -4926,7 +4935,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("Text")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("text");
 
                     b.HasKey("Id")
@@ -4987,7 +4997,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("completed_at");
 
                     b.Property<string>("Error")
-                        .HasColumnType("text")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
                         .HasColumnName("error");
 
                     b.Property<long>("ProjectId")
@@ -5040,11 +5051,13 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("active");
 
                     b.Property<string>("Context")
-                        .HasColumnType("text")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
                         .HasColumnName("context");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
                         .HasColumnName("description");
 
                     b.Property<string>("SourceHash")
@@ -5054,11 +5067,13 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("source_hash");
 
                     b.Property<string>("SourceLocations")
-                        .HasColumnType("text")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
                         .HasColumnName("source_locations");
 
                     b.Property<string>("SourcePluralText")
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("source_plural_text");
 
                     b.Property<long>("SourceRevision")
@@ -5067,7 +5082,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("SourceText")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("source_text");
 
                     b.Property<DateTime>("SourceUpdatedAt")
@@ -5109,7 +5125,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("LastImportedText")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("last_imported_text");
 
                     b.Property<long?>("LastPublishedRevision")
@@ -5125,7 +5142,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("pending_since");
 
                     b.Property<string>("PluralFormsJson")
-                        .HasColumnType("text")
+                        .HasMaxLength(100000)
+                        .HasColumnType("character varying(100000)")
                         .HasColumnName("plural_forms_json");
 
                     b.Property<long>("SourceRevisionTranslatedFrom")
@@ -5134,7 +5152,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("SourceTextTranslatedFrom")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("source_text_translated_from");
 
                     b.Property<int>("State")
@@ -5143,7 +5162,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Property<string>("Text")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("text");
 
                     b.Property<Guid>("Version")
@@ -5164,67 +5184,6 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasDatabaseName("ix_translation_values_project_id_language_code_state");
 
                     b.ToTable("translation_values", (string)null);
-                });
-
-            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.UserNotification", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("DeduplicationKey")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("deduplication_key");
-
-                    b.Property<DateTime?>("EmailSentAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("email_sent_at");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("message");
-
-                    b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("read_at");
-
-                    b.Property<string>("TargetPath")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("target_path");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)")
-                        .HasColumnName("type");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_notifications");
-
-                    b.HasIndex("UserId", "DeduplicationKey")
-                        .IsUnique()
-                        .HasDatabaseName("ix_user_notifications_user_id_deduplication_key");
-
-                    b.HasIndex("UserId", "ReadAt", "CreatedAt")
-                        .HasDatabaseName("ix_user_notifications_user_id_read_at_created_at");
-
-                    b.ToTable("user_notifications", (string)null);
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.User", b =>
@@ -5589,6 +5548,68 @@ namespace RevolutionaryWebApp.Server.Migrations
                             CustomDescription = "Inbuilt group, cannot be modified",
                             UpdatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672)
                         });
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserNotification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("deduplication_key");
+
+                    b.Property<DateTime?>("EmailSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("email_sent_at");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("message");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("TargetPath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("target_path");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("type");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_user_notifications");
+
+                    b.HasIndex("UserId", "DeduplicationKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_user_notifications_user_id_deduplication_key");
+
+                    b.HasIndex("UserId", "ReadAt", "CreatedAt")
+                        .HasDatabaseName("ix_user_notifications_user_id_read_at_created_at");
+
+                    b.ToTable("user_notifications", (string)null);
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.WatchedKeyword", b =>
@@ -6727,16 +6748,6 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasConstraintName("fk_translation_values_translation_project_languages_project_id");
                 });
 
-            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.UserNotification", b =>
-                {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_notifications_users_user_id");
-                });
-
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserGroupExtraData", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.UserGroup", "Group")
@@ -6747,6 +6758,16 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasConstraintName("fk_user_groups_extra_data_user_groups_group_id");
 
                     b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserNotification", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_notifications_users_user_id");
                 });
 
             modelBuilder.Entity("UserUserGroup", b =>

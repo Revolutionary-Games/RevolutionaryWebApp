@@ -22,9 +22,7 @@ public sealed class TranslationProjectConfigurationDTO
     [MaxLength(35)]
     public string SourceLanguage { get; set; } = "en";
 
-    [Required]
-    [MaxLength(30)]
-    public string Format { get; set; } = "Gettext";
+    public TranslationFormat Format { get; set; } = TranslationFormat.Gettext;
 
     [MaxLength(240)]
     public string RepositoryFullName { get; set; } = string.Empty;

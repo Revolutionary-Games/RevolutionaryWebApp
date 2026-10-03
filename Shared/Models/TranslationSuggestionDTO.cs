@@ -16,8 +16,7 @@ public sealed class TranslationSuggestionDTO
 
     public int Score { get; set; }
 
-    [MaxLength(30)]
-    public string Status { get; set; } = string.Empty;
+    public TranslationSuggestionStatus Status { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
 }

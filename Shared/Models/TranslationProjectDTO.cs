@@ -18,8 +18,7 @@ public sealed class TranslationProjectDTO
     [MaxLength(35)]
     public string SourceLanguage { get; set; } = string.Empty;
 
-    [MaxLength(30)]
-    public string Format { get; set; } = string.Empty;
+    public TranslationFormat Format { get; set; }
 
     public bool CanAddSourceKeys { get; set; }
 }
