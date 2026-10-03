@@ -5,8 +5,6 @@
 @using RevolutionaryWebApp.Client.Utilities
 @using RevolutionaryWebApp.Client.Models
 @using SharedBase.Utilities
-@using DiffPlex.DiffBuilder
-@using DiffPlex.DiffBuilder.Model
 @using TextCopy
 @inherits PaginatedPage<PageVersionInfo>
 
@@ -71,9 +69,6 @@
                             <td colspan="@columns.Count" class="expanded-box position-relative">
                                 @if (fetchedVersions.TryGetValue(item.Version, out var versionDTO))
                                 {
-                                    var diff = SideBySideDiffBuilder.Instance.BuildDiffModel(PageDTO.LatestContent,
-                                        versionDTO.PageContentAtVersion);
-
                                     <div>
                                         <h5>Version @item.Version Details</h5>
                                         <p>
@@ -84,42 +79,10 @@
                                             <UsernameDisplayer UserId="@versionDTO.EditedById"/>
                                         </p>
 
-                                        <div class="diff-viewer mt-3 mb-3">
-                                            <h6>Side-by-Side Diff (Current vs Version @item.Version)</h6>
-                                            <div class="row g-0 border rounded overflow-hidden">
-                                                <div class="col-6 border-end">
-                                                    <div class="bg-light p-1 border-bottom text-center small">
-                                                        Current
-                                                    </div>
-                                                    <div class="diff-content p-2 small font-monospace">
-                                                        @foreach (var line in diff.OldText.Lines)
-                                                        {
-                                                            <div class="diff-line @GetLineClass(line.Type)">
-                                                                <span class="diff-line-number text-muted me-2">
-                                                                    @(line.Position?.ToString() ?? " ")
-                                                                </span>
-                                                                <span>@line.Text</span>
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                </div>
-                                                <div class="col-6">
-                                                    <div class="bg-light p-1 border-bottom text-center small">
-                                                        Version @item.Version</div>
-                                                    <div class="diff-content p-2 small font-monospace">
-                                                        @foreach (var line in diff.NewText.Lines)
-                                                        {
-                                                            <div class="diff-line @GetLineClass(line.Type)">
-                                                                <span class="diff-line-number text-muted me-2">
-                                                                    @(line.Position?.ToString() ?? " ")
-                                                                </span>
-                                                                <span>@line.Text</span>
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <h6>Side-by-Side Diff (Current vs Version @item.Version)</h6>
+                                        <TextDiffView OldText="@PageDTO.LatestContent"
+                                                      NewText="@versionDTO.PageContentAtVersion"
+                                                      OldLabel="Current" NewLabel="@($"Version {item.Version}")" />
 
                                         <div class="mt-2">
                                             <Button
@@ -258,17 +221,6 @@
         StateHasChanged();
     }
 
-    private string GetLineClass(ChangeType type)
-    {
-        return type switch
-        {
-            ChangeType.Deleted => "diff-deleted",
-            ChangeType.Inserted => "diff-inserted",
-            ChangeType.Modified => "diff-modified",
-            _ => string.Empty,
-        };
-    }
-
     private async Task CopyToClipboard(string text)
     {
         await Clipboard.SetTextAsync(text);
@@ -292,24 +244,3 @@
     }
 
 }
-
-<style>
-    .diff-deleted {
-        background-color: #ffdce0;
-        text-decoration: line-through;
-    }
-
-    .diff-inserted {
-        background-color: #cdffd8;
-    }
-
-    .diff-modified {
-        background-color: #fffbdd;
-    }
-
-    .diff-line {
-        /* This breaks line number alignment so is not used */
-        /*white-space: pre-wrap;*/
-        word-break: break-all;
-    }
-</style>

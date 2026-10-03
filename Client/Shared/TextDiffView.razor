@@ -1,0 +1,81 @@
+@using DiffPlex.DiffBuilder
+@using DiffPlex.DiffBuilder.Model
+
+@{
+    var diff = SideBySideDiffBuilder.Instance.BuildDiffModel(OldText, NewText);
+}
+
+<div class="diff-viewer mt-3 mb-3">
+    <div class="row g-0 border rounded overflow-hidden">
+        <div class="col-6 border-end">
+            <div class="bg-light p-1 border-bottom text-center small">@OldLabel</div>
+            <div class="diff-content p-2 small font-monospace">
+                @foreach (var line in diff.OldText.Lines)
+                {
+                    <div class="diff-line @GetLineClass(line.Type)">
+                        <span class="diff-line-number text-muted me-2">@(line.Position?.ToString() ?? " ")</span>
+                        <span>@line.Text</span>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="bg-light p-1 border-bottom text-center small">@NewLabel</div>
+            <div class="diff-content p-2 small font-monospace">
+                @foreach (var line in diff.NewText.Lines)
+                {
+                    <div class="diff-line @GetLineClass(line.Type)">
+                        <span class="diff-line-number text-muted me-2">@(line.Position?.ToString() ?? " ")</span>
+                        <span>@line.Text</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public string OldText { get; set; } = string.Empty;
+
+    [Parameter]
+    public string NewText { get; set; } = string.Empty;
+
+    [Parameter]
+    public string OldLabel { get; set; } = "Previous";
+
+    [Parameter]
+    public string NewLabel { get; set; } = "Current";
+
+    private static string GetLineClass(ChangeType type)
+    {
+        return type switch
+        {
+            ChangeType.Deleted => "diff-deleted",
+            ChangeType.Inserted => "diff-inserted",
+            ChangeType.Modified => "diff-modified",
+            _ => string.Empty,
+        };
+    }
+
+}
+
+<style>
+    .diff-deleted {
+        background-color: #ffdce0;
+        text-decoration: line-through;
+    }
+
+    .diff-inserted {
+        background-color: #cdffd8;
+    }
+
+    .diff-modified {
+        background-color: #fffbdd;
+    }
+
+    .diff-line {
+        word-break: break-all;
+    }
+</style>
