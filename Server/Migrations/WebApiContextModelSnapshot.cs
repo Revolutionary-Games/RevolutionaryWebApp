@@ -1796,6 +1796,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("secret");
 
+                    b.Property<string>("TranslationPublishingTokenCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("translation_publishing_token_ciphertext");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -4289,6 +4293,940 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("storage_item_versions", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", b =>
+                {
+                    b.Property<long>("DictionaryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dictionary_id");
+
+                    b.Property<string>("Word")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("word");
+
+                    b.Property<string>("Context")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("context");
+
+                    b.Property<string>("Explanation")
+                        .HasColumnType("text")
+                        .HasColumnName("explanation");
+
+                    b.Property<long?>("LastEditedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_edited_by_user_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("DictionaryId", "Word", "Context")
+                        .HasName("pk_dictionary_terms");
+
+                    b.HasIndex("LastEditedByUserId")
+                        .HasDatabaseName("ix_dictionary_terms_last_edited_by_user_id");
+
+                    b.ToTable("dictionary_terms", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTermRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool?>("Approved")
+                        .HasColumnType("boolean")
+                        .HasColumnName("approved");
+
+                    b.Property<string>("Context")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("context");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<long?>("DecidedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("decided_by_user_id");
+
+                    b.Property<long>("DictionaryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dictionary_id");
+
+                    b.Property<string>("Explanation")
+                        .HasColumnType("text")
+                        .HasColumnName("explanation");
+
+                    b.Property<long>("RequesterUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("requester_user_id");
+
+                    b.Property<string>("Word")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("word");
+
+                    b.HasKey("Id")
+                        .HasName("pk_dictionary_term_requests");
+
+                    b.HasIndex("DecidedByUserId")
+                        .HasDatabaseName("ix_dictionary_term_requests_decided_by_user_id");
+
+                    b.HasIndex("RequesterUserId")
+                        .HasDatabaseName("ix_dictionary_term_requests_requester_user_id");
+
+                    b.HasIndex("DictionaryId", "Approved", "CreatedAt")
+                        .HasDatabaseName("ix_dictionary_term_requests_dictionary_id_approved_created_at");
+
+                    b.ToTable("dictionary_term_requests", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTermTranslation", b =>
+                {
+                    b.Property<long>("DictionaryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dictionary_id");
+
+                    b.Property<string>("Word")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("word");
+
+                    b.Property<string>("Context")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("context");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<string>("Explanation")
+                        .HasColumnType("text")
+                        .HasColumnName("explanation");
+
+                    b.Property<long?>("LastEditedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_edited_by_user_id");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("version");
+
+                    b.HasKey("DictionaryId", "Word", "Context", "LanguageCode")
+                        .HasName("pk_dictionary_term_translations");
+
+                    b.HasIndex("LastEditedByUserId")
+                        .HasDatabaseName("ix_dictionary_term_translations_last_edited_by_user_id");
+
+                    b.ToTable("dictionary_term_translations", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationChange", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("ActorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<long?>("ContributorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("contributor_user_id");
+
+                    b.Property<bool>("CountsAsContribution")
+                        .HasColumnType("boolean")
+                        .HasColumnName("counts_as_contribution");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("key");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<int>("NewState")
+                        .HasColumnType("integer")
+                        .HasColumnName("new_state");
+
+                    b.Property<string>("NewText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("new_text");
+
+                    b.Property<int>("OldState")
+                        .HasColumnType("integer")
+                        .HasColumnName("old_state");
+
+                    b.Property<string>("OldText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("old_text");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<long>("ProjectRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_revision");
+
+                    b.Property<long>("SourceRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("source_revision");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_changes");
+
+                    b.HasIndex("ActorUserId")
+                        .HasDatabaseName("ix_translation_changes_actor_user_id");
+
+                    b.HasIndex("ContributorUserId")
+                        .HasDatabaseName("ix_translation_changes_contributor_user_id");
+
+                    b.HasIndex("ProjectId", "Key", "LanguageCode", "CreatedAt")
+                        .HasDatabaseName("ix_translation_changes_project_id_key_language_code_created_at");
+
+                    b.ToTable("translation_changes", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationComment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("edited_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("RawMarkdown")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("raw_markdown");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_comments");
+
+                    b.HasIndex("AuthorUserId")
+                        .HasDatabaseName("ix_translation_comments_author_user_id");
+
+                    b.HasIndex("ProjectId", "Key", "LanguageCode", "CreatedAt")
+                        .HasDatabaseName("ix_translation_comments_project_id_key_language_code_created_at");
+
+                    b.ToTable("translation_comments", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_dictionaries");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_translation_dictionaries_name");
+
+                    b.ToTable("translation_dictionaries", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationImportConflict", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("IncomingText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("incoming_text");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<string>("LocalText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("local_text");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_import_conflicts");
+
+                    b.HasIndex("ProjectId", "Key", "LanguageCode", "ResolvedAt")
+                        .HasDatabaseName("ix_translation_import_conflicts_project_id_key_language_code_r");
+
+                    b.ToTable("translation_import_conflicts", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("CurrentRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("current_revision");
+
+                    b.Property<long?>("DictionaryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dictionary_id");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<int>("Format")
+                        .HasColumnType("integer")
+                        .HasColumnName("format");
+
+                    b.Property<DateTime?>("LastImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_imported_at");
+
+                    b.Property<string>("LastImportedSha")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("last_imported_sha");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("RepositoryFullName")
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)")
+                        .HasColumnName("repository_full_name");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("SourceBranch")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("source_branch");
+
+                    b.Property<string>("SourceFilePattern")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("source_file_pattern");
+
+                    b.Property<string>("SourceLanguage")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("source_language");
+
+                    b.Property<string>("TranslationFilePattern")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("translation_file_pattern");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_projects");
+
+                    b.HasIndex("DictionaryId")
+                        .HasDatabaseName("ix_translation_projects_dictionary_id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_translation_projects_slug");
+
+                    b.HasIndex("RepositoryFullName", "SourceBranch")
+                        .HasDatabaseName("ix_translation_projects_repository_full_name_source_branch");
+
+                    b.ToTable("translation_projects", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", b =>
+                {
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("FilePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("file_path");
+
+                    b.Property<DateTime?>("LastImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_imported_at");
+
+                    b.HasKey("ProjectId", "LanguageCode")
+                        .HasName("pk_translation_project_languages");
+
+                    b.ToTable("translation_project_languages", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationPullRequest", b =>
+                {
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("HeadBranch")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("head_branch");
+
+                    b.Property<string>("HeadSha")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("head_sha");
+
+                    b.Property<DateTime?>("LastCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_checked_at");
+
+                    b.Property<long>("LastPublishedRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_published_revision");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<bool>("Open")
+                        .HasColumnType("boolean")
+                        .HasColumnName("open");
+
+                    b.HasKey("ProjectId")
+                        .HasName("pk_translation_pull_requests");
+
+                    b.ToTable("translation_pull_requests", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSubscription", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("event_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("UserId", "ProjectId", "LanguageCode", "EventType")
+                        .HasName("pk_translation_subscriptions");
+
+                    b.HasIndex("ProjectId", "LanguageCode")
+                        .HasDatabaseName("ix_translation_subscriptions_project_id_language_code");
+
+                    b.ToTable("translation_subscriptions", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<long?>("ResolvedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("resolved_by_user_id");
+
+                    b.Property<long>("SourceRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("source_revision");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_suggestions");
+
+                    b.HasIndex("AuthorUserId")
+                        .HasDatabaseName("ix_translation_suggestions_author_user_id");
+
+                    b.HasIndex("ResolvedByUserId")
+                        .HasDatabaseName("ix_translation_suggestions_resolved_by_user_id");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_translation_suggestions_status_created_at");
+
+                    b.HasIndex("ProjectId", "Key", "LanguageCode")
+                        .HasDatabaseName("ix_translation_suggestions_project_id_key_language_code");
+
+                    b.ToTable("translation_suggestions", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestionVote", b =>
+                {
+                    b.Property<long>("SuggestionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("suggestion_id");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
+
+                    b.HasKey("SuggestionId", "UserId")
+                        .HasName("pk_translation_suggestion_votes");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_translation_suggestion_votes_user_id");
+
+                    b.ToTable("translation_suggestion_votes", null, t =>
+                        {
+                            t.HasCheckConstraint("translation_suggestion_vote_value_check", "value IN (-1, 1)");
+                        });
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSyncRun", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text")
+                        .HasColumnName("error");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("type");
+
+                    b.Property<string>("UpstreamSha")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("upstream_sha");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_sync_runs");
+
+                    b.HasIndex("ProjectId", "StartedAt")
+                        .HasDatabaseName("ix_translation_sync_runs_project_id_started_at");
+
+                    b.ToTable("translation_sync_runs", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationUnit", b =>
+                {
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("key");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<string>("Context")
+                        .HasColumnType("text")
+                        .HasColumnName("context");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("SourceHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("source_hash");
+
+                    b.Property<string>("SourceLocations")
+                        .HasColumnType("text")
+                        .HasColumnName("source_locations");
+
+                    b.Property<string>("SourcePluralText")
+                        .HasColumnType("text")
+                        .HasColumnName("source_plural_text");
+
+                    b.Property<long>("SourceRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("source_revision");
+
+                    b.Property<string>("SourceText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source_text");
+
+                    b.Property<DateTime>("SourceUpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_updated_at");
+
+                    b.HasKey("ProjectId", "Key")
+                        .HasName("pk_translation_units");
+
+                    b.HasIndex("ProjectId", "Active")
+                        .HasDatabaseName("ix_translation_units_project_id_active");
+
+                    b.ToTable("translation_units", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", b =>
+                {
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<DateTime?>("LastEditedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_edited_at");
+
+                    b.Property<long?>("LastEditedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_edited_by_user_id");
+
+                    b.Property<string>("LastImportedText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("last_imported_text");
+
+                    b.Property<long?>("LastPublishedRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_published_revision");
+
+                    b.Property<long?>("PendingRevision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("pending_revision");
+
+                    b.Property<DateTime?>("PendingSince")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("pending_since");
+
+                    b.Property<string>("PluralFormsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("plural_forms_json");
+
+                    b.Property<long>("SourceRevisionTranslatedFrom")
+                        .HasColumnType("bigint")
+                        .HasColumnName("source_revision_translated_from");
+
+                    b.Property<string>("SourceTextTranslatedFrom")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source_text_translated_from");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("version");
+
+                    b.HasKey("ProjectId", "Key", "LanguageCode")
+                        .HasName("pk_translation_values");
+
+                    b.HasIndex("LastEditedByUserId")
+                        .HasDatabaseName("ix_translation_values_last_edited_by_user_id");
+
+                    b.HasIndex("ProjectId", "PendingSince")
+                        .HasDatabaseName("ix_translation_values_project_id_pending_since");
+
+                    b.HasIndex("ProjectId", "LanguageCode", "State")
+                        .HasDatabaseName("ix_translation_values_project_id_language_code_state");
+
+                    b.ToTable("translation_values", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.UserNotification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("deduplication_key");
+
+                    b.Property<DateTime?>("EmailSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("email_sent_at");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("TargetPath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("target_path");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("type");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_user_notifications");
+
+                    b.HasIndex("UserId", "DeduplicationKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_user_notifications_user_id_deduplication_key");
+
+                    b.HasIndex("UserId", "ReadAt", "CreatedAt")
+                        .HasDatabaseName("ix_user_notifications_user_id_read_at_created_at");
+
+                    b.ToTable("user_notifications", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.User", b =>
                 {
                     b.Property<long>("Id")
@@ -4374,6 +5312,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("total_launcher_links");
 
+                    b.Property<bool>("TranslationSubscriptionPromptShown")
+                        .HasColumnType("boolean")
+                        .HasColumnName("translation_subscription_prompt_shown");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -4381,6 +5323,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Property<long>("UploadQuotaUsed")
                         .HasColumnType("bigint")
                         .HasColumnName("upload_quota_used");
+
+                    b.Property<bool>("UseEmailInTranslationCredits")
+                        .HasColumnType("boolean")
+                        .HasColumnName("use_email_in_translation_credits");
 
                     b.Property<string>("UserName")
                         .IsRequired()
@@ -4496,6 +5442,21 @@ namespace RevolutionaryWebApp.Server.Migrations
                         {
                             Id = 14,
                             Name = "PatreonSupporter"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Name = "SourceTextTranslator"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Name = "TranslationVerifier"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Name = "DictionaryManager"
                         });
                 });
 
@@ -4603,6 +5564,27 @@ namespace RevolutionaryWebApp.Server.Migrations
                         new
                         {
                             GroupId = 14,
+                            CreatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672),
+                            CustomDescription = "Inbuilt group, cannot be modified",
+                            UpdatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672)
+                        },
+                        new
+                        {
+                            GroupId = 15,
+                            CreatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672),
+                            CustomDescription = "Inbuilt group, cannot be modified",
+                            UpdatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672)
+                        },
+                        new
+                        {
+                            GroupId = 16,
+                            CreatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672),
+                            CustomDescription = "Inbuilt group, cannot be modified",
+                            UpdatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672)
+                        },
+                        new
+                        {
+                            GroupId = 17,
                             CreatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672),
                             CustomDescription = "Inbuilt group, cannot be modified",
                             UpdatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672)
@@ -5510,6 +6492,249 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("StorageItem");
 
                     b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", null)
+                        .WithMany()
+                        .HasForeignKey("DictionaryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_dictionary_terms_translation_dictionaries_dictionary_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("LastEditedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_dictionary_terms_users_last_edited_by_user_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTermRequest", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_dictionary_term_requests_users_decided_by_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", null)
+                        .WithMany()
+                        .HasForeignKey("DictionaryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_dictionary_term_requests_translation_dictionaries_dictionar");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("RequesterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_dictionary_term_requests_users_requester_user_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTermTranslation", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("LastEditedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_dictionary_term_translations_users_last_edited_by_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", null)
+                        .WithMany()
+                        .HasForeignKey("DictionaryId", "Word", "Context")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_dictionary_term_translations_dictionary_terms_dictionary_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationChange", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_translation_changes_users_actor_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("ContributorUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_translation_changes_users_contributor_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId", "Key", "LanguageCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_changes_translation_values_project_id_key_langu");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationComment", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_comments_users_author_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId", "Key", "LanguageCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_comments_translation_values_project_id_key_lang");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationImportConflict", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId", "Key", "LanguageCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_import_conflicts_translation_values_project_id_");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", null)
+                        .WithMany()
+                        .HasForeignKey("DictionaryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_translation_projects_translation_dictionaries_dictionary_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_project_languages_translation_projects_project_");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationPullRequest", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", null)
+                        .WithOne()
+                        .HasForeignKey("RevolutionaryWebApp.Server.Models.Translations.TranslationPullRequest", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_pull_requests_translation_projects_project_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSubscription", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_subscriptions_users_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId", "LanguageCode")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_subscriptions_translation_project_languages_pro");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestion", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_suggestions_users_author_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_translation_suggestions_users_resolved_by_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId", "Key", "LanguageCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_suggestions_translation_values_project_id_key_l");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestionVote", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestion", null)
+                        .WithMany()
+                        .HasForeignKey("SuggestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_suggestion_votes_translation_suggestions_sugges");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_suggestion_votes_users_user_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSyncRun", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_sync_runs_translation_projects_project_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationUnit", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_units_translation_projects_project_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("LastEditedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_translation_values_users_last_edited_by_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationUnit", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId", "Key")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_values_translation_units_project_id_key");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId", "LanguageCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_values_translation_project_languages_project_id");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.UserNotification", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_notifications_users_user_id");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserGroupExtraData", b =>
