@@ -11,6 +11,7 @@ public class UserNotification
 {
     public long Id { get; set; }
     public long UserId { get; set; }
+    public User User { get; set; } = null!;
 
     [MaxLength(200)]
     public string DeduplicationKey { get; set; } = string.Empty;

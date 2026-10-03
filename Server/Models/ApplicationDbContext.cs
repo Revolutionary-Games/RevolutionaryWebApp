@@ -202,6 +202,20 @@ public class ApplicationDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         TranslationModelConfiguration.Configure(modelBuilder);
 
+        modelBuilder.Entity<UserNotification>(entity =>
+        {
+            entity.HasKey(notification => new { notification.UserId, notification.Id });
+            entity.Property(notification => notification.Id).ValueGeneratedOnAdd();
+            entity.HasIndex(notification => new { notification.UserId, notification.DeduplicationKey }).IsUnique();
+            entity.HasIndex(notification => new
+            {
+                notification.UserId, notification.ReadAt, notification.CreatedAt,
+            });
+            entity.HasOne(notification => notification.User).WithMany(user => user.Notifications)
+                .HasForeignKey(notification => notification.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.HasAnnotation("Relational:Collation", "en_GB.UTF-8");
         modelBuilder.UseIdentityColumns();
         modelBuilder.UseDatabaseTemplate("template0");

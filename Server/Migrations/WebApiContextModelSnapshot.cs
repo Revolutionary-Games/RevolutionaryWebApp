@@ -5552,6 +5552,10 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserNotification", b =>
                 {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
@@ -5589,17 +5593,11 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("target_path");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)")
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
                         .HasColumnName("type");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
+                    b.HasKey("UserId", "Id")
                         .HasName("pk_user_notifications");
 
                     b.HasIndex("UserId", "DeduplicationKey")
@@ -6517,235 +6515,291 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", "Dictionary")
+                        .WithMany("Terms")
                         .HasForeignKey("DictionaryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_dictionary_terms_translation_dictionaries_dictionary_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "LastEditedByUser")
+                        .WithMany("LastEditedDictionaryTerms")
                         .HasForeignKey("LastEditedByUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_dictionary_terms_users_last_edited_by_user_id");
+
+                    b.Navigation("Dictionary");
+
+                    b.Navigation("LastEditedByUser");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTermRequest", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "DecidedByUser")
+                        .WithMany("DecidedDictionaryTermRequests")
                         .HasForeignKey("DecidedByUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_dictionary_term_requests_users_decided_by_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", "Dictionary")
+                        .WithMany("Requests")
                         .HasForeignKey("DictionaryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_dictionary_term_requests_translation_dictionaries_dictionar");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "RequesterUser")
+                        .WithMany("RequestedDictionaryTermRequests")
                         .HasForeignKey("RequesterUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_dictionary_term_requests_users_requester_user_id");
+
+                    b.Navigation("DecidedByUser");
+
+                    b.Navigation("Dictionary");
+
+                    b.Navigation("RequesterUser");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTermTranslation", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "LastEditedByUser")
+                        .WithMany("LastEditedDictionaryTermTranslations")
                         .HasForeignKey("LastEditedByUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_dictionary_term_translations_users_last_edited_by_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", "Term")
+                        .WithMany("Translations")
                         .HasForeignKey("DictionaryId", "Word", "Context")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_dictionary_term_translations_dictionary_terms_dictionary_id");
+
+                    b.Navigation("LastEditedByUser");
+
+                    b.Navigation("Term");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationChange", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "ActorUser")
+                        .WithMany("ActorTranslationChanges")
                         .HasForeignKey("ActorUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_translation_changes_users_actor_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "ContributorUser")
+                        .WithMany("ContributorTranslationChanges")
                         .HasForeignKey("ContributorUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_translation_changes_users_contributor_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", "Value")
+                        .WithMany("Changes")
                         .HasForeignKey("ProjectId", "Key", "LanguageCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_changes_translation_values_project_id_key_langu");
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("ContributorUser");
+
+                    b.Navigation("Value");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationComment", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "AuthorUser")
+                        .WithMany("AuthoredTranslationComments")
                         .HasForeignKey("AuthorUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_comments_users_author_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", "Value")
+                        .WithMany("Comments")
                         .HasForeignKey("ProjectId", "Key", "LanguageCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_comments_translation_values_project_id_key_lang");
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Value");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationImportConflict", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", "Value")
+                        .WithMany("ImportConflicts")
                         .HasForeignKey("ProjectId", "Key", "LanguageCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_import_conflicts_translation_values_project_id_");
+
+                    b.Navigation("Value");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", "Dictionary")
+                        .WithMany("Projects")
                         .HasForeignKey("DictionaryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_translation_projects_translation_dictionaries_dictionary_id");
+
+                    b.Navigation("Dictionary");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", "Project")
+                        .WithMany("Languages")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_project_languages_translation_projects_project_");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationPullRequest", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", null)
-                        .WithOne()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", "Project")
+                        .WithOne("PullRequest")
                         .HasForeignKey("RevolutionaryWebApp.Server.Models.Translations.TranslationPullRequest", "ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_pull_requests_translation_projects_project_id");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSubscription", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
+                        .WithMany("TranslationSubscriptions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_translation_subscriptions_users_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", "ProjectLanguage")
+                        .WithMany("Subscriptions")
                         .HasForeignKey("ProjectId", "LanguageCode")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_translation_subscriptions_translation_project_languages_pro");
+
+                    b.Navigation("ProjectLanguage");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestion", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "AuthorUser")
+                        .WithMany("AuthoredTranslationSuggestions")
                         .HasForeignKey("AuthorUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_suggestions_users_author_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "ResolvedByUser")
+                        .WithMany("ResolvedTranslationSuggestions")
                         .HasForeignKey("ResolvedByUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_translation_suggestions_users_resolved_by_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", "Value")
+                        .WithMany("Suggestions")
                         .HasForeignKey("ProjectId", "Key", "LanguageCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_suggestions_translation_values_project_id_key_l");
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("ResolvedByUser");
+
+                    b.Navigation("Value");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestionVote", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestion", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestion", "Suggestion")
+                        .WithMany("Votes")
                         .HasForeignKey("SuggestionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_translation_suggestion_votes_translation_suggestions_sugges");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
+                        .WithMany("TranslationSuggestionVotes")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_suggestion_votes_users_user_id");
+
+                    b.Navigation("Suggestion");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSyncRun", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", "Project")
+                        .WithMany("SyncRuns")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_sync_runs_translation_projects_project_id");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationUnit", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", "Project")
+                        .WithMany("Units")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_units_translation_projects_project_id");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "LastEditedByUser")
+                        .WithMany("LastEditedTranslationValues")
                         .HasForeignKey("LastEditedByUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_translation_values_users_last_edited_by_user_id");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationUnit", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationUnit", "Unit")
+                        .WithMany("Values")
                         .HasForeignKey("ProjectId", "Key")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_values_translation_units_project_id_key");
 
-                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", "Language")
+                        .WithMany("Values")
                         .HasForeignKey("ProjectId", "LanguageCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_values_translation_project_languages_project_id");
+
+                    b.Navigation("Language");
+
+                    b.Navigation("LastEditedByUser");
+
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserGroupExtraData", b =>
@@ -6762,12 +6816,14 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserNotification", b =>
                 {
-                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
-                        .WithMany()
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
+                        .WithMany("Notifications")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_notifications_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("UserUserGroup", b =>
@@ -6939,13 +6995,74 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("StorageItemVersions");
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", b =>
+                {
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", b =>
+                {
+                    b.Navigation("Projects");
+
+                    b.Navigation("Requests");
+
+                    b.Navigation("Terms");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", b =>
+                {
+                    b.Navigation("Languages");
+
+                    b.Navigation("PullRequest");
+
+                    b.Navigation("SyncRuns");
+
+                    b.Navigation("Units");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProjectLanguage", b =>
+                {
+                    b.Navigation("Subscriptions");
+
+                    b.Navigation("Values");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationSuggestion", b =>
+                {
+                    b.Navigation("Votes");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationUnit", b =>
+                {
+                    b.Navigation("Values");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", b =>
+                {
+                    b.Navigation("Changes");
+
+                    b.Navigation("Comments");
+
+                    b.Navigation("ImportConflicts");
+
+                    b.Navigation("Suggestions");
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.User", b =>
                 {
+                    b.Navigation("ActorTranslationChanges");
+
                     b.Navigation("AssociationMember");
+
+                    b.Navigation("AuthoredTranslationComments");
+
+                    b.Navigation("AuthoredTranslationSuggestions");
 
                     b.Navigation("ChairmanOfMeetings");
 
                     b.Navigation("ClaSignatures");
+
+                    b.Navigation("ContributorTranslationChanges");
 
                     b.Navigation("CreatedDebugSymbols");
 
@@ -6954,6 +7071,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("CreatedPages");
 
                     b.Navigation("CreatedPrecompiledObjects");
+
+                    b.Navigation("DecidedDictionaryTermRequests");
 
                     b.Navigation("DeleterOfFile");
 
@@ -6965,7 +7084,13 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Navigation("LastEditedCrashReportDescriptions");
 
+                    b.Navigation("LastEditedDictionaryTermTranslations");
+
+                    b.Navigation("LastEditedDictionaryTerms");
+
                     b.Navigation("LastEditedPages");
+
+                    b.Navigation("LastEditedTranslationValues");
 
                     b.Navigation("LastModifiedStorageItems");
 
@@ -6979,6 +7104,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Navigation("MemberOfMeetings");
 
+                    b.Navigation("Notifications");
+
                     b.Navigation("OwnerOfMediaFolders");
 
                     b.Navigation("OwnerOfMeetings");
@@ -6991,6 +7118,10 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Navigation("PerformedAdminActions");
 
+                    b.Navigation("RequestedDictionaryTermRequests");
+
+                    b.Navigation("ResolvedTranslationSuggestions");
+
                     b.Navigation("SecretaryOfMeetings");
 
                     b.Navigation("SentBulkEmails");
@@ -7002,6 +7133,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("TargetedByAdminActions");
 
                     b.Navigation("TargetedInLogs");
+
+                    b.Navigation("TranslationSubscriptions");
+
+                    b.Navigation("TranslationSuggestionVotes");
 
                     b.Navigation("UploadedStorageItemVersions");
 
