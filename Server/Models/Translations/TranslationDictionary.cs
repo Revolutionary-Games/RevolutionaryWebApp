@@ -1,9 +1,12 @@
 namespace RevolutionaryWebApp.Server.Models.Translations;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 
+[Index(nameof(Name), IsUnique = true)]
 public class TranslationDictionary
 {
     [Key]
@@ -11,6 +14,10 @@ public class TranslationDictionary
 
     [MaxLength(120)]
     public string Name { get; set; } = string.Empty;
+
+    public ICollection<TranslationProject> Projects { get; set; } = new HashSet<TranslationProject>();
+    public ICollection<DictionaryTerm> Terms { get; set; } = new HashSet<DictionaryTerm>();
+    public ICollection<DictionaryTermRequest> Requests { get; set; } = new HashSet<DictionaryTermRequest>();
 }
 
 public class DictionaryTerm
@@ -28,6 +35,10 @@ public class DictionaryTerm
 
     public long? LastEditedByUserId { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public TranslationDictionary Dictionary { get; set; } = null!;
+    public User? LastEditedByUser { get; set; }
+    public ICollection<DictionaryTermTranslation> Translations { get; set; } = new HashSet<DictionaryTermTranslation>();
 }
 
 public class DictionaryTermTranslation
@@ -53,8 +64,15 @@ public class DictionaryTermTranslation
     public long? LastEditedByUserId { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public Guid Version { get; set; } = Guid.NewGuid();
+
+    [Timestamp]
+    public uint Xmin { get; set; }
+
+    public DictionaryTerm Term { get; set; } = null!;
+    public User? LastEditedByUser { get; set; }
 }
 
+[Index(nameof(DictionaryId), nameof(Approved), nameof(CreatedAt))]
 public class DictionaryTermRequest
 {
     public long Id { get; set; }
@@ -74,4 +92,8 @@ public class DictionaryTermRequest
     public long? DecidedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DecidedAt { get; set; }
+
+    public TranslationDictionary Dictionary { get; set; } = null!;
+    public User RequesterUser { get; set; } = null!;
+    public User? DecidedByUser { get; set; }
 }

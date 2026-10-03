@@ -4441,9 +4441,14 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("updated_at");
 
                     b.Property<Guid>("Version")
-                        .IsConcurrencyToken()
                         .HasColumnType("uuid")
                         .HasColumnName("version");
+
+                    b.Property<uint>("Xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("DictionaryId", "Word", "Context", "LanguageCode")
                         .HasName("pk_dictionary_term_translations");
@@ -5167,9 +5172,14 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("text");
 
                     b.Property<Guid>("Version")
-                        .IsConcurrencyToken()
                         .HasColumnType("uuid")
                         .HasColumnName("version");
+
+                    b.Property<uint>("Xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("ProjectId", "Key", "LanguageCode")
                         .HasName("pk_translation_values");
