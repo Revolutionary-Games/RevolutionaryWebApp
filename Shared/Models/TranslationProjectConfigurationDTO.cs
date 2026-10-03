@@ -6,43 +6,42 @@ using System.ComponentModel.DataAnnotations;
 /// <summary>
 ///   Editable configuration for a translation project backed by a public GitHub repository.
 /// </summary>
-public sealed record TranslationProjectConfigurationDTO
+public sealed class TranslationProjectConfigurationDTO
 {
-    public long Id { get; init; }
+    public long Id { get; set; }
 
     [Required]
     [MaxLength(120)]
-    public string Slug { get; init; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(200)]
-    public string Name { get; init; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(35)]
-    public string SourceLanguage { get; init; } = "en";
+    public string SourceLanguage { get; set; } = "en";
 
     [Required]
-    public string Format { get; init; } = "Gettext";
+    [MaxLength(30)]
+    public string Format { get; set; } = "Gettext";
 
-    [Required]
     [MaxLength(240)]
-    public string RepositoryFullName { get; init; } = string.Empty;
+    public string RepositoryFullName { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(160)]
-    public string SourceBranch { get; init; } = "master";
+    public string SourceBranch { get; set; } = "master";
 
-    [Required]
     [MaxLength(500)]
-    public string SourceFilePath { get; init; } = string.Empty;
+    public string SourceFilePath { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(500)]
-    public string TranslationFilePattern { get; init; } = string.Empty;
+    public string TranslationFilePattern { get; set; } = string.Empty;
 
-    public bool Enabled { get; init; } = true;
-    public long? DictionaryId { get; init; }
-    public DateTimeOffset? LastImportedAt { get; init; }
-    public string? LastImportedSha { get; init; }
+    public bool Enabled { get; set; } = true;
+    public long? DictionaryId { get; set; }
+    public DateTimeOffset? LastImportedAt { get; set; }
+
+    [MaxLength(80)]
+    public string? LastImportedSha { get; set; }
 }
