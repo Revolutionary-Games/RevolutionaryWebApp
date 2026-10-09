@@ -1769,6 +1769,35 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("github_pull_requests", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.GithubToken", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Ciphertext")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("ciphertext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Purpose")
+                        .HasColumnType("integer")
+                        .HasColumnName("purpose");
+
+                    b.HasKey("Id")
+                        .HasName("pk_github_tokens");
+
+                    b.ToTable("github_tokens", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.GithubWebhook", b =>
                 {
                     b.Property<long>("Id")
@@ -1795,10 +1824,6 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("secret");
-
-                    b.Property<string>("TranslationPublishingTokenCiphertext")
-                        .HasColumnType("text")
-                        .HasColumnName("translation_publishing_token_ciphertext");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

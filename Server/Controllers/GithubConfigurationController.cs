@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,7 +9,9 @@ using Authorization;
 using BlazorPagination;
 using DevCenterCommunication.Models;
 using Filters;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
@@ -22,12 +25,14 @@ public class GithubConfigurationController : Controller
 {
     private readonly ILogger<GithubConfigurationController> logger;
     private readonly NotificationsEnabledDb database;
+    private readonly IDataProtectionProvider dataProtectionProvider;
 
     public GithubConfigurationController(ILogger<GithubConfigurationController> logger,
-        NotificationsEnabledDb database)
+        NotificationsEnabledDb database, IDataProtectionProvider dataProtectionProvider)
     {
         this.logger = logger;
         this.database = database;
+        this.dataProtectionProvider = dataProtectionProvider;
     }
 
     [HttpGet("viewSecret")]
@@ -169,6 +174,76 @@ public class GithubConfigurationController : Controller
 
         logger.LogInformation("Github auto comment {Id} deleted by {Email}", comment.Id, user.Email);
         return Ok();
+    }
+
+    [HttpGet("tokens")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
+    public async Task<List<GithubTokenDTO>> GetGithubTokens()
+    {
+        return await database.GithubTokens.AsNoTracking()
+            .OrderByDescending(token => token.CreatedAt)
+            .Select(token => new GithubTokenDTO
+            {
+                Id = token.Id,
+                Purpose = token.Purpose,
+                CreatedAt = token.CreatedAt,
+            })
+            .ToListAsync();
+    }
+
+    [HttpPost("tokens")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
+    public async Task<IActionResult> CreateGithubToken([Required] [FromBody] CreateGithubTokenRequestDTO request)
+    {
+        if (!Enum.IsDefined(request.Purpose))
+            return BadRequest("Invalid GitHub token purpose");
+
+        if (string.IsNullOrWhiteSpace(request.Token))
+            return BadRequest("Token cannot be empty");
+
+        var token = new GithubToken
+        {
+            Purpose = request.Purpose,
+            Ciphertext = CreateProtector(request.Purpose).Protect(request.Token.Trim()),
+        };
+
+        await database.GithubTokens.AddAsync(token);
+        await database.AdminActions.AddAsync(new AdminAction($"GitHub token for {token.Purpose} configured")
+        {
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
+        });
+        await database.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("tokens/{id:long}")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
+    public async Task<IActionResult> DeleteGithubToken([Required] long id)
+    {
+        var token = await database.GithubTokens.FindAsync(id);
+
+        if (token == null)
+            return NotFound();
+
+        database.GithubTokens.Remove(token);
+        await database.AdminActions.AddAsync(new AdminAction($"GitHub token for {token.Purpose} removed")
+        {
+            PerformedById = HttpContext.AuthenticatedUserOrThrow().Id,
+        });
+        await database.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [NonAction]
+    private IDataProtector CreateProtector(GithubTokenPurpose purpose)
+    {
+        var protectionPurpose = purpose switch
+        {
+            GithubTokenPurpose.Translations => GithubToken.TranslationsProtectionPurpose,
+            _ => throw new ArgumentOutOfRangeException(nameof(purpose), purpose, "Unknown GitHub token purpose"),
+        };
+
+        return dataProtectionProvider.CreateProtector(protectionPurpose);
     }
 
     [NonAction]

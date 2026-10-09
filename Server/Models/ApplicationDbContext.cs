@@ -43,6 +43,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<LogEntry> LogEntries { get; set; } = null!;
     public DbSet<ActionLogEntry> ActionLogEntries { get; set; } = null!;
     public DbSet<GithubWebhook> GithubWebhooks { get; set; } = null!;
+    public DbSet<GithubToken> GithubTokens { get; set; } = null!;
     public DbSet<CiProject> CiProjects { get; set; } = null!;
     public DbSet<CiSecret> CiSecrets { get; set; } = null!;
     public DbSet<CiBuild> CiBuilds { get; set; } = null!;

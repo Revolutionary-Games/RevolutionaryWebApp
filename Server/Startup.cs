@@ -328,6 +328,7 @@ public class Startup
         services.AddScoped<IControlledServerSSHAccess, ControlledServerSSHAccess>();
         services.AddScoped<IExternalServerSSHAccess, ExternalServerSSHAccess>();
         services.AddScoped<IGithubCommitStatusReporter, GithubCommitStatusReporter>();
+        services.AddScoped<ITranslationGithubTokenProvider, TranslationGithubTokenProvider>();
         services.AddScoped<DiscordNotifications>();
         services.AddScoped<IMailQueue, MailToQueueSender>();
         services.AddScoped<ICLASignatureStorage, CLASignatureStorage>();
