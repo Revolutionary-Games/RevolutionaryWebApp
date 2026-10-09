@@ -1,0 +1,81 @@
+@page "/translations/dictionaryRequests"
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inject HttpClient Http
+
+<AccessLimited RequiredGroup="GroupType.DictionaryManager" OrHasOverride="GroupType.Admin"
+               RedirectOnInsufficientPermission="true">
+    <h3>Pending dictionary terms</h3>
+
+    @if (requests == null)
+    {
+        <p>Loading requests...</p>
+    }
+    else if (requests.Length == 0)
+    {
+        <p>No requests are pending.</p>
+    }
+    else
+    {
+        @foreach (var request in requests)
+        {
+            <div class="border-bottom py-3">
+                <strong>@request.Word</strong>
+                @if (!string.IsNullOrEmpty(request.Context))
+                {
+                    <small>(@request.Context)</small>
+                }
+                <p>@request.Explanation</p>
+                <small>Requested by
+                    <UsernameDisplayer UserId="@request.RequesterUserId"/>
+                </small>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-primary btn-sm me-2"
+                            @onclick="() => Decide(request.Id, true)">Approve
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm"
+                            @onclick="() => Decide(request.Id, false)">Reject
+                    </button>
+                </div>
+            </div>
+        }
+    }
+
+    <StatusMessageShower Message="@message" Type="@messageType" OnClosed="@HideMessage"/>
+
+    <DevCenterTitle>Dictionary Requests</DevCenterTitle>
+</AccessLimited>
+
+@code {
+    private DictionaryTermRequestDTO[]? requests;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        requests = await Http.GetFromJsonAsync<DictionaryTermRequestDTO[]>("api/v1/translation-dictionaries/requests") ?? [];
+    }
+
+    private async Task Decide(long id, bool approve)
+    {
+        using var response = await Http.PostAsync($"api/v1/translation-dictionaries/requests/{id}/{(approve ? "approve" : "reject")}",
+            null);
+        message = response.IsSuccessStatusCode ? "Request handled." : "Could not handle request.";
+        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+
+        if (response.IsSuccessStatusCode)
+            await Load();
+    }
+
+    private void HideMessage()
+    {
+        message = null;
+    }
+
+}
