@@ -20,6 +20,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using Utilities;
 
@@ -100,7 +101,14 @@ public class ProcessUploadedImageJob
         }
         else if (imageType == ".gif")
         {
-            encoder = new GifEncoder();
+            encoder = new GifEncoder
+            {
+                ColorTableMode = FrameColorTableMode.Global,
+                Quantizer = new WuQuantizer(new QuantizerOptions
+                {
+                    Dither = null,
+                }),
+            };
             mimeType = "image/gif";
         }
         else if (imageType == ".webp")
