@@ -123,14 +123,6 @@ public sealed class TranslationGithubClient : IDisposable
             element.GetProperty("base").GetProperty("ref").GetString() ?? string.Empty, mergeable);
     }
 
-    private async Task<JsonDocument> Get(string path, CancellationToken cancellationToken)
-    {
-        using var response = await client.GetAsync(path, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken) ??
-            throw new InvalidOperationException("Empty GitHub API response");
-    }
-
     private static async Task ValidateFork(HttpResponseMessage response, string sourceRepository,
         CancellationToken cancellationToken)
     {
@@ -142,6 +134,14 @@ public sealed class TranslationGithubClient : IDisposable
                 null;
         if (!string.Equals(parentName, sourceRepository, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Publishing account has an unrelated repository with this name");
+    }
+
+    private async Task<JsonDocument> Get(string path, CancellationToken cancellationToken)
+    {
+        using var response = await client.GetAsync(path, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken) ??
+            throw new InvalidOperationException("Empty GitHub API response");
     }
 }
 
