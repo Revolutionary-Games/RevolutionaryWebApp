@@ -18,5 +18,6 @@
     <PackageReference Include="AngleSharp" Version="1.8.4" />
     <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
     <PackageReference Include="Markdig" Version="1.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
   </ItemGroup>
 </Project>
