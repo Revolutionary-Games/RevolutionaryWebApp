@@ -59,12 +59,12 @@
 
     private async Task Load()
     {
-        requests = await Http.GetFromJsonAsync<DictionaryTermRequestDTO[]>("api/v1/translation-dictionaries/requests") ?? [];
+        requests = await Http.GetFromJsonAsync<DictionaryTermRequestDTO[]>("api/v1/translationDictionaries/requests") ?? [];
     }
 
     private async Task Decide(long id, bool approve)
     {
-        using var response = await Http.PostAsync($"api/v1/translation-dictionaries/requests/{id}/{(approve ? "approve" : "reject")}",
+        using var response = await Http.PostAsync($"api/v1/translationDictionaries/requests/{id}/{(approve ? "approve" : "reject")}",
             null);
         message = response.IsSuccessStatusCode ? "Request handled." : "Could not handle request.";
         messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
