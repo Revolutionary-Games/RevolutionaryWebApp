@@ -2,7 +2,13 @@
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Client.Services
+@using System.Threading
 @inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@implements INotificationHandler<TranslationDictionaryRequestsUpdated>
+@implements IAsyncDisposable
 
 <AccessLimited RequiredGroup="GroupType.DictionaryManager" OrHasOverride="GroupType.Admin"
                RedirectOnInsufficientPermission="true">
@@ -31,12 +37,12 @@
                     <UsernameDisplayer UserId="@request.RequesterUserId"/>
                 </small>
                 <div class="mt-2">
-                    <button type="button" class="btn btn-primary btn-sm me-2"
-                            @onclick="() => Decide(request.Id, true)">Approve
-                    </button>
-                    <button type="button" class="btn btn-outline-danger btn-sm"
-                            @onclick="() => Decide(request.Id, false)">Reject
-                    </button>
+                    <Button Small="true" class="me-2" Enabled="@(!processingRequests)"
+                            Spinner="@(processingRequestId == request.Id)"
+                            OnPressed="@(() => Decide(request.Id, true))">Approve</Button>
+                    <Button Small="true" ButtonStyle="outline-danger" Enabled="@(!processingRequests)"
+                            Spinner="@(processingRequestId == request.Id)"
+                            OnPressed="@(() => Decide(request.Id, false))">Reject</Button>
                 </div>
             </div>
         }
@@ -51,10 +57,13 @@
     private DictionaryTermRequestDTO[]? requests;
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
+    private bool processingRequests;
+    private long? processingRequestId;
 
     protected override async Task OnInitializedAsync()
     {
         await Load();
+        await NotificationHandler.Register(this);
     }
 
     private async Task Load()
@@ -62,20 +71,46 @@
         requests = await Http.GetFromJsonAsync<DictionaryTermRequestDTO[]>("api/v1/translationDictionaries/requests") ?? [];
     }
 
+    public Task Handle(TranslationDictionaryRequestsUpdated notification, CancellationToken cancellationToken) => LoadAndRender();
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.TranslationDictionaryRequestsUpdated);
+    }
+
+    private async Task LoadAndRender()
+    {
+        await Load();
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task Decide(long id, bool approve)
     {
-        using var response = await Http.PostAsync($"api/v1/translationDictionaries/requests/{id}/{(approve ? "approve" : "reject")}",
-            null);
-        message = response.IsSuccessStatusCode ? "Request handled." : "Could not handle request.";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-
-        if (response.IsSuccessStatusCode)
-            await Load();
+        processingRequests = true;
+        processingRequestId = id;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsync(
+                $"api/v1/translationDictionaries/requests/{id}/{(approve ? "approve" : "reject")}", null);
+            message = response.IsSuccessStatusCode ? "Request handled." : "Could not handle request.";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingRequests = false;
+            processingRequestId = null;
+        }
     }
 
     private void HideMessage()
     {
         message = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
     }
 
 }
