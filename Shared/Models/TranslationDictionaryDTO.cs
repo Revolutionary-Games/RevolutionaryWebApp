@@ -1,6 +1,9 @@
 namespace RevolutionaryWebApp.Shared.Models;
 
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using DevCenterCommunication.Models;
 
 /// <summary>
 ///   A dictionary available to one or more translation projects.
@@ -17,9 +20,15 @@ public sealed class TranslationDictionaryDTO
 /// <summary>
 ///   A dictionary word and its translation for one language.
 /// </summary>
-public sealed class DictionaryTermDTO
+public sealed class DictionaryTermDTO : IIdentifiable
 {
     public long DictionaryId { get; set; }
+
+    /// <summary>
+    ///   A client-side identity for use with shared paginated-list components.
+    /// </summary>
+    [JsonIgnore]
+    public long Id => HashCode.Combine(DictionaryId, SourceLanguageCode, Word, Context);
 
     /// <summary>
     ///   The language this word belongs to when it is a language-specific term without an English source.
