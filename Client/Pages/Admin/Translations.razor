@@ -1,0 +1,361 @@
+@page "/admin/translations"
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inject HttpClient Http
+
+<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="true">
+    <h3>Translation Projects</h3>
+    <p>Configure public GitHub repositories, import translations, and publish pending edits.</p>
+
+    @if (projects == null)
+    {
+        <p>Loading projects...</p>
+    }
+    else
+    {
+        <div class="input-group mb-3">
+            <input class="form-control" placeholder="New dictionary name" @bind="dictionaryName"/>
+            <button type="button" class="btn btn-outline-primary" @onclick="CreateDictionary">
+                Create dictionary
+            </button>
+        </div>
+
+        <div class="mb-3">
+            <button type="button" class="btn btn-outline-primary me-2" @onclick="NewProject">
+                New translation project
+            </button>
+            @foreach (var project in projects)
+            {
+                <button type="button" class="btn btn-outline-secondary me-2" @onclick="() => Edit(project)">
+                    @project.Name
+                </button>
+            }
+        </div>
+
+        @if (showForm)
+        {
+            <h4>@(form.Id == 0 ? "New translation project" : $"Edit {form.Name}")</h4>
+            <EditForm Model="form" OnValidSubmit="Save" FormName="translation-project">
+                <DataAnnotationsValidator/>
+                <ValidationSummary/>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="translation-slug" class="form-label">Slug</label>
+                        <InputText id="translation-slug" class="form-control" @bind-Value="form.Slug"/>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="translation-name" class="form-label">Name</label>
+                        <InputText id="translation-name" class="form-control" @bind-Value="form.Name"/>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="translation-format" class="form-label">Translation storage type</label>
+                        <InputSelect id="translation-format" class="form-select" @bind-Value="form.Format">
+                            <option value="@TranslationFormat.Gettext">gettext</option>
+                            <option value="@TranslationFormat.Resx">XML (RESX)</option>
+                            <option value="@TranslationFormat.Manual">Manual keys and text</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="translation-source-language" class="form-label">Source language</label>
+                        <InputText id="translation-source-language" class="form-control"
+                                   @bind-Value="form.SourceLanguage"/>
+                    </div>
+                    @if (form.Format != TranslationFormat.Manual)
+                    {
+                        <div class="col-md-4 mb-3">
+                            <label for="translation-repository" class="form-label">GitHub repository
+                                (owner/name)</label>
+                            <InputText id="translation-repository" class="form-control"
+                                       @bind-Value="form.RepositoryFullName"/>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="translation-branch" class="form-label">Source branch</label>
+                            <InputText id="translation-branch" class="form-control" @bind-Value="form.SourceBranch"/>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="translation-source-path" class="form-label">Template or source file path</label>
+                            <InputText id="translation-source-path" class="form-control"
+                                       @bind-Value="form.SourceFilePath"/>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="translation-target-pattern" class="form-label">Translation file pattern</label>
+                            <InputText id="translation-target-pattern" class="form-control"
+                                       @bind-Value="form.TranslationFilePattern"/>
+                            <small>Use {language} where the language code appears.</small>
+                        </div>
+                    }
+                    <div class="col-md-4 mb-3">
+                        <label for="translation-dictionary" class="form-label">Dictionary</label>
+                        <InputSelect id="translation-dictionary" class="form-select" @bind-Value="form.DictionaryId">
+                            <option value="">None</option>
+                            @foreach (var dictionary in dictionaries)
+                            {
+                                <option value="@dictionary.Id">@dictionary.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+
+                <label class="form-check mb-3">
+                    <InputCheckbox class="form-check-input" @bind-Value="form.Enabled"/>
+                    <span class="form-check-label">Enabled</span>
+                </label>
+
+                <button type="submit" class="btn btn-primary" disabled="@saving">Save project</button>
+                @if (form.Id > 0 && form.Format != TranslationFormat.Manual)
+                {
+                    <button type="button" class="btn btn-outline-primary ms-2" disabled="@saving"
+                            @onclick="QueueImport">Import now
+                    </button>
+                    <button type="button" class="btn btn-outline-primary ms-2" disabled="@saving"
+                            @onclick="QueuePublish">Push translations
+                    </button>
+                }
+                <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CloseForm">Close</button>
+            </EditForm>
+
+            @if (form.Id > 0 && form.Format == TranslationFormat.Manual)
+            {
+                <div class="mt-3">
+                    <h4>Manual project content</h4>
+                    <div class="input-group mb-2">
+                        <input class="form-control" placeholder="Language code, e.g. fi" @bind="newLanguageCode"/>
+                        <input class="form-control" placeholder="Language name" @bind="newLanguageName"/>
+                        <button type="button" class="btn btn-outline-primary" @onclick="AddLanguage">Add language
+                        </button>
+                    </div>
+                    <div class="input-group mb-2">
+                        <input class="form-control" placeholder="Translation key" @bind="newKey"/>
+                        <input class="form-control" placeholder="English source text" @bind="newSourceText"/>
+                        <button type="button" class="btn btn-outline-primary" @onclick="AddKey">Add source key</button>
+                    </div>
+                    <small>Adding a source key requires the SourceTextTranslator group.</small>
+                </div>
+            }
+        }
+
+        @if (showForm && syncStatus != null)
+        {
+            <div class="mt-3">
+                <p>Pending translations: @syncStatus.PendingTranslations
+                    @if (syncStatus.OldestPendingAt != null)
+                    {
+                        <span>(oldest: @syncStatus.OldestPendingAt.Value.ToString("u"))</span>
+                    }
+                </p>
+                @if (syncStatus.PullRequestNumber != null)
+                {
+                    <p>Pull request:
+                        <a href="https://github.com/@form.RepositoryFullName/pull/@syncStatus.PullRequestNumber"
+                           target="_blank" rel="noopener noreferrer">#@syncStatus.PullRequestNumber</a>
+                        (@(syncStatus.PullRequestOpen ? "open" : "closed"))</p>
+                }
+                @if (syncStatus.LastRunStatus != null)
+                {
+                    <p>Latest sync: @syncStatus.LastRunStatus @syncStatus.LastRunError</p>
+                }
+            </div>
+        }
+
+        @if (showForm && conflicts.Length > 0)
+        {
+            <h4 class="mt-3">Incoming translation conflicts</h4>
+            @foreach (var conflict in conflicts)
+            {
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <strong>@conflict.LanguageCode / @conflict.Key</strong>
+                        <p>Local: @conflict.LocalText</p>
+                        <p>Repository: @conflict.IncomingText</p>
+                        <button type="button" class="btn btn-outline-primary me-2"
+                                @onclick="() => ResolveConflict(conflict.Id, true)">Keep local
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary"
+                                @onclick="() => ResolveConflict(conflict.Id, false)">Accept repository
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+
+        <StatusMessageShower Message="@message" Type="@messageType" ExtraCSS="mt-3"/>
+    }
+
+    <DevCenterTitle>Translation Projects</DevCenterTitle>
+</AccessLimited>
+
+@code {
+    private TranslationProjectConfigurationDTO[]? projects;
+    private TranslationDictionaryDTO[] dictionaries = [];
+    private string dictionaryName = string.Empty;
+    private string newLanguageCode = string.Empty;
+    private string newLanguageName = string.Empty;
+    private string newKey = string.Empty;
+    private string newSourceText = string.Empty;
+    private TranslationProjectConfigurationDTO form = new();
+    private bool showForm;
+    private TranslationSyncStatusDTO? syncStatus;
+    private TranslationImportConflictDTO[] conflicts = [];
+    private bool saving;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        projects = await Http.GetFromJsonAsync<TranslationProjectConfigurationDTO[]>("api/v1/admin/translationProjects") ?? [];
+        dictionaries = await Http.GetFromJsonAsync<TranslationDictionaryDTO[]>("api/v1/translationDictionaries") ?? [];
+    }
+
+    private void NewProject()
+    {
+        syncStatus = null;
+        conflicts = [];
+        form = new TranslationProjectConfigurationDTO
+        {
+            Format = TranslationFormat.Gettext,
+        };
+        showForm = true;
+    }
+
+    private async Task Edit(TranslationProjectConfigurationDTO project)
+    {
+        form = new TranslationProjectConfigurationDTO
+        {
+            Id = project.Id, Slug = project.Slug, Name = project.Name, Format = project.Format,
+            SourceLanguage = project.SourceLanguage, RepositoryFullName = project.RepositoryFullName,
+            SourceBranch = project.SourceBranch, SourceFilePath = project.SourceFilePath,
+            TranslationFilePattern = project.TranslationFilePattern, Enabled = project.Enabled,
+            DictionaryId = project.DictionaryId,
+        };
+        showForm = true;
+        await LoadStatus();
+    }
+
+    private void CloseForm()
+    {
+        showForm = false;
+        syncStatus = null;
+        conflicts = [];
+    }
+
+    private async Task Save()
+    {
+        saving = true;
+        try
+        {
+            using var response = form.Id == 0 ?
+                await Http.PostAsJsonAsync("api/v1/admin/translationProjects", form) :
+                await Http.PutAsJsonAsync($"api/v1/admin/translationProjects/{form.Id}", form);
+            message = response.IsSuccessStatusCode ?
+                "Project saved." :
+                $"Save failed: {await response.Content.ReadAsStringAsync()}";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+            {
+                var saved = await response.Content.ReadFromJsonAsync<TranslationProjectConfigurationDTO>();
+                if (saved != null)
+                    form.Id = saved.Id;
+                await Reload();
+                await LoadStatus();
+            }
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task QueueImport()
+    {
+        using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/import", null);
+        message = response.IsSuccessStatusCode ? "Import queued." : "Could not queue import.";
+        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+    }
+
+    private async Task QueuePublish()
+    {
+        using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/publish", null);
+        message = response.IsSuccessStatusCode ? "Publish queued." : "Could not queue publish.";
+        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        await LoadStatus();
+    }
+
+    private async Task AddLanguage()
+    {
+        using var response = await Http.PostAsJsonAsync($"api/v1/admin/translationProjects/{form.Id}/languages",
+            new TranslationLanguageConfigurationRequest
+            {
+                LanguageCode = newLanguageCode, DisplayName = newLanguageName,
+            });
+        message = response.IsSuccessStatusCode ?
+            "Language added." :
+            $"Could not add language: {await response.Content.ReadAsStringAsync()}";
+        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        if (response.IsSuccessStatusCode)
+        {
+            newLanguageCode = string.Empty;
+            newLanguageName = string.Empty;
+        }
+    }
+
+    private async Task AddKey()
+    {
+        using var response = await Http.PostAsJsonAsync($"api/v1/manualTranslationKeys/{form.Id}",
+            new CreateManualTranslationKeyRequest { Key = newKey, SourceText = newSourceText });
+        message = response.IsSuccessStatusCode ?
+            "Source key added." :
+            $"Could not add source key: {await response.Content.ReadAsStringAsync()}";
+        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        if (response.IsSuccessStatusCode)
+        {
+            newKey = string.Empty;
+            newSourceText = string.Empty;
+        }
+    }
+
+    private async Task LoadStatus()
+    {
+        syncStatus = form.Id == 0 ?
+            null :
+            await Http.GetFromJsonAsync<TranslationSyncStatusDTO>($"api/v1/admin/translationProjects/{form.Id}/syncStatus");
+        conflicts = form.Id == 0 ?
+            [] :
+            await Http.GetFromJsonAsync<TranslationImportConflictDTO[]>($"api/v1/admin/translationProjects/{form.Id}/conflicts") ?? [];
+    }
+
+    private async Task ResolveConflict(long id, bool keepLocal)
+    {
+        using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/conflicts/{id}/resolve?keepLocal={keepLocal}", null);
+        message = response.IsSuccessStatusCode ?
+            "Conflict resolved." :
+            $"Could not resolve conflict: {await response.Content.ReadAsStringAsync()}";
+        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        await LoadStatus();
+    }
+
+    private async Task CreateDictionary()
+    {
+        if (string.IsNullOrWhiteSpace(dictionaryName))
+            return;
+
+        using var response = await Http.PostAsJsonAsync("api/v1/translationDictionaries",
+            new CreateDictionaryRequest { Name = dictionaryName.Trim() });
+        message = response.IsSuccessStatusCode ?
+            "Dictionary created." :
+            $"Dictionary creation failed: {await response.Content.ReadAsStringAsync()}";
+        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        if (response.IsSuccessStatusCode)
+        {
+            dictionaryName = string.Empty;
+            await Reload();
+        }
+    }
+
+}
