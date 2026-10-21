@@ -20,6 +20,9 @@ public sealed class TranslationProjectDTO
 
     public TranslationFormat Format { get; set; }
 
+    /// <summary>
+    ///   This is actually the current user permission status.
+    /// </summary>
     public bool CanAddSourceKeys { get; set; }
 }
 
