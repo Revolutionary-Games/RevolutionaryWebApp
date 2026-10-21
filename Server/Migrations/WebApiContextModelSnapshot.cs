@@ -20,7 +20,7 @@ namespace RevolutionaryWebApp.Server.Migrations
             modelBuilder
                 .UseCollation("en_GB.UTF-8")
                 .HasAnnotation("Npgsql:DatabaseTemplate", "template0")
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -4318,6 +4318,49 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("storage_item_versions", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryLanguageTerm", b =>
+                {
+                    b.Property<long>("DictionaryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dictionary_id");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<string>("Word")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("word");
+
+                    b.Property<string>("Context")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("context");
+
+                    b.Property<string>("Explanation")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("explanation");
+
+                    b.Property<long?>("LastEditedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_edited_by_user_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("DictionaryId", "LanguageCode", "Word", "Context")
+                        .HasName("pk_dictionary_language_terms");
+
+                    b.HasIndex("LastEditedByUserId")
+                        .HasDatabaseName("ix_dictionary_language_terms_last_edited_by_user_id");
+
+                    b.ToTable("dictionary_language_terms", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", b =>
                 {
                     b.Property<long>("DictionaryId")
@@ -6548,6 +6591,26 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("UploadedBy");
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryLanguageTerm", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", "Dictionary")
+                        .WithMany("LanguageTerms")
+                        .HasForeignKey("DictionaryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_dictionary_language_terms_translation_dictionaries_dictiona");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "LastEditedByUser")
+                        .WithMany()
+                        .HasForeignKey("LastEditedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_dictionary_language_terms_users_last_edited_by_user_id");
+
+                    b.Navigation("Dictionary");
+
+                    b.Navigation("LastEditedByUser");
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.DictionaryTerm", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", "Dictionary")
@@ -7037,6 +7100,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", b =>
                 {
+                    b.Navigation("LanguageTerms");
+
                     b.Navigation("Projects");
 
                     b.Navigation("Requests");

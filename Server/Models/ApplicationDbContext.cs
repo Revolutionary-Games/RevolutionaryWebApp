@@ -112,6 +112,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TranslationSuggestionVote> TranslationSuggestionVotes { get; set; } = null!;
     public DbSet<TranslationDictionary> TranslationDictionaries { get; set; } = null!;
     public DbSet<DictionaryTerm> DictionaryTerms { get; set; } = null!;
+    public DbSet<DictionaryLanguageTerm> DictionaryLanguageTerms { get; set; } = null!;
     public DbSet<DictionaryTermTranslation> DictionaryTermTranslations { get; set; } = null!;
     public DbSet<DictionaryTermRequest> DictionaryTermRequests { get; set; } = null!;
     public DbSet<TranslationSubscription> TranslationSubscriptions { get; set; } = null!;

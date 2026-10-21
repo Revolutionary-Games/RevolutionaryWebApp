@@ -21,6 +21,13 @@ public sealed class DictionaryTermDTO
 {
     public long DictionaryId { get; set; }
 
+    /// <summary>
+    ///   The language this word belongs to when it is a language-specific term without an English source.
+    /// </summary>
+    public string SourceLanguageCode { get; set; } = "en";
+
+    public bool IsLanguageSpecific { get; set; }
+
     [MaxLength(250)]
     public string Word { get; set; } = string.Empty;
 
@@ -39,6 +46,28 @@ public sealed class DictionaryTermDTO
     public TranslationState State { get; set; }
 
     public long? LastEditedByUserId { get; set; }
+}
+
+/// <summary>
+///   Adds a term that is specific to one non-English dictionary language.
+/// </summary>
+public sealed class CreateDictionaryLanguageTermRequest
+{
+    public long DictionaryId { get; set; }
+
+    [Required]
+    [MaxLength(35)]
+    public string LanguageCode { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(250)]
+    public string Word { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string Context { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Explanation { get; set; }
 }
 
 /// <summary>

@@ -111,6 +111,15 @@ public static class TranslationModelConfiguration
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<DictionaryLanguageTerm>(entity =>
+        {
+            entity.HasKey(t => new { t.DictionaryId, t.LanguageCode, t.Word, t.Context });
+            entity.HasOne(t => t.Dictionary).WithMany(d => d.LanguageTerms).HasForeignKey(t => t.DictionaryId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(t => t.LastEditedByUser).WithMany().HasForeignKey(t => t.LastEditedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<DictionaryTermRequest>(entity =>
         {
             entity.HasOne(r => r.Dictionary).WithMany(d => d.Requests).HasForeignKey(r => r.DictionaryId)

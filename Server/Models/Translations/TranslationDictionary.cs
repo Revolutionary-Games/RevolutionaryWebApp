@@ -17,6 +17,12 @@ public class TranslationDictionary
 
     public ICollection<TranslationProject> Projects { get; set; } = new HashSet<TranslationProject>();
     public ICollection<DictionaryTerm> Terms { get; set; } = new HashSet<DictionaryTerm>();
+
+    /// <summary>
+    ///   Language-specific terms for this dictionary (so ones that don't exist for English, but just for one language)
+    /// </summary>
+    public ICollection<DictionaryLanguageTerm> LanguageTerms { get; set; } = new HashSet<DictionaryLanguageTerm>();
+
     public ICollection<DictionaryTermRequest> Requests { get; set; } = new HashSet<DictionaryTermRequest>();
 }
 
@@ -69,6 +75,32 @@ public class DictionaryTermTranslation
     public uint Xmin { get; set; }
 
     public DictionaryTerm Term { get; set; } = null!;
+    public User? LastEditedByUser { get; set; }
+}
+
+/// <summary>
+///   A term that belongs to a specific language and has no English source term.
+/// </summary>
+public class DictionaryLanguageTerm
+{
+    public long DictionaryId { get; set; }
+
+    [MaxLength(35)]
+    public string LanguageCode { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string Word { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string Context { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Explanation { get; set; }
+
+    public long? LastEditedByUserId { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public TranslationDictionary Dictionary { get; set; } = null!;
     public User? LastEditedByUser { get; set; }
 }
 
