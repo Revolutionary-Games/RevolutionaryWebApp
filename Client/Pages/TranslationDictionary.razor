@@ -1,0 +1,238 @@
+@page "/translations/dictionaries/{DictionaryId:long}"
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ComponentUrlHelper URLHelper
+@inject CurrentUserInfo UserInfo
+@inherits PaginatedPage<DictionaryTermDTO>
+
+<h3>Dictionary @DictionaryId</h3>
+
+<label for="dictionary-language" class="form-label">Language</label>
+<select id="dictionary-language" class="form-select mb-3" @bind="Language" @bind:after="ChangeLanguage">
+    <option value="en">English</option>
+    @foreach (var code in languages.Where(code => code != "en"))
+    {
+        <option value="@(code)">@(code)</option>
+    }
+</select>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger" role="alert">@Error</div>
+}
+else
+{
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="async page => await ChangePage(page)"
+                    OnSortChanged="async column => await ChangeSort(column)"
+                    GetSortClass="@SortClass" ShowContentSpinner="@VisibleFetchInProgress"
+                    Columns="@columns" ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var term in Data.Results)
+            {
+                <tr @key="term.Id">
+                    <td><DictionaryTermEditor Term="@term" LanguageCode="@Language" OnSaved="@RefreshTerms" /></td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+@if (Language != "en")
+{
+    <h4 class="mt-4">Add a @Language-specific term</h4>
+    <p>Use this for a term that is useful in this language and has no English dictionary entry.</p>
+    <div class="mb-2">
+        <label for="local-term-word" class="form-label">Term</label>
+        <input id="local-term-word" class="form-control" @bind="newLanguageWord" />
+    </div>
+    <div class="mb-2">
+        <label for="local-term-context" class="form-label">Context</label>
+        <input id="local-term-context" class="form-control" @bind="newLanguageContext" />
+    </div>
+    <div class="mb-2">
+        <label for="local-term-explanation" class="form-label">Explanation in @Language</label>
+        <textarea id="local-term-explanation" class="form-control" @bind="newLanguageExplanation"></textarea>
+    </div>
+    <button type="button" class="btn btn-outline-primary" @onclick="SubmitLanguageTerm">Add @Language term</button>
+    <StatusMessageShower Message="@languageMessage" Type="@languageMessageType" />
+}
+
+<h4 class="mt-4">Add an English term</h4>
+<p>Anyone can request a word. Dictionary managers can add it directly.</p>
+<div class="mb-2">
+    <label for="new-term-word" class="form-label">Word</label>
+    <input id="new-term-word" class="form-control" @bind="newWord" />
+</div>
+<div class="mb-2">
+    <label for="new-term-context" class="form-label">Context</label>
+    <input id="new-term-context" class="form-control" @bind="newContext" />
+</div>
+<div class="mb-2">
+    <label for="new-term-explanation" class="form-label">English explanation</label>
+    <textarea id="new-term-explanation" class="form-control" @bind="newExplanation"></textarea>
+</div>
+<button type="button" class="btn btn-outline-primary" @onclick="SubmitTerm">
+    @(CanManage ? "Add term" : "Request term")
+</button>
+<StatusMessageShower Message="@message" Type="@messageType" />
+
+<DevCenterTitle>Dictionary</DevCenterTitle>
+
+@code {
+    private readonly List<TableColumn> columns =
+    [
+        new TableColumn("Term", true, nameof(DictionaryTermDTO.Word)),
+    ];
+
+    private string[] languages = [];
+    private long? loadedDictionaryId;
+    private string lastRequestedLanguage = "en";
+    private string newWord = string.Empty;
+    private string newContext = string.Empty;
+    private string? newExplanation;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+    private string newLanguageWord = string.Empty;
+    private string newLanguageContext = string.Empty;
+    private string? newLanguageExplanation;
+    private string? languageMessage;
+    private SiteNoticeType languageMessageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public long DictionaryId { get; set; }
+
+    [QueryStringParameter]
+    public string Language { get; set; } = "en";
+
+    private bool CanManage => UserInfo.HasGroup(GroupType.DictionaryManager) || UserInfo.IsAdmin;
+
+    public TranslationDictionary() : base(new SortHelper(nameof(DictionaryTermDTO.Word), SortDirection.Ascending))
+    {
+        DefaultPageSize = 100;
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(NavManager);
+        return base.SetParametersAsync(parameters);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        bool dictionaryChanged = loadedDictionaryId != DictionaryId;
+        bool languageChanged = lastRequestedLanguage != Language;
+
+        if (dictionaryChanged)
+        {
+            loadedDictionaryId = DictionaryId;
+            languages = await Http.GetFromJsonAsync<string[]>(
+                $"api/v1/translationDictionaries/{DictionaryId}/languages") ?? [];
+        }
+
+        if (languageChanged)
+        {
+            lastRequestedLanguage = Language;
+            if (Data != null)
+                Page = 1;
+        }
+
+        if (Data != null && (dictionaryChanged || languageChanged))
+            await FetchData();
+    }
+
+    protected override Task<PagedResult<DictionaryTermDTO>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<DictionaryTermDTO>>(
+            QueryHelpers.AddQueryString($"api/v1/translationDictionaries/{DictionaryId}/terms", requestParams));
+    }
+
+    protected override Dictionary<string, string?> CreatePageRequestParams()
+    {
+        var result = base.CreatePageRequestParams();
+        result["language"] = Language;
+        return result;
+    }
+
+    protected override void PruneRequestParams(Dictionary<string, string?> queryParams)
+    {
+        base.PruneRequestParams(queryParams);
+        if (Language == "en")
+            queryParams.Remove("language");
+    }
+
+    protected override Task OnQuerySent(Dictionary<string, string?> requestParams)
+    {
+        return URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private async Task ChangeLanguage()
+    {
+        lastRequestedLanguage = Language;
+        Page = 1;
+        await FetchData();
+    }
+
+    private async Task RefreshTerms()
+    {
+        await FetchData();
+    }
+
+    private async Task SubmitTerm()
+    {
+        if (string.IsNullOrWhiteSpace(newWord))
+            return;
+
+        var request = new CreateDictionaryTermRequest
+        {
+            DictionaryId = DictionaryId, Word = newWord, Context = newContext,
+            Explanation = newExplanation,
+        };
+        var endpoint = CanManage ? "api/v1/translationDictionaries/terms" :
+            "api/v1/translationDictionaries/requests";
+        using var response = await Http.PostAsJsonAsync(endpoint, request);
+        message = response.IsSuccessStatusCode ? (CanManage ? "Term added." : "Request sent.") :
+            $"Could not submit term: {await response.Content.ReadAsStringAsync()}";
+        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        if (response.IsSuccessStatusCode)
+        {
+            newWord = string.Empty;
+            newContext = string.Empty;
+            newExplanation = null;
+            Page = 1;
+            await FetchData();
+        }
+    }
+
+    private async Task SubmitLanguageTerm()
+    {
+        if (string.IsNullOrWhiteSpace(newLanguageWord))
+            return;
+
+        using var response = await Http.PostAsJsonAsync("api/v1/translationDictionaries/terms/language",
+            new CreateDictionaryLanguageTermRequest
+            {
+                DictionaryId = DictionaryId,
+                LanguageCode = Language,
+                Word = newLanguageWord,
+                Context = newLanguageContext,
+                Explanation = newLanguageExplanation,
+            });
+        languageMessage = response.IsSuccessStatusCode ? "Language-specific term added." :
+            $"Could not add term: {await response.Content.ReadAsStringAsync()}";
+        languageMessageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        if (response.IsSuccessStatusCode)
+        {
+            newLanguageWord = string.Empty;
+            newLanguageContext = string.Empty;
+            newLanguageExplanation = null;
+            Page = 1;
+            await FetchData();
+        }
+    }
+}
