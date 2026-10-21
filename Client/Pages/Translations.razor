@@ -1,0 +1,67 @@
+@page "/translations"
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inject HttpClient Http
+
+<h3>Translation Projects</h3>
+
+@if (projects == null)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (projects.Length == 0)
+{
+    <p>No translation projects have been created yet.</p>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var project in projects)
+        {
+            <li class="list-group-item">
+                <NavLink href="@($"translations/{project.Slug}")">@project.Name</NavLink>
+                <small class="text-muted ms-2">@project.Format</small>
+            </li>
+        }
+    </ul>
+}
+
+<h4 class="mt-4">Dictionaries</h4>
+<AccessLimited RequiredGroup="GroupType.DictionaryManager"
+               OrHasOverride="GroupType.Admin"
+               AutoRedirectIfNotLoggedIn="false">
+    <p>
+        <NavLink href="translations/dictionaryRequests">Review pending dictionary terms</NavLink>
+    </p>
+</AccessLimited>
+@if (dictionaries.Length == 0)
+{
+    <p>No dictionaries have been created yet.</p>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var dictionary in dictionaries)
+        {
+            <li class="list-group-item">
+                <NavLink href="@($"translations/dictionaries/{dictionary.Id}")">@dictionary.Name</NavLink>
+            </li>
+        }
+    </ul>
+}
+
+<DevCenterTitle>Translations</DevCenterTitle>
+
+@code {
+    private TranslationProjectDTO[]? projects;
+    private TranslationDictionaryDTO[] dictionaries = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        projects = await Http.GetFromJsonAsync<TranslationProjectDTO[]>("api/v1/translations/projects") ?? [];
+        dictionaries = await Http.GetFromJsonAsync<TranslationDictionaryDTO[]>("api/v1/translationDictionaries") ?? [];
+    }
+
+}
