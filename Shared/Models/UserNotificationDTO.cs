@@ -18,8 +18,8 @@ public sealed class UserNotificationDTO
     [MaxLength(1000)]
     public string TargetPath { get; set; } = string.Empty;
 
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset? ReadAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ReadAt { get; set; }
 }
 
 /// <summary>
