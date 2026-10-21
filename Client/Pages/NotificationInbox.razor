@@ -1,0 +1,71 @@
+@page "/notifications"
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<h3>Notifications</h3>
+<StatusMessageShower Message="@message" Type="@messageType"/>
+
+@if (items == null)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (items.Length == 0)
+{
+    <p>No notifications yet.</p>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var item in items)
+        {
+            <li class="list-group-item @(item.ReadAt == null ? "list-group-item-info" : string.Empty)">
+                <a href="@item.TargetPath" @onclick="() => Open(item)" @onclick:preventDefault="true">@item.Message</a>
+                <small class="text-muted ms-2">
+                    <RecentTimeShortener Time="@item.CreatedAt" ShortDisplayCutoff="TimeSpan.FromHours(6)"/>
+                </small>
+            </li>
+        }
+    </ul>
+    @if (items.Length >= 50)
+    {
+        <button type="button" class="btn btn-outline-secondary mt-3" @onclick="LoadMore">Load more</button>
+    }
+}
+
+<DevCenterTitle>Notifications</DevCenterTitle>
+
+@code {
+    private UserNotificationDTO[]? items;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    protected override async Task OnInitializedAsync()
+    {
+        items = await Http.GetFromJsonAsync<UserNotificationDTO[]>("api/v1/userNotifications?offset=0") ?? [];
+    }
+
+    private async Task LoadMore()
+    {
+        var next = await Http.GetFromJsonAsync<UserNotificationDTO[]>($"api/v1/userNotifications?offset={items?.Length ?? 0}") ?? [];
+        items = [.. items ?? [], .. next];
+    }
+
+    private async Task Open(UserNotificationDTO item)
+    {
+        using var response = await Http.PostAsync($"api/v1/userNotifications/{item.Id}/read", null);
+        if (response.IsSuccessStatusCode)
+        {
+            NavManager.NavigateTo(item.TargetPath);
+        }
+        else
+        {
+            message = "Could not open the notification.";
+            messageType = SiteNoticeType.Danger;
+        }
+    }
+
+}
