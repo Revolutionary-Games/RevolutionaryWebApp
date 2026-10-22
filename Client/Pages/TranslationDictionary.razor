@@ -133,6 +133,7 @@ else
     private readonly HashSet<(string Word, string Context)> dirtyEditors = [];
     private readonly HashSet<(string Word, string Context)> savingEditors = [];
     private readonly HashSet<(string Word, string Context)> pendingItemUpdates = [];
+    private bool pendingTermListUpdate;
     private long? registeredDictionaryId;
     private bool updateWarning;
     private bool isSubmittingTerm;
@@ -244,16 +245,18 @@ else
         }
 
         savingEditors.Remove(key);
-        if (pendingItemUpdates.Remove(key))
+        if (savingEditors.Count > 0 || (!pendingTermListUpdate && pendingItemUpdates.Count == 0))
+            return;
+
+        pendingTermListUpdate = false;
+        pendingItemUpdates.Clear();
+        if (dirtyEditors.Count > 0)
         {
-            if (dirtyEditors.Contains(key))
-            {
-                ShowUpdateWarning();
-            }
-            else
-            {
-                await RefreshFromNotification();
-            }
+            ShowUpdateWarning();
+        }
+        else
+        {
+            await RefreshFromNotification();
         }
     }
 
@@ -281,6 +284,12 @@ else
     {
         if (notification.DictionaryId != DictionaryId)
             return Task.CompletedTask;
+
+        if (savingEditors.Count > 0)
+        {
+            pendingTermListUpdate = true;
+            return Task.CompletedTask;
+        }
 
         if (isSubmittingTerm || isSubmittingLanguageTerm)
         {
@@ -387,6 +396,7 @@ else
         newLanguageContext = string.Empty;
         newLanguageExplanation = null;
         dirtyEditors.Clear();
+        pendingTermListUpdate = false;
         ++editorResetVersion;
         updateWarning = false;
         await RefreshFromNotification();
