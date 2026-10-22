@@ -158,6 +158,11 @@ development configuration, logs, or credentials.
 - Read [PROJECT_CONVENTIONS.md](PROJECT_CONVENTIONS.md) whenever changing the
   frontend or creating frontend pages or components. It documents the established
   Blazor, table, button, and realtime notification patterns.
+- Methods and properties should be grouped by visibility. First public, (then internal) then protected, 
+  then private. And all properties should be after a class constructor (if one exists). When adding method add it to 
+  the right section based on visibility rather than immediately where you are making changes. All fields need to be 
+  first in a class, then constructor, then properties, then methods (don't interleave them). And readonly fields 
+  should be before non-readonly ones with the same visibility.
 - Keep API contracts in `Shared/` synchronized with their server controllers
   and client consumers.
 - Put persistence model changes in `Server/Models/` and configure them in
