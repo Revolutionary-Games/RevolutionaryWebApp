@@ -114,7 +114,7 @@ else
 
     private readonly List<TableColumn> columns =
     [
-        new TableColumn("Term", true, nameof(DictionaryTermDTO.Word)),
+        new("Term", true, nameof(DictionaryTermDTO.Word)),
     ];
 
     private string[] languages = [];
@@ -413,7 +413,7 @@ else
         {
             using var response = await Http.PostAsJsonAsync(endpoint, request);
             message = response.IsSuccessStatusCode ?
-                (CanManage ? "Term added." : "Request sent.") :
+                CanManage ? "Term added." : "Request sent." :
                 $"Could not submit term: {await response.Content.ReadAsStringAsync()}";
             messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
             if (response.IsSuccessStatusCode)

@@ -131,7 +131,7 @@ public class TranslationProjectLanguage : IUpdateNotifications
         if (entityState is EntityState.Added or EntityState.Deleted)
             yield return TranslationNotificationHelper.ProjectLanguagesUpdated(ProjectId);
 
-        if (entityState is EntityState.Added or EntityState.Deleted && Project?.DictionaryId is long dictionaryId)
+        if (entityState is EntityState.Added or EntityState.Deleted && Project.DictionaryId is { } dictionaryId)
             yield return TranslationNotificationHelper.DictionaryLanguagesUpdated(dictionaryId);
     }
 }
@@ -381,7 +381,7 @@ public class TranslationSuggestionVote : IUpdateNotifications
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
-        if (Suggestion != null)
+        if (Suggestion != null!)
         {
             yield return TranslationNotificationHelper.SuggestionsUpdated(Suggestion.ProjectId, Suggestion.Key,
                 Suggestion.LanguageCode);

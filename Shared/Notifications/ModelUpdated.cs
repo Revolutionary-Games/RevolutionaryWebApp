@@ -5,8 +5,9 @@ using Models;
 using Models.Pages;
 
 /// <summary>
-///   Notification about a single model page information being updated
+///   Notification about single-model-page information being updated
 /// </summary>
+/// <typeparam name="T">Type of the DTO that was updated</typeparam>
 public abstract class ModelUpdated<T> : SerializedNotification
     where T : class, new()
 {

@@ -12,6 +12,7 @@ using RevolutionaryWebApp.Shared.Notifications;
 /// <summary>
 ///   Base for paginated pages
 /// </summary>
+/// <typeparam name="T">Type of data on the page (usually a DTO class)</typeparam>
 public abstract class PaginatedPage<T> : DataPage<T, PagedResult<T>>
     where T : class, IIdentifiable, new()
 {

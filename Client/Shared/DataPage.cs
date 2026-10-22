@@ -13,6 +13,8 @@ using RevolutionaryWebApp.Shared.Notifications;
 /// <summary>
 ///   Base for data pages that don't use pagination (all data is fetched at once)
 /// </summary>
+/// <typeparam name="T">Single model type</typeparam>
+/// <typeparam name="TData">Type of the page data content (usually a list type)</typeparam>
 public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     where T : class, IIdentifiable, new()
     where TData : class
@@ -65,7 +67,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     public string? Error { get; protected set; }
 
     /// <summary>
-    ///   True when fetching new data. Can be used for example to show a loading spinner
+    ///   True when fetching new data. Can be used, for example, to show a loading spinner
     /// </summary>
     public bool FetchInProgress { get; protected set; }
 
