@@ -133,3 +133,74 @@ Useful existing references include `Client/Shared/DataPage.cs`,
 `Client/Services/NotificationHandler.cs`, `Server/Models/DevBuild.cs`,
 `Server/Models/PrecompiledObject.cs`, `Server/Controllers/EmailBouncesController.cs`,
 and `Server/Controllers/BaseSoftDeletedResourceController.cs`.
+
+## Fontend request example
+
+A complete example of how the frontend should make an API call.
+
+First status display and button:
+```razorhtmldialect
+@inject HttpClient Http
+
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@DismissActionMessage" />
+
+<Button Enabled="@CanPerformAction" ButtonStyle="primary" Spinner="@processing"
+        OnPressed="@(() => RerunBuild(true))">
+    Rerun All
+</Button>
+```
+
+And then the code implementation (note how we make sure the state change applies before the API call fires, 
+and then afterwards we also make sure the state is cleared):
+
+```csharp
+    private bool processing;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
+    
+    private CanPerformAction => !processing;
+
+    private async void RerunBuild(bool all)
+    {
+        processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        HttpResponseMessage result;
+
+        try
+        {
+            result = await Http.PostAsJsonAsync("api/v1/someApiPath", new SomeObjectDTO(...));
+        }
+        catch (HttpRequestException e)
+        {
+            statusMessage = $"Network request failed: {e.Message}";
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        processing = false;
+
+        if (!result.IsSuccessStatusCode)
+        {
+            var content = await result.Content.ReadAsStringAsync();
+
+            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+        }
+        else
+        {
+            statusMessage = "Write here what succeeded";
+            statusMessageType = SiteNoticeType.Info;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private void DismissActionMessage()
+    {
+        createMessage = null;
+        StateHasChanged();
+    }
+```
