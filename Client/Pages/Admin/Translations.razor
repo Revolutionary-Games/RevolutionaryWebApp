@@ -2,7 +2,19 @@
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Client.Services
+@using System.Threading
 @inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@implements INotificationHandler<TranslationProjectListUpdated>
+@implements INotificationHandler<TranslationDictionaryListUpdated>
+@implements INotificationHandler<TranslationProjectUpdated>
+@implements INotificationHandler<TranslationProjectLanguagesUpdated>
+@implements INotificationHandler<TranslationProjectTranslationsUpdated>
+@implements INotificationHandler<TranslationProjectConflictsUpdated>
+@implements INotificationHandler<TranslationProjectSyncStatusUpdated>
+@implements IAsyncDisposable
 
 <AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="true">
     <h3>Translation Projects</h3>
@@ -16,9 +28,9 @@
     {
         <div class="input-group mb-3">
             <input class="form-control" placeholder="New dictionary name" @bind="dictionaryName"/>
-            <button type="button" class="btn btn-outline-primary" @onclick="CreateDictionary">
-                Create dictionary
-            </button>
+            <Button ButtonStyle="outline-primary" Enabled="@(!processingDictionary)"
+                    Spinner="@processingDictionary" OnPressed="@CreateDictionary">Create dictionary
+            </Button>
         </div>
 
         <div class="mb-3">
@@ -36,6 +48,16 @@
         @if (showForm)
         {
             <h4>@(form.Id == 0 ? "New translation project" : $"Edit {form.Name}")</h4>
+            @if (remoteSettingsChanged)
+            {
+                <div class="alert alert-warning" role="alert">
+                    Project settings changed while you were editing. Save your changes or reload the latest settings.
+                    <button type="button" class="btn btn-link p-0 ms-1" @onclick="ReloadSelectedProject">
+                        Reload latest settings
+                    </button>
+                </div>
+            }
+
             <EditForm Model="form" OnValidSubmit="Save" FormName="translation-project">
                 <DataAnnotationsValidator/>
                 <ValidationSummary/>
@@ -103,15 +125,18 @@
                     <span class="form-check-label">Enabled</span>
                 </label>
 
-                <button type="submit" class="btn btn-primary" disabled="@saving">Save project</button>
+                <Button type="submit" ButtonStyle="primary" Enabled="@(!saving)" Spinner="@saving">
+                    Save project
+                </Button>
                 @if (form.Id > 0 && form.Format != TranslationFormat.Manual)
                 {
-                    <button type="button" class="btn btn-outline-primary ms-2" disabled="@saving"
-                            @onclick="QueueImport">Import now
-                    </button>
-                    <button type="button" class="btn btn-outline-primary ms-2" disabled="@saving"
-                            @onclick="QueuePublish">Push translations
-                    </button>
+                    <Button class="ms-2" ButtonStyle="outline-primary" Enabled="@(processingOperation == null)"
+                            Spinner="@(processingOperation == "import")" OnPressed="@QueueImport">Import now
+                    </Button>
+                    <Button class="ms-2" ButtonStyle="outline-primary" Enabled="@(processingOperation == null)"
+                            Spinner="@(processingOperation == "publish")" OnPressed="@QueuePublish">
+                        Push translations
+                    </Button>
                 }
                 <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CloseForm">Close</button>
             </EditForm>
@@ -123,13 +148,18 @@
                     <div class="input-group mb-2">
                         <input class="form-control" placeholder="Language code, e.g. fi" @bind="newLanguageCode"/>
                         <input class="form-control" placeholder="Language name" @bind="newLanguageName"/>
-                        <button type="button" class="btn btn-outline-primary" @onclick="AddLanguage">Add language
-                        </button>
+                        <Button ButtonStyle="outline-primary" Enabled="@(processingOperation == null)"
+                                Spinner="@(processingOperation == "language")" OnPressed="@AddLanguage">
+                            Add language
+                        </Button>
                     </div>
                     <div class="input-group mb-2">
                         <input class="form-control" placeholder="Translation key" @bind="newKey"/>
                         <input class="form-control" placeholder="English source text" @bind="newSourceText"/>
-                        <button type="button" class="btn btn-outline-primary" @onclick="AddKey">Add source key</button>
+                        <Button ButtonStyle="outline-primary" Enabled="@(processingOperation == null)"
+                                Spinner="@(processingOperation == "key")" OnPressed="@AddKey">
+                            Add source key
+                        </Button>
                     </div>
                     <small>Adding a source key requires the SourceTextTranslator group.</small>
                 </div>
@@ -169,12 +199,14 @@
                         <strong>@conflict.LanguageCode / @conflict.Key</strong>
                         <p>Local: @conflict.LocalText</p>
                         <p>Repository: @conflict.IncomingText</p>
-                        <button type="button" class="btn btn-outline-primary me-2"
-                                @onclick="() => ResolveConflict(conflict.Id, true)">Keep local
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary"
-                                @onclick="() => ResolveConflict(conflict.Id, false)">Accept repository
-                        </button>
+                        <Button class="me-2" ButtonStyle="outline-primary" Enabled="@(processingOperation == null)"
+                                Spinner="@(processingOperation == $"conflict-{conflict.Id}")"
+                                OnPressed="@(() => ResolveConflict(conflict.Id, true))">Keep local
+                        </Button>
+                        <Button ButtonStyle="outline-secondary" Enabled="@(processingOperation == null)"
+                                Spinner="@(processingOperation == $"conflict-{conflict.Id}")"
+                                OnPressed="@(() => ResolveConflict(conflict.Id, false))">Accept repository
+                        </Button>
                     </div>
                 </div>
             }
@@ -195,22 +227,131 @@
     private string newKey = string.Empty;
     private string newSourceText = string.Empty;
     private TranslationProjectConfigurationDTO form = new();
+    private TranslationProjectConfigurationDTO? loadedForm;
     private bool showForm;
     private TranslationSyncStatusDTO? syncStatus;
     private TranslationImportConflictDTO[] conflicts = [];
     private bool saving;
+    private bool processingDictionary;
+    private string? processingOperation;
+    private bool remoteSettingsChanged;
+    private bool registered;
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    private bool HasUnsavedSettings => loadedForm == null ||
+        form.Id != loadedForm.Id || form.Slug != loadedForm.Slug || form.Name != loadedForm.Name ||
+        form.Format != loadedForm.Format || form.SourceLanguage != loadedForm.SourceLanguage ||
+        form.RepositoryFullName != loadedForm.RepositoryFullName || form.SourceBranch != loadedForm.SourceBranch ||
+        form.SourceFilePath != loadedForm.SourceFilePath ||
+        form.TranslationFilePattern != loadedForm.TranslationFilePattern || form.Enabled != loadedForm.Enabled ||
+        form.DictionaryId != loadedForm.DictionaryId;
+
+    public Task Handle(TranslationProjectListUpdated notification, CancellationToken cancellationToken)
+    {
+        return ReloadAndRender();
+    }
+
+    public Task Handle(TranslationDictionaryListUpdated notification, CancellationToken cancellationToken)
+    {
+        return ReloadAndRender();
+    }
+
+    public async Task Handle(TranslationProjectUpdated notification, CancellationToken cancellationToken)
+    {
+        if (!showForm || notification.ProjectId != form.Id || saving)
+            return;
+
+        if (HasUnsavedSettings)
+        {
+            remoteSettingsChanged = true;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        await ReloadSelectedProject();
+    }
+
+    public Task Handle(TranslationProjectLanguagesUpdated notification, CancellationToken cancellationToken)
+    {
+        // TODO: should this reload something here?
+        return Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationProjectTranslationsUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.ProjectId == form.Id ? ReloadStatusAndRender() : Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationProjectConflictsUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.ProjectId == form.Id ? ReloadStatusAndRender() : Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationProjectSyncStatusUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.ProjectId == form.Id ? ReloadStatusAndRender() : Task.CompletedTask;
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.TranslationProjectListUpdated);
+        groups.Add(NotificationGroups.TranslationDictionaryListUpdated);
+        if (form.Id > 0)
+            groups.Add(NotificationGroups.TranslationProjectUpdatedPrefix + form.Id);
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await Reload();
+        await NotificationHandler.Register<TranslationProjectListUpdated>(this);
+        registered = true;
+    }
+
+    private static TranslationProjectConfigurationDTO Copy(TranslationProjectConfigurationDTO project)
+    {
+        return new TranslationProjectConfigurationDTO
+        {
+            Id = project.Id, Slug = project.Slug, Name = project.Name, Format = project.Format,
+            SourceLanguage = project.SourceLanguage, RepositoryFullName = project.RepositoryFullName,
+            SourceBranch = project.SourceBranch, SourceFilePath = project.SourceFilePath,
+            TranslationFilePattern = project.TranslationFilePattern, Enabled = project.Enabled,
+            DictionaryId = project.DictionaryId,
+        };
     }
 
     private async Task Reload()
     {
         projects = await Http.GetFromJsonAsync<TranslationProjectConfigurationDTO[]>("api/v1/admin/translationProjects") ?? [];
         dictionaries = await Http.GetFromJsonAsync<TranslationDictionaryDTO[]>("api/v1/translationDictionaries") ?? [];
+    }
+
+    private async Task ReloadAndRender()
+    {
+        await Reload();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ReloadStatusAndRender()
+    {
+        await LoadStatus();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ReloadSelectedProject()
+    {
+        var selectedId = form.Id;
+        await Reload();
+        var selected = projects?.FirstOrDefault(project => project.Id == selectedId);
+        if (selected != null)
+        {
+            form = Copy(selected);
+            loadedForm = Copy(form);
+            remoteSettingsChanged = false;
+            await LoadStatus();
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void NewProject()
@@ -221,20 +362,19 @@
         {
             Format = TranslationFormat.Gettext,
         };
+        loadedForm = Copy(form);
         showForm = true;
+        remoteSettingsChanged = false;
+        _ = NotificationHandler.NotifyWantedGroupsChanged();
     }
 
     private async Task Edit(TranslationProjectConfigurationDTO project)
     {
-        form = new TranslationProjectConfigurationDTO
-        {
-            Id = project.Id, Slug = project.Slug, Name = project.Name, Format = project.Format,
-            SourceLanguage = project.SourceLanguage, RepositoryFullName = project.RepositoryFullName,
-            SourceBranch = project.SourceBranch, SourceFilePath = project.SourceFilePath,
-            TranslationFilePattern = project.TranslationFilePattern, Enabled = project.Enabled,
-            DictionaryId = project.DictionaryId,
-        };
+        form = Copy(project);
+        loadedForm = Copy(form);
         showForm = true;
+        remoteSettingsChanged = false;
+        await NotificationHandler.NotifyWantedGroupsChanged();
         await LoadStatus();
     }
 
@@ -243,11 +383,16 @@
         showForm = false;
         syncStatus = null;
         conflicts = [];
+        remoteSettingsChanged = false;
+        _ = NotificationHandler.NotifyWantedGroupsChanged();
     }
 
     private async Task Save()
     {
         saving = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
         try
         {
             using var response = form.Id == 0 ?
@@ -261,63 +406,140 @@
             {
                 var saved = await response.Content.ReadFromJsonAsync<TranslationProjectConfigurationDTO>();
                 if (saved != null)
-                    form.Id = saved.Id;
-                await Reload();
-                await LoadStatus();
+                    form = Copy(saved);
+                loadedForm = Copy(form);
+                remoteSettingsChanged = false;
+                await NotificationHandler.NotifyWantedGroupsChanged();
             }
+        }
+        catch (Exception e)
+        {
+            message = "Failed: " + e.Message;
+            messageType = SiteNoticeType.Danger;
         }
         finally
         {
             saving = false;
         }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task QueueImport()
     {
-        using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/import", null);
-        message = response.IsSuccessStatusCode ? "Import queued." : "Could not queue import.";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        processingOperation = "import";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/import", null);
+            message = response.IsSuccessStatusCode ? "Import queued." : "Could not queue import.";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        }
+        catch (Exception e)
+        {
+            message = "Failed: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingOperation = null;
+        }
     }
 
     private async Task QueuePublish()
     {
-        using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/publish", null);
-        message = response.IsSuccessStatusCode ? "Publish queued." : "Could not queue publish.";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-        await LoadStatus();
+        processingOperation = "publish";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/publish", null);
+            message = response.IsSuccessStatusCode ? "Publish queued." : "Could not queue publish.";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        }
+        catch (Exception e)
+        {
+            message = "Failed: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingOperation = null;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task AddLanguage()
     {
-        using var response = await Http.PostAsJsonAsync($"api/v1/admin/translationProjects/{form.Id}/languages",
-            new TranslationLanguageConfigurationRequest
-            {
-                LanguageCode = newLanguageCode, DisplayName = newLanguageName,
-            });
-        message = response.IsSuccessStatusCode ?
-            "Language added." :
-            $"Could not add language: {await response.Content.ReadAsStringAsync()}";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-        if (response.IsSuccessStatusCode)
+        processingOperation = "language";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
         {
-            newLanguageCode = string.Empty;
-            newLanguageName = string.Empty;
+            using var response = await Http.PostAsJsonAsync($"api/v1/admin/translationProjects/{form.Id}/languages",
+                new TranslationLanguageConfigurationRequest
+                {
+                    LanguageCode = newLanguageCode, DisplayName = newLanguageName,
+                });
+            message = response.IsSuccessStatusCode ?
+                "Language added." :
+                $"Could not add language: {await response.Content.ReadAsStringAsync()}";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+            {
+                newLanguageCode = string.Empty;
+                newLanguageName = string.Empty;
+            }
         }
+        catch (Exception e)
+        {
+            message = "Failed: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingOperation = null;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task AddKey()
     {
-        using var response = await Http.PostAsJsonAsync($"api/v1/manualTranslationKeys/{form.Id}",
-            new CreateManualTranslationKeyRequest { Key = newKey, SourceText = newSourceText });
-        message = response.IsSuccessStatusCode ?
-            "Source key added." :
-            $"Could not add source key: {await response.Content.ReadAsStringAsync()}";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-        if (response.IsSuccessStatusCode)
+        processingOperation = "key";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
         {
-            newKey = string.Empty;
-            newSourceText = string.Empty;
+            using var response = await Http.PostAsJsonAsync($"api/v1/manualTranslationKeys/{form.Id}",
+                new CreateManualTranslationKeyRequest { Key = newKey, SourceText = newSourceText });
+            message = response.IsSuccessStatusCode ?
+                "Source key added." :
+                $"Could not add source key: {await response.Content.ReadAsStringAsync()}";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+            {
+                newKey = string.Empty;
+                newSourceText = string.Empty;
+            }
         }
+        catch (Exception e)
+        {
+            message = "Failed: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingOperation = null;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadStatus()
@@ -332,12 +554,30 @@
 
     private async Task ResolveConflict(long id, bool keepLocal)
     {
-        using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/conflicts/{id}/resolve?keepLocal={keepLocal}", null);
-        message = response.IsSuccessStatusCode ?
-            "Conflict resolved." :
-            $"Could not resolve conflict: {await response.Content.ReadAsStringAsync()}";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-        await LoadStatus();
+        processingOperation = $"conflict-{id}";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/conflicts/{id}/" +
+                $"resolve?keepLocal={keepLocal}", null);
+            message = response.IsSuccessStatusCode ?
+                "Conflict resolved." :
+                $"Could not resolve conflict: {await response.Content.ReadAsStringAsync()}";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+        }
+        catch (Exception e)
+        {
+            message = "Failed: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingOperation = null;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task CreateDictionary()
@@ -345,17 +585,38 @@
         if (string.IsNullOrWhiteSpace(dictionaryName))
             return;
 
-        using var response = await Http.PostAsJsonAsync("api/v1/translationDictionaries",
-            new CreateDictionaryRequest { Name = dictionaryName.Trim() });
-        message = response.IsSuccessStatusCode ?
-            "Dictionary created." :
-            $"Dictionary creation failed: {await response.Content.ReadAsStringAsync()}";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-        if (response.IsSuccessStatusCode)
+        processingDictionary = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
         {
-            dictionaryName = string.Empty;
-            await Reload();
+            using var response = await Http.PostAsJsonAsync("api/v1/translationDictionaries",
+                new CreateDictionaryRequest { Name = dictionaryName.Trim() });
+            message = response.IsSuccessStatusCode ?
+                "Dictionary created." :
+                $"Dictionary creation failed: {await response.Content.ReadAsStringAsync()}";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+                dictionaryName = string.Empty;
         }
+        catch (Exception e)
+        {
+            message = "Failed: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingDictionary = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (registered)
+            await NotificationHandler.Unregister<TranslationProjectListUpdated>(this);
     }
 
 }
