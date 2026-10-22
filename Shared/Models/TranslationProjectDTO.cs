@@ -1,11 +1,12 @@
 namespace RevolutionaryWebApp.Shared.Models;
 
 using System.ComponentModel.DataAnnotations;
+using DevCenterCommunication.Models;
 
 /// <summary>
 ///   One translation project shown in the public catalog.
 /// </summary>
-public sealed class TranslationProjectDTO
+public sealed class TranslationProjectDTO : IIdentifiable
 {
     public long Id { get; set; }
 
